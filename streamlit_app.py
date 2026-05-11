@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import streamlit.components.v1 as components
 from datetime import datetime
 
 st.set_page_config(
@@ -169,7 +170,6 @@ params = st.query_params
 overlay_mode = params.get("overlay", "0") == "1"
 
 if overlay_mode:
-
     top = get_leaderboard()
 
     st.markdown("""
@@ -222,21 +222,14 @@ if overlay_mode:
     """, unsafe_allow_html=True)
 
     if not top.empty:
-
         username = top.iloc[0]["Viewer"]
         braincells = int(top.iloc[0]["Gehirnzellen"])
         chickens = int(top.iloc[0]["Chickens"])
 
         st.markdown(f"""
         <div class="top-box">
-            <div class="top-title">
-                🏆 TOP GEHIRNZELLE
-            </div>
-
-            <div class="top-user">
-                {username}
-            </div>
-
+            <div class="top-title">🏆 TOP GEHIRNZELLE</div>
+            <div class="top-user">{username}</div>
             <div class="top-points">
                 🧠 {braincells} Gehirnzellen<br>
                 🥚 {chickens} Chickens
@@ -260,8 +253,8 @@ st.markdown("""
 }
 
 .block-container {
-    padding-top: 2rem;
-    max-width: 1200px;
+    padding-top: 1.5rem;
+    max-width: 1250px;
 }
 
 h1 {
@@ -276,7 +269,34 @@ h1 {
     text-align: center;
     color: #aaa0b8;
     font-size: 20px;
-    margin-bottom: 40px;
+    margin-bottom: 35px;
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: rgba(10, 8, 15, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(157, 78, 221, 0.25);
+    border-radius: 18px;
+    padding: 12px 18px;
+    margin-bottom: 25px;
+    box-shadow: 0 0 25px rgba(157, 78, 221, 0.18);
+}
+
+.brand {
+    font-weight: 900;
+    color: #c77dff;
+    font-size: 18px;
+}
+
+.info-card {
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 22px;
+    padding: 24px;
+    min-height: 150px;
 }
 
 .metric-card {
@@ -340,37 +360,79 @@ h1 {
     font-weight: 800;
 }
 
+.stRadio > div {
+    justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(157,78,221,0.25);
+    border-radius: 18px;
+    padding: 10px;
+}
+
+a {
+    color: #c77dff !important;
+    text-decoration: none;
+    font-weight: 800;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 # ---------- REWARDS ----------
 rewards = [
-
     {
         "name": "⭐ 1 Woche VIP",
         "price": 10000,
         "desc": "Erhalte für 1 Woche VIP auf dem Twitch-Kanal"
     },
-
     {
         "name": "🎮 Steam Random Key",
         "price": 50000,
         "desc": "Bekomme einen zufälligen Steam Key"
     },
-
     {
         "name": "💬 Discord Frage",
         "price": 5000,
         "desc": "Komm in den Discord und stell mir eine Frage"
     },
-
     {
         "name": "🖼️ Zuschauerbild neben Facecam",
         "price": 2500,
         "desc": "Der Streamer nutzt für 1 Tag dein gemaltes Bild neben der Facecam"
     },
-
 ]
+
+# ---------- TOPBAR ----------
+leaderboard = get_leaderboard()
+
+total_users = len(leaderboard)
+total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
+total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
+
+st.markdown(f"""
+<div class="topbar">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+        <div class="brand">🧠 Gehirnzone</div>
+        <div style="color:#aaa0b8;">
+            🥚 {total_chickens} &nbsp;&nbsp; | &nbsp;&nbsp; 🧠 {total_braincells}
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+menu = st.radio(
+    "",
+    [
+        "🏠 Home",
+        "🛒 Shop",
+        "🏆 Rangliste",
+        "⚡ Events",
+        "😂 Memes",
+        "💬 Twitch Chat",
+        "🔐 Admin"
+    ],
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
 # ---------- HEADER ----------
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
@@ -381,168 +443,237 @@ Deine chaotische digitale Heimat 🧠🐔
 </div>
 """, unsafe_allow_html=True)
 
-# ---------- METRICS ----------
-leaderboard = get_leaderboard()
+# ---------- HOME ----------
+if menu == "🏠 Home":
+    st.markdown("## 🏠 Hauptmenü")
 
-total_users = len(leaderboard)
+    c1, c2, c3 = st.columns(3)
 
-total_chickens = (
-    int(leaderboard["Chickens"].sum())
-    if not leaderboard.empty else 0
-)
-
-total_braincells = (
-    int(leaderboard["Gehirnzellen"].sum())
-    if not leaderboard.empty else 0
-)
-
-c1, c2, c3 = st.columns(3)
-
-with c1:
-    st.markdown(f"""
-    <div class='metric-card'>
-        👥
-        <div class='metric-number'>{total_users}</div>
-        <div class='metric-label'>Community</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c2:
-    st.markdown(f"""
-    <div class='metric-card'>
-        🧠
-        <div class='metric-number'>{total_braincells}</div>
-        <div class='metric-label'>Gehirnzellen</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c3:
-    st.markdown(f"""
-    <div class='metric-card'>
-        🥚
-        <div class='metric-number'>{total_chickens}</div>
-        <div class='metric-label'>Chickens</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ---------- KONTO ----------
-st.write("")
-st.markdown("## 💰 Dein Konto")
-
-username = st.text_input(
-    "Dein Twitch-Name",
-    value="einsmarello"
-)
-
-user = get_or_create_user(username)
-
-a, b = st.columns(2)
-
-with a:
-    st.markdown(f"""
-    <div class="gold-card">
-        <h3>🥚 CHICKENS</h3>
-        <h2>{user["chickens"]}</h2>
-    </div>
-    """, unsafe_allow_html=True)
-
-with b:
-    st.markdown(f"""
-    <div class="purple-card">
-        <h3>🧠 GEHIRNZELLEN</h3>
-        <h2>{user["braincells"]}</h2>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ---------- SHOP ----------
-st.write("")
-st.markdown("## 🛒 Shop")
-
-for reward in rewards:
-
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
+    with c1:
         st.markdown(f"""
-        <div class="reward">
-            <h3>{reward["name"]}</h3>
-            <p>{reward["desc"]}</p>
-            <b>{reward["price"]} Gehirnzellen</b>
+        <div class='metric-card'>
+            👥
+            <div class='metric-number'>{total_users}</div>
+            <div class='metric-label'>Community</div>
         </div>
         """, unsafe_allow_html=True)
 
-    with col2:
+    with c2:
+        st.markdown(f"""
+        <div class='metric-card'>
+            🧠
+            <div class='metric-number'>{total_braincells}</div>
+            <div class='metric-label'>Gehirnzellen</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        if st.button("Kaufen", key=reward["name"]):
+    with c3:
+        st.markdown(f"""
+        <div class='metric-card'>
+            🥚
+            <div class='metric-number'>{total_chickens}</div>
+            <div class='metric-label'>Chickens</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            success = spend_braincells(
-                username,
-                reward["name"],
-                reward["price"]
-            )
+    st.write("")
 
-            if success:
-                st.success("Reward eingelöst!")
-                st.rerun()
+    left, right = st.columns(2)
 
-            else:
-                st.error("Nicht genug Gehirnzellen!")
+    with left:
+        st.markdown(f"""
+        <div class="purple-card">
+            <h3>⏰ Aktuelle Uhrzeit</h3>
+            <h2>{datetime.now().strftime("%H:%M:%S")}</h2>
+            <p>Lokale Uhrzeit deiner App.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-# ---------- RANGLISTE ----------
-st.write("")
-st.markdown("## 🏆 Rangliste")
+    with right:
+        st.markdown("""
+        <div class="purple-card">
+            <h3>💜 Twitch Profil</h3>
+            <p>Besuche den Twitch-Kanal von einsmarello.</p>
+            <a href="https://www.twitch.tv/einsmarello" target="_blank">
+                twitch.tv/einsmarello
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
 
-st.dataframe(
-    get_leaderboard(),
-    use_container_width=True,
-    hide_index=True
-)
+    st.write("")
+    st.markdown("## 💬 Aktiver Twitch Chat")
 
-# ---------- ADMIN ----------
-st.write("")
-st.markdown("## 🔐 Admin")
-
-with st.expander("Admin öffnen"):
-
-    admin_password = st.text_input(
-        "Passwort",
-        type="password"
+    components.html(
+        """
+        <iframe
+            src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost"
+            height="520"
+            width="100%"
+            style="border-radius: 20px; border: 2px solid #9d4edd;">
+        </iframe>
+        """,
+        height=540
     )
 
-    if admin_password == "einsmarello":
+# ---------- SHOP ----------
+elif menu == "🛒 Shop":
+    st.markdown("## 💰 Dein Konto")
 
-        admin_user = st.text_input("Viewer")
+    username = st.text_input(
+        "Dein Twitch-Name",
+        value="einsmarello"
+    )
 
-        brain_amount = st.number_input(
-            "Gehirnzellen",
-            min_value=0,
-            step=10
+    user = get_or_create_user(username)
+
+    a, b = st.columns(2)
+
+    with a:
+        st.markdown(f"""
+        <div class="gold-card">
+            <h3>🥚 CHICKENS</h3>
+            <h2>{user["chickens"]}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with b:
+        st.markdown(f"""
+        <div class="purple-card">
+            <h3>🧠 GEHIRNZELLEN</h3>
+            <h2>{user["braincells"]}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.write("")
+    st.markdown("## 🛒 Shop")
+
+    for reward in rewards:
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            st.markdown(f"""
+            <div class="reward">
+                <h3>{reward["name"]}</h3>
+                <p>{reward["desc"]}</p>
+                <b>{reward["price"]} Gehirnzellen</b>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            if st.button("Kaufen", key=reward["name"]):
+                success = spend_braincells(
+                    username,
+                    reward["name"],
+                    reward["price"]
+                )
+
+                if success:
+                    st.success("Reward eingelöst!")
+                    st.rerun()
+                else:
+                    st.error("Nicht genug Gehirnzellen!")
+
+# ---------- RANGLISTE ----------
+elif menu == "🏆 Rangliste":
+    st.markdown("## 🏆 Rangliste")
+
+    st.dataframe(
+        get_leaderboard(),
+        use_container_width=True,
+        hide_index=True
+    )
+
+# ---------- EVENTS ----------
+elif menu == "⚡ Events":
+    st.markdown("## ⚡ Events")
+
+    st.markdown("""
+    <div class="purple-card">
+        <h3>Aktuelle Events</h3>
+        <p>Hier kannst du später Community-Events, Challenges oder Stream-Ziele anzeigen.</p>
+        <p>Beispiel: Doppelte Gehirnzellen am Wochenende.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ---------- MEMES ----------
+elif menu == "😂 Memes":
+    st.markdown("## 😂 Memes")
+
+    st.markdown("""
+    <div class="purple-card">
+        <h3>Meme-Zone</h3>
+        <p>Hier kannst du später Meme-Einreichungen oder Gewinner-Memes anzeigen.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ---------- TWITCH CHAT ----------
+elif menu == "💬 Twitch Chat":
+    st.markdown("## 💬 Twitch Chat")
+
+    st.markdown("""
+    <div class="purple-card">
+        <h3>Live Chat von einsmarello</h3>
+        <p>Falls der Chat nicht lädt, öffne Twitch direkt oder nutze lokal localhost.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    components.html(
+        """
+        <iframe
+            src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost"
+            height="650"
+            width="100%"
+            style="border-radius: 20px; border: 2px solid #9d4edd;">
+        </iframe>
+        """,
+        height=670
+    )
+
+# ---------- ADMIN ----------
+elif menu == "🔐 Admin":
+    st.markdown("## 🔐 Admin")
+
+    with st.expander("Admin öffnen"):
+
+        admin_password = st.text_input(
+            "Passwort",
+            type="password"
         )
 
-        chicken_amount = st.number_input(
-            "Chickens",
-            min_value=0,
-            step=10
-        )
+        if admin_password == "einsmarello":
 
-        if st.button("Punkte speichern"):
+            admin_user = st.text_input("Viewer")
 
-            add_points(
-                admin_user,
-                chickens=chicken_amount,
-                braincells=brain_amount
+            brain_amount = st.number_input(
+                "Gehirnzellen",
+                min_value=0,
+                step=10
             )
 
-            st.success("Punkte gespeichert!")
-            st.rerun()
+            chicken_amount = st.number_input(
+                "Chickens",
+                min_value=0,
+                step=10
+            )
 
-        st.markdown("### Letzte Käufe")
+            if st.button("Punkte speichern"):
 
-        st.dataframe(
-            get_purchases(),
-            use_container_width=True,
-            hide_index=True
-        )
+                add_points(
+                    admin_user,
+                    chickens=chicken_amount,
+                    braincells=brain_amount
+                )
 
-    elif admin_password:
-        st.error("Falsches Passwort.")
+                st.success("Punkte gespeichert!")
+                st.rerun()
+
+            st.markdown("### Letzte Käufe")
+
+            st.dataframe(
+                get_purchases(),
+                use_container_width=True,
+                hide_index=True
+            )
+
+        elif admin_password:
+            st.error("Falsches Passwort.")
