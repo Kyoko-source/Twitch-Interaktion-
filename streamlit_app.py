@@ -345,29 +345,25 @@ h1 {
 
 # ---------- REWARDS ----------
 rewards = [
+
     {
-        "name": "Sound Alert",
-        "price": 100,
-        "desc": "Spiele einen Sound im Stream ab"
+        "name": "⭐ 1 Woche VIP",
+        "price": 10000,
+        "desc": "Erhalte für 1 Woche VIP auf dem Twitch-Kanal"
     },
 
     {
-        "name": "Hydrate",
-        "price": 150,
-        "desc": "Einsmarello muss trinken"
+        "name": "🎮 Steam Random Key",
+        "price": 50000,
+        "desc": "Bekomme einen zufälligen Steam Key"
     },
 
     {
-        "name": "Meme einreichen",
-        "price": 250,
-        "desc": "Dein Meme kommt in die Meme-Zone"
+        "name": "💬 Discord Frage",
+        "price": 5000,
+        "desc": "Komm in den Discord und stell mir eine Frage"
     },
 
-    {
-        "name": "VIP für 1 Stream",
-        "price": 1000,
-        "desc": "VIP Status für einen Stream"
-    },
 ]
 
 # ---------- HEADER ----------
