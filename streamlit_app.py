@@ -54,13 +54,19 @@ def get_or_create_user(username):
         "SELECT username, chickens, braincells FROM users WHERE username = ?",
         (username,)
     )
+
     user = c.fetchone()
 
     if user is None:
         c.execute(
-            "INSERT INTO users (username, chickens, braincells, created_at) VALUES (?, ?, ?, ?)",
+            """
+            INSERT INTO users
+            (username, chickens, braincells, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
             (username, 0, 0, datetime.now().isoformat())
         )
+
         conn.commit()
         user = (username, 0, 0)
 
@@ -74,6 +80,7 @@ def get_or_create_user(username):
 
 def add_points(username, chickens=0, braincells=0):
     username = username.strip().lower()
+
     get_or_create_user(username)
 
     conn = get_db()
@@ -91,6 +98,7 @@ def add_points(username, chickens=0, braincells=0):
 
 def spend_braincells(username, reward_name, price):
     username = username.strip().lower()
+
     user = get_or_create_user(username)
 
     if user["braincells"] < price:
@@ -106,12 +114,19 @@ def spend_braincells(username, reward_name, price):
     """, (price, username))
 
     c.execute("""
-        INSERT INTO purchases (username, reward_name, price, created_at)
+        INSERT INTO purchases
+        (username, reward_name, price, created_at)
         VALUES (?, ?, ?, ?)
-    """, (username, reward_name, price, datetime.now().isoformat()))
+    """, (
+        username,
+        reward_name,
+        price,
+        datetime.now().isoformat()
+    ))
 
     conn.commit()
     conn.close()
+
     return True
 
 def get_leaderboard():
@@ -127,6 +142,7 @@ def get_leaderboard():
     """, conn)
 
     conn.close()
+
     return df
 
 def get_purchases():
@@ -143,33 +159,8 @@ def get_purchases():
     """, conn)
 
     conn.close()
+
     return df
-
-def get_latest_milestone():
-    conn = get_db()
-
-    df = pd.read_sql_query("""
-        SELECT username, braincells
-        FROM users
-        ORDER BY braincells DESC
-        LIMIT 1
-    """, conn)
-
-    conn.close()
-
-    if df.empty:
-        return None
-
-    username = df.iloc[0]["username"]
-    points = int(df.iloc[0]["braincells"])
-
-    milestones = [100, 500, 1000, 2500, 5000, 10000]
-    reached = [m for m in milestones if points >= m]
-
-    if not reached:
-        return None
-
-    return username, points, max(reached)
 
 init_db()
 
@@ -178,6 +169,8 @@ params = st.query_params
 overlay_mode = params.get("overlay", "0") == "1"
 
 if overlay_mode:
+
+    top = get_leaderboard()
 
     st.markdown("""
     <style>
@@ -196,57 +189,57 @@ if overlay_mode:
         max-width: 100%;
     }
 
-    .overlay-box {
+    .top-box {
         text-align: center;
         background: rgba(20, 0, 35, 0.88);
         border: 4px solid #c77dff;
         border-radius: 35px;
-        padding: 45px;
+        padding: 35px;
         box-shadow: 0 0 60px #9d4edd;
         color: white;
-        margin-top: 100px;
+        margin-top: 80px;
     }
 
-    .overlay-title {
-        font-size: 64px;
+    .top-title {
+        font-size: 48px;
         font-weight: 900;
         color: #ffcc00;
-        text-shadow: 0 0 30px #ffcc00;
+        text-shadow: 0 0 25px #ffcc00;
     }
 
-    .overlay-user {
-        font-size: 56px;
+    .top-user {
+        font-size: 58px;
         font-weight: 900;
         color: #c77dff;
-        margin-top: 15px;
+        margin-top: 10px;
     }
 
-    .overlay-text {
-        font-size: 36px;
-        margin-top: 20px;
+    .top-points {
+        font-size: 34px;
+        margin-top: 15px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    milestone = get_latest_milestone()
+    if not top.empty:
 
-    if milestone:
-        username, points, reached = milestone
+        username = top.iloc[0]["Viewer"]
+        braincells = int(top.iloc[0]["Gehirnzellen"])
+        chickens = int(top.iloc[0]["Chickens"])
 
         st.markdown(f"""
-        <div class="overlay-box">
-            <div class="overlay-title">
-                🎉 MEILENSTEIN!
+        <div class="top-box">
+            <div class="top-title">
+                🏆 TOP GEHIRNZELLE
             </div>
 
-            <div class="overlay-user">
+            <div class="top-user">
                 {username}
             </div>
 
-            <div class="overlay-text">
-                hat <b>{reached}</b> Gehirnzellen erreicht! 🧠
-                <br><br>
-                Aktuell: <b>{points}</b> Gehirnzellen
+            <div class="top-points">
+                🧠 {braincells} Gehirnzellen<br>
+                🥚 {chickens} Chickens
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -256,6 +249,7 @@ if overlay_mode:
 # ---------- DESIGN ----------
 st.markdown("""
 <style>
+
 .stApp {
     background: radial-gradient(circle at top, #251033 0%, #0d0b12 45%, #07070a 100%);
     color: white;
@@ -285,23 +279,6 @@ h1 {
     margin-bottom: 40px;
 }
 
-.nav {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin-bottom: 25px;
-    flex-wrap: wrap;
-}
-
-.nav-item {
-    padding: 12px 22px;
-    border-radius: 14px;
-    background: rgba(157, 78, 221, 0.12);
-    border: 1px solid rgba(157, 78, 221, 0.35);
-    color: #c77dff;
-    font-weight: 700;
-}
-
 .metric-card {
     text-align: center;
     background: rgba(255,255,255,0.045);
@@ -322,14 +299,24 @@ h1 {
 }
 
 .gold-card {
-    background: linear-gradient(135deg, rgba(255,193,7,0.18), rgba(255,193,7,0.04));
+    background: linear-gradient(
+        135deg,
+        rgba(255,193,7,0.18),
+        rgba(255,193,7,0.04)
+    );
+
     border: 1px solid rgba(255,193,7,0.35);
     border-radius: 22px;
     padding: 28px;
 }
 
 .purple-card {
-    background: linear-gradient(135deg, rgba(157,78,221,0.25), rgba(157,78,221,0.05));
+    background: linear-gradient(
+        135deg,
+        rgba(157,78,221,0.25),
+        rgba(157,78,221,0.05)
+    );
+
     border: 1px solid rgba(157,78,221,0.45);
     border-radius: 22px;
     padding: 28px;
@@ -344,11 +331,6 @@ h1 {
     margin-bottom: 14px;
 }
 
-.small {
-    color: #9d92aa;
-    font-size: 14px;
-}
-
 .stButton > button {
     background: linear-gradient(135deg, #9d4edd, #c77dff);
     color: black;
@@ -357,34 +339,43 @@ h1 {
     padding: 0.7rem 1.1rem;
     font-weight: 800;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
 # ---------- REWARDS ----------
 rewards = [
-    {"name": "Sound Alert", "price": 100, "desc": "Spiele einen Sound im Stream ab"},
-    {"name": "Hydrate", "price": 150, "desc": "Einsmarello muss trinken"},
-    {"name": "Meme einreichen", "price": 250, "desc": "Dein Meme kommt in die Meme-Zone"},
-    {"name": "VIP für 1 Stream", "price": 1000, "desc": "VIP Status für einen Stream"},
+    {
+        "name": "Sound Alert",
+        "price": 100,
+        "desc": "Spiele einen Sound im Stream ab"
+    },
+
+    {
+        "name": "Hydrate",
+        "price": 150,
+        "desc": "Einsmarello muss trinken"
+    },
+
+    {
+        "name": "Meme einreichen",
+        "price": 250,
+        "desc": "Dein Meme kommt in die Meme-Zone"
+    },
+
+    {
+        "name": "VIP für 1 Stream",
+        "price": 1000,
+        "desc": "VIP Status für einen Stream"
+    },
 ]
 
 # ---------- HEADER ----------
-st.markdown("""
-<div class="nav">
-    <div class="nav-item">🏠 Home</div>
-    <div class="nav-item">🛒 Shop</div>
-    <div class="nav-item">🏆 Rangliste</div>
-    <div class="nav-item">⚡ Events</div>
-    <div class="nav-item">😂 Memes</div>
-</div>
-""", unsafe_allow_html=True)
-
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 st.markdown("""
 <div class='subtitle'>
-Deine chaotische digitale Heimat.
-Sammle Chickens, verdiene Gehirnzellen und werde Teil der Community 🧠🐔
+Deine chaotische digitale Heimat 🧠🐔
 </div>
 """, unsafe_allow_html=True)
 
@@ -392,10 +383,18 @@ Sammle Chickens, verdiene Gehirnzellen und werde Teil der Community 🧠🐔
 leaderboard = get_leaderboard()
 
 total_users = len(leaderboard)
-total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
-total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
 
-c1, c2, c3, c4 = st.columns(4)
+total_chickens = (
+    int(leaderboard["Chickens"].sum())
+    if not leaderboard.empty else 0
+)
+
+total_braincells = (
+    int(leaderboard["Gehirnzellen"].sum())
+    if not leaderboard.empty else 0
+)
+
+c1, c2, c3 = st.columns(3)
 
 with c1:
     st.markdown(f"""
@@ -411,7 +410,7 @@ with c2:
     <div class='metric-card'>
         🧠
         <div class='metric-number'>{total_braincells}</div>
-        <div class='metric-label'>Gehirnzellen im Umlauf</div>
+        <div class='metric-label'>Gehirnzellen</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -420,16 +419,7 @@ with c3:
     <div class='metric-card'>
         🥚
         <div class='metric-number'>{total_chickens}</div>
-        <div class='metric-label'>Chickens gesammelt</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c4:
-    st.markdown("""
-    <div class='metric-card'>
-        📡
-        <div class='metric-number'>1</div>
-        <div class='metric-label'>Stream verbunden</div>
+        <div class='metric-label'>Chickens</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -437,7 +427,10 @@ with c4:
 st.write("")
 st.markdown("## 💰 Dein Konto")
 
-username = st.text_input("Dein Twitch-Name", value="einsmarello")
+username = st.text_input(
+    "Dein Twitch-Name",
+    value="einsmarello"
+)
 
 user = get_or_create_user(username)
 
@@ -477,6 +470,7 @@ for reward in rewards:
         """, unsafe_allow_html=True)
 
     with col2:
+
         if st.button("Kaufen", key=reward["name"]):
 
             success = spend_braincells(
@@ -488,10 +482,11 @@ for reward in rewards:
             if success:
                 st.success("Reward eingelöst!")
                 st.rerun()
+
             else:
                 st.error("Nicht genug Gehirnzellen!")
 
-# ---------- LEADERBOARD ----------
+# ---------- RANGLISTE ----------
 st.write("")
 st.markdown("## 🏆 Rangliste")
 
@@ -503,12 +498,12 @@ st.dataframe(
 
 # ---------- ADMIN ----------
 st.write("")
-st.markdown("## 🔐 Admin-Bereich")
+st.markdown("## 🔐 Admin")
 
 with st.expander("Admin öffnen"):
 
     admin_password = st.text_input(
-        "Admin Passwort",
+        "Passwort",
         type="password"
     )
 
