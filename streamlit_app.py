@@ -116,6 +116,7 @@ def spend_braincells(username, reward_name, price):
 
 def get_leaderboard():
     conn = get_db()
+
     df = pd.read_sql_query("""
         SELECT
             username AS Viewer,
@@ -124,11 +125,13 @@ def get_leaderboard():
         FROM users
         ORDER BY braincells DESC
     """, conn)
+
     conn.close()
     return df
 
 def get_purchases():
     conn = get_db()
+
     df = pd.read_sql_query("""
         SELECT
             username AS Viewer,
@@ -138,10 +141,117 @@ def get_purchases():
         FROM purchases
         ORDER BY id DESC
     """, conn)
+
     conn.close()
     return df
 
+def get_latest_milestone():
+    conn = get_db()
+
+    df = pd.read_sql_query("""
+        SELECT username, braincells
+        FROM users
+        ORDER BY braincells DESC
+        LIMIT 1
+    """, conn)
+
+    conn.close()
+
+    if df.empty:
+        return None
+
+    username = df.iloc[0]["username"]
+    points = int(df.iloc[0]["braincells"])
+
+    milestones = [100, 500, 1000, 2500, 5000, 10000]
+    reached = [m for m in milestones if points >= m]
+
+    if not reached:
+        return None
+
+    return username, points, max(reached)
+
 init_db()
+
+# ---------- OBS OVERLAY ----------
+params = st.query_params
+overlay_mode = params.get("overlay", "0") == "1"
+
+if overlay_mode:
+
+    st.markdown("""
+    <style>
+    .stApp {
+        background: transparent !important;
+    }
+
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    footer {
+        display: none !important;
+    }
+
+    .block-container {
+        padding: 2rem;
+        max-width: 100%;
+    }
+
+    .overlay-box {
+        text-align: center;
+        background: rgba(20, 0, 35, 0.88);
+        border: 4px solid #c77dff;
+        border-radius: 35px;
+        padding: 45px;
+        box-shadow: 0 0 60px #9d4edd;
+        color: white;
+        margin-top: 100px;
+    }
+
+    .overlay-title {
+        font-size: 64px;
+        font-weight: 900;
+        color: #ffcc00;
+        text-shadow: 0 0 30px #ffcc00;
+    }
+
+    .overlay-user {
+        font-size: 56px;
+        font-weight: 900;
+        color: #c77dff;
+        margin-top: 15px;
+    }
+
+    .overlay-text {
+        font-size: 36px;
+        margin-top: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    milestone = get_latest_milestone()
+
+    if milestone:
+        username, points, reached = milestone
+
+        st.markdown(f"""
+        <div class="overlay-box">
+            <div class="overlay-title">
+                🎉 MEILENSTEIN!
+            </div>
+
+            <div class="overlay-user">
+                {username}
+            </div>
+
+            <div class="overlay-text">
+                hat <b>{reached}</b> Gehirnzellen erreicht! 🧠
+                <br><br>
+                Aktuell: <b>{points}</b> Gehirnzellen
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.stop()
 
 # ---------- DESIGN ----------
 st.markdown("""
@@ -247,11 +357,6 @@ h1 {
     padding: 0.7rem 1.1rem;
     font-weight: 800;
 }
-
-.stTextInput input, .stNumberInput input {
-    background-color: rgba(255,255,255,0.07) !important;
-    color: white !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -275,10 +380,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='subtitle'>Deine chaotische digitale Heimat. Sammle Chickens, verdiene Gehirnzellen und werde Teil der Community 🧠🐔</div>",
-    unsafe_allow_html=True
-)
+
+st.markdown("""
+<div class='subtitle'>
+Deine chaotische digitale Heimat.
+Sammle Chickens, verdiene Gehirnzellen und werde Teil der Community 🧠🐔
+</div>
+""", unsafe_allow_html=True)
 
 # ---------- METRICS ----------
 leaderboard = get_leaderboard()
@@ -290,24 +398,47 @@ total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.emp
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
-    st.markdown(f"<div class='metric-card'>👥<div class='metric-number'>{total_users}</div><div class='metric-label'>Community</div></div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='metric-card'>
+        👥
+        <div class='metric-number'>{total_users}</div>
+        <div class='metric-label'>Community</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with c2:
-    st.markdown(f"<div class='metric-card'>🧠<div class='metric-number'>{total_braincells}</div><div class='metric-label'>Gehirnzellen im Umlauf</div></div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='metric-card'>
+        🧠
+        <div class='metric-number'>{total_braincells}</div>
+        <div class='metric-label'>Gehirnzellen im Umlauf</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with c3:
-    st.markdown(f"<div class='metric-card'>🥚<div class='metric-number'>{total_chickens}</div><div class='metric-label'>Chickens gesammelt</div></div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='metric-card'>
+        🥚
+        <div class='metric-number'>{total_chickens}</div>
+        <div class='metric-label'>Chickens gesammelt</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with c4:
-    st.markdown("<div class='metric-card'>📡<div class='metric-number'>0</div><div class='metric-label'>Streams verbunden</div></div>", unsafe_allow_html=True)
-
-st.write("")
-st.write("")
+    st.markdown("""
+    <div class='metric-card'>
+        📡
+        <div class='metric-number'>1</div>
+        <div class='metric-label'>Stream verbunden</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ---------- KONTO ----------
+st.write("")
 st.markdown("## 💰 Dein Konto")
 
-username = st.text_input("Dein Twitch-Name", value="viewer_anna")
+username = st.text_input("Dein Twitch-Name", value="einsmarello")
+
 user = get_or_create_user(username)
 
 a, b = st.columns(2)
@@ -317,7 +448,6 @@ with a:
     <div class="gold-card">
         <h3>🥚 CHICKENS</h3>
         <h2>{user["chickens"]}</h2>
-        <p class="small">Sammelwährung durch Zuschauen, Chatten und Events.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -326,7 +456,6 @@ with b:
     <div class="purple-card">
         <h3>🧠 GEHIRNZELLEN</h3>
         <h2>{user["braincells"]}</h2>
-        <p class="small">Community-Währung für den Shop.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -335,55 +464,88 @@ st.write("")
 st.markdown("## 🛒 Shop")
 
 for reward in rewards:
+
     col1, col2 = st.columns([3, 1])
 
     with col1:
         st.markdown(f"""
         <div class="reward">
             <h3>{reward["name"]}</h3>
-            <p class="small">{reward["desc"]}</p>
-            <b>Preis: {reward["price"]} Gehirnzellen</b>
+            <p>{reward["desc"]}</p>
+            <b>{reward["price"]} Gehirnzellen</b>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
-        if st.button("Kaufen", key=f"buy_{reward['name']}"):
-            success = spend_braincells(username, reward["name"], reward["price"])
+        if st.button("Kaufen", key=reward["name"]):
+
+            success = spend_braincells(
+                username,
+                reward["name"],
+                reward["price"]
+            )
 
             if success:
-                st.success(f"{reward['name']} eingelöst!")
+                st.success("Reward eingelöst!")
                 st.rerun()
             else:
-                st.error("Nicht genug Gehirnzellen.")
+                st.error("Nicht genug Gehirnzellen!")
 
 # ---------- LEADERBOARD ----------
 st.write("")
 st.markdown("## 🏆 Rangliste")
 
-st.dataframe(get_leaderboard(), use_container_width=True, hide_index=True)
+st.dataframe(
+    get_leaderboard(),
+    use_container_width=True,
+    hide_index=True
+)
 
 # ---------- ADMIN ----------
 st.write("")
-st.markdown("## 🔐 Admin-Bereich für einsmarello")
+st.markdown("## 🔐 Admin-Bereich")
 
 with st.expander("Admin öffnen"):
-    admin_password = st.text_input("Admin-Passwort", type="password")
+
+    admin_password = st.text_input(
+        "Admin Passwort",
+        type="password"
+    )
 
     if admin_password == "einsmarello":
-        admin_user = st.text_input("Viewer auswählen oder neu erstellen")
-        brain_amount = st.number_input("Gehirnzellen hinzufügen", min_value=0, step=10)
-        chicken_amount = st.number_input("Chickens hinzufügen", min_value=0, step=10)
+
+        admin_user = st.text_input("Viewer")
+
+        brain_amount = st.number_input(
+            "Gehirnzellen",
+            min_value=0,
+            step=10
+        )
+
+        chicken_amount = st.number_input(
+            "Chickens",
+            min_value=0,
+            step=10
+        )
 
         if st.button("Punkte speichern"):
-            if admin_user.strip():
-                add_points(admin_user, chickens=chicken_amount, braincells=brain_amount)
-                st.success("Punkte wurden gespeichert.")
-                st.rerun()
-            else:
-                st.error("Bitte Viewer-Namen eingeben.")
+
+            add_points(
+                admin_user,
+                chickens=chicken_amount,
+                braincells=brain_amount
+            )
+
+            st.success("Punkte gespeichert!")
+            st.rerun()
 
         st.markdown("### Letzte Käufe")
-        st.dataframe(get_purchases(), use_container_width=True, hide_index=True)
+
+        st.dataframe(
+            get_purchases(),
+            use_container_width=True,
+            hide_index=True
+        )
 
     elif admin_password:
         st.error("Falsches Passwort.")
