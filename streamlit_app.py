@@ -81,7 +81,6 @@ def get_or_create_user(username):
 
 def add_points(username, chickens=0, braincells=0):
     username = username.strip().lower()
-
     get_or_create_user(username)
 
     conn = get_db()
@@ -99,7 +98,6 @@ def add_points(username, chickens=0, braincells=0):
 
 def spend_braincells(username, reward_name, price):
     username = username.strip().lower()
-
     user = get_or_create_user(username)
 
     if user["braincells"] < price:
@@ -143,7 +141,6 @@ def get_leaderboard():
     """, conn)
 
     conn.close()
-
     return df
 
 def get_purchases():
@@ -160,7 +157,6 @@ def get_purchases():
     """, conn)
 
     conn.close()
-
     return df
 
 init_db()
@@ -291,6 +287,24 @@ h1 {
     font-size: 18px;
 }
 
+.info-card,
+.metric-card,
+.gold-card,
+.purple-card,
+.reward {
+    transition: all 0.25s ease;
+}
+
+.info-card:hover,
+.metric-card:hover,
+.gold-card:hover,
+.purple-card:hover,
+.reward:hover {
+    transform: translateY(-6px) scale(1.015);
+    border-color: #c77dff;
+    box-shadow: 0 0 35px rgba(199, 125, 255, 0.45);
+}
+
 .info-card {
     background: rgba(255,255,255,0.055);
     border: 1px solid rgba(255,255,255,0.11);
@@ -324,7 +338,6 @@ h1 {
         rgba(255,193,7,0.18),
         rgba(255,193,7,0.04)
     );
-
     border: 1px solid rgba(255,193,7,0.35);
     border-radius: 22px;
     padding: 28px;
@@ -336,7 +349,6 @@ h1 {
         rgba(157,78,221,0.25),
         rgba(157,78,221,0.05)
     );
-
     border: 1px solid rgba(157,78,221,0.45);
     border-radius: 22px;
     padding: 28px;
@@ -358,6 +370,12 @@ h1 {
     border-radius: 14px;
     padding: 0.7rem 1.1rem;
     font-weight: 800;
+    transition: all 0.25s ease;
+}
+
+.stButton > button:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 0 25px rgba(199, 125, 255, 0.6);
 }
 
 .stRadio > div {
@@ -372,6 +390,13 @@ a {
     color: #c77dff !important;
     text-decoration: none;
     font-weight: 800;
+}
+
+.chat-frame {
+    border-radius: 20px;
+    border: 2px solid #9d4edd;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(157,78,221,0.25);
 }
 
 </style>
@@ -503,17 +528,14 @@ if menu == "🏠 Home":
     st.write("")
     st.markdown("## 💬 Aktiver Twitch Chat")
 
-    components.html(
-        """
-        <iframe
-            src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost"
-            height="520"
-            width="100%"
-            style="border-radius: 20px; border: 2px solid #9d4edd;">
-        </iframe>
-        """,
-        height=540
-    )
+    st.markdown("""
+    <iframe
+        src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost&darkpopout"
+        height="520"
+        width="100%"
+        class="chat-frame">
+    </iframe>
+    """, unsafe_allow_html=True)
 
 # ---------- SHOP ----------
 elif menu == "🛒 Shop":
@@ -613,21 +635,20 @@ elif menu == "💬 Twitch Chat":
     st.markdown("""
     <div class="purple-card">
         <h3>Live Chat von einsmarello</h3>
-        <p>Falls der Chat nicht lädt, öffne Twitch direkt oder nutze lokal localhost.</p>
+        <p>Falls der Chat lokal nicht lädt, öffne deine App über <b>localhost</b> und nicht über die IP-Adresse.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    components.html(
-        """
-        <iframe
-            src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost"
-            height="650"
-            width="100%"
-            style="border-radius: 20px; border: 2px solid #9d4edd;">
-        </iframe>
-        """,
-        height=670
-    )
+    st.write("")
+
+    st.markdown("""
+    <iframe
+        src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost&darkpopout"
+        height="650"
+        width="100%"
+        class="chat-frame">
+    </iframe>
+    """, unsafe_allow_html=True)
 
 # ---------- ADMIN ----------
 elif menu == "🔐 Admin":
