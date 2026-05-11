@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import streamlit.components.v1 as components
 from datetime import datetime
+import random
 
 st.set_page_config(
     page_title="Gehirnzone",
@@ -159,6 +159,42 @@ def get_purchases():
     conn.close()
     return df
 
+def get_brain_level(points):
+    if points < 100:
+        return "🥔 Kartoffelhirn", 100
+    elif points < 500:
+        return "🤖 NPC-Gehirn", 500
+    elif points < 2000:
+        return "🧪 Laborhirn", 2000
+    elif points < 5000:
+        return "🧠 Großhirn", 5000
+    elif points < 10000:
+        return "⚡ Overclocked Brain", 10000
+    elif points < 25000:
+        return "👑 Gigagehirn", 25000
+    else:
+        return "🌌 Galaxiehirn", points
+
+def get_viewer_of_the_day():
+    df = get_leaderboard()
+
+    if df.empty:
+        return None
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    random.seed(today)
+
+    viewers = df["Viewer"].tolist()
+    chosen = random.choice(viewers)
+
+    row = df[df["Viewer"] == chosen].iloc[0]
+
+    return {
+        "username": row["Viewer"],
+        "braincells": int(row["Gehirnzellen"]),
+        "chickens": int(row["Chickens"])
+    }
+
 init_db()
 
 # ---------- OBS OVERLAY ----------
@@ -221,12 +257,14 @@ if overlay_mode:
         username = top.iloc[0]["Viewer"]
         braincells = int(top.iloc[0]["Gehirnzellen"])
         chickens = int(top.iloc[0]["Chickens"])
+        level_name, _ = get_brain_level(braincells)
 
         st.markdown(f"""
         <div class="top-box">
             <div class="top-title">🏆 TOP GEHIRNZELLE</div>
             <div class="top-user">{username}</div>
             <div class="top-points">
+                {level_name}<br>
                 🧠 {braincells} Gehirnzellen<br>
                 🥚 {chickens} Chickens
             </div>
@@ -291,7 +329,9 @@ h1 {
 .metric-card,
 .gold-card,
 .purple-card,
-.reward {
+.reward,
+.level-card,
+.viewer-card {
     transition: all 0.25s ease;
 }
 
@@ -299,18 +339,12 @@ h1 {
 .metric-card:hover,
 .gold-card:hover,
 .purple-card:hover,
-.reward:hover {
+.reward:hover,
+.level-card:hover,
+.viewer-card:hover {
     transform: translateY(-6px) scale(1.015);
     border-color: #c77dff;
     box-shadow: 0 0 35px rgba(199, 125, 255, 0.45);
-}
-
-.info-card {
-    background: rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.11);
-    border-radius: 22px;
-    padding: 24px;
-    min-height: 150px;
 }
 
 .metric-card {
@@ -333,26 +367,33 @@ h1 {
 }
 
 .gold-card {
-    background: linear-gradient(
-        135deg,
-        rgba(255,193,7,0.18),
-        rgba(255,193,7,0.04)
-    );
+    background: linear-gradient(135deg, rgba(255,193,7,0.18), rgba(255,193,7,0.04));
     border: 1px solid rgba(255,193,7,0.35);
     border-radius: 22px;
     padding: 28px;
 }
 
 .purple-card {
-    background: linear-gradient(
-        135deg,
-        rgba(157,78,221,0.25),
-        rgba(157,78,221,0.05)
-    );
+    background: linear-gradient(135deg, rgba(157,78,221,0.25), rgba(157,78,221,0.05));
     border: 1px solid rgba(157,78,221,0.45);
     border-radius: 22px;
     padding: 28px;
     box-shadow: 0 0 25px rgba(157,78,221,0.25);
+}
+
+.level-card {
+    background: linear-gradient(135deg, rgba(0,255,255,0.13), rgba(157,78,221,0.12));
+    border: 1px solid rgba(0,255,255,0.35);
+    border-radius: 22px;
+    padding: 28px;
+}
+
+.viewer-card {
+    background: linear-gradient(135deg, rgba(255,204,0,0.18), rgba(157,78,221,0.13));
+    border: 1px solid rgba(255,204,0,0.45);
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow: 0 0 30px rgba(255,204,0,0.18);
 }
 
 .reward {
@@ -361,6 +402,21 @@ h1 {
     border-radius: 18px;
     padding: 20px;
     margin-bottom: 14px;
+}
+
+.progress-bg {
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    height: 16px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #9d4edd, #00f5ff);
+    border-radius: 999px;
+    box-shadow: 0 0 20px rgba(0,245,255,0.6);
 }
 
 .stButton > button {
@@ -390,13 +446,6 @@ a {
     color: #c77dff !important;
     text-decoration: none;
     font-weight: 800;
-}
-
-.chat-frame {
-    border-radius: 20px;
-    border: 2px solid #9d4edd;
-    overflow: hidden;
-    box-shadow: 0 0 30px rgba(157,78,221,0.25);
 }
 
 </style>
@@ -450,9 +499,10 @@ menu = st.radio(
         "🏠 Home",
         "🛒 Shop",
         "🏆 Rangliste",
+        "🧠 Gehirn-Level",
+        "👑 Viewer des Tages",
         "⚡ Events",
         "😂 Memes",
-        "💬 Twitch Chat",
         "🔐 Admin"
     ],
     horizontal=True,
@@ -526,16 +576,22 @@ if menu == "🏠 Home":
         """, unsafe_allow_html=True)
 
     st.write("")
-    st.markdown("## 💬 Aktiver Twitch Chat")
 
-    st.markdown("""
-    <iframe
-        src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost&darkpopout"
-        height="520"
-        width="100%"
-        class="chat-frame">
-    </iframe>
-    """, unsafe_allow_html=True)
+    viewer_day = get_viewer_of_the_day()
+
+    if viewer_day:
+        level_name, _ = get_brain_level(viewer_day["braincells"])
+
+        st.markdown(f"""
+        <div class="viewer-card">
+            <h2>👑 Viewer des Tages</h2>
+            <h1 style="font-size:48px !important; text-align:left; margin:0;">
+                {viewer_day["username"]}
+            </h1>
+            <h3>{level_name}</h3>
+            <p>🧠 {viewer_day["braincells"]} Gehirnzellen · 🥚 {viewer_day["chickens"]} Chickens</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ---------- SHOP ----------
 elif menu == "🛒 Shop":
@@ -547,6 +603,8 @@ elif menu == "🛒 Shop":
     )
 
     user = get_or_create_user(username)
+
+    level_name, next_level = get_brain_level(user["braincells"])
 
     a, b = st.columns(2)
 
@@ -563,6 +621,7 @@ elif menu == "🛒 Shop":
         <div class="purple-card">
             <h3>🧠 GEHIRNZELLEN</h3>
             <h2>{user["braincells"]}</h2>
+            <p>{level_name}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -605,6 +664,70 @@ elif menu == "🏆 Rangliste":
         hide_index=True
     )
 
+# ---------- GEHIRN LEVEL ----------
+elif menu == "🧠 Gehirn-Level":
+    st.markdown("## 🧠 Gehirn-Level System")
+
+    df = get_leaderboard()
+
+    if df.empty:
+        st.info("Noch keine Viewer vorhanden.")
+    else:
+        for _, row in df.iterrows():
+            username = row["Viewer"]
+            points = int(row["Gehirnzellen"])
+            chickens = int(row["Chickens"])
+
+            level_name, next_level = get_brain_level(points)
+
+            if next_level == points:
+                progress = 100
+                next_text = "Max-Level erreicht"
+            else:
+                progress = min(100, int((points / next_level) * 100))
+                next_text = f"{next_level - points} Gehirnzellen bis zum nächsten Level"
+
+            st.markdown(f"""
+            <div class="level-card">
+                <h2>{username}</h2>
+                <h3>{level_name}</h3>
+                <p>🧠 {points} Gehirnzellen · 🥚 {chickens} Chickens</p>
+                <div class="progress-bg">
+                    <div class="progress-fill" style="width:{progress}%;"></div>
+                </div>
+                <p>{progress}% · {next_text}</p>
+            </div>
+            <br>
+            """, unsafe_allow_html=True)
+
+# ---------- VIEWER DES TAGES ----------
+elif menu == "👑 Viewer des Tages":
+    st.markdown("## 👑 Viewer des Tages")
+
+    viewer_day = get_viewer_of_the_day()
+
+    if viewer_day is None:
+        st.info("Noch keine Viewer vorhanden.")
+    else:
+        level_name, _ = get_brain_level(viewer_day["braincells"])
+
+        st.markdown(f"""
+        <div class="viewer-card">
+            <h2>Heute ausgewählt:</h2>
+            <h1 style="font-size:56px !important; text-align:left; margin:0;">
+                {viewer_day["username"]}
+            </h1>
+            <h2>{level_name}</h2>
+            <p style="font-size:22px;">
+                🧠 {viewer_day["braincells"]} Gehirnzellen<br>
+                🥚 {viewer_day["chickens"]} Chickens
+            </p>
+            <p>
+                Der Viewer des Tages wird automatisch jeden Tag neu aus allen gespeicherten Viewern gewählt.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
 # ---------- EVENTS ----------
 elif menu == "⚡ Events":
     st.markdown("## ⚡ Events")
@@ -626,28 +749,6 @@ elif menu == "😂 Memes":
         <h3>Meme-Zone</h3>
         <p>Hier kannst du später Meme-Einreichungen oder Gewinner-Memes anzeigen.</p>
     </div>
-    """, unsafe_allow_html=True)
-
-# ---------- TWITCH CHAT ----------
-elif menu == "💬 Twitch Chat":
-    st.markdown("## 💬 Twitch Chat")
-
-    st.markdown("""
-    <div class="purple-card">
-        <h3>Live Chat von einsmarello</h3>
-        <p>Falls der Chat lokal nicht lädt, öffne deine App über <b>localhost</b> und nicht über die IP-Adresse.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.write("")
-
-    st.markdown("""
-    <iframe
-        src="https://www.twitch.tv/embed/einsmarello/chat?parent=localhost&darkpopout"
-        height="650"
-        width="100%"
-        class="chat-frame">
-    </iframe>
     """, unsafe_allow_html=True)
 
 # ---------- ADMIN ----------
