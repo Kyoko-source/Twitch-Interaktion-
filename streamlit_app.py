@@ -364,6 +364,12 @@ rewards = [
         "desc": "Komm in den Discord und stell mir eine Frage"
     },
 
+    {
+        "name": "🖼️ Zuschauerbild neben Facecam",
+        "price": 2500,
+        "desc": "Der Streamer nutzt für 1 Tag dein gemaltes Bild neben der Facecam"
+    },
+
 ]
 
 # ---------- HEADER ----------
