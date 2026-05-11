@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime
+import streamlit.components.v1 as components
+
+# =========================
+# APP
+# =========================
 
 st.set_page_config(
     page_title="Gehirnzone",
@@ -14,7 +19,7 @@ st.set_page_config(
 # =========================
 
 SUPABASE_URL = "https://pmgwiyypxiefsowrsbhd.supabase.co"
-SUPABASE_KEY = "sb_publishable_GQbbRfKETHdjbCJGxCCyIA_nldlMHpJ"
+SUPABASE_KEY = "DEIN_PUBLISHABLE_KEY"
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -27,6 +32,7 @@ HEADERS = {
 # =========================
 
 def api_get(path):
+
     response = requests.get(
         f"{SUPABASE_URL}/rest/v1/{path}",
         headers=HEADERS
@@ -39,9 +45,13 @@ def api_get(path):
     return response.json()
 
 def api_post(table, payload):
+
     response = requests.post(
         f"{SUPABASE_URL}/rest/v1/{table}",
-        headers={**HEADERS, "Prefer": "return=representation"},
+        headers={
+            **HEADERS,
+            "Prefer": "return=representation"
+        },
         json=payload
     )
 
@@ -52,6 +62,7 @@ def api_post(table, payload):
     return response.json()
 
 def api_patch(path, payload):
+
     response = requests.patch(
         f"{SUPABASE_URL}/rest/v1/{path}",
         headers=HEADERS,
@@ -65,6 +76,7 @@ def api_patch(path, payload):
     return True
 
 def api_delete(path):
+
     response = requests.delete(
         f"{SUPABASE_URL}/rest/v1/{path}",
         headers=HEADERS
@@ -81,11 +93,17 @@ def api_delete(path):
 # =========================
 
 def get_user(username):
+
     username = username.lower().strip()
-    data = api_get(f"users?username=eq.{username}")
+
+    data = api_get(
+        f"users?username=eq.{username}"
+    )
+
     return data[0] if data else None
 
 def create_user(username):
+
     username = username.lower().strip()
 
     created = api_post(
@@ -101,6 +119,7 @@ def create_user(username):
     return created[0] if created else None
 
 def get_or_create_user(username):
+
     username = username.lower().strip()
 
     if username == "":
@@ -114,6 +133,7 @@ def get_or_create_user(username):
     return user
 
 def update_user(username, chickens, braincells):
+
     username = username.lower().strip()
 
     return api_patch(
@@ -124,7 +144,24 @@ def update_user(username, chickens, braincells):
         }
     )
 
+def delete_user(username):
+
+    username = username.lower().strip()
+
+    api_delete(
+        f"event_signups?username=eq.{username}"
+    )
+
+    api_delete(
+        f"purchases?username=eq.{username}"
+    )
+
+    return api_delete(
+        f"users?username=eq.{username}"
+    )
+
 def add_points(username, chickens=0, braincells=0):
+
     user = get_or_create_user(username)
 
     if user is None:
@@ -136,11 +173,43 @@ def add_points(username, chickens=0, braincells=0):
         int(user["braincells"]) + braincells
     )
 
+def remove_points(username, chickens=0, braincells=0):
+
+    user = get_or_create_user(username)
+
+    if user is None:
+        return
+
+    new_chickens = max(
+        0,
+        int(user["chickens"]) - chickens
+    )
+
+    new_braincells = max(
+        0,
+        int(user["braincells"]) - braincells
+    )
+
+    update_user(
+        username,
+        new_chickens,
+        new_braincells
+    )
+
 def get_leaderboard():
-    users = api_get("users?select=*&order=braincells.desc")
+
+    users = api_get(
+        "users?select=*&order=braincells.desc"
+    )
 
     if not users:
-        return pd.DataFrame(columns=["Viewer", "Chickens", "Gehirnzellen"])
+        return pd.DataFrame(
+            columns=[
+                "Viewer",
+                "Chickens",
+                "Gehirnzellen"
+            ]
+        )
 
     df = pd.DataFrame(users)
 
@@ -150,13 +219,18 @@ def get_leaderboard():
         "braincells": "Gehirnzellen"
     })
 
-    return df[["Viewer", "Chickens", "Gehirnzellen"]]
+    return df[[
+        "Viewer",
+        "Chickens",
+        "Gehirnzellen"
+    ]]
 
 # =========================
-# RÄNGE
+# RANKS
 # =========================
 
 def get_rank(points):
+
     ranks = [
         ("🥔 Kartoffelhirn", 0, 100),
         ("🤖 NPC-Gehirn", 100, 500),
@@ -165,36 +239,48 @@ def get_rank(points):
         ("⚡ Overclocked Brain", 5000, 10000),
         ("👑 Gigagehirn", 10000, 25000),
         ("🌌 Galaxiehirn", 25000, 50000),
-        ("🧬 Endboss-Gehirn", 50000, 999999999),
+        ("🧬 Endboss-Gehirn", 50000, 999999999)
     ]
 
     for name, minimum, next_level in ranks:
+
         if minimum <= points < next_level:
             return name, minimum, next_level
 
     return "🧬 Endboss-Gehirn", 50000, 999999999
 
 def get_progress(points):
+
     rank_name, minimum, next_level = get_rank(points)
 
     if next_level >= 999999999:
         return rank_name, 100, "Max-Level erreicht"
 
-    needed_range = next_level - minimum
-    current_progress = points - minimum
-    progress = int((current_progress / needed_range) * 100)
+    needed = next_level - minimum
+    current = points - minimum
+
+    progress = int((current / needed) * 100)
+
     missing = next_level - points
 
-    return rank_name, progress, f"{missing} Gehirnzellen bis zum nächsten Rang"
+    return (
+        rank_name,
+        progress,
+        f"{missing} Gehirnzellen bis zum nächsten Rang"
+    )
 
 # =========================
 # EVENTS
 # =========================
 
 def get_events():
-    return api_get("events?select=*&order=id.desc")
+
+    return api_get(
+        "events?select=*&order=id.desc"
+    )
 
 def create_event(title, description, event_date):
+
     return api_post(
         "events",
         {
@@ -206,15 +292,23 @@ def create_event(title, description, event_date):
     )
 
 def delete_event(event_id):
-    api_delete(f"event_signups?event_id=eq.{event_id}")
-    return api_delete(f"events?id=eq.{event_id}")
+
+    api_delete(
+        f"event_signups?event_id=eq.{event_id}"
+    )
+
+    return api_delete(
+        f"events?id=eq.{event_id}"
+    )
 
 def get_event_signups(event_id):
+
     return api_get(
-        f"event_signups?event_id=eq.{event_id}&select=*&order=id.asc"
+        f"event_signups?event_id=eq.{event_id}&select=*"
     )
 
 def is_signed_up(event_id, username):
+
     username = username.lower().strip()
 
     data = api_get(
@@ -224,6 +318,7 @@ def is_signed_up(event_id, username):
     return len(data) > 0
 
 def signup_event(event_id, username):
+
     username = username.lower().strip()
 
     if username == "":
@@ -246,6 +341,7 @@ def signup_event(event_id, username):
     return True
 
 def leave_event(event_id, username):
+
     username = username.lower().strip()
 
     return api_delete(
@@ -260,26 +356,27 @@ rewards = [
     {
         "name": "⭐ 1 Woche VIP",
         "price": 10000,
-        "desc": "Erhalte für 1 Woche VIP auf dem Twitch-Kanal"
+        "desc": "VIP für 1 Woche"
     },
     {
         "name": "🎮 Steam Random Key",
         "price": 50000,
-        "desc": "Bekomme einen zufälligen Steam Key"
+        "desc": "Zufälliger Steam Key"
     },
     {
         "name": "💬 Discord Frage",
         "price": 5000,
-        "desc": "Komm in den Discord und stell mir eine Frage"
+        "desc": "Frage im Discord stellen"
     },
     {
         "name": "🖼️ Zuschauerbild neben Facecam",
         "price": 2500,
-        "desc": "Der Streamer nutzt für 1 Tag dein gemaltes Bild neben der Facecam"
-    },
+        "desc": "Bild neben der Facecam"
+    }
 ]
 
 def buy_reward(username, reward):
+
     user = get_or_create_user(username)
 
     if user is None:
@@ -299,7 +396,7 @@ def buy_reward(username, reward):
     api_post(
         "purchases",
         {
-            "username": username.lower().strip(),
+            "username": username,
             "reward_name": reward["name"],
             "price": reward["price"],
             "created_at": datetime.now().isoformat()
@@ -308,32 +405,31 @@ def buy_reward(username, reward):
 
     return True
 
-def get_purchases():
-    data = api_get("purchases?select=*&order=id.desc")
-
-    if not data:
-        return pd.DataFrame(columns=["Viewer", "Reward", "Preis", "Datum"])
-
-    df = pd.DataFrame(data)
-
-    df = df.rename(columns={
-        "username": "Viewer",
-        "reward_name": "Reward",
-        "price": "Preis",
-        "created_at": "Datum"
-    })
-
-    return df[["Viewer", "Reward", "Preis", "Datum"]]
-
 # =========================
 # DESIGN
 # =========================
 
 st.markdown("""
 <style>
+
 .stApp {
-    background: radial-gradient(circle at top, #251033 0%, #0d0b12 45%, #07070a 100%);
+    background:
+    radial-gradient(circle at 20% 20%, rgba(157,78,221,0.25), transparent 25%),
+    radial-gradient(circle at 80% 30%, rgba(0,245,255,0.18), transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(199,125,255,0.18), transparent 35%),
+    linear-gradient(180deg, #09090f 0%, #0f0816 100%);
     color: white;
+    animation: glowmove 12s infinite alternate;
+}
+
+@keyframes glowmove {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 100% 100%;
+    }
 }
 
 .block-container {
@@ -345,7 +441,7 @@ h1 {
     text-align: center;
     font-size: 64px !important;
     color: #c77dff;
-    text-shadow: 0 0 30px rgba(199,125,255,0.55);
+    text-shadow: 0 0 35px rgba(199,125,255,0.7);
 }
 
 .topbar {
@@ -354,6 +450,7 @@ h1 {
     padding: 18px;
     margin-bottom: 25px;
     border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
 }
 
 .card,
@@ -366,6 +463,7 @@ h1 {
     border-radius: 20px;
     padding: 24px;
     transition: all 0.25s ease;
+    backdrop-filter: blur(8px);
 }
 
 .card:hover,
@@ -432,6 +530,10 @@ h1 {
 .small {
     color: #aaa;
 }
+
+iframe {
+    border-radius: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -447,12 +549,12 @@ total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.emp
 
 st.markdown(f"""
 <div class="topbar">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
-        <h2 style="margin:0;">🧠 Gehirnzone</h2>
-        <div style="color:#aaa;">
-            🥚 {total_chickens} &nbsp;&nbsp; | &nbsp;&nbsp; 🧠 {total_braincells}
-        </div>
-    </div>
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+<h2>🧠 Gehirnzone</h2>
+<div>
+🥚 {total_chickens} &nbsp;&nbsp; 🧠 {total_braincells}
+</div>
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -464,6 +566,7 @@ menu = st.radio(
         "🛒 Shop",
         "🏆 Rangliste",
         "⚡ Events",
+        "🎮 Minispiele",
         "🔐 Admin"
     ],
     horizontal=True,
@@ -477,7 +580,6 @@ st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 # =========================
 
 if menu == "🏠 Home":
-    st.subheader("🏠 Hauptmenü")
 
     c1, c2, c3 = st.columns(3)
 
@@ -505,45 +607,21 @@ if menu == "🏠 Home":
         </div>
         """, unsafe_allow_html=True)
 
-    st.write("")
-
-    left, right = st.columns(2)
-
-    with left:
-        st.markdown(f"""
-        <div class="card">
-            <h3>⏰ Aktuelle Uhrzeit</h3>
-            <h2>{datetime.now().strftime("%H:%M:%S")}</h2>
-            <p class="small">Lokale Uhrzeit deiner App.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with right:
-        st.markdown("""
-        <div class="card">
-            <h3>💜 Twitch Profil</h3>
-            <p>Besuche den Twitch-Kanal von einsmarello.</p>
-            <a href="https://www.twitch.tv/einsmarello" target="_blank" style="color:#c77dff;">
-                twitch.tv/einsmarello
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
-
 # =========================
 # PROFIL
 # =========================
 
 elif menu == "👤 Profil":
-    st.subheader("👤 Viewer Profil")
 
     profile_name = st.text_input(
-        "Twitch-Name eingeben",
+        "Twitch-Name",
         value="einsmarello"
     )
 
     user = get_or_create_user(profile_name)
 
     if user:
+
         braincells = int(user["braincells"])
         chickens = int(user["chickens"])
 
@@ -553,13 +631,16 @@ elif menu == "👤 Profil":
         <div class="profile-card">
             <h2>{user["username"]}</h2>
             <h3>{rank_name}</h3>
-            <p style="font-size:20px;">
-                🧠 {braincells} Gehirnzellen<br>
-                🥚 {chickens} Chickens
+
+            <p>
+            🧠 {braincells} Gehirnzellen<br>
+            🥚 {chickens} Chickens
             </p>
+
             <div class="progress-bg">
-                <div class="progress-fill" style="width:{progress}%;"></div>
+                <div class="progress-fill" style="width:{progress}%"></div>
             </div>
+
             <p>{progress}% · {progress_text}</p>
         </div>
         """, unsafe_allow_html=True)
@@ -569,71 +650,76 @@ elif menu == "👤 Profil":
 # =========================
 
 elif menu == "🛒 Shop":
-    st.subheader("💰 Dein Konto")
 
-    username = st.text_input("Dein Twitch-Name", value="einsmarello")
+    username = st.text_input(
+        "Dein Twitch-Name",
+        value="einsmarello"
+    )
+
     user = get_or_create_user(username)
 
     if user:
-        rank_name, progress, progress_text = get_progress(int(user["braincells"]))
 
-        c1, c2 = st.columns(2)
-
-        with c1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>🥚 Chickens</h3>
-                <div class="metric-number">{user["chickens"]}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with c2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>🧠 Gehirnzellen</h3>
-                <div class="metric-number">{user["braincells"]}</div>
-                <p>{rank_name}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="card">
+            <h2>🧠 {user["braincells"]}</h2>
+            <p>Gehirnzellen</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.write("")
-    st.subheader("🛒 Shop")
 
     for reward in rewards:
-        col1, col2 = st.columns([4, 1])
+
+        col1, col2 = st.columns([4,1])
 
         with col1:
             st.markdown(f"""
             <div class="reward-card">
                 <h3>{reward["name"]}</h3>
                 <p>{reward["desc"]}</p>
-                <b>Preis: {reward["price"]} Gehirnzellen</b>
+                <b>{reward["price"]} Gehirnzellen</b>
             </div>
             """, unsafe_allow_html=True)
 
         with col2:
             st.write("")
-            if st.button("Kaufen", key=f"buy_{reward['name']}"):
-                success = buy_reward(username, reward)
+
+            if st.button(
+                "Kaufen",
+                key=reward["name"]
+            ):
+
+                success = buy_reward(
+                    username,
+                    reward
+                )
 
                 if success:
-                    st.success("Reward gekauft!")
+                    st.success("Gekauft!")
                     st.rerun()
                 else:
-                    st.error("Nicht genug Gehirnzellen!")
+                    st.error("Nicht genug Gehirnzellen")
 
 # =========================
-# RANGLISTE
+# LEADERBOARD
 # =========================
 
 elif menu == "🏆 Rangliste":
-    st.subheader("🏆 Rangliste")
 
     if leaderboard.empty:
-        st.info("Noch keine Daten vorhanden.")
+
+        st.info("Keine Daten vorhanden.")
+
     else:
+
         ranked = leaderboard.copy()
-        ranked["Rang"] = ranked["Gehirnzellen"].apply(lambda x: get_rank(int(x))[0])
+
+        ranked["Rang"] = ranked[
+            "Gehirnzellen"
+        ].apply(
+            lambda x: get_rank(int(x))[0]
+        )
 
         st.dataframe(
             ranked,
@@ -646,155 +732,315 @@ elif menu == "🏆 Rangliste":
 # =========================
 
 elif menu == "⚡ Events":
-    st.subheader("⚡ Events")
 
     viewer_name = st.text_input(
-        "Dein Twitch-Name für Event-Anmeldung",
+        "Dein Twitch-Name",
         value="einsmarello"
     )
 
     events = get_events()
 
     if not events:
-        st.info("Aktuell gibt es keine Events.")
+
+        st.info("Keine Events vorhanden.")
+
     else:
+
         for event in events:
+
             event_id = event["id"]
-            title = event.get("title", "Ohne Titel")
-            description = event.get("description", "")
-            event_date = event.get("event_date", "")
 
             signups = get_event_signups(event_id)
-            signed_up = is_signed_up(event_id, viewer_name)
+
+            signed_up = is_signed_up(
+                event_id,
+                viewer_name
+            )
 
             st.markdown(f"""
             <div class="event-card">
-                <h2>⚡ {title}</h2>
-                <p>{description}</p>
-                <p><b>Datum:</b> {event_date}</p>
-                <p><b>Teilnehmer:</b> {len(signups)}</p>
+                <h2>{event["title"]}</h2>
+                <p>{event["description"]}</p>
+                <p><b>{event["event_date"]}</b></p>
+                <p>Teilnehmer: {len(signups)}</p>
             </div>
             """, unsafe_allow_html=True)
 
-            col1, col2 = st.columns([1, 4])
+            col1, col2 = st.columns([1,4])
 
             with col1:
+
                 if not signed_up:
-                    if st.button("Anmelden", key=f"join_{event_id}"):
-                        signup_event(event_id, viewer_name)
-                        st.success("Du bist angemeldet!")
+
+                    if st.button(
+                        "Anmelden",
+                        key=f"join_{event_id}"
+                    ):
+
+                        signup_event(
+                            event_id,
+                            viewer_name
+                        )
+
+                        st.success("Angemeldet")
                         st.rerun()
+
                 else:
-                    if st.button("Abmelden", key=f"leave_{event_id}"):
-                        leave_event(event_id, viewer_name)
-                        st.warning("Du bist abgemeldet.")
+
+                    if st.button(
+                        "Abmelden",
+                        key=f"leave_{event_id}"
+                    ):
+
+                        leave_event(
+                            event_id,
+                            viewer_name
+                        )
+
+                        st.warning("Abgemeldet")
                         st.rerun()
 
             with col2:
+
                 if signups:
-                    names = ", ".join([s["username"] for s in signups])
-                    st.caption(f"Angemeldet: {names}")
-                else:
-                    st.caption("Noch niemand angemeldet.")
+                    names = ", ".join(
+                        [
+                            s["username"]
+                            for s in signups
+                        ]
+                    )
+
+                    st.caption(
+                        f"Angemeldet: {names}"
+                    )
 
             st.write("---")
+
+# =========================
+# FLAPPY CHICKEN
+# =========================
+
+elif menu == "🎮 Minispiele":
+
+    st.subheader("🐔 Flappy Chicken")
+
+    components.html("""
+    <html>
+    <body style="margin:0; overflow:hidden; background:#0f0816;">
+    <canvas id="game" width="800" height="500"></canvas>
+
+    <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    let birdY = 250;
+    let velocity = 0;
+    let gravity = 0.5;
+    let score = 0;
+
+    const pipes = [];
+
+    function jump() {
+        velocity = -8;
+    }
+
+    document.addEventListener("keydown", jump);
+    document.addEventListener("click", jump);
+
+    function spawnPipe() {
+        const top = Math.random() * 250 + 50;
+
+        pipes.push({
+            x: 800,
+            top: top
+        });
+    }
+
+    setInterval(spawnPipe, 1800);
+
+    function gameLoop() {
+
+        ctx.fillStyle = "#0f0816";
+        ctx.fillRect(0,0,800,500);
+
+        velocity += gravity;
+        birdY += velocity;
+
+        ctx.fillStyle = "yellow";
+        ctx.beginPath();
+        ctx.arc(120, birdY, 20, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = "#9d4edd";
+
+        pipes.forEach(pipe => {
+
+            pipe.x -= 3;
+
+            ctx.fillRect(pipe.x, 0, 70, pipe.top);
+
+            ctx.fillRect(
+                pipe.x,
+                pipe.top + 140,
+                70,
+                500
+            );
+
+            if (
+                120 + 20 > pipe.x &&
+                120 - 20 < pipe.x + 70 &&
+                (
+                    birdY - 20 < pipe.top ||
+                    birdY + 20 > pipe.top + 140
+                )
+            ) {
+
+                alert("Game Over! Score: " + score);
+                location.reload();
+            }
+
+            if (pipe.x === 117) {
+                score++;
+            }
+        });
+
+        if (birdY > 500 || birdY < 0) {
+            alert("Game Over! Score: " + score);
+            location.reload();
+        }
+
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.fillText("Score: " + score, 20, 40);
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+
+    </script>
+    </body>
+    </html>
+    """, height=520)
 
 # =========================
 # ADMIN
 # =========================
 
 elif menu == "🔐 Admin":
-    st.subheader("🔐 Admin")
 
-    password = st.text_input("Admin Passwort", type="password")
+    password = st.text_input(
+        "Admin Passwort",
+        type="password"
+    )
 
     if password == "einsmarello":
 
-        st.markdown("### Punkte vergeben")
+        st.subheader("Punkte verwalten")
 
-        admin_user = st.text_input("Viewer Name")
+        admin_user = st.text_input(
+            "Viewer Name"
+        )
 
-        braincells = st.number_input(
-            "Gehirnzellen",
+        add_brain = st.number_input(
+            "Gehirnzellen hinzufügen",
             min_value=0,
             step=10
         )
 
-        chickens = st.number_input(
-            "Chickens",
+        remove_brain = st.number_input(
+            "Gehirnzellen abziehen",
             min_value=0,
-            step=1
+            step=10
         )
 
         if st.button("Punkte speichern"):
+
             add_points(
                 admin_user,
-                chickens=chickens,
-                braincells=braincells
+                braincells=add_brain
             )
-            st.success("Punkte gespeichert!")
+
+            remove_points(
+                admin_user,
+                braincells=remove_brain
+            )
+
+            st.success("Gespeichert")
             st.rerun()
 
         st.write("---")
 
-        st.markdown("### Neues Event erstellen")
+        st.subheader("Event erstellen")
 
-        event_title = st.text_input("Event-Titel")
-        event_description = st.text_area("Event-Beschreibung")
+        event_title = st.text_input(
+            "Event Titel"
+        )
+
+        event_description = st.text_area(
+            "Beschreibung"
+        )
+
         event_date = st.text_input(
-            "Event-Datum / Uhrzeit",
-            placeholder="z. B. Samstag 20:00 Uhr"
+            "Datum"
         )
 
         if st.button("Event erstellen"):
-            if event_title.strip():
-                create_event(
-                    event_title,
-                    event_description,
-                    event_date
-                )
-                st.success("Event wurde erstellt!")
-                st.rerun()
-            else:
-                st.error("Bitte Event-Titel eingeben.")
+
+            create_event(
+                event_title,
+                event_description,
+                event_date
+            )
+
+            st.success("Event erstellt")
+            st.rerun()
 
         st.write("---")
 
-        st.markdown("### Events löschen")
+        st.subheader("Events löschen")
 
         events = get_events()
 
-        if not events:
-            st.info("Keine Events vorhanden.")
-        else:
-            for event in events:
-                col1, col2 = st.columns([4, 1])
+        for event in events:
 
-                with col1:
-                    st.markdown(f"""
-                    <div class="event-card">
-                        <h3>{event.get("title", "Ohne Titel")}</h3>
-                        <p>{event.get("description", "")}</p>
-                        <p><b>Datum:</b> {event.get("event_date", "")}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+            col1, col2 = st.columns([4,1])
 
-                with col2:
-                    st.write("")
-                    if st.button("Löschen", key=f"delete_event_{event['id']}"):
-                        delete_event(event["id"])
-                        st.success("Event gelöscht!")
-                        st.rerun()
+            with col1:
+                st.markdown(f"""
+                <div class="event-card">
+                    <h3>{event["title"]}</h3>
+                    <p>{event["description"]}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+
+                if st.button(
+                    "Löschen",
+                    key=f"delete_{event['id']}"
+                ):
+
+                    delete_event(event["id"])
+
+                    st.success("Event gelöscht")
+                    st.rerun()
 
         st.write("---")
 
-        st.markdown("### Letzte Käufe")
+        st.subheader("User löschen")
 
-        st.dataframe(
-            get_purchases(),
-            use_container_width=True,
-            hide_index=True
+        delete_username = st.text_input(
+            "User zum Löschen"
         )
 
+        if st.button("User löschen"):
+
+            delete_user(delete_username)
+
+            st.success("User gelöscht")
+            st.rerun()
+
     elif password:
-        st.error("Falsches Passwort.")
+
+        st.error("Falsches Passwort")
