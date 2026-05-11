@@ -14,7 +14,7 @@ st.set_page_config(
 # =========================
 
 SUPABASE_URL = "https://pmgwiyypxiefsowrsbhd.supabase.co"
-SUPABASE_KEY = "DEIN_PUBLISHABLE_KEY"
+SUPABASE_KEY = "sb_publishable_GQbbRfKETHdjbCJGxCCyIA_nldlMHpJ"
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
