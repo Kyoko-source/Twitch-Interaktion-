@@ -824,23 +824,43 @@ elif menu == "🎮 Minispiele":
 
     st.subheader("🐔 Flappy Chicken")
 
+    st.markdown("""
+    <div class="card">
+        <h3>🎮 Anleitung</h3>
+        <p>
+        SPACE oder Mausklick zum Springen.<br>
+        Weiche den Röhren aus und sammle Punkte.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
     components.html("""
     <html>
     <body style="margin:0; overflow:hidden; background:#0f0816;">
+
     <canvas id="game" width="800" height="500"></canvas>
 
     <script>
+
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
     let birdY = 250;
     let velocity = 0;
     let gravity = 0.5;
+
     let score = 0;
+    let gameOver = false;
 
     const pipes = [];
 
     function jump() {
+
+        if (gameOver) {
+            location.reload();
+            return;
+        }
+
         velocity = -8;
     }
 
@@ -848,36 +868,63 @@ elif menu == "🎮 Minispiele":
     document.addEventListener("click", jump);
 
     function spawnPipe() {
+
+        if (gameOver) return;
+
         const top = Math.random() * 250 + 50;
 
         pipes.push({
             x: 800,
-            top: top
+            top: top,
+            counted: false
         });
     }
 
     setInterval(spawnPipe, 1800);
 
-    function gameLoop() {
+    function endGame() {
+        gameOver = true;
+    }
 
-        ctx.fillStyle = "#0f0816";
-        ctx.fillRect(0,0,800,500);
-
-        velocity += gravity;
-        birdY += velocity;
+    function drawBird() {
 
         ctx.fillStyle = "yellow";
+
         ctx.beginPath();
-        ctx.arc(120, birdY, 20, 0, Math.PI*2);
+        ctx.arc(120, birdY, 20, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.fillStyle = "orange";
+
+        ctx.beginPath();
+        ctx.moveTo(138, birdY);
+        ctx.lineTo(155, birdY - 5);
+        ctx.lineTo(155, birdY + 5);
+        ctx.fill();
+
+        ctx.fillStyle = "black";
+
+        ctx.beginPath();
+        ctx.arc(112, birdY - 6, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawPipes() {
 
         ctx.fillStyle = "#9d4edd";
 
         pipes.forEach(pipe => {
 
-            pipe.x -= 3;
+            if (!gameOver) {
+                pipe.x -= 3;
+            }
 
-            ctx.fillRect(pipe.x, 0, 70, pipe.top);
+            ctx.fillRect(
+                pipe.x,
+                0,
+                70,
+                pipe.top
+            );
 
             ctx.fillRect(
                 pipe.x,
@@ -894,24 +941,95 @@ elif menu == "🎮 Minispiele":
                     birdY + 20 > pipe.top + 140
                 )
             ) {
-
-                alert("Game Over! Score: " + score);
-                location.reload();
+                endGame();
             }
 
-            if (pipe.x === 117) {
+            if (
+                !pipe.counted &&
+                pipe.x + 70 < 120
+            ) {
+
                 score++;
+                pipe.counted = true;
             }
         });
+    }
 
-        if (birdY > 500 || birdY < 0) {
-            alert("Game Over! Score: " + score);
-            location.reload();
-        }
+    function drawScore() {
 
         ctx.fillStyle = "white";
         ctx.font = "30px Arial";
-        ctx.fillText("Score: " + score, 20, 40);
+
+        ctx.fillText(
+            "Score: " + score,
+            20,
+            40
+        );
+    }
+
+    function drawGameOver() {
+
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0,0,800,500);
+
+        ctx.fillStyle = "#c77dff";
+        ctx.font = "58px Arial";
+
+        ctx.fillText(
+            "Game Over",
+            240,
+            220
+        );
+
+        ctx.fillStyle = "white";
+        ctx.font = "32px Arial";
+
+        ctx.fillText(
+            "Score: " + score,
+            330,
+            280
+        );
+
+        ctx.font = "24px Arial";
+
+        ctx.fillText(
+            "Klicke zum Neustarten",
+            270,
+            340
+        );
+    }
+
+    function updatePhysics() {
+
+        if (gameOver) return;
+
+        velocity += gravity;
+        birdY += velocity;
+
+        if (
+            birdY > 500 ||
+            birdY < 0
+        ) {
+            endGame();
+        }
+    }
+
+    function gameLoop() {
+
+        ctx.fillStyle = "#0f0816";
+        ctx.fillRect(0,0,800,500);
+
+        updatePhysics();
+
+        drawBird();
+
+        drawPipes();
+
+        drawScore();
+
+        if (gameOver) {
+            drawGameOver();
+        }
 
         requestAnimationFrame(gameLoop);
     }
@@ -919,10 +1037,10 @@ elif menu == "🎮 Minispiele":
     gameLoop();
 
     </script>
+
     </body>
     </html>
     """, height=520)
-
 # =========================
 # ADMIN
 # =========================
