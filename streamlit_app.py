@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
+import requests
 from datetime import datetime
 import random
 
@@ -10,153 +10,146 @@ st.set_page_config(
     layout="wide"
 )
 
-DB_NAME = "gehirnzone.db"
+# ---------- SUPABASE ----------
+SUPABASE_URL = "https://pmgwiyypxiefsowrsbhd.supabase.co"
+SUPABASE_KEY = "sb_publishable_GQbbRfKETHdjbCJGxCCyIA_nldlMHpJ"
 
-# ---------- DATENBANK ----------
-def get_db():
-    return sqlite3.connect(DB_NAME, check_same_thread=False)
+HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+}
 
-def init_db():
-    conn = get_db()
-    c = conn.cursor()
+def supabase_get(table, params=""):
+    url = f"{SUPABASE_URL}/rest/v1/{table}{params}"
+    response = requests.get(url, headers=HEADERS)
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            chickens INTEGER DEFAULT 0,
-            braincells INTEGER DEFAULT 0,
-            created_at TEXT
-        )
-    """)
+    if response.status_code >= 400:
+        st.error(response.text)
+        return []
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS purchases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            reward_name TEXT,
-            price INTEGER,
-            created_at TEXT
-        )
-    """)
+    return response.json()
 
-    conn.commit()
-    conn.close()
+def supabase_post(table, data):
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    response = requests.post(url, headers=HEADERS, json=data)
 
+    if response.status_code >= 400:
+        st.error(response.text)
+        return None
+
+    return response.json()
+
+def supabase_patch(table, username, data):
+    url = f"{SUPABASE_URL}/rest/v1/{table}?username=eq.{username}"
+    response = requests.patch(url, headers=HEADERS, json=data)
+
+    if response.status_code >= 400:
+        st.error(response.text)
+        return None
+
+    return response.json()
+
+# ---------- DATENBANK FUNKTIONEN ----------
 def get_or_create_user(username):
     username = username.strip().lower()
 
     if username == "":
         username = "gast"
 
-    conn = get_db()
-    c = conn.cursor()
+    users = supabase_get("users", f"?username=eq.{username}")
 
-    c.execute(
-        "SELECT username, chickens, braincells FROM users WHERE username = ?",
-        (username,)
-    )
+    if users:
+        user = users[0]
+    else:
+        new_user = {
+            "username": username,
+            "chickens": 0,
+            "braincells": 0,
+            "created_at": datetime.now().isoformat()
+        }
 
-    user = c.fetchone()
-
-    if user is None:
-        c.execute(
-            """
-            INSERT INTO users
-            (username, chickens, braincells, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (username, 0, 0, datetime.now().isoformat())
-        )
-
-        conn.commit()
-        user = (username, 0, 0)
-
-    conn.close()
+        created = supabase_post("users", new_user)
+        user = created[0] if created else new_user
 
     return {
-        "username": user[0],
-        "chickens": user[1],
-        "braincells": user[2],
+        "username": user["username"],
+        "chickens": int(user.get("chickens", 0)),
+        "braincells": int(user.get("braincells", 0)),
     }
 
 def add_points(username, chickens=0, braincells=0):
-    username = username.strip().lower()
-    get_or_create_user(username)
+    user = get_or_create_user(username)
 
-    conn = get_db()
-    c = conn.cursor()
+    new_data = {
+        "chickens": user["chickens"] + chickens,
+        "braincells": user["braincells"] + braincells
+    }
 
-    c.execute("""
-        UPDATE users
-        SET chickens = chickens + ?,
-            braincells = braincells + ?
-        WHERE username = ?
-    """, (chickens, braincells, username))
-
-    conn.commit()
-    conn.close()
+    supabase_patch("users", user["username"], new_data)
 
 def spend_braincells(username, reward_name, price):
-    username = username.strip().lower()
     user = get_or_create_user(username)
 
     if user["braincells"] < price:
         return False
 
-    conn = get_db()
-    c = conn.cursor()
+    supabase_patch(
+        "users",
+        user["username"],
+        {"braincells": user["braincells"] - price}
+    )
 
-    c.execute("""
-        UPDATE users
-        SET braincells = braincells - ?
-        WHERE username = ?
-    """, (price, username))
-
-    c.execute("""
-        INSERT INTO purchases
-        (username, reward_name, price, created_at)
-        VALUES (?, ?, ?, ?)
-    """, (
-        username,
-        reward_name,
-        price,
-        datetime.now().isoformat()
-    ))
-
-    conn.commit()
-    conn.close()
+    supabase_post(
+        "purchases",
+        {
+            "username": user["username"],
+            "reward_name": reward_name,
+            "price": price,
+            "created_at": datetime.now().isoformat()
+        }
+    )
 
     return True
 
 def get_leaderboard():
-    conn = get_db()
+    users = supabase_get(
+        "users",
+        "?select=username,chickens,braincells&order=braincells.desc"
+    )
 
-    df = pd.read_sql_query("""
-        SELECT
-            username AS Viewer,
-            chickens AS Chickens,
-            braincells AS Gehirnzellen
-        FROM users
-        ORDER BY braincells DESC
-    """, conn)
+    if not users:
+        return pd.DataFrame(columns=["Viewer", "Chickens", "Gehirnzellen"])
 
-    conn.close()
+    df = pd.DataFrame(users)
+
+    df = df.rename(columns={
+        "username": "Viewer",
+        "chickens": "Chickens",
+        "braincells": "Gehirnzellen"
+    })
+
     return df
 
 def get_purchases():
-    conn = get_db()
+    purchases = supabase_get(
+        "purchases",
+        "?select=username,reward_name,price,created_at&order=id.desc"
+    )
 
-    df = pd.read_sql_query("""
-        SELECT
-            username AS Viewer,
-            reward_name AS Reward,
-            price AS Preis,
-            created_at AS Datum
-        FROM purchases
-        ORDER BY id DESC
-    """, conn)
+    if not purchases:
+        return pd.DataFrame(columns=["Viewer", "Reward", "Preis", "Datum"])
 
-    conn.close()
+    df = pd.DataFrame(purchases)
+
+    df = df.rename(columns={
+        "username": "Viewer",
+        "reward_name": "Reward",
+        "price": "Preis",
+        "created_at": "Datum"
+    })
+
     return df
 
 def get_brain_level(points):
@@ -195,8 +188,6 @@ def get_viewer_of_the_day():
         "chickens": int(row["Chickens"])
     }
 
-init_db()
-
 # ---------- OBS OVERLAY ----------
 params = st.query_params
 overlay_mode = params.get("overlay", "0") == "1"
@@ -206,21 +197,14 @@ if overlay_mode:
 
     st.markdown("""
     <style>
-    .stApp {
-        background: transparent !important;
-    }
-
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"],
-    footer {
+    .stApp { background: transparent !important; }
+    [data-testid="stHeader"], [data-testid="stToolbar"], footer {
         display: none !important;
     }
-
     .block-container {
         padding: 2rem;
         max-width: 100%;
     }
-
     .top-box {
         text-align: center;
         background: rgba(20, 0, 35, 0.88);
@@ -231,21 +215,18 @@ if overlay_mode:
         color: white;
         margin-top: 80px;
     }
-
     .top-title {
         font-size: 48px;
         font-weight: 900;
         color: #ffcc00;
         text-shadow: 0 0 25px #ffcc00;
     }
-
     .top-user {
         font-size: 58px;
         font-weight: 900;
         color: #c77dff;
         margin-top: 10px;
     }
-
     .top-points {
         font-size: 34px;
         margin-top: 15px;
@@ -276,7 +257,6 @@ if overlay_mode:
 # ---------- DESIGN ----------
 st.markdown("""
 <style>
-
 .stApp {
     background: radial-gradient(circle at top, #251033 0%, #0d0b12 45%, #07070a 100%);
     color: white;
@@ -325,7 +305,6 @@ h1 {
     font-size: 18px;
 }
 
-.info-card,
 .metric-card,
 .gold-card,
 .purple-card,
@@ -335,7 +314,6 @@ h1 {
     transition: all 0.25s ease;
 }
 
-.info-card:hover,
 .metric-card:hover,
 .gold-card:hover,
 .purple-card:hover,
@@ -447,7 +425,6 @@ a {
     text-decoration: none;
     font-weight: 800;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -509,7 +486,6 @@ menu = st.radio(
     label_visibility="collapsed"
 )
 
-# ---------- HEADER ----------
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 st.markdown("""
@@ -604,7 +580,7 @@ elif menu == "🛒 Shop":
 
     user = get_or_create_user(username)
 
-    level_name, next_level = get_brain_level(user["braincells"])
+    level_name, _ = get_brain_level(user["braincells"])
 
     a, b = st.columns(2)
 
