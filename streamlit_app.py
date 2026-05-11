@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import sqlite3
+from datetime import datetime
 
 st.set_page_config(
     page_title="Gehirnzone",
@@ -7,7 +9,141 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------- STYLE ----------
+DB_NAME = "gehirnzone.db"
+
+# ---------- DATENBANK ----------
+def get_db():
+    return sqlite3.connect(DB_NAME, check_same_thread=False)
+
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            chickens INTEGER DEFAULT 0,
+            braincells INTEGER DEFAULT 0,
+            created_at TEXT
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS purchases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            reward_name TEXT,
+            price INTEGER,
+            created_at TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+def get_or_create_user(username):
+    username = username.strip().lower()
+
+    if username == "":
+        username = "gast"
+
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT username, chickens, braincells FROM users WHERE username = ?",
+        (username,)
+    )
+    user = c.fetchone()
+
+    if user is None:
+        c.execute(
+            "INSERT INTO users (username, chickens, braincells, created_at) VALUES (?, ?, ?, ?)",
+            (username, 0, 0, datetime.now().isoformat())
+        )
+        conn.commit()
+        user = (username, 0, 0)
+
+    conn.close()
+
+    return {
+        "username": user[0],
+        "chickens": user[1],
+        "braincells": user[2],
+    }
+
+def add_points(username, chickens=0, braincells=0):
+    username = username.strip().lower()
+    get_or_create_user(username)
+
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE users
+        SET chickens = chickens + ?,
+            braincells = braincells + ?
+        WHERE username = ?
+    """, (chickens, braincells, username))
+
+    conn.commit()
+    conn.close()
+
+def spend_braincells(username, reward_name, price):
+    username = username.strip().lower()
+    user = get_or_create_user(username)
+
+    if user["braincells"] < price:
+        return False
+
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE users
+        SET braincells = braincells - ?
+        WHERE username = ?
+    """, (price, username))
+
+    c.execute("""
+        INSERT INTO purchases (username, reward_name, price, created_at)
+        VALUES (?, ?, ?, ?)
+    """, (username, reward_name, price, datetime.now().isoformat()))
+
+    conn.commit()
+    conn.close()
+    return True
+
+def get_leaderboard():
+    conn = get_db()
+    df = pd.read_sql_query("""
+        SELECT
+            username AS Viewer,
+            chickens AS Chickens,
+            braincells AS Gehirnzellen
+        FROM users
+        ORDER BY braincells DESC
+    """, conn)
+    conn.close()
+    return df
+
+def get_purchases():
+    conn = get_db()
+    df = pd.read_sql_query("""
+        SELECT
+            username AS Viewer,
+            reward_name AS Reward,
+            price AS Preis,
+            created_at AS Datum
+        FROM purchases
+        ORDER BY id DESC
+    """, conn)
+    conn.close()
+    return df
+
+init_db()
+
+# ---------- DESIGN ----------
 st.markdown("""
 <style>
 .stApp {
@@ -44,6 +180,7 @@ h1 {
     justify-content: center;
     gap: 14px;
     margin-bottom: 25px;
+    flex-wrap: wrap;
 }
 
 .nav-item {
@@ -53,14 +190,6 @@ h1 {
     border: 1px solid rgba(157, 78, 221, 0.35);
     color: #c77dff;
     font-weight: 700;
-}
-
-.card {
-    background: rgba(255,255,255,0.045);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 22px;
-    padding: 24px;
-    box-shadow: 0 0 25px rgba(157,78,221,0.12);
 }
 
 .metric-card {
@@ -119,28 +248,20 @@ h1 {
     font-weight: 800;
 }
 
-.stTextInput input, .stNumberInput input, .stSelectbox div {
+.stTextInput input, .stNumberInput input {
     background-color: rgba(255,255,255,0.07) !important;
     color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- DATA ----------
-if "users" not in st.session_state:
-    st.session_state.users = {
-        "einsmarello": {"chickens": 999, "braincells": 5000},
-        "viewer_anna": {"chickens": 120, "braincells": 450},
-        "viewer_max": {"chickens": 80, "braincells": 300},
-    }
-
-if "rewards" not in st.session_state:
-    st.session_state.rewards = [
-        {"name": "Sound Alert", "price": 100, "desc": "Spiele einen Sound im Stream ab"},
-        {"name": "Hydrate", "price": 150, "desc": "Einsmarello muss trinken"},
-        {"name": "VIP für 1 Stream", "price": 1000, "desc": "VIP Status für einen Stream"},
-        {"name": "Meme einreichen", "price": 250, "desc": "Dein Meme kommt in die Meme-Zone"},
-    ]
+# ---------- REWARDS ----------
+rewards = [
+    {"name": "Sound Alert", "price": 100, "desc": "Spiele einen Sound im Stream ab"},
+    {"name": "Hydrate", "price": 150, "desc": "Einsmarello muss trinken"},
+    {"name": "Meme einreichen", "price": 250, "desc": "Dein Meme kommt in die Meme-Zone"},
+    {"name": "VIP für 1 Stream", "price": 1000, "desc": "VIP Status für einen Stream"},
+]
 
 # ---------- HEADER ----------
 st.markdown("""
@@ -160,34 +281,37 @@ st.markdown(
 )
 
 # ---------- METRICS ----------
-total_users = len(st.session_state.users)
-total_chickens = sum(u["chickens"] for u in st.session_state.users.values())
-total_braincells = sum(u["braincells"] for u in st.session_state.users.values())
+leaderboard = get_leaderboard()
+
+total_users = len(leaderboard)
+total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
+total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
 
 c1, c2, c3, c4 = st.columns(4)
+
 with c1:
     st.markdown(f"<div class='metric-card'>👥<div class='metric-number'>{total_users}</div><div class='metric-label'>Community</div></div>", unsafe_allow_html=True)
+
 with c2:
     st.markdown(f"<div class='metric-card'>🧠<div class='metric-number'>{total_braincells}</div><div class='metric-label'>Gehirnzellen im Umlauf</div></div>", unsafe_allow_html=True)
+
 with c3:
     st.markdown(f"<div class='metric-card'>🥚<div class='metric-number'>{total_chickens}</div><div class='metric-label'>Chickens gesammelt</div></div>", unsafe_allow_html=True)
+
 with c4:
     st.markdown("<div class='metric-card'>📡<div class='metric-number'>0</div><div class='metric-label'>Streams verbunden</div></div>", unsafe_allow_html=True)
 
 st.write("")
 st.write("")
 
-# ---------- USER ACCOUNT ----------
+# ---------- KONTO ----------
 st.markdown("## 💰 Dein Konto")
 
-username = st.text_input("Dein Twitch-Name", value="viewer_anna").strip().lower()
-
-if username and username not in st.session_state.users:
-    st.session_state.users[username] = {"chickens": 0, "braincells": 0}
-
-user = st.session_state.users.get(username, {"chickens": 0, "braincells": 0})
+username = st.text_input("Dein Twitch-Name", value="viewer_anna")
+user = get_or_create_user(username)
 
 a, b = st.columns(2)
+
 with a:
     st.markdown(f"""
     <div class="gold-card">
@@ -210,8 +334,9 @@ with b:
 st.write("")
 st.markdown("## 🛒 Shop")
 
-for reward in st.session_state.rewards:
+for reward in rewards:
     col1, col2 = st.columns([3, 1])
+
     with col1:
         st.markdown(f"""
         <div class="reward">
@@ -220,11 +345,14 @@ for reward in st.session_state.rewards:
             <b>Preis: {reward["price"]} Gehirnzellen</b>
         </div>
         """, unsafe_allow_html=True)
+
     with col2:
-        if st.button(f"Kaufen", key=reward["name"]):
-            if user["braincells"] >= reward["price"]:
-                st.session_state.users[username]["braincells"] -= reward["price"]
+        if st.button("Kaufen", key=f"buy_{reward['name']}"):
+            success = spend_braincells(username, reward["name"], reward["price"])
+
+            if success:
                 st.success(f"{reward['name']} eingelöst!")
+                st.rerun()
             else:
                 st.error("Nicht genug Gehirnzellen.")
 
@@ -232,39 +360,30 @@ for reward in st.session_state.rewards:
 st.write("")
 st.markdown("## 🏆 Rangliste")
 
-df = pd.DataFrame([
-    {
-        "Viewer": name,
-        "Chickens": data["chickens"],
-        "Gehirnzellen": data["braincells"]
-    }
-    for name, data in st.session_state.users.items()
-]).sort_values("Gehirnzellen", ascending=False)
-
-st.dataframe(df, use_container_width=True, hide_index=True)
+st.dataframe(get_leaderboard(), use_container_width=True, hide_index=True)
 
 # ---------- ADMIN ----------
 st.write("")
 st.markdown("## 🔐 Admin-Bereich für einsmarello")
 
 with st.expander("Admin öffnen"):
-    admin_user = st.text_input("Viewer auswählen oder neu erstellen")
-    amount = st.number_input("Anzahl Gehirnzellen", min_value=0, step=10)
+    admin_password = st.text_input("Admin-Passwort", type="password")
 
-    if st.button("Gehirnzellen hinzufügen"):
-        admin_user = admin_user.strip().lower()
-        if admin_user:
-            if admin_user not in st.session_state.users:
-                st.session_state.users[admin_user] = {"chickens": 0, "braincells": 0}
-            st.session_state.users[admin_user]["braincells"] += amount
-            st.success(f"{amount} Gehirnzellen an {admin_user} gegeben.")
+    if admin_password == "einsmarello":
+        admin_user = st.text_input("Viewer auswählen oder neu erstellen")
+        brain_amount = st.number_input("Gehirnzellen hinzufügen", min_value=0, step=10)
+        chicken_amount = st.number_input("Chickens hinzufügen", min_value=0, step=10)
 
-    chicken_amount = st.number_input("Anzahl Chickens", min_value=0, step=10)
+        if st.button("Punkte speichern"):
+            if admin_user.strip():
+                add_points(admin_user, chickens=chicken_amount, braincells=brain_amount)
+                st.success("Punkte wurden gespeichert.")
+                st.rerun()
+            else:
+                st.error("Bitte Viewer-Namen eingeben.")
 
-    if st.button("Chickens hinzufügen"):
-        admin_user = admin_user.strip().lower()
-        if admin_user:
-            if admin_user not in st.session_state.users:
-                st.session_state.users[admin_user] = {"chickens": 0, "braincells": 0}
-            st.session_state.users[admin_user]["chickens"] += chicken_amount
-            st.success(f"{chicken_amount} Chickens an {admin_user} gegeben.")
+        st.markdown("### Letzte Käufe")
+        st.dataframe(get_purchases(), use_container_width=True, hide_index=True)
+
+    elif admin_password:
+        st.error("Falsches Passwort.")
