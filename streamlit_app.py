@@ -817,230 +817,272 @@ elif menu == "⚡ Events":
             st.write("---")
 
 # =========================
-# FLAPPY CHICKEN
+# CHICKEN JUMP
 # =========================
 
 elif menu == "🎮 Minispiele":
 
-    st.subheader("🐔 Flappy Chicken")
+    st.subheader("🐔 Chicken Jump")
 
     st.markdown("""
     <div class="card">
         <h3>🎮 Anleitung</h3>
         <p>
-        SPACE oder Mausklick zum Springen.<br>
-        Weiche den Röhren aus und sammle Punkte.
+        Das Huhn läuft automatisch nach rechts.<br>
+        Linksklick oder SPACE = springen.<br>
+        Weiche den Zäunen aus. Das Spiel wird immer schneller.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
     components.html("""
     <html>
-    <body style="margin:0; overflow:hidden; background:#0f0816;">
+    <body style="margin:0; background:#0f0816; color:white; font-family:Arial; overflow:hidden;">
 
-    <canvas id="game" width="800" height="500"></canvas>
+    <canvas id="game" width="900" height="420"></canvas>
+
+    <div id="scoreboard" style="
+        width:900px;
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(199,125,255,0.35);
+        border-radius:16px;
+        padding:14px;
+        box-sizing:border-box;
+        margin-top:10px;
+    ">
+        <b>🏆 Scoreboard</b>
+        <div id="scores" style="margin-top:8px;color:#ddd;"></div>
+    </div>
 
     <script>
-
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
-    let birdY = 250;
-    let velocity = 0;
-    let gravity = 0.5;
+    let chicken = {
+        x: 120,
+        y: 310,
+        w: 42,
+        h: 42,
+        vy: 0,
+        jumping: false
+    };
 
+    let gravity = 0.75;
+    let fences = [];
+    let speed = 5;
     let score = 0;
     let gameOver = false;
-
-    const pipes = [];
+    let frame = 0;
 
     function jump() {
-
         if (gameOver) {
-            location.reload();
+            saveScore();
+            resetGame();
             return;
         }
 
-        velocity = -8;
-    }
-
-    document.addEventListener("keydown", jump);
-    document.addEventListener("click", jump);
-
-    function spawnPipe() {
-
-        if (gameOver) return;
-
-        const top = Math.random() * 250 + 50;
-
-        pipes.push({
-            x: 800,
-            top: top,
-            counted: false
-        });
-    }
-
-    setInterval(spawnPipe, 1800);
-
-    function endGame() {
-        gameOver = true;
-    }
-
-    function drawBird() {
-
-        ctx.fillStyle = "yellow";
-
-        ctx.beginPath();
-        ctx.arc(120, birdY, 20, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "orange";
-
-        ctx.beginPath();
-        ctx.moveTo(138, birdY);
-        ctx.lineTo(155, birdY - 5);
-        ctx.lineTo(155, birdY + 5);
-        ctx.fill();
-
-        ctx.fillStyle = "black";
-
-        ctx.beginPath();
-        ctx.arc(112, birdY - 6, 3, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    function drawPipes() {
-
-        ctx.fillStyle = "#9d4edd";
-
-        pipes.forEach(pipe => {
-
-            if (!gameOver) {
-                pipe.x -= 3;
-            }
-
-            ctx.fillRect(
-                pipe.x,
-                0,
-                70,
-                pipe.top
-            );
-
-            ctx.fillRect(
-                pipe.x,
-                pipe.top + 140,
-                70,
-                500
-            );
-
-            if (
-                120 + 20 > pipe.x &&
-                120 - 20 < pipe.x + 70 &&
-                (
-                    birdY - 20 < pipe.top ||
-                    birdY + 20 > pipe.top + 140
-                )
-            ) {
-                endGame();
-            }
-
-            if (
-                !pipe.counted &&
-                pipe.x + 70 < 120
-            ) {
-
-                score++;
-                pipe.counted = true;
-            }
-        });
-    }
-
-    function drawScore() {
-
-        ctx.fillStyle = "white";
-        ctx.font = "30px Arial";
-
-        ctx.fillText(
-            "Score: " + score,
-            20,
-            40
-        );
-    }
-
-    function drawGameOver() {
-
-        ctx.fillStyle = "rgba(0,0,0,0.7)";
-        ctx.fillRect(0,0,800,500);
-
-        ctx.fillStyle = "#c77dff";
-        ctx.font = "58px Arial";
-
-        ctx.fillText(
-            "Game Over",
-            240,
-            220
-        );
-
-        ctx.fillStyle = "white";
-        ctx.font = "32px Arial";
-
-        ctx.fillText(
-            "Score: " + score,
-            330,
-            280
-        );
-
-        ctx.font = "24px Arial";
-
-        ctx.fillText(
-            "Klicke zum Neustarten",
-            270,
-            340
-        );
-    }
-
-    function updatePhysics() {
-
-        if (gameOver) return;
-
-        velocity += gravity;
-        birdY += velocity;
-
-        if (
-            birdY > 500 ||
-            birdY < 0
-        ) {
-            endGame();
+        if (!chicken.jumping) {
+            chicken.vy = -15;
+            chicken.jumping = true;
         }
     }
 
-    function gameLoop() {
+    document.addEventListener("click", jump);
+    document.addEventListener("keydown", function(e) {
+        if (e.code === "Space") {
+            jump();
+        }
+    });
+
+    function spawnFence() {
+        fences.push({
+            x: 900,
+            y: 320,
+            w: 35,
+            h: 55,
+            passed: false
+        });
+    }
+
+    function drawChicken() {
+        ctx.fillStyle = "#ffd43b";
+        ctx.fillRect(chicken.x, chicken.y, chicken.w, chicken.h);
+
+        ctx.fillStyle = "#ff922b";
+        ctx.beginPath();
+        ctx.moveTo(chicken.x + chicken.w, chicken.y + 18);
+        ctx.lineTo(chicken.x + chicken.w + 18, chicken.y + 25);
+        ctx.lineTo(chicken.x + chicken.w, chicken.y + 32);
+        ctx.fill();
+
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.arc(chicken.x + 30, chicken.y + 12, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fillRect(chicken.x + 8, chicken.y - 10, 18, 10);
+    }
+
+    function drawFence(fence) {
+        ctx.fillStyle = "#c084fc";
+
+        ctx.fillRect(fence.x, fence.y, fence.w, fence.h);
+        ctx.fillRect(fence.x - 10, fence.y + 12, fence.w + 20, 8);
+        ctx.fillRect(fence.x - 10, fence.y + 32, fence.w + 20, 8);
+    }
+
+    function collision(a, b) {
+        return (
+            a.x < b.x + b.w &&
+            a.x + a.w > b.x &&
+            a.y < b.y + b.h &&
+            a.y + a.h > b.y
+        );
+    }
+
+    function drawGround() {
+        ctx.fillStyle = "#22112f";
+        ctx.fillRect(0, 360, 900, 60);
+
+        ctx.fillStyle = "#7b2cbf";
+        for (let i = 0; i < 900; i += 40) {
+            ctx.fillRect(i - (frame * speed % 40), 360, 20, 4);
+        }
+    }
+
+    function drawUI() {
+        ctx.fillStyle = "white";
+        ctx.font = "28px Arial";
+        ctx.fillText("Score: " + score, 25, 45);
+
+        ctx.font = "18px Arial";
+        ctx.fillStyle = "#c77dff";
+        ctx.fillText("Speed: " + speed.toFixed(1), 25, 75);
+    }
+
+    function drawGameOver() {
+        ctx.fillStyle = "rgba(0,0,0,0.72)";
+        ctx.fillRect(0, 0, 900, 420);
+
+        ctx.fillStyle = "#c77dff";
+        ctx.font = "58px Arial";
+        ctx.fillText("Game Over", 290, 170);
+
+        ctx.fillStyle = "white";
+        ctx.font = "32px Arial";
+        ctx.fillText("Score: " + score, 380, 225);
+
+        ctx.font = "22px Arial";
+        ctx.fillText("Klicke, um Score einzutragen und neu zu starten", 245, 275);
+    }
+
+    function saveScore() {
+        let name = prompt("Dein Twitch-Name für das Scoreboard:");
+
+        if (!name) return;
+
+        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
+
+        scores.push({
+            name: name,
+            score: score
+        });
+
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 10);
+
+        localStorage.setItem("chicken_scores", JSON.stringify(scores));
+        renderScores();
+    }
+
+    function renderScores() {
+        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
+        let box = document.getElementById("scores");
+
+        if (scores.length === 0) {
+            box.innerHTML = "Noch keine Scores.";
+            return;
+        }
+
+        box.innerHTML = scores.map((s, i) => {
+            return (i + 1) + ". " + s.name + " — " + s.score;
+        }).join("<br>");
+    }
+
+    function resetGame() {
+        chicken.y = 310;
+        chicken.vy = 0;
+        chicken.jumping = false;
+        fences = [];
+        speed = 5;
+        score = 0;
+        frame = 0;
+        gameOver = false;
+    }
+
+    function loop() {
+        frame++;
+
+        ctx.clearRect(0, 0, 900, 420);
 
         ctx.fillStyle = "#0f0816";
-        ctx.fillRect(0,0,800,500);
+        ctx.fillRect(0, 0, 900, 420);
 
-        updatePhysics();
+        drawGround();
 
-        drawBird();
+        if (!gameOver) {
+            chicken.vy += gravity;
+            chicken.y += chicken.vy;
 
-        drawPipes();
+            if (chicken.y >= 310) {
+                chicken.y = 310;
+                chicken.vy = 0;
+                chicken.jumping = false;
+            }
 
-        drawScore();
+            if (frame % Math.max(55, Math.floor(115 - speed * 6)) === 0) {
+                spawnFence();
+            }
+
+            fences.forEach(fence => {
+                fence.x -= speed;
+
+                if (!fence.passed && fence.x + fence.w < chicken.x) {
+                    fence.passed = true;
+                    score++;
+                    speed += 0.25;
+                }
+
+                if (collision(chicken, fence)) {
+                    gameOver = true;
+                }
+
+                drawFence(fence);
+            });
+
+            fences = fences.filter(f => f.x > -80);
+        } else {
+            fences.forEach(drawFence);
+        }
+
+        drawChicken();
+        drawUI();
 
         if (gameOver) {
             drawGameOver();
         }
 
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(loop);
     }
 
-    gameLoop();
-
+    renderScores();
+    loop();
     </script>
 
     </body>
     </html>
-    """, height=520)
+    """, height=560)
 # =========================
 # ADMIN
 # =========================
