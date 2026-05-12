@@ -4,6 +4,9 @@ import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
+import re
+import urllib.parse
+from typing import Optional
 
 st.set_page_config(
     page_title="Gehirnzone",
@@ -12,11 +15,25 @@ st.set_page_config(
 )
 
 # =========================
+# VALIDATION
+# =========================
+
+def validate_username(username: str) -> bool:
+    """Validate username: not empty, <=50 chars, alphanumeric + _ -"""
+    if not username or len(username.strip()) == 0:
+        return False
+    if len(username) > 50:
+        return False
+    if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+        return False
+    return True
+
+# =========================
 # SUPABASE
 # =========================
 
-SUPABASE_URL = "https://pmgwiyypxiefsowrsbhd.supabase.co"
-SUPABASE_KEY = "sb_publishable_GQbbRfKETHdjbCJGxCCyIA_nldlMHpJ"
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -35,7 +52,7 @@ def api_get(path):
     )
 
     if response.status_code >= 400:
-        st.error(response.text)
+        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
         return []
 
     return response.json()
@@ -48,7 +65,7 @@ def api_post(table, payload):
     )
 
     if response.status_code >= 400:
-        st.error(response.text)
+        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
         return None
 
     return response.json()
@@ -61,7 +78,7 @@ def api_patch(path, payload):
     )
 
     if response.status_code >= 400:
-        st.error(response.text)
+        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
         return False
 
     return True
@@ -73,7 +90,7 @@ def api_delete(path):
     )
 
     if response.status_code >= 400:
-        st.error(response.text)
+        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
         return False
 
     return True
@@ -82,9 +99,11 @@ def api_delete(path):
 # USER
 # =========================
 
-def get_user(username):
+def get_user(username: str) -> Optional[dict]:
+    if not validate_username(username):
+        return None
     username = username.lower().strip()
-    data = api_get(f"users?username=eq.{username}")
+    data = api_get(f"users?username=eq.{urllib.parse.quote(username)}")
     return data[0] if data else None
 
 def create_user(username):
@@ -157,6 +176,7 @@ def remove_points(username, chickens=0, braincells=0):
 
     update_user(username, new_chickens, new_braincells)
 
+@st.cache_data(ttl=300)
 def get_leaderboard():
     users = api_get("users?select=*&order=braincells.desc")
 
@@ -212,6 +232,7 @@ def get_progress(points):
 # EVENTS
 # =========================
 
+@st.cache_data(ttl=300)
 def get_events():
     return api_get("events?select=*&order=id.desc")
 
@@ -591,7 +612,8 @@ elif menu == "👤 Profil":
         value="einsmarello"
     )
 
-    user = get_or_create_user(profile_name)
+    with st.spinner("Lade Benutzerdaten..."):
+        user = get_or_create_user(profile_name)
 
     if user:
 
@@ -626,7 +648,8 @@ elif menu == "🛒 Shop":
         value="einsmarello"
     )
 
-    user = get_or_create_user(username)
+    with st.spinner("Lade Shop-Daten..."):
+        user = get_or_create_user(username)
 
     if user:
         st.markdown(f"""
@@ -669,11 +692,16 @@ elif menu == "🛒 Shop":
 
 elif menu == "🏆 Rangliste":
 
+    search = st.text_input("Suche nach Viewer", placeholder="Gib einen Namen ein...")
+
     if leaderboard.empty:
         st.info("Keine Daten vorhanden.")
 
     else:
         ranked = leaderboard.copy()
+
+        if search:
+            ranked = ranked[ranked["Viewer"].str.contains(search, case=False, na=False)]
 
         ranked["Rang"] = ranked["Gehirnzellen"].apply(
             lambda x: get_rank(int(x))[0]
@@ -696,7 +724,8 @@ elif menu == "⚡ Events":
         value="einsmarello"
     )
 
-    events = get_events()
+    with st.spinner("Lade Events..."):
+        events = get_events()
 
     if not events:
         st.info("Keine Events vorhanden.")
