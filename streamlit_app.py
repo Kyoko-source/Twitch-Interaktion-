@@ -627,30 +627,28 @@ elif menu == "👤 Profil":
 
         rank_name, progress, progress_text = get_progress(braincells)
 
-        st.markdown(
-            f"""
-            <div class="profile-card">
+        st.subheader(user["username"])
 
-                <h2>{user["username"]}</h2>
+        st.markdown(f"### {rank_name}")
 
-                <h3>{rank_name}</h3>
+        c1, c2 = st.columns(2)
 
-                <p style="font-size:22px; line-height:1.8;">
-                    🧠 {braincells} Gehirnzellen<br>
-                    🥚 {chickens} Chickens
-                </p>
+        with c1:
+            st.metric(
+                "🧠 Gehirnzellen",
+                braincells
+            )
 
-                <div class="progress-bg">
-                    <div class="progress-fill" style="width:{progress}%"></div>
-                </div>
+        with c2:
+            st.metric(
+                "🥚 Chickens",
+                chickens
+            )
 
-                <p style="margin-top:14px;">
-                    {progress}% · {progress_text}
-                </p>
+        st.progress(progress / 100)
 
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.caption(
+            f"{progress}% · {progress_text}"
         )
 # =========================
 # SHOP
