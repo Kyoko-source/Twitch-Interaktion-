@@ -32,8 +32,12 @@ def validate_username(username: str) -> bool:
 # SUPABASE
 # =========================
 
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
+try:
+    SUPABASE_URL = st.secrets["supabase"]["url"]
+    SUPABASE_KEY = st.secrets["supabase"]["key"]
+except KeyError:
+    st.error("Supabase-Secrets sind nicht konfiguriert. Bitte setze SUPABASE_URL und SUPABASE_KEY in den App-Einstellungen.")
+    st.stop()
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
