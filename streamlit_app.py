@@ -563,7 +563,7 @@ if menu == "🏠 Home":
         st.markdown(f"""
         <div class="card">
             <h3>⏰ Aktuelle Uhrzeit</h3>
-            <h2>{datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S")
+            <h2>{datetime.now(ZoneInfo('Europe/Berlin')).strftime('%H:%M:%S')}</h2>
             <p class="small">Lokale Uhrzeit deiner App.</p>
         </div>
         """, unsafe_allow_html=True)
