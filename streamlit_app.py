@@ -687,7 +687,7 @@ else:
     if not client_id:
         st.warning("⚠️ Twitch-OAuth ist nicht konfiguriert. Prüfe deine Streamlit-Cloud-Secrets!")
     else:
-        st.info("Twitch-Login wird vorbereitet...")
+        st.info(f"🔗 OAuth URL: {twitch_auth_url}")
 
 menu = st.radio(
     "",
