@@ -182,42 +182,64 @@ def fetch_twitch_user(access_token: str) -> Optional[dict]:
 
 
 def handle_twitch_callback():
-    params = st.experimental_get_query_params()
+    try:
+        params = st.query_params
+    except AttributeError:
+        # Fallback für ältere Streamlit-Versionen
+        try:
+            params = st.experimental_get_query_params()
+        except:
+            return
 
     if "error" in params:
         st.warning("Twitch-Login wurde abgebrochen oder fehlgeschlagen.")
-        st.experimental_set_query_params()
+        st.query_params.clear()
         return
 
     if "code" not in params:
         return
 
-    code = params["code"][0]
-    state = params.get("state", [""])[0]
+    code = params["code"] if isinstance(params.get("code"), list) else [params.get("code")]
+    code = code[0] if code else None
+    
+    state = params.get("state")
+    state = state[0] if isinstance(state, list) else state
 
-    if state != st.session_state.get("twitch_oauth_state"):
+    if not code or state != st.session_state.get("twitch_oauth_state"):
         st.error("Ungültiger Login-Zustand. Bitte versuche es erneut.")
-        st.experimental_set_query_params()
+        try:
+            st.query_params.clear()
+        except:
+            st.experimental_set_query_params()
         return
 
     access_token = exchange_twitch_code(code)
 
     if not access_token:
         st.error("Twitch-Login fehlgeschlagen. Bitte prüfe die OAuth-Konfiguration.")
-        st.experimental_set_query_params()
+        try:
+            st.query_params.clear()
+        except:
+            st.experimental_set_query_params()
         return
 
     twitch_user = fetch_twitch_user(access_token)
 
     if not twitch_user:
         st.error("Konnte Twitch-Benutzerdaten nicht abrufen.")
-        st.experimental_set_query_params()
+        try:
+            st.query_params.clear()
+        except:
+            st.experimental_set_query_params()
         return
 
     st.session_state["twitch_user"] = twitch_user
     st.session_state["twitch_access_token"] = access_token
-    st.experimental_set_query_params()
-    st.experimental_rerun()
+    try:
+        st.query_params.clear()
+    except:
+        st.experimental_set_query_params()
+    st.rerun()
 
 
 def get_logged_in_username():
@@ -654,7 +676,7 @@ if twitch_display_name:
     if st.button("Abmelden", key="twitch_logout"):
         st.session_state.pop("twitch_user", None)
         st.session_state.pop("twitch_access_token", None)
-        st.experimental_rerun()
+        st.rerun()
 elif twitch_auth_url:
     if st.button("Mit Twitch verbinden", key="twitch_login"):
         components.html(f"<script>window.location.href='{twitch_auth_url}';</script>", height=0)
