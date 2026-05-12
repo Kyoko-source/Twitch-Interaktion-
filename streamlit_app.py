@@ -678,8 +678,8 @@ if twitch_display_name:
         st.session_state.pop("twitch_access_token", None)
         st.rerun()
 elif twitch_auth_url:
-    if st.button("Mit Twitch verbinden", key="twitch_login"):
-        components.html(f"<script>window.location.href='{twitch_auth_url}';</script>", height=0)
+    if st.button("Mit Twitch verbinden", key="twitch_login", help="Klicke um dich mit Twitch anzumelden"):
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={twitch_auth_url}" />', unsafe_allow_html=True)
 else:
     client_id, _, _ = get_twitch_config()
     if not client_id:
