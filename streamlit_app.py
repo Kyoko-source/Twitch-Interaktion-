@@ -629,22 +629,26 @@ elif menu == "👤 Profil":
 
         st.markdown(f"""
         <div class="profile-card">
+
             <h2>{user["username"]}</h2>
+
             <h3>{rank_name}</h3>
 
-            <p>
-            🧠 {braincells} Gehirnzellen<br>
-            🥚 {chickens} Chickens
+            <p style="font-size:22px; line-height:1.8;">
+                🧠 {braincells} Gehirnzellen<br>
+                🥚 {chickens} Chickens
             </p>
 
             <div class="progress-bg">
                 <div class="progress-fill" style="width:{progress}%"></div>
             </div>
 
-            <p>{progress}% · {progress_text}</p>
+            <p style="margin-top:14px;">
+                {progress}% · {progress_text}
+            </p>
+
         </div>
         """, unsafe_allow_html=True)
-
 # =========================
 # SHOP
 # =========================
