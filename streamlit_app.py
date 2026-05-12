@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 import re
 import urllib.parse
+import uuid
 from typing import Optional
 
 st.set_page_config(
@@ -98,6 +99,146 @@ def api_delete(path):
         return False
 
     return True
+
+# =========================
+# TWITCH AUTH
+# =========================
+
+TWITCH_AUTHORIZE_URL = "https://id.twitch.tv/oauth2/authorize"
+TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
+TWITCH_USER_URL = "https://api.twitch.tv/helix/users"
+
+
+def get_twitch_config():
+    try:
+        twitch = st.secrets["twitch"]
+        return twitch["client_id"], twitch["client_secret"], twitch["redirect_uri"]
+    except KeyError as e:
+        return None, None, None
+
+
+def twitch_oauth_authorize_url():
+    client_id, _, redirect_uri = get_twitch_config()
+
+    if not client_id or not redirect_uri:
+        return None
+
+    state = str(uuid.uuid4())
+    st.session_state["twitch_oauth_state"] = state
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "user:read:email",
+        "state": state,
+    }
+
+    return f"{TWITCH_AUTHORIZE_URL}?{urllib.parse.urlencode(params)}"
+
+
+def exchange_twitch_code(code: str) -> Optional[str]:
+    client_id, client_secret, redirect_uri = get_twitch_config()
+
+    if not client_id or not client_secret or not redirect_uri:
+        return None
+
+    response = requests.post(
+        TWITCH_TOKEN_URL,
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": redirect_uri,
+        }
+    )
+
+    if response.status_code != 200:
+        return None
+
+    return response.json().get("access_token")
+
+
+def fetch_twitch_user(access_token: str) -> Optional[dict]:
+    client_id, _, _ = get_twitch_config()
+
+    if not client_id or not access_token:
+        return None
+
+    response = requests.get(
+        TWITCH_USER_URL,
+        headers={
+            "Client-ID": client_id,
+            "Authorization": f"Bearer {access_token}",
+        }
+    )
+
+    if response.status_code != 200:
+        return None
+
+    data = response.json().get("data")
+    return data[0] if data else None
+
+
+def handle_twitch_callback():
+    params = st.experimental_get_query_params()
+
+    if "error" in params:
+        st.warning("Twitch-Login wurde abgebrochen oder fehlgeschlagen.")
+        st.experimental_set_query_params()
+        return
+
+    if "code" not in params:
+        return
+
+    code = params["code"][0]
+    state = params.get("state", [""])[0]
+
+    if state != st.session_state.get("twitch_oauth_state"):
+        st.error("Ungültiger Login-Zustand. Bitte versuche es erneut.")
+        st.experimental_set_query_params()
+        return
+
+    access_token = exchange_twitch_code(code)
+
+    if not access_token:
+        st.error("Twitch-Login fehlgeschlagen. Bitte prüfe die OAuth-Konfiguration.")
+        st.experimental_set_query_params()
+        return
+
+    twitch_user = fetch_twitch_user(access_token)
+
+    if not twitch_user:
+        st.error("Konnte Twitch-Benutzerdaten nicht abrufen.")
+        st.experimental_set_query_params()
+        return
+
+    st.session_state["twitch_user"] = twitch_user
+    st.session_state["twitch_access_token"] = access_token
+    st.experimental_set_query_params()
+    st.experimental_rerun()
+
+
+def get_logged_in_username():
+    twitch_user = st.session_state.get("twitch_user")
+    if twitch_user:
+        return twitch_user.get("login") or twitch_user.get("display_name")
+    return ""
+
+
+def get_logged_in_display_name():
+    twitch_user = st.session_state.get("twitch_user")
+    if twitch_user:
+        return twitch_user.get("display_name") or twitch_user.get("login")
+    return ""
+
+
+def get_effective_username(input_name: str) -> str:
+    logged_in = get_logged_in_username()
+    if logged_in:
+        return logged_in
+    return input_name.strip()
 
 # =========================
 # USER
@@ -499,6 +640,31 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+handle_twitch_callback()
+
+twitch_display_name = get_logged_in_display_name()
+
+twitch_auth_url = twitch_oauth_authorize_url()
+
+if twitch_display_name:
+    st.markdown(
+        f"<div style='text-align:right; margin-bottom:18px; color:#c77dff;'>✅ Verbunden als <strong>{twitch_display_name}</strong></div>",
+        unsafe_allow_html=True
+    )
+    if st.button("Abmelden", key="twitch_logout"):
+        st.session_state.pop("twitch_user", None)
+        st.session_state.pop("twitch_access_token", None)
+        st.experimental_rerun()
+elif twitch_auth_url:
+    if st.button("Mit Twitch verbinden", key="twitch_login"):
+        components.html(f"<script>window.location.href='{twitch_auth_url}';</script>", height=0)
+else:
+    client_id, _, _ = get_twitch_config()
+    if not client_id:
+        st.warning("⚠️ Twitch-OAuth ist nicht konfiguriert. Prüfe deine Streamlit-Cloud-Secrets!")
+    else:
+        st.info("Twitch-Login wird vorbereitet...")
+
 menu = st.radio(
     "",
     [
@@ -611,13 +777,24 @@ if menu == "🏠 Home":
 
 elif menu == "👤 Profil":
 
-    profile_name = st.text_input(
-        "Twitch-Name",
-        value="einsmarello"
-    )
+    logged_in_username = get_logged_in_username()
+
+    if logged_in_username:
+        profile_name = st.text_input(
+            "Twitch-Name",
+            value=logged_in_username,
+            disabled=True
+        )
+    else:
+        profile_name = st.text_input(
+            "Twitch-Name",
+            value=""
+        )
+
+    effective_profile_name = get_effective_username(profile_name)
 
     with st.spinner("Lade Benutzerdaten..."):
-        user = get_or_create_user(profile_name)
+        user = get_or_create_user(effective_profile_name)
 
     if user:
 
@@ -647,13 +824,24 @@ elif menu == "👤 Profil":
 
 elif menu == "🛒 Shop":
 
-    username = st.text_input(
-        "Dein Twitch-Name",
-        value="einsmarello"
-    )
+    logged_in_username = get_logged_in_username()
+
+    if logged_in_username:
+        username = st.text_input(
+            "Dein Twitch-Name",
+            value=logged_in_username,
+            disabled=True
+        )
+    else:
+        username = st.text_input(
+            "Dein Twitch-Name",
+            value=""
+        )
+
+    effective_username = get_effective_username(username)
 
     with st.spinner("Lade Shop-Daten..."):
-        user = get_or_create_user(username)
+        user = get_or_create_user(effective_username)
 
     if user:
         st.markdown(f"""
@@ -682,7 +870,7 @@ elif menu == "🛒 Shop":
             st.write("")
 
             if st.button("Kaufen", key=reward["name"]):
-                success = buy_reward(username, reward)
+                success = buy_reward(effective_username, reward)
 
                 if success:
                     st.success("Gekauft!")
@@ -723,10 +911,21 @@ elif menu == "🏆 Rangliste":
 
 elif menu == "⚡ Events":
 
-    viewer_name = st.text_input(
-        "Dein Twitch-Name",
-        value="einsmarello"
-    )
+    logged_in_username = get_logged_in_username()
+
+    if logged_in_username:
+        viewer_name = st.text_input(
+            "Dein Twitch-Name",
+            value=logged_in_username,
+            disabled=True
+        )
+    else:
+        viewer_name = st.text_input(
+            "Dein Twitch-Name",
+            value=""
+        )
+
+    effective_viewer_name = get_effective_username(viewer_name)
 
     with st.spinner("Lade Events..."):
         events = get_events()
@@ -741,7 +940,7 @@ elif menu == "⚡ Events":
 
             signups = get_event_signups(event_id)
 
-            signed_up = is_signed_up(event_id, viewer_name)
+            signed_up = is_signed_up(event_id, effective_viewer_name)
 
             st.markdown(f"""
             <div class="event-card">
@@ -757,12 +956,12 @@ elif menu == "⚡ Events":
             with col1:
                 if not signed_up:
                     if st.button("Anmelden", key=f"join_{event_id}"):
-                        signup_event(event_id, viewer_name)
+                        signup_event(event_id, effective_viewer_name)
                         st.success("Angemeldet")
                         st.rerun()
                 else:
                     if st.button("Abmelden", key=f"leave_{event_id}"):
-                        leave_event(event_id, viewer_name)
+                        leave_event(event_id, effective_viewer_name)
                         st.warning("Abgemeldet")
                         st.rerun()
 
