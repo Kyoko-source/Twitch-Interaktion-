@@ -691,11 +691,17 @@ h1 {
     flex-wrap: wrap;
 }
 
-.topbar-actions .stButton > button {
+.topbar-actions .stButton > button,
+.topbar-actions [data-testid="stPopover"] button {
     min-height: 36px;
     padding: 0.45rem 0.8rem;
     border-radius: 999px;
     font-size: 13px;
+}
+
+.topbar-actions [data-testid="stPopover"] {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .card,
@@ -1022,26 +1028,22 @@ with top_actions:
         )
 
     st.markdown('<div class="topbar-actions">', unsafe_allow_html=True)
-    login_col, profile_col, admin_col, logout_col = st.columns([1, 1, 1, 1])
-
-    with login_col:
-        if st.button("Login", key="top_login"):
+    with st.popover("☰", use_container_width=False):
+        if st.button("🔑 Login", key="top_login", use_container_width=True):
             st.session_state["app_menu"] = "🔑 Login"
             top_nav_clicked = True
 
-    with profile_col:
-        if st.button("Profil", key="top_profile"):
+        if st.button("👤 Profil", key="top_profile", use_container_width=True):
             st.session_state["app_menu"] = "👤 Profil"
             top_nav_clicked = True
 
-    with admin_col:
-        if st.button("Admin", key="top_admin"):
+        if st.button("🔐 Admin", key="top_admin", use_container_width=True):
             st.session_state["app_menu"] = "🔐 Admin"
             top_nav_clicked = True
 
-    with logout_col:
         if logged_in_username or twitch_display_name:
-            if st.button("Logout", key="top_logout"):
+            st.divider()
+            if st.button("Logout", key="top_logout", use_container_width=True):
                 logout_user()
                 st.session_state.pop("twitch_user", None)
                 st.session_state.pop("twitch_access_token", None)
