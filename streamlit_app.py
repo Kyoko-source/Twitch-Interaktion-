@@ -8,6 +8,7 @@ import hashlib
 import re
 import urllib.parse
 import uuid
+import html
 from typing import Optional
 
 st.set_page_config(
@@ -1173,25 +1174,27 @@ elif menu == "🏆 Rangliste":
             ("3", "bronze", top_viewers[2] if len(top_viewers) > 2 else None),
         ]
 
-        podium_html = '<div class="podium-grid">'
+        podium_cards = []
         for place, style, viewer in podium_slots:
             if viewer:
-                podium_html += f"""
-                <div class="podium-card {style}">
-                    <div class="podium-rank">#{place}</div>
-                    <div class="podium-name">{viewer["Viewer"]}</div>
-                    <div class="podium-score">🧠 {int(viewer["Gehirnzellen"])} · 🥚 {int(viewer["Chickens"])}</div>
-                </div>
-                """
+                viewer_name = html.escape(str(viewer["Viewer"]))
+                podium_cards.append(
+                    f'<div class="podium-card {style}">'
+                    f'<div class="podium-rank">#{place}</div>'
+                    f'<div class="podium-name">{viewer_name}</div>'
+                    f'<div class="podium-score">🧠 {int(viewer["Gehirnzellen"])} · 🥚 {int(viewer["Chickens"])}</div>'
+                    f'</div>'
+                )
             else:
-                podium_html += f"""
-                <div class="podium-card {style}">
-                    <div class="podium-rank">#{place}</div>
-                    <div class="podium-name">Noch frei</div>
-                    <div class="podium-score">Werde sichtbar</div>
-                </div>
-                """
-        podium_html += "</div>"
+                podium_cards.append(
+                    f'<div class="podium-card {style}">'
+                    f'<div class="podium-rank">#{place}</div>'
+                    f'<div class="podium-name">Noch frei</div>'
+                    f'<div class="podium-score">Werde sichtbar</div>'
+                    f'</div>'
+                )
+
+        podium_html = f'<div class="podium-grid">{"".join(podium_cards)}</div>'
         st.markdown(podium_html, unsafe_allow_html=True)
 
         ranked = leaderboard.copy()
