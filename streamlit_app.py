@@ -694,12 +694,49 @@ h1 {
     box-shadow: 0 0 25px rgba(199,125,255,0.6);
 }
 
+.stRadio {
+    max-width: 980px;
+    margin: 0 auto 22px auto;
+}
+
 .stRadio > div {
     justify-content: center;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(157,78,221,0.25);
-    border-radius: 18px;
-    padding: 10px;
+    gap: 8px;
+    background: rgba(8,10,18,0.72);
+    border: 1px solid rgba(199,125,255,0.28);
+    border-radius: 999px;
+    padding: 8px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.24);
+    backdrop-filter: blur(12px);
+}
+
+.stRadio [role="radiogroup"] label {
+    min-height: 42px;
+    border-radius: 999px;
+    padding: 0 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.035);
+    transition: all 0.18s ease;
+}
+
+.stRadio [role="radiogroup"] label:hover {
+    border-color: rgba(199,125,255,0.55);
+    background: rgba(199,125,255,0.12);
+}
+
+.stRadio [role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(135deg, #9d4edd, #00d4ff);
+    border-color: transparent;
+    box-shadow: 0 0 22px rgba(0,212,255,0.24);
+}
+
+.stRadio [role="radiogroup"] label:has(input:checked) p {
+    color: #05050a !important;
+    font-weight: 900;
+}
+
+.stRadio [role="radiogroup"] label p {
+    font-weight: 800;
 }
 
 .small {
@@ -760,12 +797,12 @@ elif twitch_display_name:
         st.session_state.pop("twitch_user", None)
         st.session_state.pop("twitch_access_token", None)
         st.rerun()
-elif twitch_auth_url:
+elif False and twitch_auth_url:
     st.markdown(
         f'<a href="{twitch_auth_url}" target="_self" style="text-decoration:none;"><button style="background: linear-gradient(135deg, #9d4edd, #c77dff); border: none; border-radius: 14px; color: black; font-weight: 900; padding: 0.6rem 1rem; cursor: pointer;">Mit Twitch verbinden</button></a>',
         unsafe_allow_html=True
     )
-else:
+elif False:
     client_id, _, _ = get_twitch_config()
     if not client_id:
         st.warning("⚠️ Twitch-OAuth ist nicht konfiguriert. Prüfe deine Streamlit-Cloud-Secrets!")
@@ -1138,6 +1175,448 @@ elif menu == "⚡ Events":
 # =========================
 # CHICKEN JUMP
 # =========================
+
+elif menu.endswith("Minispiele"):
+
+    components.html("""
+    <html>
+    <head>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 720px;
+            background:
+                radial-gradient(circle at 18% 14%, rgba(0, 245, 255, 0.18), transparent 26%),
+                radial-gradient(circle at 82% 18%, rgba(199, 125, 255, 0.20), transparent 28%),
+                linear-gradient(180deg, #070912 0%, #14091f 100%);
+            color: white;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            overflow: hidden;
+        }
+        .shell { width: min(100%, 1040px); margin: 0 auto; padding: 16px; }
+        .game-panel {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            background: rgba(5, 8, 16, 0.72);
+            box-shadow: 0 24px 70px rgba(0,0,0,0.42);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 8;
+            background: #081020;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background: linear-gradient(180deg, rgba(7,9,18,0.34), rgba(7,9,18,0.82));
+        }
+        .menu-card {
+            width: min(520px, 92%);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            background: rgba(12, 14, 24, 0.86);
+            box-shadow: 0 0 40px rgba(157,78,221,0.24);
+            backdrop-filter: blur(10px);
+        }
+        .menu-card h1 { margin: 0 0 8px; font-size: 44px; line-height: 1; }
+        .menu-card p { margin: 8px auto 18px; color: #d7c8ff; line-height: 1.45; }
+        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 18px;
+            color: #05050a;
+            cursor: pointer;
+            font-weight: 900;
+            background: linear-gradient(135deg, #c77dff, #00d4ff);
+            box-shadow: 0 12px 28px rgba(0,212,255,0.20);
+        }
+        button.secondary {
+            color: #fff;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.16);
+            box-shadow: none;
+        }
+        .hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+        .hud-card {
+            min-height: 74px;
+            padding: 13px 14px;
+            border: 1px solid rgba(255,255,255,0.11);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.055);
+        }
+        .hud-card span {
+            display: block;
+            color: #aeb6d9;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .hud-card strong { display: block; margin-top: 4px; font-size: 26px; }
+        .scores {
+            margin-top: 12px;
+            border: 1px solid rgba(199,125,255,0.20);
+            border-radius: 14px;
+            padding: 14px;
+            background: rgba(255,255,255,0.045);
+        }
+        .scores h3 { margin: 0 0 10px; font-size: 18px; }
+        .scores ol { margin: 0; padding-left: 22px; color: #e9ddff; columns: 2; }
+        .scores li { margin: 4px 0; break-inside: avoid; }
+        @media (max-width: 720px) {
+            body { min-height: 760px; }
+            .hud { grid-template-columns: 1fr; }
+            .scores ol { columns: 1; }
+            .menu-card h1 { font-size: 34px; }
+        }
+    </style>
+    </head>
+    <body>
+    <div class="shell">
+        <div class="game-panel">
+            <canvas id="game" width="1000" height="500"></canvas>
+            <div id="overlay" class="overlay">
+                <div class="menu-card">
+                    <h1 id="menuTitle">Chicken Jump</h1>
+                    <p id="menuText">Spring ueber Zaeune, sammle Gehirnzellen und halte so lange wie moeglich durch.</p>
+                    <div class="actions">
+                        <button id="startBtn">Spiel starten</button>
+                        <button id="scoreBtn" class="secondary">Score speichern</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud">
+            <div class="hud-card"><span>Score</span><strong id="scoreValue">0</strong></div>
+            <div class="hud-card"><span>Tempo</span><strong id="speedValue">1.0x</strong></div>
+            <div class="hud-card"><span>Level</span><strong id="levelValue">1</strong></div>
+        </div>
+
+        <div class="scores">
+            <h3>Scoreboard</h3>
+            <ol id="scores"></ol>
+        </div>
+    </div>
+
+    <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const menuTitle = document.getElementById("menuTitle");
+    const menuText = document.getElementById("menuText");
+    const startBtn = document.getElementById("startBtn");
+    const scoreBtn = document.getElementById("scoreBtn");
+    const scoreValue = document.getElementById("scoreValue");
+    const speedValue = document.getElementById("speedValue");
+    const levelValue = document.getElementById("levelValue");
+
+    let chicken = { x: 120, y: 338, w: 54, h: 46, vy: 0, jumping: false };
+    const groundY = 390;
+    let gravity = 0.82;
+    let fences = [];
+    let clouds = [];
+    let particles = [];
+    let speed = 5.4;
+    let score = 0;
+    let level = 1;
+    let state = "menu";
+    let frame = 0;
+    let savedCurrentScore = false;
+
+    function showMenu(title, text, primaryText) {
+        menuTitle.textContent = title;
+        menuText.textContent = text;
+        startBtn.textContent = primaryText;
+        scoreBtn.style.display = state === "gameover" && score > 0 && !savedCurrentScore ? "inline-block" : "none";
+        overlay.style.display = "flex";
+    }
+
+    function hideMenu() {
+        overlay.style.display = "none";
+    }
+
+    function jump() {
+        if (state === "menu") {
+            startGame();
+            return;
+        }
+        if (state === "gameover") return;
+        if (!chicken.jumping) {
+            chicken.vy = -16.5;
+            chicken.jumping = true;
+            particles.push({x: chicken.x + 10, y: groundY - 12, life: 18});
+        }
+    }
+
+    startBtn.addEventListener("click", startGame);
+    scoreBtn.addEventListener("click", saveScore);
+    canvas.addEventListener("click", jump);
+    document.addEventListener("keydown", function(e) {
+        if (e.code === "Space") {
+            e.preventDefault();
+            jump();
+        } else if (e.code === "Enter" && state !== "playing") {
+            startGame();
+        }
+    });
+
+    function spawnFence() {
+        const height = 46 + Math.random() * 26;
+        fences.push({
+            x: canvas.width + 40,
+            y: groundY - height,
+            w: 30 + Math.random() * 14,
+            h: height,
+            passed: false
+        });
+    }
+
+    function spawnCloud() {
+        clouds.push({
+            x: canvas.width + 90,
+            y: 45 + Math.random() * 120,
+            w: 80 + Math.random() * 90,
+            speed: 0.45 + Math.random() * 0.55
+        });
+    }
+
+    function roundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.fill();
+    }
+
+    function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        sky.addColorStop(0, "#08172c");
+        sky.addColorStop(0.55, "#161032");
+        sky.addColorStop(1, "#260d2f");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        for (let i = 0; i < 42; i++) {
+            const x = (i * 137 + frame * 0.18) % canvas.width;
+            const y = 18 + (i * 53) % 190;
+            ctx.fillRect(x, y, 2, 2);
+        }
+
+        if (frame % 180 === 0) spawnCloud();
+        clouds.forEach(c => {
+            c.x -= c.speed;
+            ctx.fillStyle = "rgba(255,255,255,0.12)";
+            roundedRect(c.x, c.y, c.w, 22, 999);
+            roundedRect(c.x + c.w * 0.18, c.y - 12, c.w * 0.45, 28, 999);
+        });
+        clouds = clouds.filter(c => c.x + c.w > -120);
+    }
+
+    function drawGround() {
+        const ground = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+        ground.addColorStop(0, "#2f1846");
+        ground.addColorStop(1, "#120817");
+        ctx.fillStyle = ground;
+        ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+        ctx.fillStyle = "#00d4ff";
+        for (let i = 0; i < canvas.width + 60; i += 44) {
+            roundedRect(i - (frame * speed % 44), groundY + 12, 22, 4, 4);
+        }
+    }
+
+    function drawChicken() {
+        const bob = Math.sin(frame / 8) * 2;
+        ctx.save();
+        ctx.translate(chicken.x, chicken.y + bob);
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(28, 54, 30, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffd43b";
+        roundedRect(0, 5, chicken.w, chicken.h, 14);
+        ctx.fillStyle = "#ffe66d";
+        roundedRect(16, -8, 32, 30, 14);
+        ctx.fillStyle = "#ff922b";
+        ctx.beginPath();
+        ctx.moveTo(48, 4);
+        ctx.lineTo(68, 13);
+        ctx.lineTo(48, 21);
+        ctx.fill();
+        ctx.fillStyle = "#080808";
+        ctx.beginPath();
+        ctx.arc(39, 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ff6b6b";
+        roundedRect(18, -18, 20, 12, 5);
+        ctx.strokeStyle = "#ff922b";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(17, 47);
+        ctx.lineTo(13, 58);
+        ctx.moveTo(38, 47);
+        ctx.lineTo(42, 58);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawFence(fence) {
+        const grad = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
+        grad.addColorStop(0, "#d8b4fe");
+        grad.addColorStop(1, "#7c3aed");
+        ctx.fillStyle = grad;
+        roundedRect(fence.x, fence.y, fence.w, fence.h, 6);
+        roundedRect(fence.x - 12, fence.y + fence.h * 0.25, fence.w + 24, 8, 4);
+        roundedRect(fence.x - 12, fence.y + fence.h * 0.62, fence.w + 24, 8, 4);
+    }
+
+    function collision(a, b) {
+        const body = {x: a.x + 6, y: a.y + 4, w: a.w - 10, h: a.h - 2};
+        return (
+            body.x < b.x + b.w &&
+            body.x + body.w > b.x &&
+            body.y < b.y + b.h &&
+            body.y + body.h > b.y
+        );
+    }
+
+    function drawParticles() {
+        particles.forEach(p => {
+            p.life -= 1;
+            p.x -= speed * 0.25;
+            p.y += 0.4;
+            ctx.fillStyle = "rgba(255, 230, 109," + Math.max(p.life / 18, 0) + ")";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        particles = particles.filter(p => p.life > 0);
+    }
+
+    function drawUI() {
+        scoreValue.textContent = score;
+        speedValue.textContent = (speed / 5.4).toFixed(1) + "x";
+        levelValue.textContent = level;
+    }
+
+    function startGame() {
+        chicken.y = groundY - chicken.h - 6;
+        chicken.vy = 0;
+        chicken.jumping = false;
+        fences = [];
+        particles = [];
+        speed = 5.4;
+        score = 0;
+        level = 1;
+        frame = 0;
+        savedCurrentScore = false;
+        state = "playing";
+        hideMenu();
+    }
+
+    function endGame() {
+        state = "gameover";
+        showMenu("Game Over", "Score: " + score + " | Level: " + level, "Nochmal spielen");
+    }
+
+    function saveScore() {
+        if (savedCurrentScore || score <= 0) return;
+        let name = prompt("Dein Twitch-Name fuer das Scoreboard:");
+        if (!name) return;
+
+        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
+        scores.push({ name: name, score: score });
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 10);
+        localStorage.setItem("chicken_scores", JSON.stringify(scores));
+        savedCurrentScore = true;
+        renderScores();
+        showMenu("Score gespeichert", "Dein Score steht jetzt im lokalen Scoreboard.", "Nochmal spielen");
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value;
+        return div.innerHTML;
+    }
+
+    function renderScores() {
+        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
+        let box = document.getElementById("scores");
+        if (scores.length === 0) {
+            box.innerHTML = "<li>Noch keine Scores.</li>";
+            return;
+        }
+        box.innerHTML = scores.map(s => "<li><strong>" + escapeHtml(s.name) + "</strong> - " + s.score + "</li>").join("");
+    }
+
+    function loop() {
+        frame++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        drawGround();
+
+        if (state === "playing") {
+            chicken.vy += gravity;
+            chicken.y += chicken.vy;
+
+            if (chicken.y >= groundY - chicken.h - 6) {
+                chicken.y = groundY - chicken.h - 6;
+                chicken.vy = 0;
+                chicken.jumping = false;
+            }
+
+            if (frame % Math.max(46, Math.floor(112 - speed * 7)) === 0) spawnFence();
+
+            fences.forEach(fence => {
+                fence.x -= speed;
+                if (!fence.passed && fence.x + fence.w < chicken.x) {
+                    fence.passed = true;
+                    score++;
+                    speed += 0.23;
+                    level = 1 + Math.floor(score / 5);
+                    particles.push({x: chicken.x + chicken.w, y: chicken.y + 10, life: 22});
+                }
+                if (collision(chicken, fence)) endGame();
+                drawFence(fence);
+            });
+            fences = fences.filter(f => f.x > -80);
+        } else {
+            fences.forEach(drawFence);
+        }
+
+        drawParticles();
+        drawChicken();
+        drawUI();
+        requestAnimationFrame(loop);
+    }
+
+    renderScores();
+    showMenu("Chicken Jump", "Spring ueber Zaeune, sammle Gehirnzellen und halte so lange wie moeglich durch.", "Spiel starten");
+    loop();
+    </script>
+    </body>
+    </html>
+    """, height=740)
 
 elif menu == "🎮 Minispiele":
 
