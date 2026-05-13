@@ -660,10 +660,15 @@ h1 {
 .topbar {
     background: rgba(20,20,30,0.75);
     border-radius: 20px;
-    padding: 18px;
+    padding: 12px 18px;
     margin-bottom: 25px;
     border: 1px solid rgba(255,255,255,0.08);
     backdrop-filter: blur(10px);
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
 }
 
 .topbar h2 {
@@ -702,6 +707,62 @@ h1 {
 .topbar-actions [data-testid="stPopover"] {
     display: flex;
     justify-content: flex-end;
+}
+
+.account-menu {
+    position: relative;
+    z-index: 20;
+}
+
+.account-menu summary {
+    width: 44px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    list-style: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-weight: 900;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+.account-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.account-dropdown {
+    position: absolute;
+    top: 46px;
+    right: 0;
+    min-width: 190px;
+    border-radius: 14px;
+    padding: 8px;
+    background: rgba(13,16,26,0.98);
+    border: 1px solid rgba(199,125,255,0.30);
+    box-shadow: 0 24px 55px rgba(0,0,0,0.45);
+}
+
+.account-dropdown a,
+.account-dropdown .account-status {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 850;
+}
+
+.account-dropdown .account-status {
+    color: #c77dff;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 6px;
+}
+
+.account-dropdown a:hover {
+    background: rgba(199,125,255,0.16);
 }
 
 .card,
@@ -1001,58 +1062,59 @@ MAIN_MENU_OPTIONS = [
 if "app_menu" not in st.session_state:
     st.session_state["app_menu"] = "🏠 Home"
 
-top_nav_clicked = False
+account_nav_clicked = False
 
-st.markdown('<div class="topbar">', unsafe_allow_html=True)
-top_left, top_stats, top_actions = st.columns([2.1, 1.2, 3.0])
+try:
+    account_action = st.query_params.get("account")
+except AttributeError:
+    account_action = None
 
-with top_left:
-    st.markdown("<h2>🧠 Gehirnzone</h2>", unsafe_allow_html=True)
+if isinstance(account_action, list):
+    account_action = account_action[0] if account_action else None
 
-with top_stats:
-    st.markdown(
-        f'<div class="topbar-stat">🥚 {total_chickens} &nbsp;&nbsp; 🧠 {total_braincells}</div>',
-        unsafe_allow_html=True
-    )
+account_targets = {
+    "login": "🔑 Login",
+    "profile": "👤 Profil",
+    "admin": "🔐 Admin",
+}
 
-with top_actions:
-    if logged_in_username:
-        st.markdown(
-            f'<div class="topbar-user">✅ Eingeloggt als <strong>{html.escape(logged_in_username)}</strong></div>',
-            unsafe_allow_html=True
-        )
-    elif twitch_display_name:
-        st.markdown(
-            f'<div class="topbar-user">✅ Verbunden als <strong>{html.escape(twitch_display_name)}</strong></div>',
-            unsafe_allow_html=True
-        )
+if account_action == "logout":
+    logout_user()
+    st.session_state.pop("twitch_user", None)
+    st.session_state.pop("twitch_access_token", None)
+    st.session_state["app_menu"] = "🏠 Home"
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+    st.rerun()
+elif account_action in account_targets:
+    st.session_state["app_menu"] = account_targets[account_action]
+    account_nav_clicked = True
 
-    st.markdown('<div class="topbar-actions">', unsafe_allow_html=True)
-    with st.popover("☰", use_container_width=False):
-        if st.button("🔑 Login", key="top_login", use_container_width=True):
-            st.session_state["app_menu"] = "🔑 Login"
-            top_nav_clicked = True
+if logged_in_username:
+    account_status = f'<div class="account-status">✅ {html.escape(logged_in_username)}</div>'
+elif twitch_display_name:
+    account_status = f'<div class="account-status">✅ {html.escape(twitch_display_name)}</div>'
+else:
+    account_status = ""
 
-        if st.button("👤 Profil", key="top_profile", use_container_width=True):
-            st.session_state["app_menu"] = "👤 Profil"
-            top_nav_clicked = True
+logout_link = '<a href="?account=logout">Logout</a>' if logged_in_username or twitch_display_name else ""
 
-        if st.button("🔐 Admin", key="top_admin", use_container_width=True):
-            st.session_state["app_menu"] = "🔐 Admin"
-            top_nav_clicked = True
-
-        if logged_in_username or twitch_display_name:
-            st.divider()
-            if st.button("Logout", key="top_logout", use_container_width=True):
-                logout_user()
-                st.session_state.pop("twitch_user", None)
-                st.session_state.pop("twitch_access_token", None)
-                st.session_state["app_menu"] = "🏠 Home"
-                top_nav_clicked = True
-                st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown(f"""
+<div class="topbar">
+    <details class="account-menu">
+        <summary>☰</summary>
+        <div class="account-dropdown">
+            {account_status}
+            <a href="?account=login">🔑 Login</a>
+            <a href="?account=profile">👤 Profil</a>
+            <a href="?account=admin">🔐 Admin</a>
+            {logout_link}
+        </div>
+    </details>
+</div>
+""", unsafe_allow_html=True)
 
 if False and twitch_auth_url:
     st.markdown(
@@ -1080,7 +1142,7 @@ selected_main_menu = st.radio(
     key="main_nav"
 )
 
-if not top_nav_clicked and selected_main_menu != st.session_state.get("_last_main_nav"):
+if not account_nav_clicked and selected_main_menu != st.session_state.get("_last_main_nav"):
     st.session_state["app_menu"] = selected_main_menu
 
 st.session_state["_last_main_nav"] = selected_main_menu
@@ -1102,7 +1164,7 @@ if menu == "🏠 Home":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-number">{total_users}</div>
-            <div class="metric-label">Viewer</div>
+            <div class="metric-label">Gesamte Viewer</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1110,7 +1172,7 @@ if menu == "🏠 Home":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-number">{total_chickens}</div>
-            <div class="metric-label">Chickens</div>
+            <div class="metric-label">Gesamte Chickens</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1118,7 +1180,7 @@ if menu == "🏠 Home":
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-number">{total_braincells}</div>
-            <div class="metric-label">Gehirnzellen</div>
+            <div class="metric-label">Gesamte Gehirnzellen</div>
         </div>
         """, unsafe_allow_html=True)
 
