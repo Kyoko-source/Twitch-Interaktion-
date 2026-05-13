@@ -664,6 +664,77 @@ h1 {
     color: #aaa;
 }
 
+.podium-grid,
+.arcade-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 18px 0 26px;
+}
+
+.podium-card,
+.arcade-card {
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+}
+
+.podium-card.gold {
+    border-color: rgba(255,215,0,0.70);
+    box-shadow: 0 0 34px rgba(255,215,0,0.20);
+}
+
+.podium-rank {
+    font-size: 34px;
+    font-weight: 900;
+}
+
+.podium-name {
+    margin-top: 8px;
+    font-size: 22px;
+    font-weight: 900;
+    color: #ffffff;
+    word-break: break-word;
+}
+
+.podium-score {
+    margin-top: 8px;
+    color: #c77dff;
+    font-weight: 800;
+}
+
+.section-kicker {
+    color: #00d4ff;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.arcade-card {
+    text-align: left;
+}
+
+.arcade-card strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 18px;
+}
+
+.arcade-card span {
+    color: #cfc6e8;
+}
+
+@media (max-width: 780px) {
+    .podium-grid,
+    .arcade-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .progress-bg {
     width: 100%;
     height: 18px;
@@ -1086,12 +1157,43 @@ elif menu == "🛒 Shop":
 
 elif menu == "🏆 Rangliste":
 
+    st.markdown('<div class="section-kicker">Community Ranking</div>', unsafe_allow_html=True)
+    st.markdown("## Rangliste")
+
     search = st.text_input("Suche nach Viewer", placeholder="Gib einen Namen ein...")
 
     if leaderboard.empty:
         st.info("Keine Daten vorhanden.")
 
     else:
+        top_viewers = leaderboard.head(3).to_dict("records")
+        podium_slots = [
+            ("2", "silver", top_viewers[1] if len(top_viewers) > 1 else None),
+            ("1", "gold", top_viewers[0] if len(top_viewers) > 0 else None),
+            ("3", "bronze", top_viewers[2] if len(top_viewers) > 2 else None),
+        ]
+
+        podium_html = '<div class="podium-grid">'
+        for place, style, viewer in podium_slots:
+            if viewer:
+                podium_html += f"""
+                <div class="podium-card {style}">
+                    <div class="podium-rank">#{place}</div>
+                    <div class="podium-name">{viewer["Viewer"]}</div>
+                    <div class="podium-score">🧠 {int(viewer["Gehirnzellen"])} · 🥚 {int(viewer["Chickens"])}</div>
+                </div>
+                """
+            else:
+                podium_html += f"""
+                <div class="podium-card {style}">
+                    <div class="podium-rank">#{place}</div>
+                    <div class="podium-name">Noch frei</div>
+                    <div class="podium-score">Werde sichtbar</div>
+                </div>
+                """
+        podium_html += "</div>"
+        st.markdown(podium_html, unsafe_allow_html=True)
+
         ranked = leaderboard.copy()
 
         if search:
@@ -1177,6 +1279,25 @@ elif menu == "⚡ Events":
 # =========================
 
 elif menu.endswith("Minispiele"):
+
+    st.markdown('<div class="section-kicker">Arcade</div>', unsafe_allow_html=True)
+    st.markdown("## Chicken Jump")
+    st.markdown("""
+    <div class="arcade-grid">
+        <div class="arcade-card">
+            <strong>Saison-Jagd</strong>
+            <span>Spiele um Tages-, Wochen- und All-Time-Platzierungen.</span>
+        </div>
+        <div class="arcade-card">
+            <strong>Skill statt Zufall</strong>
+            <span>Je laenger du ueberlebst, desto schneller wird das Spiel.</span>
+        </div>
+        <div class="arcade-card">
+            <strong>Globales Scoreboard</strong>
+            <span>Gespeicherte Scores sind fuer alle Viewer sichtbar.</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     components.html("""
     <html>
@@ -1272,6 +1393,18 @@ elif menu.endswith("Minispiele"):
             background: rgba(255,255,255,0.045);
         }
         .scores h3 { margin: 0 0 10px; font-size: 18px; }
+        .score-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .score-tabs button {
+            padding: 8px 12px;
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: none;
+        }
+        .score-tabs button.active {
+            color: #05050a;
+            background: linear-gradient(135deg, #c77dff, #00d4ff);
+        }
         .scores ol { margin: 0; padding-left: 22px; color: #e9ddff; columns: 2; }
         .scores li { margin: 4px 0; break-inside: avoid; }
         @media (max-width: 720px) {
@@ -1306,6 +1439,11 @@ elif menu.endswith("Minispiele"):
 
         <div class="scores">
             <h3>Scoreboard</h3>
+            <div class="score-tabs">
+                <button class="active" data-score-filter="all">All-Time</button>
+                <button data-score-filter="week">Diese Woche</button>
+                <button data-score-filter="today">Heute</button>
+            </div>
             <ol id="scores"></ol>
         </div>
     </div>
@@ -1337,6 +1475,7 @@ elif menu.endswith("Minispiele"):
     let state = "menu";
     let frame = 0;
     let savedCurrentScore = false;
+    let currentScoreFilter = "all";
 
     function showMenu(title, text, primaryText) {
         menuTitle.textContent = title;
@@ -1366,6 +1505,14 @@ elif menu.endswith("Minispiele"):
     startBtn.addEventListener("click", startGame);
     scoreBtn.addEventListener("click", saveScore);
     canvas.addEventListener("click", jump);
+    document.querySelectorAll("[data-score-filter]").forEach(button => {
+        button.addEventListener("click", async function() {
+            currentScoreFilter = this.dataset.scoreFilter;
+            document.querySelectorAll("[data-score-filter]").forEach(item => item.classList.remove("active"));
+            this.classList.add("active");
+            await renderScores();
+        });
+    });
     document.addEventListener("keydown", function(e) {
         if (e.code === "Space") {
             e.preventDefault();
@@ -1586,8 +1733,20 @@ elif menu.endswith("Minispiele"):
         box.innerHTML = "<li>Lade globale Scores...</li>";
 
         try {
+            let query = "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=10";
+            if (currentScoreFilter !== "all") {
+                const now = new Date();
+                const from = new Date(now);
+                if (currentScoreFilter === "today") {
+                    from.setHours(0, 0, 0, 0);
+                } else {
+                    from.setDate(now.getDate() - 7);
+                }
+                query += "&created_at=gte." + encodeURIComponent(from.toISOString());
+            }
+
             const response = await fetch(
-                SCOREBOARD_ENDPOINT + "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=10",
+                SCOREBOARD_ENDPOINT + query,
                 {
                     headers: {
                         "apikey": SUPABASE_KEY,
