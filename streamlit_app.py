@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
+import hashlib
 import re
 import urllib.parse
 import uuid
@@ -14,6 +15,8 @@ st.set_page_config(
     page_icon="🧠",
     layout="wide"
 )
+
+PASSWORD_SALT = "gehirnzone_guest_auth_salt"
 
 # =========================
 # VALIDATION
@@ -28,6 +31,30 @@ def validate_username(username: str) -> bool:
     if not re.match(r'^[a-zA-Z0-9_-]+$', username):
         return False
     return True
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(f"{password}{PASSWORD_SALT}".encode("utf-8")).hexdigest()
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return hash_password(password) == password_hash
+
+
+def login_user(username: str, password: str) -> Optional[dict]:
+    user = get_user(username)
+    if not user:
+        return None
+
+    password_hash = user.get("password_hash")
+    if not password_hash:
+        return None
+
+    return user if verify_password(password, password_hash) else None
+
+
+def logout_user():
+    st.session_state.pop("logged_in_username", None)
 
 # =========================
 # SUPABASE
@@ -243,16 +270,24 @@ def handle_twitch_callback():
 
 
 def get_logged_in_username():
+    if st.session_state.get("logged_in_username"):
+        return st.session_state["logged_in_username"]
+
     twitch_user = st.session_state.get("twitch_user")
     if twitch_user:
         return twitch_user.get("login") or twitch_user.get("display_name")
+
     return ""
 
 
 def get_logged_in_display_name():
+    if st.session_state.get("logged_in_username"):
+        return st.session_state["logged_in_username"]
+
     twitch_user = st.session_state.get("twitch_user")
     if twitch_user:
         return twitch_user.get("display_name") or twitch_user.get("login")
+
     return ""
 
 
@@ -269,27 +304,30 @@ def get_effective_username(input_name: str) -> str:
 def get_user(username: str) -> Optional[dict]:
     if not validate_username(username):
         return None
-    username = username.lower().strip()
+    username = username.strip()
     data = api_get(f"users?username=eq.{urllib.parse.quote(username)}")
     return data[0] if data else None
 
-def create_user(username):
-    username = username.lower().strip()
 
-    created = api_post(
-        "users",
-        {
-            "username": username,
-            "chickens": 0,
-            "braincells": 0,
-            "created_at": datetime.now().isoformat()
-        }
-    )
+def create_user(username, password: Optional[str] = None):
+    username = username.strip()
 
+    payload = {
+        "username": username,
+        "chickens": 0,
+        "braincells": 0,
+        "created_at": datetime.now().isoformat()
+    }
+
+    if password:
+        payload["password_hash"] = hash_password(password)
+
+    created = api_post("users", payload)
     return created[0] if created else None
 
+
 def get_or_create_user(username):
-    username = username.lower().strip()
+    username = username.strip()
 
     if username == "":
         username = "gast"
@@ -301,24 +339,38 @@ def get_or_create_user(username):
 
     return user
 
+
 def update_user(username, chickens, braincells):
-    username = username.lower().strip()
+    username = username.strip()
 
     return api_patch(
-        f"users?username=eq.{username}",
+        f"users?username=eq.{urllib.parse.quote(username)}",
         {
             "chickens": chickens,
             "braincells": braincells
         }
     )
 
+
+def set_user_password(username, password):
+    username = username.strip()
+
+    return api_patch(
+        f"users?username=eq.{urllib.parse.quote(username)}",
+        {
+            "password_hash": hash_password(password)
+        }
+    )
+
+
 def delete_user(username):
-    username = username.lower().strip()
+    username = username.strip()
 
-    api_delete(f"event_signups?username=eq.{username}")
-    api_delete(f"purchases?username=eq.{username}")
+    api_delete(f"event_signups?username=eq.{urllib.parse.quote(username)}")
+    api_delete(f"purchases?username=eq.{urllib.parse.quote(username)}")
 
-    return api_delete(f"users?username=eq.{username}")
+    return api_delete(f"users?username=eq.{urllib.parse.quote(username)}")
+
 
 def add_points(username, chickens=0, braincells=0):
     user = get_or_create_user(username)
@@ -331,6 +383,7 @@ def add_points(username, chickens=0, braincells=0):
         int(user["chickens"]) + chickens,
         int(user["braincells"]) + braincells
     )
+
 
 def remove_points(username, chickens=0, braincells=0):
     user = get_or_create_user(username)
@@ -422,12 +475,12 @@ def get_event_signups(event_id):
     return api_get(f"event_signups?event_id=eq.{event_id}&select=*")
 
 def is_signed_up(event_id, username):
-    username = username.lower().strip()
-    data = api_get(f"event_signups?event_id=eq.{event_id}&username=eq.{username}")
+    username = username.strip()
+    data = api_get(f"event_signups?event_id=eq.{event_id}&username=eq.{urllib.parse.quote(username)}")
     return len(data) > 0
 
 def signup_event(event_id, username):
-    username = username.lower().strip()
+    username = username.strip()
 
     if username == "":
         return False
@@ -449,8 +502,8 @@ def signup_event(event_id, username):
     return True
 
 def leave_event(event_id, username):
-    username = username.lower().strip()
-    return api_delete(f"event_signups?event_id=eq.{event_id}&username=eq.{username}")
+    username = username.strip()
+    return api_delete(f"event_signups?event_id=eq.{event_id}&username=eq.{urllib.parse.quote(username)}")
 
 # =========================
 # SHOP
@@ -480,7 +533,7 @@ rewards = [
 ]
 
 def buy_reward(username, reward):
-    user = get_or_create_user(username)
+    user = get_user(username)
 
     if user is None:
         return False
@@ -664,11 +717,22 @@ st.markdown(f"""
 
 handle_twitch_callback()
 
+logged_in_username = get_logged_in_username()
 twitch_display_name = get_logged_in_display_name()
 
 twitch_auth_url = twitch_oauth_authorize_url()
 
-if twitch_display_name:
+if logged_in_username:
+    st.markdown(
+        f"<div style='text-align:right; margin-bottom:18px; color:#c77dff;'>✅ Eingeloggt als <strong>{logged_in_username}</strong></div>",
+        unsafe_allow_html=True
+    )
+    if st.button("Abmelden", key="local_logout"):
+        logout_user()
+        st.session_state.pop("twitch_user", None)
+        st.session_state.pop("twitch_access_token", None)
+        st.rerun()
+elif twitch_display_name:
     st.markdown(
         f"<div style='text-align:right; margin-bottom:18px; color:#c77dff;'>✅ Verbunden als <strong>{twitch_display_name}</strong></div>",
         unsafe_allow_html=True
@@ -693,6 +757,7 @@ menu = st.radio(
     "",
     [
         "🏠 Home",
+        "🔑 Login",
         "👤 Profil",
         "🛒 Shop",
         "🏆 Rangliste",
@@ -796,6 +861,73 @@ if menu == "🏠 Home":
         """, unsafe_allow_html=True)
 
 # =========================
+# LOGIN
+# =========================
+
+elif menu == "🔑 Login":
+
+    logged_in_username = get_logged_in_username()
+
+    if logged_in_username:
+        st.success(f"Angemeldet als **{logged_in_username}**")
+        if st.button("Abmelden", key="logout_button"):
+            logout_user()
+            st.experimental_rerun()
+    else:
+        st.markdown("## Anmeldung oder Registrierung")
+        st.markdown("Gib deinen Twitch-Namen exakt so ein, wie er auf Twitch geschrieben ist.")
+
+        login_tab, register_tab = st.tabs(["Anmelden", "Registrieren"])
+
+        with login_tab:
+            login_name = st.text_input("Twitch-Name", key="login_name")
+            login_password = st.text_input("Passwort", type="password", key="login_password")
+
+            if st.button("Anmelden", key="login_submit"):
+                if not validate_username(login_name):
+                    st.error("Ungültiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                else:
+                    user = login_user(login_name, login_password)
+                    if user:
+                        st.session_state["logged_in_username"] = user["username"]
+                        st.success("Erfolgreich angemeldet.")
+                        st.experimental_rerun()
+                    else:
+                        st.error("Login fehlgeschlagen. Prüfe deinen Namen und dein Passwort.")
+
+        with register_tab:
+            register_name = st.text_input("Twitch-Name", key="register_name")
+            register_password = st.text_input("Passwort", type="password", key="register_password")
+            register_confirm = st.text_input("Passwort bestätigen", type="password", key="register_confirm")
+
+            if st.button("Registrieren", key="register_submit"):
+                if not validate_username(register_name):
+                    st.error("Ungültiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                elif register_password == "":
+                    st.error("Bitte gib ein Passwort ein.")
+                elif register_password != register_confirm:
+                    st.error("Die Passwörter stimmen nicht überein.")
+                else:
+                    existing_user = get_user(register_name)
+                    if existing_user and existing_user.get("password_hash"):
+                        st.error("Dieser Name ist bereits registriert.")
+                    elif existing_user:
+                        if set_user_password(register_name, register_password):
+                            st.session_state["logged_in_username"] = register_name
+                            st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
+                            st.experimental_rerun()
+                        else:
+                            st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
+                    else:
+                        new_user = create_user(register_name, register_password)
+                        if new_user:
+                            st.session_state["logged_in_username"] = new_user["username"]
+                            st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
+                            st.experimental_rerun()
+                        else:
+                            st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
+
+# =========================
 # PROFIL
 # =========================
 
@@ -803,25 +935,17 @@ elif menu == "👤 Profil":
 
     logged_in_username = get_logged_in_username()
 
-    if logged_in_username:
-        profile_name = st.text_input(
-            "Twitch-Name",
-            value=logged_in_username,
-            disabled=True
-        )
-    else:
-        profile_name = st.text_input(
-            "Twitch-Name",
-            value=""
-        )
+    if not logged_in_username:
+        st.warning("Bitte melde dich zuerst im Login-Bereich mit deinem Twitch-Namen und Passwort an.")
+        st.stop()
 
-    effective_profile_name = get_effective_username(profile_name)
+    st.subheader("Dein Profil")
+    st.markdown(f"**Eingeloggt als:** {logged_in_username}")
 
     with st.spinner("Lade Benutzerdaten..."):
-        user = get_or_create_user(effective_profile_name)
+        user = get_or_create_user(logged_in_username)
 
     if user:
-
         braincells = int(user["braincells"])
         chickens = int(user["chickens"])
 
@@ -850,19 +974,17 @@ elif menu == "🛒 Shop":
 
     logged_in_username = get_logged_in_username()
 
-    if logged_in_username:
-        username = st.text_input(
-            "Dein Twitch-Name",
-            value=logged_in_username,
-            disabled=True
-        )
-    else:
-        username = st.text_input(
-            "Dein Twitch-Name",
-            value=""
-        )
+    if not logged_in_username:
+        st.warning("Bitte melde dich zuerst im Login-Bereich an, um im Shop einzukaufen.")
+        st.stop()
 
-    effective_username = get_effective_username(username)
+    username = st.text_input(
+        "Dein Twitch-Name",
+        value=logged_in_username,
+        disabled=True
+    )
+
+    effective_username = logged_in_username
 
     with st.spinner("Lade Shop-Daten..."):
         user = get_or_create_user(effective_username)
@@ -937,19 +1059,17 @@ elif menu == "⚡ Events":
 
     logged_in_username = get_logged_in_username()
 
-    if logged_in_username:
-        viewer_name = st.text_input(
-            "Dein Twitch-Name",
-            value=logged_in_username,
-            disabled=True
-        )
-    else:
-        viewer_name = st.text_input(
-            "Dein Twitch-Name",
-            value=""
-        )
+    if not logged_in_username:
+        st.warning("Bitte melde dich zuerst im Login-Bereich an, um dich für Events an- oder abzumelden.")
+        st.stop()
 
-    effective_viewer_name = get_effective_username(viewer_name)
+    viewer_name = st.text_input(
+        "Dein Twitch-Name",
+        value=logged_in_username,
+        disabled=True
+    )
+
+    effective_viewer_name = logged_in_username
 
     with st.spinner("Lade Events..."):
         events = get_events()
