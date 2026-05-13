@@ -1306,14 +1306,14 @@ elif menu.endswith("Minispiele"):
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            min-height: 720px;
+            min-height: 820px;
             background:
                 radial-gradient(circle at 18% 14%, rgba(0, 245, 255, 0.18), transparent 26%),
                 radial-gradient(circle at 82% 18%, rgba(199, 125, 255, 0.20), transparent 28%),
                 linear-gradient(180deg, #070912 0%, #14091f 100%);
             color: white;
             font-family: Inter, Segoe UI, Arial, sans-serif;
-            overflow: hidden;
+            overflow: auto;
         }
         .shell { width: min(100%, 1040px); margin: 0 auto; padding: 16px; }
         .game-panel {
@@ -1391,6 +1391,7 @@ elif menu.endswith("Minispiele"):
             border-radius: 14px;
             padding: 14px;
             background: rgba(255,255,255,0.045);
+            overflow: hidden;
         }
         .scores h3 { margin: 0 0 10px; font-size: 18px; }
         .score-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -1405,12 +1406,29 @@ elif menu.endswith("Minispiele"):
             color: #05050a;
             background: linear-gradient(135deg, #c77dff, #00d4ff);
         }
-        .scores ol { margin: 0; padding-left: 22px; color: #e9ddff; columns: 2; }
-        .scores li { margin: 4px 0; break-inside: avoid; }
+        .scores ol {
+            margin: 0;
+            padding: 0;
+            color: #e9ddff;
+            list-style: none;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .scores li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 7px 0;
+            padding: 9px 11px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,0.07);
+        }
         @media (max-width: 720px) {
-            body { min-height: 760px; }
+            body { min-height: 900px; }
             .hud { grid-template-columns: 1fr; }
-            .scores ol { columns: 1; }
+            .scores li { align-items: flex-start; flex-direction: column; }
             .menu-card h1 { font-size: 34px; }
         }
     </style>
@@ -1820,7 +1838,7 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """.replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_KEY), height=740)
+    """.replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_KEY), height=860, scrolling=True)
 
 elif menu == "🎮 Minispiele":
 
