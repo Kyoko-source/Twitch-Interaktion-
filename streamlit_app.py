@@ -666,6 +666,38 @@ h1 {
     backdrop-filter: blur(10px);
 }
 
+.topbar h2 {
+    margin: 0;
+}
+
+.topbar-stat {
+    text-align: center;
+    color: #e9ddff;
+    font-weight: 900;
+}
+
+.topbar-user {
+    text-align: right;
+    color: #c77dff;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.topbar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.topbar-actions .stButton > button {
+    min-height: 36px;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    font-size: 13px;
+}
+
 .card,
 .metric-card,
 .reward-card,
@@ -944,17 +976,6 @@ total_users = len(leaderboard)
 total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
 total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
 
-st.markdown(f"""
-<div class="topbar">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-<h2>🧠 Gehirnzone</h2>
-<div>
-🥚 {total_chickens} &nbsp;&nbsp; 🧠 {total_braincells}
-</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
 handle_twitch_callback()
 
 logged_in_username = get_logged_in_username()
@@ -962,26 +983,76 @@ twitch_display_name = get_logged_in_display_name()
 
 twitch_auth_url = twitch_oauth_authorize_url()
 
-if logged_in_username:
+MAIN_MENU_OPTIONS = [
+    "🏠 Home",
+    "👥 Mitglieder",
+    "🛒 Shop",
+    "🏆 Rangliste",
+    "⚡ Events",
+    "🎮 Minispiele",
+]
+
+if "app_menu" not in st.session_state:
+    st.session_state["app_menu"] = "🏠 Home"
+
+top_nav_clicked = False
+
+st.markdown('<div class="topbar">', unsafe_allow_html=True)
+top_left, top_stats, top_actions = st.columns([2.1, 1.2, 3.0])
+
+with top_left:
+    st.markdown("<h2>🧠 Gehirnzone</h2>", unsafe_allow_html=True)
+
+with top_stats:
     st.markdown(
-        f"<div style='text-align:right; margin-bottom:18px; color:#c77dff;'>✅ Eingeloggt als <strong>{logged_in_username}</strong></div>",
+        f'<div class="topbar-stat">🥚 {total_chickens} &nbsp;&nbsp; 🧠 {total_braincells}</div>',
         unsafe_allow_html=True
     )
-    if st.button("Abmelden", key="local_logout"):
-        logout_user()
-        st.session_state.pop("twitch_user", None)
-        st.session_state.pop("twitch_access_token", None)
-        st.rerun()
-elif twitch_display_name:
-    st.markdown(
-        f"<div style='text-align:right; margin-bottom:18px; color:#c77dff;'>✅ Verbunden als <strong>{twitch_display_name}</strong></div>",
-        unsafe_allow_html=True
-    )
-    if st.button("Abmelden", key="twitch_logout"):
-        st.session_state.pop("twitch_user", None)
-        st.session_state.pop("twitch_access_token", None)
-        st.rerun()
-elif False and twitch_auth_url:
+
+with top_actions:
+    if logged_in_username:
+        st.markdown(
+            f'<div class="topbar-user">✅ Eingeloggt als <strong>{html.escape(logged_in_username)}</strong></div>',
+            unsafe_allow_html=True
+        )
+    elif twitch_display_name:
+        st.markdown(
+            f'<div class="topbar-user">✅ Verbunden als <strong>{html.escape(twitch_display_name)}</strong></div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('<div class="topbar-actions">', unsafe_allow_html=True)
+    login_col, profile_col, admin_col, logout_col = st.columns([1, 1, 1, 1])
+
+    with login_col:
+        if st.button("Login", key="top_login"):
+            st.session_state["app_menu"] = "🔑 Login"
+            top_nav_clicked = True
+
+    with profile_col:
+        if st.button("Profil", key="top_profile"):
+            st.session_state["app_menu"] = "👤 Profil"
+            top_nav_clicked = True
+
+    with admin_col:
+        if st.button("Admin", key="top_admin"):
+            st.session_state["app_menu"] = "🔐 Admin"
+            top_nav_clicked = True
+
+    with logout_col:
+        if logged_in_username or twitch_display_name:
+            if st.button("Logout", key="top_logout"):
+                logout_user()
+                st.session_state.pop("twitch_user", None)
+                st.session_state.pop("twitch_access_token", None)
+                st.session_state["app_menu"] = "🏠 Home"
+                top_nav_clicked = True
+                st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+if False and twitch_auth_url:
     st.markdown(
         f'<a href="{twitch_auth_url}" target="_self" style="text-decoration:none;"><button style="background: linear-gradient(135deg, #9d4edd, #c77dff); border: none; border-radius: 14px; color: black; font-weight: 900; padding: 0.6rem 1rem; cursor: pointer;">Mit Twitch verbinden</button></a>',
         unsafe_allow_html=True
@@ -993,22 +1064,25 @@ elif False:
     else:
         st.info(f"🔗 OAuth URL: {twitch_auth_url}")
 
-menu = st.radio(
+if "main_nav" not in st.session_state:
+    st.session_state["main_nav"] = "🏠 Home"
+
+if st.session_state["app_menu"] in MAIN_MENU_OPTIONS:
+    st.session_state["main_nav"] = st.session_state["app_menu"]
+
+selected_main_menu = st.radio(
     "",
-    [
-        "🏠 Home",
-        "🔑 Login",
-        "👤 Profil",
-        "👥 Mitglieder",
-        "🛒 Shop",
-        "🏆 Rangliste",
-        "⚡ Events",
-        "🎮 Minispiele",
-        "🔐 Admin"
-    ],
+    MAIN_MENU_OPTIONS,
     horizontal=True,
-    label_visibility="collapsed"
+    label_visibility="collapsed",
+    key="main_nav"
 )
+
+if not top_nav_clicked and selected_main_menu != st.session_state.get("_last_main_nav"):
+    st.session_state["app_menu"] = selected_main_menu
+
+st.session_state["_last_main_nav"] = selected_main_menu
+menu = st.session_state["app_menu"]
 
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
