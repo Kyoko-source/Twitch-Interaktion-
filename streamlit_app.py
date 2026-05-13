@@ -1101,20 +1101,21 @@ else:
 
 logout_link = '<a href="?account=logout">Logout</a>' if logged_in_username or twitch_display_name else ""
 
-st.markdown(f"""
-<div class="topbar">
-    <details class="account-menu">
-        <summary>☰</summary>
-        <div class="account-dropdown">
-            {account_status}
-            <a href="?account=login">🔑 Login</a>
-            <a href="?account=profile">👤 Profil</a>
-            <a href="?account=admin">🔐 Admin</a>
-            {logout_link}
-        </div>
-    </details>
-</div>
-""", unsafe_allow_html=True)
+account_menu_html = (
+    '<div class="topbar">'
+    '<details class="account-menu">'
+    '<summary>☰</summary>'
+    '<div class="account-dropdown">'
+    f'{account_status}'
+    '<a href="?account=login">🔑 Login</a>'
+    '<a href="?account=profile">👤 Profil</a>'
+    '<a href="?account=admin">🔐 Admin</a>'
+    f'{logout_link}'
+    '</div>'
+    '</details>'
+    '</div>'
+)
+st.markdown(account_menu_html, unsafe_allow_html=True)
 
 if False and twitch_auth_url:
     st.markdown(
