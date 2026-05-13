@@ -372,6 +372,23 @@ def update_user(username, chickens, braincells):
     )
 
 
+def update_user_profile(username, bio, favorite_game, avatar_url):
+    username = username.strip()
+    avatar_url = avatar_url.strip()
+
+    if avatar_url and not avatar_url.startswith(("http://", "https://")):
+        return False
+
+    return api_patch(
+        f"users?username=eq.{urllib.parse.quote(username)}",
+        {
+            "bio": bio.strip()[:300],
+            "favorite_game": favorite_game.strip()[:80],
+            "avatar_url": avatar_url[:500]
+        }
+    )
+
+
 def set_user_password(username, password):
     username = username.strip()
 
@@ -432,6 +449,26 @@ def get_leaderboard():
     })
 
     return df[["Viewer", "Chickens", "Gehirnzellen"]]
+
+
+@st.cache_data(ttl=300)
+def get_members():
+    return api_get("users?select=*&order=braincells.desc")
+
+
+def get_profile_level(points):
+    return max(1, int(points) // 100 + 1)
+
+
+def get_avatar_markup(username, avatar_url, size=96):
+    safe_name = html.escape(username or "?")
+    initials = safe_name[:2].upper()
+
+    if avatar_url and str(avatar_url).startswith(("http://", "https://")):
+        safe_url = html.escape(str(avatar_url), quote=True)
+        return f'<img class="profile-avatar" src="{safe_url}" alt="{safe_name}" style="width:{size}px;height:{size}px;">'
+
+    return f'<div class="profile-avatar profile-initials" style="width:{size}px;height:{size}px;">{initials}</div>'
 
 # =========================
 # RÄNGE
@@ -729,9 +766,84 @@ h1 {
     color: #cfc6e8;
 }
 
+.profile-hero,
+.member-card {
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+}
+
+.profile-hero {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.profile-avatar {
+    border-radius: 18px;
+    object-fit: cover;
+    border: 2px solid rgba(199,125,255,0.45);
+    box-shadow: 0 0 25px rgba(199,125,255,0.22);
+    background: linear-gradient(135deg, #9d4edd, #00d4ff);
+}
+
+.profile-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #05050a;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+.profile-name {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.profile-meta {
+    margin-top: 8px;
+    color: #d8ccff;
+    font-weight: 800;
+}
+
+.profile-bio {
+    margin-top: 12px;
+    color: #f3ecff;
+    line-height: 1.55;
+}
+
+.member-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.member-card {
+    min-height: 275px;
+}
+
+.member-card .profile-avatar {
+    margin-bottom: 12px;
+}
+
+.member-favorite {
+    margin-top: 12px;
+    color: #00d4ff;
+    font-weight: 800;
+}
+
 @media (max-width: 780px) {
     .podium-grid,
-    .arcade-grid {
+    .arcade-grid,
+    .member-grid,
+    .profile-hero {
         grid-template-columns: 1fr;
     }
 }
@@ -887,6 +999,7 @@ menu = st.radio(
         "🏠 Home",
         "🔑 Login",
         "👤 Profil",
+        "👥 Mitglieder",
         "🛒 Shop",
         "🏆 Rangliste",
         "⚡ Events",
@@ -1078,9 +1191,24 @@ elif menu == "👤 Profil":
         chickens = int(user["chickens"])
 
         rank_name, progress, progress_text = get_progress(braincells)
+        level = get_profile_level(braincells)
+        bio = user.get("bio") or "Noch keine Bio eingetragen."
+        favorite_game = user.get("favorite_game") or "Noch nicht gesetzt"
+        avatar_url = user.get("avatar_url") or ""
+        avatar_markup = get_avatar_markup(user["username"], avatar_url, 112)
 
-        st.subheader(user["username"])
-        st.markdown(f"### {rank_name}")
+        st.markdown(f"""
+        <div class="profile-hero">
+            {avatar_markup}
+            <div>
+                <div class="section-kicker">Deine öffentliche Profilkarte</div>
+                <div class="profile-name">{html.escape(user["username"])}</div>
+                <div class="profile-meta">Level {level} · {rank_name} · 🧠 {braincells} · 🥚 {chickens}</div>
+                <div class="member-favorite">Lieblingsspiel: {html.escape(favorite_game)}</div>
+                <div class="profile-bio">{html.escape(bio)}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         c1, c2 = st.columns(2)
 
@@ -1093,6 +1221,84 @@ elif menu == "👤 Profil":
         st.progress(progress / 100)
 
         st.caption(f"{progress}% · {progress_text}")
+
+        st.write("")
+        st.markdown("### Profil bearbeiten")
+
+        with st.form("profile_form"):
+            profile_bio = st.text_area(
+                "Biografie",
+                value=user.get("bio") or "",
+                max_chars=300,
+                placeholder="Erzähl kurz, wer du bist oder was du gerne spielst..."
+            )
+            profile_favorite = st.text_input(
+                "Lieblingsspiel",
+                value=user.get("favorite_game") or "",
+                max_chars=80,
+                placeholder="z.B. Minecraft, Valorant, Sims, Elden Ring..."
+            )
+            profile_avatar = st.text_input(
+                "Profilbild-URL",
+                value=user.get("avatar_url") or "",
+                max_chars=500,
+                placeholder="https://..."
+            )
+
+            if st.form_submit_button("Profil speichern"):
+                if update_user_profile(logged_in_username, profile_bio, profile_favorite, profile_avatar):
+                    get_members.clear()
+                    get_leaderboard.clear()
+                    st.success("Profil gespeichert.")
+                    st.rerun()
+                else:
+                    st.error("Profil konnte nicht gespeichert werden. Prüfe die URL oder die Supabase-Spalten.")
+
+# =========================
+# MITGLIEDER
+# =========================
+
+elif menu == "👥 Mitglieder":
+
+    st.markdown('<div class="section-kicker">Community</div>', unsafe_allow_html=True)
+    st.markdown("## Mitglieder")
+
+    members = get_members()
+
+    if not members:
+        st.info("Noch keine Mitglieder vorhanden.")
+    else:
+        search_member = st.text_input("Mitglied suchen", placeholder="Name eingeben...")
+        if search_member:
+            members = [
+                member for member in members
+                if search_member.lower() in str(member.get("username", "")).lower()
+            ]
+
+        members_html = '<div class="member-grid">'
+        for member in members:
+            username = str(member.get("username") or "Unbekannt")
+            braincells = int(member.get("braincells") or 0)
+            chickens = int(member.get("chickens") or 0)
+            rank_name, _, _ = get_progress(braincells)
+            level = get_profile_level(braincells)
+            bio = member.get("bio") or "Noch keine Bio."
+            favorite_game = member.get("favorite_game") or "Nicht gesetzt"
+            avatar_markup = get_avatar_markup(username, member.get("avatar_url") or "", 88)
+
+            members_html += (
+                '<div class="member-card">'
+                f'{avatar_markup}'
+                f'<div class="profile-name">{html.escape(username)}</div>'
+                f'<div class="profile-meta">Level {level} · {rank_name}</div>'
+                f'<div class="profile-meta">🧠 {braincells} · 🥚 {chickens}</div>'
+                f'<div class="member-favorite">Lieblingsspiel: {html.escape(str(favorite_game))}</div>'
+                f'<div class="profile-bio">{html.escape(str(bio))}</div>'
+                '</div>'
+            )
+        members_html += "</div>"
+
+        st.markdown(members_html, unsafe_allow_html=True)
 
 # =========================
 # SHOP
