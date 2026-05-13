@@ -891,7 +891,7 @@ elif menu == "🔑 Login":
         st.success(f"Angemeldet als **{logged_in_username}**")
         if st.button("Abmelden", key="logout_button"):
             logout_user()
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.markdown("## Anmeldung oder Registrierung")
         st.markdown("Gib deinen Twitch-Namen exakt so ein, wie er auf Twitch geschrieben ist.")
@@ -910,7 +910,7 @@ elif menu == "🔑 Login":
                     if user:
                         st.session_state["logged_in_username"] = user["username"]
                         st.success("Erfolgreich angemeldet.")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Login fehlgeschlagen. Prüfe deinen Namen und dein Passwort.")
 
@@ -934,7 +934,7 @@ elif menu == "🔑 Login":
                         if set_user_password(register_name, register_password):
                             st.session_state["logged_in_username"] = register_name
                             st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
                     else:
@@ -942,7 +942,7 @@ elif menu == "🔑 Login":
                         if new_user:
                             st.session_state["logged_in_username"] = new_user["username"]
                             st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
 
