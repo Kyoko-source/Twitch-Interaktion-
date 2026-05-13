@@ -1321,6 +1321,9 @@ elif menu.endswith("Minispiele"):
     const scoreValue = document.getElementById("scoreValue");
     const speedValue = document.getElementById("speedValue");
     const levelValue = document.getElementById("levelValue");
+    const SUPABASE_URL = "__SUPABASE_URL__";
+    const SUPABASE_KEY = "__SUPABASE_KEY__";
+    const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_scores";
 
     let chicken = { x: 120, y: 338, w: 54, h: 46, vy: 0, jumping: false };
     const groundY = 390;
@@ -1538,19 +1541,38 @@ elif menu.endswith("Minispiele"):
         showMenu("Game Over", "Score: " + score + " | Level: " + level, "Nochmal spielen");
     }
 
-    function saveScore() {
+    async function saveScore() {
         if (savedCurrentScore || score <= 0) return;
         let name = prompt("Dein Twitch-Name fuer das Scoreboard:");
         if (!name) return;
+        name = name.trim().slice(0, 50);
+        if (!name) return;
 
-        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
-        scores.push({ name: name, score: score });
-        scores.sort((a, b) => b.score - a.score);
-        scores = scores.slice(0, 10);
-        localStorage.setItem("chicken_scores", JSON.stringify(scores));
-        savedCurrentScore = true;
-        renderScores();
-        showMenu("Score gespeichert", "Dein Score steht jetzt im lokalen Scoreboard.", "Nochmal spielen");
+        try {
+            const response = await fetch(SCOREBOARD_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                body: JSON.stringify({
+                    username: name,
+                    score: score,
+                    level: level
+                })
+            });
+
+            if (!response.ok) throw new Error(await response.text());
+
+            savedCurrentScore = true;
+            await renderScores();
+            showMenu("Score gespeichert", "Dein Score ist jetzt fuer alle sichtbar.", "Nochmal spielen");
+        } catch (error) {
+            console.error(error);
+            showMenu("Speichern fehlgeschlagen", "Die globale Scoreboard-Tabelle fehlt wahrscheinlich noch in Supabase.", "Nochmal spielen");
+        }
     }
 
     function escapeHtml(value) {
@@ -1559,14 +1581,37 @@ elif menu.endswith("Minispiele"):
         return div.innerHTML;
     }
 
-    function renderScores() {
-        let scores = JSON.parse(localStorage.getItem("chicken_scores") || "[]");
+    async function renderScores() {
         let box = document.getElementById("scores");
-        if (scores.length === 0) {
-            box.innerHTML = "<li>Noch keine Scores.</li>";
-            return;
+        box.innerHTML = "<li>Lade globale Scores...</li>";
+
+        try {
+            const response = await fetch(
+                SCOREBOARD_ENDPOINT + "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=10",
+                {
+                    headers: {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": "Bearer " + SUPABASE_KEY
+                    }
+                }
+            );
+
+            if (!response.ok) throw new Error(await response.text());
+
+            const scores = await response.json();
+            if (scores.length === 0) {
+                box.innerHTML = "<li>Noch keine Scores.</li>";
+                return;
+            }
+
+            box.innerHTML = scores.map(s => {
+                const levelText = s.level ? " · Level " + s.level : "";
+                return "<li><strong>" + escapeHtml(s.username) + "</strong> - " + s.score + levelText + "</li>";
+            }).join("");
+        } catch (error) {
+            console.error(error);
+            box.innerHTML = "<li>Scoreboard noch nicht verbunden.</li>";
         }
-        box.innerHTML = scores.map(s => "<li><strong>" + escapeHtml(s.name) + "</strong> - " + s.score + "</li>").join("");
     }
 
     function loop() {
@@ -1616,7 +1661,7 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """, height=740)
+    """.replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_KEY), height=740)
 
 elif menu == "🎮 Minispiele":
 
