@@ -77,6 +77,25 @@ HEADERS = {
 # API
 # =========================
 
+def show_api_error(response):
+    try:
+        error = response.json()
+    except ValueError:
+        error = {"message": response.text}
+
+    message = error.get("message") or response.reason or "Unbekannter Fehler"
+    hint = error.get("hint")
+    details = error.get("details")
+
+    error_text = f"Datenbank-Fehler ({response.status_code}): {message}"
+    if hint:
+        error_text += f" Hinweis: {hint}"
+    if details:
+        error_text += f" Details: {details}"
+
+    st.error(error_text)
+
+
 def api_get(path):
     response = requests.get(
         f"{SUPABASE_URL}/rest/v1/{path}",
@@ -84,7 +103,7 @@ def api_get(path):
     )
 
     if response.status_code >= 400:
-        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
+        show_api_error(response)
         return []
 
     return response.json()
@@ -97,7 +116,7 @@ def api_post(table, payload):
     )
 
     if response.status_code >= 400:
-        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
+        show_api_error(response)
         return None
 
     return response.json()
@@ -110,7 +129,7 @@ def api_patch(path, payload):
     )
 
     if response.status_code >= 400:
-        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
+        show_api_error(response)
         return False
 
     return True
@@ -122,7 +141,7 @@ def api_delete(path):
     )
 
     if response.status_code >= 400:
-        st.error("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.")
+        show_api_error(response)
         return False
 
     return True
