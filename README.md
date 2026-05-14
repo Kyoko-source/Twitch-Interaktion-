@@ -12,3 +12,8 @@ ADD COLUMN IF NOT EXISTS password_hash text;
 ```
 
 Alternativ findest du die gleiche Migration in der Datei `add_password_hash_column.sql`.
+
+## Daily Rewards
+
+Für die täglichen Login-Belohnungen muss zusätzlich die Tabelle `daily_rewards` angelegt werden.
+Die Migration liegt in `add_daily_rewards_table.sql` und kann im Supabase SQL-Editor ausgeführt werden.

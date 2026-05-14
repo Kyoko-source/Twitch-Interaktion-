@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 import hashlib
@@ -131,6 +131,19 @@ def api_post(table, payload):
 
     if response.status_code >= 400:
         show_api_error(response)
+        return None
+
+    return response.json()
+
+
+def api_post_optional(table, payload):
+    response = requests.post(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        headers={**HEADERS, "Prefer": "return=representation"},
+        json=payload
+    )
+
+    if response.status_code >= 400:
         return None
 
     return response.json()
@@ -578,6 +591,118 @@ def get_avatar_markup(username, avatar_url, size=96):
         return f'<img class="profile-avatar" src="{safe_url}" alt="{safe_name}" style="width:{size}px;height:{size}px;">'
 
     return f'<div class="profile-avatar profile-initials" style="width:{size}px;height:{size}px;">{initials}</div>'
+
+
+@st.cache_data(ttl=120)
+def get_chicken_scores(limit=10):
+    return api_get_optional(
+        f"chicken_scores?select=username,score,level,created_at&order=score.desc,created_at.asc&limit={int(limit)}"
+    )
+
+
+@st.cache_data(ttl=120)
+def get_user_best_chicken_score(username):
+    if not username:
+        return None
+
+    scores = api_get_optional(
+        "chicken_scores"
+        f"?select=username,score,level,created_at&username=eq.{urllib.parse.quote(username)}"
+        "&order=score.desc,created_at.asc&limit=1"
+    )
+    return scores[0] if scores else None
+
+
+def get_daily_reward_rows(username):
+    if not username:
+        return []
+
+    return api_get_optional(
+        "daily_rewards"
+        f"?select=reward_date,created_at&username=eq.{urllib.parse.quote(username)}"
+        "&order=reward_date.desc&limit=30"
+    )
+
+
+def get_daily_reward_state(username):
+    today = datetime.now(ZoneInfo("Europe/Berlin")).date()
+    rows = get_daily_reward_rows(username)
+    claimed_dates = set()
+
+    for row in rows:
+        try:
+            claimed_dates.add(datetime.fromisoformat(str(row.get("reward_date"))).date())
+        except ValueError:
+            try:
+                claimed_dates.add(datetime.strptime(str(row.get("reward_date")), "%Y-%m-%d").date())
+            except ValueError:
+                pass
+
+    streak = 0
+    cursor = today
+    while cursor in claimed_dates:
+        streak += 1
+        cursor = cursor - timedelta(days=1)
+
+    return {
+        "claimed_today": today in claimed_dates,
+        "streak": streak,
+        "today": today.isoformat(),
+        "available": bool(rows) or not claimed_dates,
+    }
+
+
+def claim_daily_reward(username):
+    if not username:
+        return False, "Bitte melde dich zuerst an."
+
+    state = get_daily_reward_state(username)
+    if state["claimed_today"]:
+        return False, "Du hast deinen Daily Reward heute schon abgeholt."
+
+    reward_chickens = 250 + min(state["streak"], 7) * 50
+    reward_braincells = 25
+
+    created = api_post_optional(
+        "daily_rewards",
+        {
+            "username": username,
+            "reward_date": state["today"],
+            "chickens": reward_chickens,
+            "braincells": reward_braincells,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat()
+        }
+    )
+
+    if not created:
+        return False, "Daily-Rewards-Tabelle fehlt wahrscheinlich noch in Supabase."
+
+    add_points(username, chickens=reward_chickens, braincells=reward_braincells)
+    get_members.clear()
+    get_leaderboard.clear()
+    get_chicken_scores.clear()
+    return True, f"Daily Reward abgeholt: +{reward_chickens} Chickens und +{reward_braincells} Gehirnzellen."
+
+
+def build_achievements(user, rank_position=None, best_score=None, daily_state=None):
+    braincells = int(user.get("braincells") or 0)
+    chickens = int(user.get("chickens") or 0)
+    bio = str(user.get("bio") or "").strip()
+    favorite_game = str(user.get("favorite_game") or "").strip()
+    avatar_url = str(user.get("avatar_url") or "").strip()
+    score = int(best_score.get("score") or 0) if best_score else 0
+    streak = int(daily_state.get("streak") or 0) if daily_state else 0
+
+    achievements = [
+        ("Profil-Profi", "Bio, Lieblingsspiel und Avatar gesetzt", bool(bio and favorite_game and avatar_url)),
+        ("Chicken Sammler", "Mindestens 1.000 Chickens besitzen", chickens >= 1000),
+        ("Gehirntraining", "Mindestens 500 Gehirnzellen gesammelt", braincells >= 500),
+        ("Top 3 Energie", "In der Rangliste unter den Top 3", isinstance(rank_position, int) and rank_position <= 3),
+        ("Jump Talent", "Chicken Jump Score von 10+ erreicht", score >= 10),
+        ("Daily Streak", "3 Tage Daily Reward in Folge", streak >= 3),
+    ]
+
+    return achievements
 
 # =========================
 # RÄNGE
@@ -1352,6 +1477,164 @@ h1::after {
     font-weight: 750;
 }
 
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+    gap: 18px;
+    align-items: stretch;
+    margin: 10px 0 22px;
+}
+
+.home-spotlight,
+.daily-card,
+.activity-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    padding: 28px;
+    background:
+        linear-gradient(135deg, rgba(0,212,255,0.18), rgba(255,198,41,0.10), rgba(255,84,160,0.14)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 26px 76px rgba(0,0,0,0.34);
+}
+
+.home-spotlight::after {
+    content: "";
+    position: absolute;
+    right: -90px;
+    top: -90px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,198,41,0.20), transparent 65%);
+}
+
+.home-spotlight h2 {
+    position: relative;
+    z-index: 1;
+    margin: 8px 0 10px;
+    font-size: clamp(34px, 5vw, 68px);
+    line-height: 0.95;
+}
+
+.home-spotlight p,
+.daily-card p,
+.activity-card p {
+    color: #e5f8ff;
+    font-weight: 760;
+}
+
+.home-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 4px;
+}
+
+.home-action-card {
+    min-height: 118px;
+    border-radius: 14px;
+    padding: 18px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.home-action-card strong {
+    display: block;
+    color: #ffffff;
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.home-action-card span {
+    color: #b8dbe1;
+    font-weight: 760;
+}
+
+.daily-card {
+    min-height: 100%;
+}
+
+.daily-streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(255,198,41,0.16);
+    color: #fff2bc;
+    border: 1px solid rgba(255,198,41,0.28);
+    font-weight: 950;
+}
+
+.achievement-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 22px;
+}
+
+.achievement-card {
+    min-height: 128px;
+    border-radius: 14px;
+    padding: 18px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.achievement-card.unlocked {
+    background:
+        linear-gradient(135deg, rgba(0,212,255,0.14), rgba(255,198,41,0.10)),
+        rgba(255,255,255,0.07);
+    border-color: rgba(0,212,255,0.32);
+}
+
+.achievement-card.locked {
+    opacity: 0.58;
+    filter: grayscale(0.55);
+}
+
+.achievement-card strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-size: 18px;
+}
+
+.achievement-card span {
+    color: #cfe8ee;
+    font-weight: 760;
+}
+
+.score-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 24px;
+}
+
+.score-card {
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(8,14,18,0.72);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.score-card strong {
+    display: block;
+    color: #ffffff;
+    font-size: 20px;
+}
+
+.score-card span {
+    display: block;
+    margin-top: 6px;
+    color: #a9f3ff;
+    font-weight: 800;
+}
+
 .stForm {
     margin-top: 12px;
     padding: 18px;
@@ -1366,6 +1649,10 @@ h1::after {
     .member-grid,
     .profile-shell,
     .profile-showcase-inner,
+    .home-hero,
+    .home-actions,
+    .achievement-grid,
+    .score-strip,
     .profile-hero {
         grid-template-columns: 1fr;
     }
@@ -1601,88 +1888,119 @@ st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 if menu == "🏠 Home":
 
-    st.subheader("🏠 Hauptmenü")
+    st.markdown('<div class="section-kicker">Live Community Hub</div>', unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-number">{total_users}</div>
-            <div class="metric-label">Gesamte Viewer</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-number">{total_chickens}</div>
-            <div class="metric-label">Gesamte Chickens</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-number">{total_braincells}</div>
-            <div class="metric-label">Gesamte Gehirnzellen</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.write("")
-
-    st.markdown("## 👑 Viewer des Tages")
+    viewer_day_html = """
+        <h2>Gehirnzone ist bereit</h2>
+        <p>Noch kein Viewer des Tages vorhanden. Sammle Gehirnzellen, spiele Chicken Jump und werde sichtbar.</p>
+    """
 
     if not leaderboard.empty:
         today_seed = datetime.now().strftime("%Y-%m-%d")
-
         viewer_day = leaderboard.sample(
             1,
             random_state=abs(hash(today_seed)) % (10 ** 8)
         ).iloc[0]
+        viewer_day_html = f"""
+            <div class="section-kicker">Heute im Rampenlicht</div>
+            <h2>{html.escape(str(viewer_day["Viewer"]))}</h2>
+            <p>🧠 {int(viewer_day["Gehirnzellen"])} Gehirnzellen · 🥚 {int(viewer_day["Chickens"])} Chickens</p>
+        """
 
-        st.markdown(f"""
-        <div class="card" style="
-            text-align:center;
-            border:2px solid gold;
-            box-shadow:0 0 35px rgba(255,215,0,0.35);
-        ">
-            <h2>👑 Heute im Rampenlicht</h2>
-            <h1 style="font-size:46px; color:#ffd43b;">
-                {viewer_day["Viewer"]}
-            </h1>
-            <p style="font-size:22px;">
-                🧠 {viewer_day["Gehirnzellen"]} Gehirnzellen<br>
-                🥚 {viewer_day["Chickens"]} Chickens
-            </p>
+    daily_html = """
+        <div class="section-kicker">Daily Reward</div>
+        <h3>Einloggen und Belohnung sichern</h3>
+        <p>Melde dich an, um täglich Chickens und Gehirnzellen abzuholen.</p>
+    """
+    daily_state = None
+    if logged_in_username:
+        daily_state = get_daily_reward_state(logged_in_username)
+        reward_preview = 250 + min(int(daily_state["streak"]), 7) * 50
+        claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"Heute verfügbar: +{reward_preview} Chickens"
+        daily_html = f"""
+            <div class="section-kicker">Daily Reward</div>
+            <h3>{claim_text}</h3>
+            <div class="daily-streak">🔥 {int(daily_state["streak"])} Tage Streak</div>
+            <p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>
+        """
+
+    st.markdown(f"""
+    <div class="home-hero">
+        <div class="home-spotlight">
+            {viewer_day_html}
+            <div class="home-actions">
+                <div class="home-action-card"><strong>{total_users}</strong><span>Viewer in der Zone</span></div>
+                <div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>
+                <div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesammelt</span></div>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
+        <div class="daily-card">
+            {daily_html}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if logged_in_username:
+        if daily_state and daily_state["claimed_today"]:
+            st.info("Daily Reward ist für heute erledigt. Morgen wartet die nächste Belohnung.")
+        elif st.button("Daily Reward abholen", key="claim_daily_reward", use_container_width=True):
+            success, message = claim_daily_reward(logged_in_username)
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
     else:
-        st.info("Noch kein Viewer des Tages vorhanden.")
+        if st.button("Zum Login für Daily Rewards", key="daily_login_cta", use_container_width=True):
+            st.session_state["app_menu"] = "🔑 Login"
+            st.rerun()
 
-    st.write("")
+    scores = get_chicken_scores(3)
+    score_cards = []
+    for index in range(3):
+        if index < len(scores):
+            score = scores[index]
+            score_cards.append(
+                '<div class="score-card">'
+                f'<strong>#{index + 1} {html.escape(str(score.get("username") or "Unbekannt"))}</strong>'
+                f'<span>{int(score.get("score") or 0)} Punkte · Level {int(score.get("level") or 1)}</span>'
+                '</div>'
+            )
+        else:
+            score_cards.append(
+                '<div class="score-card">'
+                f'<strong>#{index + 1} Noch frei</strong>'
+                '<span>Hol dir den Platz in Chicken Jump</span>'
+                '</div>'
+            )
 
-    left, right = st.columns(2)
+    st.markdown("## Chicken Jump Highlights")
+    st.markdown(f'<div class="score-strip">{"".join(score_cards)}</div>', unsafe_allow_html=True)
 
-    with left:
+    hub_left, hub_right = st.columns(2)
+    with hub_left:
         st.markdown(f"""
-        <div class="card">
-            <h3>⏰ Aktuelle Uhrzeit</h3>
-            <h2>{datetime.now(ZoneInfo('Europe/Berlin')).strftime('%H:%M:%S')}</h2>
-            <p class="small">Lokale Uhrzeit deiner App.</p>
+        <div class="activity-card">
+            <div class="section-kicker">Nächster Schritt</div>
+            <h3>Profil aufleveln</h3>
+            <p>Fülle Bio, Lieblingsspiel und Avatar aus, sammle Achievements und mach deine Viewerkarte stärker.</p>
         </div>
         """, unsafe_allow_html=True)
+        if st.button("Profil öffnen", key="home_profile_cta", use_container_width=True):
+            st.session_state["app_menu"] = "👤 Profil"
+            st.rerun()
 
-    with right:
-        st.markdown("""
-        <div class="card">
-            <h3>💜 Twitch Profil</h3>
-            <p>Besuche den Twitch-Kanal von einsmarello.</p>
-            <a href="https://www.twitch.tv/einsmarello" target="_blank" style="color:#c77dff;">
-                twitch.tv/einsmarello
-            </a>
+    with hub_right:
+        st.markdown(f"""
+        <div class="activity-card">
+            <div class="section-kicker">Arcade</div>
+            <h3>Highscore jagen</h3>
+            <p>Chicken Jump Scores erscheinen jetzt direkt im Hauptmenü und zählen für Profil-Achievements.</p>
         </div>
         """, unsafe_allow_html=True)
+        if st.button("Minispiele öffnen", key="home_games_cta", use_container_width=True):
+            st.session_state["app_menu"] = "🎮 Minispiele"
+            st.rerun()
 
 # =========================
 # LOGIN
@@ -1785,6 +2103,10 @@ elif menu == "👤 Profil":
             (index + 1 for index, member in enumerate(sorted_members) if member.get("username") == logged_in_username),
             "-"
         )
+        best_score = get_user_best_chicken_score(logged_in_username)
+        daily_state = get_daily_reward_state(logged_in_username)
+        achievements = build_achievements(user, rank_position, best_score, daily_state)
+        unlocked_count = sum(1 for _, _, unlocked in achievements if unlocked)
         completed_fields = sum([
             bool(str(user.get("bio") or "").strip()),
             bool(str(user.get("favorite_game") or "").strip()),
@@ -1807,6 +2129,7 @@ elif menu == "👤 Profil":
                             <div class="profile-chip">Lieblingsspiel: {html.escape(favorite_game)}</div>
                             <div class="profile-chip">Rang #{rank_position}</div>
                             <div class="profile-chip">{completion}% Profil</div>
+                            <div class="profile-chip">{unlocked_count}/{len(achievements)} Achievements</div>
                         </div>
                     </div>
                 </div>
@@ -1826,6 +2149,43 @@ elif menu == "👤 Profil":
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+        achievement_html = ""
+        for title, description, unlocked in achievements:
+            state_class = "unlocked" if unlocked else "locked"
+            status = "Freigeschaltet" if unlocked else "Noch offen"
+            achievement_html += (
+                f'<div class="achievement-card {state_class}">'
+                f'<strong>{html.escape(title)}</strong>'
+                f'<span>{html.escape(description)}</span>'
+                f'<div class="admin-muted" style="margin-top:10px;">{status}</div>'
+                '</div>'
+            )
+
+        st.markdown("### Achievements")
+        st.markdown(f'<div class="achievement-grid">{achievement_html}</div>', unsafe_allow_html=True)
+
+        best_score_text = "Noch kein Score gespeichert"
+        if best_score:
+            best_score_text = f'{int(best_score.get("score") or 0)} Punkte · Level {int(best_score.get("level") or 1)}'
+
+        st.markdown(f"""
+        <div class="score-strip">
+            <div class="score-card"><strong>{best_score_text}</strong><span>Persönlicher Chicken-Jump-Bestwert</span></div>
+            <div class="score-card"><strong>{int(daily_state["streak"])}</strong><span>Daily-Reward-Streak</span></div>
+            <div class="score-card"><strong>{unlocked_count}/{len(achievements)}</strong><span>Achievements freigeschaltet</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if daily_state["claimed_today"]:
+            st.info("Daily Reward ist heute schon abgeholt.")
+        elif st.button("Daily Reward im Profil abholen", key="profile_daily_claim", use_container_width=True):
+            success, message = claim_daily_reward(logged_in_username)
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
 
         st.markdown("### Profil bearbeiten")
 
