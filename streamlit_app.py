@@ -1091,6 +1091,11 @@ if account_action == "logout":
 elif account_action in account_targets:
     st.session_state["app_menu"] = account_targets[account_action]
     account_nav_clicked = True
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+    st.rerun()
 
 if logged_in_username:
     account_status = f'<div class="account-status">✅ {html.escape(logged_in_username)}</div>'
