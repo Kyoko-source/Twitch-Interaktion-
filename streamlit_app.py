@@ -1070,11 +1070,6 @@ if "app_menu" not in st.session_state:
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "🏠 Home"
 
-
-def set_main_menu():
-    st.session_state["app_menu"] = st.session_state["main_nav"]
-
-
 st.markdown('<div class="topbar"></div>', unsafe_allow_html=True)
 _, account_col = st.columns([10, 1])
 
@@ -1119,20 +1114,13 @@ elif False:
     else:
         st.info(f"🔗 OAuth URL: {twitch_auth_url}")
 
-if (
-    st.session_state["app_menu"] in MAIN_MENU_OPTIONS
-    and st.session_state["app_menu"] != st.session_state["main_nav"]
-):
-    st.session_state["main_nav"] = st.session_state["app_menu"]
-
-st.radio(
-    "",
-    MAIN_MENU_OPTIONS,
-    horizontal=True,
-    label_visibility="collapsed",
-    key="main_nav",
-    on_change=set_main_menu
-)
+nav_cols = st.columns(len(MAIN_MENU_OPTIONS))
+for nav_col, nav_item in zip(nav_cols, MAIN_MENU_OPTIONS):
+    with nav_col:
+        if st.button(nav_item, key=f"nav_{nav_item}", use_container_width=True):
+            st.session_state["app_menu"] = nav_item
+            st.session_state["main_nav"] = nav_item
+            st.rerun()
 
 menu = st.session_state["app_menu"]
 
