@@ -1109,7 +1109,7 @@ elif twitch_display_name:
 else:
     account_status = ""
 
-logout_link = '<a href="?account=logout">Logout</a>' if logged_in_username or twitch_display_name else ""
+logout_link = '<a href="?account=logout" target="_self">Logout</a>' if logged_in_username or twitch_display_name else ""
 
 account_menu_html = (
     '<div class="topbar">'
@@ -1117,9 +1117,9 @@ account_menu_html = (
     '<summary>☰</summary>'
     '<div class="account-dropdown">'
     f'{account_status}'
-    '<a href="?account=login">🔑 Login</a>'
-    '<a href="?account=profile">👤 Profil</a>'
-    '<a href="?account=admin">🔐 Admin</a>'
+    '<a href="?account=login" target="_self">🔑 Login</a>'
+    '<a href="?account=profile" target="_self">👤 Profil</a>'
+    '<a href="?account=admin" target="_self">🔐 Admin</a>'
     f'{logout_link}'
     '</div>'
     '</details>'
