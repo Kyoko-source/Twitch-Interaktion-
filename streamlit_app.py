@@ -926,10 +926,10 @@ st.markdown("""
 
 .stApp {
     background:
-    radial-gradient(circle at 12% 16%, rgba(0,212,255,0.20), transparent 28%),
-    radial-gradient(circle at 86% 8%, rgba(255,198,41,0.13), transparent 24%),
-    radial-gradient(circle at 72% 78%, rgba(255,84,160,0.16), transparent 32%),
-    linear-gradient(145deg, #07080d 0%, #121018 48%, #081619 100%);
+    radial-gradient(circle at 12% 16%, rgba(199,125,255,0.24), transparent 28%),
+    radial-gradient(circle at 86% 8%, rgba(255,84,160,0.18), transparent 24%),
+    radial-gradient(circle at 72% 78%, rgba(123,44,191,0.22), transparent 32%),
+    linear-gradient(145deg, #07070d 0%, #160d22 48%, #090712 100%);
     color: white;
     animation: glowmove 12s infinite alternate;
 }
@@ -956,14 +956,14 @@ h1 {
     line-height: 0.9;
     color: #ffffff;
     margin: 12px 0 20px !important;
-    text-shadow: 0 0 34px rgba(0,212,255,0.22);
+    text-shadow: 0 0 34px rgba(255,84,160,0.24);
 }
 
 h1::after {
     content: "Community Control, Rewards und Rankings";
     display: block;
     margin-top: 14px;
-    color: #a9f3ff;
+    color: #f0c9ff;
     font-size: 16px;
     font-weight: 800;
     letter-spacing: 0;
@@ -971,7 +971,7 @@ h1::after {
 }
 
 .topbar {
-    background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(255,84,160,0.08));
+    background: linear-gradient(135deg, rgba(199,125,255,0.14), rgba(255,84,160,0.10));
     border-radius: 14px;
     padding: 10px 14px;
     margin-bottom: 14px;
@@ -1101,8 +1101,8 @@ h1::after {
 .event-card:hover,
 .profile-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 22px 65px rgba(0,212,255,0.18);
-    border-color: rgba(0,212,255,0.45);
+    box-shadow: 0 22px 65px rgba(255,84,160,0.20);
+    border-color: rgba(255,84,160,0.42);
 }
 
 .metric-card {
@@ -1116,7 +1116,7 @@ h1::after {
 }
 
 .metric-label {
-    color: #b8dbe1;
+    color: #e7c9ff;
     font-weight: 800;
 }
 
@@ -1163,7 +1163,7 @@ h1::after {
 }
 
 .section-kicker {
-    color: #ffc629;
+    color: #ff7ad9;
     font-size: 13px;
     font-weight: 900;
     letter-spacing: 0.06em;
@@ -1187,7 +1187,7 @@ h1::after {
 .profile-hero,
 .member-card {
     background:
-        linear-gradient(150deg, rgba(0,212,255,0.10), rgba(255,84,160,0.07)),
+        linear-gradient(150deg, rgba(199,125,255,0.14), rgba(255,84,160,0.09)),
         rgba(255,255,255,0.055);
     border: 1px solid rgba(255,255,255,0.13);
     border-radius: 14px;
@@ -1206,9 +1206,9 @@ h1::after {
 .profile-avatar {
     border-radius: 22px;
     object-fit: cover;
-    border: 2px solid rgba(0,212,255,0.55);
-    box-shadow: 0 0 30px rgba(0,212,255,0.22);
-    background: linear-gradient(135deg, #00d4ff, #ffc629, #ff54a0);
+    border: 2px solid rgba(255,84,160,0.55);
+    box-shadow: 0 0 30px rgba(255,84,160,0.24);
+    background: linear-gradient(135deg, #7b2cbf, #c77dff, #ff54a0);
 }
 
 .profile-initials {
@@ -1256,7 +1256,7 @@ h1::after {
     position: absolute;
     inset: 0 0 auto 0;
     height: 4px;
-    background: linear-gradient(90deg, #00d4ff, #ffc629, #ff54a0);
+    background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
 }
 
 .member-rank-pill {
@@ -1264,7 +1264,7 @@ h1::after {
     padding: 6px 10px;
     border-radius: 999px;
     color: #061015;
-    background: #ffc629;
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
     font-size: 12px;
     font-weight: 950;
 }
@@ -1280,7 +1280,7 @@ h1::after {
 .member-mini-progress div {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #00d4ff, #ff54a0);
+    background: linear-gradient(90deg, #c77dff, #ff54a0);
 }
 
 .member-card .profile-avatar {
@@ -1289,7 +1289,7 @@ h1::after {
 
 .member-favorite {
     margin-top: 12px;
-    color: #00d4ff;
+    color: #ff7ad9;
     font-weight: 800;
 }
 
@@ -1308,7 +1308,7 @@ h1::after {
     border-radius: 18px;
     padding: 30px;
     background:
-        linear-gradient(135deg, rgba(0,212,255,0.24), rgba(255,198,41,0.11), rgba(255,84,160,0.16)),
+        linear-gradient(135deg, rgba(123,44,191,0.24), rgba(199,125,255,0.16), rgba(255,84,160,0.18)),
         rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.16);
     box-shadow: 0 28px 80px rgba(0,0,0,0.38);
@@ -1320,7 +1320,7 @@ h1::after {
     inset: -45% -20% auto auto;
     width: 420px;
     height: 420px;
-    background: radial-gradient(circle, rgba(255,198,41,0.22), transparent 62%);
+    background: radial-gradient(circle, rgba(255,84,160,0.22), transparent 62%);
     pointer-events: none;
 }
 
@@ -1342,7 +1342,7 @@ h1::after {
     padding: 8px 12px;
     border-radius: 999px;
     color: #061015;
-    background: linear-gradient(135deg, #00d4ff, #ffc629);
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
     font-size: 13px;
     font-weight: 950;
 }
@@ -1352,7 +1352,7 @@ h1::after {
     line-height: 0.95;
     font-weight: 950;
     margin-bottom: 12px;
-    text-shadow: 0 0 30px rgba(0,212,255,0.18);
+    text-shadow: 0 0 30px rgba(255,84,160,0.20);
 }
 
 .profile-bio-large {
@@ -1373,8 +1373,8 @@ h1::after {
     padding: 9px 12px;
     border-radius: 999px;
     color: #effcff;
-    background: rgba(0,212,255,0.09);
-    border: 1px solid rgba(0,212,255,0.18);
+    background: rgba(199,125,255,0.10);
+    border: 1px solid rgba(255,84,160,0.20);
     font-weight: 850;
 }
 
@@ -1433,8 +1433,8 @@ h1::after {
 .profile-progress-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #00d4ff, #ffc629, #ff54a0);
-    box-shadow: 0 0 24px rgba(0,212,255,0.35);
+    background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
+    box-shadow: 0 0 24px rgba(255,84,160,0.32);
 }
 
 .profile-edit-wrap {
@@ -1454,7 +1454,7 @@ h1::after {
     padding: 26px;
     border-radius: 22px;
     background:
-        linear-gradient(135deg, rgba(0,212,255,0.16), rgba(199,125,255,0.12)),
+        linear-gradient(135deg, rgba(199,125,255,0.18), rgba(255,84,160,0.12)),
         rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.11);
 }
@@ -1494,7 +1494,7 @@ h1::after {
     border-radius: 18px;
     padding: 28px;
     background:
-        linear-gradient(135deg, rgba(0,212,255,0.18), rgba(255,198,41,0.10), rgba(255,84,160,0.14)),
+        linear-gradient(135deg, rgba(123,44,191,0.24), rgba(199,125,255,0.15), rgba(255,84,160,0.18)),
         rgba(255,255,255,0.055);
     border: 1px solid rgba(255,255,255,0.15);
     box-shadow: 0 26px 76px rgba(0,0,0,0.34);
@@ -1508,7 +1508,7 @@ h1::after {
     width: 260px;
     height: 260px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,198,41,0.20), transparent 65%);
+    background: radial-gradient(circle, rgba(255,84,160,0.22), transparent 65%);
 }
 
 .home-spotlight h2 {
@@ -1549,7 +1549,7 @@ h1::after {
 }
 
 .home-action-card span {
-    color: #b8dbe1;
+    color: #e7c9ff;
     font-weight: 760;
 }
 
@@ -1564,9 +1564,9 @@ h1::after {
     margin: 12px 0;
     padding: 9px 12px;
     border-radius: 999px;
-    background: rgba(255,198,41,0.16);
-    color: #fff2bc;
-    border: 1px solid rgba(255,198,41,0.28);
+    background: rgba(255,84,160,0.16);
+    color: #ffd6f0;
+    border: 1px solid rgba(255,84,160,0.30);
     font-weight: 950;
 }
 
@@ -1587,9 +1587,9 @@ h1::after {
 
 .achievement-card.unlocked {
     background:
-        linear-gradient(135deg, rgba(0,212,255,0.14), rgba(255,198,41,0.10)),
+        linear-gradient(135deg, rgba(199,125,255,0.16), rgba(255,84,160,0.12)),
         rgba(255,255,255,0.07);
-    border-color: rgba(0,212,255,0.32);
+    border-color: rgba(255,84,160,0.34);
 }
 
 .achievement-card.locked {
@@ -1632,7 +1632,7 @@ h1::after {
 .score-card span {
     display: block;
     margin-top: 6px;
-    color: #a9f3ff;
+    color: #f0c9ff;
     font-weight: 800;
 }
 
@@ -1685,7 +1685,7 @@ h1::after {
 }
 
 .stButton > button {
-    background: linear-gradient(135deg, #00d4ff, #ffc629);
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
     color: #061015;
@@ -1696,7 +1696,7 @@ h1::after {
 
 .stButton > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 18px 42px rgba(0,212,255,0.22);
+    box-shadow: 0 18px 42px rgba(255,84,160,0.24);
 }
 
 .stRadio {
@@ -1732,9 +1732,9 @@ h1::after {
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) {
-    background: linear-gradient(135deg, #9d4edd, #00d4ff);
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
     border-color: transparent;
-    box-shadow: 0 0 22px rgba(0,212,255,0.24);
+    box-shadow: 0 0 22px rgba(255,84,160,0.24);
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) p {
