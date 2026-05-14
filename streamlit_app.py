@@ -1137,21 +1137,25 @@ elif False:
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "🏠 Home"
 
+current_main_menu = st.session_state.get("main_nav", "🏠 Home")
 if st.session_state["app_menu"] in MAIN_MENU_OPTIONS:
-    st.session_state["main_nav"] = st.session_state["app_menu"]
+    current_main_menu = st.session_state["app_menu"]
+
+if current_main_menu not in MAIN_MENU_OPTIONS:
+    current_main_menu = "🏠 Home"
 
 selected_main_menu = st.radio(
     "",
     MAIN_MENU_OPTIONS,
+    index=MAIN_MENU_OPTIONS.index(current_main_menu),
     horizontal=True,
-    label_visibility="collapsed",
-    key="main_nav"
+    label_visibility="collapsed"
 )
 
-if not account_nav_clicked and selected_main_menu != st.session_state.get("_last_main_nav"):
+if not account_nav_clicked:
     st.session_state["app_menu"] = selected_main_menu
+    st.session_state["main_nav"] = selected_main_menu
 
-st.session_state["_last_main_nav"] = selected_main_menu
 menu = st.session_state["app_menu"]
 
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
