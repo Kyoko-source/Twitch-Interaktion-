@@ -2801,67 +2801,6 @@ elif menu.endswith("Minispiele"):
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("## Bestrafungsrad")
-    wheel_password = st.text_input("Admin Passwort für Glücksrad", type="password", key="wheel_admin_password")
-    if wheel_password == "einsmarello":
-        wheel_entries = get_punishment_wheel_entries()
-        if not wheel_entries:
-            st.info("Noch keine offenen Käufe aus der Kategorie 'Bestrafungs Ideen'.")
-        else:
-            labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
-            wheel_payload = json.dumps(labels, ensure_ascii=False)
-            components.html(f"""
-            <div class="wheel-shell">
-                <div class="wheel-stage">
-                    <div class="wheel-pointer"></div>
-                    <div id="punishmentWheel" class="punishment-wheel"></div>
-                    <div class="wheel-center"></div>
-                </div>
-                <div style="color:white;font-family:Inter,Segoe UI,Arial,sans-serif;">
-                    <h2 id="wheelResult">Bereit zum Drehen</h2>
-                    <p>Das Rad nutzt offene Shop-Käufe aus <b>Bestrafungs Ideen</b>.</p>
-                    <button id="spinWheel" style="padding:14px 18px;border-radius:12px;border:0;font-weight:900;background:linear-gradient(135deg,#c77dff,#ff54a0);color:#120817;cursor:pointer;">Glücksrad drehen</button>
-                    <ol id="wheelItems"></ol>
-                </div>
-            </div>
-            <style>
-            .wheel-shell {{ display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1fr); gap:18px; align-items:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px; }}
-            .wheel-stage {{ position:relative; width:min(360px,100%); aspect-ratio:1; margin:auto; }}
-            .punishment-wheel {{ width:100%; height:100%; border-radius:50%; border:10px solid rgba(255,255,255,.14); background:conic-gradient(#7b2cbf 0 60deg,#ff54a0 60deg 120deg,#c77dff 120deg 180deg,#7b2cbf 180deg 240deg,#ff54a0 240deg 300deg,#c77dff 300deg 360deg); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 0 34px rgba(0,0,0,.28); transition:transform 3.2s cubic-bezier(.12,.76,.18,1); }}
-            .wheel-pointer {{ position:absolute; left:50%; top:-3px; width:0; height:0; transform:translateX(-50%); border-left:18px solid transparent; border-right:18px solid transparent; border-top:34px solid #fff; z-index:3; }}
-            .wheel-center {{ position:absolute; inset:39%; border-radius:50%; background:#120817; border:4px solid rgba(255,255,255,.2); }}
-            #wheelItems li {{ margin:7px 0; color:#f0c9ff; }}
-            </style>
-            <script>
-            const items = {wheel_payload};
-            const wheel = document.getElementById("punishmentWheel");
-            const result = document.getElementById("wheelResult");
-            const list = document.getElementById("wheelItems");
-            list.innerHTML = items.map((item, index) => `<li>${{index + 1}}. ${{item}}</li>`).join("");
-            let rotation = 0;
-            document.getElementById("spinWheel").addEventListener("click", () => {{
-                const selected = Math.floor(Math.random() * items.length);
-                rotation += 1440 + selected * (360 / items.length) + Math.random() * 60;
-                wheel.style.transform = `rotate(${{rotation}}deg)`;
-                setTimeout(() => {{ result.textContent = items[selected]; }}, 3300);
-            }});
-            </script>
-            """, height=500)
-
-            selected_done = st.selectbox(
-                "Gezogene/erledigte Bestrafung abhaken",
-                wheel_entries,
-                format_func=lambda entry: f"{entry.get('reward_name')} von {entry.get('username')}",
-            )
-            if st.button("Als erledigt markieren", key="mark_punishment_done"):
-                if mark_punishment_done(selected_done["id"]):
-                    st.success("Bestrafung erledigt und aus dem Rad entfernt.")
-                    st.rerun()
-                else:
-                    st.error("Konnte den Eintrag nicht aktualisieren. Prüfe die Purchases-Migration.")
-    elif wheel_password:
-        st.error("Falsches Admin-Passwort für das Glücksrad.")
-
     components.html("""
     <html>
     <head>
@@ -3402,6 +3341,89 @@ elif menu.endswith("Minispiele"):
     </body>
     </html>
     """.replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_KEY), height=860, scrolling=True)
+
+    st.markdown("## Bestrafungsrad")
+    wheel_entries = get_punishment_wheel_entries()
+    wheel_password = st.text_input("Admin Passwort für Glücksrad", type="password", key="wheel_admin_password")
+    wheel_unlocked = wheel_password == "einsmarello"
+    if wheel_password and not wheel_unlocked:
+        st.error("Falsches Admin-Passwort für das Glücksrad.")
+
+    labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
+    if not labels:
+        labels = ["Eure Bestrafungen"] * 5
+
+    wheel_payload = json.dumps(labels, ensure_ascii=False)
+    disabled_attr = "" if wheel_unlocked else "disabled"
+    button_text = "Glücksrad drehen" if wheel_unlocked else "Nur Admin kann drehen"
+    helper_text = (
+        "Admin-Modus aktiv. Offene Käufe aus Bestrafungs Ideen können gedreht werden."
+        if wheel_unlocked
+        else "Dieses Rad zeigt eure gekauften Bestrafungs-Ideen. Drehen kann nur der Admin."
+    )
+
+    components.html(f"""
+    <div class="wheel-shell">
+        <div class="wheel-stage">
+            <div class="wheel-pointer"></div>
+            <div id="punishmentWheel" class="punishment-wheel"></div>
+            <div class="wheel-center"></div>
+        </div>
+        <div class="wheel-copy">
+            <div class="section-kicker">Bestrafungs Ideen</div>
+            <h2 id="wheelResult">Bestrafungsrad</h2>
+            <p>{helper_text}</p>
+            <button id="spinWheel" {disabled_attr}>{button_text}</button>
+            <ol id="wheelItems"></ol>
+        </div>
+    </div>
+    <style>
+    body {{ margin:0; background:transparent; }}
+    .wheel-shell {{ display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1fr); gap:18px; align-items:center; background:linear-gradient(135deg,rgba(123,44,191,.24),rgba(255,84,160,.14)); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:20px; color:white; font-family:Inter,Segoe UI,Arial,sans-serif; }}
+    .wheel-stage {{ position:relative; width:min(380px,100%); aspect-ratio:1; margin:auto; }}
+    .punishment-wheel {{ width:100%; height:100%; border-radius:50%; border:10px solid rgba(255,255,255,.14); background:conic-gradient(#7b2cbf 0 72deg,#ff54a0 72deg 144deg,#c77dff 144deg 216deg,#9d4edd 216deg 288deg,#ff7ad9 288deg 360deg); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 0 34px rgba(0,0,0,.28); transition:transform 3.2s cubic-bezier(.12,.76,.18,1); }}
+    .wheel-pointer {{ position:absolute; left:50%; top:-3px; width:0; height:0; transform:translateX(-50%); border-left:18px solid transparent; border-right:18px solid transparent; border-top:34px solid #fff; z-index:3; }}
+    .wheel-center {{ position:absolute; inset:39%; border-radius:50%; background:#120817; border:4px solid rgba(255,255,255,.2); }}
+    .section-kicker {{ color:#ff7ad9; font-size:13px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; }}
+    .wheel-copy h2 {{ margin:8px 0 10px; font-size:38px; }}
+    .wheel-copy p {{ color:#f0c9ff; font-weight:760; line-height:1.5; }}
+    #spinWheel {{ padding:14px 18px; border-radius:12px; border:0; font-weight:900; background:linear-gradient(135deg,#c77dff,#ff54a0); color:#120817; cursor:pointer; }}
+    #spinWheel:disabled {{ cursor:not-allowed; opacity:.55; filter:grayscale(.35); }}
+    #wheelItems {{ padding-left:22px; }}
+    #wheelItems li {{ margin:7px 0; color:#f0c9ff; font-weight:800; }}
+    @media (max-width:720px) {{ .wheel-shell {{ grid-template-columns:1fr; }} }}
+    </style>
+    <script>
+    const items = {wheel_payload};
+    const wheel = document.getElementById("punishmentWheel");
+    const result = document.getElementById("wheelResult");
+    const list = document.getElementById("wheelItems");
+    list.innerHTML = items.map((item, index) => `<li>${{index + 1}}. ${{item}}</li>`).join("");
+    let rotation = 0;
+    const button = document.getElementById("spinWheel");
+    if (!button.disabled) {{
+        button.addEventListener("click", () => {{
+            const selected = Math.floor(Math.random() * items.length);
+            rotation += 1440 + selected * (360 / items.length) + Math.random() * 60;
+            wheel.style.transform = `rotate(${{rotation}}deg)`;
+            setTimeout(() => {{ result.textContent = items[selected]; }}, 3300);
+        }});
+    }}
+    </script>
+    """, height=520)
+
+    if wheel_unlocked and wheel_entries:
+        selected_done = st.selectbox(
+            "Gezogene/erledigte Bestrafung abhaken",
+            wheel_entries,
+            format_func=lambda entry: f"{entry.get('reward_name')} von {entry.get('username')}",
+        )
+        if st.button("Als erledigt markieren", key="mark_punishment_done"):
+            if mark_punishment_done(selected_done["id"]):
+                st.success("Bestrafung erledigt und aus dem Rad entfernt.")
+                st.rerun()
+            else:
+                st.error("Konnte den Eintrag nicht aktualisieren. Prüfe die Purchases-Migration.")
 
 elif menu == "🎮 Minispiele":
 
