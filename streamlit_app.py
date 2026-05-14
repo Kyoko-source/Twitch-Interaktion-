@@ -109,6 +109,19 @@ def api_get(path):
 
     return response.json()
 
+
+def api_get_optional(path):
+    response = requests.get(
+        f"{SUPABASE_URL}/rest/v1/{path}",
+        headers=HEADERS
+    )
+
+    if response.status_code >= 400:
+        return []
+
+    return response.json()
+
+
 def api_post(table, payload):
     response = requests.post(
         f"{SUPABASE_URL}/rest/v1/{table}",
@@ -662,7 +675,7 @@ def leave_event(event_id, username):
 # SHOP
 # =========================
 
-rewards = [
+DEFAULT_REWARDS = [
     {
         "name": "⭐ 1 Woche VIP",
         "price": 10000,
@@ -685,21 +698,67 @@ rewards = [
     }
 ]
 
+
+@st.cache_data(ttl=300)
+def get_shop_items():
+    items = api_get_optional("shop_items?select=*&active=eq.true&order=price.asc")
+
+    if not items:
+        return DEFAULT_REWARDS
+
+    return [
+        {
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "price": int(item.get("price") or 0),
+            "desc": item.get("description") or ""
+        }
+        for item in items
+    ]
+
+
+def create_shop_item(name, description, price):
+    if not name.strip() or int(price) <= 0:
+        return None
+
+    created = api_post(
+        "shop_items",
+        {
+            "name": name.strip()[:100],
+            "description": description.strip()[:300],
+            "price": int(price),
+            "active": True,
+            "created_at": datetime.now().isoformat()
+        }
+    )
+    get_shop_items.clear()
+    return created
+
+
+def delete_shop_item(item_id):
+    success = api_patch(
+        f"shop_items?id=eq.{item_id}",
+        {"active": False}
+    )
+    get_shop_items.clear()
+    return success
+
+
 def buy_reward(username, reward):
     user = get_user(username)
 
     if user is None:
         return False
 
-    current = int(user["braincells"])
+    current = int(user["chickens"])
 
     if current < reward["price"]:
         return False
 
     update_user(
         username,
-        int(user["chickens"]),
-        current - reward["price"]
+        current - reward["price"],
+        int(user["braincells"])
     )
 
     api_post(
@@ -712,6 +771,8 @@ def buy_reward(username, reward):
         }
     )
 
+    get_leaderboard.clear()
+    get_members.clear()
     return True
 
 # =========================
@@ -1547,66 +1608,6 @@ elif menu == "👥 Mitglieder":
 
         st.markdown(members_html, unsafe_allow_html=True)
 
-        logged_in_username = get_logged_in_username()
-        if not logged_in_username:
-            st.info("Melde dich an, um mit anderen Mitgliedern Chickens zu handeln.")
-        else:
-            trade_targets = [
-                str(member.get("username"))
-                for member in members
-                if str(member.get("username")) != logged_in_username
-            ]
-
-            st.write("")
-            st.markdown("### Chicken-Handel")
-
-            if not trade_targets:
-                st.info("Es gibt aktuell keine anderen Mitglieder zum Handeln.")
-            else:
-                with st.form("chicken_trade_form"):
-                    target_user = st.selectbox("Mitglied auswählen", trade_targets)
-                    trade_action = st.radio(
-                        "Aktion",
-                        ["Chickens verschenken", "Chickens anfordern"],
-                        horizontal=True
-                    )
-                    trade_amount = st.number_input(
-                        "Menge",
-                        min_value=1,
-                        max_value=999999,
-                        step=1
-                    )
-                    submitted = st.form_submit_button("Handelsanfrage senden")
-
-                if submitted:
-                    trade_type = "gift" if trade_action == "Chickens verschenken" else "request"
-                    current_user = get_user(logged_in_username)
-
-                    if trade_type == "gift" and current_user and int(current_user.get("chickens") or 0) < int(trade_amount):
-                        st.error("Du hast nicht genug Chickens, um diese Menge zu verschenken.")
-                    else:
-                        created = create_chicken_trade(
-                            logged_in_username,
-                            target_user,
-                            trade_type,
-                            int(trade_amount)
-                        )
-                        if created:
-                            st.success("Handelsanfrage gesendet.")
-                        else:
-                            st.error("Handelsanfrage konnte nicht erstellt werden.")
-
-            outgoing_trades = get_outgoing_trades(logged_in_username)
-            if outgoing_trades:
-                with st.expander("Deine offenen Handelsanfragen"):
-                    for trade in outgoing_trades:
-                        amount = int(trade.get("amount") or 0)
-                        recipient = trade.get("recipient")
-                        if trade.get("trade_type") == "gift":
-                            st.write(f"Du möchtest {recipient} {amount} Chicken(s) schenken.")
-                        else:
-                            st.write(f"Du fragst {amount} Chicken(s) von {recipient} an.")
-
 # =========================
 # SHOP
 # =========================
@@ -1633,25 +1634,83 @@ elif menu == "🛒 Shop":
     if user:
         st.markdown(f"""
         <div class="card">
-            <h2>🧠 {user["braincells"]}</h2>
-            <p>Gehirnzellen</p>
+            <h2>🥚 {user["chickens"]}</h2>
+            <p>Chickens verfügbar</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.write("")
+    st.markdown("## Chicken-Handel")
 
-    for reward in rewards:
+    members = get_members()
+    trade_targets = [
+        str(member.get("username"))
+        for member in members
+        if str(member.get("username")) != logged_in_username
+    ]
+
+    if not trade_targets:
+        st.info("Es gibt aktuell keine anderen Mitglieder zum Handeln.")
+    else:
+        with st.form("chicken_trade_form"):
+            target_user = st.selectbox("Mitglied auswählen", trade_targets)
+            trade_action = st.radio(
+                "Aktion",
+                ["Chickens verschenken", "Chickens anfordern"],
+                horizontal=True
+            )
+            trade_amount = st.number_input(
+                "Menge",
+                min_value=1,
+                max_value=999999,
+                step=1
+            )
+            submitted = st.form_submit_button("Handelsanfrage senden")
+
+        if submitted:
+            trade_type = "gift" if trade_action == "Chickens verschenken" else "request"
+            current_user = get_user(logged_in_username)
+
+            if trade_type == "gift" and current_user and int(current_user.get("chickens") or 0) < int(trade_amount):
+                st.error("Du hast nicht genug Chickens, um diese Menge zu verschenken.")
+            else:
+                created = create_chicken_trade(
+                    logged_in_username,
+                    target_user,
+                    trade_type,
+                    int(trade_amount)
+                )
+                if created:
+                    st.success("Handelsanfrage gesendet.")
+                else:
+                    st.error("Handelsanfrage konnte nicht erstellt werden.")
+
+    outgoing_trades = get_outgoing_trades(logged_in_username)
+    if outgoing_trades:
+        with st.expander("Deine offenen Handelsanfragen"):
+            for trade in outgoing_trades:
+                amount = int(trade.get("amount") or 0)
+                recipient = trade.get("recipient")
+                if trade.get("trade_type") == "gift":
+                    st.write(f"Du möchtest {recipient} {amount} Chicken(s) schenken.")
+                else:
+                    st.write(f"Du fragst {amount} Chicken(s) von {recipient} an.")
+
+    st.write("---")
+    st.markdown("## Shop")
+
+    for reward in get_shop_items():
 
         col1, col2 = st.columns([4, 1])
 
         with col1:
             st.markdown(f"""
-            <div class="reward-card">
-                <h3>{reward["name"]}</h3>
-                <p>{reward["desc"]}</p>
-                <b>{reward["price"]} Gehirnzellen</b>
-            </div>
-            """, unsafe_allow_html=True)
+                <div class="reward-card">
+                    <h3>{reward["name"]}</h3>
+                    <p>{reward["desc"]}</p>
+                    <b>🥚 {reward["price"]} Chickens</b>
+                </div>
+                """, unsafe_allow_html=True)
 
         with col2:
             st.write("")
@@ -1663,7 +1722,7 @@ elif menu == "🛒 Shop":
                     st.success("Gekauft!")
                     st.rerun()
                 else:
-                    st.error("Nicht genug Gehirnzellen")
+                    st.error("Nicht genug Chickens")
 
 # =========================
 # LEADERBOARD
@@ -2680,6 +2739,50 @@ elif menu == "🔐 Admin":
 
             st.success("Event erstellt")
             st.rerun()
+
+        st.write("---")
+
+        st.subheader("Shop verwalten")
+
+        with st.form("create_shop_item_form"):
+            item_name = st.text_input("Name des Shop-Items")
+            item_description = st.text_area("Beschreibung des Shop-Items")
+            item_price = st.number_input(
+                "Preis in Chickens",
+                min_value=1,
+                step=1
+            )
+            create_item = st.form_submit_button("Shop-Item erstellen")
+
+        if create_item:
+            if create_shop_item(item_name, item_description, item_price):
+                st.success("Shop-Item erstellt")
+                st.rerun()
+            else:
+                st.error("Shop-Item konnte nicht erstellt werden. Prüfe die Shop-Datenbank.")
+
+        shop_items = get_shop_items()
+        if shop_items:
+            st.markdown("#### Aktive Shop-Items")
+            for item in shop_items:
+                col1, col2 = st.columns([4, 1])
+
+                with col1:
+                    st.markdown(f"""
+                    <div class="reward-card">
+                        <h3>{item["name"]}</h3>
+                        <p>{item["desc"]}</p>
+                        <b>🥚 {item["price"]} Chickens</b>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col2:
+                    if item.get("id") and st.button("Entfernen", key=f"delete_shop_item_{item['id']}"):
+                        if delete_shop_item(item["id"]):
+                            st.success("Shop-Item entfernt")
+                            st.rerun()
+                        else:
+                            st.error("Shop-Item konnte nicht entfernt werden")
 
         st.write("---")
 
