@@ -1067,7 +1067,13 @@ MAIN_MENU_OPTIONS = [
 if "app_menu" not in st.session_state:
     st.session_state["app_menu"] = "🏠 Home"
 
-account_nav_clicked = False
+if "main_nav" not in st.session_state:
+    st.session_state["main_nav"] = "🏠 Home"
+
+
+def set_main_menu():
+    st.session_state["app_menu"] = st.session_state["main_nav"]
+
 
 st.markdown('<div class="topbar"></div>', unsafe_allow_html=True)
 _, account_col = st.columns([10, 1])
@@ -1081,15 +1087,15 @@ with account_col:
 
         if st.button("🔑 Login", key="account_login", use_container_width=True):
             st.session_state["app_menu"] = "🔑 Login"
-            account_nav_clicked = True
+            st.rerun()
 
         if st.button("👤 Profil", key="account_profile", use_container_width=True):
             st.session_state["app_menu"] = "👤 Profil"
-            account_nav_clicked = True
+            st.rerun()
 
         if st.button("🔐 Admin", key="account_admin", use_container_width=True):
             st.session_state["app_menu"] = "🔐 Admin"
-            account_nav_clicked = True
+            st.rerun()
 
         if logged_in_username or twitch_display_name:
             st.divider()
@@ -1098,7 +1104,7 @@ with account_col:
                 st.session_state.pop("twitch_user", None)
                 st.session_state.pop("twitch_access_token", None)
                 st.session_state["app_menu"] = "🏠 Home"
-                account_nav_clicked = True
+                st.session_state["main_nav"] = "🏠 Home"
                 st.rerun()
 
 if False and twitch_auth_url:
@@ -1113,33 +1119,20 @@ elif False:
     else:
         st.info(f"🔗 OAuth URL: {twitch_auth_url}")
 
-if "main_nav" not in st.session_state:
-    st.session_state["main_nav"] = "🏠 Home"
-
-if "_last_main_nav" not in st.session_state:
-    st.session_state["_last_main_nav"] = st.session_state["main_nav"]
-
 if (
     st.session_state["app_menu"] in MAIN_MENU_OPTIONS
     and st.session_state["app_menu"] != st.session_state["main_nav"]
 ):
     st.session_state["main_nav"] = st.session_state["app_menu"]
-    st.session_state["_last_main_nav"] = st.session_state["app_menu"]
 
-selected_main_menu = st.radio(
+st.radio(
     "",
     MAIN_MENU_OPTIONS,
     horizontal=True,
     label_visibility="collapsed",
-    key="main_nav"
+    key="main_nav",
+    on_change=set_main_menu
 )
-
-if (
-    not account_nav_clicked
-    and st.session_state["main_nav"] != st.session_state["_last_main_nav"]
-):
-    st.session_state["app_menu"] = selected_main_menu
-    st.session_state["_last_main_nav"] = selected_main_menu
 
 menu = st.session_state["app_menu"]
 
