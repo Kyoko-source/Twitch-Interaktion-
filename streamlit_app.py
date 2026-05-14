@@ -747,8 +747,13 @@ def get_progress(points):
 
 SHOP_CATEGORIES = [
     "In Stream Rewards",
-    "Idee Bestrafungsrad",
+    "Bestrafungs Ideen",
     "Out of Stream Rewards",
+]
+
+PUNISHMENT_WHEEL_CATEGORIES = [
+    "Bestrafungs Ideen",
+    "Idee Bestrafungsrad",
 ]
 
 
@@ -793,7 +798,7 @@ def delete_news_post(post_id):
 def get_punishment_wheel_entries():
     return api_get_optional(
         "purchases?select=id,username,reward_name,reward_category,status,created_at"
-        "&reward_category=eq.Idee%20Bestrafungsrad&status=eq.open&order=created_at.asc"
+        "&reward_category=in.(Bestrafungs%20Ideen,Idee%20Bestrafungsrad)&status=eq.open&order=created_at.asc"
     )
 
 
@@ -2614,35 +2619,37 @@ elif menu == "🛒 Shop":
     shop_items = get_shop_items()
     for category in SHOP_CATEGORIES:
         category_rewards = [reward for reward in shop_items if reward.get("category") == category]
-        if not category_rewards:
-            continue
 
-        st.markdown(f'<h3 class="shop-category-title">{html.escape(category)}</h3>', unsafe_allow_html=True)
-        for reward in category_rewards:
+        with st.expander(f"{category} ({len(category_rewards)})", expanded=False):
+            if not category_rewards:
+                st.info("In dieser Kategorie gibt es aktuell keine Artikel.")
+                continue
 
-            col1, col2 = st.columns([4, 1])
+            for reward in category_rewards:
 
-            with col1:
-                st.markdown(f"""
-                    <div class="reward-card">
-                        <div class="section-kicker">{html.escape(category)}</div>
-                        <h3>{html.escape(str(reward["name"]))}</h3>
-                        <p>{html.escape(str(reward["desc"]))}</p>
-                        <b>🥚 {reward["price"]} Chickens</b>
-                    </div>
-                    """, unsafe_allow_html=True)
+                col1, col2 = st.columns([4, 1])
 
-            with col2:
-                st.write("")
+                with col1:
+                    st.markdown(f"""
+                        <div class="reward-card">
+                            <div class="section-kicker">{html.escape(category)}</div>
+                            <h3>{html.escape(str(reward["name"]))}</h3>
+                            <p>{html.escape(str(reward["desc"]))}</p>
+                            <b>🥚 {reward["price"]} Chickens</b>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                if st.button("Kaufen", key=f"buy_{category}_{reward['name']}"):
-                    success = buy_reward(effective_username, reward)
+                with col2:
+                    st.write("")
 
-                    if success:
-                        st.success("Gekauft!")
-                        st.rerun()
-                    else:
-                        st.error("Nicht genug Chickens")
+                    if st.button("Kaufen", key=f"buy_{category}_{reward['name']}"):
+                        success = buy_reward(effective_username, reward)
+
+                        if success:
+                            st.success("Gekauft!")
+                            st.rerun()
+                        else:
+                            st.error("Nicht genug Chickens")
 
 # =========================
 # LEADERBOARD
@@ -2799,7 +2806,7 @@ elif menu.endswith("Minispiele"):
     if wheel_password == "einsmarello":
         wheel_entries = get_punishment_wheel_entries()
         if not wheel_entries:
-            st.info("Noch keine offenen Käufe aus der Kategorie 'Idee Bestrafungsrad'.")
+            st.info("Noch keine offenen Käufe aus der Kategorie 'Bestrafungs Ideen'.")
         else:
             labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
             wheel_payload = json.dumps(labels, ensure_ascii=False)
@@ -2812,7 +2819,7 @@ elif menu.endswith("Minispiele"):
                 </div>
                 <div style="color:white;font-family:Inter,Segoe UI,Arial,sans-serif;">
                     <h2 id="wheelResult">Bereit zum Drehen</h2>
-                    <p>Das Rad nutzt offene Shop-Käufe aus <b>Idee Bestrafungsrad</b>.</p>
+                    <p>Das Rad nutzt offene Shop-Käufe aus <b>Bestrafungs Ideen</b>.</p>
                     <button id="spinWheel" style="padding:14px 18px;border-radius:12px;border:0;font-weight:900;background:linear-gradient(135deg,#c77dff,#ff54a0);color:#120817;cursor:pointer;">Glücksrad drehen</button>
                     <ol id="wheelItems"></ol>
                 </div>
