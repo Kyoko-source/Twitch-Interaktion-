@@ -22,3 +22,7 @@ Die Migration liegt in `add_daily_rewards_table.sql` und kann im Supabase SQL-Ed
 
 Für den News-Reiter muss `add_news_posts_table.sql` ausgeführt werden.
 Für Shop-Kategorien, Kaufstatus und das Bestrafungsrad muss `add_shop_categories_and_wheel.sql` ausgeführt werden.
+
+## Chicken-Markt
+
+Für den Kurs-Reiter mit Marktgegenständen, Käufen, Verkäufen und Profil-Inventar muss `add_market_tables.sql` ausgeführt werden.

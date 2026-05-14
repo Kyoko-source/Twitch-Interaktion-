@@ -11,6 +11,7 @@ import uuid
 import html
 import textwrap
 import json
+import math
 from typing import Optional
 
 st.set_page_config(
@@ -756,6 +757,22 @@ PUNISHMENT_WHEEL_CATEGORIES = [
     "Idee Bestrafungsrad",
 ]
 
+MARKET_ITEMS = [
+    {"key": "weizen", "name": "Weizen", "emoji": "🌾", "base": 90, "volatility": 0.18},
+    {"key": "mond", "name": "Mond", "emoji": "🌙", "base": 1800, "volatility": 0.28},
+    {"key": "stein", "name": "Stein", "emoji": "🪨", "base": 45, "volatility": 0.12},
+    {"key": "glitzer", "name": "Glitzer", "emoji": "✨", "base": 220, "volatility": 0.22},
+    {"key": "drachenEi", "name": "Drachen-Ei", "emoji": "🥚", "base": 950, "volatility": 0.26},
+    {"key": "blitz", "name": "Blitz", "emoji": "⚡", "base": 640, "volatility": 0.30},
+    {"key": "kristall", "name": "Kristall", "emoji": "💎", "base": 1200, "volatility": 0.24},
+    {"key": "pizza", "name": "Pizza-Aktie", "emoji": "🍕", "base": 310, "volatility": 0.20},
+    {"key": "portal", "name": "Portalstaub", "emoji": "🌀", "base": 760, "volatility": 0.27},
+    {"key": "krone", "name": "Krone", "emoji": "👑", "base": 2100, "volatility": 0.25},
+    {"key": "frosch", "name": "Froschcoin", "emoji": "🐸", "base": 130, "volatility": 0.35},
+    {"key": "stern", "name": "Sternsplitter", "emoji": "🌟", "base": 520, "volatility": 0.19},
+    {"key": "kaffee", "name": "Kaffee-Future", "emoji": "☕", "base": 270, "volatility": 0.21},
+]
+
 
 def get_default_shop_category():
     return SHOP_CATEGORIES[0]
@@ -809,6 +826,150 @@ def mark_punishment_done(purchase_id):
     )
     get_punishment_wheel_entries.clear()
     return success
+
+
+def get_market_item(item_key):
+    return next((item for item in MARKET_ITEMS if item["key"] == item_key), None)
+
+
+def get_market_price(item_key, target_date=None):
+    item = get_market_item(item_key)
+    if not item:
+        return 0
+
+    if target_date is None:
+        target_date = datetime.now(ZoneInfo("Europe/Berlin")).date()
+
+    day_number = target_date.toordinal()
+    seed = int(hashlib.sha256(f"{item_key}:{target_date.isoformat()}".encode("utf-8")).hexdigest()[:8], 16)
+    daily_wave = math.sin(day_number / 2.7 + seed % 31) * item["volatility"]
+    chaos = ((seed % 1000) / 1000 - 0.5) * item["volatility"] * 1.7
+    trend = math.sin(day_number / 13 + len(item_key)) * 0.08
+    multiplier = max(0.35, 1 + daily_wave + chaos + trend)
+    return max(1, int(round(item["base"] * multiplier)))
+
+
+def get_market_history(item_key, days=30):
+    today = datetime.now(ZoneInfo("Europe/Berlin")).date()
+    return [
+        {
+            "Datum": today - timedelta(days=offset),
+            "Preis": get_market_price(item_key, today - timedelta(days=offset)),
+        }
+        for offset in range(days - 1, -1, -1)
+    ]
+
+
+@st.cache_data(ttl=90)
+def get_market_inventory(username):
+    if not username:
+        return []
+
+    return api_get_optional(
+        "market_inventory"
+        f"?select=*&username=eq.{urllib.parse.quote(username)}"
+        "&order=item_key.asc"
+    )
+
+
+def get_market_quantity(username, item_key):
+    inventory = get_market_inventory(username)
+    for row in inventory:
+        if row.get("item_key") == item_key:
+            return int(row.get("quantity") or 0)
+    return 0
+
+
+def set_market_quantity(username, item_key, quantity):
+    username = username.strip()
+    item = get_market_item(item_key)
+    if not username or not item:
+        return False
+
+    existing = api_get_optional(
+        "market_inventory"
+        f"?select=id,quantity&username=eq.{urllib.parse.quote(username)}"
+        f"&item_key=eq.{urllib.parse.quote(item_key)}"
+        "&limit=1"
+    )
+    payload = {
+        "username": username,
+        "item_key": item_key,
+        "quantity": int(quantity),
+        "updated_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+    }
+
+    if existing:
+        success = api_patch(f"market_inventory?id=eq.{existing[0]['id']}", payload)
+    else:
+        success = bool(api_post_optional("market_inventory", payload))
+
+    get_market_inventory.clear()
+    return success
+
+
+def log_market_trade(username, item_key, action, quantity, price):
+    api_post_optional(
+        "market_trades",
+        {
+            "username": username,
+            "item_key": item_key,
+            "action": action,
+            "quantity": int(quantity),
+            "price": int(price),
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+
+
+def buy_market_item(username, item_key, quantity):
+    user = get_user(username)
+    item = get_market_item(item_key)
+    quantity = int(quantity)
+    if not user or not item or quantity <= 0:
+        return False, "Ungültiger Kauf."
+
+    price = get_market_price(item_key)
+    total = price * quantity
+    chickens = int(user.get("chickens") or 0)
+    if chickens < total:
+        return False, "Nicht genug Chickens für diesen Kauf."
+
+    current_qty = get_market_quantity(username, item_key)
+    if not update_user(username, chickens - total, int(user.get("braincells") or 0)):
+        return False, "Chickens konnten nicht abgezogen werden."
+    if not set_market_quantity(username, item_key, current_qty + quantity):
+        update_user(username, chickens, int(user.get("braincells") or 0))
+        return False, "Inventar konnte nicht aktualisiert werden."
+
+    log_market_trade(username, item_key, "buy", quantity, price)
+    get_members.clear()
+    get_leaderboard.clear()
+    return True, f"{quantity}x {item['emoji']} {item['name']} gekauft."
+
+
+def sell_market_item(username, item_key, quantity):
+    user = get_user(username)
+    item = get_market_item(item_key)
+    quantity = int(quantity)
+    if not user or not item or quantity <= 0:
+        return False, "Ungültiger Verkauf."
+
+    current_qty = get_market_quantity(username, item_key)
+    if current_qty < quantity:
+        return False, "Du besitzt nicht genug davon."
+
+    price = get_market_price(item_key)
+    total = price * quantity
+    if not update_user(username, int(user.get("chickens") or 0) + total, int(user.get("braincells") or 0)):
+        return False, "Chickens konnten nicht gutgeschrieben werden."
+    if not set_market_quantity(username, item_key, current_qty - quantity):
+        return False, "Inventar konnte nicht aktualisiert werden."
+
+    log_market_trade(username, item_key, "sell", quantity, price)
+    get_members.clear()
+    get_leaderboard.clear()
+    return True, f"{quantity}x {item['emoji']} {item['name']} verkauft."
 
 @st.cache_data(ttl=300)
 def get_events():
@@ -1847,6 +2008,45 @@ h1::after {
     border: 4px solid rgba(255,255,255,0.18);
 }
 
+.market-grid,
+.market-holdings {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+}
+
+.market-card,
+.holding-card {
+    border-radius: 14px;
+    padding: 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+}
+
+.market-card strong,
+.holding-card strong {
+    display: block;
+    color: #ffffff;
+    font-size: 22px;
+}
+
+.market-price {
+    margin: 12px 0;
+    color: #ff7ad9;
+    font-size: 30px;
+    font-weight: 950;
+}
+
+.market-delta.up {
+    color: #7CFFB2;
+}
+
+.market-delta.down {
+    color: #ff7a9a;
+}
+
 .stForm {
     margin-top: 12px;
     padding: 18px;
@@ -1867,6 +2067,8 @@ h1::after {
     .score-strip,
     .newspaper-grid,
     .wheel-shell,
+    .market-grid,
+    .market-holdings,
     .profile-hero {
         grid-template-columns: 1fr;
     }
@@ -1992,6 +2194,7 @@ MAIN_MENU_OPTIONS = [
     "📰 News",
     "👥 Mitglieder",
     "👤 Profil",
+    "📈 Kurs",
     "🛒 Shop",
     "🏆 Rangliste",
     "⚡ Events",
@@ -2391,6 +2594,25 @@ elif menu == "👤 Profil":
         </div>
         """, unsafe_allow_html=True)
 
+        inventory = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
+        if inventory:
+            holding_html = ""
+            for row in inventory:
+                item = get_market_item(row.get("item_key"))
+                if not item:
+                    continue
+                quantity = int(row.get("quantity") or 0)
+                price = get_market_price(item["key"])
+                holding_html += (
+                    '<div class="holding-card">'
+                    f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
+                    f'<div class="market-price">{quantity}x</div>'
+                    f'<span class="admin-muted">Aktueller Wert: {quantity * price} Chickens</span>'
+                    '</div>'
+                )
+            st.markdown("### Markt-Inventar")
+            st.markdown(f'<div class="market-holdings">{holding_html}</div>', unsafe_allow_html=True)
+
         if daily_state["claimed_today"]:
             st.info("Daily Reward ist heute schon abgeholt.")
         elif st.button("Daily Reward im Profil abholen", key="profile_daily_claim", use_container_width=True):
@@ -2524,6 +2746,98 @@ elif menu == "👥 Mitglieder":
         members_html += "</div>"
 
         st.markdown(members_html, unsafe_allow_html=True)
+
+# =========================
+# KURS
+# =========================
+
+elif menu == "📈 Kurs":
+
+    logged_in_username = get_logged_in_username()
+    st.markdown('<div class="section-kicker">Chicken-Markt</div>', unsafe_allow_html=True)
+    st.markdown("## Kurs")
+    st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
+
+    selected_item_name = st.selectbox(
+        "Gegenstand auswählen",
+        [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS],
+    )
+    selected_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(selected_item_name)]
+    history = get_market_history(selected_item["key"], days=30)
+    chart_df = pd.DataFrame(history).set_index("Datum")
+    st.line_chart(chart_df, use_container_width=True)
+
+    market_cards = ""
+    for item in MARKET_ITEMS:
+        today_price = get_market_price(item["key"])
+        yesterday_price = get_market_price(item["key"], datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1))
+        delta = today_price - yesterday_price
+        delta_class = "up" if delta >= 0 else "down"
+        sign = "+" if delta >= 0 else ""
+        quantity = get_market_quantity(logged_in_username, item["key"]) if logged_in_username else 0
+        market_cards += (
+            '<div class="market-card">'
+            f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
+            f'<div class="market-price">{today_price} 🥚</div>'
+            f'<div class="market-delta {delta_class}">{sign}{delta} heute</div>'
+            f'<div class="admin-muted">Du besitzt: {quantity}</div>'
+            '</div>'
+        )
+    st.markdown(f'<div class="market-grid">{market_cards}</div>', unsafe_allow_html=True)
+
+    if not logged_in_username:
+        st.warning("Bitte melde dich an, um Marktgegenstände zu kaufen oder zu verkaufen.")
+        st.stop()
+
+    user = get_or_create_user(logged_in_username)
+    st.info(f"Dein Chicken-Konto: {int(user.get('chickens') or 0)} Chickens")
+
+    trade_col_a, trade_col_b = st.columns(2)
+    with trade_col_a:
+        with st.form("market_buy_form"):
+            buy_label = st.selectbox("Kaufen", [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS], key="market_buy_item")
+            buy_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(buy_label)]
+            buy_quantity = st.number_input("Anzahl kaufen", min_value=1, max_value=999, step=1)
+            buy_total = get_market_price(buy_item["key"]) * int(buy_quantity)
+            st.caption(f"Kosten: {buy_total} Chickens")
+            if st.form_submit_button("Kaufen"):
+                success, message = buy_market_item(logged_in_username, buy_item["key"], buy_quantity)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+    with trade_col_b:
+        inventory = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
+        with st.form("market_sell_form"):
+            if inventory:
+                sell_options = []
+                for row in inventory:
+                    item = get_market_item(row.get("item_key"))
+                    if item:
+                        sell_options.append((item, int(row.get("quantity") or 0)))
+                sell_label = st.selectbox(
+                    "Verkaufen",
+                    [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options],
+                    key="market_sell_item",
+                )
+                selected_index = [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options].index(sell_label)
+                sell_item, max_qty = sell_options[selected_index]
+                sell_quantity = st.number_input("Anzahl verkaufen", min_value=1, max_value=max_qty, step=1)
+                sell_total = get_market_price(sell_item["key"]) * int(sell_quantity)
+                st.caption(f"Erlös: {sell_total} Chickens")
+                submit_sell = st.form_submit_button("Verkaufen")
+                if submit_sell:
+                    success, message = sell_market_item(logged_in_username, sell_item["key"], sell_quantity)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+            else:
+                st.caption("Du besitzt aktuell keine Marktgegenstände.")
+                st.form_submit_button("Verkaufen", disabled=True)
 
 # =========================
 # SHOP
