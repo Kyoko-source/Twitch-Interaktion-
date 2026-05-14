@@ -669,6 +669,8 @@ h1 {
     align-items: center;
     justify-content: flex-end;
     position: relative;
+    z-index: 1000;
+    overflow: visible;
 }
 
 .topbar h2 {
@@ -711,7 +713,7 @@ h1 {
 
 .account-menu {
     position: relative;
-    z-index: 20;
+    z-index: 2000;
 }
 
 .account-menu summary {
@@ -737,6 +739,7 @@ h1 {
     position: absolute;
     top: 46px;
     right: 0;
+    z-index: 3000;
     min-width: 190px;
     border-radius: 14px;
     padding: 8px;
@@ -980,6 +983,8 @@ h1 {
 .stRadio {
     max-width: 980px;
     margin: 0 auto 22px auto;
+    position: relative;
+    z-index: 1;
 }
 
 .stRadio > div {
