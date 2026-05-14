@@ -1069,63 +1069,37 @@ if "app_menu" not in st.session_state:
 
 account_nav_clicked = False
 
-try:
-    account_action = st.query_params.get("account")
-except AttributeError:
-    account_action = None
+st.markdown('<div class="topbar"></div>', unsafe_allow_html=True)
+_, account_col = st.columns([10, 1])
 
-if isinstance(account_action, list):
-    account_action = account_action[0] if account_action else None
+with account_col:
+    with st.popover("☰", use_container_width=True):
+        if logged_in_username:
+            st.caption(f"✅ {logged_in_username}")
+        elif twitch_display_name:
+            st.caption(f"✅ {twitch_display_name}")
 
-account_targets = {
-    "login": "🔑 Login",
-    "profile": "👤 Profil",
-    "admin": "🔐 Admin",
-}
+        if st.button("🔑 Login", key="account_login", use_container_width=True):
+            st.session_state["app_menu"] = "🔑 Login"
+            account_nav_clicked = True
 
-if account_action == "logout":
-    logout_user()
-    st.session_state.pop("twitch_user", None)
-    st.session_state.pop("twitch_access_token", None)
-    st.session_state["app_menu"] = "🏠 Home"
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
-    st.rerun()
-elif account_action in account_targets:
-    st.session_state["app_menu"] = account_targets[account_action]
-    account_nav_clicked = True
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
-    st.rerun()
+        if st.button("👤 Profil", key="account_profile", use_container_width=True):
+            st.session_state["app_menu"] = "👤 Profil"
+            account_nav_clicked = True
 
-if logged_in_username:
-    account_status = f'<div class="account-status">✅ {html.escape(logged_in_username)}</div>'
-elif twitch_display_name:
-    account_status = f'<div class="account-status">✅ {html.escape(twitch_display_name)}</div>'
-else:
-    account_status = ""
+        if st.button("🔐 Admin", key="account_admin", use_container_width=True):
+            st.session_state["app_menu"] = "🔐 Admin"
+            account_nav_clicked = True
 
-logout_link = '<a href="?account=logout" target="_self">Logout</a>' if logged_in_username or twitch_display_name else ""
-
-account_menu_html = (
-    '<div class="topbar">'
-    '<details class="account-menu">'
-    '<summary>☰</summary>'
-    '<div class="account-dropdown">'
-    f'{account_status}'
-    '<a href="?account=login" target="_self">🔑 Login</a>'
-    '<a href="?account=profile" target="_self">👤 Profil</a>'
-    '<a href="?account=admin" target="_self">🔐 Admin</a>'
-    f'{logout_link}'
-    '</div>'
-    '</details>'
-    '</div>'
-)
-st.markdown(account_menu_html, unsafe_allow_html=True)
+        if logged_in_username or twitch_display_name:
+            st.divider()
+            if st.button("Logout", key="account_logout", use_container_width=True):
+                logout_user()
+                st.session_state.pop("twitch_user", None)
+                st.session_state.pop("twitch_access_token", None)
+                st.session_state["app_menu"] = "🏠 Home"
+                account_nav_clicked = True
+                st.rerun()
 
 if False and twitch_auth_url:
     st.markdown(
