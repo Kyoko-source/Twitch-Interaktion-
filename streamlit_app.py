@@ -389,6 +389,102 @@ def update_user_profile(username, bio, favorite_game, avatar_url):
     )
 
 
+def get_pending_trades(username):
+    username = username.strip()
+    return api_get(
+        f"chicken_trades?recipient=eq.{urllib.parse.quote(username)}"
+        "&status=eq.pending&order=created_at.desc"
+    )
+
+
+def get_outgoing_trades(username):
+    username = username.strip()
+    return api_get(
+        f"chicken_trades?requester=eq.{urllib.parse.quote(username)}"
+        "&status=eq.pending&order=created_at.desc"
+    )
+
+
+def create_chicken_trade(requester, recipient, trade_type, amount):
+    requester = requester.strip()
+    recipient = recipient.strip()
+    amount = int(amount)
+
+    if requester == recipient or trade_type not in ("gift", "request") or amount <= 0:
+        return None
+
+    return api_post(
+        "chicken_trades",
+        {
+            "requester": requester,
+            "recipient": recipient,
+            "trade_type": trade_type,
+            "amount": amount,
+            "status": "pending",
+            "created_at": datetime.now().isoformat()
+        }
+    )
+
+
+def set_trade_status(trade_id, status):
+    return api_patch(
+        f"chicken_trades?id=eq.{trade_id}",
+        {
+            "status": status,
+            "responded_at": datetime.now().isoformat()
+        }
+    )
+
+
+def accept_chicken_trade(trade):
+    amount = int(trade.get("amount") or 0)
+    requester = trade.get("requester")
+    recipient = trade.get("recipient")
+    trade_type = trade.get("trade_type")
+
+    if amount <= 0 or trade.get("status") != "pending":
+        return False, "Diese Anfrage ist nicht mehr gültig."
+
+    requester_user = get_user(requester)
+    recipient_user = get_user(recipient)
+
+    if not requester_user or not recipient_user:
+        return False, "Ein Handelspartner wurde nicht gefunden."
+
+    if trade_type == "gift":
+        payer = requester_user
+        receiver = recipient_user
+    elif trade_type == "request":
+        payer = recipient_user
+        receiver = requester_user
+    else:
+        return False, "Unbekannter Handelstyp."
+
+    if int(payer.get("chickens") or 0) < amount:
+        return False, f"{payer['username']} hat nicht genug Chickens."
+
+    payer_ok = update_user(
+        payer["username"],
+        int(payer.get("chickens") or 0) - amount,
+        int(payer.get("braincells") or 0)
+    )
+    receiver_ok = update_user(
+        receiver["username"],
+        int(receiver.get("chickens") or 0) + amount,
+        int(receiver.get("braincells") or 0)
+    )
+
+    if not payer_ok or not receiver_ok:
+        return False, "Chickens konnten nicht übertragen werden."
+
+    if not set_trade_status(trade["id"], "accepted"):
+        return False, "Handel wurde übertragen, aber Status konnte nicht gespeichert werden."
+
+    get_members.clear()
+    get_leaderboard.clear()
+    return True, "Handel angenommen."
+
+
 def set_user_password(username, password):
     username = username.strip()
 
@@ -1124,6 +1220,43 @@ for nav_col, nav_item in zip(nav_cols, MAIN_MENU_OPTIONS):
 
 menu = st.session_state["app_menu"]
 
+logged_in_username = get_logged_in_username()
+
+if logged_in_username:
+    incoming_trades = get_pending_trades(logged_in_username)
+    if incoming_trades:
+        st.warning(f"Du hast {len(incoming_trades)} offene Chicken-Handelsanfrage(n).")
+        with st.expander("Chicken-Handel prüfen", expanded=True):
+            for trade in incoming_trades:
+                amount = int(trade.get("amount") or 0)
+                requester = trade.get("requester")
+                trade_type = trade.get("trade_type")
+
+                if trade_type == "gift":
+                    trade_text = f"{requester} möchte dir {amount} Chicken(s) schenken."
+                else:
+                    trade_text = f"{requester} fragt {amount} Chicken(s) von dir an."
+
+                st.markdown(f"**{trade_text}**")
+                accept_col, reject_col = st.columns(2)
+
+                with accept_col:
+                    if st.button("Annehmen", key=f"accept_trade_{trade['id']}"):
+                        success, message = accept_chicken_trade(trade)
+                        if success:
+                            st.success(message)
+                        else:
+                            st.error(message)
+                        st.rerun()
+
+                with reject_col:
+                    if st.button("Ablehnen", key=f"reject_trade_{trade['id']}"):
+                        if set_trade_status(trade["id"], "rejected"):
+                            st.info("Handel abgelehnt.")
+                        else:
+                            st.error("Handel konnte nicht abgelehnt werden.")
+                        st.rerun()
+
 st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 # =========================
@@ -1413,6 +1546,66 @@ elif menu == "👥 Mitglieder":
         members_html += "</div>"
 
         st.markdown(members_html, unsafe_allow_html=True)
+
+        logged_in_username = get_logged_in_username()
+        if not logged_in_username:
+            st.info("Melde dich an, um mit anderen Mitgliedern Chickens zu handeln.")
+        else:
+            trade_targets = [
+                str(member.get("username"))
+                for member in members
+                if str(member.get("username")) != logged_in_username
+            ]
+
+            st.write("")
+            st.markdown("### Chicken-Handel")
+
+            if not trade_targets:
+                st.info("Es gibt aktuell keine anderen Mitglieder zum Handeln.")
+            else:
+                with st.form("chicken_trade_form"):
+                    target_user = st.selectbox("Mitglied auswählen", trade_targets)
+                    trade_action = st.radio(
+                        "Aktion",
+                        ["Chickens verschenken", "Chickens anfordern"],
+                        horizontal=True
+                    )
+                    trade_amount = st.number_input(
+                        "Menge",
+                        min_value=1,
+                        max_value=999999,
+                        step=1
+                    )
+                    submitted = st.form_submit_button("Handelsanfrage senden")
+
+                if submitted:
+                    trade_type = "gift" if trade_action == "Chickens verschenken" else "request"
+                    current_user = get_user(logged_in_username)
+
+                    if trade_type == "gift" and current_user and int(current_user.get("chickens") or 0) < int(trade_amount):
+                        st.error("Du hast nicht genug Chickens, um diese Menge zu verschenken.")
+                    else:
+                        created = create_chicken_trade(
+                            logged_in_username,
+                            target_user,
+                            trade_type,
+                            int(trade_amount)
+                        )
+                        if created:
+                            st.success("Handelsanfrage gesendet.")
+                        else:
+                            st.error("Handelsanfrage konnte nicht erstellt werden.")
+
+            outgoing_trades = get_outgoing_trades(logged_in_username)
+            if outgoing_trades:
+                with st.expander("Deine offenen Handelsanfragen"):
+                    for trade in outgoing_trades:
+                        amount = int(trade.get("amount") or 0)
+                        recipient = trade.get("recipient")
+                        if trade.get("trade_type") == "gift":
+                            st.write(f"Du möchtest {recipient} {amount} Chicken(s) schenken.")
+                        else:
+                            st.write(f"Du fragst {amount} Chicken(s) von {recipient} an.")
 
 # =========================
 # SHOP
