@@ -744,6 +744,22 @@ def delete_shop_item(item_id):
     return success
 
 
+def update_shop_item(item_id, name, description, price):
+    if not item_id or not str(name).strip() or int(price) <= 0:
+        return False
+
+    success = api_patch(
+        f"shop_items?id=eq.{item_id}",
+        {
+            "name": str(name).strip()[:100],
+            "description": str(description).strip()[:300],
+            "price": int(price),
+        }
+    )
+    get_shop_items.clear()
+    return success
+
+
 def buy_reward(username, reward):
     user = get_user(username)
 
@@ -1098,12 +1114,215 @@ h1 {
     font-weight: 800;
 }
 
+.profile-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 12px;
+}
+
+.profile-showcase {
+    position: relative;
+    overflow: hidden;
+    min-height: 360px;
+    border-radius: 24px;
+    padding: 30px;
+    background:
+        linear-gradient(135deg, rgba(0,212,255,0.18), rgba(199,125,255,0.18)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.34);
+}
+
+.profile-showcase::before {
+    content: "";
+    position: absolute;
+    inset: -45% -20% auto auto;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, rgba(0,212,255,0.26), transparent 62%);
+    pointer-events: none;
+}
+
+.profile-showcase-inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+}
+
+.profile-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    margin-bottom: 14px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    color: #051018;
+    background: linear-gradient(135deg, #00d4ff, #c77dff);
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.profile-big-name {
+    font-size: clamp(38px, 6vw, 72px);
+    line-height: 0.95;
+    font-weight: 950;
+    margin-bottom: 12px;
+}
+
+.profile-bio-large {
+    max-width: 680px;
+    color: #f5efff;
+    font-size: 17px;
+    line-height: 1.65;
+}
+
+.profile-chip-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.profile-chip {
+    padding: 9px 12px;
+    border-radius: 999px;
+    color: #e9ddff;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    font-weight: 850;
+}
+
+.profile-side-panel,
+.admin-panel {
+    border-radius: 18px;
+    padding: 22px;
+    background: rgba(8,10,18,0.72);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.26);
+}
+
+.profile-stat-grid,
+.admin-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.profile-stat,
+.admin-stat {
+    min-height: 92px;
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.profile-stat strong,
+.admin-stat strong {
+    display: block;
+    font-size: 28px;
+    line-height: 1;
+    color: #ffffff;
+}
+
+.profile-stat span,
+.admin-stat span {
+    display: block;
+    margin-top: 8px;
+    color: #cfc6e8;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.profile-progress-track {
+    height: 16px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin: 14px 0 10px;
+}
+
+.profile-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00d4ff, #c77dff);
+    box-shadow: 0 0 24px rgba(0,212,255,0.35);
+}
+
+.profile-edit-wrap {
+    margin-top: 18px;
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
+.admin-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 10px 0 18px;
+    padding: 26px;
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(0,212,255,0.16), rgba(199,125,255,0.12)),
+        rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.admin-hero h2 {
+    margin: 4px 0 0;
+    font-size: 36px;
+}
+
+.admin-list-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-list-item:last-child {
+    border-bottom: 0;
+}
+
+.admin-muted {
+    color: #cfc6e8;
+    font-weight: 750;
+}
+
+.stForm {
+    margin-top: 12px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
 @media (max-width: 780px) {
     .podium-grid,
     .arcade-grid,
     .member-grid,
+    .profile-shell,
+    .profile-showcase-inner,
     .profile-hero {
         grid-template-columns: 1fr;
+    }
+
+    .profile-stat-grid,
+    .admin-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-hero {
+        display: block;
     }
 }
 
@@ -1488,8 +1707,8 @@ elif menu == "👤 Profil":
         st.warning("Bitte melde dich zuerst im Login-Bereich mit deinem Twitch-Namen und Passwort an.")
         st.stop()
 
-    st.subheader("Dein Profil")
-    st.markdown(f"**Eingeloggt als:** {logged_in_username}")
+    st.markdown('<div class="section-kicker">Profilzentrum</div>', unsafe_allow_html=True)
+    st.markdown("## Dein Profil")
 
     with st.spinner("Lade Benutzerdaten..."):
         user = get_or_create_user(logged_in_username)
@@ -1503,34 +1722,55 @@ elif menu == "👤 Profil":
         bio = user.get("bio") or "Noch keine Bio eingetragen."
         favorite_game = user.get("favorite_game") or "Noch nicht gesetzt"
         avatar_url = user.get("avatar_url") or ""
-        avatar_markup = get_avatar_markup(user["username"], avatar_url, 112)
+        avatar_markup = get_avatar_markup(user["username"], avatar_url, 136)
+        members = get_members()
+        sorted_members = sorted(members, key=lambda member: int(member.get("braincells") or 0), reverse=True)
+        rank_position = next(
+            (index + 1 for index, member in enumerate(sorted_members) if member.get("username") == logged_in_username),
+            "-"
+        )
+        completed_fields = sum([
+            bool(str(user.get("bio") or "").strip()),
+            bool(str(user.get("favorite_game") or "").strip()),
+            bool(str(user.get("avatar_url") or "").strip()),
+        ])
+        completion = int((completed_fields / 3) * 100)
+        next_level_points = level * 100
+        points_to_level = max(0, next_level_points - braincells)
 
         st.markdown(f"""
-        <div class="profile-hero">
-            {avatar_markup}
-            <div>
-                <div class="section-kicker">Deine öffentliche Profilkarte</div>
-                <div class="profile-name">{html.escape(user["username"])}</div>
-                <div class="profile-meta">Level {level} · {rank_name} · 🧠 {braincells} · 🥚 {chickens}</div>
-                <div class="member-favorite">Lieblingsspiel: {html.escape(favorite_game)}</div>
-                <div class="profile-bio">{html.escape(bio)}</div>
+        <div class="profile-shell">
+            <div class="profile-showcase">
+                <div class="profile-showcase-inner">
+                    {avatar_markup}
+                    <div>
+                        <div class="profile-rank-badge">Level {level} · {html.escape(rank_name)}</div>
+                        <div class="profile-big-name">{html.escape(user["username"])}</div>
+                        <div class="profile-bio-large">{html.escape(bio)}</div>
+                        <div class="profile-chip-row">
+                            <div class="profile-chip">Lieblingsspiel: {html.escape(favorite_game)}</div>
+                            <div class="profile-chip">Rang #{rank_position}</div>
+                            <div class="profile-chip">{completion}% Profil</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-side-panel">
+                <div class="section-kicker">Fortschritt</div>
+                <h3>Nächstes Level</h3>
+                <div class="profile-progress-track">
+                    <div class="profile-progress-fill" style="width:{progress}%;"></div>
+                </div>
+                <div class="admin-muted">{progress}% · {html.escape(progress_text)}</div>
+                <div class="profile-stat-grid">
+                    <div class="profile-stat"><strong>{braincells}</strong><span>Gehirnzellen</span></div>
+                    <div class="profile-stat"><strong>{chickens}</strong><span>Chickens</span></div>
+                    <div class="profile-stat"><strong>{points_to_level}</strong><span>Bis Level {level + 1}</span></div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        c1, c2 = st.columns(2)
-
-        with c1:
-            st.metric("🧠 Gehirnzellen", braincells)
-
-        with c2:
-            st.metric("🥚 Chickens", chickens)
-
-        st.progress(progress / 100)
-
-        st.caption(f"{progress}% · {progress_text}")
-
-        st.write("")
         st.markdown("### Profil bearbeiten")
 
         with st.form("profile_form"):
@@ -2692,131 +2932,243 @@ elif menu == "🔐 Admin":
 
     if password == "einsmarello":
 
-        st.subheader("Punkte verwalten")
-
-        admin_user = st.text_input("Viewer Name")
-
-        add_brain = st.number_input(
-            "Gehirnzellen hinzufügen",
-            min_value=0,
-            step=10
-        )
-
-        remove_brain = st.number_input(
-            "Gehirnzellen abziehen",
-            min_value=0,
-            step=10
-        )
-
-        if st.button("Punkte speichern"):
-            add_points(
-                admin_user,
-                braincells=add_brain
-            )
-
-            remove_points(
-                admin_user,
-                braincells=remove_brain
-            )
-
-            st.success("Gespeichert")
-            st.rerun()
-
-        st.write("---")
-
-        st.subheader("Event erstellen")
-
-        event_title = st.text_input("Event Titel")
-        event_description = st.text_area("Beschreibung")
-        event_date = st.text_input("Datum")
-
-        if st.button("Event erstellen"):
-            create_event(
-                event_title,
-                event_description,
-                event_date
-            )
-
-            st.success("Event erstellt")
-            st.rerun()
-
-        st.write("---")
-
-        st.subheader("Shop verwalten")
-
-        with st.form("create_shop_item_form"):
-            item_name = st.text_input("Name des Shop-Items")
-            item_description = st.text_area("Beschreibung des Shop-Items")
-            item_price = st.number_input(
-                "Preis in Chickens",
-                min_value=1,
-                step=1
-            )
-            create_item = st.form_submit_button("Shop-Item erstellen")
-
-        if create_item:
-            if create_shop_item(item_name, item_description, item_price):
-                st.success("Shop-Item erstellt")
-                st.rerun()
-            else:
-                st.error("Shop-Item konnte nicht erstellt werden. Prüfe die Shop-Datenbank.")
-
-        shop_items = get_shop_items()
-        if shop_items:
-            st.markdown("#### Aktive Shop-Items")
-            for item in shop_items:
-                col1, col2 = st.columns([4, 1])
-
-                with col1:
-                    st.markdown(f"""
-                    <div class="reward-card">
-                        <h3>{item["name"]}</h3>
-                        <p>{item["desc"]}</p>
-                        <b>🥚 {item["price"]} Chickens</b>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with col2:
-                    if item.get("id") and st.button("Entfernen", key=f"delete_shop_item_{item['id']}"):
-                        if delete_shop_item(item["id"]):
-                            st.success("Shop-Item entfernt")
-                            st.rerun()
-                        else:
-                            st.error("Shop-Item konnte nicht entfernt werden")
-
-        st.write("---")
-
-        st.subheader("Events löschen")
-
+        members = get_members()
+        usernames = [str(member.get("username")) for member in members if member.get("username")]
         events = get_events()
+        shop_items = get_shop_items()
+        pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
 
-        for event in events:
-            col1, col2 = st.columns([4, 1])
+        st.markdown("""
+        <div class="admin-hero">
+            <div>
+                <div class="section-kicker">Admin Center</div>
+                <h2>Gehirnzone Kontrolle</h2>
+                <div class="admin-muted">Viewer, Punkte, Shop und Events an einem Ort.</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            with col1:
+        st.markdown(f"""
+        <div class="admin-stat-grid">
+            <div class="admin-stat"><strong>{len(members)}</strong><span>Viewer</span></div>
+            <div class="admin-stat"><strong>{len(shop_items)}</strong><span>Shop-Items</span></div>
+            <div class="admin-stat"><strong>{len(events)}</strong><span>Events</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        overview_tab, viewer_tab, shop_tab, event_tab, danger_tab = st.tabs([
+            "Dashboard",
+            "Viewer",
+            "Shop",
+            "Events",
+            "Moderation",
+        ])
+
+        with overview_tab:
+            top_members = sorted(members, key=lambda member: int(member.get("braincells") or 0), reverse=True)[:5]
+            left_col, right_col = st.columns([1.2, 0.8])
+
+            with left_col:
+                if top_members:
+                    top_members_html = ""
+                    for index, member in enumerate(top_members, start=1):
+                        top_members_html += (
+                            '<div class="admin-list-item">'
+                            f'<b>#{index} {html.escape(str(member.get("username") or "Unbekannt"))}</b><br>'
+                            f'<span class="admin-muted">🧠 {int(member.get("braincells") or 0)} · 🥚 {int(member.get("chickens") or 0)}</span>'
+                            '</div>'
+                        )
+                    st.markdown(f'<div class="admin-panel"><h3>Top Viewer</h3>{top_members_html}</div>', unsafe_allow_html=True)
+                else:
+                    st.info("Noch keine Viewer vorhanden.")
+
+            with right_col:
                 st.markdown(f"""
-                <div class="event-card">
-                    <h3>{event["title"]}</h3>
-                    <p>{event["description"]}</p>
+                <div class="admin-panel">
+                    <h3>Live-Status</h3>
+                    <div class="admin-stat-grid" style="grid-template-columns:1fr;">
+                        <div class="admin-stat"><strong>{pending_trade_count}</strong><span>Offene Trades</span></div>
+                        <div class="admin-stat"><strong>{total_chickens}</strong><span>Gesamte Chickens</span></div>
+                        <div class="admin-stat"><strong>{total_braincells}</strong><span>Gesamte Gehirnzellen</span></div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            with col2:
-                if st.button("Löschen", key=f"delete_{event['id']}"):
-                    delete_event(event["id"])
-                    st.success("Event gelöscht")
+        with viewer_tab:
+            st.markdown("### Viewer verwalten")
+
+            selected_user = None
+            if usernames:
+                selected_user = st.selectbox(
+                    "Viewer auswählen",
+                    usernames,
+                    index=0,
+                    placeholder="Viewer auswählen...",
+                )
+            else:
+                st.info("Noch keine Viewer vorhanden.")
+
+            if selected_user:
+                selected_data = get_user(selected_user)
+                current_brain = int(selected_data.get("braincells") or 0) if selected_data else 0
+                current_chickens = int(selected_data.get("chickens") or 0) if selected_data else 0
+                rank_name, _, _ = get_progress(current_brain)
+
+                st.markdown(f"""
+                <div class="admin-panel">
+                    <div class="section-kicker">Ausgewählter Viewer</div>
+                    <h3>{html.escape(selected_user)}</h3>
+                    <div class="admin-muted">{html.escape(rank_name)} · 🧠 {current_brain} · 🥚 {current_chickens}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.form("admin_points_form"):
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        add_brain = st.number_input("Gehirnzellen hinzufügen", min_value=0, step=10)
+                        add_chickens = st.number_input("Chickens hinzufügen", min_value=0, step=10)
+                    with col_b:
+                        remove_brain = st.number_input("Gehirnzellen abziehen", min_value=0, step=10)
+                        remove_chickens = st.number_input("Chickens abziehen", min_value=0, step=10)
+
+                    if st.form_submit_button("Punkte speichern"):
+                        add_points(selected_user, chickens=add_chickens, braincells=add_brain)
+                        remove_points(selected_user, chickens=remove_chickens, braincells=remove_brain)
+                        get_members.clear()
+                        get_leaderboard.clear()
+                        st.success("Viewer aktualisiert.")
+                        st.rerun()
+
+                with st.expander("Passwort zurücksetzen"):
+                    new_password = st.text_input("Neues Passwort", type="password")
+                    if st.button("Passwort speichern"):
+                        if new_password:
+                            set_user_password(selected_user, new_password)
+                            st.success("Passwort aktualisiert.")
+                        else:
+                            st.error("Bitte ein Passwort eingeben.")
+
+        with shop_tab:
+            st.markdown("### Shop verwalten")
+
+            with st.form("create_shop_item_form"):
+                item_name = st.text_input("Name des Shop-Items")
+                item_description = st.text_area("Beschreibung des Shop-Items")
+                item_price = st.number_input("Preis in Chickens", min_value=1, step=1)
+                create_item = st.form_submit_button("Shop-Item erstellen")
+
+            if create_item:
+                if create_shop_item(item_name, item_description, item_price):
+                    st.success("Shop-Item erstellt")
                     st.rerun()
+                else:
+                    st.error("Shop-Item konnte nicht erstellt werden. Prüfe die Shop-Datenbank.")
 
-        st.write("---")
+            if shop_items:
+                st.markdown("#### Aktive Shop-Items")
+                for item in shop_items:
+                    with st.expander(f"{item['name']} · 🥚 {item['price']}"):
+                        if item.get("id"):
+                            with st.form(f"edit_shop_item_{item['id']}"):
+                                edited_name = st.text_input("Name", value=item["name"])
+                                edited_desc = st.text_area("Beschreibung", value=item["desc"])
+                                edited_price = st.number_input("Preis", min_value=1, step=1, value=int(item["price"]))
+                                save_col, delete_col = st.columns(2)
+                                with save_col:
+                                    save_item = st.form_submit_button("Änderungen speichern")
+                                with delete_col:
+                                    remove_item = st.form_submit_button("Deaktivieren")
 
-        st.subheader("User löschen")
+                            if save_item:
+                                if update_shop_item(item["id"], edited_name, edited_desc, edited_price):
+                                    st.success("Shop-Item aktualisiert.")
+                                    st.rerun()
+                                else:
+                                    st.error("Shop-Item konnte nicht aktualisiert werden.")
 
-        delete_username = st.text_input("User zum Löschen")
+                            if remove_item:
+                                if delete_shop_item(item["id"]):
+                                    st.success("Shop-Item deaktiviert.")
+                                    st.rerun()
+                                else:
+                                    st.error("Shop-Item konnte nicht deaktiviert werden.")
+                        else:
+                            st.info("Dieses Standard-Item kommt aus dem Code. Erstelle eigene Shop-Items in Supabase, um es zu verwalten.")
+            else:
+                st.info("Noch keine Shop-Items vorhanden.")
 
-        if st.button("User löschen"):
-            delete_user(delete_username)
-            st.success("User gelöscht")
-            st.rerun()
+        with event_tab:
+            st.markdown("### Events verwalten")
+
+            with st.form("create_event_form"):
+                event_title = st.text_input("Event Titel")
+                event_description = st.text_area("Beschreibung")
+                date_col, time_col = st.columns(2)
+                with date_col:
+                    selected_date = st.date_input("Datum")
+                with time_col:
+                    selected_time = st.time_input("Uhrzeit")
+                create_event_submit = st.form_submit_button("Event erstellen")
+
+            if create_event_submit:
+                event_datetime = datetime.combine(selected_date, selected_time).strftime("%d.%m.%Y %H:%M")
+                if create_event(event_title, event_description, event_datetime):
+                    get_events.clear()
+                    st.success("Event erstellt.")
+                    st.rerun()
+                else:
+                    st.error("Event konnte nicht erstellt werden.")
+
+            if events:
+                st.markdown("#### Aktive Events")
+                for event in events:
+                    signup_count = len(get_event_signups(event["id"]))
+                    col1, col2 = st.columns([4, 1])
+
+                    with col1:
+                        st.markdown(f"""
+                        <div class="event-card">
+                            <h3>{html.escape(str(event["title"]))}</h3>
+                            <p>{html.escape(str(event["description"]))}</p>
+                            <b>{html.escape(str(event.get("event_date") or ""))} · {signup_count} Anmeldung(en)</b>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with col2:
+                        if st.button("Löschen", key=f"delete_{event['id']}"):
+                            delete_event(event["id"])
+                            get_events.clear()
+                            st.success("Event gelöscht.")
+                            st.rerun()
+            else:
+                st.info("Noch keine Events vorhanden.")
+
+        with danger_tab:
+            st.markdown("### Moderation")
+            st.warning("Löschen entfernt den User und zugehörige Event-/Purchase-Daten.")
+
+            delete_username = None
+            if usernames:
+                delete_username = st.selectbox(
+                    "User zum Löschen",
+                    usernames,
+                    index=0,
+                    placeholder="Viewer auswählen...",
+                    key="delete_user_select",
+                )
+            else:
+                st.info("Es gibt aktuell keinen User zum Löschen.")
+            confirm_delete = st.text_input("Zum Bestätigen den Usernamen erneut eingeben")
+
+            if st.button("User löschen", type="primary"):
+                if delete_username and confirm_delete == delete_username:
+                    delete_user(delete_username)
+                    get_members.clear()
+                    get_leaderboard.clear()
+                    st.success("User gelöscht.")
+                    st.rerun()
+                else:
+                    st.error("Bestätigung stimmt nicht mit dem Usernamen überein.")
 
     elif password:
         st.error("Falsches Passwort")
