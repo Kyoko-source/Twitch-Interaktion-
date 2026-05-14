@@ -1891,10 +1891,10 @@ if menu == "🏠 Home":
 
     st.markdown('<div class="section-kicker">Live Community Hub</div>', unsafe_allow_html=True)
 
-    viewer_day_html = """
-        <h2>Gehirnzone ist bereit</h2>
-        <p>Noch kein Viewer des Tages vorhanden. Sammle Gehirnzellen, spiele Chicken Jump und werde sichtbar.</p>
-    """
+    viewer_day_html = (
+        "<h2>Gehirnzone ist bereit</h2>"
+        "<p>Noch kein Viewer des Tages vorhanden. Sammle Gehirnzellen, spiele Chicken Jump und werde sichtbar.</p>"
+    )
 
     if not leaderboard.empty:
         today_seed = datetime.now().strftime("%Y-%m-%d")
@@ -1902,44 +1902,43 @@ if menu == "🏠 Home":
             1,
             random_state=abs(hash(today_seed)) % (10 ** 8)
         ).iloc[0]
-        viewer_day_html = f"""
-            <div class="section-kicker">Heute im Rampenlicht</div>
-            <h2>{html.escape(str(viewer_day["Viewer"]))}</h2>
-            <p>🧠 {int(viewer_day["Gehirnzellen"])} Gehirnzellen · 🥚 {int(viewer_day["Chickens"])} Chickens</p>
-        """
+        viewer_day_html = (
+            '<div class="section-kicker">Heute im Rampenlicht</div>'
+            f'<h2>{html.escape(str(viewer_day["Viewer"]))}</h2>'
+            f'<p>🧠 {int(viewer_day["Gehirnzellen"])} Gehirnzellen · 🥚 {int(viewer_day["Chickens"])} Chickens</p>'
+        )
 
-    daily_html = """
-        <div class="section-kicker">Daily Reward</div>
-        <h3>Einloggen und Belohnung sichern</h3>
-        <p>Melde dich an, um täglich Chickens und Gehirnzellen abzuholen.</p>
-    """
+    daily_html = (
+        '<div class="section-kicker">Daily Reward</div>'
+        '<h3>Einloggen und Belohnung sichern</h3>'
+        '<p>Melde dich an, um täglich Chickens und Gehirnzellen abzuholen.</p>'
+    )
     daily_state = None
     if logged_in_username:
         daily_state = get_daily_reward_state(logged_in_username)
         reward_preview = 250 + min(int(daily_state["streak"]), 7) * 50
         claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"Heute verfügbar: +{reward_preview} Chickens"
-        daily_html = f"""
-            <div class="section-kicker">Daily Reward</div>
-            <h3>{claim_text}</h3>
-            <div class="daily-streak">🔥 {int(daily_state["streak"])} Tage Streak</div>
-            <p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>
-        """
+        daily_html = (
+            '<div class="section-kicker">Daily Reward</div>'
+            f'<h3>{claim_text}</h3>'
+            f'<div class="daily-streak">🔥 {int(daily_state["streak"])} Tage Streak</div>'
+            '<p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>'
+        )
 
-    st.markdown(textwrap.dedent(f"""
-    <div class="home-hero">
-        <div class="home-spotlight">
-            {viewer_day_html}
-            <div class="home-actions">
-                <div class="home-action-card"><strong>{total_users}</strong><span>Viewer in der Zone</span></div>
-                <div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>
-                <div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesammelt</span></div>
-            </div>
-        </div>
-        <div class="daily-card">
-            {daily_html}
-        </div>
-    </div>
-    """), unsafe_allow_html=True)
+    home_html = (
+        '<div class="home-hero">'
+        '<div class="home-spotlight">'
+        f'{viewer_day_html}'
+        '<div class="home-actions">'
+        f'<div class="home-action-card"><strong>{total_users}</strong><span>Viewer in der Zone</span></div>'
+        f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>'
+        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesammelt</span></div>'
+        '</div>'
+        '</div>'
+        f'<div class="daily-card">{daily_html}</div>'
+        '</div>'
+    )
+    st.markdown(home_html, unsafe_allow_html=True)
 
     if logged_in_username:
         if daily_state and daily_state["claimed_today"]:
