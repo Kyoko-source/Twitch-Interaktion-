@@ -10,6 +10,7 @@ import urllib.parse
 import uuid
 import html
 import textwrap
+import json
 from typing import Optional
 
 st.set_page_config(
@@ -744,6 +745,66 @@ def get_progress(points):
 # EVENTS
 # =========================
 
+SHOP_CATEGORIES = [
+    "In Stream Rewards",
+    "Idee Bestrafungsrad",
+    "Out of Stream Rewards",
+]
+
+
+def get_default_shop_category():
+    return SHOP_CATEGORIES[0]
+
+
+@st.cache_data(ttl=180)
+def get_news_posts():
+    return api_get_optional("news_posts?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=20")
+
+
+def create_news_post(title, body, image_url):
+    if not str(title).strip() or not str(body).strip():
+        return None
+
+    if image_url and not str(image_url).startswith(("http://", "https://")):
+        image_url = ""
+
+    created = api_post_optional(
+        "news_posts",
+        {
+            "title": str(title).strip()[:140],
+            "body": str(body).strip()[:2500],
+            "image_url": str(image_url).strip()[:700],
+            "active": True,
+            "published_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_news_posts.clear()
+    return created
+
+
+def delete_news_post(post_id):
+    success = api_patch(f"news_posts?id=eq.{post_id}", {"active": False})
+    get_news_posts.clear()
+    return success
+
+
+@st.cache_data(ttl=90)
+def get_punishment_wheel_entries():
+    return api_get_optional(
+        "purchases?select=id,username,reward_name,reward_category,status,created_at"
+        "&reward_category=eq.Idee%20Bestrafungsrad&status=eq.open&order=created_at.asc"
+    )
+
+
+def mark_punishment_done(purchase_id):
+    success = api_patch(
+        f"purchases?id=eq.{purchase_id}",
+        {"status": "done", "resolved_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat()}
+    )
+    get_punishment_wheel_entries.clear()
+    return success
+
 @st.cache_data(ttl=300)
 def get_events():
     return api_get("events?select=*&order=id.desc")
@@ -805,22 +866,26 @@ DEFAULT_REWARDS = [
     {
         "name": "⭐ 1 Woche VIP",
         "price": 10000,
-        "desc": "VIP für 1 Woche"
+        "desc": "VIP für 1 Woche",
+        "category": "In Stream Rewards"
     },
     {
         "name": "🎮 Steam Random Key",
         "price": 50000,
-        "desc": "Zufälliger Steam Key"
+        "desc": "Zufälliger Steam Key",
+        "category": "Out of Stream Rewards"
     },
     {
         "name": "💬 Discord Frage",
         "price": 5000,
-        "desc": "Frage im Discord stellen"
+        "desc": "Frage im Discord stellen",
+        "category": "In Stream Rewards"
     },
     {
         "name": "🖼️ Zuschauerbild neben Facecam",
         "price": 2500,
-        "desc": "Bild neben der Facecam"
+        "desc": "Bild neben der Facecam",
+        "category": "In Stream Rewards"
     }
 ]
 
@@ -837,22 +902,25 @@ def get_shop_items():
             "id": item.get("id"),
             "name": item.get("name"),
             "price": int(item.get("price") or 0),
-            "desc": item.get("description") or ""
+            "desc": item.get("description") or "",
+            "category": item.get("category") or get_default_shop_category()
         }
         for item in items
     ]
 
 
-def create_shop_item(name, description, price):
+def create_shop_item(name, description, price, category=None):
     if not name.strip() or int(price) <= 0:
         return None
 
+    category = category if category in SHOP_CATEGORIES else get_default_shop_category()
     created = api_post(
         "shop_items",
         {
             "name": name.strip()[:100],
             "description": description.strip()[:300],
             "price": int(price),
+            "category": category,
             "active": True,
             "created_at": datetime.now().isoformat()
         }
@@ -870,16 +938,18 @@ def delete_shop_item(item_id):
     return success
 
 
-def update_shop_item(item_id, name, description, price):
+def update_shop_item(item_id, name, description, price, category=None):
     if not item_id or not str(name).strip() or int(price) <= 0:
         return False
 
+    category = category if category in SHOP_CATEGORIES else get_default_shop_category()
     success = api_patch(
         f"shop_items?id=eq.{item_id}",
         {
             "name": str(name).strip()[:100],
             "description": str(description).strip()[:300],
             "price": int(price),
+            "category": category,
         }
     )
     get_shop_items.clear()
@@ -903,18 +973,31 @@ def buy_reward(username, reward):
         int(user["braincells"])
     )
 
-    api_post(
+    extended_purchase = api_post_optional(
         "purchases",
         {
             "username": username,
             "reward_name": reward["name"],
             "price": reward["price"],
+            "reward_category": reward.get("category") or get_default_shop_category(),
+            "status": "open",
             "created_at": datetime.now().isoformat()
         }
     )
+    if not extended_purchase:
+        api_post(
+            "purchases",
+            {
+                "username": username,
+                "reward_name": reward["name"],
+                "price": reward["price"],
+                "created_at": datetime.now().isoformat()
+            }
+        )
 
     get_leaderboard.clear()
     get_members.clear()
+    get_punishment_wheel_entries.clear()
     return True
 
 # =========================
@@ -1636,6 +1719,129 @@ h1::after {
     font-weight: 800;
 }
 
+.newspaper-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.newspaper-lead,
+.news-card {
+    background: #f5ecdf;
+    color: #161016;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.32);
+}
+
+.newspaper-lead {
+    border-radius: 12px;
+    padding: 28px;
+}
+
+.newspaper-label {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #161016;
+    color: #ff7ad9;
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.newspaper-lead h2 {
+    color: #161016;
+    font-family: Georgia, serif;
+    font-size: clamp(34px, 5vw, 66px);
+    line-height: 0.95;
+    margin: 0 0 16px;
+}
+
+.newspaper-lead p,
+.news-card p {
+    color: #302634;
+    font-family: Georgia, serif;
+    font-size: 18px;
+    line-height: 1.65;
+}
+
+.news-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(0,0,0,0.12);
+}
+
+.news-stack {
+    display: grid;
+    gap: 14px;
+}
+
+.news-card {
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.news-card h3 {
+    color: #161016;
+    font-family: Georgia, serif;
+    margin: 0 0 10px;
+}
+
+.shop-category-title {
+    margin: 24px 0 12px;
+    color: #ff7ad9;
+}
+
+.wheel-shell {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+}
+
+.wheel-stage {
+    position: relative;
+    width: min(420px, 100%);
+    aspect-ratio: 1;
+    margin: 0 auto;
+}
+
+.punishment-wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 10px solid rgba(255,255,255,0.14);
+    background: conic-gradient(#7b2cbf 0 60deg, #ff54a0 60deg 120deg, #c77dff 120deg 180deg, #7b2cbf 180deg 240deg, #ff54a0 240deg 300deg, #c77dff 300deg 360deg);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.38), inset 0 0 40px rgba(0,0,0,0.26);
+    transition: transform 3.2s cubic-bezier(.12,.76,.18,1);
+}
+
+.wheel-pointer {
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 34px solid #ffffff;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.25));
+}
+
+.wheel-center {
+    position: absolute;
+    inset: 38%;
+    border-radius: 50%;
+    background: #130b1d;
+    border: 4px solid rgba(255,255,255,0.18);
+}
+
 .stForm {
     margin-top: 12px;
     padding: 18px;
@@ -1654,6 +1860,8 @@ h1::after {
     .home-actions,
     .achievement-grid,
     .score-strip,
+    .newspaper-grid,
+    .wheel-shell,
     .profile-hero {
         grid-template-columns: 1fr;
     }
@@ -1776,6 +1984,7 @@ twitch_auth_url = twitch_oauth_authorize_url()
 
 MAIN_MENU_OPTIONS = [
     "🏠 Home",
+    "📰 News",
     "👥 Mitglieder",
     "👤 Profil",
     "🛒 Shop",
@@ -2219,6 +2428,51 @@ elif menu == "👤 Profil":
                     st.error("Profil konnte nicht gespeichert werden. Prüfe die URL oder die Supabase-Spalten.")
 
 # =========================
+# NEWS
+# =========================
+
+elif menu == "📰 News":
+
+    st.markdown('<div class="section-kicker">Gehirnzone Gazette</div>', unsafe_allow_html=True)
+    st.markdown("## News")
+
+    posts = get_news_posts()
+
+    if not posts:
+        st.info("Noch keine News vorhanden. Im Admin-Bereich kannst du die erste Ausgabe erstellen.")
+    else:
+        lead = posts[0]
+        lead_image = str(lead.get("image_url") or "")
+        lead_img_html = f'<img class="news-image" src="{html.escape(lead_image, quote=True)}" alt="News Bild">' if lead_image else ""
+        lead_date = str(lead.get("published_at") or lead.get("created_at") or "")[:10]
+
+        side_html = ""
+        for post in posts[1:6]:
+            image_url = str(post.get("image_url") or "")
+            image_html = f'<img class="news-image" src="{html.escape(image_url, quote=True)}" alt="News Bild">' if image_url else ""
+            side_html += (
+                '<article class="news-card">'
+                f'{image_html}'
+                f'<div class="newspaper-label">{html.escape(str(post.get("published_at") or post.get("created_at") or "")[:10])}</div>'
+                f'<h3>{html.escape(str(post.get("title") or ""))}</h3>'
+                f'<p>{html.escape(str(post.get("body") or ""))}</p>'
+                '</article>'
+            )
+
+        st.markdown(
+            '<div class="newspaper-grid">'
+            '<article class="newspaper-lead">'
+            f'{lead_img_html}'
+            f'<div class="newspaper-label">{html.escape(lead_date)} · Heute in den Nachrichten</div>'
+            f'<h2>{html.escape(str(lead.get("title") or ""))}</h2>'
+            f'<p>{html.escape(str(lead.get("body") or ""))}</p>'
+            '</article>'
+            f'<div class="news-stack">{side_html}</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+# =========================
 # MITGLIEDER
 # =========================
 
@@ -2357,30 +2611,38 @@ elif menu == "🛒 Shop":
     st.write("---")
     st.markdown("## Shop")
 
-    for reward in get_shop_items():
+    shop_items = get_shop_items()
+    for category in SHOP_CATEGORIES:
+        category_rewards = [reward for reward in shop_items if reward.get("category") == category]
+        if not category_rewards:
+            continue
 
-        col1, col2 = st.columns([4, 1])
+        st.markdown(f'<h3 class="shop-category-title">{html.escape(category)}</h3>', unsafe_allow_html=True)
+        for reward in category_rewards:
 
-        with col1:
-            st.markdown(f"""
-                <div class="reward-card">
-                    <h3>{reward["name"]}</h3>
-                    <p>{reward["desc"]}</p>
-                    <b>🥚 {reward["price"]} Chickens</b>
-                </div>
-                """, unsafe_allow_html=True)
+            col1, col2 = st.columns([4, 1])
 
-        with col2:
-            st.write("")
+            with col1:
+                st.markdown(f"""
+                    <div class="reward-card">
+                        <div class="section-kicker">{html.escape(category)}</div>
+                        <h3>{html.escape(str(reward["name"]))}</h3>
+                        <p>{html.escape(str(reward["desc"]))}</p>
+                        <b>🥚 {reward["price"]} Chickens</b>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            if st.button("Kaufen", key=reward["name"]):
-                success = buy_reward(effective_username, reward)
+            with col2:
+                st.write("")
 
-                if success:
-                    st.success("Gekauft!")
-                    st.rerun()
-                else:
-                    st.error("Nicht genug Chickens")
+                if st.button("Kaufen", key=f"buy_{category}_{reward['name']}"):
+                    success = buy_reward(effective_username, reward)
+
+                    if success:
+                        st.success("Gekauft!")
+                        st.rerun()
+                    else:
+                        st.error("Nicht genug Chickens")
 
 # =========================
 # LEADERBOARD
@@ -2531,6 +2793,67 @@ elif menu.endswith("Minispiele"):
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("## Bestrafungsrad")
+    wheel_password = st.text_input("Admin Passwort für Glücksrad", type="password", key="wheel_admin_password")
+    if wheel_password == "einsmarello":
+        wheel_entries = get_punishment_wheel_entries()
+        if not wheel_entries:
+            st.info("Noch keine offenen Käufe aus der Kategorie 'Idee Bestrafungsrad'.")
+        else:
+            labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
+            wheel_payload = json.dumps(labels, ensure_ascii=False)
+            components.html(f"""
+            <div class="wheel-shell">
+                <div class="wheel-stage">
+                    <div class="wheel-pointer"></div>
+                    <div id="punishmentWheel" class="punishment-wheel"></div>
+                    <div class="wheel-center"></div>
+                </div>
+                <div style="color:white;font-family:Inter,Segoe UI,Arial,sans-serif;">
+                    <h2 id="wheelResult">Bereit zum Drehen</h2>
+                    <p>Das Rad nutzt offene Shop-Käufe aus <b>Idee Bestrafungsrad</b>.</p>
+                    <button id="spinWheel" style="padding:14px 18px;border-radius:12px;border:0;font-weight:900;background:linear-gradient(135deg,#c77dff,#ff54a0);color:#120817;cursor:pointer;">Glücksrad drehen</button>
+                    <ol id="wheelItems"></ol>
+                </div>
+            </div>
+            <style>
+            .wheel-shell {{ display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1fr); gap:18px; align-items:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px; }}
+            .wheel-stage {{ position:relative; width:min(360px,100%); aspect-ratio:1; margin:auto; }}
+            .punishment-wheel {{ width:100%; height:100%; border-radius:50%; border:10px solid rgba(255,255,255,.14); background:conic-gradient(#7b2cbf 0 60deg,#ff54a0 60deg 120deg,#c77dff 120deg 180deg,#7b2cbf 180deg 240deg,#ff54a0 240deg 300deg,#c77dff 300deg 360deg); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 0 34px rgba(0,0,0,.28); transition:transform 3.2s cubic-bezier(.12,.76,.18,1); }}
+            .wheel-pointer {{ position:absolute; left:50%; top:-3px; width:0; height:0; transform:translateX(-50%); border-left:18px solid transparent; border-right:18px solid transparent; border-top:34px solid #fff; z-index:3; }}
+            .wheel-center {{ position:absolute; inset:39%; border-radius:50%; background:#120817; border:4px solid rgba(255,255,255,.2); }}
+            #wheelItems li {{ margin:7px 0; color:#f0c9ff; }}
+            </style>
+            <script>
+            const items = {wheel_payload};
+            const wheel = document.getElementById("punishmentWheel");
+            const result = document.getElementById("wheelResult");
+            const list = document.getElementById("wheelItems");
+            list.innerHTML = items.map((item, index) => `<li>${{index + 1}}. ${{item}}</li>`).join("");
+            let rotation = 0;
+            document.getElementById("spinWheel").addEventListener("click", () => {{
+                const selected = Math.floor(Math.random() * items.length);
+                rotation += 1440 + selected * (360 / items.length) + Math.random() * 60;
+                wheel.style.transform = `rotate(${{rotation}}deg)`;
+                setTimeout(() => {{ result.textContent = items[selected]; }}, 3300);
+            }});
+            </script>
+            """, height=500)
+
+            selected_done = st.selectbox(
+                "Gezogene/erledigte Bestrafung abhaken",
+                wheel_entries,
+                format_func=lambda entry: f"{entry.get('reward_name')} von {entry.get('username')}",
+            )
+            if st.button("Als erledigt markieren", key="mark_punishment_done"):
+                if mark_punishment_done(selected_done["id"]):
+                    st.success("Bestrafung erledigt und aus dem Rad entfernt.")
+                    st.rerun()
+                else:
+                    st.error("Konnte den Eintrag nicht aktualisieren. Prüfe die Purchases-Migration.")
+    elif wheel_password:
+        st.error("Falsches Admin-Passwort für das Glücksrad.")
 
     components.html("""
     <html>
@@ -3354,6 +3677,7 @@ elif menu == "🔐 Admin":
         usernames = [str(member.get("username")) for member in members if member.get("username")]
         events = get_events()
         shop_items = get_shop_items()
+        news_posts = get_news_posts()
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
 
         st.markdown("""
@@ -3374,9 +3698,10 @@ elif menu == "🔐 Admin":
         </div>
         """, unsafe_allow_html=True)
 
-        overview_tab, viewer_tab, shop_tab, event_tab, danger_tab = st.tabs([
+        overview_tab, viewer_tab, news_tab, shop_tab, event_tab, danger_tab = st.tabs([
             "Dashboard",
             "Viewer",
+            "News",
             "Shop",
             "Events",
             "Moderation",
@@ -3466,17 +3791,52 @@ elif menu == "🔐 Admin":
                         else:
                             st.error("Bitte ein Passwort eingeben.")
 
+        with news_tab:
+            st.markdown("### News verwalten")
+
+            with st.form("create_news_form"):
+                news_title = st.text_input("Headline")
+                news_body = st.text_area("Nachrichtentext", height=180)
+                news_image = st.text_input("Bild-URL", placeholder="https://...")
+                create_news_submit = st.form_submit_button("News veröffentlichen")
+
+            if create_news_submit:
+                if create_news_post(news_title, news_body, news_image):
+                    st.success("News veröffentlicht.")
+                    st.rerun()
+                else:
+                    st.error("News konnte nicht erstellt werden. Prüfe die News-Tabelle und die Eingaben.")
+
+            if news_posts:
+                st.markdown("#### Aktive News")
+                for post in news_posts:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(
+                            f'<div class="news-card"><h3>{html.escape(str(post.get("title") or ""))}</h3>'
+                            f'<p>{html.escape(str(post.get("body") or ""))}</p></div>',
+                            unsafe_allow_html=True
+                        )
+                    with col2:
+                        if st.button("Entfernen", key=f"delete_news_{post['id']}"):
+                            if delete_news_post(post["id"]):
+                                st.success("News entfernt.")
+                                st.rerun()
+                            else:
+                                st.error("News konnte nicht entfernt werden.")
+
         with shop_tab:
             st.markdown("### Shop verwalten")
 
             with st.form("create_shop_item_form"):
                 item_name = st.text_input("Name des Shop-Items")
                 item_description = st.text_area("Beschreibung des Shop-Items")
+                item_category = st.selectbox("Kategorie", SHOP_CATEGORIES)
                 item_price = st.number_input("Preis in Chickens", min_value=1, step=1)
                 create_item = st.form_submit_button("Shop-Item erstellen")
 
             if create_item:
-                if create_shop_item(item_name, item_description, item_price):
+                if create_shop_item(item_name, item_description, item_price, item_category):
                     st.success("Shop-Item erstellt")
                     st.rerun()
                 else:
@@ -3490,6 +3850,11 @@ elif menu == "🔐 Admin":
                             with st.form(f"edit_shop_item_{item['id']}"):
                                 edited_name = st.text_input("Name", value=item["name"])
                                 edited_desc = st.text_area("Beschreibung", value=item["desc"])
+                                edited_category = st.selectbox(
+                                    "Kategorie",
+                                    SHOP_CATEGORIES,
+                                    index=SHOP_CATEGORIES.index(item.get("category")) if item.get("category") in SHOP_CATEGORIES else 0,
+                                )
                                 edited_price = st.number_input("Preis", min_value=1, step=1, value=int(item["price"]))
                                 save_col, delete_col = st.columns(2)
                                 with save_col:
@@ -3498,7 +3863,7 @@ elif menu == "🔐 Admin":
                                     remove_item = st.form_submit_button("Deaktivieren")
 
                             if save_item:
-                                if update_shop_item(item["id"], edited_name, edited_desc, edited_price):
+                                if update_shop_item(item["id"], edited_name, edited_desc, edited_price, edited_category):
                                     st.success("Shop-Item aktualisiert.")
                                     st.rerun()
                                 else:
