@@ -800,10 +800,10 @@ st.markdown("""
 
 .stApp {
     background:
-    radial-gradient(circle at 20% 20%, rgba(157,78,221,0.25), transparent 25%),
-    radial-gradient(circle at 80% 30%, rgba(0,245,255,0.18), transparent 30%),
-    radial-gradient(circle at 50% 80%, rgba(199,125,255,0.18), transparent 35%),
-    linear-gradient(180deg, #09090f 0%, #0f0816 100%);
+    radial-gradient(circle at 12% 16%, rgba(0,212,255,0.20), transparent 28%),
+    radial-gradient(circle at 86% 8%, rgba(255,198,41,0.13), transparent 24%),
+    radial-gradient(circle at 72% 78%, rgba(255,84,160,0.16), transparent 32%),
+    linear-gradient(145deg, #07080d 0%, #121018 48%, #081619 100%);
     color: white;
     animation: glowmove 12s infinite alternate;
 }
@@ -819,25 +819,39 @@ st.markdown("""
 }
 
 .block-container {
-    max-width: 1250px;
-    padding-top: 2rem;
+    max-width: 1320px;
+    padding-top: 1.35rem;
+    padding-bottom: 3rem;
 }
 
 h1 {
-    text-align: center;
-    font-size: 64px !important;
-    color: #c77dff;
-    text-shadow: 0 0 35px rgba(199,125,255,0.7);
+    text-align: left;
+    font-size: clamp(46px, 7vw, 88px) !important;
+    line-height: 0.9;
+    color: #ffffff;
+    margin: 12px 0 20px !important;
+    text-shadow: 0 0 34px rgba(0,212,255,0.22);
+}
+
+h1::after {
+    content: "Community Control, Rewards und Rankings";
+    display: block;
+    margin-top: 14px;
+    color: #a9f3ff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-shadow: none;
 }
 
 .topbar {
-    background: rgba(20,20,30,0.75);
-    border-radius: 20px;
-    padding: 12px 18px;
-    margin-bottom: 25px;
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(10px);
-    min-height: 52px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(255,84,160,0.08));
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px);
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -946,12 +960,13 @@ h1 {
 .reward-card,
 .event-card,
 .profile-card {
-    background: rgba(255,255,255,0.045);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.038));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
     padding: 24px;
     transition: all 0.25s ease;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 55px rgba(0,0,0,0.22);
 }
 
 .card:hover,
@@ -960,21 +975,23 @@ h1 {
 .event-card:hover,
 .profile-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 0 30px rgba(199,125,255,0.35);
-    border-color: #c77dff;
+    box-shadow: 0 22px 65px rgba(0,212,255,0.18);
+    border-color: rgba(0,212,255,0.45);
 }
 
 .metric-card {
-    text-align: center;
+    text-align: left;
+    min-height: 128px;
 }
 
 .metric-number {
-    font-size: 36px;
-    font-weight: 900;
+    font-size: 42px;
+    font-weight: 950;
 }
 
 .metric-label {
-    color: #aaa;
+    color: #b8dbe1;
+    font-weight: 800;
 }
 
 .podium-grid,
@@ -1020,10 +1037,10 @@ h1 {
 }
 
 .section-kicker {
-    color: #00d4ff;
+    color: #ffc629;
     font-size: 13px;
     font-weight: 900;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
@@ -1043,11 +1060,13 @@ h1 {
 
 .profile-hero,
 .member-card {
-    background: rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 18px;
+    background:
+        linear-gradient(150deg, rgba(0,212,255,0.10), rgba(255,84,160,0.07)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 14px;
     padding: 22px;
-    box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.25);
 }
 
 .profile-hero {
@@ -1059,11 +1078,11 @@ h1 {
 }
 
 .profile-avatar {
-    border-radius: 18px;
+    border-radius: 22px;
     object-fit: cover;
-    border: 2px solid rgba(199,125,255,0.45);
-    box-shadow: 0 0 25px rgba(199,125,255,0.22);
-    background: linear-gradient(135deg, #9d4edd, #00d4ff);
+    border: 2px solid rgba(0,212,255,0.55);
+    box-shadow: 0 0 30px rgba(0,212,255,0.22);
+    background: linear-gradient(135deg, #00d4ff, #ffc629, #ff54a0);
 }
 
 .profile-initials {
@@ -1101,7 +1120,41 @@ h1 {
 }
 
 .member-card {
-    min-height: 275px;
+    min-height: 330px;
+    position: relative;
+    overflow: hidden;
+}
+
+.member-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00d4ff, #ffc629, #ff54a0);
+}
+
+.member-rank-pill {
+    float: right;
+    padding: 6px 10px;
+    border-radius: 999px;
+    color: #061015;
+    background: #ffc629;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.member-mini-progress {
+    height: 9px;
+    margin-top: 16px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.10);
+}
+
+.member-mini-progress div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00d4ff, #ff54a0);
 }
 
 .member-card .profile-avatar {
@@ -1126,13 +1179,13 @@ h1 {
     position: relative;
     overflow: hidden;
     min-height: 360px;
-    border-radius: 24px;
+    border-radius: 18px;
     padding: 30px;
     background:
-        linear-gradient(135deg, rgba(0,212,255,0.18), rgba(199,125,255,0.18)),
-        rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 24px 70px rgba(0,0,0,0.34);
+        linear-gradient(135deg, rgba(0,212,255,0.24), rgba(255,198,41,0.11), rgba(255,84,160,0.16)),
+        rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.38);
 }
 
 .profile-showcase::before {
@@ -1141,7 +1194,7 @@ h1 {
     inset: -45% -20% auto auto;
     width: 420px;
     height: 420px;
-    background: radial-gradient(circle, rgba(0,212,255,0.26), transparent 62%);
+    background: radial-gradient(circle, rgba(255,198,41,0.22), transparent 62%);
     pointer-events: none;
 }
 
@@ -1162,8 +1215,8 @@ h1 {
     margin-bottom: 14px;
     padding: 8px 12px;
     border-radius: 999px;
-    color: #051018;
-    background: linear-gradient(135deg, #00d4ff, #c77dff);
+    color: #061015;
+    background: linear-gradient(135deg, #00d4ff, #ffc629);
     font-size: 13px;
     font-weight: 950;
 }
@@ -1173,6 +1226,7 @@ h1 {
     line-height: 0.95;
     font-weight: 950;
     margin-bottom: 12px;
+    text-shadow: 0 0 30px rgba(0,212,255,0.18);
 }
 
 .profile-bio-large {
@@ -1192,18 +1246,18 @@ h1 {
 .profile-chip {
     padding: 9px 12px;
     border-radius: 999px;
-    color: #e9ddff;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
+    color: #effcff;
+    background: rgba(0,212,255,0.09);
+    border: 1px solid rgba(0,212,255,0.18);
     font-weight: 850;
 }
 
 .profile-side-panel,
 .admin-panel {
-    border-radius: 18px;
+    border-radius: 14px;
     padding: 22px;
-    background: rgba(8,10,18,0.72);
-    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(8,14,18,0.78);
+    border: 1px solid rgba(255,255,255,0.13);
     box-shadow: 0 18px 50px rgba(0,0,0,0.26);
 }
 
@@ -1218,7 +1272,7 @@ h1 {
 .profile-stat,
 .admin-stat {
     min-height: 92px;
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 16px;
     background: rgba(255,255,255,0.065);
     border: 1px solid rgba(255,255,255,0.10);
@@ -1253,7 +1307,7 @@ h1 {
 .profile-progress-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #00d4ff, #c77dff);
+    background: linear-gradient(90deg, #00d4ff, #ffc629, #ff54a0);
     box-shadow: 0 0 24px rgba(0,212,255,0.35);
 }
 
@@ -1343,17 +1397,18 @@ h1 {
 }
 
 .stButton > button {
-    background: linear-gradient(135deg, #9d4edd, #c77dff);
-    border: none;
-    border-radius: 14px;
-    color: black;
+    background: linear-gradient(135deg, #00d4ff, #ffc629);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    color: #061015;
     font-weight: 900;
     padding: 0.6rem 1rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
 }
 
 .stButton > button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 25px rgba(199,125,255,0.6);
+    box-shadow: 0 18px 42px rgba(0,212,255,0.22);
 }
 
 .stRadio {
@@ -1434,6 +1489,7 @@ twitch_auth_url = twitch_oauth_authorize_url()
 MAIN_MENU_OPTIONS = [
     "🏠 Home",
     "👥 Mitglieder",
+    "👤 Profil",
     "🛒 Shop",
     "🏆 Rangliste",
     "⚡ Events",
@@ -1824,22 +1880,24 @@ elif menu == "👥 Mitglieder":
             ]
 
         members_html = '<div class="member-grid">'
-        for member in members:
+        for index, member in enumerate(members, start=1):
             username = str(member.get("username") or "Unbekannt")
             braincells = int(member.get("braincells") or 0)
             chickens = int(member.get("chickens") or 0)
-            rank_name, _, _ = get_progress(braincells)
+            rank_name, member_progress, _ = get_progress(braincells)
             level = get_profile_level(braincells)
             bio = member.get("bio") or "Noch keine Bio."
             favorite_game = member.get("favorite_game") or "Nicht gesetzt"
-            avatar_markup = get_avatar_markup(username, member.get("avatar_url") or "", 88)
+            avatar_markup = get_avatar_markup(username, member.get("avatar_url") or "", 94)
 
             members_html += (
                 '<div class="member-card">'
+                f'<div class="member-rank-pill">#{index}</div>'
                 f'{avatar_markup}'
                 f'<div class="profile-name">{html.escape(username)}</div>'
                 f'<div class="profile-meta">Level {level} · {rank_name}</div>'
                 f'<div class="profile-meta">🧠 {braincells} · 🥚 {chickens}</div>'
+                f'<div class="member-mini-progress"><div style="width:{member_progress}%;"></div></div>'
                 f'<div class="member-favorite">Lieblingsspiel: {html.escape(str(favorite_game))}</div>'
                 f'<div class="profile-bio">{html.escape(str(bio))}</div>'
                 '</div>'
