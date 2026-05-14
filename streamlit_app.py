@@ -9,6 +9,7 @@ import re
 import urllib.parse
 import uuid
 import html
+import textwrap
 from typing import Optional
 
 st.set_page_config(
@@ -1924,7 +1925,7 @@ if menu == "🏠 Home":
             <p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>
         """
 
-    st.markdown(f"""
+    st.markdown(textwrap.dedent(f"""
     <div class="home-hero">
         <div class="home-spotlight">
             {viewer_day_html}
@@ -1938,7 +1939,7 @@ if menu == "🏠 Home":
             {daily_html}
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     if logged_in_username:
         if daily_state and daily_state["claimed_today"]:
@@ -1979,25 +1980,25 @@ if menu == "🏠 Home":
 
     hub_left, hub_right = st.columns(2)
     with hub_left:
-        st.markdown(f"""
+        st.markdown(textwrap.dedent(f"""
         <div class="activity-card">
             <div class="section-kicker">Nächster Schritt</div>
             <h3>Profil aufleveln</h3>
             <p>Fülle Bio, Lieblingsspiel und Avatar aus, sammle Achievements und mach deine Viewerkarte stärker.</p>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
         if st.button("Profil öffnen", key="home_profile_cta", use_container_width=True):
             st.session_state["app_menu"] = "👤 Profil"
             st.rerun()
 
     with hub_right:
-        st.markdown(f"""
+        st.markdown(textwrap.dedent(f"""
         <div class="activity-card">
             <div class="section-kicker">Arcade</div>
             <h3>Highscore jagen</h3>
             <p>Chicken Jump Scores erscheinen jetzt direkt im Hauptmenü und zählen für Profil-Achievements.</p>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
         if st.button("Minispiele öffnen", key="home_games_cta", use_container_width=True):
             st.session_state["app_menu"] = "🎮 Minispiele"
             st.rerun()
