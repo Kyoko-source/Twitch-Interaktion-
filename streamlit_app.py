@@ -1472,6 +1472,145 @@ h1::after {
     font-weight: 800;
 }
 
+.leaderboard-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+    gap: 16px;
+    align-items: stretch;
+    margin: 12px 0 18px;
+}
+
+.leaderboard-panel,
+.leaderboard-focus {
+    border-radius: 18px;
+    padding: 24px;
+    background:
+        linear-gradient(135deg, rgba(199,125,255,0.16), rgba(255,84,160,0.10)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+}
+
+.leaderboard-panel h2,
+.leaderboard-focus h3 {
+    margin: 6px 0 8px;
+}
+
+.leaderboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.leaderboard-stat {
+    border-radius: 12px;
+    padding: 14px;
+    background: rgba(8,14,18,0.56);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
+.leaderboard-stat strong {
+    display: block;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.leaderboard-stat span {
+    display: block;
+    margin-top: 7px;
+    color: #d8ccff;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.podium-card.gold {
+    transform: translateY(-10px);
+}
+
+.podium-card.silver,
+.podium-card.bronze {
+    margin-top: 22px;
+}
+
+.rank-list {
+    display: grid;
+    gap: 10px;
+    margin: 14px 0 26px;
+}
+
+.rank-row {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) minmax(180px, 0.38fr);
+    gap: 14px;
+    align-items: center;
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.052);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 16px 42px rgba(0,0,0,0.20);
+}
+
+.rank-row.top {
+    border-color: rgba(255,215,0,0.28);
+    background:
+        linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,84,160,0.08)),
+        rgba(255,255,255,0.055);
+}
+
+.rank-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #061015;
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
+    font-size: 20px;
+    font-weight: 950;
+}
+
+.rank-main strong {
+    display: block;
+    color: #ffffff;
+    font-size: 19px;
+    word-break: break-word;
+}
+
+.rank-main span,
+.rank-side span {
+    display: block;
+    margin-top: 5px;
+    color: #cfc6e8;
+    font-weight: 780;
+}
+
+.rank-progress {
+    height: 9px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.10);
+    margin-top: 10px;
+}
+
+.rank-progress div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #c77dff, #ff54a0, #00f5ff);
+}
+
+.rank-side {
+    text-align: right;
+}
+
+.rank-side strong {
+    display: block;
+    color: #ffffff;
+    font-size: 18px;
+}
+
 .section-kicker {
     color: #ff7ad9;
     font-size: 13px;
@@ -2392,8 +2531,15 @@ h1::after {
     .shop-dashboard,
     .shop-status-row,
     .admin-control-grid,
+    .leaderboard-hero,
+    .leaderboard-stats,
+    .rank-row,
     .profile-hero {
         grid-template-columns: 1fr;
+    }
+
+    .rank-side {
+        text-align: left;
     }
 
     .profile-stat-grid,
@@ -3457,6 +3603,28 @@ elif menu == "🏆 Rangliste":
         st.info("Keine Daten vorhanden.")
 
     else:
+        leader = leaderboard.iloc[0]
+        average_braincells = int(leaderboard["Gehirnzellen"].mean()) if not leaderboard.empty else 0
+        st.markdown(f"""
+        <div class="leaderboard-hero">
+            <div class="leaderboard-panel">
+                <div class="section-kicker">Leaderboard Arena</div>
+                <h2>Top Viewer der Gehirnzone</h2>
+                <div class="admin-muted">Vergleiche Gehirnzellen, Chickens und Rangfortschritt der Community.</div>
+                <div class="leaderboard-stats">
+                    <div class="leaderboard-stat"><strong>{len(leaderboard)}</strong><span>Viewer</span></div>
+                    <div class="leaderboard-stat"><strong>{total_braincells}</strong><span>Gehirnzellen gesamt</span></div>
+                    <div class="leaderboard-stat"><strong>{average_braincells}</strong><span>Ø Gehirnzellen</span></div>
+                </div>
+            </div>
+            <div class="leaderboard-focus">
+                <div class="section-kicker">Aktuelle Nummer 1</div>
+                <h3>{html.escape(str(leader["Viewer"]))}</h3>
+                <div class="podium-score">🧠 {int(leader["Gehirnzellen"])} · 🥚 {int(leader["Chickens"])}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         top_viewers = leaderboard.head(3).to_dict("records")
         podium_slots = [
             ("2", "silver", top_viewers[1] if len(top_viewers) > 1 else None),
@@ -3487,7 +3655,8 @@ elif menu == "🏆 Rangliste":
         podium_html = f'<div class="podium-grid">{"".join(podium_cards)}</div>'
         st.markdown(podium_html, unsafe_allow_html=True)
 
-        ranked = leaderboard.copy()
+        ranked = leaderboard.copy().reset_index(drop=True)
+        ranked["Rangplatz"] = ranked.index + 1
 
         if search:
             ranked = ranked[ranked["Viewer"].str.contains(search, case=False, na=False)]
@@ -3496,11 +3665,35 @@ elif menu == "🏆 Rangliste":
             lambda x: get_rank(int(x))[0]
         )
 
-        st.dataframe(
-            ranked,
-            use_container_width=True,
-            hide_index=True
-        )
+        if ranked.empty:
+            st.info("Keine Viewer für diese Suche gefunden.")
+        else:
+            max_braincells = max(1, int(leaderboard["Gehirnzellen"].max()))
+            rank_rows = ""
+            for index, viewer in ranked.reset_index(drop=True).iterrows():
+                braincells = int(viewer["Gehirnzellen"])
+                chickens = int(viewer["Chickens"])
+                rank_name, rank_progress, _ = get_progress(braincells)
+                total_progress = min(100, int((braincells / max_braincells) * 100))
+                rank_place = int(viewer["Rangplatz"])
+                row_class = "top" if rank_place <= 3 else ""
+                rank_rows += (
+                    f'<div class="rank-row {row_class}">'
+                    f'<div class="rank-badge">#{rank_place}</div>'
+                    '<div class="rank-main">'
+                    f'<strong>{html.escape(str(viewer["Viewer"]))}</strong>'
+                    f'<span>{html.escape(rank_name)} · Rangfortschritt {rank_progress}%</span>'
+                    f'<div class="rank-progress"><div style="width:{total_progress}%;"></div></div>'
+                    '</div>'
+                    '<div class="rank-side">'
+                    f'<strong>🧠 {braincells}</strong>'
+                    f'<span>🥚 {chickens} Chickens</span>'
+                    '</div>'
+                    '</div>'
+                )
+
+            st.markdown("### Ranking")
+            st.markdown(f'<div class="rank-list">{rank_rows}</div>', unsafe_allow_html=True)
 
 # =========================
 # EVENTS
