@@ -2914,18 +2914,114 @@ elif menu == "🛒 Shop":
         selected_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(selected_item_name)]
         history = get_market_history(selected_item["key"], days=30)
         chart_df = pd.DataFrame(history)
-        chart = (
-            alt.Chart(chart_df)
-            .mark_line(point=True, color="#ff54a0")
-            .encode(
-                x=alt.X("Datum:T", title="Datum", scale=alt.Scale(nice=False, zero=False)),
-                y=alt.Y("Preis:Q", title="Verkaufspreis", scale=alt.Scale(zero=False)),
-                tooltip=["Datum:T", "Preis:Q"],
-            )
-            .properties(height=320)
-            .interactive(False)
+        chart_df["Datum"] = pd.to_datetime(chart_df["Datum"])
+        min_price = int(chart_df["Preis"].min())
+        max_price = int(chart_df["Preis"].max())
+        price_padding = max(1, int(math.ceil((max_price - min_price) * 0.1)))
+        chart_min_price = max(0, min_price - price_padding)
+        chart_max_price = max_price + price_padding
+        chart_range = max(1, chart_max_price - chart_min_price)
+        chart_width = 1120
+        chart_height = 320
+        plot_left = 58
+        plot_right = 24
+        plot_top = 16
+        plot_bottom = 46
+        plot_width = chart_width - plot_left - plot_right
+        plot_height = chart_height - plot_top - plot_bottom
+
+        def chart_x(index):
+            return plot_left + (index * plot_width / max(1, len(chart_df) - 1))
+
+        def chart_y(price):
+            return plot_top + ((chart_max_price - price) * plot_height / chart_range)
+
+        point_coords = [
+            (chart_x(index), chart_y(int(row["Preis"])), row)
+            for index, row in chart_df.iterrows()
+        ]
+        line_points = " ".join(f"{x:.1f},{y:.1f}" for x, y, _ in point_coords)
+        point_nodes = "\n".join(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.2"><title>{html.escape(row["Datum"].strftime("%d.%m.%Y"))}: {int(row["Preis"])}</title></circle>'
+            for x, y, row in point_coords
         )
-        st.altair_chart(chart, use_container_width=True)
+        y_tick_values = [
+            chart_min_price + round(index * chart_range / 4)
+            for index in range(5)
+        ]
+        y_grid_nodes = "\n".join(
+            f'<line x1="{plot_left}" y1="{chart_y(value):.1f}" x2="{chart_width - plot_right}" y2="{chart_y(value):.1f}" />'
+            f'<text x="{plot_left - 16}" y="{chart_y(value) + 4:.1f}" text-anchor="end">{value}</text>'
+            for value in y_tick_values
+        )
+        x_label_indexes = sorted(set(list(range(0, len(chart_df), 4)) + [len(chart_df) - 1]))
+        x_label_nodes = "\n".join(
+            f'<text x="{chart_x(index):.1f}" y="{chart_height - 18}" text-anchor="middle">{html.escape(chart_df.iloc[index]["Datum"].strftime("%d.%m."))}</text>'
+            for index in x_label_indexes
+        )
+        chart_svg = textwrap.dedent(f"""
+            <div class="static-market-chart">
+                <svg viewBox="0 0 {chart_width} {chart_height}" role="img" aria-label="Kursverlauf">
+                    <rect x="0" y="0" width="{chart_width}" height="{chart_height}" rx="0" />
+                    <g class="grid">{y_grid_nodes}</g>
+                    <g class="axis">
+                        <line x1="{plot_left}" y1="{plot_top}" x2="{plot_left}" y2="{chart_height - plot_bottom}" />
+                        <line x1="{plot_left}" y1="{chart_height - plot_bottom}" x2="{chart_width - plot_right}" y2="{chart_height - plot_bottom}" />
+                        {x_label_nodes}
+                        <text x="{chart_width / 2:.1f}" y="{chart_height - 2}" text-anchor="middle">Datum</text>
+                        <text x="12" y="{chart_height / 2:.1f}" text-anchor="middle" transform="rotate(-90 12 {chart_height / 2:.1f})">Verkaufspreis</text>
+                    </g>
+                    <polyline class="price-line" points="{line_points}" />
+                    <g class="points">{point_nodes}</g>
+                </svg>
+            </div>
+        """)
+        st.markdown(
+            chart_svg
+            + """
+            <style>
+            .static-market-chart {
+                width: 100%;
+                overflow: hidden;
+                background: #0f1118;
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            .static-market-chart svg {
+                display: block;
+                width: 100%;
+                height: 320px;
+            }
+            .static-market-chart rect {
+                fill: #0f1118;
+            }
+            .static-market-chart .grid line {
+                stroke: rgba(255,255,255,0.16);
+                stroke-width: 1;
+            }
+            .static-market-chart .grid text,
+            .static-market-chart .axis text {
+                fill: #ffffff;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .static-market-chart .axis line {
+                stroke: rgba(255,255,255,0.20);
+                stroke-width: 1;
+            }
+            .static-market-chart .price-line {
+                fill: none;
+                stroke: #ff54a0;
+                stroke-width: 2.2;
+            }
+            .static-market-chart .points circle {
+                fill: #7bc4ff;
+                stroke: #0f1118;
+                stroke-width: 1;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with st.expander("Trading Shop", expanded=False):
         st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
