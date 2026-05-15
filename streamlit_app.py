@@ -13,6 +13,8 @@ import html
 import textwrap
 import json
 import math
+import base64
+from pathlib import Path
 from typing import Optional
 
 st.set_page_config(
@@ -3606,6 +3608,14 @@ elif menu.endswith("Minispiele"):
     </div>
     """, unsafe_allow_html=True)
 
+    chicken_theme_data_uri = ""
+    chicken_theme_path = Path(__file__).parent / "assets" / "chicken_theme.mp3"
+    if chicken_theme_path.exists():
+        chicken_theme_data_uri = (
+            "data:audio/mpeg;base64,"
+            + base64.b64encode(chicken_theme_path.read_bytes()).decode("ascii")
+        )
+
     components.html("""
     <html>
     <head>
@@ -3851,6 +3861,7 @@ elif menu.endswith("Minispiele"):
     </head>
     <body>
     <div class="shell">
+        <audio id="bgMusic" src="__CHICKEN_THEME_SRC__" loop preload="auto"></audio>
         <div class="game-panel">
             <canvas id="game" width="1000" height="500"></canvas>
             <div id="overlay" class="overlay">
@@ -3907,6 +3918,7 @@ elif menu.endswith("Minispiele"):
     const scoreValue = document.getElementById("scoreValue");
     const speedValue = document.getElementById("speedValue");
     const levelValue = document.getElementById("levelValue");
+    const bgMusic = document.getElementById("bgMusic");
     const SUPABASE_URL = "__SUPABASE_URL__";
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_scores";
@@ -4027,6 +4039,12 @@ elif menu.endswith("Minispiele"):
         if (!soundEnabled || !musicEnabled) return;
         ensureAudio();
         stopMusic();
+        if (bgMusic && bgMusic.getAttribute("src")) {
+            bgMusic.volume = 0.34;
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(() => {});
+            return;
+        }
         musicStep = 0;
         musicTick();
         musicTimer = setInterval(musicTick, 360);
@@ -4035,11 +4053,15 @@ elif menu.endswith("Minispiele"):
     function stopMusic() {
         if (musicTimer) clearInterval(musicTimer);
         musicTimer = null;
+        if (bgMusic) {
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+        }
     }
 
     function updateSoundButton() {
         soundBtn.querySelector("span").textContent = soundEnabled ? "An" : "Aus";
-        musicBtn.querySelector("span").textContent = musicEnabled ? "Cozy Loop" : "Aus";
+        musicBtn.querySelector("span").textContent = musicEnabled ? "MP3 Loop" : "Aus";
         sfxBtn.querySelector("span").textContent = sfxEnabled ? "Plings" : "Aus";
         soundBtn.classList.toggle("off", !soundEnabled);
         musicBtn.classList.toggle("off", !musicEnabled || !soundEnabled);
@@ -4512,7 +4534,9 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """.replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_KEY), height=860, scrolling=True)
+    """.replace("__SUPABASE_URL__", SUPABASE_URL)
+       .replace("__SUPABASE_KEY__", SUPABASE_KEY)
+       .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
 
     st.markdown("## Bestrafungsrad")
     wheel_entries = get_punishment_wheel_entries()
