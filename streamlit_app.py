@@ -3939,6 +3939,8 @@ elif menu.endswith("Minispiele"):
     let frame = 0;
     let savedCurrentScore = false;
     let currentScoreFilter = "all";
+    let jumpHeld = false;
+    let jumpHoldFrames = 0;
     let audioCtx = null;
     let musicTimer = null;
     let musicStep = 0;
@@ -4090,8 +4092,9 @@ elif menu.endswith("Minispiele"):
         if (state === "gameover") return;
         if (!chicken.jumping) {
             playJumpSound();
-            chicken.vy = -16.5;
+            chicken.vy = -12.8;
             chicken.jumping = true;
+            jumpHoldFrames = 0;
             for (let i = 0; i < 10; i++) {
                 particles.push({
                     x: chicken.x + 12 + Math.random() * 18,
@@ -4131,7 +4134,16 @@ elif menu.endswith("Minispiele"):
         playButtonSound();
         updateSoundButton();
     });
-    canvas.addEventListener("click", jump);
+    canvas.addEventListener("pointerdown", function() {
+        jumpHeld = true;
+        jump();
+    });
+    canvas.addEventListener("pointerup", function() {
+        jumpHeld = false;
+    });
+    canvas.addEventListener("pointerleave", function() {
+        jumpHeld = false;
+    });
     document.querySelectorAll("[data-score-filter]").forEach(button => {
         button.addEventListener("click", async function() {
             currentScoreFilter = this.dataset.scoreFilter;
@@ -4143,10 +4155,14 @@ elif menu.endswith("Minispiele"):
     document.addEventListener("keydown", function(e) {
         if (e.code === "Space") {
             e.preventDefault();
-            jump();
+            jumpHeld = true;
+            if (!e.repeat) jump();
         } else if (e.code === "Enter" && state !== "playing") {
             startGame();
         }
+    });
+    document.addEventListener("keyup", function(e) {
+        if (e.code === "Space") jumpHeld = false;
     });
 
     function spawnFence() {
@@ -4167,8 +4183,8 @@ elif menu.endswith("Minispiele"):
     }
 
     function getSpawnInterval() {
-        const baseInterval = 144 - score * 2.6 - speed * 4.5;
-        return Math.max(44, Math.floor(baseInterval));
+        const baseInterval = 166 - score * 1.45 - speed * 3.2;
+        return Math.max(72, Math.floor(baseInterval));
     }
 
     function spawnCloud() {
@@ -4398,6 +4414,8 @@ elif menu.endswith("Minispiele"):
         chicken.y = groundY - chicken.h - 6;
         chicken.vy = 0;
         chicken.jumping = false;
+        jumpHeld = false;
+        jumpHoldFrames = 0;
         fences = [];
         particles = [];
         scorePops = [];
@@ -4511,12 +4529,17 @@ elif menu.endswith("Minispiele"):
 
         if (state === "playing") {
             chicken.vy += gravity;
+            if (chicken.jumping && jumpHeld && jumpHoldFrames < 18 && chicken.vy < 0) {
+                chicken.vy -= 0.42;
+                jumpHoldFrames++;
+            }
             chicken.y += chicken.vy;
 
             if (chicken.y >= groundY - chicken.h - 6) {
                 chicken.y = groundY - chicken.h - 6;
                 chicken.vy = 0;
                 chicken.jumping = false;
+                jumpHoldFrames = 0;
             }
 
             if (frame % getSpawnInterval() === 0) spawnFence();
@@ -4527,7 +4550,7 @@ elif menu.endswith("Minispiele"):
                     fence.passed = true;
                     score++;
                     playScoreSound();
-                    speed = Math.min(MAX_SPEED, speed + 0.16 + Math.min(score, 20) * 0.004);
+                    speed = Math.min(MAX_SPEED, speed + 0.12 + Math.min(score, 20) * 0.003);
                     level = 1 + Math.floor(score / 5);
                     scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
                     for (let i = 0; i < 16; i++) {
