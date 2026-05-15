@@ -2976,9 +2976,7 @@ elif menu == "🛒 Shop":
                 </svg>
             </div>
         """)
-        st.markdown(
-            chart_svg
-            + """
+        chart_style = textwrap.dedent("""
             <style>
             .static-market-chart {
                 width: 100%;
@@ -3019,7 +3017,9 @@ elif menu == "🛒 Shop":
                 stroke-width: 1;
             }
             </style>
-            """,
+        """)
+        st.markdown(
+            chart_style + chart_svg,
             unsafe_allow_html=True,
         )
 
