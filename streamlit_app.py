@@ -586,6 +586,30 @@ def get_profile_level(points):
     return max(1, int(points) // 100 + 1)
 
 
+def get_level_progress(points):
+    level = get_profile_level(points)
+    current_level_start = (level - 1) * 100
+    next_level_start = level * 100
+    current_xp = max(0, int(points) - current_level_start)
+    needed_xp = next_level_start - current_level_start
+    progress = int((current_xp / needed_xp) * 100) if needed_xp else 100
+    return level, current_xp, needed_xp, min(100, progress), max(0, next_level_start - int(points))
+
+
+def get_level_title(level):
+    if level >= 50:
+        return "Endgame Legende"
+    if level >= 30:
+        return "Gehirnzone Veteran"
+    if level >= 20:
+        return "Community Champion"
+    if level >= 10:
+        return "Stammviewer"
+    if level >= 5:
+        return "Aufsteiger"
+    return "Frisch geschlüpft"
+
+
 def get_avatar_markup(username, avatar_url, size=96):
     safe_name = html.escape(username or "?")
     initials = safe_name[:2].upper()
@@ -1721,6 +1745,137 @@ h1::after {
     box-shadow: 0 0 24px rgba(255,84,160,0.32);
 }
 
+.profile-level-card {
+    margin: 14px 0 16px;
+    border-radius: 14px;
+    padding: 16px;
+    background:
+        linear-gradient(135deg, rgba(199,125,255,0.14), rgba(255,84,160,0.09)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.profile-level-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.profile-level-top strong {
+    display: block;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.profile-level-top span {
+    color: #cfc6e8;
+    font-weight: 800;
+}
+
+.profile-level-badge {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(255,84,160,0.16);
+    border: 1px solid rgba(255,84,160,0.30);
+    color: #ffd6f0;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.profile-xp-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    color: #d8ccff;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.event-ticket {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr) minmax(150px, 0.32fr);
+    gap: 16px;
+    align-items: stretch;
+    margin: 16px 0 10px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 20px 55px rgba(0,0,0,0.24);
+}
+
+.event-ticket-date {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+    background: linear-gradient(135deg, rgba(199,125,255,0.24), rgba(255,84,160,0.16));
+    border-right: 1px dashed rgba(255,255,255,0.22);
+}
+
+.event-ticket-date strong {
+    color: #ffffff;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.event-ticket-date span {
+    margin-top: 8px;
+    color: #f0c9ff;
+    font-weight: 900;
+}
+
+.event-ticket-main {
+    padding: 20px 0;
+}
+
+.event-ticket-main h3 {
+    margin: 0 0 8px;
+    color: #ffffff;
+    font-size: 24px;
+}
+
+.event-ticket-main p {
+    margin: 0;
+    color: #d8ccff;
+    line-height: 1.55;
+}
+
+.event-ticket-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px;
+    background: rgba(8,14,18,0.42);
+}
+
+.event-ticket-status {
+    width: fit-content;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: #061015;
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.event-ticket-status.joined {
+    background: linear-gradient(135deg, #7CFFB2, #00f5ff);
+}
+
+.event-ticket-count {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 950;
+}
+
 .profile-edit-wrap {
     margin-top: 18px;
     padding: 22px;
@@ -2244,6 +2399,21 @@ h1::after {
         grid-template-columns: 1fr;
     }
 
+    .event-ticket {
+        grid-template-columns: 1fr;
+    }
+
+    .event-ticket-date {
+        min-height: auto;
+        padding: 18px;
+        border-right: 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.22);
+    }
+
+    .event-ticket-main {
+        padding: 18px;
+    }
+
     .admin-hero {
         display: block;
     }
@@ -2673,8 +2843,9 @@ elif menu == "👤 Profil":
         braincells = int(user["braincells"])
         chickens = int(user["chickens"])
 
-        rank_name, progress, progress_text = get_progress(braincells)
-        level = get_profile_level(braincells)
+        rank_name, rank_progress, progress_text = get_progress(braincells)
+        level, level_xp, level_needed_xp, level_progress, points_to_level = get_level_progress(braincells)
+        level_title = get_level_title(level)
         bio = user.get("bio") or "Noch keine Bio eingetragen."
         favorite_game = user.get("favorite_game") or "Noch nicht gesetzt"
         avatar_url = user.get("avatar_url") or ""
@@ -2695,21 +2866,19 @@ elif menu == "👤 Profil":
             bool(str(user.get("avatar_url") or "").strip()),
         ])
         completion = int((completed_fields / 3) * 100)
-        next_level_points = level * 100
-        points_to_level = max(0, next_level_points - braincells)
-
         st.markdown(f"""
         <div class="profile-shell">
             <div class="profile-showcase">
                 <div class="profile-showcase-inner">
                     {avatar_markup}
                     <div>
-                        <div class="profile-rank-badge">Level {level} · {html.escape(rank_name)}</div>
+                        <div class="profile-rank-badge">Level {level} · {html.escape(level_title)}</div>
                         <div class="profile-big-name">{html.escape(user["username"])}</div>
                         <div class="profile-bio-large">{html.escape(bio)}</div>
                         <div class="profile-chip-row">
                             <div class="profile-chip">Lieblingsspiel: {html.escape(favorite_game)}</div>
                             <div class="profile-chip">Rang #{rank_position}</div>
+                            <div class="profile-chip">{html.escape(rank_name)}</div>
                             <div class="profile-chip">{completion}% Profil</div>
                             <div class="profile-chip">{unlocked_count}/{len(achievements)} Achievements</div>
                         </div>
@@ -2718,11 +2887,27 @@ elif menu == "👤 Profil":
             </div>
             <div class="profile-side-panel">
                 <div class="section-kicker">Fortschritt</div>
-                <h3>Nächstes Level</h3>
-                <div class="profile-progress-track">
-                    <div class="profile-progress-fill" style="width:{progress}%;"></div>
+                <h3>Level-Fortschritt</h3>
+                <div class="profile-level-card">
+                    <div class="profile-level-top">
+                        <div>
+                            <strong>Level {level}</strong>
+                            <span>{html.escape(level_title)}</span>
+                        </div>
+                        <div class="profile-level-badge">Nächstes Level {level + 1}</div>
+                    </div>
+                    <div class="profile-progress-track">
+                        <div class="profile-progress-fill" style="width:{level_progress}%;"></div>
+                    </div>
+                    <div class="profile-xp-row">
+                        <span>{level_xp}/{level_needed_xp} XP</span>
+                        <span>{points_to_level} Gehirnzellen fehlen</span>
+                    </div>
                 </div>
-                <div class="admin-muted">{progress}% · {html.escape(progress_text)}</div>
+                <div class="profile-progress-track">
+                    <div class="profile-progress-fill" style="width:{rank_progress}%;"></div>
+                </div>
+                <div class="admin-muted">Rang: {rank_progress}% · {html.escape(progress_text)}</div>
                 <div class="profile-stat-grid">
                     <div class="profile-stat"><strong>{braincells}</strong><span>Gehirnzellen</span></div>
                     <div class="profile-stat"><strong>{chickens}</strong><span>Chickens</span></div>
@@ -3349,13 +3534,29 @@ elif menu == "⚡ Events":
             signups = get_event_signups(event_id)
 
             signed_up = is_signed_up(event_id, effective_viewer_name)
+            event_date_text = str(event.get("event_date") or "")
+            event_date_parts = event_date_text.split(" ", 1)
+            event_day = event_date_parts[0] if event_date_parts else "TBA"
+            event_time = event_date_parts[1] if len(event_date_parts) > 1 else "Uhrzeit offen"
+            status_text = "Angemeldet" if signed_up else "Offen"
+            status_class = "joined" if signed_up else ""
 
             st.markdown(f"""
-            <div class="event-card">
-                <h2>{event["title"]}</h2>
-                <p>{event["description"]}</p>
-                <p><b>{event["event_date"]}</b></p>
-                <p>Teilnehmer: {len(signups)}</p>
+            <div class="event-ticket">
+                <div class="event-ticket-date">
+                    <strong>{html.escape(event_day)}</strong>
+                    <span>{html.escape(event_time)}</span>
+                </div>
+                <div class="event-ticket-main">
+                    <div class="section-kicker">Community Event</div>
+                    <h3>{html.escape(str(event["title"]))}</h3>
+                    <p>{html.escape(str(event["description"]))}</p>
+                </div>
+                <div class="event-ticket-side">
+                    <div class="event-ticket-status {status_class}">{status_text}</div>
+                    <div class="event-ticket-count">{len(signups)}</div>
+                    <div class="admin-muted">Anmeldung(en)</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -3414,21 +3615,36 @@ elif menu.endswith("Minispiele"):
             margin: 0;
             min-height: 820px;
             background:
-                radial-gradient(circle at 18% 14%, rgba(0, 245, 255, 0.18), transparent 26%),
-                radial-gradient(circle at 82% 18%, rgba(199, 125, 255, 0.20), transparent 28%),
-                linear-gradient(180deg, #070912 0%, #14091f 100%);
+                radial-gradient(circle at 16% 10%, rgba(255, 214, 102, 0.16), transparent 24%),
+                radial-gradient(circle at 82% 16%, rgba(0, 245, 255, 0.18), transparent 24%),
+                radial-gradient(circle at 50% 86%, rgba(255, 84, 160, 0.16), transparent 32%),
+                linear-gradient(180deg, #050816 0%, #13091f 52%, #070711 100%);
             color: white;
             font-family: Inter, Segoe UI, Arial, sans-serif;
             overflow: auto;
         }
-        .shell { width: min(100%, 1040px); margin: 0 auto; padding: 16px; }
+        .shell { width: min(100%, 1080px); margin: 0 auto; padding: 16px; }
         .game-panel {
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 18px;
-            background: rgba(5, 8, 16, 0.72);
-            box-shadow: 0 24px 70px rgba(0,0,0,0.42);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 24px;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035)),
+                rgba(5, 8, 16, 0.78);
+            box-shadow:
+                0 30px 90px rgba(0,0,0,0.48),
+                0 0 0 1px rgba(199,125,255,0.08) inset;
+        }
+        .game-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.08), transparent 20%, transparent 80%, rgba(255,255,255,0.05)),
+                radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16), transparent 38%);
+            z-index: 1;
         }
         canvas {
             display: block;
@@ -3443,19 +3659,26 @@ elif menu.endswith("Minispiele"):
             align-items: center;
             justify-content: center;
             padding: 22px;
-            background: linear-gradient(180deg, rgba(7,9,18,0.34), rgba(7,9,18,0.82));
+            background:
+                radial-gradient(circle at 50% 34%, rgba(255,214,102,0.14), transparent 26%),
+                linear-gradient(180deg, rgba(7,9,18,0.30), rgba(7,9,18,0.86));
+            z-index: 2;
         }
         .menu-card {
             width: min(520px, 92%);
             border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 18px;
-            padding: 24px;
+            border-radius: 22px;
+            padding: 28px;
             text-align: center;
-            background: rgba(12, 14, 24, 0.86);
-            box-shadow: 0 0 40px rgba(157,78,221,0.24);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045)),
+                rgba(12, 14, 24, 0.90);
+            box-shadow:
+                0 0 48px rgba(157,78,221,0.26),
+                0 24px 70px rgba(0,0,0,0.38);
             backdrop-filter: blur(10px);
         }
-        .menu-card h1 { margin: 0 0 8px; font-size: 44px; line-height: 1; }
+        .menu-card h1 { margin: 0 0 8px; font-size: 46px; line-height: 1; }
         .menu-card p { margin: 8px auto 18px; color: #d7c8ff; line-height: 1.45; }
         .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         button {
@@ -3468,6 +3691,7 @@ elif menu.endswith("Minispiele"):
             background: linear-gradient(135deg, #c77dff, #00d4ff);
             box-shadow: 0 12px 28px rgba(0,212,255,0.20);
         }
+        button:hover { transform: translateY(-1px); filter: brightness(1.08); }
         button.secondary {
             color: #fff;
             background: rgba(255,255,255,0.10);
@@ -3479,8 +3703,11 @@ elif menu.endswith("Minispiele"):
             min-height: 74px;
             padding: 13px 14px;
             border: 1px solid rgba(255,255,255,0.11);
-            border-radius: 12px;
-            background: rgba(255,255,255,0.055);
+            border-radius: 16px;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+                rgba(255,255,255,0.045);
+            box-shadow: 0 16px 38px rgba(0,0,0,0.20);
         }
         .hud-card span {
             display: block;
@@ -3494,9 +3721,11 @@ elif menu.endswith("Minispiele"):
         .scores {
             margin-top: 12px;
             border: 1px solid rgba(199,125,255,0.20);
-            border-radius: 14px;
+            border-radius: 18px;
             padding: 14px;
-            background: rgba(255,255,255,0.045);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035)),
+                rgba(255,255,255,0.045);
             overflow: hidden;
         }
         .scores h3 { margin: 0 0 10px; font-size: 18px; }
@@ -3531,6 +3760,24 @@ elif menu.endswith("Minispiele"):
             background: rgba(255,255,255,0.055);
             border: 1px solid rgba(255,255,255,0.07);
         }
+        .hint-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0 0;
+            color: #aeb6d9;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .hint-strip span {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
         @media (max-width: 720px) {
             body { min-height: 900px; }
             .hud { grid-template-columns: 1fr; }
@@ -3560,6 +3807,7 @@ elif menu.endswith("Minispiele"):
             <div class="hud-card"><span>Tempo</span><strong id="speedValue">1.0x</strong></div>
             <div class="hud-card"><span>Level</span><strong id="levelValue">1</strong></div>
         </div>
+        <div class="hint-strip"><span>Space / Klick zum Springen</span><span>Timing ist alles</span></div>
 
         <div class="scores">
             <h3>Scoreboard</h3>
@@ -3593,6 +3841,7 @@ elif menu.endswith("Minispiele"):
     let fences = [];
     let clouds = [];
     let particles = [];
+    let scorePops = [];
     let speed = 5.4;
     let score = 0;
     let level = 1;
@@ -3622,7 +3871,18 @@ elif menu.endswith("Minispiele"):
         if (!chicken.jumping) {
             chicken.vy = -16.5;
             chicken.jumping = true;
-            particles.push({x: chicken.x + 10, y: groundY - 12, life: 18});
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: chicken.x + 12 + Math.random() * 18,
+                    y: groundY - 10 + Math.random() * 8,
+                    vx: -1.5 - Math.random() * 2.2,
+                    vy: -0.8 - Math.random() * 1.8,
+                    r: 2 + Math.random() * 3,
+                    color: Math.random() > 0.5 ? "255, 230, 109" : "0, 212, 255",
+                    life: 18 + Math.random() * 10,
+                    maxLife: 28
+                });
+            }
         }
     }
 
@@ -3682,11 +3942,21 @@ elif menu.endswith("Minispiele"):
 
     function drawBackground() {
         const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        sky.addColorStop(0, "#08172c");
-        sky.addColorStop(0.55, "#161032");
-        sky.addColorStop(1, "#260d2f");
+        sky.addColorStop(0, "#071a33");
+        sky.addColorStop(0.42, "#17113a");
+        sky.addColorStop(0.74, "#321145");
+        sky.addColorStop(1, "#190b24");
         ctx.fillStyle = sky;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const moon = ctx.createRadialGradient(810, 86, 4, 810, 86, 86);
+        moon.addColorStop(0, "rgba(255, 245, 204, 0.92)");
+        moon.addColorStop(0.22, "rgba(255, 245, 204, 0.42)");
+        moon.addColorStop(1, "rgba(255, 245, 204, 0)");
+        ctx.fillStyle = moon;
+        ctx.beginPath();
+        ctx.arc(810, 86, 86, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.fillStyle = "rgba(255,255,255,0.35)";
         for (let i = 0; i < 42; i++) {
@@ -3695,26 +3965,56 @@ elif menu.endswith("Minispiele"):
             ctx.fillRect(x, y, 2, 2);
         }
 
+        drawHills(0.20, 318, "#1f2555", 58);
+        drawHills(0.38, 350, "#251346", 78);
+        drawHills(0.62, 378, "#32163c", 54);
+
         if (frame % 180 === 0) spawnCloud();
         clouds.forEach(c => {
             c.x -= c.speed;
-            ctx.fillStyle = "rgba(255,255,255,0.12)";
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
             roundedRect(c.x, c.y, c.w, 22, 999);
             roundedRect(c.x + c.w * 0.18, c.y - 12, c.w * 0.45, 28, 999);
+            roundedRect(c.x + c.w * 0.52, c.y - 6, c.w * 0.35, 22, 999);
         });
         clouds = clouds.filter(c => c.x + c.w > -120);
     }
 
+    function drawHills(rate, baseY, color, height) {
+        const offset = (frame * speed * rate) % 260;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(-260 - offset, canvas.height);
+        for (let x = -260 - offset; x <= canvas.width + 260; x += 130) {
+            ctx.quadraticCurveTo(x + 65, baseY - height, x + 130, baseY);
+        }
+        ctx.lineTo(canvas.width + 260, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     function drawGround() {
         const ground = ctx.createLinearGradient(0, groundY, 0, canvas.height);
-        ground.addColorStop(0, "#2f1846");
-        ground.addColorStop(1, "#120817");
+        ground.addColorStop(0, "#3a1e52");
+        ground.addColorStop(0.45, "#22122f");
+        ground.addColorStop(1, "#110713");
         ctx.fillStyle = ground;
         ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+        ctx.fillStyle = "rgba(124,255,178,0.34)";
+        for (let i = 0; i < canvas.width + 80; i += 20) {
+            const x = i - (frame * speed * 0.65 % 20);
+            ctx.fillRect(x, groundY - 7, 3, 12);
+        }
 
         ctx.fillStyle = "#00d4ff";
         for (let i = 0; i < canvas.width + 60; i += 44) {
             roundedRect(i - (frame * speed % 44), groundY + 12, 22, 4, 4);
+        }
+
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        for (let i = 0; i < canvas.width + 120; i += 86) {
+            roundedRect(i - (frame * speed * 1.4 % 86), groundY + 58, 44, 5, 5);
         }
     }
 
@@ -3726,10 +4026,16 @@ elif menu.endswith("Minispiele"):
         ctx.beginPath();
         ctx.ellipse(28, 54, 30, 8, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.beginPath();
+        ctx.ellipse(24, 29, 22, 17, -0.45, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = "#ffd43b";
         roundedRect(0, 5, chicken.w, chicken.h, 14);
         ctx.fillStyle = "#ffe66d";
         roundedRect(16, -8, 32, 30, 14);
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        roundedRect(18, 2, 16, 8, 8);
         ctx.fillStyle = "#ff922b";
         ctx.beginPath();
         ctx.moveTo(48, 4);
@@ -3740,27 +4046,40 @@ elif menu.endswith("Minispiele"):
         ctx.beginPath();
         ctx.arc(39, 2, 4, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(40, 0, 1.4, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = "#ff6b6b";
         roundedRect(18, -18, 20, 12, 5);
+        ctx.fillStyle = "#f03e3e";
+        roundedRect(25, -24, 12, 10, 6);
         ctx.strokeStyle = "#ff922b";
         ctx.lineWidth = 4;
         ctx.beginPath();
+        const legSwing = chicken.jumping ? 0 : Math.sin(frame / 5) * 4;
         ctx.moveTo(17, 47);
-        ctx.lineTo(13, 58);
+        ctx.lineTo(13 + legSwing, 58);
         ctx.moveTo(38, 47);
-        ctx.lineTo(42, 58);
+        ctx.lineTo(42 - legSwing, 58);
         ctx.stroke();
         ctx.restore();
     }
 
     function drawFence(fence) {
         const grad = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
-        grad.addColorStop(0, "#d8b4fe");
+        grad.addColorStop(0, "#f0d0ff");
+        grad.addColorStop(0.45, "#b197fc");
         grad.addColorStop(1, "#7c3aed");
+        ctx.shadowColor = "rgba(199,125,255,0.32)";
+        ctx.shadowBlur = 14;
         ctx.fillStyle = grad;
         roundedRect(fence.x, fence.y, fence.w, fence.h, 6);
         roundedRect(fence.x - 12, fence.y + fence.h * 0.25, fence.w + 24, 8, 4);
         roundedRect(fence.x - 12, fence.y + fence.h * 0.62, fence.w + 24, 8, 4);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        roundedRect(fence.x + 5, fence.y + 8, Math.max(4, fence.w * 0.22), fence.h - 16, 5);
     }
 
     function collision(a, b) {
@@ -3776,14 +4095,25 @@ elif menu.endswith("Minispiele"):
     function drawParticles() {
         particles.forEach(p => {
             p.life -= 1;
-            p.x -= speed * 0.25;
-            p.y += 0.4;
-            ctx.fillStyle = "rgba(255, 230, 109," + Math.max(p.life / 18, 0) + ")";
+            p.x += (p.vx || -speed * 0.25);
+            p.y += (p.vy || 0.4);
+            p.vy = (p.vy || 0) + 0.08;
+            const alpha = Math.max(p.life / (p.maxLife || 18), 0);
+            ctx.fillStyle = "rgba(" + (p.color || "255, 230, 109") + "," + alpha + ")";
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.r || 3, 0, Math.PI * 2);
             ctx.fill();
         });
         particles = particles.filter(p => p.life > 0);
+
+        scorePops.forEach(pop => {
+            pop.life -= 1;
+            pop.y -= 0.8;
+            ctx.fillStyle = "rgba(255, 230, 109," + Math.max(pop.life / 34, 0) + ")";
+            ctx.font = "900 22px Inter, Arial";
+            ctx.fillText("+1", pop.x, pop.y);
+        });
+        scorePops = scorePops.filter(pop => pop.life > 0);
     }
 
     function drawUI() {
@@ -3798,6 +4128,7 @@ elif menu.endswith("Minispiele"):
         chicken.jumping = false;
         fences = [];
         particles = [];
+        scorePops = [];
         speed = 5.4;
         score = 0;
         level = 1;
@@ -3922,7 +4253,19 @@ elif menu.endswith("Minispiele"):
                     score++;
                     speed += 0.23;
                     level = 1 + Math.floor(score / 5);
-                    particles.push({x: chicken.x + chicken.w, y: chicken.y + 10, life: 22});
+                    scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
+                    for (let i = 0; i < 16; i++) {
+                        particles.push({
+                            x: chicken.x + chicken.w,
+                            y: chicken.y + 14 + Math.random() * 22,
+                            vx: -1 + Math.random() * 3,
+                            vy: -2.2 + Math.random() * 1.8,
+                            r: 2 + Math.random() * 3.5,
+                            color: Math.random() > 0.45 ? "255, 230, 109" : "124, 255, 178",
+                            life: 18 + Math.random() * 16,
+                            maxLife: 34
+                        });
+                    }
                 }
                 if (collision(chicken, fence)) endGame();
                 drawFence(fence);
