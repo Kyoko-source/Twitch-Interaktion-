@@ -2082,6 +2082,134 @@ h1::after {
     color: #ff7a9a;
 }
 
+.shop-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+    gap: 16px;
+    align-items: stretch;
+    margin: 14px 0 18px;
+}
+
+.shop-wallet,
+.shop-signal,
+.admin-control-card {
+    border-radius: 14px;
+    padding: 20px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+}
+
+.shop-wallet h2,
+.shop-signal h3,
+.admin-control-card h3 {
+    margin: 4px 0 8px;
+}
+
+.shop-wallet h2 {
+    font-size: 42px;
+}
+
+.shop-status-row,
+.admin-control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.shop-status-pill {
+    min-height: 72px;
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(8,14,18,0.58);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
+.shop-status-pill strong {
+    display: block;
+    color: #ffffff;
+    font-size: 18px;
+}
+
+.shop-status-pill span {
+    display: block;
+    margin-top: 4px;
+    color: #cfc6e8;
+    font-weight: 760;
+    font-size: 13px;
+}
+
+.shop-item-shell {
+    min-height: 100%;
+    border-radius: 14px;
+    padding: 18px;
+    background: rgba(255,255,255,0.052);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.shop-item-shell.available {
+    border-color: rgba(124,255,178,0.30);
+}
+
+.shop-item-shell.locked {
+    opacity: 0.72;
+    border-color: rgba(255,122,154,0.24);
+}
+
+.shop-badge {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(199,125,255,0.14);
+    color: #f0c9ff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.shop-badge.available {
+    background: rgba(124,255,178,0.13);
+    color: #baffd4;
+}
+
+.shop-badge.locked {
+    background: rgba(255,122,154,0.13);
+    color: #ffc7d2;
+}
+
+.shop-item-shell h3 {
+    margin: 0 0 8px;
+}
+
+.shop-item-shell p {
+    min-height: 46px;
+    color: #d8ccff;
+}
+
+.shop-price {
+    margin-top: 12px;
+    color: #ff7ad9;
+    font-size: 22px;
+    font-weight: 950;
+}
+
+.admin-control-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-control-card {
+    min-height: 136px;
+}
+
+.admin-danger-panel {
+    border-radius: 14px;
+    padding: 20px;
+    background: rgba(255,122,154,0.08);
+    border: 1px solid rgba(255,122,154,0.22);
+}
+
 .stForm {
     margin-top: 12px;
     padding: 18px;
@@ -2104,6 +2232,9 @@ h1::after {
     .wheel-shell,
     .market-grid,
     .market-holdings,
+    .shop-dashboard,
+    .shop-status-row,
+    .admin-control-grid,
     .profile-hero {
         grid-template-columns: 1fr;
     }
@@ -2814,6 +2945,33 @@ elif menu == "🛒 Shop":
 
     st.markdown("## Shop")
 
+    shop_items = get_shop_items()
+    wallet_chickens = int(user.get("chickens") or 0) if user else 0
+    affordable_items = sum(1 for reward in shop_items if wallet_chickens >= int(reward.get("price") or 0))
+    inventory_rows = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
+    inventory_count = sum(int(row.get("quantity") or 0) for row in inventory_rows)
+    outgoing_trades = get_outgoing_trades(logged_in_username)
+
+    st.markdown(f"""
+    <div class="shop-dashboard">
+        <div class="shop-wallet">
+            <div class="section-kicker">Dein Inventar</div>
+            <h2>🥚 {wallet_chickens}</h2>
+            <div class="admin-muted">Chickens verfügbar für Rewards, Handel und Marktitems.</div>
+            <div class="shop-status-row">
+                <div class="shop-status-pill"><strong>{affordable_items}</strong><span>Items kaufbar</span></div>
+                <div class="shop-status-pill"><strong>{inventory_count}</strong><span>Marktbestand</span></div>
+                <div class="shop-status-pill"><strong>{len(outgoing_trades)}</strong><span>Offene Anfragen</span></div>
+            </div>
+        </div>
+        <div class="shop-signal">
+            <div class="section-kicker">Marktstatus</div>
+            <h3>{len(MARKET_ITEMS)} Trading-Items</h3>
+            <div class="admin-muted">Kurse ändern sich täglich. Im Trading Shop kannst du kaufen, halten und verkaufen.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     with st.expander("Chicken-Handel", expanded=False):
         members = get_members()
         trade_targets = [
@@ -2858,7 +3016,6 @@ elif menu == "🛒 Shop":
                     else:
                         st.error("Handelsanfrage konnte nicht erstellt werden.")
 
-        outgoing_trades = get_outgoing_trades(logged_in_username)
         if outgoing_trades:
             st.markdown("#### Deine offenen Handelsanfragen")
             for trade in outgoing_trades:
@@ -2869,7 +3026,6 @@ elif menu == "🛒 Shop":
                 else:
                     st.write(f"Du fragst {amount} Chicken(s) von {recipient} an.")
 
-    shop_items = get_shop_items()
     for category in SHOP_CATEGORIES:
         category_rewards = [reward for reward in shop_items if reward.get("category") == category]
 
@@ -2878,12 +3034,17 @@ elif menu == "🛒 Shop":
                 st.info("In dieser Kategorie gibt es aktuell keine Artikel.")
             else:
                 for reward in category_rewards:
+                    price = int(reward.get("price") or 0)
+                    can_afford = wallet_chickens >= price
+                    state_class = "available" if can_afford else "locked"
+                    state_text = "Kaufbar" if can_afford else "Zu teuer"
 
                     col1, col2 = st.columns([4, 1])
 
                     with col1:
                         st.markdown(f"""
-                            <div class="reward-card">
+                            <div class="reward-card shop-item-shell {state_class}">
+                                <span class="shop-badge {state_class}">{state_text}</span>
                                 <div class="section-kicker">{html.escape(category)}</div>
                                 <h3>{html.escape(str(reward["name"]))}</h3>
                                 <p>{html.escape(str(reward["desc"]))}</p>
@@ -2894,7 +3055,7 @@ elif menu == "🛒 Shop":
                     with col2:
                         st.write("")
 
-                        if st.button("Kaufen", key=f"buy_{category}_{reward['name']}"):
+                        if st.button("Kaufen", key=f"buy_{category}_{reward['name']}", disabled=not can_afford):
                             success = buy_reward(effective_username, reward)
 
                             if success:
@@ -4151,6 +4312,8 @@ elif menu == "🔐 Admin":
         shop_items = get_shop_items()
         news_posts = get_news_posts()
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
+        active_categories = len({str(item.get("category") or get_default_shop_category()) for item in shop_items})
+        wheel_queue_count = len(get_punishment_wheel_entries())
 
         st.markdown("""
         <div class="admin-hero">
@@ -4167,6 +4330,31 @@ elif menu == "🔐 Admin":
             <div class="admin-stat"><strong>{len(members)}</strong><span>Viewer</span></div>
             <div class="admin-stat"><strong>{len(shop_items)}</strong><span>Shop-Items</span></div>
             <div class="admin-stat"><strong>{len(events)}</strong><span>Events</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="admin-control-grid">
+            <div class="admin-control-card">
+                <div class="section-kicker">Community</div>
+                <h3>{pending_trade_count}</h3>
+                <div class="admin-muted">Offene Chicken-Trades</div>
+            </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Content</div>
+                <h3>{len(news_posts)}</h3>
+                <div class="admin-muted">Aktive News-Beiträge</div>
+            </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Shop</div>
+                <h3>{active_categories}</h3>
+                <div class="admin-muted">Kategorien mit Items</div>
+            </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Bestrafungsrad</div>
+                <h3>{wheel_queue_count}</h3>
+                <div class="admin-muted">Offene Ideen in der Queue</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -4299,6 +4487,15 @@ elif menu == "🔐 Admin":
 
         with shop_tab:
             st.markdown("### Shop verwalten")
+            category_summary = ""
+            for category in SHOP_CATEGORIES:
+                count = len([item for item in shop_items if item.get("category") == category])
+                category_summary += (
+                    '<div class="shop-status-pill">'
+                    f'<strong>{count}</strong><span>{html.escape(category)}</span>'
+                    '</div>'
+                )
+            st.markdown(f'<div class="shop-status-row">{category_summary}</div>', unsafe_allow_html=True)
 
             with st.form("create_shop_item_form"):
                 item_name = st.text_input("Name des Shop-Items")
