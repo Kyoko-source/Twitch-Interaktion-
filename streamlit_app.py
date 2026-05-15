@@ -3018,9 +3018,10 @@ elif menu == "🛒 Shop":
             }
             </style>
         """)
-        st.markdown(
+        components.html(
             chart_style + chart_svg,
-            unsafe_allow_html=True,
+            height=330,
+            scrolling=False,
         )
 
     with st.expander("Trading Shop", expanded=False):
