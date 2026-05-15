@@ -2868,85 +2868,83 @@ elif menu == "🛒 Shop":
                             else:
                                 st.error("Nicht genug Chickens")
 
-            if category == "Out of Stream Rewards":
-                st.markdown("---")
-                with st.expander("Kurs", expanded=False):
-                    st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
+    with st.expander("Kurs", expanded=False):
+        st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
 
-                    selected_item_name = st.selectbox(
-                        "Gegenstand auswählen",
-                        [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS],
-                        key="shop_market_chart_item",
+        selected_item_name = st.selectbox(
+            "Gegenstand auswählen",
+            [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS],
+            key="shop_market_chart_item",
+        )
+        selected_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(selected_item_name)]
+        history = get_market_history(selected_item["key"], days=30)
+        chart_df = pd.DataFrame(history).set_index("Datum")
+        st.line_chart(chart_df, use_container_width=True)
+
+        market_cards = ""
+        for item in MARKET_ITEMS:
+            today_price = get_market_price(item["key"])
+            yesterday_price = get_market_price(item["key"], datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1))
+            delta = today_price - yesterday_price
+            delta_class = "up" if delta >= 0 else "down"
+            sign = "+" if delta >= 0 else ""
+            quantity = get_market_quantity(logged_in_username, item["key"]) if logged_in_username else 0
+            market_cards += (
+                '<div class="market-card">'
+                f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
+                f'<div class="market-price">{today_price} 🥚</div>'
+                f'<div class="market-delta {delta_class}">{sign}{delta} heute</div>'
+                f'<div class="admin-muted">Du besitzt: {quantity}</div>'
+                '</div>'
+            )
+        st.markdown(f'<div class="market-grid">{market_cards}</div>', unsafe_allow_html=True)
+
+        trade_col_a, trade_col_b = st.columns(2)
+        with trade_col_a:
+            with st.form("market_buy_form"):
+                buy_label = st.selectbox("Kaufen", [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS], key="market_buy_item")
+                buy_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(buy_label)]
+                buy_quantity = st.number_input("Anzahl kaufen", min_value=1, max_value=999, step=1)
+                buy_total = get_market_price(buy_item["key"]) * int(buy_quantity)
+                st.caption(f"Kosten: {buy_total} Chickens")
+                if st.form_submit_button("Kaufen"):
+                    success, message = buy_market_item(logged_in_username, buy_item["key"], buy_quantity)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+
+        with trade_col_b:
+            inventory = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
+            with st.form("market_sell_form"):
+                if inventory:
+                    sell_options = []
+                    for row in inventory:
+                        item = get_market_item(row.get("item_key"))
+                        if item:
+                            sell_options.append((item, int(row.get("quantity") or 0)))
+                    sell_label = st.selectbox(
+                        "Verkaufen",
+                        [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options],
+                        key="market_sell_item",
                     )
-                    selected_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(selected_item_name)]
-                    history = get_market_history(selected_item["key"], days=30)
-                    chart_df = pd.DataFrame(history).set_index("Datum")
-                    st.line_chart(chart_df, use_container_width=True)
-
-                    market_cards = ""
-                    for item in MARKET_ITEMS:
-                        today_price = get_market_price(item["key"])
-                        yesterday_price = get_market_price(item["key"], datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1))
-                        delta = today_price - yesterday_price
-                        delta_class = "up" if delta >= 0 else "down"
-                        sign = "+" if delta >= 0 else ""
-                        quantity = get_market_quantity(logged_in_username, item["key"]) if logged_in_username else 0
-                        market_cards += (
-                            '<div class="market-card">'
-                            f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
-                            f'<div class="market-price">{today_price} 🥚</div>'
-                            f'<div class="market-delta {delta_class}">{sign}{delta} heute</div>'
-                            f'<div class="admin-muted">Du besitzt: {quantity}</div>'
-                            '</div>'
-                        )
-                    st.markdown(f'<div class="market-grid">{market_cards}</div>', unsafe_allow_html=True)
-
-                    trade_col_a, trade_col_b = st.columns(2)
-                    with trade_col_a:
-                        with st.form("market_buy_form"):
-                            buy_label = st.selectbox("Kaufen", [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS], key="market_buy_item")
-                            buy_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(buy_label)]
-                            buy_quantity = st.number_input("Anzahl kaufen", min_value=1, max_value=999, step=1)
-                            buy_total = get_market_price(buy_item["key"]) * int(buy_quantity)
-                            st.caption(f"Kosten: {buy_total} Chickens")
-                            if st.form_submit_button("Kaufen"):
-                                success, message = buy_market_item(logged_in_username, buy_item["key"], buy_quantity)
-                                if success:
-                                    st.success(message)
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-
-                    with trade_col_b:
-                        inventory = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
-                        with st.form("market_sell_form"):
-                            if inventory:
-                                sell_options = []
-                                for row in inventory:
-                                    item = get_market_item(row.get("item_key"))
-                                    if item:
-                                        sell_options.append((item, int(row.get("quantity") or 0)))
-                                sell_label = st.selectbox(
-                                    "Verkaufen",
-                                    [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options],
-                                    key="market_sell_item",
-                                )
-                                selected_index = [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options].index(sell_label)
-                                sell_item, max_qty = sell_options[selected_index]
-                                sell_quantity = st.number_input("Anzahl verkaufen", min_value=1, max_value=max_qty, step=1)
-                                sell_total = get_market_price(sell_item["key"]) * int(sell_quantity)
-                                st.caption(f"Erlös: {sell_total} Chickens")
-                                submit_sell = st.form_submit_button("Verkaufen")
-                                if submit_sell:
-                                    success, message = sell_market_item(logged_in_username, sell_item["key"], sell_quantity)
-                                    if success:
-                                        st.success(message)
-                                        st.rerun()
-                                    else:
-                                        st.error(message)
-                            else:
-                                st.caption("Du besitzt aktuell keine Marktgegenstände.")
-                                st.form_submit_button("Verkaufen", disabled=True)
+                    selected_index = [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options].index(sell_label)
+                    sell_item, max_qty = sell_options[selected_index]
+                    sell_quantity = st.number_input("Anzahl verkaufen", min_value=1, max_value=max_qty, step=1)
+                    sell_total = get_market_price(sell_item["key"]) * int(sell_quantity)
+                    st.caption(f"Erlös: {sell_total} Chickens")
+                    submit_sell = st.form_submit_button("Verkaufen")
+                    if submit_sell:
+                        success, message = sell_market_item(logged_in_username, sell_item["key"], sell_quantity)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+                else:
+                    st.caption("Du besitzt aktuell keine Marktgegenstände.")
+                    st.form_submit_button("Verkaufen", disabled=True)
 
 # =========================
 # LEADERBOARD
