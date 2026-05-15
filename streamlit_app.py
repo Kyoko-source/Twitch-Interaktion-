@@ -3930,7 +3930,9 @@ elif menu.endswith("Minispiele"):
     let clouds = [];
     let particles = [];
     let scorePops = [];
-    let speed = 5.4;
+    const START_SPEED = 4.35;
+    const MAX_SPEED = 10.4;
+    let speed = START_SPEED;
     let score = 0;
     let level = 1;
     let state = "menu";
@@ -4148,14 +4150,25 @@ elif menu.endswith("Minispiele"):
     });
 
     function spawnFence() {
-        const height = 46 + Math.random() * 26;
+        const earlyGame = score < 6;
+        const midGame = score < 16;
+        const height = earlyGame
+            ? 34 + Math.random() * 16
+            : midGame
+                ? 42 + Math.random() * 22
+                : 48 + Math.random() * 30;
         fences.push({
             x: canvas.width + 40,
             y: groundY - height,
-            w: 30 + Math.random() * 14,
+            w: earlyGame ? 24 + Math.random() * 9 : 30 + Math.random() * 14,
             h: height,
             passed: false
         });
+    }
+
+    function getSpawnInterval() {
+        const baseInterval = 144 - score * 2.6 - speed * 4.5;
+        return Math.max(44, Math.floor(baseInterval));
     }
 
     function spawnCloud() {
@@ -4309,19 +4322,35 @@ elif menu.endswith("Minispiele"):
     }
 
     function drawFence(fence) {
-        const grad = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
-        grad.addColorStop(0, "#f0d0ff");
-        grad.addColorStop(0.45, "#b197fc");
-        grad.addColorStop(1, "#7c3aed");
-        ctx.shadowColor = "rgba(199,125,255,0.32)";
-        ctx.shadowBlur = 14;
-        ctx.fillStyle = grad;
-        roundedRect(fence.x, fence.y, fence.w, fence.h, 6);
-        roundedRect(fence.x - 12, fence.y + fence.h * 0.25, fence.w + 24, 8, 4);
-        roundedRect(fence.x - 12, fence.y + fence.h * 0.62, fence.w + 24, 8, 4);
+        const wood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
+        wood.addColorStop(0, "#c88742");
+        wood.addColorStop(0.45, "#9a5a28");
+        wood.addColorStop(1, "#5d341c");
+        const railWood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + 18);
+        railWood.addColorStop(0, "#d69a55");
+        railWood.addColorStop(1, "#7a421f");
+        ctx.shadowColor = "rgba(0,0,0,0.34)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        ctx.fillStyle = wood;
+        roundedRect(fence.x, fence.y, fence.w, fence.h, 5);
+        ctx.fillStyle = railWood;
+        roundedRect(fence.x - 13, fence.y + fence.h * 0.25, fence.w + 26, 9, 4);
+        roundedRect(fence.x - 13, fence.y + fence.h * 0.62, fence.w + 26, 9, 4);
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        roundedRect(fence.x + 5, fence.y + 8, Math.max(4, fence.w * 0.22), fence.h - 16, 5);
+        ctx.shadowOffsetY = 0;
+        ctx.fillStyle = "rgba(255,230,180,0.28)";
+        roundedRect(fence.x + 5, fence.y + 8, Math.max(4, fence.w * 0.18), fence.h - 16, 4);
+        ctx.fillStyle = "rgba(58,31,14,0.46)";
+        for (let i = 0; i < 3; i++) {
+            const grainY = fence.y + 12 + i * (fence.h - 24) / 3;
+            roundedRect(fence.x + fence.w * 0.45, grainY, Math.max(5, fence.w * 0.34), 2, 2);
+        }
+        ctx.fillStyle = "#3d210f";
+        ctx.beginPath();
+        ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.18, 2.5, 0, Math.PI * 2);
+        ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.78, 2.5, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     function collision(a, b) {
@@ -4360,7 +4389,7 @@ elif menu.endswith("Minispiele"):
 
     function drawUI() {
         scoreValue.textContent = score;
-        speedValue.textContent = (speed / 5.4).toFixed(1) + "x";
+        speedValue.textContent = (speed / START_SPEED).toFixed(1) + "x";
         levelValue.textContent = level;
     }
 
@@ -4372,7 +4401,7 @@ elif menu.endswith("Minispiele"):
         fences = [];
         particles = [];
         scorePops = [];
-        speed = 5.4;
+        speed = START_SPEED;
         score = 0;
         level = 1;
         frame = 0;
@@ -4490,7 +4519,7 @@ elif menu.endswith("Minispiele"):
                 chicken.jumping = false;
             }
 
-            if (frame % Math.max(46, Math.floor(112 - speed * 7)) === 0) spawnFence();
+            if (frame % getSpawnInterval() === 0) spawnFence();
 
             fences.forEach(fence => {
                 fence.x -= speed;
@@ -4498,7 +4527,7 @@ elif menu.endswith("Minispiele"):
                     fence.passed = true;
                     score++;
                     playScoreSound();
-                    speed += 0.23;
+                    speed = Math.min(MAX_SPEED, speed + 0.16 + Math.min(score, 20) * 0.004);
                     level = 1 + Math.floor(score / 5);
                     scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
                     for (let i = 0; i < 16; i++) {
