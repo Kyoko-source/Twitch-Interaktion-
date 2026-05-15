@@ -4481,7 +4481,7 @@ elif menu.endswith("Minispiele"):
         box.innerHTML = "<li>Lade globale Scores...</li>";
 
         try {
-            let query = "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=10";
+            let query = "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=100";
             if (currentScoreFilter !== "all") {
                 const now = new Date();
                 const from = new Date(now);
@@ -4506,12 +4506,27 @@ elif menu.endswith("Minispiele"):
             if (!response.ok) throw new Error(await response.text());
 
             const scores = await response.json();
-            if (scores.length === 0) {
+            const bestByUser = new Map();
+            scores.forEach(s => {
+                const username = String(s.username || "").trim();
+                if (!username) return;
+                const key = username.toLowerCase();
+                const existing = bestByUser.get(key);
+                const currentScore = Number(s.score || 0);
+                if (!existing || currentScore > Number(existing.score || 0)) {
+                    bestByUser.set(key, {...s, username});
+                }
+            });
+            const leaderboardScores = Array.from(bestByUser.values())
+                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+                .slice(0, 10);
+
+            if (leaderboardScores.length === 0) {
                 box.innerHTML = "<li>Noch keine Scores.</li>";
                 return;
             }
 
-            box.innerHTML = scores.map(s => {
+            box.innerHTML = leaderboardScores.map(s => {
                 const levelText = s.level ? " · Level " + s.level : "";
                 return "<li><strong>" + escapeHtml(s.username) + "</strong> - " + s.score + levelText + "</li>";
             }).join("");
