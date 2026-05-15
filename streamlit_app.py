@@ -3698,6 +3698,67 @@ elif menu.endswith("Minispiele"):
             border: 1px solid rgba(255,255,255,0.16);
             box-shadow: none;
         }
+        button.sound-toggle {
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.16);
+            box-shadow: none;
+        }
+        .menu-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin: 16px 0 4px;
+        }
+        .menu-option {
+            min-height: 70px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 10px;
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            box-shadow: none;
+        }
+        .menu-option strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .menu-option span {
+            display: block;
+            color: #cfc6e8;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .menu-option.off {
+            opacity: 0.62;
+            background: rgba(255,255,255,0.035);
+        }
+        .menu-info {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 14px;
+            text-align: left;
+        }
+        .menu-info div {
+            border-radius: 12px;
+            padding: 10px;
+            background: rgba(0,0,0,0.18);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .menu-info strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #ffe66d;
+        }
+        .menu-info span {
+            color: #cfc6e8;
+            font-size: 12px;
+            font-weight: 750;
+            line-height: 1.35;
+        }
         .hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
         .hud-card {
             min-height: 74px;
@@ -3783,6 +3844,8 @@ elif menu.endswith("Minispiele"):
             .hud { grid-template-columns: 1fr; }
             .scores li { align-items: flex-start; flex-direction: column; }
             .menu-card h1 { font-size: 34px; }
+            .menu-options,
+            .menu-info { grid-template-columns: 1fr; }
         }
     </style>
     </head>
@@ -3797,6 +3860,16 @@ elif menu.endswith("Minispiele"):
                     <div class="actions">
                         <button id="startBtn">Spiel starten</button>
                         <button id="scoreBtn" class="secondary">Score speichern</button>
+                    </div>
+                    <div class="menu-options">
+                        <button id="soundBtn" class="menu-option"><strong>Sound</strong><span>An</span></button>
+                        <button id="musicBtn" class="menu-option"><strong>Musik</strong><span>Cozy Loop</span></button>
+                        <button id="sfxBtn" class="menu-option"><strong>SFX</strong><span>Plings</span></button>
+                    </div>
+                    <div class="menu-info">
+                        <div><strong>Steuerung</strong><span>Space, Enter oder Klick.</span></div>
+                        <div><strong>Musik</strong><span>Startet erst nach Spielstart.</span></div>
+                        <div><strong>Ziel</strong><span>Timing halten, Zäune überspringen.</span></div>
                     </div>
                 </div>
             </div>
@@ -3828,6 +3901,9 @@ elif menu.endswith("Minispiele"):
     const menuText = document.getElementById("menuText");
     const startBtn = document.getElementById("startBtn");
     const scoreBtn = document.getElementById("scoreBtn");
+    const soundBtn = document.getElementById("soundBtn");
+    const musicBtn = document.getElementById("musicBtn");
+    const sfxBtn = document.getElementById("sfxBtn");
     const scoreValue = document.getElementById("scoreValue");
     const speedValue = document.getElementById("speedValue");
     const levelValue = document.getElementById("levelValue");
@@ -3849,6 +3925,126 @@ elif menu.endswith("Minispiele"):
     let frame = 0;
     let savedCurrentScore = false;
     let currentScoreFilter = "all";
+    let audioCtx = null;
+    let musicTimer = null;
+    let musicStep = 0;
+    let soundEnabled = true;
+    let musicEnabled = true;
+    let sfxEnabled = true;
+    const melody = [
+        {note: 659.25, bass: 164.81},
+        {note: 783.99, bass: 164.81},
+        {note: 880.00, bass: 220.00},
+        {note: 783.99, bass: 220.00},
+        {note: 659.25, bass: 196.00},
+        {note: 587.33, bass: 196.00},
+        {note: 659.25, bass: 246.94},
+        {note: 493.88, bass: 246.94}
+    ];
+
+    function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+    }
+
+    function playTone(freq, duration, type, volume, when = 0, pan = 0) {
+        const ctxAudio = ensureAudio();
+        if (!ctxAudio) return;
+        const start = ctxAudio.currentTime + when;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+        const panner = ctxAudio.createStereoPanner ? ctxAudio.createStereoPanner() : null;
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        if (panner) {
+            panner.pan.setValueAtTime(pan, start);
+            osc.connect(gain).connect(panner).connect(ctxAudio.destination);
+        } else {
+            osc.connect(gain).connect(ctxAudio.destination);
+        }
+        osc.start(start);
+        osc.stop(start + duration + 0.04);
+    }
+
+    function playNoise(duration, volume) {
+        const ctxAudio = ensureAudio();
+        if (!ctxAudio) return;
+        const buffer = ctxAudio.createBuffer(1, ctxAudio.sampleRate * duration, ctxAudio.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        }
+        const source = ctxAudio.createBufferSource();
+        const gain = ctxAudio.createGain();
+        source.buffer = buffer;
+        gain.gain.setValueAtTime(volume, ctxAudio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctxAudio.currentTime + duration);
+        source.connect(gain).connect(ctxAudio.destination);
+        source.start();
+    }
+
+    function playJumpSound() {
+        if (!sfxEnabled) return;
+        playTone(520, 0.09, "triangle", 0.08, 0, -0.15);
+        playTone(760, 0.13, "sine", 0.055, 0.035, 0.12);
+    }
+
+    function playScoreSound() {
+        if (!sfxEnabled) return;
+        playTone(880, 0.08, "sine", 0.08, 0, -0.1);
+        playTone(1174.66, 0.12, "sine", 0.07, 0.065, 0.15);
+    }
+
+    function playCrashSound() {
+        if (!sfxEnabled) return;
+        playTone(180, 0.18, "sawtooth", 0.08, 0, 0);
+        playNoise(0.18, 0.05);
+    }
+
+    function playButtonSound() {
+        if (!sfxEnabled) return;
+        playTone(659.25, 0.06, "triangle", 0.055);
+    }
+
+    function musicTick() {
+        if (!soundEnabled || !musicEnabled || state !== "playing") return;
+        const step = melody[musicStep % melody.length];
+        const lift = Math.min(level - 1, 8) * 8;
+        playTone(step.bass, 0.22, "sine", 0.032, 0, -0.25);
+        playTone(step.note + lift, 0.18, "triangle", 0.035, 0.02, 0.18);
+        if (musicStep % 2 === 0) playTone(step.note * 1.5 + lift, 0.10, "sine", 0.018, 0.09, 0.35);
+        musicStep++;
+    }
+
+    function startMusic() {
+        if (!soundEnabled || !musicEnabled) return;
+        ensureAudio();
+        stopMusic();
+        musicStep = 0;
+        musicTick();
+        musicTimer = setInterval(musicTick, 360);
+    }
+
+    function stopMusic() {
+        if (musicTimer) clearInterval(musicTimer);
+        musicTimer = null;
+    }
+
+    function updateSoundButton() {
+        soundBtn.querySelector("span").textContent = soundEnabled ? "An" : "Aus";
+        musicBtn.querySelector("span").textContent = musicEnabled ? "Cozy Loop" : "Aus";
+        sfxBtn.querySelector("span").textContent = sfxEnabled ? "Plings" : "Aus";
+        soundBtn.classList.toggle("off", !soundEnabled);
+        musicBtn.classList.toggle("off", !musicEnabled || !soundEnabled);
+        sfxBtn.classList.toggle("off", !sfxEnabled || !soundEnabled);
+    }
 
     function showMenu(title, text, primaryText) {
         menuTitle.textContent = title;
@@ -3869,6 +4065,7 @@ elif menu.endswith("Minispiele"):
         }
         if (state === "gameover") return;
         if (!chicken.jumping) {
+            playJumpSound();
             chicken.vy = -16.5;
             chicken.jumping = true;
             for (let i = 0; i < 10; i++) {
@@ -3886,8 +4083,30 @@ elif menu.endswith("Minispiele"):
         }
     }
 
-    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("click", function() {
+        playButtonSound();
+        startGame();
+    });
     scoreBtn.addEventListener("click", saveScore);
+    soundBtn.addEventListener("click", function() {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) stopMusic();
+        else if (state === "playing") startMusic();
+        updateSoundButton();
+        playButtonSound();
+    });
+    musicBtn.addEventListener("click", function() {
+        musicEnabled = !musicEnabled;
+        if (!musicEnabled) stopMusic();
+        else if (state === "playing") startMusic();
+        playButtonSound();
+        updateSoundButton();
+    });
+    sfxBtn.addEventListener("click", function() {
+        sfxEnabled = !sfxEnabled;
+        playButtonSound();
+        updateSoundButton();
+    });
     canvas.addEventListener("click", jump);
     document.querySelectorAll("[data-score-filter]").forEach(button => {
         button.addEventListener("click", async function() {
@@ -4123,6 +4342,7 @@ elif menu.endswith("Minispiele"):
     }
 
     function startGame() {
+        ensureAudio();
         chicken.y = groundY - chicken.h - 6;
         chicken.vy = 0;
         chicken.jumping = false;
@@ -4136,10 +4356,13 @@ elif menu.endswith("Minispiele"):
         savedCurrentScore = false;
         state = "playing";
         hideMenu();
+        startMusic();
     }
 
     function endGame() {
         state = "gameover";
+        stopMusic();
+        playCrashSound();
         showMenu("Game Over", "Score: " + score + " | Level: " + level, "Nochmal spielen");
     }
 
@@ -4251,6 +4474,7 @@ elif menu.endswith("Minispiele"):
                 if (!fence.passed && fence.x + fence.w < chicken.x) {
                     fence.passed = true;
                     score++;
+                    playScoreSound();
                     speed += 0.23;
                     level = 1 + Math.floor(score / 5);
                     scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
@@ -4282,6 +4506,7 @@ elif menu.endswith("Minispiele"):
     }
 
     renderScores();
+    updateSoundButton();
     showMenu("Chicken Jump", "Spring ueber Zaeune, sammle Gehirnzellen und halte so lange wie moeglich durch.", "Spiel starten");
     loop();
     </script>
