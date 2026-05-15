@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import altair as alt
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
@@ -757,20 +758,24 @@ PUNISHMENT_WHEEL_CATEGORIES = [
     "Idee Bestrafungsrad",
 ]
 
+MARKET_SPREAD = 0.12
+MARKET_DAILY_BUY_LIMIT = 25
+MARKET_DAILY_SELL_LIMIT = 25
+
 MARKET_ITEMS = [
-    {"key": "weizen", "name": "Weizen", "emoji": "🌾", "base": 90, "volatility": 0.18},
-    {"key": "mond", "name": "Mond", "emoji": "🌙", "base": 1800, "volatility": 0.28},
-    {"key": "stein", "name": "Stein", "emoji": "🪨", "base": 45, "volatility": 0.12},
-    {"key": "glitzer", "name": "Glitzer", "emoji": "✨", "base": 220, "volatility": 0.22},
-    {"key": "drachenEi", "name": "Drachen-Ei", "emoji": "🥚", "base": 950, "volatility": 0.26},
-    {"key": "blitz", "name": "Blitz", "emoji": "⚡", "base": 640, "volatility": 0.30},
-    {"key": "kristall", "name": "Kristall", "emoji": "💎", "base": 1200, "volatility": 0.24},
-    {"key": "pizza", "name": "Pizza-Aktie", "emoji": "🍕", "base": 310, "volatility": 0.20},
-    {"key": "portal", "name": "Portalstaub", "emoji": "🌀", "base": 760, "volatility": 0.27},
-    {"key": "krone", "name": "Krone", "emoji": "👑", "base": 2100, "volatility": 0.25},
-    {"key": "frosch", "name": "Froschcoin", "emoji": "🐸", "base": 130, "volatility": 0.35},
-    {"key": "stern", "name": "Sternsplitter", "emoji": "🌟", "base": 520, "volatility": 0.19},
-    {"key": "kaffee", "name": "Kaffee-Future", "emoji": "☕", "base": 270, "volatility": 0.21},
+    {"key": "weizen", "name": "Weizen", "emoji": "🌾", "base": 90, "volatility": 0.07},
+    {"key": "mond", "name": "Mond", "emoji": "🌙", "base": 1800, "volatility": 0.10},
+    {"key": "stein", "name": "Stein", "emoji": "🪨", "base": 45, "volatility": 0.05},
+    {"key": "glitzer", "name": "Glitzer", "emoji": "✨", "base": 220, "volatility": 0.08},
+    {"key": "drachenEi", "name": "Drachen-Ei", "emoji": "🥚", "base": 950, "volatility": 0.09},
+    {"key": "blitz", "name": "Blitz", "emoji": "⚡", "base": 640, "volatility": 0.10},
+    {"key": "kristall", "name": "Kristall", "emoji": "💎", "base": 1200, "volatility": 0.08},
+    {"key": "pizza", "name": "Pizza-Aktie", "emoji": "🍕", "base": 310, "volatility": 0.07},
+    {"key": "portal", "name": "Portalstaub", "emoji": "🌀", "base": 760, "volatility": 0.09},
+    {"key": "krone", "name": "Krone", "emoji": "👑", "base": 2100, "volatility": 0.08},
+    {"key": "frosch", "name": "Froschcoin", "emoji": "🐸", "base": 130, "volatility": 0.11},
+    {"key": "stern", "name": "Sternsplitter", "emoji": "🌟", "base": 520, "volatility": 0.07},
+    {"key": "kaffee", "name": "Kaffee-Future", "emoji": "☕", "base": 270, "volatility": 0.07},
 ]
 
 
@@ -843,10 +848,30 @@ def get_market_price(item_key, target_date=None):
     day_number = target_date.toordinal()
     seed = int(hashlib.sha256(f"{item_key}:{target_date.isoformat()}".encode("utf-8")).hexdigest()[:8], 16)
     daily_wave = math.sin(day_number / 2.7 + seed % 31) * item["volatility"]
-    chaos = ((seed % 1000) / 1000 - 0.5) * item["volatility"] * 1.7
-    trend = math.sin(day_number / 13 + len(item_key)) * 0.08
-    multiplier = max(0.35, 1 + daily_wave + chaos + trend)
+    chaos = ((seed % 1000) / 1000 - 0.5) * item["volatility"] * 0.8
+    trend = math.sin(day_number / 17 + len(item_key)) * 0.025
+    multiplier = max(0.70, min(1.35, 1 + daily_wave + chaos + trend))
     return max(1, int(round(item["base"] * multiplier)))
+
+
+def get_market_buy_price(item_key):
+    return int(math.ceil(get_market_price(item_key) * (1 + MARKET_SPREAD)))
+
+
+def get_market_sell_price(item_key):
+    return max(1, int(math.floor(get_market_price(item_key) * (1 - MARKET_SPREAD))))
+
+
+def get_market_daily_trade_amount(username, item_key, action):
+    today = datetime.now(ZoneInfo("Europe/Berlin")).date().isoformat()
+    trades = api_get_optional(
+        "market_trades"
+        f"?select=quantity&username=eq.{urllib.parse.quote(username)}"
+        f"&item_key=eq.{urllib.parse.quote(item_key)}"
+        f"&action=eq.{urllib.parse.quote(action)}"
+        f"&created_at=gte.{today}T00:00:00%2B00:00"
+    )
+    return sum(int(trade.get("quantity") or 0) for trade in trades)
 
 
 def get_market_history(item_key, days=30):
@@ -854,7 +879,7 @@ def get_market_history(item_key, days=30):
     return [
         {
             "Datum": today - timedelta(days=offset),
-            "Preis": get_market_price(item_key, today - timedelta(days=offset)),
+            "Preis": max(1, int(math.floor(get_market_price(item_key, today - timedelta(days=offset)) * (1 - MARKET_SPREAD)))),
         }
         for offset in range(days - 1, -1, -1)
     ]
@@ -929,7 +954,12 @@ def buy_market_item(username, item_key, quantity):
     if not user or not item or quantity <= 0:
         return False, "Ungültiger Kauf."
 
-    price = get_market_price(item_key)
+    already_bought = get_market_daily_trade_amount(username, item_key, "buy")
+    if already_bought + quantity > MARKET_DAILY_BUY_LIMIT:
+        remaining = max(0, MARKET_DAILY_BUY_LIMIT - already_bought)
+        return False, f"Tageslimit erreicht. Du kannst heute noch {remaining}x davon kaufen."
+
+    price = get_market_buy_price(item_key)
     total = price * quantity
     chickens = int(user.get("chickens") or 0)
     if chickens < total:
@@ -959,7 +989,12 @@ def sell_market_item(username, item_key, quantity):
     if current_qty < quantity:
         return False, "Du besitzt nicht genug davon."
 
-    price = get_market_price(item_key)
+    already_sold = get_market_daily_trade_amount(username, item_key, "sell")
+    if already_sold + quantity > MARKET_DAILY_SELL_LIMIT:
+        remaining = max(0, MARKET_DAILY_SELL_LIMIT - already_sold)
+        return False, f"Tageslimit erreicht. Du kannst heute noch {remaining}x davon verkaufen."
+
+    price = get_market_sell_price(item_key)
     total = price * quantity
     if not update_user(username, int(user.get("chickens") or 0) + total, int(user.get("braincells") or 0)):
         return False, "Chickens konnten nicht gutgeschrieben werden."
@@ -2601,7 +2636,7 @@ elif menu == "👤 Profil":
                 if not item:
                     continue
                 quantity = int(row.get("quantity") or 0)
-                price = get_market_price(item["key"])
+                price = get_market_sell_price(item["key"])
                 holding_html += (
                     '<div class="holding-card">'
                     f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
@@ -2878,25 +2913,38 @@ elif menu == "🛒 Shop":
         )
         selected_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(selected_item_name)]
         history = get_market_history(selected_item["key"], days=30)
-        chart_df = pd.DataFrame(history).set_index("Datum")
-        st.line_chart(chart_df, use_container_width=True)
+        chart_df = pd.DataFrame(history)
+        chart = (
+            alt.Chart(chart_df)
+            .mark_line(point=True, color="#ff54a0")
+            .encode(
+                x=alt.X("Datum:T", title="Datum", scale=alt.Scale(nice=False, zero=False)),
+                y=alt.Y("Preis:Q", title="Verkaufspreis", scale=alt.Scale(zero=False)),
+                tooltip=["Datum:T", "Preis:Q"],
+            )
+            .properties(height=320)
+            .interactive(False)
+        )
+        st.altair_chart(chart, use_container_width=True)
 
     with st.expander("Trading Shop", expanded=False):
         st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
 
         market_cards = ""
         for item in MARKET_ITEMS:
-            today_price = get_market_price(item["key"])
-            yesterday_price = get_market_price(item["key"], datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1))
-            delta = today_price - yesterday_price
+            sell_price = get_market_sell_price(item["key"])
+            buy_price = get_market_buy_price(item["key"])
+            yesterday_price = int(math.floor(get_market_price(item["key"], datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1)) * (1 - MARKET_SPREAD)))
+            delta = sell_price - yesterday_price
             delta_class = "up" if delta >= 0 else "down"
             sign = "+" if delta >= 0 else ""
             quantity = get_market_quantity(logged_in_username, item["key"]) if logged_in_username else 0
             market_cards += (
                 '<div class="market-card">'
                 f'<strong>{item["emoji"]} {html.escape(item["name"])}</strong>'
-                f'<div class="market-price">{today_price} 🥚</div>'
-                f'<div class="market-delta {delta_class}">{sign}{delta} heute</div>'
+                f'<div class="market-price">{sell_price} 🥚</div>'
+                f'<div class="market-delta {delta_class}">{sign}{delta} Verkaufspreis heute</div>'
+                f'<div class="admin-muted">Kaufen: {buy_price} 🥚 · Verkaufen: {sell_price} 🥚</div>'
                 f'<div class="admin-muted">Du besitzt: {quantity}</div>'
                 '</div>'
             )
@@ -2908,8 +2956,8 @@ elif menu == "🛒 Shop":
                 buy_label = st.selectbox("Kaufen", [f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS], key="market_buy_item")
                 buy_item = MARKET_ITEMS[[f'{item["emoji"]} {item["name"]}' for item in MARKET_ITEMS].index(buy_label)]
                 buy_quantity = st.number_input("Anzahl kaufen", min_value=1, max_value=999, step=1)
-                buy_total = get_market_price(buy_item["key"]) * int(buy_quantity)
-                st.caption(f"Kosten: {buy_total} Chickens")
+                buy_total = get_market_buy_price(buy_item["key"]) * int(buy_quantity)
+                st.caption(f"Kosten: {buy_total} Chickens · Tageslimit: {MARKET_DAILY_BUY_LIMIT} pro Item")
                 if st.form_submit_button("Kaufen"):
                     success, message = buy_market_item(logged_in_username, buy_item["key"], buy_quantity)
                     if success:
@@ -2925,8 +2973,8 @@ elif menu == "🛒 Shop":
                     sell_options = []
                     for row in inventory:
                         item = get_market_item(row.get("item_key"))
-                        if item:
-                            sell_options.append((item, int(row.get("quantity") or 0)))
+                    if item:
+                        sell_options.append((item, int(row.get("quantity") or 0)))
                     sell_label = st.selectbox(
                         "Verkaufen",
                         [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options],
@@ -2935,8 +2983,8 @@ elif menu == "🛒 Shop":
                     selected_index = [f'{item["emoji"]} {item["name"]} ({qty}x)' for item, qty in sell_options].index(sell_label)
                     sell_item, max_qty = sell_options[selected_index]
                     sell_quantity = st.number_input("Anzahl verkaufen", min_value=1, max_value=max_qty, step=1)
-                    sell_total = get_market_price(sell_item["key"]) * int(sell_quantity)
-                    st.caption(f"Erlös: {sell_total} Chickens")
+                    sell_total = get_market_sell_price(sell_item["key"]) * int(sell_quantity)
+                    st.caption(f"Erlös: {sell_total} Chickens · Tageslimit: {MARKET_DAILY_SELL_LIMIT} pro Item")
                     submit_sell = st.form_submit_button("Verkaufen")
                     if submit_sell:
                         success, message = sell_market_item(logged_in_username, sell_item["key"], sell_quantity)
