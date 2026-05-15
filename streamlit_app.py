@@ -2204,6 +2204,260 @@ iframe {
     border-radius: 20px;
 }
 
+/* Clean dashboard refresh */
+.stApp {
+    background: linear-gradient(180deg, #101018 0%, #15101f 54%, #0c0b12 100%);
+    color: #f7f4ff;
+    animation: none;
+}
+
+.block-container {
+    max-width: 1180px;
+    padding-top: 1rem;
+}
+
+h1 {
+    font-size: clamp(34px, 5vw, 56px) !important;
+    line-height: 1.02;
+    margin: 18px 0 18px !important;
+    text-shadow: none;
+}
+
+h1::after {
+    margin-top: 8px;
+    color: #a9a0b8;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+h2, h3 {
+    letter-spacing: 0;
+}
+
+p, label, [data-testid="stMarkdownContainer"] {
+    letter-spacing: 0;
+}
+
+.topbar {
+    min-height: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    margin: 0 0 10px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.topbar-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.topbar-brand strong {
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.topbar-brand span {
+    color: #a9a0b8;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.topbar-metrics {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.topbar-pill {
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: #e9faff;
+    background: rgba(116, 199, 236, 0.10);
+    border: 1px solid rgba(116, 199, 236, 0.20);
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.card,
+.metric-card,
+.reward-card,
+.event-card,
+.profile-card,
+.podium-card,
+.arcade-card,
+.profile-hero,
+.member-card,
+.profile-side-panel,
+.admin-panel,
+.daily-card,
+.activity-card,
+.home-action-card,
+.achievement-card,
+.score-card,
+.market-card,
+.holding-card,
+.profile-edit-wrap,
+.admin-hero,
+.home-spotlight {
+    border-radius: 8px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.card:hover,
+.metric-card:hover,
+.reward-card:hover,
+.event-card:hover,
+.profile-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(116,199,236,0.34);
+}
+
+.section-kicker {
+    color: #74c7ec;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+}
+
+.home-spotlight::after,
+.profile-showcase::before {
+    display: none;
+}
+
+.home-spotlight h2,
+.profile-big-name {
+    text-shadow: none;
+}
+
+.home-spotlight,
+.daily-card,
+.activity-card,
+.profile-showcase,
+.admin-hero {
+    background: rgba(255,255,255,0.05);
+}
+
+.home-action-card,
+.score-card,
+.achievement-card,
+.market-card,
+.holding-card,
+.profile-stat,
+.admin-stat {
+    background: rgba(10,12,18,0.72);
+}
+
+.reward-card {
+    min-height: 150px;
+}
+
+.market-price,
+.podium-score,
+.member-favorite,
+.score-card span,
+.home-action-card span {
+    color: #74c7ec;
+}
+
+.daily-streak,
+.profile-chip,
+.member-rank-pill,
+.profile-rank-badge {
+    border-radius: 999px;
+    background: rgba(166, 227, 161, 0.10);
+    border: 1px solid rgba(166, 227, 161, 0.22);
+    color: #d9ffdc;
+}
+
+[data-testid="stHorizontalBlock"] > div:has(.stButton) .stButton > button {
+    min-height: 40px;
+}
+
+.stButton > button,
+.stFormSubmitButton > button {
+    min-height: 40px;
+    border-radius: 8px;
+    background: #74c7ec;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #071016;
+    box-shadow: none;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.stButton > button:hover,
+.stFormSubmitButton > button:hover {
+    transform: translateY(-1px);
+    background: #89dceb;
+    box-shadow: none;
+}
+
+[data-testid="stPopover"] button,
+[data-testid="stExpander"] summary {
+    border-radius: 8px !important;
+}
+
+[data-testid="stExpander"] {
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.025);
+    overflow: hidden;
+}
+
+[data-testid="stExpander"] summary {
+    background: rgba(255,255,255,0.045);
+}
+
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-baseweb="select"] > div,
+textarea {
+    border-radius: 8px !important;
+    background: rgba(255,255,255,0.065) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+
+.stForm {
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+}
+
+.market-grid,
+.market-holdings,
+.achievement-grid,
+.score-strip,
+.home-actions,
+.member-grid {
+    gap: 12px;
+}
+
+iframe {
+    border-radius: 8px;
+}
+
+@media (max-width: 780px) {
+    .topbar {
+        grid-template-columns: 1fr;
+    }
+
+    .topbar-metrics {
+        justify-content: flex-start;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -2241,7 +2495,22 @@ if "app_menu" not in st.session_state:
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "🏠 Home"
 
-st.markdown('<div class="topbar"></div>', unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <div class="topbar">
+        <div class="topbar-brand">
+            <strong>Gehirnzone</strong>
+            <span>Community Hub für Rewards, Games und Rankings</span>
+        </div>
+        <div class="topbar-metrics">
+            <span class="topbar-pill">{total_users} Viewer</span>
+            <span class="topbar-pill">{total_chickens} Chickens</span>
+            <span class="topbar-pill">{total_braincells} Gehirnzellen</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 _, account_col = st.columns([10, 1])
 
 with account_col:
