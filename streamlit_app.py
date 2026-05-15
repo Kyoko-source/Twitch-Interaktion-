@@ -4168,6 +4168,7 @@ elif menu.endswith("Minispiele"):
     }
 
     function roundedRect(x, y, w, h, r) {
+        r = Math.max(0, Math.min(r, w / 2, h / 2));
         ctx.beginPath();
         ctx.moveTo(x + r, y);
         ctx.lineTo(x + w - r, y);
