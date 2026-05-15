@@ -2869,7 +2869,7 @@ elif menu == "🛒 Shop":
                                 st.error("Nicht genug Chickens")
 
     with st.expander("Kurs", expanded=False):
-        st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
+        st.markdown("Täglicher Kursverlauf der Trading-Items. Kaufen und verkaufen findest du im Dropdown **Trading Shop**.")
 
         selected_item_name = st.selectbox(
             "Gegenstand auswählen",
@@ -2880,6 +2880,9 @@ elif menu == "🛒 Shop":
         history = get_market_history(selected_item["key"], days=30)
         chart_df = pd.DataFrame(history).set_index("Datum")
         st.line_chart(chart_df, use_container_width=True)
+
+    with st.expander("Trading Shop", expanded=False):
+        st.markdown("Kaufe Marktgegenstände mit Chickens, halte sie im Profil und verkaufe sie, wenn der Kurs stimmt.")
 
         market_cards = ""
         for item in MARKET_ITEMS:
