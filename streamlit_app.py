@@ -1126,6 +1126,7 @@ def render_dnd_page():
 
     if active_lobby:
         players = get_dnd_players(active_lobby_id)
+        creatures = get_dnd_creatures(active_lobby_id)
         current_player = next(
             (player for player in players if str(player.get("username")) == str(logged_in_username)),
             None,
@@ -1163,6 +1164,27 @@ def render_dnd_page():
                         else:
                             st.error("Szene konnte nicht gespeichert werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
 
+                st.markdown("##### Kreatur erstellen")
+                with st.form("dnd_create_creature_form"):
+                    creature_cols = st.columns([1.2, 1, 0.7, 0.7, 0.7])
+                    with creature_cols[0]:
+                        creature_name = st.text_input("Name", max_chars=80, placeholder="Goblin-Hauptmann")
+                    with creature_cols[1]:
+                        creature_type = st.text_input("Typ", max_chars=80, placeholder="Humanoid, Untoter, Drache...")
+                    with creature_cols[2]:
+                        creature_hp = st.number_input("HP", min_value=1, max_value=999, value=12, step=1)
+                    with creature_cols[3]:
+                        creature_ac = st.number_input("AC", min_value=1, max_value=40, value=13, step=1)
+                    with creature_cols[4]:
+                        creature_init = st.number_input("Initiative", min_value=-20, max_value=30, value=0, step=1)
+                    creature_notes = st.text_area("Notizen/Faehigkeiten", max_chars=500, height=90, placeholder="Angriff, Besonderheiten, Verhalten...")
+                    if st.form_submit_button("Kreatur hinzufuegen"):
+                        if create_dnd_creature(active_lobby_id, creature_name, creature_type, creature_hp, creature_ac, creature_init, creature_notes):
+                            st.success("Kreatur erstellt.")
+                            st.rerun()
+                        else:
+                            st.error("Kreatur konnte nicht erstellt werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+
         party_html = ""
         for player in players:
             max_hp = max(1, int(player.get("max_hp") or 10))
@@ -1172,7 +1194,10 @@ def render_dnd_page():
             initiative = int(player.get("initiative") or 0)
             str_mod = format_modifier(ability_modifier(int(player.get("strength") or 10)))
             dex_mod = format_modifier(ability_modifier(int(player.get("dexterity") or 10)))
+            con_mod = format_modifier(ability_modifier(int(player.get("constitution") or 10)))
+            int_mod = format_modifier(ability_modifier(int(player.get("intelligence") or 10)))
             wis_mod = format_modifier(ability_modifier(int(player.get("wisdom") or 10)))
+            cha_mod = format_modifier(ability_modifier(int(player.get("charisma") or 10)))
             party_html += (
                 '<div class="dnd-panel dnd-character-card">'
                 f'<div class="dnd-pill">{html.escape(str(player.get("character_class") or "Abenteurer"))}</div>'
@@ -1185,7 +1210,14 @@ def render_dnd_page():
                 '<div class="dnd-stat-row">'
                 f'<div class="dnd-stat"><strong>{str_mod}</strong><span>STR</span></div>'
                 f'<div class="dnd-stat"><strong>{dex_mod}</strong><span>DEX</span></div>'
+                f'<div class="dnd-stat"><strong>{con_mod}</strong><span>CON</span></div>'
+                f'<div class="dnd-stat"><strong>{int_mod}</strong><span>INT</span></div>'
                 f'<div class="dnd-stat"><strong>{wis_mod}</strong><span>WIS</span></div>'
+                f'<div class="dnd-stat"><strong>{cha_mod}</strong><span>CHA</span></div>'
+                '</div>'
+                '<div class="dnd-sheet-notes">'
+                f'<span><b>Inventar:</b> {html.escape(str(player.get("inventory") or "Leer"))}</span>'
+                f'<span><b>Zauber:</b> {html.escape(str(player.get("spells") or "Keine"))}</span>'
                 '</div>'
                 '</div>'
             )
@@ -1193,6 +1225,59 @@ def render_dnd_page():
         if not party_html:
             party_html = '<div class="dnd-panel"><p>Noch keine Party.</p></div>'
         st.markdown(f'<div class="dnd-party-grid">{party_html}</div>', unsafe_allow_html=True)
+
+        if creatures:
+            creature_html = ""
+            for creature in creatures:
+                max_hp = max(1, int(creature.get("max_hp") or 1))
+                current_hp = max(0, int(creature.get("current_hp") or max_hp))
+                hp_percent = min(100, int((current_hp / max_hp) * 100))
+                creature_html += (
+                    '<div class="dnd-panel dnd-creature-card">'
+                    f'<div class="dnd-pill private">{html.escape(str(creature.get("creature_type") or "Kreatur"))}</div>'
+                    f'<h3>{html.escape(str(creature.get("name") or "Kreatur"))}</h3>'
+                    '<div class="profile-progress-track">'
+                    f'<div class="profile-progress-fill" style="width:{hp_percent}%;"></div>'
+                    '</div>'
+                    f'<div class="admin-muted">HP {current_hp}/{max_hp} Â· AC {int(creature.get("armor_class") or 10)} Â· Initiative {int(creature.get("initiative") or 0):+d}</div>'
+                    f'<p>{html.escape(str(creature.get("notes") or ""))}</p>'
+                    '</div>'
+                )
+            st.markdown("#### Kreaturen")
+            st.markdown(f'<div class="dnd-party-grid">{creature_html}</div>', unsafe_allow_html=True)
+
+            if active_lobby.get("owner") == logged_in_username:
+                with st.expander("Kreaturen verwalten"):
+                    for creature in creatures:
+                        creature_id = str(creature.get("id"))
+                        creature_cols = st.columns([1.4, 1, 1])
+                        with creature_cols[0]:
+                            st.markdown(f"**{creature.get('name')}**")
+                            st.caption(f"Max HP {int(creature.get('max_hp') or 1)}")
+                        with creature_cols[1]:
+                            new_hp = st.number_input(
+                                "Aktuelle HP",
+                                min_value=0,
+                                max_value=int(creature.get("max_hp") or 1),
+                                value=int(creature.get("current_hp") or 0),
+                                step=1,
+                                key=f"dnd_creature_hp_{creature_id}",
+                            )
+                            if st.button("HP speichern", key=f"dnd_save_creature_hp_{creature_id}"):
+                                if update_dnd_creature_hp(creature_id, new_hp):
+                                    st.success("Kreatur aktualisiert.")
+                                    st.rerun()
+                                else:
+                                    st.error("Kreatur konnte nicht aktualisiert werden.")
+                        with creature_cols[2]:
+                            st.write("")
+                            st.write("")
+                            if st.button("Entfernen", key=f"dnd_delete_creature_{creature_id}"):
+                                if delete_dnd_creature(creature_id):
+                                    st.success("Kreatur entfernt.")
+                                    st.rerun()
+                                else:
+                                    st.error("Kreatur konnte nicht entfernt werden.")
 
         scene_cols = st.columns(3)
         with scene_cols[0]:
@@ -1620,6 +1705,13 @@ def get_dnd_rolls(lobby_id):
     )
 
 
+@st.cache_data(ttl=20)
+def get_dnd_creatures(lobby_id):
+    return api_get_optional(
+        f"dnd_creatures?select=*&lobby_id=eq.{urllib.parse.quote(str(lobby_id))}&active=eq.true&order=initiative.desc,created_at.asc"
+    )
+
+
 def create_dnd_lobby(name, description, owner, password):
     clean_name = str(name).strip()[:80]
     clean_description = str(description).strip()[:500]
@@ -1659,6 +1751,48 @@ def update_dnd_lobby_notes(lobby_id, scene, quest_log):
         }
     )
     get_dnd_lobbies.clear()
+    return success
+
+
+def create_dnd_creature(lobby_id, name, creature_type, max_hp, armor_class, initiative, notes):
+    clean_name = str(name).strip()[:80]
+    if not clean_name:
+        return None
+
+    created = api_post_optional(
+        "dnd_creatures",
+        {
+            "lobby_id": int(lobby_id),
+            "name": clean_name,
+            "creature_type": str(creature_type).strip()[:80] or "Kreatur",
+            "max_hp": int(max_hp),
+            "current_hp": int(max_hp),
+            "armor_class": int(armor_class),
+            "initiative": int(initiative),
+            "notes": str(notes).strip()[:500],
+            "active": True,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_creatures.clear()
+    return created
+
+
+def update_dnd_creature_hp(creature_id, current_hp):
+    success = api_patch(
+        f"dnd_creatures?id=eq.{urllib.parse.quote(str(creature_id))}",
+        {"current_hp": int(current_hp)}
+    )
+    get_dnd_creatures.clear()
+    return success
+
+
+def delete_dnd_creature(creature_id):
+    success = api_patch(
+        f"dnd_creatures?id=eq.{urllib.parse.quote(str(creature_id))}",
+        {"active": False}
+    )
+    get_dnd_creatures.clear()
     return success
 
 
@@ -3601,7 +3735,7 @@ h1::after {
 
 .dnd-stat-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 8px;
     margin-top: 12px;
 }
@@ -3623,6 +3757,32 @@ h1::after {
     color: #cfc6e8;
     font-size: 12px;
     font-weight: 850;
+}
+
+.dnd-sheet-notes {
+    display: grid;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.dnd-sheet-notes span {
+    color: #eadcff;
+    font-size: 13px;
+    font-weight: 760;
+    line-height: 1.35;
+}
+
+.dnd-creature-card {
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255,84,160,0.18), transparent 28%),
+        linear-gradient(145deg, rgba(39,11,26,0.90), rgba(65,18,45,0.72));
+    border-color: rgba(255,122,154,0.22);
+}
+
+.dnd-creature-card h3 {
+    color: #ffd6df;
 }
 
 .dice-result-stage {
