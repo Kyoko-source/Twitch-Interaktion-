@@ -30,5 +30,6 @@ WITH CHECK (
 CREATE INDEX IF NOT EXISTS chicken_scores_score_created_at_idx
 ON public.chicken_scores (score DESC, created_at ASC);
 
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT SELECT, INSERT ON public.chicken_scores TO anon, authenticated;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;

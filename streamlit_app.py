@@ -5319,14 +5319,18 @@ elif menu.endswith("Minispiele"):
                 })
             });
 
-            if (!response.ok) throw new Error(await response.text());
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || ("HTTP " + response.status));
+            }
 
             savedCurrentScore = true;
             await renderScores();
             showMenu("Score gespeichert", "Dein Score ist jetzt fuer alle sichtbar.", "Nochmal spielen");
         } catch (error) {
             console.error(error);
-            showMenu("Speichern fehlgeschlagen", "Die globale Scoreboard-Tabelle fehlt wahrscheinlich noch in Supabase.", "Nochmal spielen");
+            const message = String(error && error.message ? error.message : error).slice(0, 240);
+            showMenu("Speichern fehlgeschlagen", message || "Supabase hat den Score abgelehnt.", "Nochmal spielen");
         }
     }
 
