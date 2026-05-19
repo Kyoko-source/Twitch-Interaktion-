@@ -3029,18 +3029,30 @@ h1::after {
 }
 
 .stRadio [role="radiogroup"] label {
-    min-height: 36px;
+    min-height: 38px;
     border-radius: 999px;
-    padding: 0 14px;
+    padding: 0 15px;
     border: 1px solid rgba(255,255,255,0.10);
     background: rgba(255,255,255,0.045);
     transition: all 0.18s ease;
     white-space: nowrap;
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .stRadio [role="radiogroup"] label > div:first-child {
     display: none;
+}
+
+.stRadio [role="radiogroup"] label > div:last-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100%;
+    padding: 0;
 }
 
 .stRadio [role="radiogroup"] label:hover {
@@ -3062,9 +3074,15 @@ h1::after {
 .stRadio [role="radiogroup"] label p {
     font-weight: 850;
     font-size: 13px;
-    line-height: 1;
+    line-height: 1.1;
     white-space: nowrap;
     margin: 0;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 .small {
