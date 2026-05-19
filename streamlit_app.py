@@ -943,6 +943,196 @@ def render_creative_gallery(limit=60):
     st.markdown(f'<div class="creative-gallery-grid">{cards}</div>', unsafe_allow_html=True)
 
 
+def get_overlay_param(name):
+    try:
+        value = st.query_params.get(name)
+    except AttributeError:
+        try:
+            value = st.experimental_get_query_params().get(name)
+        except Exception:
+            return ""
+
+    if isinstance(value, list):
+        return str(value[0]) if value else ""
+    return str(value or "")
+
+
+def render_stream_overlay():
+    members = get_members()
+    top_member = max(members, key=lambda member: int(member.get("braincells") or 0), default=None)
+    recent_purchases = get_recent_purchases(1)
+    latest_purchase = recent_purchases[0] if recent_purchases else None
+    top_scores = get_chicken_scores(1)
+    top_score = top_scores[0] if top_scores else None
+    punishment_count = len(get_punishment_wheel_entries())
+    task_count = len(get_task_wheel_entries())
+
+    top_name = str(top_member.get("username") or "Noch niemand") if top_member else "Noch niemand"
+    top_brain = int(top_member.get("braincells") or 0) if top_member else 0
+    purchase_text = "Noch kein Shopkauf"
+    if latest_purchase:
+        purchase_text = f'{latest_purchase.get("username")} kaufte {latest_purchase.get("reward_name")}'
+    score_text = "Noch kein Score"
+    if top_score:
+        score_text = f'{top_score.get("username")} - {int(top_score.get("score") or 0)}'
+
+    components.html(f"""
+    <div class="overlay-shell">
+        <div class="overlay-brand">Gehirnzone Live</div>
+        <div class="overlay-grid">
+            <div class="overlay-card">
+                <span>Top Viewer</span>
+                <strong>{html.escape(top_name)}</strong>
+                <em>{top_brain} Gehirnzellen</em>
+            </div>
+            <div class="overlay-card">
+                <span>Shop</span>
+                <strong>{html.escape(purchase_text)}</strong>
+                <em>Neuester Kauf</em>
+            </div>
+            <div class="overlay-card">
+                <span>Raeder</span>
+                <strong>{punishment_count} / {task_count}</strong>
+                <em>Bestrafungen / Aufgaben</em>
+            </div>
+            <div class="overlay-card">
+                <span>Chicken Jump</span>
+                <strong>{html.escape(score_text)}</strong>
+                <em>Topscore</em>
+            </div>
+        </div>
+    </div>
+    <style>
+    body {{
+        margin:0;
+        background:transparent;
+        overflow:hidden;
+        font-family:Inter,Segoe UI,Arial,sans-serif;
+    }}
+    .overlay-shell {{
+        width:100vw;
+        min-height:100vh;
+        padding:28px;
+        box-sizing:border-box;
+        display:flex;
+        flex-direction:column;
+        justify-content:flex-end;
+        color:white;
+        background:linear-gradient(180deg, transparent 0%, rgba(7,7,13,.10) 45%, rgba(7,7,13,.78) 100%);
+    }}
+    .overlay-brand {{
+        width:max-content;
+        margin-bottom:12px;
+        padding:9px 14px;
+        border-radius:999px;
+        background:linear-gradient(135deg,#ffe66d,#ff54a0);
+        color:#120817;
+        font-weight:950;
+        letter-spacing:.02em;
+        box-shadow:0 14px 40px rgba(0,0,0,.28);
+    }}
+    .overlay-grid {{
+        display:grid;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:12px;
+    }}
+    .overlay-card {{
+        min-height:96px;
+        padding:16px;
+        border-radius:18px;
+        border:1px solid rgba(255,255,255,.18);
+        background:linear-gradient(145deg,rgba(18,9,28,.88),rgba(42,21,58,.76));
+        box-shadow:0 18px 46px rgba(0,0,0,.32);
+    }}
+    .overlay-card span {{
+        display:block;
+        color:#ffdf6e;
+        font-size:12px;
+        font-weight:950;
+        text-transform:uppercase;
+        letter-spacing:.08em;
+    }}
+    .overlay-card strong {{
+        display:block;
+        margin-top:7px;
+        font-size:clamp(18px,2vw,30px);
+        line-height:1.05;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }}
+    .overlay-card em {{
+        display:block;
+        margin-top:8px;
+        color:#d8ccff;
+        font-style:normal;
+        font-weight:800;
+    }}
+    @media (max-width:900px) {{
+        .overlay-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)); }}
+    }}
+    </style>
+    """, height=720)
+
+
+def render_auto_gazette(members, recent_purchases, scores, creative_items):
+    top_member = max(members, key=lambda member: int(member.get("braincells") or 0), default=None)
+    richest_member = max(members, key=lambda member: int(member.get("chickens") or 0), default=None)
+    latest_purchase = recent_purchases[0] if recent_purchases else None
+    top_score = scores[0] if scores else None
+    latest_art = creative_items[0] if creative_items else None
+
+    cards = [
+        (
+            "Top Viewer",
+            str(top_member.get("username") or "Noch niemand") if top_member else "Noch niemand",
+            f'{int(top_member.get("braincells") or 0)} Gehirnzellen' if top_member else "Warte auf den ersten Eintrag",
+        ),
+        (
+            "Chicken Konto",
+            str(richest_member.get("username") or "Noch niemand") if richest_member else "Noch niemand",
+            f'{int(richest_member.get("chickens") or 0)} Chickens' if richest_member else "Noch kein Vermoegen",
+        ),
+        (
+            "Shop-Ticker",
+            str(latest_purchase.get("reward_name") or "Noch kein Kauf") if latest_purchase else "Noch kein Kauf",
+            f'von {latest_purchase.get("username")}' if latest_purchase else "Sobald jemand kauft, steht es hier",
+        ),
+        (
+            "Chicken Jump",
+            f'{top_score.get("username")} - {int(top_score.get("score") or 0)}' if top_score else "Noch kein Score",
+            "Aktueller Topscore" if top_score else "Scoreboard wartet",
+        ),
+        (
+            "Hall of Fame",
+            str(latest_art.get("title") or "Neues Kunstwerk") if latest_art else "Noch kein Bild",
+            f'von {latest_art.get("username")}' if latest_art else "Kreativwand ist bereit",
+        ),
+    ]
+
+    card_html = ""
+    for label, title, detail in cards:
+        card_html += (
+            '<article class="gazette-card">'
+            f'<div class="newspaper-label">{html.escape(label)}</div>'
+            f'<h3>{html.escape(title)}</h3>'
+            f'<p>{html.escape(detail)}</p>'
+            '</article>'
+        )
+
+    st.markdown(
+        '<div class="gazette-live">'
+        '<div>'
+        '<div class="section-kicker">Automatische Ausgabe</div>'
+        '<h2>Stream-Ticker</h2>'
+        '<p>Aktuelle Highlights aus Community, Shop, Minigames und Hall of Fame.</p>'
+        '</div>'
+        f'<div class="gazette-card-grid">{card_html}</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def build_achievements(user, rank_position=None, best_score=None, daily_state=None):
     braincells = int(user.get("braincells") or 0)
     chickens = int(user.get("chickens") or 0)
@@ -1076,6 +1266,14 @@ def delete_news_post(post_id):
     success = api_patch(f"news_posts?id=eq.{post_id}", {"active": False})
     get_news_posts.clear()
     return success
+
+
+@st.cache_data(ttl=45)
+def get_recent_purchases(limit=8):
+    return api_get_optional(
+        "purchases?select=id,username,reward_name,reward_category,status,created_at"
+        f"&order=created_at.desc&limit={int(limit)}"
+    )
 
 
 @st.cache_data(ttl=90)
@@ -2776,6 +2974,55 @@ h1::after {
     margin: 0 0 10px;
 }
 
+.gazette-live {
+    margin: 0 0 24px;
+    padding: 22px;
+    border-radius: 12px;
+    background: #f7f0df;
+    color: #161016;
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.24);
+}
+
+.gazette-live h2 {
+    margin: 4px 0 8px;
+    color: #161016;
+    font-family: Georgia, serif;
+}
+
+.gazette-live p {
+    color: #403545;
+    font-weight: 760;
+}
+
+.gazette-card-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.gazette-card {
+    min-height: 132px;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(22,16,22,0.16);
+    background: rgba(255,255,255,0.54);
+}
+
+.gazette-card h3 {
+    margin: 8px 0 8px;
+    color: #161016;
+    font-size: 18px;
+    line-height: 1.1;
+    font-family: Georgia, serif;
+}
+
+.gazette-card p {
+    margin: 0;
+    font-size: 13px;
+}
+
 .shop-category-title {
     margin: 24px 0 12px;
     color: #ff7ad9;
@@ -3013,6 +3260,7 @@ h1::after {
     .creative-shell,
     .creative-gallery-grid,
     .achievement-grid,
+    .gazette-card-grid,
     .score-strip,
     .newspaper-grid,
     .wheel-shell,
@@ -3202,6 +3450,10 @@ total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty els
 total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
 
 handle_twitch_callback()
+
+if get_overlay_param("overlay") == "stream":
+    render_stream_overlay()
+    st.stop()
 
 logged_in_username = get_logged_in_username()
 twitch_display_name = get_logged_in_display_name()
@@ -3767,6 +4019,12 @@ elif menu == "📰 News":
     st.markdown("## News")
 
     posts = get_news_posts()
+    render_auto_gazette(
+        get_members(),
+        get_recent_purchases(6),
+        get_chicken_scores(5),
+        get_creative_gallery(3),
+    )
 
     if not posts:
         st.info("Noch keine News vorhanden. Im Admin-Bereich kannst du die erste Ausgabe erstellen.")
@@ -6005,6 +6263,12 @@ elif menu == "🔐 Admin":
             left_col, right_col = st.columns([1.2, 0.8])
 
             with left_col:
+                st.markdown("""
+                <div class="admin-panel">
+                    <h3>OBS Overlay</h3>
+                    <p class="admin-muted">Fuege an deine App-URL <b>?overlay=stream</b> an und nutze diese URL als Browser Source in OBS.</p>
+                </div>
+                """, unsafe_allow_html=True)
                 if top_members:
                     top_members_html = ""
                     for index, member in enumerate(top_members, start=1):
