@@ -920,6 +920,29 @@ def delete_creative_art(art_id):
     return success
 
 
+def render_creative_gallery(limit=60):
+    gallery_items = get_creative_gallery(limit)
+    if not gallery_items:
+        st.info("Noch keine Bilder in der Hall of Fame.")
+        return
+
+    cards = ""
+    for item in gallery_items:
+        title = html.escape(str(item.get("title") or "Ohne Titel"))
+        username = html.escape(str(item.get("username") or "Unbekannt"))
+        created_at = html.escape(str(item.get("created_at") or ""))
+        image_data = html.escape(str(item.get("image_data") or ""))
+        cards += (
+            '<article class="creative-art-card">'
+            f'<img src="{image_data}" alt="{title}">'
+            f'<h3>{title}</h3>'
+            f'<span>von {username}</span>'
+            f'<span>{created_at}</span>'
+            '</article>'
+        )
+    st.markdown(f'<div class="creative-gallery-grid">{cards}</div>', unsafe_allow_html=True)
+
+
 def build_achievements(user, rank_position=None, best_score=None, daily_state=None):
     braincells = int(user.get("braincells") or 0)
     chickens = int(user.get("chickens") or 0)
@@ -3054,6 +3077,7 @@ MAIN_MENU_OPTIONS = [
     "🏆 Rangliste",
     "⚡ Events",
     "🎮 Minispiele",
+    "🏛️ Hall of Fame",
 ]
 
 if "app_menu" not in st.session_state:
@@ -4212,25 +4236,21 @@ elif menu == "🎨 Kreativwand":
     logged_in_username = get_logged_in_username()
 
     st.markdown('<div class="section-kicker">Kreativwand</div>', unsafe_allow_html=True)
-    st.markdown("## Leinwand & Hall of Fame")
+    st.markdown("## Leinwand")
 
-    draw_tab, gallery_tab = st.tabs(["Malen", "Hall of Fame"])
-
-    with draw_tab:
-        if not logged_in_username:
-            st.warning("Bitte melde dich zuerst an, um ein Bild zu veroeffentlichen.")
-            if st.button("Zum Login", key="creative_login_cta", use_container_width=True):
-                st.session_state["app_menu"] = "🔑 Login"
-                st.rerun()
-        elif st_canvas is None:
-            st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den naechsten Deploy oder pruefe requirements.txt.")
+    if not logged_in_username:
+        st.warning("Bitte melde dich zuerst an, um ein Bild zu veroeffentlichen.")
+        if st.button("Zum Login", key="creative_login_cta", use_container_width=True):
+            st.session_state["app_menu"] = "🔑 Login"
+            st.rerun()
+    elif st_canvas is None:
+        st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den naechsten Deploy oder pruefe requirements.txt.")
+    else:
+        existing_art = get_user_creative_art(logged_in_username)
+        if existing_art:
+            st.info("Du hast bereits ein Bild in der Hall of Fame. Pro Profil ist nur ein Bild erlaubt.")
+            st.image(existing_art.get("image_data"), caption=str(existing_art.get("title") or "Ohne Titel"))
         else:
-            existing_art = get_user_creative_art(logged_in_username)
-            if existing_art:
-                st.info("Du hast bereits ein Bild in der Hall of Fame. Pro Profil ist nur ein Bild erlaubt.")
-                st.image(existing_art.get("image_data"), caption=str(existing_art.get("title") or "Ohne Titel"))
-                st.stop()
-
             st.markdown("""
             <div class="creative-shell">
                 <div class="creative-panel">
@@ -4284,26 +4304,11 @@ elif menu == "🎨 Kreativwand":
                     else:
                         st.error(message)
 
-    with gallery_tab:
-        gallery_items = get_creative_gallery(60)
-        if not gallery_items:
-            st.info("Noch keine Bilder in der Hall of Fame.")
-        else:
-            cards = ""
-            for item in gallery_items:
-                title = html.escape(str(item.get("title") or "Ohne Titel"))
-                username = html.escape(str(item.get("username") or "Unbekannt"))
-                created_at = html.escape(str(item.get("created_at") or ""))
-                image_data = html.escape(str(item.get("image_data") or ""))
-                cards += (
-                    '<article class="creative-art-card">'
-                    f'<img src="{image_data}" alt="{title}">'
-                    f'<h3>{title}</h3>'
-                    f'<span>von {username}</span>'
-                    f'<span>{created_at}</span>'
-                    '</article>'
-                )
-            st.markdown(f'<div class="creative-gallery-grid">{cards}</div>', unsafe_allow_html=True)
+elif menu == "🏛️ Hall of Fame":
+
+    st.markdown('<div class="section-kicker">Kreativwand</div>', unsafe_allow_html=True)
+    st.markdown("## Hall of Fame")
+    render_creative_gallery(60)
 
 # =========================
 # CHICKEN JUMP
