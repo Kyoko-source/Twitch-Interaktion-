@@ -27,3 +27,7 @@ Für Shop-Kategorien, Kaufstatus und das Bestrafungsrad muss `add_shop_categorie
 ## Chicken-Markt
 
 Für den Kurs-Reiter mit Marktgegenständen, Käufen, Verkäufen und Profil-Inventar muss `add_market_tables.sql` ausgeführt werden.
+
+## Dungeons and Dragons
+
+Für den Dungeons-and-Dragons-Reiter mit Lobbys, Party und Würfelchronik muss `add_dnd_tables.sql` ausgeführt werden.

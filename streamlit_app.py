@@ -35,6 +35,7 @@ st.set_page_config(
 
 PASSWORD_SALT = "gehirnzone_guest_auth_salt"
 REGISTRATION_CODE_SALT = "gehirnzone_registration_code_salt"
+DND_LOBBY_PASSWORD_SALT = "gehirnzone_dnd_lobby_salt"
 
 # =========================
 # VALIDATION
@@ -62,6 +63,14 @@ def verify_password(password: str, password_hash: str) -> bool:
 def hash_registration_code(code: str) -> str:
     normalized_code = code.strip().upper()
     return hashlib.sha256(f"{normalized_code}{REGISTRATION_CODE_SALT}".encode("utf-8")).hexdigest()
+
+
+def hash_dnd_lobby_password(password: str) -> str:
+    return hashlib.sha256(f"{password}{DND_LOBBY_PASSWORD_SALT}".encode("utf-8")).hexdigest()
+
+
+def verify_dnd_lobby_password(password: str, password_hash: str) -> bool:
+    return hash_dnd_lobby_password(password) == password_hash
 
 
 def generate_registration_code(length: int = 8) -> str:
@@ -1078,6 +1087,22 @@ TASK_WHEEL_CATEGORIES = [
     "Idee Aufgabenrad",
 ]
 
+DND_DICE = [4, 6, 8, 10, 12, 20, 100]
+DND_CLASSES = [
+    "Barbar",
+    "Barde",
+    "Kleriker",
+    "Druide",
+    "Kaempfer",
+    "Moench",
+    "Paladin",
+    "Waldlaeufer",
+    "Schurke",
+    "Zauberer",
+    "Hexenmeister",
+    "Magier",
+]
+
 MARKET_SPREAD = 0.12
 MARKET_DAILY_BUY_LIMIT = 25
 MARKET_DAILY_SELL_LIMIT = 25
@@ -1173,6 +1198,131 @@ def mark_wheel_entry_done(purchase_id):
 
 def mark_punishment_done(purchase_id):
     return mark_wheel_entry_done(purchase_id)
+
+
+@st.cache_data(ttl=60)
+def get_dnd_lobbies():
+    return api_get_optional("dnd_lobbies?select=*&active=eq.true&order=created_at.desc&limit=50")
+
+
+def get_dnd_lobby(lobby_id):
+    rows = api_get_optional(f"dnd_lobbies?select=*&id=eq.{urllib.parse.quote(str(lobby_id))}&limit=1")
+    return rows[0] if rows else None
+
+
+@st.cache_data(ttl=30)
+def get_dnd_players(lobby_id):
+    return api_get_optional(
+        f"dnd_players?select=*&lobby_id=eq.{urllib.parse.quote(str(lobby_id))}&active=eq.true&order=created_at.asc"
+    )
+
+
+@st.cache_data(ttl=20)
+def get_dnd_rolls(lobby_id):
+    return api_get_optional(
+        f"dnd_rolls?select=*&lobby_id=eq.{urllib.parse.quote(str(lobby_id))}&order=created_at.desc&limit=25"
+    )
+
+
+def create_dnd_lobby(name, description, owner, password):
+    clean_name = str(name).strip()[:80]
+    clean_description = str(description).strip()[:500]
+    clean_owner = str(owner).strip()[:50]
+    if not clean_name or not clean_owner:
+        return None
+
+    clean_password = str(password or "").strip()
+    created = api_post_optional(
+        "dnd_lobbies",
+        {
+            "name": clean_name,
+            "description": clean_description,
+            "owner": clean_owner,
+            "is_private": bool(clean_password),
+            "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
+            "active": True,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_lobbies.clear()
+    return created[0] if created else None
+
+
+def close_dnd_lobby(lobby_id):
+    success = api_patch(f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}", {"active": False})
+    get_dnd_lobbies.clear()
+    return success
+
+
+def join_dnd_lobby(lobby, username, character_name, character_class, password):
+    if not lobby or not str(username).strip() or not str(character_name).strip():
+        return False, "Bitte Name und Charakter eintragen."
+
+    if lobby.get("is_private"):
+        password_hash = str(lobby.get("password_hash") or "")
+        if not verify_dnd_lobby_password(str(password or ""), password_hash):
+            return False, "Passwort fuer diese Lobby ist falsch."
+
+    lobby_id = str(lobby.get("id"))
+    username = str(username).strip()[:50]
+    existing = api_get_optional(
+        "dnd_players?select=id"
+        f"&lobby_id=eq.{urllib.parse.quote(lobby_id)}"
+        f"&username=eq.{urllib.parse.quote(username)}"
+        "&active=eq.true&limit=1"
+    )
+    if existing:
+        st.session_state["dnd_lobby_id"] = lobby_id
+        return True, "Du bist bereits in dieser Lobby."
+
+    created = api_post_optional(
+        "dnd_players",
+        {
+            "lobby_id": int(lobby_id),
+            "username": username,
+            "character_name": str(character_name).strip()[:80],
+            "character_class": str(character_class).strip()[:40],
+            "active": True,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_players.clear()
+    if created:
+        st.session_state["dnd_lobby_id"] = lobby_id
+        return True, "Lobby betreten."
+    return False, "Lobby konnte nicht betreten werden. Fuehre add_dnd_tables.sql in Supabase aus."
+
+
+def roll_dice(count, sides, modifier=0, mode="Normal"):
+    count = max(1, min(int(count), 20))
+    sides = int(sides)
+    modifier = int(modifier)
+
+    if mode in ("Vorteil", "Nachteil") and sides == 20 and count == 1:
+        rolls = [secrets.randbelow(20) + 1, secrets.randbelow(20) + 1]
+        kept = max(rolls) if mode == "Vorteil" else min(rolls)
+        return rolls, kept + modifier, kept
+
+    rolls = [secrets.randbelow(sides) + 1 for _ in range(count)]
+    return rolls, sum(rolls) + modifier, None
+
+
+def save_dnd_roll(lobby_id, username, character_name, notation, reason, rolls, total):
+    created = api_post_optional(
+        "dnd_rolls",
+        {
+            "lobby_id": int(lobby_id),
+            "username": str(username).strip()[:50],
+            "character_name": str(character_name).strip()[:80],
+            "notation": str(notation).strip()[:40],
+            "reason": str(reason).strip()[:140],
+            "rolls": json.dumps(rolls),
+            "total": int(total),
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_rolls.clear()
+    return bool(created)
 
 
 def get_market_item(item_key):
@@ -2891,6 +3041,85 @@ h1::after {
     font-size: 13px;
 }
 
+.dnd-hero,
+.dnd-panel,
+.dnd-lobby-card,
+.dnd-roll-card {
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: linear-gradient(145deg, rgba(24,12,31,0.86), rgba(45,20,42,0.70));
+    box-shadow: 0 20px 55px rgba(0,0,0,0.25);
+}
+
+.dnd-hero {
+    padding: 24px;
+    margin: 0 0 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+    gap: 18px;
+    align-items: stretch;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255,214,102,0.16), transparent 28%),
+        radial-gradient(circle at 84% 8%, rgba(255,84,160,0.14), transparent 26%),
+        linear-gradient(145deg, rgba(23,10,30,0.94), rgba(64,29,42,0.78));
+}
+
+.dnd-hero h2 {
+    margin: 6px 0 10px;
+    font-size: 42px;
+}
+
+.dnd-hero p,
+.dnd-panel p,
+.dnd-lobby-card p {
+    color: #eadcff;
+    font-weight: 760;
+    line-height: 1.5;
+}
+
+.dnd-rule-grid,
+.dnd-lobby-grid,
+.dnd-party-grid,
+.dnd-roll-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.dnd-panel,
+.dnd-lobby-card,
+.dnd-roll-card {
+    padding: 16px;
+}
+
+.dnd-lobby-card h3,
+.dnd-roll-card h3 {
+    margin: 4px 0 8px;
+}
+
+.dnd-pill {
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: #16091f;
+    background: linear-gradient(135deg, #ffe66d, #ffb84d);
+    font-weight: 950;
+    font-size: 12px;
+}
+
+.dnd-pill.private {
+    background: linear-gradient(135deg, #ff8fab, #c77dff);
+}
+
+.dnd-roll-card strong {
+    display: block;
+    font-size: 36px;
+    color: #ffe66d;
+    line-height: 1;
+}
+
 .shop-category-title {
     margin: 24px 0 12px;
     color: #ff7ad9;
@@ -3128,6 +3357,11 @@ h1::after {
     .creative-shell,
     .creative-gallery-grid,
     .achievement-grid,
+    .dnd-hero,
+    .dnd-rule-grid,
+    .dnd-lobby-grid,
+    .dnd-party-grid,
+    .dnd-roll-grid,
     .gazette-card-grid,
     .score-strip,
     .newspaper-grid,
@@ -3333,6 +3567,7 @@ MAIN_MENU_OPTIONS = [
     "🏆 Rangliste",
     "⚡ Events",
     "🎮 Minispiele",
+    "🐉 Dungeons and Dragons",
     "🏛️ Hall of Fame",
 ]
 
@@ -4502,6 +4737,209 @@ elif menu == "⚡ Events":
                     st.caption(f"Angemeldet: {names}")
 
             st.write("---")
+
+# =========================
+# DUNGEONS AND DRAGONS
+# =========================
+
+elif menu == "🐉 Dungeons and Dragons":
+
+    logged_in_username = get_logged_in_username()
+
+    st.markdown('<div class="section-kicker">Tabletop Lobby</div>', unsafe_allow_html=True)
+    st.markdown("## Dungeons and Dragons")
+    st.markdown("""
+    <div class="dnd-hero">
+        <div>
+            <div class="section-kicker">Abenteuerbrett</div>
+            <h2>Runden, Party und Wuerfel an einem Ort</h2>
+            <p>Erstelle offene oder passwortgeschuetzte Lobbys, tritt mit einem Charakter bei und nutze DnD-typische Wuerfel wie d4, d6, d8, d10, d12, d20 und d100.</p>
+        </div>
+        <div class="dnd-rule-grid">
+            <div class="dnd-panel"><div class="dnd-pill">d20</div><p>Fuer Angriffe, Rettungswuerfe und Proben.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Vorteil</div><p>2d20, der hoehere Wurf zaehlt.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Nachteil</div><p>2d20, der niedrigere Wurf zaehlt.</p></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not logged_in_username:
+        st.warning("Bitte melde dich zuerst an, um Lobbys zu erstellen oder beizutreten.")
+        if st.button("Zum Login", key="dnd_login_cta", use_container_width=True):
+            st.session_state["app_menu"] = "🔑 Login"
+            st.rerun()
+        st.stop()
+
+    create_col, lobby_col = st.columns([0.8, 1.2])
+
+    with create_col:
+        st.markdown("### Lobby eroeffnen")
+        with st.form("create_dnd_lobby_form"):
+            lobby_name = st.text_input("Lobby-Name", max_chars=80, placeholder="Die Mine der verlorenen Chickens")
+            lobby_description = st.text_area(
+                "Beschreibung",
+                max_chars=500,
+                height=120,
+                placeholder="Kurzer Pitch, Levelbereich, Stimmung oder wer Spielleitung macht..."
+            )
+            lobby_password = st.text_input("Passwort optional", type="password", help="Leer lassen fuer eine offene Lobby.")
+            create_lobby = st.form_submit_button("Lobby eroeffnen")
+
+        if create_lobby:
+            created_lobby = create_dnd_lobby(lobby_name, lobby_description, logged_in_username, lobby_password)
+            if created_lobby:
+                st.session_state["dnd_lobby_id"] = str(created_lobby.get("id"))
+                st.success("Lobby eroeffnet.")
+                st.rerun()
+            else:
+                st.error("Lobby konnte nicht erstellt werden. Fuehre add_dnd_tables.sql in Supabase aus.")
+
+    with lobby_col:
+        st.markdown("### Aktive Lobbys")
+        lobbies = get_dnd_lobbies()
+        if not lobbies:
+            st.info("Noch keine DnD-Lobby offen.")
+        else:
+            lobby_cards = ""
+            for lobby in lobbies:
+                status_class = "private" if lobby.get("is_private") else ""
+                status_text = "Geschlossen" if lobby.get("is_private") else "Offen"
+                lobby_cards += (
+                    '<article class="dnd-lobby-card">'
+                    f'<span class="dnd-pill {status_class}">{status_text}</span>'
+                    f'<h3>{html.escape(str(lobby.get("name") or "Unbenannte Lobby"))}</h3>'
+                    f'<p>{html.escape(str(lobby.get("description") or "Kein Beschreibungstext."))}</p>'
+                    f'<div class="admin-muted">DM/Host: {html.escape(str(lobby.get("owner") or "Unbekannt"))}</div>'
+                    '</article>'
+                )
+            st.markdown(f'<div class="dnd-lobby-grid">{lobby_cards}</div>', unsafe_allow_html=True)
+
+    lobbies = get_dnd_lobbies()
+    if lobbies:
+        selected_lobby_id = st.selectbox(
+            "Lobby auswaehlen",
+            [str(lobby.get("id")) for lobby in lobbies],
+            format_func=lambda lobby_id: next(
+                (str(lobby.get("name") or "Unbenannte Lobby") for lobby in lobbies if str(lobby.get("id")) == str(lobby_id)),
+                "Lobby",
+            ),
+            key="dnd_lobby_select",
+        )
+        selected_lobby = get_dnd_lobby(selected_lobby_id)
+
+        with st.form("join_dnd_lobby_form"):
+            join_cols = st.columns([1, 1, 1, 1])
+            with join_cols[0]:
+                character_name = st.text_input("Charaktername", max_chars=80, placeholder="Marello der Mutige")
+            with join_cols[1]:
+                character_class = st.selectbox("Klasse", DND_CLASSES)
+            with join_cols[2]:
+                join_password = st.text_input("Lobby-Passwort", type="password")
+            with join_cols[3]:
+                st.write("")
+                st.write("")
+                join_lobby = st.form_submit_button("Beitreten")
+
+        if join_lobby:
+            success, message = join_dnd_lobby(
+                selected_lobby,
+                logged_in_username,
+                character_name,
+                character_class,
+                join_password,
+            )
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
+
+    active_lobby_id = st.session_state.get("dnd_lobby_id")
+    active_lobby = get_dnd_lobby(active_lobby_id) if active_lobby_id else None
+
+    if active_lobby:
+        players = get_dnd_players(active_lobby_id)
+        current_player = next(
+            (player for player in players if str(player.get("username")) == str(logged_in_username)),
+            None,
+        )
+
+        st.markdown("---")
+        st.markdown(f"### Aktive Runde: {active_lobby.get('name')}")
+
+        party_html = ""
+        for player in players:
+            party_html += (
+                '<div class="dnd-panel">'
+                f'<div class="dnd-pill">{html.escape(str(player.get("character_class") or "Abenteurer"))}</div>'
+                f'<h3>{html.escape(str(player.get("character_name") or "Unbekannt"))}</h3>'
+                f'<p>{html.escape(str(player.get("username") or ""))}</p>'
+                '</div>'
+            )
+        st.markdown("#### Party")
+        if not party_html:
+            party_html = '<div class="dnd-panel"><p>Noch keine Party.</p></div>'
+        st.markdown(f'<div class="dnd-party-grid">{party_html}</div>', unsafe_allow_html=True)
+
+        scene_cols = st.columns(3)
+        with scene_cols[0]:
+            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Szene</div><h3>Taverne</h3><p>Startpunkt fuer Rollenspiel, Geruechte und Quest-Hooks.</p></div>', unsafe_allow_html=True)
+        with scene_cols[1]:
+            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Kampf</div><h3>Initiative</h3><p>d20 plus Geschicklichkeitsmodifikator. Hohe Werte handeln zuerst.</p></div>', unsafe_allow_html=True)
+        with scene_cols[2]:
+            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich fuer Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
+
+        st.markdown("#### Wuerfelroller")
+        roll_cols = st.columns([1, 1, 1, 1, 1.4])
+        with roll_cols[0]:
+            roll_count = st.number_input("Anzahl", min_value=1, max_value=20, value=1, step=1, key="dnd_roll_count")
+        with roll_cols[1]:
+            roll_sides = st.selectbox("Wuerfel", DND_DICE, index=DND_DICE.index(20), format_func=lambda sides: f"d{sides}")
+        with roll_cols[2]:
+            roll_modifier = st.number_input("Modifikator", min_value=-30, max_value=30, value=0, step=1, key="dnd_roll_modifier")
+        with roll_cols[3]:
+            roll_mode = st.selectbox("Modus", ["Normal", "Vorteil", "Nachteil"])
+        with roll_cols[4]:
+            roll_reason = st.text_input("Grund", max_chars=140, placeholder="Angriff, Wahrnehmung, Schaden...")
+
+        if st.button("Wuerfeln", key="dnd_roll_button", use_container_width=True):
+            rolls, total, kept = roll_dice(roll_count, roll_sides, roll_modifier, roll_mode)
+            mod_text = f"{roll_modifier:+d}" if roll_modifier else ""
+            notation = f"{int(roll_count)}d{int(roll_sides)}{mod_text}"
+            if roll_mode in ("Vorteil", "Nachteil") and int(roll_sides) == 20 and int(roll_count) == 1:
+                notation = f"{roll_mode} d20{mod_text}"
+            character_for_roll = current_player.get("character_name") if current_player else logged_in_username
+            save_dnd_roll(active_lobby_id, logged_in_username, character_for_roll, notation, roll_reason, rolls, total)
+            detail = f"Rohwuerfe: {rolls}"
+            if kept:
+                detail += f" | Gewertet: {kept}"
+            st.success(f"{notation} = {total}. {detail}")
+            st.rerun()
+
+        roll_history = get_dnd_rolls(active_lobby_id)
+        if roll_history:
+            roll_html = ""
+            for roll in roll_history[:12]:
+                roll_html += (
+                    '<article class="dnd-roll-card">'
+                    f'<div class="dnd-pill">{html.escape(str(roll.get("notation") or ""))}</div>'
+                    f'<strong>{int(roll.get("total") or 0)}</strong>'
+                    f'<h3>{html.escape(str(roll.get("character_name") or roll.get("username") or ""))}</h3>'
+                    f'<p>{html.escape(str(roll.get("reason") or "Wurf"))}</p>'
+                    f'<div class="admin-muted">{html.escape(str(roll.get("rolls") or ""))}</div>'
+                    '</article>'
+                )
+            st.markdown("#### Wurfchronik")
+            st.markdown(f'<div class="dnd-roll-grid">{roll_html}</div>', unsafe_allow_html=True)
+
+        if active_lobby.get("owner") == logged_in_username:
+            if st.button("Lobby schliessen", key="close_dnd_lobby", type="primary"):
+                if close_dnd_lobby(active_lobby_id):
+                    st.session_state.pop("dnd_lobby_id", None)
+                    st.success("Lobby geschlossen.")
+                    st.rerun()
+                else:
+                    st.error("Lobby konnte nicht geschlossen werden.")
 
 # =========================
 # KREATIVWAND
