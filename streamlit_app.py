@@ -2262,10 +2262,10 @@ h1::after {
 
 .home-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+    gap: 14px;
     align-items: stretch;
-    margin: 10px 0 22px;
+    margin: 10px 0 16px;
 }
 
 .home-spotlight,
@@ -2273,32 +2273,27 @@ h1::after {
 .activity-card {
     position: relative;
     overflow: hidden;
-    border-radius: 18px;
-    padding: 28px;
+    border-radius: 8px;
+    padding: 22px;
     background:
-        linear-gradient(135deg, rgba(123,44,191,0.24), rgba(199,125,255,0.15), rgba(255,84,160,0.18)),
+        linear-gradient(135deg, rgba(82,185,160,0.14), rgba(199,125,255,0.12)),
         rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 26px 76px rgba(0,0,0,0.34);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
 }
 
-.home-spotlight::after {
-    content: "";
-    position: absolute;
-    right: -90px;
-    top: -90px;
-    width: 260px;
-    height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,84,160,0.22), transparent 65%);
+.home-spotlight {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .home-spotlight h2 {
     position: relative;
     z-index: 1;
     margin: 8px 0 10px;
-    font-size: clamp(34px, 5vw, 68px);
-    line-height: 0.95;
+    font-size: 42px;
+    line-height: 1.05;
 }
 
 .home-spotlight p,
@@ -2311,16 +2306,16 @@ h1::after {
 .home-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin: 18px 0 4px;
+    gap: 10px;
+    margin: 16px 0 0;
 }
 
 .home-action-card {
-    min-height: 118px;
-    border-radius: 14px;
-    padding: 18px;
-    background: rgba(255,255,255,0.065);
-    border: 1px solid rgba(255,255,255,0.12);
+    min-height: 84px;
+    border-radius: 8px;
+    padding: 14px;
+    background: rgba(8,14,18,0.42);
+    border: 1px solid rgba(255,255,255,0.10);
 }
 
 .home-action-card strong {
@@ -2337,6 +2332,50 @@ h1::after {
 
 .daily-card {
     min-height: 100%;
+}
+
+.home-side-stack {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 14px;
+}
+
+.home-account-card {
+    border-radius: 8px;
+    padding: 18px;
+    background: rgba(8,14,18,0.72);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.home-account-card h3,
+.daily-card h3,
+.activity-card h3 {
+    margin: 6px 0 8px;
+}
+
+.home-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(82,185,160,0.16);
+    color: #c8fff1;
+    border: 1px solid rgba(82,185,160,0.30);
+    font-weight: 950;
+}
+
+.home-status-pill.is-guest {
+    background: rgba(255,193,94,0.14);
+    color: #ffe0aa;
+    border-color: rgba(255,193,94,0.28);
+}
+
+.home-compact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.45fr);
+    gap: 14px;
+    margin: 14px 0 22px;
 }
 
 .daily-streak {
@@ -2724,6 +2763,7 @@ h1::after {
     .profile-showcase-inner,
     .home-hero,
     .home-actions,
+    .home-compact-grid,
     .achievement-grid,
     .score-strip,
     .newspaper-grid,
@@ -2995,71 +3035,93 @@ st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 if menu == "🏠 Home":
 
-    st.markdown('<div class="section-kicker">Live Community Hub</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-kicker">Community Dashboard</div>', unsafe_allow_html=True)
 
-    viewer_day_html = (
-        "<h2>Gehirnzone ist bereit</h2>"
-        "<p>Noch kein Viewer des Tages vorhanden. Sammle Gehirnzellen, spiele Chicken Jump und werde sichtbar.</p>"
-    )
-
+    spotlight_title = "Gehirnzone ist bereit"
+    spotlight_copy = "Sammle Gehirnzellen, spiele Chicken Jump und tauche im Community-Dashboard auf."
     if not leaderboard.empty:
-        today_seed = datetime.now().strftime("%Y-%m-%d")
-        viewer_day = leaderboard.sample(
-            1,
-            random_state=abs(hash(today_seed)) % (10 ** 8)
-        ).iloc[0]
-        viewer_day_html = (
-            '<div class="section-kicker">Heute im Rampenlicht</div>'
-            f'<h2>{html.escape(str(viewer_day["Viewer"]))}</h2>'
-            f'<p>🧠 {int(viewer_day["Gehirnzellen"])} Gehirnzellen · 🥚 {int(viewer_day["Chickens"])} Chickens</p>'
+        top_viewer = leaderboard.iloc[0]
+        spotlight_title = str(top_viewer["Viewer"])
+        spotlight_copy = (
+            f"Aktuell vorne mit {int(top_viewer['Gehirnzellen'])} Gehirnzellen "
+            f"und {int(top_viewer['Chickens'])} Chickens."
         )
+
+    account_label = logged_in_username or twitch_display_name or "Nicht angemeldet"
+    account_status_class = "" if logged_in_username else " is-guest"
+    account_status_text = "Angemeldet" if logged_in_username else "Gastmodus"
+    account_hint = (
+        "Daily Reward, Profil und Handel sind aktiv."
+        if logged_in_username
+        else "Melde dich an, um Rewards und dein Profil zu nutzen."
+    )
 
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
-        '<h3>Einloggen und Belohnung sichern</h3>'
-        '<p>Melde dich an, um täglich Chickens und Gehirnzellen abzuholen.</p>'
+        '<h3>Bereit zum Abholen</h3>'
+        '<p>Melde dich an, um jeden Tag Chickens und Gehirnzellen mitzunehmen.</p>'
     )
     daily_state = None
     if logged_in_username:
         daily_state = get_daily_reward_state(logged_in_username)
         reward_preview = 250 + min(int(daily_state["streak"]), 7) * 50
-        claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"Heute verfügbar: +{reward_preview} Chickens"
+        claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"Heute bereit: +{reward_preview} Chickens"
         daily_html = (
             '<div class="section-kicker">Daily Reward</div>'
             f'<h3>{claim_text}</h3>'
-            f'<div class="daily-streak">🔥 {int(daily_state["streak"])} Tage Streak</div>'
+            f'<div class="daily-streak">{int(daily_state["streak"])} Tage Streak</div>'
             '<p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>'
         )
 
     home_html = (
         '<div class="home-hero">'
         '<div class="home-spotlight">'
-        f'{viewer_day_html}'
+        '<div>'
+        '<div class="section-kicker">Aktueller Stand</div>'
+        f'<h2>{html.escape(spotlight_title)}</h2>'
+        f'<p>{html.escape(spotlight_copy)}</p>'
+        '</div>'
         '<div class="home-actions">'
         f'<div class="home-action-card"><strong>{total_users}</strong><span>Viewer in der Zone</span></div>'
-        f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>'
-        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesammelt</span></div>'
+        f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens</span></div>'
+        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen</span></div>'
         '</div>'
+        '</div>'
+        '<div class="home-side-stack">'
+        '<div class="home-account-card">'
+        '<div class="section-kicker">Aktueller Account</div>'
+        f'<h3>{html.escape(account_label)}</h3>'
+        f'<div class="home-status-pill{account_status_class}">{account_status_text}</div>'
+        f'<p>{html.escape(account_hint)}</p>'
         '</div>'
         f'<div class="daily-card">{daily_html}</div>'
+        '</div>'
         '</div>'
     )
     st.markdown(home_html, unsafe_allow_html=True)
 
-    if logged_in_username:
-        if daily_state and daily_state["claimed_today"]:
-            st.info("Daily Reward ist für heute erledigt. Morgen wartet die nächste Belohnung.")
-        elif st.button("Daily Reward abholen", key="claim_daily_reward", use_container_width=True):
-            success, message = claim_daily_reward(logged_in_username)
-            if success:
-                st.success(message)
+    account_col, daily_col = st.columns([1, 1])
+    with account_col:
+        if logged_in_username:
+            if st.button("Zum Profil", key="home_profile_cta", use_container_width=True):
+                st.session_state["app_menu"] = MAIN_MENU_OPTIONS[3]
                 st.rerun()
-            else:
-                st.error(message)
-    else:
-        if st.button("Zum Login für Daily Rewards", key="daily_login_cta", use_container_width=True):
-            st.session_state["app_menu"] = "🔑 Login"
-            st.rerun()
+        else:
+            if st.button("Zum Login", key="home_login_cta", use_container_width=True):
+                st.session_state["app_menu"] = "\U0001f511 Login"
+                st.rerun()
+
+    with daily_col:
+        if logged_in_username:
+            if daily_state and daily_state["claimed_today"]:
+                st.info("Daily Reward ist heute erledigt.")
+            elif st.button("Daily Reward abholen", key="claim_daily_reward", use_container_width=True):
+                success, message = claim_daily_reward(logged_in_username)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
 
     scores = get_chicken_scores(3)
     score_cards = []
@@ -3080,33 +3142,23 @@ if menu == "🏠 Home":
                 '</div>'
             )
 
-    st.markdown("## Chicken Jump Highlights")
-    st.markdown(f'<div class="score-strip">{"".join(score_cards)}</div>', unsafe_allow_html=True)
-
-    hub_left, hub_right = st.columns(2)
-    with hub_left:
-        st.markdown(textwrap.dedent(f"""
-        <div class="activity-card">
-            <div class="section-kicker">Nächster Schritt</div>
-            <h3>Profil aufleveln</h3>
-            <p>Fülle Bio, Lieblingsspiel und Avatar aus, sammle Achievements und mach deine Viewerkarte stärker.</p>
-        </div>
-        """), unsafe_allow_html=True)
-        if st.button("Profil öffnen", key="home_profile_cta", use_container_width=True):
-            st.session_state["app_menu"] = "👤 Profil"
-            st.rerun()
-
-    with hub_right:
-        st.markdown(textwrap.dedent(f"""
-        <div class="activity-card">
-            <div class="section-kicker">Arcade</div>
-            <h3>Highscore jagen</h3>
-            <p>Chicken Jump Scores erscheinen jetzt direkt im Hauptmenü und zählen für Profil-Achievements.</p>
-        </div>
-        """), unsafe_allow_html=True)
-        if st.button("Minispiele öffnen", key="home_games_cta", use_container_width=True):
-            st.session_state["app_menu"] = "🎮 Minispiele"
-            st.rerun()
+    home_lower_html = (
+        '<div class="home-compact-grid">'
+        '<div class="activity-card">'
+        '<div class="section-kicker">Chicken Jump Top 3</div>'
+        f'<div class="score-strip">{"".join(score_cards)}</div>'
+        '</div>'
+        '<div class="activity-card">'
+        '<div class="section-kicker">Weiter</div>'
+        '<h3>Minispiele</h3>'
+        '<p>Spring rein, verbessere deinen Score und sammle neue Profil-Erfolge.</p>'
+        '</div>'
+        '</div>'
+    )
+    st.markdown(home_lower_html, unsafe_allow_html=True)
+    if st.button("Minispiele starten", key="home_games_cta", use_container_width=True):
+        st.session_state["app_menu"] = MAIN_MENU_OPTIONS[7]
+        st.rerun()
 
 # =========================
 # LOGIN
