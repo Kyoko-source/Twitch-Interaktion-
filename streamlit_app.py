@@ -1170,8 +1170,11 @@ def render_dnd_page():
             hp_percent = min(100, int((current_hp / max_hp) * 100))
             armor_class = int(player.get("armor_class") or 10)
             initiative = int(player.get("initiative") or 0)
+            str_mod = format_modifier(ability_modifier(int(player.get("strength") or 10)))
+            dex_mod = format_modifier(ability_modifier(int(player.get("dexterity") or 10)))
+            wis_mod = format_modifier(ability_modifier(int(player.get("wisdom") or 10)))
             party_html += (
-                '<div class="dnd-panel">'
+                '<div class="dnd-panel dnd-character-card">'
                 f'<div class="dnd-pill">{html.escape(str(player.get("character_class") or "Abenteurer"))}</div>'
                 f'<h3>{html.escape(str(player.get("character_name") or "Unbekannt"))}</h3>'
                 f'<p>{html.escape(str(player.get("race") or "Mensch"))} · Level {int(player.get("level") or 1)} · {html.escape(str(player.get("username") or ""))}</p>'
@@ -1179,9 +1182,14 @@ def render_dnd_page():
                 f'<div class="profile-progress-fill" style="width:{hp_percent}%;"></div>'
                 '</div>'
                 f'<div class="admin-muted">HP {current_hp}/{max_hp} · AC {armor_class} · Initiative {initiative:+d}</div>'
+                '<div class="dnd-stat-row">'
+                f'<div class="dnd-stat"><strong>{str_mod}</strong><span>STR</span></div>'
+                f'<div class="dnd-stat"><strong>{dex_mod}</strong><span>DEX</span></div>'
+                f'<div class="dnd-stat"><strong>{wis_mod}</strong><span>WIS</span></div>'
+                '</div>'
                 '</div>'
             )
-        st.markdown("#### Party")
+        st.markdown("#### Charaktere")
         if not party_html:
             party_html = '<div class="dnd-panel"><p>Noch keine Party.</p></div>'
         st.markdown(f'<div class="dnd-party-grid">{party_html}</div>', unsafe_allow_html=True)
@@ -1193,6 +1201,20 @@ def render_dnd_page():
             st.markdown('<div class="dnd-panel"><div class="dnd-pill">Kampf</div><h3>Initiative</h3><p>d20 plus Geschicklichkeitsmodifikator. Hohe Werte handeln zuerst.</p></div>', unsafe_allow_html=True)
         with scene_cols[2]:
             st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich fuer Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
+
+        last_roll = st.session_state.get("dnd_last_roll")
+        if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
+            st.markdown(
+                '<div class="dice-result-stage">'
+                f'<div class="dice-cube">{int(last_roll.get("total") or 0)}</div>'
+                '<div>'
+                f'<div class="section-kicker">{html.escape(str(last_roll.get("notation") or "Wurf"))}</div>'
+                f'<h3>{html.escape(str(last_roll.get("title") or "Wuerfelwurf"))}</h3>'
+                f'<p>{html.escape(str(last_roll.get("detail") or ""))}</p>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
         if current_player:
             with st.expander("Charakterbogen bearbeiten", expanded=True):
@@ -1295,6 +1317,13 @@ def render_dnd_page():
                 notation = f"{check_mode} d20{format_modifier(check_modifier)}" if check_mode != "Normal" else f"d20{format_modifier(check_modifier)}"
                 reason = check_reason or f"{ability_label}-Probe"
                 save_dnd_roll(active_lobby_id, logged_in_username, current_player.get("character_name"), notation, reason, rolls, total)
+                st.session_state["dnd_last_roll"] = {
+                    "lobby_id": active_lobby_id,
+                    "total": total,
+                    "notation": notation,
+                    "title": reason,
+                    "detail": f"Rohwuerfe: {rolls}",
+                }
                 st.success(f"{reason}: {total} ({rolls})")
                 st.rerun()
 
@@ -1322,6 +1351,13 @@ def render_dnd_page():
             detail = f"Rohwuerfe: {rolls}"
             if kept:
                 detail += f" | Gewertet: {kept}"
+            st.session_state["dnd_last_roll"] = {
+                "lobby_id": active_lobby_id,
+                "total": total,
+                "notation": notation,
+                "title": roll_reason or "Wuerfelwurf",
+                "detail": detail,
+            }
             st.success(f"{notation} = {total}. {detail}")
             st.rerun()
 
@@ -3541,6 +3577,98 @@ h1::after {
     font-size: 36px;
     color: #ffe66d;
     line-height: 1;
+}
+
+.dnd-character-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 190px;
+}
+
+.dnd-character-card::before {
+    content: "";
+    position: absolute;
+    inset: -40% 45% auto -20%;
+    height: 160px;
+    transform: rotate(-18deg);
+    background: linear-gradient(135deg, rgba(255,230,109,0.18), rgba(199,125,255,0.08));
+}
+
+.dnd-character-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.dnd-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.dnd-stat {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.dnd-stat strong {
+    display: block;
+    color: #ffe66d;
+    font-size: 18px;
+}
+
+.dnd-stat span {
+    color: #cfc6e8;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.dice-result-stage {
+    display: grid;
+    grid-template-columns: minmax(170px, 0.35fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    margin: 14px 0;
+    padding: 20px;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 16% 18%, rgba(255,230,109,0.20), transparent 28%),
+        linear-gradient(145deg, rgba(25,12,36,0.92), rgba(57,23,55,0.76));
+    border: 1px solid rgba(255,255,255,0.14);
+}
+
+.dice-cube {
+    width: 120px;
+    height: 120px;
+    margin: auto;
+    display: grid;
+    place-items: center;
+    border-radius: 28px;
+    color: #16091f;
+    font-size: 42px;
+    font-weight: 950;
+    background: linear-gradient(145deg, #fff8dc, #ffd166 52%, #ff7a9a);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 2px 12px rgba(255,255,255,0.65);
+    animation: dice-pop 0.78s cubic-bezier(.18,.84,.24,1.24);
+}
+
+.dice-result-stage h3 {
+    margin: 0 0 8px;
+    font-size: 30px;
+}
+
+.dice-result-stage p {
+    margin: 0;
+    color: #eadcff;
+    font-weight: 800;
+}
+
+@keyframes dice-pop {
+    0% { transform: translateY(18px) rotate(-24deg) scale(.58); opacity: 0; }
+    55% { transform: translateY(-8px) rotate(12deg) scale(1.08); opacity: 1; }
+    100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
 }
 
 .shop-category-title {
