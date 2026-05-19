@@ -4409,13 +4409,16 @@ elif menu == "🎨 Kreativwand":
                     "circle": "Kreis",
                 }.get)
             with color_col:
-                stroke_color = st.color_picker("Farbe", "#1f2937")
+                selected_stroke_color = st.color_picker("Farbe", "#1f2937")
             with width_col:
                 stroke_width = st.slider("Strichstaerke", 1, 28, 6)
 
-            canvas_state_key = f"creative_canvas_drawing_{logged_in_username}"
-            if canvas_state_key not in st.session_state:
-                st.session_state[canvas_state_key] = None
+            stroke_color_key = f"creative_canvas_color_{logged_in_username}"
+            if stroke_color_key not in st.session_state:
+                st.session_state[stroke_color_key] = selected_stroke_color
+            if selected_stroke_color != st.session_state[stroke_color_key]:
+                st.session_state[stroke_color_key] = selected_stroke_color
+            stroke_color = st.session_state[stroke_color_key]
 
             canvas_result = st_canvas(
                 fill_color="rgba(255, 255, 255, 0)",
@@ -4425,12 +4428,9 @@ elif menu == "🎨 Kreativwand":
                 width=820,
                 height=560,
                 drawing_mode=drawing_mode,
-                initial_drawing=st.session_state[canvas_state_key],
-                key=f"creative_canvas_{drawing_mode}_{stroke_color}_{stroke_width}",
+                key="creative_canvas",
                 update_streamlit=True,
             )
-            if canvas_result.json_data:
-                st.session_state[canvas_state_key] = canvas_result.json_data
 
             if st.button("In Hall of Fame veroeffentlichen", key="publish_creative_art", use_container_width=True):
                 image_data_uri = canvas_image_to_data_uri(canvas_result.image_data)

@@ -3,4 +3,4 @@ pandas
 requests
 altair
 pillow
-streamlit-drawable-canvas
+streamlit-drawable-canvas-fix==0.9.7
