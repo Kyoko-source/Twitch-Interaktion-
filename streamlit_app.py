@@ -2994,30 +2994,41 @@ h1::after {
 }
 
 .stRadio {
-    max-width: 980px;
-    margin: 0 auto 22px auto;
+    max-width: 1180px;
+    margin: 4px auto 28px auto;
     position: relative;
     z-index: 1;
 }
 
 .stRadio > div {
-    justify-content: center;
-    gap: 8px;
+    justify-content: flex-start;
     background: rgba(8,10,18,0.72);
     border: 1px solid rgba(199,125,255,0.28);
     border-radius: 999px;
-    padding: 8px;
+    padding: 7px;
     box-shadow: 0 18px 45px rgba(0,0,0,0.24);
     backdrop-filter: blur(12px);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.stRadio [role="radiogroup"] {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 7px;
+    width: max-content;
+    min-width: 100%;
 }
 
 .stRadio [role="radiogroup"] label {
-    min-height: 42px;
+    min-height: 38px;
     border-radius: 999px;
-    padding: 0 12px;
+    padding: 0 13px;
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.035);
     transition: all 0.18s ease;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 
 .stRadio [role="radiogroup"] label:hover {
@@ -3038,6 +3049,9 @@ h1::after {
 
 .stRadio [role="radiogroup"] label p {
     font-weight: 800;
+    font-size: 14px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .small {
@@ -3102,6 +3116,7 @@ with account_col:
 
         if st.button("👤 Profil", key="account_profile", use_container_width=True):
             st.session_state["app_menu"] = "👤 Profil"
+            st.session_state["main_nav"] = "👤 Profil"
             st.rerun()
 
         if st.button("🔐 Admin", key="account_admin", use_container_width=True):
@@ -3134,13 +3149,26 @@ elif False:
     else:
         st.info(f"🔗 OAuth URL: {twitch_auth_url}")
 
-nav_cols = st.columns(len(MAIN_MENU_OPTIONS))
-for nav_col, nav_item in zip(nav_cols, MAIN_MENU_OPTIONS):
-    with nav_col:
-        if st.button(nav_item, key=f"nav_{nav_item}", use_container_width=True):
-            st.session_state["app_menu"] = nav_item
-            st.session_state["main_nav"] = nav_item
-            st.rerun()
+current_menu = st.session_state["app_menu"]
+if current_menu in MAIN_MENU_OPTIONS:
+    st.session_state["main_nav"] = current_menu
+
+nav_fallback = st.session_state.get("main_nav", "🏠 Home")
+if nav_fallback not in MAIN_MENU_OPTIONS:
+    nav_fallback = "🏠 Home"
+
+selected_nav = st.radio(
+    "Hauptnavigation",
+    MAIN_MENU_OPTIONS,
+    index=MAIN_MENU_OPTIONS.index(nav_fallback),
+    horizontal=True,
+    label_visibility="collapsed",
+)
+
+if selected_nav != st.session_state.get("main_nav"):
+    st.session_state["app_menu"] = selected_nav
+    st.session_state["main_nav"] = selected_nav
+    st.rerun()
 
 menu = st.session_state["app_menu"]
 
