@@ -18,9 +18,10 @@ Alternativ findest du die gleiche Migration in der Datei `add_password_hash_colu
 Für die täglichen Login-Belohnungen muss zusätzlich die Tabelle `daily_rewards` angelegt werden.
 Die Migration liegt in `add_daily_rewards_table.sql` und kann im Supabase SQL-Editor ausgeführt werden.
 
-## News, Shop-Kategorien und Bestrafungsrad
+## News, Patch Notes, Shop-Kategorien und Bestrafungsrad
 
 Für den News-Reiter muss `add_news_posts_table.sql` ausgeführt werden.
+Für bearbeitbare Patch Notes im Admin-Bereich muss `add_patch_notes_table.sql` ausgeführt werden.
 Für Shop-Kategorien, Kaufstatus und das Bestrafungsrad muss `add_shop_categories_and_wheel.sql` ausgeführt werden.
 
 ## Chicken-Markt

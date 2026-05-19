@@ -1474,6 +1474,80 @@ PATCH_NOTES = [
     },
 ]
 
+
+@st.cache_data(ttl=180)
+def get_patch_notes():
+    rows = api_get_optional(
+        "patch_notes?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=30"
+    )
+    if not rows:
+        return PATCH_NOTES
+
+    notes = []
+    for row in rows:
+        changes = [
+            line.strip()
+            for line in str(row.get("changes") or "").splitlines()
+            if line.strip()
+        ]
+        if not changes:
+            continue
+
+        published_at = str(row.get("published_at") or row.get("created_at") or "")
+        date_text = published_at[:10]
+        try:
+            date_text = datetime.fromisoformat(published_at.replace("Z", "+00:00")).strftime("%d.%m.%Y")
+        except ValueError:
+            pass
+
+        notes.append(
+            {
+                "version": str(row.get("version") or "Patch"),
+                "title": str(row.get("title") or "Update"),
+                "date": date_text,
+                "changes": changes,
+                "id": row.get("id"),
+            }
+        )
+
+    return notes or PATCH_NOTES
+
+
+def create_patch_note(version, title, changes, published_date):
+    clean_changes = "\n".join(
+        line.strip()
+        for line in str(changes).splitlines()
+        if line.strip()
+    )
+    if not str(version).strip() or not str(title).strip() or not clean_changes:
+        return None
+
+    published_at = datetime.combine(
+        published_date,
+        datetime.now(ZoneInfo("Europe/Berlin")).time(),
+        tzinfo=ZoneInfo("Europe/Berlin"),
+    ).isoformat()
+
+    created = api_post_optional(
+        "patch_notes",
+        {
+            "version": str(version).strip()[:80],
+            "title": str(title).strip()[:160],
+            "changes": clean_changes[:4000],
+            "active": True,
+            "published_at": published_at,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_patch_notes.clear()
+    return created
+
+
+def delete_patch_note(note_id):
+    success = api_patch(f"patch_notes?id=eq.{urllib.parse.quote(str(note_id))}", {"active": False})
+    get_patch_notes.clear()
+    return success
+
 # =========================
 # DESIGN
 # =========================
@@ -3384,7 +3458,7 @@ elif menu == "Patch Notes":
     st.markdown("Hier stehen kurz die wichtigsten Änderungen an der Seite.")
 
     patch_cards = ""
-    for patch in PATCH_NOTES:
+    for patch in get_patch_notes():
         change_items = "".join(
             f"<li>{html.escape(change)}</li>"
             for change in patch["changes"]
@@ -5757,6 +5831,7 @@ elif menu == "🔐 Admin":
         events = get_events()
         shop_items = get_shop_items()
         news_posts = get_news_posts()
+        patch_notes = get_patch_notes()
         creative_items = get_creative_gallery(100)
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
         active_categories = len({str(item.get("category") or get_default_shop_category()) for item in shop_items})
@@ -5793,6 +5868,11 @@ elif menu == "🔐 Admin":
                 <div class="admin-muted">Aktive News-Beiträge</div>
             </div>
             <div class="admin-control-card">
+                <div class="section-kicker">Updates</div>
+                <h3>{len(patch_notes)}</h3>
+                <div class="admin-muted">Patch Notes</div>
+            </div>
+            <div class="admin-control-card">
                 <div class="section-kicker">Shop</div>
                 <h3>{active_categories}</h3>
                 <div class="admin-muted">Kategorien mit Items</div>
@@ -5810,11 +5890,12 @@ elif menu == "🔐 Admin":
         </div>
         """, unsafe_allow_html=True)
 
-        overview_tab, registration_tab, viewer_tab, news_tab, shop_tab, event_tab, creative_tab, danger_tab = st.tabs([
+        overview_tab, registration_tab, viewer_tab, news_tab, patch_tab, shop_tab, event_tab, creative_tab, danger_tab = st.tabs([
             "Dashboard",
             "Registrierungen",
             "Viewer",
             "News",
+            "Patch Notes",
             "Shop",
             "Events",
             "Kreativwand",
@@ -5998,6 +6079,62 @@ elif menu == "🔐 Admin":
                                 st.rerun()
                             else:
                                 st.error("News konnte nicht entfernt werden.")
+
+        with patch_tab:
+            st.markdown("### Patch Notes verwalten")
+            st.caption("Jede Zeile im Feld Aenderungen wird als eigener Listenpunkt angezeigt.")
+
+            with st.form("create_patch_note_form"):
+                patch_version = st.text_input("Version", placeholder="Patch 1.1")
+                patch_title = st.text_input("Titel", placeholder="Neues Update")
+                patch_date = st.date_input("Datum", value=datetime.now(ZoneInfo("Europe/Berlin")).date())
+                patch_changes = st.text_area(
+                    "Aenderungen",
+                    height=180,
+                    placeholder="Eine Aenderung pro Zeile",
+                )
+                create_patch = st.form_submit_button("Patch Note veroeffentlichen")
+
+            if create_patch:
+                if create_patch_note(patch_version, patch_title, patch_changes, patch_date):
+                    st.success("Patch Note veroeffentlicht.")
+                    st.rerun()
+                else:
+                    st.error("Patch Note konnte nicht erstellt werden. Pruefe die Tabelle patch_notes und die Eingaben.")
+
+            if patch_notes:
+                st.markdown("#### Aktive Patch Notes")
+                for note in patch_notes:
+                    note_id = note.get("id")
+                    changes_preview = "".join(
+                        f"<li>{html.escape(str(change))}</li>"
+                        for change in note.get("changes", [])[:4]
+                    )
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(
+                            '<div class="patch-note-card">'
+                            '<div class="patch-note-head">'
+                            '<div>'
+                            f'<div class="patch-version">{html.escape(str(note.get("version") or ""))}</div>'
+                            f'<h3>{html.escape(str(note.get("title") or ""))}</h3>'
+                            '</div>'
+                            f'<div class="patch-date">{html.escape(str(note.get("date") or ""))}</div>'
+                            '</div>'
+                            f'<ul class="patch-change-list">{changes_preview}</ul>'
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with col2:
+                        if note_id:
+                            if st.button("Entfernen", key=f"delete_patch_note_{note_id}"):
+                                if delete_patch_note(note_id):
+                                    st.success("Patch Note entfernt.")
+                                    st.rerun()
+                                else:
+                                    st.error("Patch Note konnte nicht entfernt werden.")
+                        else:
+                            st.info("Fallback aus dem Code.")
 
         with shop_tab:
             st.markdown("### Shop verwalten")
