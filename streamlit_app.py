@@ -1528,7 +1528,7 @@ def create_patch_note(version, title, changes, published_date):
         tzinfo=ZoneInfo("Europe/Berlin"),
     ).isoformat()
 
-    created = api_post_optional(
+    created = api_post(
         "patch_notes",
         {
             "version": str(version).strip()[:80],
@@ -6100,7 +6100,7 @@ elif menu == "🔐 Admin":
                     st.success("Patch Note veroeffentlicht.")
                     st.rerun()
                 else:
-                    st.error("Patch Note konnte nicht erstellt werden. Pruefe die Tabelle patch_notes und die Eingaben.")
+                    st.error("Patch Note konnte nicht erstellt werden. Fuehre in Supabase zuerst add_patch_notes_table.sql aus.")
 
             if patch_notes:
                 st.markdown("#### Aktive Patch Notes")
