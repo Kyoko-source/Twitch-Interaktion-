@@ -3039,7 +3039,6 @@ MAIN_MENU_OPTIONS = [
     "🏆 Rangliste",
     "⚡ Events",
     "🎮 Minispiele",
-    "🎨 Kreativwand",
 ]
 
 if "app_menu" not in st.session_state:
@@ -3500,6 +3499,10 @@ elif menu == "👤 Profil":
             <div class="score-card"><strong>{unlocked_count}/{len(achievements)}</strong><span>Achievements freigeschaltet</span></div>
         </div>
         """, unsafe_allow_html=True)
+
+        if st.button("Kreativwand oeffnen", key="profile_creative_wall", use_container_width=True):
+            st.session_state["app_menu"] = "🎨 Kreativwand"
+            st.rerun()
 
         inventory = [row for row in get_market_inventory(logged_in_username) if int(row.get("quantity") or 0) > 0]
         if inventory:
