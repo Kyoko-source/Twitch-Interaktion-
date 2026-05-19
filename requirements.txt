@@ -1,0 +1,6 @@
+streamlit
+pandas
+requests
+altair
+pillow
+streamlit-drawable-canvas

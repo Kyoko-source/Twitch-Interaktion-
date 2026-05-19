@@ -16,8 +16,16 @@ import textwrap
 import json
 import math
 import base64
+import io
 from pathlib import Path
 from typing import Optional
+
+from PIL import Image
+
+try:
+    from streamlit_drawable_canvas import st_canvas
+except ImportError:
+    st_canvas = None
 
 st.set_page_config(
     page_title="Gehirnzone",
@@ -844,6 +852,57 @@ def claim_daily_reward(username):
     get_leaderboard.clear()
     get_chicken_scores.clear()
     return True, f"Daily Reward abgeholt: +{reward_chickens} Chickens und +{reward_braincells} Gehirnzellen."
+
+
+@st.cache_data(ttl=120)
+def get_creative_gallery(limit=30):
+    return api_get_optional(
+        "creative_gallery"
+        f"?select=*&order=created_at.desc&limit={int(limit)}"
+    )
+
+
+def canvas_image_to_data_uri(image_data):
+    if image_data is None:
+        return None
+
+    has_ink = bool((image_data[:, :, :3] != 255).any())
+    if not has_ink:
+        return None
+
+    image = Image.fromarray(image_data.astype("uint8"), mode="RGBA")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def create_creative_art(username, title, image_data_uri):
+    username = username.strip()
+    clean_title = title.strip()[:80] or "Ohne Titel"
+
+    created = api_post_optional(
+        "creative_gallery",
+        {
+            "id": str(uuid.uuid4()),
+            "username": username,
+            "title": clean_title,
+            "image_data": image_data_uri,
+            "created_at": datetime.now().isoformat(),
+        }
+    )
+
+    if created:
+        get_creative_gallery.clear()
+        return True
+    return False
+
+
+def delete_creative_art(art_id):
+    success = api_delete(f"creative_gallery?id=eq.{urllib.parse.quote(str(art_id))}")
+    if success:
+        get_creative_gallery.clear()
+    return success
 
 
 def build_achievements(user, rank_position=None, best_score=None, daily_state=None):
@@ -2457,6 +2516,60 @@ h1::after {
     font-weight: 800;
 }
 
+.creative-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.36fr);
+    gap: 16px;
+    align-items: start;
+    margin: 16px 0 24px;
+}
+
+.creative-panel,
+.creative-art-card {
+    border-radius: 8px;
+    padding: 18px;
+    background: rgba(8,14,18,0.72);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.creative-panel h3,
+.creative-art-card h3 {
+    margin: 6px 0 8px;
+}
+
+.creative-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.creative-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 16px 0 28px;
+}
+
+.creative-art-card {
+    padding: 14px;
+}
+
+.creative-art-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.14);
+}
+
+.creative-art-card span {
+    display: block;
+    color: #cfc6e8;
+    font-weight: 780;
+}
+
 .newspaper-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
@@ -2764,6 +2877,8 @@ h1::after {
     .home-hero,
     .home-actions,
     .home-compact-grid,
+    .creative-shell,
+    .creative-gallery-grid,
     .achievement-grid,
     .score-strip,
     .newspaper-grid,
@@ -2924,6 +3039,7 @@ MAIN_MENU_OPTIONS = [
     "🏆 Rangliste",
     "⚡ Events",
     "🎮 Minispiele",
+    "🎨 Kreativwand",
 ]
 
 if "app_menu" not in st.session_state:
@@ -4068,6 +4184,100 @@ elif menu == "⚡ Events":
                     st.caption(f"Angemeldet: {names}")
 
             st.write("---")
+
+# =========================
+# KREATIVWAND
+# =========================
+
+elif menu == "🎨 Kreativwand":
+
+    logged_in_username = get_logged_in_username()
+
+    st.markdown('<div class="section-kicker">Kreativwand</div>', unsafe_allow_html=True)
+    st.markdown("## Leinwand & Hall of Fame")
+
+    draw_tab, gallery_tab = st.tabs(["Malen", "Hall of Fame"])
+
+    with draw_tab:
+        if not logged_in_username:
+            st.warning("Bitte melde dich zuerst an, um ein Bild zu veroeffentlichen.")
+            if st.button("Zum Login", key="creative_login_cta", use_container_width=True):
+                st.session_state["app_menu"] = "🔑 Login"
+                st.rerun()
+        elif st_canvas is None:
+            st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den naechsten Deploy oder pruefe requirements.txt.")
+        else:
+            st.markdown("""
+            <div class="creative-shell">
+                <div class="creative-panel">
+                    <div class="section-kicker">Weisse Leinwand</div>
+                    <h3>Zeichne dein Meisterwerk</h3>
+                    <p>Waehle Farbe, Strichstaerke und Modus. Danach kannst du dein Bild in die Hall of Fame stellen.</p>
+                </div>
+                <div class="creative-panel">
+                    <div class="section-kicker">Signatur</div>
+                    <h3>Dein Name steht dabei</h3>
+                    <p>Gespeichert wird mit deinem eingeloggten Account.</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            title = st.text_input("Titel", max_chars=80, placeholder="Mein Kunstwerk")
+            tool_col, color_col, width_col = st.columns([1, 1, 1])
+            with tool_col:
+                drawing_mode = st.selectbox("Werkzeug", ["freedraw", "line", "rect", "circle"], format_func={
+                    "freedraw": "Stift",
+                    "line": "Linie",
+                    "rect": "Rechteck",
+                    "circle": "Kreis",
+                }.get)
+            with color_col:
+                stroke_color = st.color_picker("Farbe", "#1f2937")
+            with width_col:
+                stroke_width = st.slider("Strichstaerke", 1, 28, 6)
+
+            canvas_result = st_canvas(
+                fill_color="rgba(255, 255, 255, 0)",
+                stroke_width=stroke_width,
+                stroke_color=stroke_color,
+                background_color="#FFFFFF",
+                width=820,
+                height=560,
+                drawing_mode=drawing_mode,
+                key="creative_canvas",
+                update_streamlit=True,
+            )
+
+            if st.button("In Hall of Fame veroeffentlichen", key="publish_creative_art", use_container_width=True):
+                image_data_uri = canvas_image_to_data_uri(canvas_result.image_data)
+                if not image_data_uri:
+                    st.error("Die Leinwand ist noch leer.")
+                elif create_creative_art(logged_in_username, title, image_data_uri):
+                    st.success("Dein Bild ist jetzt in der Hall of Fame.")
+                    st.rerun()
+                else:
+                    st.error("Bild konnte nicht gespeichert werden. Fuehre add_creative_gallery_table.sql in Supabase aus.")
+
+    with gallery_tab:
+        gallery_items = get_creative_gallery(60)
+        if not gallery_items:
+            st.info("Noch keine Bilder in der Hall of Fame.")
+        else:
+            cards = ""
+            for item in gallery_items:
+                title = html.escape(str(item.get("title") or "Ohne Titel"))
+                username = html.escape(str(item.get("username") or "Unbekannt"))
+                created_at = html.escape(str(item.get("created_at") or ""))
+                image_data = html.escape(str(item.get("image_data") or ""))
+                cards += (
+                    '<article class="creative-art-card">'
+                    f'<img src="{image_data}" alt="{title}">'
+                    f'<h3>{title}</h3>'
+                    f'<span>von {username}</span>'
+                    f'<span>{created_at}</span>'
+                    '</article>'
+                )
+            st.markdown(f'<div class="creative-gallery-grid">{cards}</div>', unsafe_allow_html=True)
 
 # =========================
 # CHICKEN JUMP
@@ -5457,6 +5667,7 @@ elif menu == "🔐 Admin":
         events = get_events()
         shop_items = get_shop_items()
         news_posts = get_news_posts()
+        creative_items = get_creative_gallery(100)
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
         active_categories = len({str(item.get("category") or get_default_shop_category()) for item in shop_items})
         wheel_queue_count = len(get_punishment_wheel_entries())
@@ -5501,16 +5712,22 @@ elif menu == "🔐 Admin":
                 <h3>{wheel_queue_count}</h3>
                 <div class="admin-muted">Offene Ideen in der Queue</div>
             </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Kreativwand</div>
+                <h3>{len(creative_items)}</h3>
+                <div class="admin-muted">Bilder in der Hall of Fame</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        overview_tab, registration_tab, viewer_tab, news_tab, shop_tab, event_tab, danger_tab = st.tabs([
+        overview_tab, registration_tab, viewer_tab, news_tab, shop_tab, event_tab, creative_tab, danger_tab = st.tabs([
             "Dashboard",
             "Registrierungen",
             "Viewer",
             "News",
             "Shop",
             "Events",
+            "Kreativwand",
             "Moderation",
         ])
 
@@ -5801,6 +6018,37 @@ elif menu == "🔐 Admin":
                             st.rerun()
             else:
                 st.info("Noch keine Events vorhanden.")
+
+        with creative_tab:
+            st.markdown("### Kreativwand moderieren")
+            if not creative_items:
+                st.info("Noch keine Bilder in der Hall of Fame.")
+            else:
+                for item in creative_items:
+                    art_id = str(item.get("id"))
+                    title = str(item.get("title") or "Ohne Titel")
+                    username = str(item.get("username") or "Unbekannt")
+                    created_at = str(item.get("created_at") or "")
+                    image_data = str(item.get("image_data") or "")
+
+                    preview_col, action_col = st.columns([3, 1])
+                    with preview_col:
+                        st.markdown(
+                            '<div class="admin-list-item">'
+                            f'<b>{html.escape(title)}</b><br>'
+                            f'<span class="admin-muted">von {html.escape(username)} · {html.escape(created_at)}</span>'
+                            '</div>',
+                            unsafe_allow_html=True
+                        )
+                        if image_data:
+                            st.image(image_data, width=240)
+                    with action_col:
+                        if st.button("Bild loeschen", key=f"delete_creative_{art_id}"):
+                            if delete_creative_art(art_id):
+                                st.success("Bild geloescht.")
+                                st.rerun()
+                            else:
+                                st.error("Bild konnte nicht geloescht werden.")
 
         with danger_tab:
             st.markdown("### Moderation")
