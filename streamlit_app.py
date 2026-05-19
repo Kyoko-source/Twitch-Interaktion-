@@ -9,6 +9,8 @@ import hashlib
 import re
 import urllib.parse
 import uuid
+import secrets
+import string
 import html
 import textwrap
 import json
@@ -24,6 +26,7 @@ st.set_page_config(
 )
 
 PASSWORD_SALT = "gehirnzone_guest_auth_salt"
+REGISTRATION_CODE_SALT = "gehirnzone_registration_code_salt"
 
 # =========================
 # VALIDATION
@@ -46,6 +49,16 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return hash_password(password) == password_hash
+
+
+def hash_registration_code(code: str) -> str:
+    normalized_code = code.strip().upper()
+    return hashlib.sha256(f"{normalized_code}{REGISTRATION_CODE_SALT}".encode("utf-8")).hexdigest()
+
+
+def generate_registration_code(length: int = 8) -> str:
+    alphabet = string.ascii_uppercase + "23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def login_user(username: str, password: str) -> Optional[dict]:
@@ -526,6 +539,120 @@ def set_user_password(username, password):
             "password_hash": hash_password(password)
         }
     )
+
+
+def get_registration_requests(status: Optional[str] = None):
+    path = "registration_requests?select=*&order=created_at.desc"
+    if status:
+        path = f"registration_requests?select=*&status=eq.{urllib.parse.quote(status)}&order=created_at.desc"
+    return api_get_optional(path)
+
+
+def get_active_registration_request(username: str) -> Optional[dict]:
+    username = username.strip()
+    rows = api_get_optional(
+        "registration_requests?select=*&"
+        f"username=eq.{urllib.parse.quote(username)}&"
+        "status=in.(pending,approved)&used_at=is.null&order=created_at.desc&limit=1"
+    )
+    return rows[0] if rows else None
+
+
+def request_registration(username: str, password: str):
+    username = username.strip()
+    existing_user = get_user(username)
+    if existing_user and existing_user.get("password_hash"):
+        return False, "Dieser Name ist bereits registriert."
+
+    existing_request = get_active_registration_request(username)
+    if existing_request:
+        if existing_request.get("status") == "approved":
+            return False, "Diese Anfrage wurde schon genehmigt. Bitte nutze den Code vom Admin."
+        return False, "Fuer diesen Namen wartet bereits eine Anfrage auf Genehmigung."
+
+    created = api_post(
+        "registration_requests",
+        {
+            "id": str(uuid.uuid4()),
+            "username": username,
+            "password_hash": hash_password(password),
+            "status": "pending",
+            "created_at": datetime.now().isoformat(),
+        }
+    )
+    if not created:
+        return False, "Anfrage konnte nicht erstellt werden. Fuehre zuerst add_registration_requests_table.sql in Supabase aus."
+
+    return True, "Anfrage gesendet. Ein Admin muss sie jetzt genehmigen."
+
+
+def approve_registration_request(request_id: str):
+    code = generate_registration_code()
+    ok = api_patch(
+        f"registration_requests?id=eq.{urllib.parse.quote(str(request_id))}",
+        {
+            "status": "approved",
+            "approval_code_hash": hash_registration_code(code),
+            "approved_at": datetime.now().isoformat(),
+        }
+    )
+    return code if ok else None
+
+
+def deny_registration_request(request_id: str):
+    return api_patch(
+        f"registration_requests?id=eq.{urllib.parse.quote(str(request_id))}",
+        {
+            "status": "denied",
+            "denied_at": datetime.now().isoformat(),
+        }
+    )
+
+
+def complete_registration(username: str, password: str, code: str):
+    username = username.strip()
+    code_hash = hash_registration_code(code)
+    requests_for_user = api_get_optional(
+        "registration_requests?select=*&"
+        f"username=eq.{urllib.parse.quote(username)}&"
+        "status=eq.approved&used_at=is.null&order=approved_at.desc"
+    )
+
+    approved_request = None
+    for request_row in requests_for_user:
+        if (
+            request_row.get("password_hash") == hash_password(password)
+            and request_row.get("approval_code_hash") == code_hash
+        ):
+            approved_request = request_row
+            break
+
+    if not approved_request:
+        return None, "Registrierung fehlgeschlagen. Pruefe Name, Passwort und Einmalcode."
+
+    existing_user = get_user(username)
+    if existing_user and existing_user.get("password_hash"):
+        return None, "Dieser Name ist bereits registriert."
+
+    if existing_user:
+        user_ok = set_user_password(username, password)
+        user = get_user(username) if user_ok else None
+    else:
+        user = create_user(username, password)
+
+    if not user:
+        return None, "User konnte nicht erstellt werden."
+
+    api_patch(
+        f"registration_requests?id=eq.{urllib.parse.quote(str(approved_request.get('id')))}",
+        {
+            "status": "used",
+            "used_at": datetime.now().isoformat(),
+        }
+    )
+    get_members.clear()
+    get_leaderboard.clear()
+    return user, "Registrierung abgeschlossen. Du bist jetzt angemeldet."
 
 
 def delete_user(username):
@@ -1226,6 +1353,24 @@ def buy_reward(username, reward):
     get_members.clear()
     get_punishment_wheel_entries.clear()
     return True
+
+
+PATCH_NOTES = [
+    {
+        "version": "Patch 1.0",
+        "title": "Chicken Jump, Shop und Rangliste",
+        "date": "16.05.2026",
+        "changes": [
+            "Chicken Jump optisch überarbeitet mit neuem Hintergrund, Holz-Zäunen, Partikeln und MP3-Musik.",
+            "Chicken Jump Steuerung verbessert: kurzer Tap für kurzen Sprung, gedrückt halten für höheren Sprung.",
+            "Chicken Jump Schwierigkeit angepasst, damit der Anfang leichter ist und später fair schwerer wird.",
+            "Chicken-Jump-Scoreboard zeigt pro Namen nur noch den höchsten Score.",
+            "Ranglisten-Tab als Dashboard mit Podium, Nummer-1-Highlight und Ranking-Karten neu gestaltet.",
+            "Shop und Admin-Bereich um übersichtlichere Dashboard-Infos erweitert.",
+            "Profil mit Level-System und Events als Ticket-Karten ergänzt.",
+        ],
+    },
+]
 
 # =========================
 # DESIGN
@@ -2017,6 +2162,58 @@ h1::after {
     font-weight: 950;
 }
 
+.patch-notes-shell {
+    display: grid;
+    gap: 16px;
+    margin: 18px 0 30px;
+}
+
+.patch-note-card {
+    border-radius: 18px;
+    padding: 24px;
+    background:
+        linear-gradient(135deg, rgba(199,125,255,0.16), rgba(255,84,160,0.10)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+}
+
+.patch-note-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.patch-note-head h3 {
+    margin: 4px 0 0;
+    color: #ffffff;
+}
+
+.patch-version {
+    width: fit-content;
+    padding: 7px 11px;
+    border-radius: 999px;
+    color: #061015;
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.patch-date {
+    color: #cfc6e8;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.patch-change-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #f3ecff;
+    line-height: 1.65;
+}
+
 .profile-edit-wrap {
     margin-top: 18px;
     padding: 22px;
@@ -2712,6 +2909,10 @@ with account_col:
             st.session_state["app_menu"] = "🔐 Admin"
             st.rerun()
 
+        if st.button("Patch Notes", key="account_patch_notes", use_container_width=True):
+            st.session_state["app_menu"] = "Patch Notes"
+            st.rerun()
+
         if logged_in_username or twitch_display_name:
             st.divider()
             if st.button("Logout", key="account_logout", use_container_width=True):
@@ -2906,6 +3107,33 @@ if menu == "🏠 Home":
 # LOGIN
 # =========================
 
+elif menu == "Patch Notes":
+
+    st.markdown('<div class="section-kicker">Update Verlauf</div>', unsafe_allow_html=True)
+    st.markdown("## Patch Notes")
+    st.markdown("Hier stehen kurz die wichtigsten Änderungen an der Seite.")
+
+    patch_cards = ""
+    for patch in PATCH_NOTES:
+        change_items = "".join(
+            f"<li>{html.escape(change)}</li>"
+            for change in patch["changes"]
+        )
+        patch_cards += f"""
+        <article class="patch-note-card">
+            <div class="patch-note-head">
+                <div>
+                    <div class="patch-version">{html.escape(patch["version"])}</div>
+                    <h3>{html.escape(patch["title"])}</h3>
+                </div>
+                <div class="patch-date">{html.escape(patch["date"])}</div>
+            </div>
+            <ul class="patch-change-list">{change_items}</ul>
+        </article>
+        """
+
+    st.markdown(f'<div class="patch-notes-shell">{patch_cards}</div>', unsafe_allow_html=True)
+
 elif menu == "🔑 Login":
 
     logged_in_username = get_logged_in_username()
@@ -2919,7 +3147,7 @@ elif menu == "🔑 Login":
         st.markdown("## Anmeldung oder Registrierung")
         st.markdown("Gib deinen Twitch-Namen exakt so ein, wie er auf Twitch geschrieben ist.")
 
-        login_tab, register_tab = st.tabs(["Anmelden", "Registrieren"])
+        login_tab, request_tab, complete_tab = st.tabs(["Anmelden", "Registrierung anfragen", "Code einloesen"])
 
         with login_tab:
             login_name = st.text_input("Twitch-Name", key="login_name")
@@ -2937,37 +3165,45 @@ elif menu == "🔑 Login":
                     else:
                         st.error("Login fehlgeschlagen. Prüfe deinen Namen und dein Passwort.")
 
-        with register_tab:
-            register_name = st.text_input("Twitch-Name", key="register_name")
-            register_password = st.text_input("Passwort", type="password", key="register_password")
-            register_confirm = st.text_input("Passwort bestätigen", type="password", key="register_confirm")
+        with request_tab:
+            request_name = st.text_input("Twitch-Name", key="registration_request_name")
+            request_password = st.text_input("Passwort", type="password", key="registration_request_password")
+            request_confirm = st.text_input("Passwort bestaetigen", type="password", key="registration_request_confirm")
 
-            if st.button("Registrieren", key="register_submit"):
-                if not validate_username(register_name):
-                    st.error("Ungültiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
-                elif register_password == "":
+            if st.button("Anfragen", key="registration_request_submit"):
+                if not validate_username(request_name):
+                    st.error("Ungueltiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                elif request_password == "":
                     st.error("Bitte gib ein Passwort ein.")
-                elif register_password != register_confirm:
-                    st.error("Die Passwörter stimmen nicht überein.")
+                elif request_password != request_confirm:
+                    st.error("Die Passwoerter stimmen nicht ueberein.")
                 else:
-                    existing_user = get_user(register_name)
-                    if existing_user and existing_user.get("password_hash"):
-                        st.error("Dieser Name ist bereits registriert.")
-                    elif existing_user:
-                        if set_user_password(register_name, register_password):
-                            st.session_state["logged_in_username"] = register_name
-                            st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
-                            st.rerun()
-                        else:
-                            st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
+                    success, message = request_registration(request_name, request_password)
+                    if success:
+                        st.success(message)
                     else:
-                        new_user = create_user(register_name, register_password)
-                        if new_user:
-                            st.session_state["logged_in_username"] = new_user["username"]
-                            st.success("Registrierung erfolgreich. Du bist jetzt angemeldet.")
-                            st.rerun()
-                        else:
-                            st.error("Registrierung fehlgeschlagen. Prüfe die Datenbank-Konfiguration.")
+                        st.error(message)
+
+        with complete_tab:
+            complete_name = st.text_input("Twitch-Name", key="registration_complete_name")
+            complete_password = st.text_input("Passwort", type="password", key="registration_complete_password")
+            complete_code = st.text_input("Einmalcode vom Admin", key="registration_complete_code")
+
+            if st.button("Registrierung abschliessen", key="registration_complete_submit"):
+                if not validate_username(complete_name):
+                    st.error("Ungueltiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                elif complete_password == "":
+                    st.error("Bitte gib dein Passwort ein.")
+                elif complete_code.strip() == "":
+                    st.error("Bitte gib den Einmalcode ein.")
+                else:
+                    user, message = complete_registration(complete_name, complete_password, complete_code)
+                    if user:
+                        st.session_state["logged_in_username"] = user["username"]
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
 
 # =========================
 # PROFIL
@@ -5211,8 +5447,9 @@ elif menu == "🔐 Admin":
         </div>
         """, unsafe_allow_html=True)
 
-        overview_tab, viewer_tab, news_tab, shop_tab, event_tab, danger_tab = st.tabs([
+        overview_tab, registration_tab, viewer_tab, news_tab, shop_tab, event_tab, danger_tab = st.tabs([
             "Dashboard",
+            "Registrierungen",
             "Viewer",
             "News",
             "Shop",
@@ -5249,6 +5486,66 @@ elif menu == "🔐 Admin":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+        with registration_tab:
+            st.markdown("### Registrierungsanfragen")
+            pending_requests = get_registration_requests("pending")
+            approved_requests = get_registration_requests("approved")
+
+            if "last_registration_codes" not in st.session_state:
+                st.session_state["last_registration_codes"] = {}
+
+            if pending_requests:
+                st.markdown("#### Offen")
+                for request_row in pending_requests:
+                    request_id = str(request_row.get("id"))
+                    username = str(request_row.get("username") or "Unbekannt")
+                    created_at = str(request_row.get("created_at") or "")
+                    st.markdown(
+                        f'<div class="admin-list-item"><b>{html.escape(username)}</b><br>'
+                        f'<span class="admin-muted">Angefragt: {html.escape(created_at)}</span></div>',
+                        unsafe_allow_html=True
+                    )
+                    approve_col, deny_col = st.columns(2)
+                    with approve_col:
+                        if st.button("Genehmigen", key=f"approve_registration_{request_id}"):
+                            code = approve_registration_request(request_id)
+                            if code:
+                                st.session_state["last_registration_codes"][request_id] = code
+                                st.success(f"Einmalcode fuer {username}: {code}")
+                                st.rerun()
+                            else:
+                                st.error("Anfrage konnte nicht genehmigt werden.")
+                    with deny_col:
+                        if st.button("Ablehnen", key=f"deny_registration_{request_id}"):
+                            if deny_registration_request(request_id):
+                                st.success("Anfrage abgelehnt.")
+                                st.rerun()
+                            else:
+                                st.error("Anfrage konnte nicht abgelehnt werden.")
+            else:
+                st.info("Keine offenen Registrierungsanfragen.")
+
+            if approved_requests:
+                st.markdown("#### Genehmigt, noch nicht eingelöst")
+                for request_row in approved_requests:
+                    request_id = str(request_row.get("id"))
+                    username = str(request_row.get("username") or "Unbekannt")
+                    last_code = st.session_state["last_registration_codes"].get(request_id)
+                    code_text = f"Code: {last_code}" if last_code else "Code wurde aus Sicherheitsgruenden nur beim Genehmigen angezeigt."
+                    st.markdown(
+                        f'<div class="admin-list-item"><b>{html.escape(username)}</b><br>'
+                        f'<span class="admin-muted">{html.escape(code_text)}</span></div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("Neuen Code erzeugen", key=f"regenerate_registration_{request_id}"):
+                        code = approve_registration_request(request_id)
+                        if code:
+                            st.session_state["last_registration_codes"][request_id] = code
+                            st.success(f"Neuer Einmalcode fuer {username}: {code}")
+                            st.rerun()
+                        else:
+                            st.error("Code konnte nicht erzeugt werden.")
 
         with viewer_tab:
             st.markdown("### Viewer verwalten")
