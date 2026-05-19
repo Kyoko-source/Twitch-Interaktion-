@@ -2994,41 +2994,53 @@ h1::after {
 }
 
 .stRadio {
-    max-width: 1180px;
-    margin: 4px auto 28px auto;
+    width: fit-content;
+    max-width: 100%;
+    margin: 4px auto 34px auto;
     position: relative;
     z-index: 1;
 }
 
 .stRadio > div {
-    justify-content: flex-start;
-    background: rgba(8,10,18,0.72);
+    width: fit-content;
+    max-width: min(100%, 1240px);
+    margin: 0 auto;
+    justify-content: center;
+    background: rgba(8,10,18,0.58);
     border: 1px solid rgba(199,125,255,0.28);
     border-radius: 999px;
-    padding: 7px;
-    box-shadow: 0 18px 45px rgba(0,0,0,0.24);
-    backdrop-filter: blur(12px);
+    padding: 6px;
+    box-shadow: 0 16px 38px rgba(0,0,0,0.26);
+    backdrop-filter: blur(16px);
     overflow-x: auto;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+}
+
+.stRadio > div::-webkit-scrollbar {
+    display: none;
 }
 
 .stRadio [role="radiogroup"] {
     display: flex;
     flex-wrap: nowrap;
-    gap: 7px;
+    justify-content: center;
+    gap: 6px;
     width: max-content;
-    min-width: 100%;
 }
 
 .stRadio [role="radiogroup"] label {
-    min-height: 38px;
+    min-height: 36px;
     border-radius: 999px;
-    padding: 0 13px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.035);
+    padding: 0 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.045);
     transition: all 0.18s ease;
     white-space: nowrap;
     flex: 0 0 auto;
+}
+
+.stRadio [role="radiogroup"] label > div:first-child {
+    display: none;
 }
 
 .stRadio [role="radiogroup"] label:hover {
@@ -3039,7 +3051,7 @@ h1::after {
 .stRadio [role="radiogroup"] label:has(input:checked) {
     background: linear-gradient(135deg, #c77dff, #ff54a0);
     border-color: transparent;
-    box-shadow: 0 0 22px rgba(255,84,160,0.24);
+    box-shadow: 0 10px 26px rgba(255,84,160,0.24);
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) p {
@@ -3048,10 +3060,11 @@ h1::after {
 }
 
 .stRadio [role="radiogroup"] label p {
-    font-weight: 800;
-    font-size: 14px;
+    font-weight: 850;
+    font-size: 13px;
     line-height: 1;
     white-space: nowrap;
+    margin: 0;
 }
 
 .small {
