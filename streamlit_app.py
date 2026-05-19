@@ -82,10 +82,14 @@ def logout_user():
 
 try:
     SUPABASE_URL = st.secrets["supabase"]["url"]
-    SUPABASE_ANON_KEY = st.secrets["supabase"].get("anon_key", st.secrets["supabase"]["key"])
-    SUPABASE_SERVICE_KEY = st.secrets["supabase"].get("service_key", st.secrets["supabase"]["key"])
+    SUPABASE_ANON_KEY = st.secrets["supabase"].get("anon_key") or st.secrets["supabase"].get("key")
+    SUPABASE_SERVICE_KEY = st.secrets["supabase"].get("service_key") or st.secrets["supabase"].get("key")
 except KeyError:
     st.error("Supabase-Secrets sind nicht konfiguriert. Bitte setze url, anon_key und service_key in den App-Einstellungen.")
+    st.stop()
+
+if not SUPABASE_ANON_KEY or not SUPABASE_SERVICE_KEY:
+    st.error("Supabase-Secrets sind unvollstaendig. Bitte setze anon_key und service_key in den App-Einstellungen.")
     st.stop()
 
 HEADERS = {
