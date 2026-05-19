@@ -8,7 +8,7 @@ DROP CONSTRAINT IF EXISTS shop_items_category_check;
 
 ALTER TABLE public.shop_items
 ADD CONSTRAINT shop_items_category_check
-CHECK (category IN ('In Stream Rewards', 'Bestrafungs Ideen', 'Idee Bestrafungsrad', 'Out of Stream Rewards'));
+CHECK (category IN ('In Stream Rewards', 'Bestrafungs Ideen', 'Idee Bestrafungsrad', 'Aufgaben', 'Aufgaben Ideen', 'Idee Aufgabenrad', 'Out of Stream Rewards'));
 
 UPDATE public.shop_items
 SET category = 'Bestrafungs Ideen'
@@ -40,7 +40,7 @@ DROP CONSTRAINT IF EXISTS purchases_reward_category_check;
 
 ALTER TABLE public.purchases
 ADD CONSTRAINT purchases_reward_category_check
-CHECK (reward_category IN ('In Stream Rewards', 'Bestrafungs Ideen', 'Idee Bestrafungsrad', 'Out of Stream Rewards'));
+CHECK (reward_category IN ('In Stream Rewards', 'Bestrafungs Ideen', 'Idee Bestrafungsrad', 'Aufgaben', 'Aufgaben Ideen', 'Idee Aufgabenrad', 'Out of Stream Rewards'));
 
 UPDATE public.purchases
 SET reward_category = 'Bestrafungs Ideen'

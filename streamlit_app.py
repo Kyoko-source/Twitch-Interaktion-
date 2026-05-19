@@ -1005,12 +1005,19 @@ def get_progress(points):
 SHOP_CATEGORIES = [
     "In Stream Rewards",
     "Bestrafungs Ideen",
+    "Aufgaben",
     "Out of Stream Rewards",
 ]
 
 PUNISHMENT_WHEEL_CATEGORIES = [
     "Bestrafungs Ideen",
     "Idee Bestrafungsrad",
+]
+
+TASK_WHEEL_CATEGORIES = [
+    "Aufgaben",
+    "Aufgaben Ideen",
+    "Idee Aufgabenrad",
 ]
 
 MARKET_SPREAD = 0.12
@@ -1072,20 +1079,34 @@ def delete_news_post(post_id):
 
 
 @st.cache_data(ttl=90)
-def get_punishment_wheel_entries():
+def get_wheel_entries(categories_key):
+    categories = list(categories_key)
+    encoded_categories = ",".join(urllib.parse.quote(category) for category in categories)
     return api_get_optional(
         "purchases?select=id,username,reward_name,reward_category,status,created_at"
-        "&reward_category=in.(Bestrafungs%20Ideen,Idee%20Bestrafungsrad)&status=eq.open&order=created_at.asc"
+        f"&reward_category=in.({encoded_categories})&status=eq.open&order=created_at.asc"
     )
 
 
-def mark_punishment_done(purchase_id):
+def get_punishment_wheel_entries():
+    return get_wheel_entries(tuple(PUNISHMENT_WHEEL_CATEGORIES))
+
+
+def get_task_wheel_entries():
+    return get_wheel_entries(tuple(TASK_WHEEL_CATEGORIES))
+
+
+def mark_wheel_entry_done(purchase_id):
     success = api_patch(
         f"purchases?id=eq.{purchase_id}",
         {"status": "done", "resolved_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat()}
     )
-    get_punishment_wheel_entries.clear()
+    get_wheel_entries.clear()
     return success
+
+
+def mark_punishment_done(purchase_id):
+    return mark_wheel_entry_done(purchase_id)
 
 
 def get_market_item(item_key):
@@ -1453,7 +1474,7 @@ def buy_reward(username, reward):
 
     get_leaderboard.clear()
     get_members.clear()
-    get_punishment_wheel_entries.clear()
+    get_wheel_entries.clear()
     return True
 
 
@@ -5477,75 +5498,122 @@ elif menu.endswith("Minispiele"):
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
        .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
 
-    st.markdown("## Bestrafungsrad")
+    st.markdown("## Gluecksraeder")
     wheel_entries = get_punishment_wheel_entries()
-    wheel_password = st.text_input("Admin Passwort für Glücksrad", type="password", key="wheel_admin_password")
+    task_wheel_entries = get_task_wheel_entries()
+    wheel_password = st.text_input("Admin Passwort fuer Gluecksraeder", type="password", key="wheel_admin_password")
     wheel_unlocked = wheel_password == "einsmarello"
     if wheel_password and not wheel_unlocked:
-        st.error("Falsches Admin-Passwort für das Glücksrad.")
+        st.error("Falsches Admin-Passwort fuer die Gluecksraeder.")
 
-    labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
-    if not labels:
-        labels = ["Eure Bestrafungen"] * 5
-
-    wheel_payload = json.dumps(labels, ensure_ascii=False)
-    disabled_attr = "" if wheel_unlocked else "disabled"
-    button_text = "Glücksrad drehen" if wheel_unlocked else "Nur Admin kann drehen"
+    punishment_labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
+    task_labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in task_wheel_entries]
+    punishment_payload = json.dumps(punishment_labels or ["Keine Bestrafungen in der Queue"], ensure_ascii=False)
+    task_payload = json.dumps(task_labels or ["Keine Aufgaben in der Queue"], ensure_ascii=False)
+    punishment_disabled_attr = "" if wheel_unlocked and punishment_labels else "disabled"
+    task_disabled_attr = "" if wheel_unlocked and task_labels else "disabled"
+    button_text = "Rad drehen" if wheel_unlocked else "Nur Admin"
     helper_text = (
-        "Admin-Modus aktiv. Offene Käufe aus Bestrafungs Ideen können gedreht werden."
+        "Admin-Modus aktiv. Offene Kaeufe koennen gedreht und danach abgehakt werden."
         if wheel_unlocked
-        else "Dieses Rad zeigt eure gekauften Bestrafungs-Ideen. Drehen kann nur der Admin."
+        else "Diese Raeder zeigen gekaufte Bestrafungen und Aufgaben. Drehen kann nur der Admin."
     )
 
     components.html(f"""
-    <div class="wheel-shell">
-        <div class="wheel-stage">
-            <div class="wheel-pointer"></div>
-            <div id="punishmentWheel" class="punishment-wheel"></div>
-            <div class="wheel-center"></div>
-        </div>
-        <div class="wheel-copy">
-            <div class="section-kicker">Bestrafungs Ideen</div>
-            <h2 id="wheelResult">Bestrafungsrad</h2>
-            <p>{helper_text}</p>
-            <button id="spinWheel" {disabled_attr}>{button_text}</button>
-            <ol id="wheelItems"></ol>
-        </div>
+    <div class="wheel-board">
+        <section class="wheel-card punishment-card">
+            <div class="wheel-stage">
+                <div class="wheel-glow"></div>
+                <div class="wheel-pointer"></div>
+                <div id="punishmentWheel" class="prize-wheel"></div>
+                <div class="wheel-center"><strong>!</strong></div>
+            </div>
+            <div class="wheel-copy">
+                <div class="section-kicker">Bestrafungs Ideen</div>
+                <h2 id="punishmentResult">Bestrafungsrad</h2>
+                <p>{helper_text}</p>
+                <button id="spinPunishment" {punishment_disabled_attr}>{button_text}</button>
+                <ol id="punishmentItems"></ol>
+            </div>
+        </section>
+        <section class="wheel-card task-card">
+            <div class="wheel-stage">
+                <div class="wheel-glow"></div>
+                <div class="wheel-pointer"></div>
+                <div id="taskWheel" class="prize-wheel"></div>
+                <div class="wheel-center"><strong>OK</strong></div>
+            </div>
+            <div class="wheel-copy">
+                <div class="section-kicker">Aufgaben</div>
+                <h2 id="taskResult">Aufgabenrad</h2>
+                <p>{helper_text}</p>
+                <button id="spinTask" {task_disabled_attr}>{button_text}</button>
+                <ol id="taskItems"></ol>
+            </div>
+        </section>
     </div>
     <style>
     body {{ margin:0; background:transparent; }}
-    .wheel-shell {{ display:grid; grid-template-columns:minmax(260px,.8fr) minmax(0,1fr); gap:18px; align-items:center; background:linear-gradient(135deg,rgba(123,44,191,.24),rgba(255,84,160,.14)); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:20px; color:white; font-family:Inter,Segoe UI,Arial,sans-serif; }}
-    .wheel-stage {{ position:relative; width:min(380px,100%); aspect-ratio:1; margin:auto; }}
-    .punishment-wheel {{ width:100%; height:100%; border-radius:50%; border:10px solid rgba(255,255,255,.14); background:conic-gradient(#7b2cbf 0 72deg,#ff54a0 72deg 144deg,#c77dff 144deg 216deg,#9d4edd 216deg 288deg,#ff7ad9 288deg 360deg); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 0 34px rgba(0,0,0,.28); transition:transform 3.2s cubic-bezier(.12,.76,.18,1); }}
-    .wheel-pointer {{ position:absolute; left:50%; top:-3px; width:0; height:0; transform:translateX(-50%); border-left:18px solid transparent; border-right:18px solid transparent; border-top:34px solid #fff; z-index:3; }}
-    .wheel-center {{ position:absolute; inset:39%; border-radius:50%; background:#120817; border:4px solid rgba(255,255,255,.2); }}
-    .section-kicker {{ color:#ff7ad9; font-size:13px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; }}
-    .wheel-copy h2 {{ margin:8px 0 10px; font-size:38px; }}
-    .wheel-copy p {{ color:#f0c9ff; font-weight:760; line-height:1.5; }}
-    #spinWheel {{ padding:14px 18px; border-radius:12px; border:0; font-weight:900; background:linear-gradient(135deg,#c77dff,#ff54a0); color:#120817; cursor:pointer; }}
-    #spinWheel:disabled {{ cursor:not-allowed; opacity:.55; filter:grayscale(.35); }}
-    #wheelItems {{ padding-left:22px; }}
-    #wheelItems li {{ margin:7px 0; color:#f0c9ff; font-weight:800; }}
-    @media (max-width:720px) {{ .wheel-shell {{ grid-template-columns:1fr; }} }}
+    .wheel-board {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; color:white; font-family:Inter,Segoe UI,Arial,sans-serif; }}
+    .wheel-card {{ position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(220px,.82fr) minmax(0,1fr); gap:18px; align-items:center; min-height:410px; padding:22px; border:1px solid rgba(255,255,255,.16); border-radius:22px; background:radial-gradient(circle at 18% 18%,rgba(255,255,255,.16),transparent 30%),linear-gradient(145deg,rgba(18,9,28,.96),rgba(42,21,58,.92)); box-shadow:0 26px 80px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.10); }}
+    .task-card {{ background:radial-gradient(circle at 18% 18%,rgba(124,255,178,.16),transparent 30%),linear-gradient(145deg,rgba(8,24,27,.96),rgba(22,50,48,.92)); }}
+    .wheel-stage {{ position:relative; width:min(330px,100%); aspect-ratio:1; margin:auto; display:grid; place-items:center; }}
+    .wheel-glow {{ position:absolute; inset:8%; border-radius:50%; background:radial-gradient(circle,rgba(255,255,255,.24),transparent 58%); filter:blur(16px); }}
+    .prize-wheel {{ position:relative; width:100%; height:100%; border-radius:50%; border:12px solid rgba(255,255,255,.18); box-shadow:0 24px 70px rgba(0,0,0,.42), inset 0 0 38px rgba(0,0,0,.30); transition:transform 4s cubic-bezier(.12,.78,.16,1); }}
+    .prize-wheel::after {{ content:""; position:absolute; inset:9%; border-radius:50%; border:1px solid rgba(255,255,255,.22); background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.18),transparent 42%); }}
+    .wheel-pointer {{ position:absolute; left:50%; top:-8px; width:0; height:0; transform:translateX(-50%); border-left:20px solid transparent; border-right:20px solid transparent; border-top:42px solid #fff6d8; z-index:4; filter:drop-shadow(0 8px 14px rgba(0,0,0,.35)); }}
+    .wheel-center {{ position:absolute; inset:36%; z-index:5; display:grid; place-items:center; border-radius:50%; background:linear-gradient(145deg,#fff8dc,#ffd166); border:6px solid rgba(22,8,31,.72); box-shadow:0 12px 30px rgba(0,0,0,.36), inset 0 2px 8px rgba(255,255,255,.55); color:#16091f; font-size:28px; }}
+    .section-kicker {{ color:#ffdf6e; font-size:12px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }}
+    .wheel-copy h2 {{ margin:8px 0 10px; font-size:clamp(28px,3vw,42px); line-height:1.02; }}
+    .wheel-copy p {{ min-height:58px; color:#f0dcff; font-weight:760; line-height:1.45; }}
+    .task-card .wheel-copy p {{ color:#c9fff0; }}
+    .wheel-copy button {{ width:100%; max-width:220px; padding:14px 18px; border-radius:14px; border:0; font-weight:950; color:#120817; background:linear-gradient(135deg,#ffe66d,#ff54a0); cursor:pointer; box-shadow:0 12px 30px rgba(255,84,160,.22); }}
+    .task-card .wheel-copy button {{ background:linear-gradient(135deg,#7cffb2,#00d4ff); box-shadow:0 12px 30px rgba(0,212,255,.20); }}
+    .wheel-copy button:disabled {{ cursor:not-allowed; opacity:.48; filter:grayscale(.35); box-shadow:none; }}
+    .wheel-copy ol {{ margin:18px 0 0; padding-left:22px; max-height:116px; overflow:auto; }}
+    .wheel-copy li {{ margin:7px 0; color:#f8e9ff; font-weight:800; }}
+    .task-card .wheel-copy li {{ color:#dcfff6; }}
+    @media (max-width:1050px) {{ .wheel-board {{ grid-template-columns:1fr; }} }}
+    @media (max-width:680px) {{ .wheel-card {{ grid-template-columns:1fr; }} .wheel-stage {{ width:min(300px,100%); }} }}
     </style>
     <script>
-    const items = {wheel_payload};
-    const wheel = document.getElementById("punishmentWheel");
-    const result = document.getElementById("wheelResult");
-    const list = document.getElementById("wheelItems");
-    list.innerHTML = items.map((item, index) => `<li>${{index + 1}}. ${{item}}</li>`).join("");
-    let rotation = 0;
-    const button = document.getElementById("spinWheel");
-    if (!button.disabled) {{
-        button.addEventListener("click", () => {{
-            const selected = Math.floor(Math.random() * items.length);
-            rotation += 1440 + selected * (360 / items.length) + Math.random() * 60;
-            wheel.style.transform = `rotate(${{rotation}}deg)`;
-            setTimeout(() => {{ result.textContent = items[selected]; }}, 3300);
-        }});
+    const configs = [
+        {{ wheelId:"punishmentWheel", resultId:"punishmentResult", listId:"punishmentItems", buttonId:"spinPunishment", items:{punishment_payload}, colors:["#ff4d8d","#7b2cbf","#ffd166","#c77dff","#ff8fab","#5a189a"] }},
+        {{ wheelId:"taskWheel", resultId:"taskResult", listId:"taskItems", buttonId:"spinTask", items:{task_payload}, colors:["#7cffb2","#00d4ff","#ffe66d","#2ec4b6","#b8f7ff","#39ff88"] }}
+    ];
+    function escapeHtml(value) {{ const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }}
+    function gradientFor(colors, count) {{
+        const segments = Math.max(count, 6);
+        const step = 360 / segments;
+        const stops = [];
+        for (let i = 0; i < segments; i++) stops.push(`${{colors[i % colors.length]}} ${{i * step}}deg ${{(i + 1) * step}}deg`);
+        return `conic-gradient(${{stops.join(",")}})`;
     }}
+    configs.forEach((config) => {{
+        const wheel = document.getElementById(config.wheelId);
+        const result = document.getElementById(config.resultId);
+        const list = document.getElementById(config.listId);
+        const button = document.getElementById(config.buttonId);
+        let rotation = 0;
+        wheel.style.background = gradientFor(config.colors, config.items.length);
+        list.innerHTML = config.items.map((item, index) => `<li>${{index + 1}}. ${{escapeHtml(item)}}</li>`).join("");
+        if (!button.disabled) {{
+            button.addEventListener("click", () => {{
+                button.disabled = true;
+                result.textContent = "Dreht...";
+                const selected = Math.floor(Math.random() * config.items.length);
+                const slice = 360 / config.items.length;
+                rotation += 1800 + (360 - selected * slice) + Math.random() * Math.min(slice, 45);
+                wheel.style.transform = `rotate(${{rotation}}deg)`;
+                setTimeout(() => {{
+                    result.textContent = config.items[selected];
+                    button.disabled = false;
+                }}, 4100);
+            }});
+        }}
+    }});
     </script>
-    """, height=520)
+    """, height=820)
 
     if wheel_unlocked and wheel_entries:
         selected_done = st.selectbox(
@@ -5559,6 +5627,19 @@ elif menu.endswith("Minispiele"):
                 st.rerun()
             else:
                 st.error("Konnte den Eintrag nicht aktualisieren. Prüfe die Purchases-Migration.")
+
+    if wheel_unlocked and task_wheel_entries:
+        selected_task_done = st.selectbox(
+            "Gezogene/erledigte Aufgabe abhaken",
+            task_wheel_entries,
+            format_func=lambda entry: f"{entry.get('reward_name')} von {entry.get('username')}",
+        )
+        if st.button("Aufgabe als erledigt markieren", key="mark_task_done"):
+            if mark_wheel_entry_done(selected_task_done["id"]):
+                st.success("Aufgabe erledigt und aus dem Rad entfernt.")
+                st.rerun()
+            else:
+                st.error("Konnte den Eintrag nicht aktualisieren. Pruefe die Purchases-Migration.")
 
 elif menu == "🎮 Minispiele":
 
@@ -5847,6 +5928,7 @@ elif menu == "🔐 Admin":
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
         active_categories = len({str(item.get("category") or get_default_shop_category()) for item in shop_items})
         wheel_queue_count = len(get_punishment_wheel_entries())
+        task_wheel_queue_count = len(get_task_wheel_entries())
 
         st.markdown("""
         <div class="admin-hero">
@@ -5892,6 +5974,11 @@ elif menu == "🔐 Admin":
                 <div class="section-kicker">Bestrafungsrad</div>
                 <h3>{wheel_queue_count}</h3>
                 <div class="admin-muted">Offene Ideen in der Queue</div>
+            </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Aufgabenrad</div>
+                <h3>{task_wheel_queue_count}</h3>
+                <div class="admin-muted">Offene Aufgaben in der Queue</div>
             </div>
             <div class="admin-control-card">
                 <div class="section-kicker">Kreativwand</div>
