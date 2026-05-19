@@ -82,14 +82,15 @@ def logout_user():
 
 try:
     SUPABASE_URL = st.secrets["supabase"]["url"]
-    SUPABASE_KEY = st.secrets["supabase"]["key"]
+    SUPABASE_ANON_KEY = st.secrets["supabase"].get("anon_key", st.secrets["supabase"]["key"])
+    SUPABASE_SERVICE_KEY = st.secrets["supabase"].get("service_key", st.secrets["supabase"]["key"])
 except KeyError:
-    st.error("Supabase-Secrets sind nicht konfiguriert. Bitte setze SUPABASE_URL und SUPABASE_KEY in den App-Einstellungen.")
+    st.error("Supabase-Secrets sind nicht konfiguriert. Bitte setze url, anon_key und service_key in den App-Einstellungen.")
     st.stop()
 
 HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "apikey": SUPABASE_SERVICE_KEY,
+    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
     "Content-Type": "application/json"
 }
 
@@ -5032,7 +5033,7 @@ elif menu.endswith("Minispiele"):
     </body>
     </html>
     """.replace("__SUPABASE_URL__", SUPABASE_URL)
-       .replace("__SUPABASE_KEY__", SUPABASE_KEY)
+       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
        .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
 
     st.markdown("## Bestrafungsrad")
