@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS public.dnd_lobbies (
     owner text NOT NULL,
     is_private boolean NOT NULL DEFAULT false,
     password_hash text NOT NULL DEFAULT '',
+    scene text NOT NULL DEFAULT '',
+    quest_log text NOT NULL DEFAULT '',
     active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -17,9 +19,94 @@ CREATE TABLE IF NOT EXISTS public.dnd_players (
     username text NOT NULL,
     character_name text NOT NULL,
     character_class text NOT NULL,
+    race text NOT NULL DEFAULT 'Mensch',
+    level integer NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 20),
+    max_hp integer NOT NULL DEFAULT 10 CHECK (max_hp BETWEEN 1 AND 999),
+    current_hp integer NOT NULL DEFAULT 10 CHECK (current_hp BETWEEN 0 AND 999),
+    armor_class integer NOT NULL DEFAULT 10 CHECK (armor_class BETWEEN 1 AND 40),
+    initiative integer NOT NULL DEFAULT 0 CHECK (initiative BETWEEN -20 AND 30),
+    strength integer NOT NULL DEFAULT 10 CHECK (strength BETWEEN 1 AND 30),
+    dexterity integer NOT NULL DEFAULT 10 CHECK (dexterity BETWEEN 1 AND 30),
+    constitution integer NOT NULL DEFAULT 10 CHECK (constitution BETWEEN 1 AND 30),
+    intelligence integer NOT NULL DEFAULT 10 CHECK (intelligence BETWEEN 1 AND 30),
+    wisdom integer NOT NULL DEFAULT 10 CHECK (wisdom BETWEEN 1 AND 30),
+    charisma integer NOT NULL DEFAULT 10 CHECK (charisma BETWEEN 1 AND 30),
+    inventory text NOT NULL DEFAULT '',
+    spells text NOT NULL DEFAULT '',
+    notes text NOT NULL DEFAULT '',
     active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT dnd_players_lobby_username_key UNIQUE (lobby_id, username)
+);
+
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS scene text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS quest_log text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS race text NOT NULL DEFAULT 'Mensch';
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS level integer NOT NULL DEFAULT 1;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS max_hp integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS current_hp integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS armor_class integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS initiative integer NOT NULL DEFAULT 0;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS strength integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS dexterity integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS constitution integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS intelligence integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS wisdom integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS charisma integer NOT NULL DEFAULT 10;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS inventory text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS spells text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_players
+DROP CONSTRAINT IF EXISTS dnd_players_stats_check;
+
+ALTER TABLE public.dnd_players
+ADD CONSTRAINT dnd_players_stats_check
+CHECK (
+    level BETWEEN 1 AND 20
+    AND max_hp BETWEEN 1 AND 999
+    AND current_hp BETWEEN 0 AND 999
+    AND armor_class BETWEEN 1 AND 40
+    AND initiative BETWEEN -20 AND 30
+    AND strength BETWEEN 1 AND 30
+    AND dexterity BETWEEN 1 AND 30
+    AND constitution BETWEEN 1 AND 30
+    AND intelligence BETWEEN 1 AND 30
+    AND wisdom BETWEEN 1 AND 30
+    AND charisma BETWEEN 1 AND 30
 );
 
 CREATE TABLE IF NOT EXISTS public.dnd_rolls (

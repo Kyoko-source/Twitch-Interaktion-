@@ -1134,13 +1134,51 @@ def render_dnd_page():
         st.markdown("---")
         st.markdown(f"### Aktive Runde: {active_lobby.get('name')}")
 
+        scene_text = str(active_lobby.get("scene") or "Die Party steht am Rand eines unbekannten Ortes. Der Dungeon Master kann hier die Szene setzen.")
+        quest_text = str(active_lobby.get("quest_log") or "Noch keine Quest aktiv.")
+        st.markdown(
+            '<div class="dnd-hero">'
+            '<div>'
+            '<div class="section-kicker">Aktuelle Szene</div>'
+            f'<h2>{html.escape(scene_text[:120])}</h2>'
+            f'<p>{html.escape(scene_text)}</p>'
+            '</div>'
+            '<div class="dnd-panel">'
+            '<div class="dnd-pill">Questlog</div>'
+            f'<p>{html.escape(quest_text)}</p>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        if active_lobby.get("owner") == logged_in_username:
+            with st.expander("Dungeon Master Bereich"):
+                with st.form("dnd_dm_notes_form"):
+                    new_scene = st.text_area("Aktuelle Szene", value=scene_text, height=140, max_chars=1200)
+                    new_quest = st.text_area("Questlog", value=quest_text, height=120, max_chars=1200)
+                    if st.form_submit_button("Szene speichern"):
+                        if update_dnd_lobby_notes(active_lobby_id, new_scene, new_quest):
+                            st.success("Szene aktualisiert.")
+                            st.rerun()
+                        else:
+                            st.error("Szene konnte nicht gespeichert werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+
         party_html = ""
         for player in players:
+            max_hp = max(1, int(player.get("max_hp") or 10))
+            current_hp = max(0, int(player.get("current_hp") or max_hp))
+            hp_percent = min(100, int((current_hp / max_hp) * 100))
+            armor_class = int(player.get("armor_class") or 10)
+            initiative = int(player.get("initiative") or 0)
             party_html += (
                 '<div class="dnd-panel">'
                 f'<div class="dnd-pill">{html.escape(str(player.get("character_class") or "Abenteurer"))}</div>'
                 f'<h3>{html.escape(str(player.get("character_name") or "Unbekannt"))}</h3>'
-                f'<p>{html.escape(str(player.get("username") or ""))}</p>'
+                f'<p>{html.escape(str(player.get("race") or "Mensch"))} · Level {int(player.get("level") or 1)} · {html.escape(str(player.get("username") or ""))}</p>'
+                '<div class="profile-progress-track">'
+                f'<div class="profile-progress-fill" style="width:{hp_percent}%;"></div>'
+                '</div>'
+                f'<div class="admin-muted">HP {current_hp}/{max_hp} · AC {armor_class} · Initiative {initiative:+d}</div>'
                 '</div>'
             )
         st.markdown("#### Party")
@@ -1155,6 +1193,110 @@ def render_dnd_page():
             st.markdown('<div class="dnd-panel"><div class="dnd-pill">Kampf</div><h3>Initiative</h3><p>d20 plus Geschicklichkeitsmodifikator. Hohe Werte handeln zuerst.</p></div>', unsafe_allow_html=True)
         with scene_cols[2]:
             st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich fuer Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
+
+        if current_player:
+            with st.expander("Charakterbogen bearbeiten", expanded=True):
+                with st.form("dnd_character_sheet_form"):
+                    sheet_top = st.columns([1.2, 1, 0.7, 0.7, 0.7, 0.7])
+                    with sheet_top[0]:
+                        sheet_name = st.text_input("Charaktername", value=str(current_player.get("character_name") or ""), max_chars=80)
+                    with sheet_top[1]:
+                        current_class = str(current_player.get("character_class") or DND_CLASSES[0])
+                        sheet_class = st.selectbox(
+                            "Klasse",
+                            DND_CLASSES,
+                            index=DND_CLASSES.index(current_class) if current_class in DND_CLASSES else 0,
+                        )
+                    with sheet_top[2]:
+                        current_race = str(current_player.get("race") or DND_RACES[0])
+                        sheet_race = st.selectbox(
+                            "Volk",
+                            DND_RACES,
+                            index=DND_RACES.index(current_race) if current_race in DND_RACES else 0,
+                        )
+                    with sheet_top[3]:
+                        sheet_level = st.number_input("Level", min_value=1, max_value=20, value=int(current_player.get("level") or 1), step=1)
+                    with sheet_top[4]:
+                        sheet_ac = st.number_input("AC", min_value=1, max_value=40, value=int(current_player.get("armor_class") or 10), step=1)
+                    with sheet_top[5]:
+                        sheet_init = st.number_input("Init", min_value=-20, max_value=30, value=int(current_player.get("initiative") or 0), step=1)
+
+                    hp_cols = st.columns(2)
+                    with hp_cols[0]:
+                        sheet_current_hp = st.number_input("Aktuelle HP", min_value=0, max_value=999, value=int(current_player.get("current_hp") or 10), step=1)
+                    with hp_cols[1]:
+                        sheet_max_hp = st.number_input("Max HP", min_value=1, max_value=999, value=int(current_player.get("max_hp") or 10), step=1)
+
+                    ability_cols = st.columns(6)
+                    ability_values = {}
+                    for ability_col, (ability_key, ability_label) in zip(ability_cols, DND_ABILITIES):
+                        with ability_col:
+                            score = st.number_input(
+                                ability_label,
+                                min_value=1,
+                                max_value=30,
+                                value=int(current_player.get(ability_key) or 10),
+                                step=1,
+                                key=f"dnd_sheet_{ability_key}",
+                            )
+                            ability_values[ability_key] = score
+                            st.caption(f"Mod {format_modifier(ability_modifier(score))}")
+
+                    notes_cols = st.columns(3)
+                    with notes_cols[0]:
+                        sheet_inventory = st.text_area("Inventar", value=str(current_player.get("inventory") or ""), height=120, max_chars=1200)
+                    with notes_cols[1]:
+                        sheet_spells = st.text_area("Zauber/Faehigkeiten", value=str(current_player.get("spells") or ""), height=120, max_chars=1200)
+                    with notes_cols[2]:
+                        sheet_notes = st.text_area("Notizen", value=str(current_player.get("notes") or ""), height=120, max_chars=1200)
+
+                    if st.form_submit_button("Charakterbogen speichern"):
+                        payload = {
+                            "character_name": sheet_name,
+                            "character_class": sheet_class,
+                            "race": sheet_race,
+                            "level": sheet_level,
+                            "armor_class": sheet_ac,
+                            "initiative": sheet_init,
+                            "current_hp": sheet_current_hp,
+                            "max_hp": sheet_max_hp,
+                            "inventory": sheet_inventory,
+                            "spells": sheet_spells,
+                            "notes": sheet_notes,
+                            **ability_values,
+                        }
+                        if update_dnd_player_sheet(current_player.get("id"), payload):
+                            st.success("Charakterbogen gespeichert.")
+                            st.rerun()
+                        else:
+                            st.error("Charakterbogen konnte nicht gespeichert werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+
+            st.markdown("#### Charakter-Proben")
+            check_cols = st.columns([1, 1, 1, 1.4])
+            with check_cols[0]:
+                check_ability_key = st.selectbox(
+                    "Attribut",
+                    [key for key, _ in DND_ABILITIES],
+                    format_func=lambda key: next(label for ability_key, label in DND_ABILITIES if ability_key == key),
+                    key="dnd_check_ability",
+                )
+            with check_cols[1]:
+                check_mode = st.selectbox("Probe-Modus", ["Normal", "Vorteil", "Nachteil"], key="dnd_check_mode")
+            with check_cols[2]:
+                proficiency_bonus = st.number_input("Uebungsbonus", min_value=0, max_value=10, value=0, step=1, key="dnd_check_prof")
+            with check_cols[3]:
+                check_reason = st.text_input("Probe", max_chars=140, placeholder="z.B. Wahrnehmung, Athletik, Ueberreden", key="dnd_check_reason")
+
+            ability_score = int(current_player.get(check_ability_key) or 10)
+            check_modifier = ability_modifier(ability_score) + int(proficiency_bonus)
+            if st.button(f"Probe wuerfeln ({format_modifier(check_modifier)})", key="dnd_ability_check", use_container_width=True):
+                rolls, total, kept = roll_dice(1, 20, check_modifier, check_mode)
+                ability_label = next(label for ability_key, label in DND_ABILITIES if ability_key == check_ability_key)
+                notation = f"{check_mode} d20{format_modifier(check_modifier)}" if check_mode != "Normal" else f"d20{format_modifier(check_modifier)}"
+                reason = check_reason or f"{ability_label}-Probe"
+                save_dnd_roll(active_lobby_id, logged_in_username, current_player.get("character_name"), notation, reason, rolls, total)
+                st.success(f"{reason}: {total} ({rolls})")
+                st.rerun()
 
         st.markdown("#### Wuerfelroller")
         roll_cols = st.columns([1, 1, 1, 1, 1.4])
@@ -1300,6 +1442,25 @@ DND_CLASSES = [
     "Zauberer",
     "Hexenmeister",
     "Magier",
+]
+DND_RACES = [
+    "Mensch",
+    "Elf",
+    "Zwerg",
+    "Halbling",
+    "Gnom",
+    "Halbelf",
+    "Halbork",
+    "Tiefling",
+    "Drachenbluetiger",
+]
+DND_ABILITIES = [
+    ("strength", "Staerke"),
+    ("dexterity", "Geschick"),
+    ("constitution", "Konstitution"),
+    ("intelligence", "Intelligenz"),
+    ("wisdom", "Weisheit"),
+    ("charisma", "Charisma"),
 ]
 
 MARKET_SPREAD = 0.12
@@ -1453,6 +1614,18 @@ def close_dnd_lobby(lobby_id):
     return success
 
 
+def update_dnd_lobby_notes(lobby_id, scene, quest_log):
+    success = api_patch(
+        f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}",
+        {
+            "scene": str(scene).strip()[:1200],
+            "quest_log": str(quest_log).strip()[:1200],
+        }
+    )
+    get_dnd_lobbies.clear()
+    return success
+
+
 def join_dnd_lobby(lobby, username, character_name, character_class, password):
     if not lobby or not str(username).strip() or not str(character_name).strip():
         return False, "Bitte Name und Charakter eintragen."
@@ -1481,6 +1654,21 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
             "username": username,
             "character_name": str(character_name).strip()[:80],
             "character_class": str(character_class).strip()[:40],
+            "race": "Mensch",
+            "level": 1,
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "initiative": 0,
+            "strength": 10,
+            "dexterity": 10,
+            "constitution": 10,
+            "intelligence": 10,
+            "wisdom": 10,
+            "charisma": 10,
+            "inventory": "",
+            "spells": "",
+            "notes": "",
             "active": True,
             "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
         }
@@ -1490,6 +1678,42 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
         st.session_state["dnd_lobby_id"] = lobby_id
         return True, "Lobby betreten."
     return False, "Lobby konnte nicht betreten werden. Fuehre add_dnd_tables.sql in Supabase aus."
+
+
+def ability_modifier(score):
+    return math.floor((int(score) - 10) / 2)
+
+
+def format_modifier(value):
+    return f"{int(value):+d}"
+
+
+def update_dnd_player_sheet(player_id, payload):
+    clean_payload = {
+        "character_name": str(payload.get("character_name") or "").strip()[:80],
+        "character_class": str(payload.get("character_class") or "").strip()[:40],
+        "race": str(payload.get("race") or "").strip()[:40],
+        "level": int(payload.get("level") or 1),
+        "max_hp": int(payload.get("max_hp") or 1),
+        "current_hp": int(payload.get("current_hp") or 0),
+        "armor_class": int(payload.get("armor_class") or 10),
+        "initiative": int(payload.get("initiative") or 0),
+        "strength": int(payload.get("strength") or 10),
+        "dexterity": int(payload.get("dexterity") or 10),
+        "constitution": int(payload.get("constitution") or 10),
+        "intelligence": int(payload.get("intelligence") or 10),
+        "wisdom": int(payload.get("wisdom") or 10),
+        "charisma": int(payload.get("charisma") or 10),
+        "inventory": str(payload.get("inventory") or "").strip()[:1200],
+        "spells": str(payload.get("spells") or "").strip()[:1200],
+        "notes": str(payload.get("notes") or "").strip()[:1200],
+    }
+    if not clean_payload["character_name"]:
+        return False
+
+    success = api_patch(f"dnd_players?id=eq.{urllib.parse.quote(str(player_id))}", clean_payload)
+    get_dnd_players.clear()
+    return success
 
 
 def roll_dice(count, sides, modifier=0, mode="Normal"):
