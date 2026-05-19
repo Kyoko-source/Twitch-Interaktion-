@@ -13,3 +13,6 @@ CREATE INDEX IF NOT EXISTS creative_gallery_created_at_idx
 
 CREATE INDEX IF NOT EXISTS creative_gallery_username_idx
     ON public.creative_gallery (username);
+
+CREATE UNIQUE INDEX IF NOT EXISTS creative_gallery_username_unique_idx
+    ON public.creative_gallery (username);

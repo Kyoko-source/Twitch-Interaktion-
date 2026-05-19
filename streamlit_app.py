@@ -862,6 +862,18 @@ def get_creative_gallery(limit=30):
     )
 
 
+def get_user_creative_art(username: str) -> Optional[dict]:
+    username = username.strip()
+    if not username:
+        return None
+
+    rows = api_get_optional(
+        "creative_gallery"
+        f"?select=*&username=eq.{urllib.parse.quote(username)}&order=created_at.desc&limit=1"
+    )
+    return rows[0] if rows else None
+
+
 def canvas_image_to_data_uri(image_data):
     if image_data is None:
         return None
@@ -881,6 +893,9 @@ def create_creative_art(username, title, image_data_uri):
     username = username.strip()
     clean_title = title.strip()[:80] or "Ohne Titel"
 
+    if get_user_creative_art(username):
+        return False, "Du hast bereits ein Bild in der Hall of Fame."
+
     created = api_post_optional(
         "creative_gallery",
         {
@@ -894,8 +909,8 @@ def create_creative_art(username, title, image_data_uri):
 
     if created:
         get_creative_gallery.clear()
-        return True
-    return False
+        return True, "Dein Bild ist jetzt in der Hall of Fame."
+    return False, "Bild konnte nicht gespeichert werden. Fuehre add_creative_gallery_table.sql in Supabase aus."
 
 
 def delete_creative_art(art_id):
@@ -4210,6 +4225,12 @@ elif menu == "🎨 Kreativwand":
         elif st_canvas is None:
             st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den naechsten Deploy oder pruefe requirements.txt.")
         else:
+            existing_art = get_user_creative_art(logged_in_username)
+            if existing_art:
+                st.info("Du hast bereits ein Bild in der Hall of Fame. Pro Profil ist nur ein Bild erlaubt.")
+                st.image(existing_art.get("image_data"), caption=str(existing_art.get("title") or "Ohne Titel"))
+                st.stop()
+
             st.markdown("""
             <div class="creative-shell">
                 <div class="creative-panel">
@@ -4255,11 +4276,13 @@ elif menu == "🎨 Kreativwand":
                 image_data_uri = canvas_image_to_data_uri(canvas_result.image_data)
                 if not image_data_uri:
                     st.error("Die Leinwand ist noch leer.")
-                elif create_creative_art(logged_in_username, title, image_data_uri):
-                    st.success("Dein Bild ist jetzt in der Hall of Fame.")
-                    st.rerun()
                 else:
-                    st.error("Bild konnte nicht gespeichert werden. Fuehre add_creative_gallery_table.sql in Supabase aus.")
+                    success, message = create_creative_art(logged_in_username, title, image_data_uri)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
 
     with gallery_tab:
         gallery_items = get_creative_gallery(60)
