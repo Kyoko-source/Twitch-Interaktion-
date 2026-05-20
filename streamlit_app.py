@@ -3543,32 +3543,42 @@ h1::after {
     justify-content: space-between;
 }
 
+.home-spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 62%;
+    background: linear-gradient(90deg, rgba(8,8,22,0.82), rgba(8,8,22,0.46) 64%, transparent);
+    z-index: 1;
+    pointer-events: none;
+}
+
 .home-spotlight::after {
     content: "";
     position: absolute;
-    right: -80px;
-    top: 40px;
-    width: 360px;
+    right: -130px;
+    top: 36px;
+    width: 390px;
     height: 260px;
     border-radius: 999px;
     background:
         radial-gradient(circle at 52% 46%, rgba(255,84,160,0.34), transparent 38%),
         radial-gradient(circle at 66% 60%, rgba(199,125,255,0.24), transparent 34%);
     filter: blur(8px);
-    opacity: 0.78;
+    opacity: 0.58;
     z-index: 0;
 }
 
 .home-brain-visual {
     position: absolute;
-    right: 28px;
-    top: 34px;
-    width: clamp(230px, 28vw, 390px);
-    max-width: 42%;
+    right: -52px;
+    top: 42px;
+    width: clamp(230px, 26vw, 360px);
+    max-width: 38%;
     aspect-ratio: 1.25 / 1;
     pointer-events: none;
     z-index: 1;
-    opacity: 0.92;
+    opacity: 0.72;
     filter:
         drop-shadow(0 0 16px rgba(255,255,255,0.20))
         drop-shadow(0 0 34px rgba(255,84,160,0.58))
@@ -3583,16 +3593,16 @@ h1::after {
 
 .home-brain-fill {
     fill: url(#homeBrainFill);
-    opacity: 0.88;
+    opacity: 0.42;
 }
 
 .home-brain-line {
     fill: none;
     stroke: url(#homeBrainStroke);
-    stroke-width: 5.5;
+    stroke-width: 7;
     stroke-linecap: round;
     stroke-linejoin: round;
-    opacity: 0.92;
+    opacity: 0.96;
 }
 
 .home-brain-spark {
@@ -3602,8 +3612,8 @@ h1::after {
 
 .home-spotlight h2 {
     position: relative;
-    z-index: 2;
-    max-width: 600px;
+    z-index: 3;
+    max-width: 540px;
     margin: 8px 0 14px;
     font-size: clamp(42px, 6vw, 86px);
     line-height: 0.92;
@@ -3616,7 +3626,7 @@ h1::after {
 .home-spotlight p,
 .daily-card p {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     max-width: 560px;
     color: #d8ccff;
     font-weight: 760;
@@ -3625,7 +3635,7 @@ h1::after {
 
 .home-actions {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
