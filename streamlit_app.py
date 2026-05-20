@@ -106,7 +106,7 @@ except KeyError:
     st.stop()
 
 if not SUPABASE_ANON_KEY or not SUPABASE_SERVICE_KEY:
-    st.error("Supabase-Secrets sind unvollstaendig. Bitte setze anon_key und service_key in den App-Einstellungen.")
+    st.error("Supabase-Secrets sind unvollständig. Bitte setze anon_key und service_key in den App-Einstellungen.")
     st.stop()
 
 HEADERS = {
@@ -603,7 +603,7 @@ def request_registration(username: str, password: str):
     if existing_request:
         if existing_request.get("status") == "approved":
             return False, "Diese Anfrage wurde schon genehmigt. Bitte nutze den Code vom Admin."
-        return False, "Fuer diesen Namen wartet bereits eine Anfrage auf Genehmigung."
+        return False, "Für diesen Namen wartet bereits eine Anfrage auf Genehmigung."
 
     created = api_post(
         "registration_requests",
@@ -616,7 +616,7 @@ def request_registration(username: str, password: str):
         }
     )
     if not created:
-        return False, "Anfrage konnte nicht erstellt werden. Fuehre zuerst add_registration_requests_table.sql in Supabase aus."
+        return False, "Anfrage konnte nicht erstellt werden. Führe zuerst add_registration_requests_table.sql in Supabase aus."
 
     return True, "Anfrage gesendet. Ein Admin muss sie jetzt genehmigen."
 
@@ -663,7 +663,7 @@ def complete_registration(username: str, password: str, code: str):
             break
 
     if not approved_request:
-        return None, "Registrierung fehlgeschlagen. Pruefe Name, Passwort und Einmalcode."
+        return None, "Registrierung fehlgeschlagen. Prüfe Name, Passwort und Einmalcode."
 
     existing_user = get_user(username)
     if existing_user and existing_user.get("password_hash"):
@@ -1025,7 +1025,7 @@ def create_creative_art(username, title, image_data_uri):
     if created:
         get_creative_gallery.clear()
         return True, "Dein Bild ist jetzt in der Hall of Fame."
-    return False, "Bild konnte nicht gespeichert werden. Fuehre add_creative_gallery_table.sql in Supabase aus."
+    return False, "Bild konnte nicht gespeichert werden. Führe add_creative_gallery_table.sql in Supabase aus."
 
 
 def set_creative_gallery_reaction(art_id, username, emoji):
@@ -1107,7 +1107,7 @@ def render_creative_gallery(limit=60):
                             elif set_creative_gallery_reaction(art_id, current_user, emoji):
                                 st.rerun()
                             else:
-                                gallery_notice = "Reaktionen sind noch nicht aktiviert. Ein Admin muss die Supabase-Migration fuer Hall-of-Fame-Reaktionen einmal ausfuehren."
+                                gallery_notice = "Reaktionen sind noch nicht aktiviert. Ein Admin muss die Supabase-Migration für Hall-of-Fame-Reaktionen einmal ausführen."
 
     if gallery_notice:
         st.warning(gallery_notice)
@@ -1180,13 +1180,13 @@ def render_dnd_page():
     <div class="dnd-hero">
         <div>
             <div class="section-kicker">Abenteuerbrett</div>
-            <h2>Runden, Party und Wuerfel an einem Ort</h2>
-            <p>Erstelle offene oder passwortgeschuetzte Lobbys, tritt mit einem Charakter bei und nutze DnD-typische Wuerfel wie d4, d6, d8, d10, d12, d20 und d100.</p>
+            <h2>Runden, Party und Würfel an einem Ort</h2>
+            <p>Erstelle offene oder passwortgeschützte Lobbys, tritt mit einem Charakter bei und nutze DnD-typische Würfel wie d4, d6, d8, d10, d12, d20 und d100.</p>
         </div>
         <div class="dnd-rule-grid">
-            <div class="dnd-panel"><div class="dnd-pill">d20</div><p>Fuer Angriffe, Rettungswuerfe und Proben.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Vorteil</div><p>2d20, der hoehere Wurf zaehlt.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Nachteil</div><p>2d20, der niedrigere Wurf zaehlt.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">d20</div><p>Für Angriffe, Rettungswürfe und Proben.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Vorteil</div><p>2d20, der höhere Wurf zählt.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Nachteil</div><p>2d20, der niedrigere Wurf zählt.</p></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1201,7 +1201,7 @@ def render_dnd_page():
     create_col, lobby_col = st.columns([0.8, 1.2])
 
     with create_col:
-        st.markdown("### Lobby eroeffnen")
+        st.markdown("### Lobby eröffnen")
         with st.form("create_dnd_lobby_form"):
             lobby_name = st.text_input("Lobby-Name", max_chars=80, placeholder="Die Mine der verlorenen Chickens")
             lobby_description = st.text_area(
@@ -1210,17 +1210,17 @@ def render_dnd_page():
                 height=120,
                 placeholder="Kurzer Pitch, Levelbereich, Stimmung oder wer Spielleitung macht..."
             )
-            lobby_password = st.text_input("Passwort optional", type="password", help="Leer lassen fuer eine offene Lobby.")
-            create_lobby = st.form_submit_button("Lobby eroeffnen")
+            lobby_password = st.text_input("Passwort optional", type="password", help="Leer lassen für eine offene Lobby.")
+            create_lobby = st.form_submit_button("Lobby eröffnen")
 
         if create_lobby:
             created_lobby = create_dnd_lobby(lobby_name, lobby_description, logged_in_username, lobby_password)
             if created_lobby:
                 st.session_state["dnd_lobby_id"] = str(created_lobby.get("id"))
-                st.success("Lobby eroeffnet.")
+                st.success("Lobby eröffnet.")
                 st.rerun()
             else:
-                st.error("Lobby konnte nicht erstellt werden. Fuehre add_dnd_tables.sql in Supabase aus.")
+                st.error("Lobby konnte nicht erstellt werden. Führe add_dnd_tables.sql in Supabase aus.")
 
     with lobby_col:
         st.markdown("### Aktive Lobbys")
@@ -1245,7 +1245,7 @@ def render_dnd_page():
     lobbies = get_dnd_lobbies()
     if lobbies:
         selected_lobby_id = st.selectbox(
-            "Lobby auswaehlen",
+            "Lobby auswählen",
             [str(lobby.get("id")) for lobby in lobbies],
             format_func=lambda lobby_id: next(
                 (str(lobby.get("name") or "Unbenannte Lobby") for lobby in lobbies if str(lobby.get("id")) == str(lobby_id)),
@@ -1323,7 +1323,7 @@ def render_dnd_page():
                             st.success("Szene aktualisiert.")
                             st.rerun()
                         else:
-                            st.error("Szene konnte nicht gespeichert werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+                            st.error("Szene konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
                 st.markdown("##### Kreatur erstellen")
                 with st.form("dnd_create_creature_form"):
@@ -1338,13 +1338,13 @@ def render_dnd_page():
                         creature_ac = st.number_input("AC", min_value=1, max_value=40, value=13, step=1)
                     with creature_cols[4]:
                         creature_init = st.number_input("Initiative", min_value=-20, max_value=30, value=0, step=1)
-                    creature_notes = st.text_area("Notizen/Faehigkeiten", max_chars=500, height=90, placeholder="Angriff, Besonderheiten, Verhalten...")
-                    if st.form_submit_button("Kreatur hinzufuegen"):
+                    creature_notes = st.text_area("Notizen/Fähigkeiten", max_chars=500, height=90, placeholder="Angriff, Besonderheiten, Verhalten...")
+                    if st.form_submit_button("Kreatur hinzufügen"):
                         if create_dnd_creature(active_lobby_id, creature_name, creature_type, creature_hp, creature_ac, creature_init, creature_notes):
                             st.success("Kreatur erstellt.")
                             st.rerun()
                         else:
-                            st.error("Kreatur konnte nicht erstellt werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+                            st.error("Kreatur konnte nicht erstellt werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
         party_html = ""
         for player in players:
@@ -1400,7 +1400,7 @@ def render_dnd_page():
                     '<div class="profile-progress-track">'
                     f'<div class="profile-progress-fill" style="width:{hp_percent}%;"></div>'
                     '</div>'
-                    f'<div class="admin-muted">HP {current_hp}/{max_hp} Â· AC {int(creature.get("armor_class") or 10)} Â· Initiative {int(creature.get("initiative") or 0):+d}</div>'
+                    f'<div class="admin-muted">HP {current_hp}/{max_hp} · AC {int(creature.get("armor_class") or 10)} · Initiative {int(creature.get("initiative") or 0):+d}</div>'
                     f'<p>{html.escape(str(creature.get("notes") or ""))}</p>'
                     '</div>'
                 )
@@ -1442,11 +1442,11 @@ def render_dnd_page():
 
         scene_cols = st.columns(3)
         with scene_cols[0]:
-            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Szene</div><h3>Taverne</h3><p>Startpunkt fuer Rollenspiel, Geruechte und Quest-Hooks.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Szene</div><h3>Taverne</h3><p>Startpunkt für Rollenspiel, Gerüchte und Quest-Hooks.</p></div>', unsafe_allow_html=True)
         with scene_cols[1]:
             st.markdown('<div class="dnd-panel"><div class="dnd-pill">Kampf</div><h3>Initiative</h3><p>d20 plus Geschicklichkeitsmodifikator. Hohe Werte handeln zuerst.</p></div>', unsafe_allow_html=True)
         with scene_cols[2]:
-            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich fuer Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich für Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
 
         last_roll = st.session_state.get("dnd_last_roll")
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
@@ -1455,7 +1455,7 @@ def render_dnd_page():
                 f'<div class="dice-cube">{int(last_roll.get("total") or 0)}</div>'
                 '<div>'
                 f'<div class="section-kicker">{html.escape(str(last_roll.get("notation") or "Wurf"))}</div>'
-                f'<h3>{html.escape(str(last_roll.get("title") or "Wuerfelwurf"))}</h3>'
+                f'<h3>{html.escape(str(last_roll.get("title") or "Würfelwurf"))}</h3>'
                 f'<p>{html.escape(str(last_roll.get("detail") or ""))}</p>'
                 '</div>'
                 '</div>',
@@ -1514,7 +1514,7 @@ def render_dnd_page():
                     with notes_cols[0]:
                         sheet_inventory = st.text_area("Inventar", value=str(current_player.get("inventory") or ""), height=120, max_chars=1200)
                     with notes_cols[1]:
-                        sheet_spells = st.text_area("Zauber/Faehigkeiten", value=str(current_player.get("spells") or ""), height=120, max_chars=1200)
+                        sheet_spells = st.text_area("Zauber/Fähigkeiten", value=str(current_player.get("spells") or ""), height=120, max_chars=1200)
                     with notes_cols[2]:
                         sheet_notes = st.text_area("Notizen", value=str(current_player.get("notes") or ""), height=120, max_chars=1200)
 
@@ -1537,7 +1537,7 @@ def render_dnd_page():
                             st.success("Charakterbogen gespeichert.")
                             st.rerun()
                         else:
-                            st.error("Charakterbogen konnte nicht gespeichert werden. Fuehre die aktualisierte add_dnd_tables.sql aus.")
+                            st.error("Charakterbogen konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
             st.markdown("#### Charakter-Proben")
             check_cols = st.columns([1, 1, 1, 1.4])
@@ -1551,13 +1551,13 @@ def render_dnd_page():
             with check_cols[1]:
                 check_mode = st.selectbox("Probe-Modus", ["Normal", "Vorteil", "Nachteil"], key="dnd_check_mode")
             with check_cols[2]:
-                proficiency_bonus = st.number_input("Uebungsbonus", min_value=0, max_value=10, value=0, step=1, key="dnd_check_prof")
+                proficiency_bonus = st.number_input("Übungsbonus", min_value=0, max_value=10, value=0, step=1, key="dnd_check_prof")
             with check_cols[3]:
-                check_reason = st.text_input("Probe", max_chars=140, placeholder="z.B. Wahrnehmung, Athletik, Ueberreden", key="dnd_check_reason")
+                check_reason = st.text_input("Probe", max_chars=140, placeholder="z.B. Wahrnehmung, Athletik, Überreden", key="dnd_check_reason")
 
             ability_score = int(current_player.get(check_ability_key) or 10)
             check_modifier = ability_modifier(ability_score) + int(proficiency_bonus)
-            if st.button(f"Probe wuerfeln ({format_modifier(check_modifier)})", key="dnd_ability_check", use_container_width=True):
+            if st.button(f"Probe würfeln ({format_modifier(check_modifier)})", key="dnd_ability_check", use_container_width=True):
                 rolls, total, kept = roll_dice(1, 20, check_modifier, check_mode)
                 ability_label = next(label for ability_key, label in DND_ABILITIES if ability_key == check_ability_key)
                 notation = f"{check_mode} d20{format_modifier(check_modifier)}" if check_mode != "Normal" else f"d20{format_modifier(check_modifier)}"
@@ -1568,17 +1568,17 @@ def render_dnd_page():
                     "total": total,
                     "notation": notation,
                     "title": reason,
-                    "detail": f"Rohwuerfe: {rolls}",
+                    "detail": f"Rohwürfe: {rolls}",
                 }
                 st.success(f"{reason}: {total} ({rolls})")
                 st.rerun()
 
-        st.markdown("#### Wuerfelroller")
+        st.markdown("#### Würfelroller")
         roll_cols = st.columns([1, 1, 1, 1, 1.4])
         with roll_cols[0]:
             roll_count = st.number_input("Anzahl", min_value=1, max_value=20, value=1, step=1, key="dnd_roll_count")
         with roll_cols[1]:
-            roll_sides = st.selectbox("Wuerfel", DND_DICE, index=DND_DICE.index(20), format_func=lambda sides: f"d{sides}")
+            roll_sides = st.selectbox("Würfel", DND_DICE, index=DND_DICE.index(20), format_func=lambda sides: f"d{sides}")
         with roll_cols[2]:
             roll_modifier = st.number_input("Modifikator", min_value=-30, max_value=30, value=0, step=1, key="dnd_roll_modifier")
         with roll_cols[3]:
@@ -1586,7 +1586,7 @@ def render_dnd_page():
         with roll_cols[4]:
             roll_reason = st.text_input("Grund", max_chars=140, placeholder="Angriff, Wahrnehmung, Schaden...")
 
-        if st.button("Wuerfeln", key="dnd_roll_button", use_container_width=True):
+        if st.button("Würfeln", key="dnd_roll_button", use_container_width=True):
             rolls, total, kept = roll_dice(roll_count, roll_sides, roll_modifier, roll_mode)
             mod_text = f"{roll_modifier:+d}" if roll_modifier else ""
             notation = f"{int(roll_count)}d{int(roll_sides)}{mod_text}"
@@ -1594,14 +1594,14 @@ def render_dnd_page():
                 notation = f"{roll_mode} d20{mod_text}"
             character_for_roll = current_player.get("character_name") if current_player else logged_in_username
             save_dnd_roll(active_lobby_id, logged_in_username, character_for_roll, notation, roll_reason, rolls, total)
-            detail = f"Rohwuerfe: {rolls}"
+            detail = f"Rohwürfe: {rolls}"
             if kept:
                 detail += f" | Gewertet: {kept}"
             st.session_state["dnd_last_roll"] = {
                 "lobby_id": active_lobby_id,
                 "total": total,
                 "notation": notation,
-                "title": roll_reason or "Wuerfelwurf",
+                "title": roll_reason or "Würfelwurf",
                 "detail": detail,
             }
             st.success(f"{notation} = {total}. {detail}")
@@ -1666,11 +1666,11 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
         ("Erstes Ei", "Mindestens 1 Chicken besitzen", chickens >= 1),
         ("Chicken Polster", "Mindestens 100 Chickens besitzen", chickens >= 100),
         ("Chicken Beutel", "Mindestens 250 Chickens besitzen", chickens >= 250),
-        ("Huehnerhort", "Mindestens 500 Chickens besitzen", chickens >= 500),
+        ("Hühnerhort", "Mindestens 500 Chickens besitzen", chickens >= 500),
         ("Chicken Tresor", "Mindestens 2.500 Chickens besitzen", chickens >= 2500),
         ("Goldene Feder", "Mindestens 5.000 Chickens besitzen", chickens >= 5000),
         ("Chicken Imperium", "Mindestens 10.000 Chickens besitzen", chickens >= 10000),
-        ("Huehnerbaron", "Mindestens 25.000 Chickens besitzen", chickens >= 25000),
+        ("Hühnerbaron", "Mindestens 25.000 Chickens besitzen", chickens >= 25000),
         ("Erster Sprung", "Chicken Jump Score von 1+ erreicht", score >= 1),
         ("Hopser", "Chicken Jump Score von 5+ erreicht", score >= 5),
         ("Jump Profi", "Chicken Jump Score von 15+ erreicht", score >= 15),
@@ -1692,7 +1692,7 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
         ("Top 5 Leuchten", "In der Rangliste unter den Top 5", has_rank and rank_position <= 5),
         ("Nummer 1", "Platz 1 in der Rangliste erreicht", has_rank and rank_position == 1),
         ("Bio Starter", "Eine Bio im Profil eingetragen", bool(bio)),
-        ("Bio Erzaehler", "Bio mit mindestens 80 Zeichen", bio_length >= 80),
+        ("Bio Erzähler", "Bio mit mindestens 80 Zeichen", bio_length >= 80),
         ("Bio Roman", "Bio mit mindestens 200 Zeichen", bio_length >= 200),
         ("Lieblingsspiel gesetzt", "Ein Lieblingsspiel im Profil eingetragen", bool(favorite_game)),
         ("Avatar Glanz", "Ein Profilbild gesetzt", bool(avatar_url)),
@@ -1763,16 +1763,18 @@ TASK_WHEEL_CATEGORIES = [
     "Idee Aufgabenrad",
 ]
 
+WHEEL_REWARD_CATEGORIES = set(PUNISHMENT_WHEEL_CATEGORIES + TASK_WHEEL_CATEGORIES)
+
 DND_DICE = [4, 6, 8, 10, 12, 20, 100]
 DND_CLASSES = [
     "Barbar",
     "Barde",
     "Kleriker",
     "Druide",
-    "Kaempfer",
-    "Moench",
+    "Kämpfer",
+    "Mönch",
     "Paladin",
-    "Waldlaeufer",
+    "Waldläufer",
     "Schurke",
     "Zauberer",
     "Hexenmeister",
@@ -1787,10 +1789,10 @@ DND_RACES = [
     "Halbelf",
     "Halbork",
     "Tiefling",
-    "Drachenbluetiger",
+    "Drachenblütiger",
 ]
 DND_ABILITIES = [
-    ("strength", "Staerke"),
+    ("strength", "Stärke"),
     ("dexterity", "Geschick"),
     ("constitution", "Konstitution"),
     ("intelligence", "Intelligenz"),
@@ -1821,6 +1823,10 @@ MARKET_ITEMS = [
 
 def get_default_shop_category():
     return SHOP_CATEGORIES[0]
+
+
+def is_wheel_reward_category(category):
+    return str(category or "").strip() in WHEEL_REWARD_CATEGORIES
 
 
 @st.cache_data(ttl=180)
@@ -2017,7 +2023,7 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
     if lobby.get("is_private"):
         password_hash = str(lobby.get("password_hash") or "")
         if not verify_dnd_lobby_password(str(password or ""), password_hash):
-            return False, "Passwort fuer diese Lobby ist falsch."
+            return False, "Passwort für diese Lobby ist falsch."
 
     lobby_id = str(lobby.get("id"))
     username = str(username).strip()[:50]
@@ -2061,7 +2067,7 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
     if created:
         st.session_state["dnd_lobby_id"] = lobby_id
         return True, "Lobby betreten."
-    return False, "Lobby konnte nicht betreten werden. Fuehre add_dnd_tables.sql in Supabase aus."
+    return False, "Lobby konnte nicht betreten werden. Führe add_dnd_tables.sql in Supabase aus."
 
 
 def ability_modifier(score):
@@ -2460,18 +2466,22 @@ def buy_reward(username, reward):
     user = get_user(username)
 
     if user is None:
-        return False
+        return False, "User konnte nicht geladen werden."
 
     current = int(user["chickens"])
 
     if current < reward["price"]:
-        return False
+        return False, "Nicht genug Chickens."
 
-    update_user(
+    reward_category = reward.get("category") or get_default_shop_category()
+    is_wheel_reward = is_wheel_reward_category(reward_category)
+
+    if not update_user(
         username,
         current - reward["price"],
         int(user["braincells"])
-    )
+    ):
+        return False, "Chickens konnten nicht abgezogen werden."
 
     extended_purchase = api_post_optional(
         "purchases",
@@ -2479,13 +2489,18 @@ def buy_reward(username, reward):
             "username": username,
             "reward_name": reward["name"],
             "price": reward["price"],
-            "reward_category": reward.get("category") or get_default_shop_category(),
+            "reward_category": reward_category,
             "status": "open",
             "created_at": datetime.now().isoformat()
         }
     )
     if not extended_purchase:
-        api_post(
+        if is_wheel_reward:
+            update_user(username, current, int(user["braincells"]))
+            get_leaderboard.clear()
+            get_members.clear()
+            return False, "Kauf abgebrochen: Damit Bestrafungen und Aufgaben im Rad landen, muss in Supabase die Purchases-Migration mit reward_category und status aktiv sein."
+        fallback_purchase = api_post(
             "purchases",
             {
                 "username": username,
@@ -2494,11 +2509,16 @@ def buy_reward(username, reward):
                 "created_at": datetime.now().isoformat()
             }
         )
+        if not fallback_purchase:
+            update_user(username, current, int(user["braincells"]))
+            get_leaderboard.clear()
+            get_members.clear()
+            return False, "Kauf konnte nicht gespeichert werden."
 
     get_leaderboard.clear()
     get_members.clear()
     get_wheel_entries.clear()
-    return True
+    return True, "Gekauft! Der Eintrag ist im Rad gelandet." if is_wheel_reward else "Gekauft!"
 
 
 PATCH_NOTES = [
@@ -5289,7 +5309,7 @@ if menu != "🏠 Home":
 if menu == "🏠 Home":
 
     spotlight_title = "Willkommen in der Gehirnzone"
-    spotlight_copy = "Community, Rewards und Rankings fuer die schlauesten Koepfe."
+    spotlight_copy = "Community, Rewards und Rankings für die schlauesten Köpfe."
     top_viewer_name = "Noch niemand"
     top_viewer_detail = "Warte auf den ersten Eintrag"
     if not leaderboard.empty:
@@ -5300,7 +5320,7 @@ if menu == "🏠 Home":
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
         '<h3>Heute wartet dein Bonus</h3>'
-        '<p>Melde dich an und hol dir Chickens plus Gehirnzellen fuer den Stream.</p>'
+        '<p>Melde dich an und hol dir Chickens plus Gehirnzellen für den Stream.</p>'
     )
     daily_state = None
     if logged_in_username:
@@ -5376,7 +5396,7 @@ if menu == "🏠 Home":
         f'<div class="daily-card">{daily_html}</div>'
         '</div>'
         '<div class="home-dashboard-lower">'
-        '<div class="home-quote">„Wissen ist Macht. Community ist Staerke. Zusammen sind wir die Gehirnzone.“</div>'
+        '<div class="home-quote">„Wissen ist Macht. Community ist Stärke. Zusammen sind wir die Gehirnzone.“</div>'
         '<div class="home-top-panel">'
         '<div class="section-kicker">Top 3</div>'
         f'<h3>{html.escape(top_viewer_name)}</h3>'
@@ -5434,7 +5454,7 @@ if menu == "🏠 Home":
             '<div>'
             '<div class="section-kicker">Bild der Woche</div>'
             '<h3>Hall of Fame wartet</h3>'
-            '<p>Sobald ein Bild veroeffentlicht wurde, bekommt es hier seinen Platz auf der Startseite.</p>'
+            '<p>Sobald ein Bild veröffentlicht wurde, bekommt es hier seinen Platz auf der Startseite.</p>'
             '</div>'
             '</div>'
         )
@@ -5487,7 +5507,7 @@ elif menu == "🔑 Login":
         st.markdown("## Anmeldung oder Registrierung")
         st.markdown("Gib deinen Twitch-Namen exakt so ein, wie er auf Twitch geschrieben ist.")
 
-        login_tab, request_tab, complete_tab = st.tabs(["Anmelden", "Registrierung anfragen", "Code einloesen"])
+        login_tab, request_tab, complete_tab = st.tabs(["Anmelden", "Registrierung anfragen", "Code einlösen"])
 
         with login_tab:
             login_name = st.text_input("Twitch-Name", key="login_name")
@@ -5508,15 +5528,15 @@ elif menu == "🔑 Login":
         with request_tab:
             request_name = st.text_input("Twitch-Name", key="registration_request_name")
             request_password = st.text_input("Passwort", type="password", key="registration_request_password")
-            request_confirm = st.text_input("Passwort bestaetigen", type="password", key="registration_request_confirm")
+            request_confirm = st.text_input("Passwort bestätigen", type="password", key="registration_request_confirm")
 
             if st.button("Anfragen", key="registration_request_submit"):
                 if not validate_username(request_name):
-                    st.error("Ungueltiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                    st.error("Ungültiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
                 elif request_password == "":
                     st.error("Bitte gib ein Passwort ein.")
                 elif request_password != request_confirm:
-                    st.error("Die Passwoerter stimmen nicht ueberein.")
+                    st.error("Die Passwörter stimmen nicht überein.")
                 else:
                     success, message = request_registration(request_name, request_password)
                     if success:
@@ -5531,7 +5551,7 @@ elif menu == "🔑 Login":
 
             if st.button("Registrierung abschliessen", key="registration_complete_submit"):
                 if not validate_username(complete_name):
-                    st.error("Ungueltiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
+                    st.error("Ungültiger Twitch-Name. Nur Buchstaben, Zahlen, - und _ sind erlaubt.")
                 elif complete_password == "":
                     st.error("Bitte gib dein Passwort ein.")
                 elif complete_code.strip() == "":
@@ -5678,7 +5698,7 @@ elif menu == "👤 Profil":
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("Kreativwand oeffnen", key="profile_creative_wall", use_container_width=True):
+        if st.button("Kreativwand öffnen", key="profile_creative_wall", use_container_width=True):
             st.session_state["app_menu"] = "🎨 Kreativwand"
             st.rerun()
 
@@ -5852,7 +5872,7 @@ elif menu == "👥 Mitglieder":
             members = ranked_members
 
         if not members:
-            st.info("Keine Mitglieder fuer diese Suche gefunden.")
+            st.info("Keine Mitglieder für diese Suche gefunden.")
             st.stop()
 
         members_html = '<div class="member-grid">'
@@ -6029,13 +6049,13 @@ elif menu == "🛒 Shop":
                         st.write("")
 
                         if st.button("Kaufen", key=f"buy_{category}_{reward['name']}", disabled=not can_afford):
-                            success = buy_reward(effective_username, reward)
+                            success, message = buy_reward(effective_username, reward)
 
                             if success:
-                                st.success("Gekauft!")
+                                st.success(message)
                                 st.rerun()
                             else:
-                                st.error("Nicht genug Chickens")
+                                st.error(message)
 
     with st.expander("Kurs", expanded=False):
         st.markdown("Täglicher Kursverlauf der Trading-Items. Kaufen und verkaufen findest du im Dropdown **Trading Shop**.")
@@ -6468,12 +6488,12 @@ elif menu == "🎨 Kreativwand":
     st.markdown("## Leinwand")
 
     if not logged_in_username:
-        st.warning("Bitte melde dich zuerst an, um ein Bild zu veroeffentlichen.")
+        st.warning("Bitte melde dich zuerst an, um ein Bild zu veröffentlichen.")
         if st.button("Zum Login", key="creative_login_cta", use_container_width=True):
             st.session_state["app_menu"] = "🔑 Login"
             st.rerun()
     elif st_canvas is None:
-        st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den naechsten Deploy oder pruefe requirements.txt.")
+        st.error("Die Zeichen-Komponente ist noch nicht installiert. Warte auf den nächsten Deploy oder prüfe requirements.txt.")
     else:
         existing_art = get_user_creative_art(logged_in_username)
         if existing_art:
@@ -6486,7 +6506,7 @@ elif menu == "🎨 Kreativwand":
                 <div class="creative-panel">
                     <div class="section-kicker">Weisse Leinwand</div>
                     <h3>Zeichne dein Meisterwerk</h3>
-                    <p>Waehle Farbe, Strichstaerke und Modus. Danach kannst du dein Bild in die Hall of Fame stellen.</p>
+                    <p>Wähle Farbe, Strichstärke und Modus. Danach kannst du dein Bild in die Hall of Fame stellen.</p>
                 </div>
                 <div class="creative-panel">
                     <div class="section-kicker">Signatur</div>
@@ -6508,7 +6528,7 @@ elif menu == "🎨 Kreativwand":
             with color_col:
                 selected_stroke_color = st.color_picker("Farbe", "#1f2937")
             with width_col:
-                stroke_width = st.slider("Strichstaerke", 1, 28, 6)
+                stroke_width = st.slider("Strichstärke", 1, 28, 6)
 
             stroke_color_key = f"creative_canvas_color_{logged_in_username}"
             if stroke_color_key not in st.session_state:
@@ -6529,7 +6549,7 @@ elif menu == "🎨 Kreativwand":
                 update_streamlit=True,
             )
 
-            if st.button("In Hall of Fame veroeffentlichen", key="publish_creative_art", use_container_width=True):
+            if st.button("In Hall of Fame veröffentlichen", key="publish_creative_art", use_container_width=True):
                 image_data_uri = canvas_image_to_data_uri(canvas_result.image_data)
                 if not image_data_uri:
                     st.error("Die Leinwand ist noch leer.")
@@ -6554,7 +6574,7 @@ elif menu == "🏛️ Hall of Fame":
 elif menu.endswith("Minispiele"):
 
     if st.session_state.get("minigame_view") == "dnd":
-        if st.button("Zurueck zu den Minispielen", key="back_to_minigames", use_container_width=True):
+        if st.button("Zurück zu den Minispielen", key="back_to_minigames", use_container_width=True):
             st.session_state["minigame_view"] = "overview"
             st.rerun()
         render_dnd_page()
@@ -6570,11 +6590,11 @@ elif menu.endswith("Minispiele"):
         </div>
         <div class="arcade-card">
             <strong>Skill statt Zufall</strong>
-            <span>Je laenger du ueberlebst, desto schneller wird das Spiel.</span>
+            <span>Je länger du überlebst, desto schneller wird das Spiel.</span>
         </div>
         <div class="arcade-card">
             <strong>Globales Scoreboard</strong>
-            <span>Gespeicherte Scores sind fuer alle Viewer sichtbar.</span>
+            <span>Gespeicherte Scores sind für alle Viewer sichtbar.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -6838,7 +6858,7 @@ elif menu.endswith("Minispiele"):
             <div id="overlay" class="overlay">
                 <div class="menu-card">
                     <h1 id="menuTitle">Chicken Jump</h1>
-                    <p id="menuText">Spring ueber Zaeune, sammle Gehirnzellen und halte so lange wie moeglich durch.</p>
+                    <p id="menuText">Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.</p>
                     <div class="actions">
                         <button id="startBtn">Spiel starten</button>
                         <button id="scoreBtn" class="secondary">Score speichern</button>
@@ -7409,7 +7429,7 @@ elif menu.endswith("Minispiele"):
 
     async function saveScore() {
         if (savedCurrentScore || score <= 0) return;
-        let name = prompt("Dein Twitch-Name fuer das Scoreboard:");
+        let name = prompt("Dein Twitch-Name für das Scoreboard:");
         if (!name) return;
         name = name.trim().slice(0, 50);
         if (!name) return;
@@ -7437,7 +7457,7 @@ elif menu.endswith("Minispiele"):
 
             savedCurrentScore = true;
             await renderScores();
-            showMenu("Score gespeichert", "Dein Score ist jetzt fuer alle sichtbar.", "Nochmal spielen");
+            showMenu("Score gespeichert", "Dein Score ist jetzt für alle sichtbar.", "Nochmal spielen");
         } catch (error) {
             console.error(error);
             const message = String(error && error.message ? error.message : error).slice(0, 240);
@@ -7572,7 +7592,7 @@ elif menu.endswith("Minispiele"):
 
     renderScores();
     updateSoundButton();
-    showMenu("Chicken Jump", "Spring ueber Zaeune, sammle Gehirnzellen und halte so lange wie moeglich durch.", "Spiel starten");
+    showMenu("Chicken Jump", "Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.", "Spiel starten");
     loop();
     </script>
     </body>
@@ -7587,26 +7607,26 @@ elif menu.endswith("Minispiele"):
         <div>
             <div class="section-kicker">Tabletop Modus</div>
             <h2>Dungeons and Dragons</h2>
-            <p>Oeffne eine eigene Vollbild-Ansicht mit Lobbys, Charakteren, Party-Uebersicht und DnD-Wuerfeln.</p>
+            <p>Öffne eine eigene Vollbild-Ansicht mit Lobbys, Charakteren, Party-Übersicht und DnD-Würfeln.</p>
         </div>
         <div class="dnd-rule-grid">
             <div class="dnd-panel"><div class="dnd-pill">Lobbys</div><p>Offen oder mit Passwort.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Wuerfel</div><p>d4 bis d100 inklusive Vorteil und Nachteil.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Chronik</div><p>Wuerfe bleiben in der Runde sichtbar.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Würfel</div><p>d4 bis d100 inklusive Vorteil und Nachteil.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Chronik</div><p>Würfe bleiben in der Runde sichtbar.</p></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("Dungeons and Dragons oeffnen", key="open_dnd_minigame", use_container_width=True):
+    if st.button("Dungeons and Dragons öffnen", key="open_dnd_minigame", use_container_width=True):
         st.session_state["minigame_view"] = "dnd"
         st.rerun()
 
-    st.markdown("## Gluecksraeder")
+    st.markdown("## Glücksräder")
     wheel_entries = get_punishment_wheel_entries()
     task_wheel_entries = get_task_wheel_entries()
-    wheel_password = st.text_input("Admin Passwort fuer Gluecksraeder", type="password", key="wheel_admin_password")
+    wheel_password = st.text_input("Admin Passwort für Glücksräder", type="password", key="wheel_admin_password")
     wheel_unlocked = wheel_password == "einsmarello"
     if wheel_password and not wheel_unlocked:
-        st.error("Falsches Admin-Passwort fuer die Gluecksraeder.")
+        st.error("Falsches Admin-Passwort für die Glücksräder.")
 
     punishment_labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in wheel_entries]
     task_labels = [f"{entry.get('reward_name')} ({entry.get('username')})" for entry in task_wheel_entries]
@@ -7616,9 +7636,9 @@ elif menu.endswith("Minispiele"):
     task_disabled_attr = "" if wheel_unlocked and task_labels else "disabled"
     button_text = "Rad drehen" if wheel_unlocked else "Nur Admin"
     helper_text = (
-        "Admin-Modus aktiv. Offene Kaeufe koennen gedreht und danach abgehakt werden."
+        "Admin-Modus aktiv. Offene Käufe können gedreht und danach abgehakt werden."
         if wheel_unlocked
-        else "Diese Raeder zeigen gekaufte Bestrafungen und Aufgaben. Drehen kann nur der Admin."
+        else "Diese Räder zeigen gekaufte Bestrafungen und Aufgaben. Drehen kann nur der Admin."
     )
 
     components.html(f"""
@@ -7741,7 +7761,7 @@ elif menu.endswith("Minispiele"):
                 st.success("Aufgabe erledigt und aus dem Rad entfernt.")
                 st.rerun()
             else:
-                st.error("Konnte den Eintrag nicht aktualisieren. Pruefe die Purchases-Migration.")
+                st.error("Konnte den Eintrag nicht aktualisieren. Prüfe die Purchases-Migration.")
 
 elif menu == "🎮 Minispiele":
 
@@ -8157,7 +8177,7 @@ elif menu == "🔐 Admin":
                             code = approve_registration_request(request_id)
                             if code:
                                 st.session_state["last_registration_codes"][request_id] = code
-                                st.success(f"Einmalcode fuer {username}: {code}")
+                                st.success(f"Einmalcode für {username}: {code}")
                                 st.rerun()
                             else:
                                 st.error("Anfrage konnte nicht genehmigt werden.")
@@ -8177,7 +8197,7 @@ elif menu == "🔐 Admin":
                     request_id = str(request_row.get("id"))
                     username = str(request_row.get("username") or "Unbekannt")
                     last_code = st.session_state["last_registration_codes"].get(request_id)
-                    code_text = f"Code: {last_code}" if last_code else "Code wurde aus Sicherheitsgruenden nur beim Genehmigen angezeigt."
+                    code_text = f"Code: {last_code}" if last_code else "Code wurde aus Sicherheitsgründen nur beim Genehmigen angezeigt."
                     st.markdown(
                         f'<div class="admin-list-item"><b>{html.escape(username)}</b><br>'
                         f'<span class="admin-muted">{html.escape(code_text)}</span></div>',
@@ -8187,7 +8207,7 @@ elif menu == "🔐 Admin":
                         code = approve_registration_request(request_id)
                         if code:
                             st.session_state["last_registration_codes"][request_id] = code
-                            st.success(f"Neuer Einmalcode fuer {username}: {code}")
+                            st.success(f"Neuer Einmalcode für {username}: {code}")
                             st.rerun()
                         else:
                             st.error("Code konnte nicht erzeugt werden.")
@@ -8282,25 +8302,25 @@ elif menu == "🔐 Admin":
 
         with patch_tab:
             st.markdown("### Patch Notes verwalten")
-            st.caption("Jede Zeile im Feld Aenderungen wird als eigener Listenpunkt angezeigt.")
+            st.caption("Jede Zeile im Feld Änderungen wird als eigener Listenpunkt angezeigt.")
 
             with st.form("create_patch_note_form"):
                 patch_version = st.text_input("Version", placeholder="Patch 1.1")
                 patch_title = st.text_input("Titel", placeholder="Neues Update")
                 patch_date = st.date_input("Datum", value=datetime.now(ZoneInfo("Europe/Berlin")).date())
                 patch_changes = st.text_area(
-                    "Aenderungen",
+                    "Änderungen",
                     height=180,
-                    placeholder="Eine Aenderung pro Zeile",
+                    placeholder="Eine Änderung pro Zeile",
                 )
-                create_patch = st.form_submit_button("Patch Note veroeffentlichen")
+                create_patch = st.form_submit_button("Patch Note veröffentlichen")
 
             if create_patch:
                 if create_patch_note(patch_version, patch_title, patch_changes, patch_date):
-                    st.success("Patch Note veroeffentlicht.")
+                    st.success("Patch Note veröffentlicht.")
                     st.rerun()
                 else:
-                    st.error("Patch Note konnte nicht erstellt werden. Fuehre in Supabase zuerst add_patch_notes_table.sql aus.")
+                    st.error("Patch Note konnte nicht erstellt werden. Führe in Supabase zuerst add_patch_notes_table.sql aus.")
 
             if patch_notes:
                 st.markdown("#### Aktive Patch Notes")
@@ -8471,12 +8491,12 @@ elif menu == "🔐 Admin":
                         if image_data:
                             st.image(image_data, width=240)
                     with action_col:
-                        if st.button("Bild loeschen", key=f"delete_creative_{art_id}"):
+                        if st.button("Bild löschen", key=f"delete_creative_{art_id}"):
                             if delete_creative_art(art_id):
-                                st.success("Bild geloescht.")
+                                st.success("Bild gelöscht.")
                                 st.rerun()
                             else:
-                                st.error("Bild konnte nicht geloescht werden.")
+                                st.error("Bild konnte nicht gelöscht werden.")
 
         with danger_tab:
             st.markdown("### Moderation")
@@ -8507,3 +8527,4 @@ elif menu == "🔐 Admin":
 
     elif password:
         st.error("Falsches Passwort")
+
