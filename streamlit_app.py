@@ -1065,6 +1065,7 @@ def render_creative_gallery(limit=60):
     reaction_summary = summarize_gallery_reactions(reactions)
     user_reactions = get_user_gallery_reactions(reactions, get_logged_in_username())
     reaction_emojis = ["😍", "😂", "🔥", "💜", "👏"]
+    gallery_notice = None
 
     for row_start in range(0, len(gallery_items), 3):
         columns = st.columns(3)
@@ -1102,11 +1103,14 @@ def render_creative_gallery(limit=60):
                         if st.button(emoji, key=f"react_{art_id}_{emoji}", use_container_width=True):
                             current_user = get_logged_in_username()
                             if not current_user:
-                                st.warning("Bitte melde dich an, um zu reagieren.")
+                                gallery_notice = "Bitte melde dich an, um auf Bilder zu reagieren."
                             elif set_creative_gallery_reaction(art_id, current_user, emoji):
                                 st.rerun()
                             else:
-                                st.error("Reaktion konnte nicht gespeichert werden. Fuehre add_creative_gallery_reactions_table.sql in Supabase aus.")
+                                gallery_notice = "Reaktion konnte nicht gespeichert werden. Fuehre add_creative_gallery_reactions_table.sql in Supabase aus."
+
+    if gallery_notice:
+        st.warning(gallery_notice)
 
 
 def render_auto_gazette(members, recent_purchases, scores, creative_items):
