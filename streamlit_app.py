@@ -2595,7 +2595,7 @@ h1::after {
 .topbar {
     background: linear-gradient(135deg, rgba(199,125,255,0.14), rgba(255,84,160,0.10));
     border-radius: 14px;
-    padding: 10px 14px;
+    padding: 10px 12px;
     margin-bottom: 14px;
     border: 1px solid rgba(255,255,255,0.12);
     backdrop-filter: blur(14px);
@@ -2603,9 +2603,43 @@ h1::after {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: 10px;
     position: relative;
     z-index: 1000;
     overflow: visible;
+}
+
+.topbar-login-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: min(64vw, 420px);
+    padding: 8px 11px;
+    border-radius: 999px;
+    color: #ffffff;
+    background: rgba(8,14,18,0.62);
+    border: 1px solid rgba(82,185,160,0.28);
+    font-size: 13px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.topbar-login-state span {
+    color: #c8fff1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.topbar-login-state.is-guest {
+    border-color: rgba(255,193,94,0.28);
+}
+
+.topbar-login-state.is-guest span {
+    color: #ffe0aa;
+}
+
+.topbar-menu-slot {
+    width: 52px;
 }
 
 .topbar h2 {
@@ -3424,7 +3458,7 @@ h1::after {
 
 .home-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
     gap: 14px;
     align-items: stretch;
     margin: 10px 0 16px;
@@ -3494,25 +3528,60 @@ h1::after {
 
 .daily-card {
     min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+        linear-gradient(135deg, rgba(255,84,160,0.18), rgba(82,185,160,0.16)),
+        rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.16);
 }
 
-.home-side-stack {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 14px;
-}
-
-.home-account-card {
-    border-radius: 8px;
-    padding: 18px;
-    background: rgba(8,14,18,0.72);
-    border: 1px solid rgba(255,255,255,0.11);
-}
-
-.home-account-card h3,
 .daily-card h3,
 .activity-card h3 {
     margin: 6px 0 8px;
+}
+
+.daily-card h3 {
+    font-size: 30px;
+    line-height: 1.08;
+}
+
+.daily-card .section-kicker {
+    color: #c8fff1;
+}
+
+.daily-claim-shell {
+    margin: -4px 0 22px auto;
+    max-width: 420px;
+}
+
+.daily-claim-shell .stButton > button {
+    min-height: 64px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.22);
+    background: linear-gradient(135deg, #52b9a0, #ff54a0);
+    color: #05050a;
+    font-size: 17px;
+    font-weight: 950;
+    box-shadow: 0 18px 42px rgba(255,84,160,0.24);
+}
+
+.daily-claim-shell .stButton > button:hover {
+    border-color: rgba(255,255,255,0.42);
+    transform: translateY(-1px);
+    box-shadow: 0 24px 52px rgba(82,185,160,0.22);
+}
+
+.home-login-actions {
+    margin: -4px 0 22px auto;
+    max-width: 360px;
+}
+
+.home-login-actions .stButton > button {
+    min-height: 52px;
+    border-radius: 8px;
+    font-weight: 950;
 }
 
 .home-status-pill {
@@ -4555,7 +4624,16 @@ if "app_menu" not in st.session_state:
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "🏠 Home"
 
-st.markdown('<div class="topbar"></div>', unsafe_allow_html=True)
+topbar_account_label = logged_in_username or twitch_display_name
+topbar_account_html = (
+    f'<div class="topbar-login-state">Eingeloggt als: <span>{html.escape(str(topbar_account_label))}</span></div>'
+    if topbar_account_label
+    else '<div class="topbar-login-state is-guest">Status: <span>Nicht eingeloggt</span></div>'
+)
+st.markdown(
+    f'<div class="topbar">{topbar_account_html}<div class="topbar-menu-slot"></div></div>',
+    unsafe_allow_html=True,
+)
 _, account_col = st.columns([10, 1])
 
 with account_col:
@@ -4684,30 +4762,21 @@ if menu == "🏠 Home":
             f"und {int(top_viewer['Chickens'])} Chickens."
         )
 
-    account_label = logged_in_username or twitch_display_name or "Nicht angemeldet"
-    account_status_class = "" if logged_in_username else " is-guest"
-    account_status_text = "Angemeldet" if logged_in_username else "Gastmodus"
-    account_hint = (
-        "Daily Reward, Profil und Handel sind aktiv."
-        if logged_in_username
-        else "Melde dich an, um Rewards und dein Profil zu nutzen."
-    )
-
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
-        '<h3>Bereit zum Abholen</h3>'
-        '<p>Melde dich an, um jeden Tag Chickens und Gehirnzellen mitzunehmen.</p>'
+        '<h3>Heute wartet dein Bonus</h3>'
+        '<p>Melde dich an und hol dir Chickens plus Gehirnzellen fuer den Stream.</p>'
     )
     daily_state = None
     if logged_in_username:
         daily_state = get_daily_reward_state(logged_in_username)
         reward_preview = 250 + min(int(daily_state["streak"]), 7) * 50
-        claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"Heute bereit: +{reward_preview} Chickens"
+        claim_text = "Heute schon abgeholt" if daily_state["claimed_today"] else f"+{reward_preview} Chickens bereit"
         daily_html = (
             '<div class="section-kicker">Daily Reward</div>'
             f'<h3>{claim_text}</h3>'
             f'<div class="daily-streak">{int(daily_state["streak"])} Tage Streak</div>'
-            '<p>Jeden Tag einloggen, Streak halten und Belohnungen stapeln.</p>'
+            '<p>Streak halten, Bonus abholen und Gehirnzellen stapeln.</p>'
         )
 
     home_html = (
@@ -4724,18 +4793,30 @@ if menu == "🏠 Home":
         f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen</span></div>'
         '</div>'
         '</div>'
-        '<div class="home-side-stack">'
-        '<div class="home-account-card">'
-        '<div class="section-kicker">Aktueller Account</div>'
-        f'<h3>{html.escape(account_label)}</h3>'
-        f'<div class="home-status-pill{account_status_class}">{account_status_text}</div>'
-        f'<p>{html.escape(account_hint)}</p>'
-        '</div>'
         f'<div class="daily-card">{daily_html}</div>'
-        '</div>'
         '</div>'
     )
     st.markdown(home_html, unsafe_allow_html=True)
+
+    if logged_in_username:
+        if daily_state and daily_state["claimed_today"]:
+            st.success("Daily Reward ist heute erledigt.")
+        else:
+            st.markdown('<div class="daily-claim-shell">', unsafe_allow_html=True)
+            if st.button("Daily Reward abholen", key="claim_daily_reward", use_container_width=True):
+                success, message = claim_daily_reward(logged_in_username)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="home-login-actions">', unsafe_allow_html=True)
+        if st.button("Einloggen und Daily Reward holen", key="home_login_cta", use_container_width=True):
+            st.session_state["app_menu"] = "\U0001f511 Login"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     creative_items = get_creative_gallery(30)
     creative_reactions = get_creative_gallery_reactions()
@@ -4771,54 +4852,6 @@ if menu == "🏠 Home":
     if st.button("Zur Hall of Fame", key="home_hof_cta", use_container_width=True):
         st.session_state["app_menu"] = MAIN_MENU_OPTIONS[8]
         st.rerun()
-
-    account_col, daily_col = st.columns([1, 1])
-    with account_col:
-        if logged_in_username:
-            if st.button("Zum Profil", key="home_profile_cta", use_container_width=True):
-                st.session_state["app_menu"] = MAIN_MENU_OPTIONS[3]
-                st.rerun()
-        else:
-            if st.button("Zum Login", key="home_login_cta", use_container_width=True):
-                st.session_state["app_menu"] = "\U0001f511 Login"
-                st.rerun()
-
-    with daily_col:
-        if logged_in_username:
-            if daily_state and daily_state["claimed_today"]:
-                st.info("Daily Reward ist heute erledigt.")
-            elif st.button("Daily Reward abholen", key="claim_daily_reward", use_container_width=True):
-                success, message = claim_daily_reward(logged_in_username)
-                if success:
-                    st.success(message)
-                    st.rerun()
-                else:
-                    st.error(message)
-
-    home_lower_html = (
-        '<div class="home-compact-grid">'
-        '<div class="activity-card">'
-        '<div class="section-kicker">Weiter</div>'
-        '<h3>Minispiele</h3>'
-        '<p>Spring rein, verbessere deinen Score und sammle neue Profil-Erfolge.</p>'
-        '</div>'
-        '<div class="activity-card">'
-        '<div class="section-kicker">Rangliste</div>'
-        '<h3>Scoreboards</h3>'
-        '<p>Community-Ranking und Chicken-Jump-Platzierungen sind jetzt im Ranglisten-Reiter gebuendelt.</p>'
-        '</div>'
-        '</div>'
-    )
-    st.markdown(home_lower_html, unsafe_allow_html=True)
-    game_col, rank_col = st.columns(2)
-    with game_col:
-        if st.button("Minispiele starten", key="home_games_cta", use_container_width=True):
-            st.session_state["app_menu"] = MAIN_MENU_OPTIONS[7]
-            st.rerun()
-    with rank_col:
-        if st.button("Zur Rangliste", key="home_rank_cta", use_container_width=True):
-            st.session_state["app_menu"] = MAIN_MENU_OPTIONS[5]
-            st.rerun()
 
 # =========================
 # LOGIN
