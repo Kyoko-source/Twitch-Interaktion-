@@ -2568,7 +2568,7 @@ st.markdown("""
 
 .block-container {
     max-width: 1320px;
-    padding-top: 1.35rem;
+    padding-top: 1.9rem;
     padding-bottom: 3rem;
 }
 
@@ -2598,7 +2598,7 @@ h1::after {
         rgba(8,10,18,0.72);
     border-radius: 14px;
     padding: 12px 14px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     border: 1px solid rgba(255,255,255,0.13);
     backdrop-filter: blur(14px);
     min-height: 62px;
@@ -4635,22 +4635,22 @@ h1::after {
 .stRadio {
     width: 100%;
     max-width: 100%;
-    margin: -80px auto 34px auto;
+    margin: 6px auto 34px auto;
     position: relative;
-    z-index: 1001;
+    z-index: 2;
     pointer-events: none;
 }
 
 .stRadio > div {
     width: fit-content;
-    max-width: min(100%, 760px);
+    max-width: min(100%, 1120px);
     margin: 0 auto;
     justify-content: center;
-    background: transparent;
-    border: 0;
+    background: rgba(8,10,18,0.58);
+    border: 1px solid rgba(199,125,255,0.22);
     border-radius: 999px;
     padding: 6px;
-    box-shadow: none;
+    box-shadow: 0 16px 38px rgba(0,0,0,0.22);
     backdrop-filter: blur(16px);
     overflow-x: auto;
     scrollbar-width: none;
@@ -4673,8 +4673,8 @@ h1::after {
     min-height: 40px;
     border-radius: 999px;
     padding: 0 16px;
-    border: 1px solid transparent;
-    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
     transition: all 0.18s ease;
     white-space: nowrap;
     flex: 0 0 auto;
@@ -4702,9 +4702,9 @@ h1::after {
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: inset 0 -2px 0 #ff54a0, 0 10px 26px rgba(255,84,160,0.16);
+    background: linear-gradient(135deg, rgba(199,125,255,0.20), rgba(255,84,160,0.16));
+    border-color: rgba(255,84,160,0.36);
+    box-shadow: inset 0 -2px 0 #ff54a0, 0 10px 26px rgba(255,84,160,0.18);
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) p {
