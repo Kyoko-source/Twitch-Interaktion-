@@ -3544,25 +3544,66 @@ h1::after {
 }
 
 .home-spotlight::after {
-    content: "🧠";
+    content: "";
     position: absolute;
-    right: -3%;
-    top: 12%;
-    font-size: clamp(150px, 20vw, 280px);
-    line-height: 1;
-    filter:
-        drop-shadow(0 0 16px rgba(255,255,255,0.36))
-        drop-shadow(0 0 42px rgba(255,84,160,0.80))
-        drop-shadow(0 0 78px rgba(199,125,255,0.55));
-    opacity: 0.62;
-    transform: rotate(-6deg);
+    right: -80px;
+    top: 40px;
+    width: 360px;
+    height: 260px;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 52% 46%, rgba(255,84,160,0.34), transparent 38%),
+        radial-gradient(circle at 66% 60%, rgba(199,125,255,0.24), transparent 34%);
+    filter: blur(8px);
+    opacity: 0.78;
     z-index: 0;
+}
+
+.home-brain-visual {
+    position: absolute;
+    right: 28px;
+    top: 34px;
+    width: clamp(230px, 28vw, 390px);
+    max-width: 42%;
+    aspect-ratio: 1.25 / 1;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.92;
+    filter:
+        drop-shadow(0 0 16px rgba(255,255,255,0.20))
+        drop-shadow(0 0 34px rgba(255,84,160,0.58))
+        drop-shadow(0 0 68px rgba(199,125,255,0.44));
+}
+
+.home-brain-visual svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.home-brain-fill {
+    fill: url(#homeBrainFill);
+    opacity: 0.88;
+}
+
+.home-brain-line {
+    fill: none;
+    stroke: url(#homeBrainStroke);
+    stroke-width: 5.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.92;
+}
+
+.home-brain-spark {
+    fill: #ffd6f0;
+    filter: drop-shadow(0 0 12px rgba(255,84,160,0.72));
 }
 
 .home-spotlight h2 {
     position: relative;
     z-index: 2;
-    max-width: 610px;
+    max-width: 600px;
     margin: 8px 0 14px;
     font-size: clamp(42px, 6vw, 86px);
     line-height: 0.92;
@@ -4576,6 +4617,14 @@ h1::after {
         text-align: left;
     }
 
+    .home-brain-visual {
+        right: -90px;
+        top: 96px;
+        width: 260px;
+        max-width: none;
+        opacity: 0.28;
+    }
+
     .profile-stat-grid,
     .admin-stat-grid {
         grid-template-columns: 1fr;
@@ -4943,6 +4992,39 @@ if menu == "🏠 Home":
         '<div class="home-dashboard">'
         '<div class="home-hero">'
         '<div class="home-spotlight">'
+        '''
+        <div class="home-brain-visual" aria-hidden="true">
+            <svg viewBox="0 0 420 320" role="img">
+                <defs>
+                    <linearGradient id="homeBrainFill" x1="72" y1="42" x2="340" y2="276" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#ffd1f1"/>
+                        <stop offset="0.42" stop-color="#ff54c7"/>
+                        <stop offset="1" stop-color="#8b5cff"/>
+                    </linearGradient>
+                    <linearGradient id="homeBrainStroke" x1="64" y1="40" x2="360" y2="284" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#ffffff"/>
+                        <stop offset="0.28" stop-color="#ff9ee4"/>
+                        <stop offset="0.72" stop-color="#ff54a0"/>
+                        <stop offset="1" stop-color="#c77dff"/>
+                    </linearGradient>
+                    <filter id="homeBrainGlow" x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="7" result="blur"/>
+                        <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1  0 0 0 0 0.18  0 0 0 0 0.72  0 0 0 0.86 0" result="pinkGlow"/>
+                        <feMerge>
+                            <feMergeNode in="pinkGlow"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                <path class="home-brain-fill" filter="url(#homeBrainGlow)" d="M207 58c28-34 84-26 100 14 34 1 61 27 62 61 26 16 36 50 22 79-11 25-35 41-63 42h-26v35c0 11-13 16-21 8l-45-43H130c-39 0-71-30-73-68-27-20-31-61-7-87 2-40 40-70 79-58 18-23 56-25 78 17z"/>
+                <path class="home-brain-line" d="M129 58c-39-12-77 18-79 58-24 26-20 67 7 87 2 38 34 68 73 68h106l45 43c8 8 21 3 21-8v-35h26c28-1 52-17 63-42 14-29 4-63-22-79-1-34-28-60-62-61-16-40-72-48-100-14-22-42-60-40-78-17z"/>
+                <path class="home-brain-line" d="M130 87c-20 6-33 22-35 42m29 93c-20-1-38-15-42-35m54-25c-19 4-38-8-43-27m99-60c-19 8-30 24-28 45m43-45c22 3 37 19 39 40m-82 5c-5 24 8 43 31 49m51-54c-21 3-38 18-42 39m43 41c-20 1-37-10-43-27m99-79c22 10 32 34 23 57m-54-10c21 7 34 26 32 48m-100 7c21 2 38 15 44 36m-102-38c-2 22-17 39-39 43"/>
+                <circle class="home-brain-spark" cx="88" cy="80" r="5"/>
+                <circle class="home-brain-spark" cx="340" cy="70" r="4"/>
+                <circle class="home-brain-spark" cx="372" cy="208" r="4"/>
+            </svg>
+        </div>
+        '''
         '<div>'
         '<div class="section-kicker">Gehirnzone</div>'
         f'<h2>{html.escape(spotlight_title)}</h2>'
