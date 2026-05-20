@@ -3532,7 +3532,8 @@ h1::after {
     min-height: 360px;
     padding: 38px;
     background:
-        radial-gradient(circle at 74% 48%, rgba(255,84,160,0.22), transparent 28%),
+        radial-gradient(circle at 88% 44%, rgba(255,84,160,0.24), transparent 30%),
+        radial-gradient(circle at 78% 58%, rgba(199,125,255,0.18), transparent 26%),
         linear-gradient(135deg, rgba(199,125,255,0.10), rgba(255,84,160,0.06)),
         rgba(255,255,255,0.035);
     border: 1px solid rgba(255,255,255,0.11);
@@ -3545,18 +3546,23 @@ h1::after {
 .home-spotlight::after {
     content: "🧠";
     position: absolute;
-    right: 8%;
-    top: 16%;
-    font-size: clamp(120px, 18vw, 230px);
+    right: -3%;
+    top: 12%;
+    font-size: clamp(150px, 20vw, 280px);
     line-height: 1;
-    filter: drop-shadow(0 0 35px rgba(255,84,160,0.70));
-    opacity: 0.88;
+    filter:
+        drop-shadow(0 0 16px rgba(255,255,255,0.36))
+        drop-shadow(0 0 42px rgba(255,84,160,0.80))
+        drop-shadow(0 0 78px rgba(199,125,255,0.55));
+    opacity: 0.62;
+    transform: rotate(-6deg);
+    z-index: 0;
 }
 
 .home-spotlight h2 {
     position: relative;
-    z-index: 1;
-    max-width: 650px;
+    z-index: 2;
+    max-width: 610px;
     margin: 8px 0 14px;
     font-size: clamp(42px, 6vw, 86px);
     line-height: 0.92;
@@ -3569,7 +3575,7 @@ h1::after {
 .home-spotlight p,
 .daily-card p {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     max-width: 560px;
     color: #d8ccff;
     font-weight: 760;
@@ -3577,6 +3583,8 @@ h1::after {
 }
 
 .home-actions {
+    position: relative;
+    z-index: 2;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
