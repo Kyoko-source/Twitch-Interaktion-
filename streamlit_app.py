@@ -189,6 +189,19 @@ def api_post_optional(table, payload):
 
     return response.json()
 
+
+def api_upsert_optional(table_path, payload):
+    response = requests.post(
+        f"{SUPABASE_URL}/rest/v1/{table_path}",
+        headers={**HEADERS, "Prefer": "return=representation,resolution=merge-duplicates"},
+        json=payload
+    )
+
+    if response.status_code >= 400:
+        return None
+
+    return response.json()
+
 def api_patch(path, payload):
     response = requests.patch(
         f"{SUPABASE_URL}/rest/v1/{path}",
@@ -780,6 +793,23 @@ def get_chicken_scores(limit=10):
 
 
 @st.cache_data(ttl=120)
+def get_chicken_scores_for_period(period="all", limit=10):
+    filters = ""
+    if period in {"week", "today"}:
+        now = datetime.now(ZoneInfo("Europe/Berlin"))
+        if period == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            start = now - timedelta(days=7)
+        filters = f"&created_at=gte.{urllib.parse.quote(start.isoformat())}"
+
+    return api_get_optional(
+        "chicken_scores?select=username,score,level,created_at"
+        f"{filters}&order=score.desc,created_at.asc&limit={int(limit)}"
+    )
+
+
+@st.cache_data(ttl=120)
 def get_user_best_chicken_score(username):
     if not username:
         return None
@@ -871,6 +901,82 @@ def get_creative_gallery(limit=30):
     )
 
 
+@st.cache_data(ttl=120)
+def get_creative_gallery_reactions():
+    return api_get_optional(
+        "creative_gallery_reactions"
+        "?select=art_id,username,emoji,created_at&order=created_at.desc&limit=1000"
+    )
+
+
+def format_gallery_timestamp(value):
+    if not value:
+        return ""
+
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
+        local_time = parsed.astimezone(ZoneInfo("Europe/Berlin"))
+        return local_time.strftime("%d.%m.%Y um %H:%M Uhr")
+    except ValueError:
+        return str(value)
+
+
+def summarize_gallery_reactions(reactions):
+    summary = {}
+    for reaction in reactions:
+        art_id = str(reaction.get("art_id") or "")
+        emoji = str(reaction.get("emoji") or "")
+        if not art_id or not emoji:
+            continue
+        summary.setdefault(art_id, {})
+        summary[art_id][emoji] = summary[art_id].get(emoji, 0) + 1
+    return summary
+
+
+def get_user_gallery_reactions(reactions, username):
+    if not username:
+        return {}
+    user_reactions = {}
+    for reaction in reactions:
+        if str(reaction.get("username") or "") == username:
+            user_reactions[str(reaction.get("art_id") or "")] = str(reaction.get("emoji") or "")
+    return user_reactions
+
+
+def get_creative_image_of_week(gallery_items, reactions):
+    if not gallery_items:
+        return None
+
+    now = datetime.now(ZoneInfo("Europe/Berlin"))
+    week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    weekly_scores = {}
+
+    for reaction in reactions:
+        try:
+            created_at = datetime.fromisoformat(str(reaction.get("created_at") or "").replace("Z", "+00:00"))
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=ZoneInfo("UTC"))
+            created_at = created_at.astimezone(ZoneInfo("Europe/Berlin"))
+        except ValueError:
+            continue
+        if created_at >= week_start:
+            art_id = str(reaction.get("art_id") or "")
+            weekly_scores[art_id] = weekly_scores.get(art_id, 0) + 1
+
+    if weekly_scores:
+        return max(
+            gallery_items,
+            key=lambda item: (
+                weekly_scores.get(str(item.get("id") or ""), 0),
+                str(item.get("created_at") or ""),
+            ),
+        )
+
+    return gallery_items[0]
+
+
 def get_user_creative_art(username: str) -> Optional[dict]:
     username = username.strip()
     if not username:
@@ -900,7 +1006,7 @@ def canvas_image_to_data_uri(image_data):
 
 def create_creative_art(username, title, image_data_uri):
     username = username.strip()
-    clean_title = title.strip()[:80] or "Ohne Titel"
+    clean_title = title.strip()[:80]
 
     if get_user_creative_art(username):
         return False, "Du hast bereits ein Bild in der Hall of Fame."
@@ -922,10 +1028,30 @@ def create_creative_art(username, title, image_data_uri):
     return False, "Bild konnte nicht gespeichert werden. Fuehre add_creative_gallery_table.sql in Supabase aus."
 
 
+def set_creative_gallery_reaction(art_id, username, emoji):
+    if not art_id or not username or emoji not in ["😍", "😂", "🔥", "💜", "👏"]:
+        return False
+
+    created = api_upsert_optional(
+        "creative_gallery_reactions?on_conflict=art_id,username",
+        {
+            "art_id": str(art_id),
+            "username": username.strip(),
+            "emoji": emoji,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    if created:
+        get_creative_gallery_reactions.clear()
+        return True
+    return False
+
+
 def delete_creative_art(art_id):
     success = api_delete(f"creative_gallery?id=eq.{urllib.parse.quote(str(art_id))}")
     if success:
         get_creative_gallery.clear()
+        get_creative_gallery_reactions.clear()
     return success
 
 
@@ -935,21 +1061,52 @@ def render_creative_gallery(limit=60):
         st.info("Noch keine Bilder in der Hall of Fame.")
         return
 
-    cards = ""
-    for item in gallery_items:
-        title = html.escape(str(item.get("title") or "Ohne Titel"))
-        username = html.escape(str(item.get("username") or "Unbekannt"))
-        created_at = html.escape(str(item.get("created_at") or ""))
-        image_data = html.escape(str(item.get("image_data") or ""))
-        cards += (
-            '<article class="creative-art-card">'
-            f'<img src="{image_data}" alt="{title}">'
-            f'<h3>{title}</h3>'
-            f'<span>von {username}</span>'
-            f'<span>{created_at}</span>'
-            '</article>'
-        )
-    st.markdown(f'<div class="creative-gallery-grid">{cards}</div>', unsafe_allow_html=True)
+    reactions = get_creative_gallery_reactions()
+    reaction_summary = summarize_gallery_reactions(reactions)
+    user_reactions = get_user_gallery_reactions(reactions, get_logged_in_username())
+    reaction_emojis = ["😍", "😂", "🔥", "💜", "👏"]
+
+    for row_start in range(0, len(gallery_items), 3):
+        columns = st.columns(3)
+        for column, item in zip(columns, gallery_items[row_start:row_start + 3]):
+            art_id = str(item.get("id") or "")
+            title = str(item.get("title") or "").strip()
+            username = html.escape(str(item.get("username") or "Unbekannt"))
+            created_at = html.escape(format_gallery_timestamp(item.get("created_at")))
+            image_data = str(item.get("image_data") or "")
+            title_html = f"<h3>{html.escape(title)}</h3>" if title else ""
+            counts = reaction_summary.get(art_id, {})
+            selected_emoji = user_reactions.get(art_id)
+            reaction_text = " ".join(
+                f'<span class="creative-reaction-count {"active" if selected_emoji == emoji else ""}">{emoji} {counts.get(emoji, 0)}</span>'
+                for emoji in reaction_emojis
+            )
+            with column:
+                image_html = (
+                    f'<img src="{html.escape(image_data, quote=True)}" alt="{html.escape(title or "Hall of Fame Bild", quote=True)}">'
+                    if image_data else ""
+                )
+                st.markdown(
+                    '<article class="creative-art-card">'
+                    f'{image_html}'
+                    f'{title_html}'
+                    f'<span>von {username}</span>'
+                    f'<span class="creative-date">{created_at}</span>'
+                    f'<div class="creative-reaction-row">{reaction_text}</div>'
+                    '</article>',
+                    unsafe_allow_html=True,
+                )
+                button_cols = st.columns(len(reaction_emojis))
+                for button_col, emoji in zip(button_cols, reaction_emojis):
+                    with button_col:
+                        if st.button(emoji, key=f"react_{art_id}_{emoji}", use_container_width=True):
+                            current_user = get_logged_in_username()
+                            if not current_user:
+                                st.warning("Bitte melde dich an, um zu reagieren.")
+                            elif set_creative_gallery_reaction(art_id, current_user, emoji):
+                                st.rerun()
+                            else:
+                                st.error("Reaktion konnte nicht gespeichert werden. Fuehre add_creative_gallery_reactions_table.sql in Supabase aus.")
 
 
 def render_auto_gazette(members, recent_purchases, scores, creative_items):
@@ -3379,6 +3536,41 @@ h1::after {
     margin: 14px 0 22px;
 }
 
+.home-week-art {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.48fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    margin: 14px 0 22px;
+    border-radius: 8px;
+    padding: 18px;
+    background:
+        linear-gradient(135deg, rgba(255,84,160,0.15), rgba(82,185,160,0.12)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+}
+
+.home-week-art img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+.home-week-art h3 {
+    margin: 6px 0 8px;
+    color: #ffffff;
+    font-size: 28px;
+}
+
+.home-week-art p {
+    color: #e5f8ff;
+    font-weight: 760;
+}
+
 .daily-streak {
     display: inline-flex;
     align-items: center;
@@ -3510,6 +3702,76 @@ h1::after {
     display: block;
     color: #cfc6e8;
     font-weight: 780;
+}
+
+.creative-date {
+    width: fit-content;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: #ffd6f0 !important;
+    background: rgba(255,84,160,0.14);
+    border: 1px solid rgba(255,84,160,0.28);
+    font-size: 13px;
+}
+
+.creative-reaction-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.creative-reaction-count {
+    display: inline-flex !important;
+    width: fit-content;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #ffffff !important;
+    font-size: 13px;
+}
+
+.creative-reaction-count.active {
+    background: rgba(82,185,160,0.18);
+    border-color: rgba(82,185,160,0.36);
+}
+
+.chicken-scoreboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 14px 0 26px;
+}
+
+.chicken-scoreboard-panel {
+    border-radius: 8px;
+    padding: 16px;
+    background: rgba(8,14,18,0.72);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.chicken-scoreboard-panel h3 {
+    margin: 4px 0 12px;
+}
+
+.chicken-score-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.chicken-score-row:last-child {
+    border-bottom: 0;
+}
+
+.chicken-score-row strong,
+.chicken-score-row span {
+    color: #ffffff;
+    font-weight: 850;
 }
 
 .newspaper-grid {
@@ -4065,8 +4327,10 @@ h1::after {
     .home-hero,
     .home-actions,
     .home-compact-grid,
+    .home-week-art,
     .creative-shell,
     .creative-gallery-grid,
+    .chicken-scoreboard-grid,
     .achievement-grid,
     .dnd-hero,
     .dnd-rule-grid,
@@ -4469,6 +4733,41 @@ if menu == "🏠 Home":
     )
     st.markdown(home_html, unsafe_allow_html=True)
 
+    creative_items = get_creative_gallery(30)
+    creative_reactions = get_creative_gallery_reactions()
+    week_art = get_creative_image_of_week(creative_items, creative_reactions)
+    if week_art:
+        week_title = str(week_art.get("title") or "").strip()
+        week_heading = week_title or "Bild der Woche"
+        week_image = html.escape(str(week_art.get("image_data") or ""), quote=True)
+        week_artist = html.escape(str(week_art.get("username") or "Unbekannt"))
+        week_date = html.escape(format_gallery_timestamp(week_art.get("created_at")))
+        week_art_html = (
+            '<div class="home-week-art">'
+            f'<img src="{week_image}" alt="{html.escape(week_heading, quote=True)}">'
+            '<div>'
+            '<div class="section-kicker">Bild der Woche</div>'
+            f'<h3>{html.escape(week_heading)}</h3>'
+            f'<p>Aus der Hall of Fame von {week_artist}.</p>'
+            f'<span class="creative-date">{week_date}</span>'
+            '</div>'
+            '</div>'
+        )
+    else:
+        week_art_html = (
+            '<div class="home-week-art">'
+            '<div>'
+            '<div class="section-kicker">Bild der Woche</div>'
+            '<h3>Hall of Fame wartet</h3>'
+            '<p>Sobald ein Bild veroeffentlicht wurde, bekommt es hier seinen Platz auf der Startseite.</p>'
+            '</div>'
+            '</div>'
+        )
+    st.markdown(week_art_html, unsafe_allow_html=True)
+    if st.button("Zur Hall of Fame", key="home_hof_cta", use_container_width=True):
+        st.session_state["app_menu"] = MAIN_MENU_OPTIONS[8]
+        st.rerun()
+
     account_col, daily_col = st.columns([1, 1])
     with account_col:
         if logged_in_username:
@@ -4492,42 +4791,30 @@ if menu == "🏠 Home":
                 else:
                     st.error(message)
 
-    scores = get_chicken_scores(3)
-    score_cards = []
-    for index in range(3):
-        if index < len(scores):
-            score = scores[index]
-            score_cards.append(
-                '<div class="score-card">'
-                f'<strong>#{index + 1} {html.escape(str(score.get("username") or "Unbekannt"))}</strong>'
-                f'<span>{int(score.get("score") or 0)} Punkte · Level {int(score.get("level") or 1)}</span>'
-                '</div>'
-            )
-        else:
-            score_cards.append(
-                '<div class="score-card">'
-                f'<strong>#{index + 1} Noch frei</strong>'
-                '<span>Hol dir den Platz in Chicken Jump</span>'
-                '</div>'
-            )
-
     home_lower_html = (
         '<div class="home-compact-grid">'
-        '<div class="activity-card">'
-        '<div class="section-kicker">Chicken Jump Top 3</div>'
-        f'<div class="score-strip">{"".join(score_cards)}</div>'
-        '</div>'
         '<div class="activity-card">'
         '<div class="section-kicker">Weiter</div>'
         '<h3>Minispiele</h3>'
         '<p>Spring rein, verbessere deinen Score und sammle neue Profil-Erfolge.</p>'
         '</div>'
+        '<div class="activity-card">'
+        '<div class="section-kicker">Rangliste</div>'
+        '<h3>Scoreboards</h3>'
+        '<p>Community-Ranking und Chicken-Jump-Platzierungen sind jetzt im Ranglisten-Reiter gebuendelt.</p>'
+        '</div>'
         '</div>'
     )
     st.markdown(home_lower_html, unsafe_allow_html=True)
-    if st.button("Minispiele starten", key="home_games_cta", use_container_width=True):
-        st.session_state["app_menu"] = MAIN_MENU_OPTIONS[7]
-        st.rerun()
+    game_col, rank_col = st.columns(2)
+    with game_col:
+        if st.button("Minispiele starten", key="home_games_cta", use_container_width=True):
+            st.session_state["app_menu"] = MAIN_MENU_OPTIONS[7]
+            st.rerun()
+    with rank_col:
+        if st.button("Zur Rangliste", key="home_rank_cta", use_container_width=True):
+            st.session_state["app_menu"] = MAIN_MENU_OPTIONS[5]
+            st.rerun()
 
 # =========================
 # LOGIN
@@ -5367,6 +5654,46 @@ elif menu == "🏆 Rangliste":
             st.markdown("### Ranking")
             st.markdown(f'<div class="rank-list">{rank_rows}</div>', unsafe_allow_html=True)
 
+    st.markdown("### Chicken Jump Scoreboards")
+    scoreboard_panels = []
+    for period_key, period_title in [("all", "All-Time"), ("week", "Diese Woche"), ("today", "Heute")]:
+        period_scores = get_chicken_scores_for_period(period_key, 100)
+        best_by_user = {}
+        for score in period_scores:
+            username = str(score.get("username") or "Unbekannt")
+            current_score = int(score.get("score") or 0)
+            existing = best_by_user.get(username)
+            if not existing or current_score > int(existing.get("score") or 0):
+                best_by_user[username] = score
+
+        rows = ""
+        top_scores = sorted(
+            best_by_user.values(),
+            key=lambda item: int(item.get("score") or 0),
+            reverse=True,
+        )[:5]
+        for index, score in enumerate(top_scores, start=1):
+            rows += (
+                '<div class="chicken-score-row">'
+                f'<strong>#{index} {html.escape(str(score.get("username") or "Unbekannt"))}</strong>'
+                f'<span>{int(score.get("score") or 0)} Punkte · Level {int(score.get("level") or 1)}</span>'
+                '</div>'
+            )
+        if not rows:
+            rows = '<div class="admin-muted">Noch keine Scores.</div>'
+
+        scoreboard_panels.append(
+            '<section class="chicken-scoreboard-panel">'
+            f'<div class="section-kicker">Chicken Jump</div><h3>{period_title}</h3>'
+            f'{rows}'
+            '</section>'
+        )
+
+    st.markdown(
+        f'<div class="chicken-scoreboard-grid">{"".join(scoreboard_panels)}</div>',
+        unsafe_allow_html=True,
+    )
+
 # =========================
 # EVENTS
 # =========================
@@ -5470,7 +5797,8 @@ elif menu == "🎨 Kreativwand":
         existing_art = get_user_creative_art(logged_in_username)
         if existing_art:
             st.info("Du hast bereits ein Bild in der Hall of Fame. Pro Profil ist nur ein Bild erlaubt.")
-            st.image(existing_art.get("image_data"), caption=str(existing_art.get("title") or "Ohne Titel"))
+            existing_title = str(existing_art.get("title") or "").strip()
+            st.image(existing_art.get("image_data"), caption=existing_title if existing_title else None)
         else:
             st.markdown("""
             <div class="creative-shell">
@@ -7444,16 +7772,17 @@ elif menu == "🔐 Admin":
             else:
                 for item in creative_items:
                     art_id = str(item.get("id"))
-                    title = str(item.get("title") or "Ohne Titel")
+                    title = str(item.get("title") or "").strip()
                     username = str(item.get("username") or "Unbekannt")
-                    created_at = str(item.get("created_at") or "")
+                    created_at = format_gallery_timestamp(item.get("created_at"))
                     image_data = str(item.get("image_data") or "")
+                    title_html = f'<b>{html.escape(title)}</b><br>' if title else ""
 
                     preview_col, action_col = st.columns([3, 1])
                     with preview_col:
                         st.markdown(
                             '<div class="admin-list-item">'
-                            f'<b>{html.escape(title)}</b><br>'
+                            f'{title_html}'
                             f'<span class="admin-muted">von {html.escape(username)} · {html.escape(created_at)}</span>'
                             '</div>',
                             unsafe_allow_html=True
