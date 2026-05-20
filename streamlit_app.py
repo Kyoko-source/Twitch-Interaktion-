@@ -1107,7 +1107,7 @@ def render_creative_gallery(limit=60):
                             elif set_creative_gallery_reaction(art_id, current_user, emoji):
                                 st.rerun()
                             else:
-                                gallery_notice = "Reaktion konnte nicht gespeichert werden. Fuehre add_creative_gallery_reactions_table.sql in Supabase aus."
+                                gallery_notice = "Reaktionen sind noch nicht aktiviert. Ein Admin muss die Supabase-Migration fuer Hall-of-Fame-Reaktionen einmal ausfuehren."
 
     if gallery_notice:
         st.warning(gallery_notice)
