@@ -3063,6 +3063,123 @@ h1::after {
     line-height: 1.55;
 }
 
+.members-dashboard {
+    position: relative;
+    overflow: hidden;
+    margin: 4px 0 24px;
+    padding: 28px;
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 80% 18%, rgba(255,84,160,0.22), transparent 28%),
+        radial-gradient(circle at 14% 78%, rgba(199,125,255,0.18), transparent 30%),
+        linear-gradient(145deg, rgba(8,8,22,0.96), rgba(16,8,34,0.94));
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 30px 90px rgba(0,0,0,0.42);
+}
+
+.members-dashboard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+}
+
+.members-dashboard > * {
+    position: relative;
+    z-index: 1;
+}
+
+.members-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.members-hero-main,
+.members-spotlight {
+    border-radius: 8px;
+    padding: 24px;
+    background: rgba(8,14,24,0.62);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+}
+
+.members-hero-main h2 {
+    margin: 8px 0 10px;
+    font-size: clamp(36px, 5vw, 66px);
+    line-height: 0.96;
+    letter-spacing: 0;
+    background: linear-gradient(135deg, #ffffff, #c77dff 44%, #ff54a0);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.members-hero-main p,
+.members-spotlight p {
+    color: #d8ccff;
+    font-weight: 760;
+    line-height: 1.55;
+}
+
+.members-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.members-stat {
+    border-radius: 8px;
+    padding: 14px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.members-stat strong {
+    display: block;
+    color: #ffffff;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.members-stat span {
+    display: block;
+    margin-top: 8px;
+    color: #ff9ee4;
+    font-weight: 850;
+}
+
+.members-spotlight {
+    background:
+        radial-gradient(circle at 80% 18%, rgba(255,84,160,0.22), transparent 30%),
+        rgba(8,14,24,0.68);
+}
+
+.members-spotlight h3 {
+    margin: 8px 0 6px;
+    color: #ffffff;
+    font-size: 30px;
+    line-height: 1;
+    word-break: break-word;
+}
+
+.members-spotlight-score {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    color: #ffd6f0;
+    background: rgba(255,84,160,0.14);
+    border: 1px solid rgba(255,84,160,0.28);
+    font-weight: 950;
+}
+
 .member-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3074,6 +3191,14 @@ h1::after {
     min-height: 330px;
     position: relative;
     overflow: hidden;
+    border-radius: 10px;
+    padding: 18px;
+    background:
+        radial-gradient(circle at 84% 12%, rgba(255,84,160,0.16), transparent 30%),
+        linear-gradient(145deg, rgba(199,125,255,0.10), rgba(255,84,160,0.06)),
+        rgba(8,14,24,0.74);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 22px 60px rgba(0,0,0,0.30);
 }
 
 .member-card::before {
@@ -3082,40 +3207,90 @@ h1::after {
     inset: 0 0 auto 0;
     height: 4px;
     background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
+    box-shadow: 0 0 22px rgba(255,84,160,0.52);
+}
+
+.member-card::after {
+    content: "";
+    position: absolute;
+    right: -70px;
+    top: -70px;
+    width: 160px;
+    height: 160px;
+    border-radius: 999px;
+    background: rgba(255,84,160,0.12);
+    filter: blur(10px);
+    pointer-events: none;
 }
 
 .member-rank-pill {
-    float: right;
-    padding: 6px 10px;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 7px 10px;
     border-radius: 999px;
     color: #061015;
     background: linear-gradient(135deg, #c77dff, #ff54a0);
     font-size: 12px;
     font-weight: 950;
+    box-shadow: 0 12px 26px rgba(255,84,160,0.22);
 }
 
 .member-mini-progress {
-    height: 9px;
+    height: 10px;
     margin-top: 16px;
     border-radius: 999px;
     overflow: hidden;
     background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.08);
 }
 
 .member-mini-progress div {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #c77dff, #ff54a0);
+    background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
+    box-shadow: 0 0 18px rgba(255,84,160,0.36);
 }
 
 .member-card .profile-avatar {
     margin-bottom: 12px;
+    box-shadow: 0 0 32px rgba(255,84,160,0.28);
+}
+
+.member-card .profile-name {
+    padding-right: 54px;
+}
+
+.member-stat-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.member-stat-chip {
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
+.member-stat-chip strong {
+    display: block;
+    color: #ffffff;
+    font-size: 18px;
+}
+
+.member-stat-chip span {
+    color: #ff9ee4;
+    font-size: 12px;
+    font-weight: 850;
 }
 
 .member-favorite {
     margin-top: 12px;
-    color: #ff7ad9;
-    font-weight: 800;
+    color: #ff9ee4;
+    font-weight: 850;
 }
 
 .profile-shell {
@@ -4596,6 +4771,8 @@ h1::after {
     .home-hero,
     .home-actions,
     .home-dashboard-lower,
+    .members-hero,
+    .members-stat-row,
     .home-compact-grid,
     .home-week-art,
     .creative-shell,
@@ -5462,23 +5639,64 @@ elif menu == "📰 News":
 
 elif menu == "👥 Mitglieder":
 
-    st.markdown('<div class="section-kicker">Community</div>', unsafe_allow_html=True)
-    st.markdown("## Mitglieder")
-
     members = get_members()
 
     if not members:
         st.info("Noch keine Mitglieder vorhanden.")
     else:
+        ranked_members = sorted(members, key=lambda member: int(member.get("braincells") or 0), reverse=True)
+        top_member = ranked_members[0] if ranked_members else None
+        member_count = len(ranked_members)
+        member_braincells = sum(int(member.get("braincells") or 0) for member in ranked_members)
+        member_chickens = sum(int(member.get("chickens") or 0) for member in ranked_members)
+        average_braincells = int(member_braincells / member_count) if member_count else 0
+        top_name = str(top_member.get("username") or "Noch niemand") if top_member else "Noch niemand"
+        top_braincells = int(top_member.get("braincells") or 0) if top_member else 0
+        top_rank = get_rank(top_braincells)[0] if top_member else "Rang offen"
+
+        st.markdown(
+            '<div class="members-dashboard">'
+            '<div class="members-hero">'
+            '<div class="members-hero-main">'
+            '<div class="section-kicker">Community</div>'
+            '<h2>Mitglieder der Gehirnzone</h2>'
+            '<p>Alle Viewer, Profile und Rangfortschritte an einem Ort. Finde Namen, vergleiche Gehirnzellen und entdecke, wer gerade vorne leuchtet.</p>'
+            '<div class="members-stat-row">'
+            f'<div class="members-stat"><strong>{member_count}</strong><span>Mitglieder</span></div>'
+            f'<div class="members-stat"><strong>{member_braincells}</strong><span>Gehirnzellen</span></div>'
+            f'<div class="members-stat"><strong>{member_chickens}</strong><span>Chickens</span></div>'
+            '</div>'
+            '</div>'
+            '<aside class="members-spotlight">'
+            '<div class="section-kicker">Top Signal</div>'
+            f'<h3>{html.escape(top_name)}</h3>'
+            f'<p>{html.escape(top_rank)} mit durchschnittlich {average_braincells} Gehirnzellen in der Community.</p>'
+            f'<div class="members-spotlight-score">🧠 {top_braincells} · #1</div>'
+            '</aside>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
         search_member = st.text_input("Mitglied suchen", placeholder="Name eingeben...")
+        rank_lookup = {
+            str(member.get("username") or ""): index
+            for index, member in enumerate(ranked_members, start=1)
+        }
         if search_member:
             members = [
-                member for member in members
+                member for member in ranked_members
                 if search_member.lower() in str(member.get("username", "")).lower()
             ]
+        else:
+            members = ranked_members
+
+        if not members:
+            st.info("Keine Mitglieder fuer diese Suche gefunden.")
+            st.stop()
 
         members_html = '<div class="member-grid">'
-        for index, member in enumerate(members, start=1):
+        for member in members:
             username = str(member.get("username") or "Unbekannt")
             braincells = int(member.get("braincells") or 0)
             chickens = int(member.get("chickens") or 0)
@@ -5490,11 +5708,14 @@ elif menu == "👥 Mitglieder":
 
             members_html += (
                 '<div class="member-card">'
-                f'<div class="member-rank-pill">#{index}</div>'
+                f'<div class="member-rank-pill">#{rank_lookup.get(username, "-")}</div>'
                 f'{avatar_markup}'
                 f'<div class="profile-name">{html.escape(username)}</div>'
-                f'<div class="profile-meta">Level {level} · {rank_name}</div>'
-                f'<div class="profile-meta">🧠 {braincells} · 🥚 {chickens}</div>'
+                f'<div class="profile-meta">Level {level} · {html.escape(rank_name)}</div>'
+                '<div class="member-stat-strip">'
+                f'<div class="member-stat-chip"><strong>🧠 {braincells}</strong><span>Gehirnzellen</span></div>'
+                f'<div class="member-stat-chip"><strong>🥚 {chickens}</strong><span>Chickens</span></div>'
+                '</div>'
                 f'<div class="member-mini-progress"><div style="width:{member_progress}%;"></div></div>'
                 f'<div class="member-favorite">Lieblingsspiel: {html.escape(str(favorite_game))}</div>'
                 f'<div class="profile-bio">{html.escape(str(bio))}</div>'
