@@ -1641,6 +1641,9 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
     avatar_url = str(user.get("avatar_url") or "").strip()
     score = int(best_score.get("score") or 0) if best_score else 0
     streak = int(daily_state.get("streak") or 0) if daily_state else 0
+    level = get_profile_level(braincells)
+    bio_length = len(bio)
+    has_rank = isinstance(rank_position, int)
 
     achievements = [
         ("Profil-Profi", "Bio, Lieblingsspiel und Avatar gesetzt", bool(bio and favorite_game and avatar_url)),
@@ -1649,6 +1652,56 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
         ("Top 3 Energie", "In der Rangliste unter den Top 3", isinstance(rank_position, int) and rank_position <= 3),
         ("Jump Talent", "Chicken Jump Score von 10+ erreicht", score >= 10),
         ("Daily Streak", "3 Tage Daily Reward in Folge", streak >= 3),
+        ("Erste Gehirnzelle", "Mindestens 1 Gehirnzelle gesammelt", braincells >= 1),
+        ("Gedankenstarter", "Mindestens 100 Gehirnzellen gesammelt", braincells >= 100),
+        ("Kopfkino", "Mindestens 250 Gehirnzellen gesammelt", braincells >= 250),
+        ("Synapsensturm", "Mindestens 1.000 Gehirnzellen gesammelt", braincells >= 1000),
+        ("Denkmaschine", "Mindestens 2.000 Gehirnzellen gesammelt", braincells >= 2000),
+        ("Overclock Warmup", "Mindestens 3.500 Gehirnzellen gesammelt", braincells >= 3500),
+        ("Neuronennetz", "Mindestens 5.000 Gehirnzellen gesammelt", braincells >= 5000),
+        ("Brain Boss", "Mindestens 7.500 Gehirnzellen gesammelt", braincells >= 7500),
+        ("Gigadenker", "Mindestens 10.000 Gehirnzellen gesammelt", braincells >= 10000),
+        ("Galaxiekopf", "Mindestens 25.000 Gehirnzellen gesammelt", braincells >= 25000),
+        ("Endboss Mind", "Mindestens 50.000 Gehirnzellen gesammelt", braincells >= 50000),
+        ("Erstes Ei", "Mindestens 1 Chicken besitzen", chickens >= 1),
+        ("Chicken Polster", "Mindestens 100 Chickens besitzen", chickens >= 100),
+        ("Chicken Beutel", "Mindestens 250 Chickens besitzen", chickens >= 250),
+        ("Huehnerhort", "Mindestens 500 Chickens besitzen", chickens >= 500),
+        ("Chicken Tresor", "Mindestens 2.500 Chickens besitzen", chickens >= 2500),
+        ("Goldene Feder", "Mindestens 5.000 Chickens besitzen", chickens >= 5000),
+        ("Chicken Imperium", "Mindestens 10.000 Chickens besitzen", chickens >= 10000),
+        ("Huehnerbaron", "Mindestens 25.000 Chickens besitzen", chickens >= 25000),
+        ("Erster Sprung", "Chicken Jump Score von 1+ erreicht", score >= 1),
+        ("Hopser", "Chicken Jump Score von 5+ erreicht", score >= 5),
+        ("Jump Profi", "Chicken Jump Score von 15+ erreicht", score >= 15),
+        ("Arcade Ass", "Chicken Jump Score von 25+ erreicht", score >= 25),
+        ("Zaunflieger", "Chicken Jump Score von 40+ erreicht", score >= 40),
+        ("Chicken Pilot", "Chicken Jump Score von 60+ erreicht", score >= 60),
+        ("Pixel Legende", "Chicken Jump Score von 100+ erreicht", score >= 100),
+        ("Tagesfunke", "1 Tag Daily Reward Streak", streak >= 1),
+        ("Wochenrhythmus", "5 Tage Daily Reward Streak", streak >= 5),
+        ("Sieben Tage Stark", "7 Tage Daily Reward Streak", streak >= 7),
+        ("Zwei Wochen Fokus", "14 Tage Daily Reward Streak", streak >= 14),
+        ("Drei Wochen Dran", "21 Tage Daily Reward Streak", streak >= 21),
+        ("Monatsmaschine", "30 Tage Daily Reward Streak", streak >= 30),
+        ("Streak Fanatiker", "50 Tage Daily Reward Streak", streak >= 50),
+        ("Hundert Tage Kopf", "100 Tage Daily Reward Streak", streak >= 100),
+        ("Rang sichtbar", "In der Rangliste unter den Top 50", has_rank and rank_position <= 50),
+        ("Top 25 Signal", "In der Rangliste unter den Top 25", has_rank and rank_position <= 25),
+        ("Top 10 Fokus", "In der Rangliste unter den Top 10", has_rank and rank_position <= 10),
+        ("Top 5 Leuchten", "In der Rangliste unter den Top 5", has_rank and rank_position <= 5),
+        ("Nummer 1", "Platz 1 in der Rangliste erreicht", has_rank and rank_position == 1),
+        ("Bio Starter", "Eine Bio im Profil eingetragen", bool(bio)),
+        ("Bio Erzaehler", "Bio mit mindestens 80 Zeichen", bio_length >= 80),
+        ("Bio Roman", "Bio mit mindestens 200 Zeichen", bio_length >= 200),
+        ("Lieblingsspiel gesetzt", "Ein Lieblingsspiel im Profil eingetragen", bool(favorite_game)),
+        ("Avatar Glanz", "Ein Profilbild gesetzt", bool(avatar_url)),
+        ("Level 2 erreicht", "Profil-Level 2 erreicht", level >= 2),
+        ("Level 5 erreicht", "Profil-Level 5 erreicht", level >= 5),
+        ("Level 10 erreicht", "Profil-Level 10 erreicht", level >= 10),
+        ("Level 20 erreicht", "Profil-Level 20 erreicht", level >= 20),
+        ("Level 30 erreicht", "Profil-Level 30 erreicht", level >= 30),
+        ("Level 50 erreicht", "Profil-Level 50 erreicht", level >= 50),
     ]
 
     return achievements
@@ -4031,31 +4084,67 @@ h1::after {
 .achievement-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin: 16px 0 22px;
+    gap: 14px;
+    margin: 16px 0 8px;
 }
 
 .achievement-card {
-    min-height: 128px;
-    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    min-height: 142px;
+    border-radius: 10px;
     padding: 18px;
-    background: rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.10);
+    background:
+        radial-gradient(circle at 86% 12%, rgba(255,84,160,0.12), transparent 32%),
+        linear-gradient(145deg, rgba(199,125,255,0.09), rgba(255,84,160,0.045)),
+        rgba(8,14,24,0.72);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.26);
+}
+
+.achievement-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
+    opacity: 0.55;
+}
+
+.achievement-card::after {
+    content: "";
+    position: absolute;
+    right: -42px;
+    bottom: -42px;
+    width: 110px;
+    height: 110px;
+    border-radius: 999px;
+    background: rgba(255,84,160,0.10);
+    filter: blur(8px);
 }
 
 .achievement-card.unlocked {
     background:
-        linear-gradient(135deg, rgba(199,125,255,0.16), rgba(255,84,160,0.12)),
+        radial-gradient(circle at 86% 12%, rgba(255,84,160,0.22), transparent 32%),
+        linear-gradient(145deg, rgba(199,125,255,0.18), rgba(255,84,160,0.13)),
         rgba(255,255,255,0.07);
-    border-color: rgba(255,84,160,0.34);
+    border-color: rgba(255,84,160,0.36);
+    box-shadow: 0 20px 58px rgba(255,84,160,0.14), 0 18px 44px rgba(0,0,0,0.26);
+}
+
+.achievement-card.unlocked::before {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(255,84,160,0.55);
 }
 
 .achievement-card.locked {
-    opacity: 0.58;
-    filter: grayscale(0.55);
+    opacity: 0.64;
+    filter: grayscale(0.35);
 }
 
 .achievement-card strong {
+    position: relative;
+    z-index: 1;
     display: block;
     margin-bottom: 8px;
     color: #ffffff;
@@ -4063,8 +4152,69 @@ h1::after {
 }
 
 .achievement-card span {
-    color: #cfe8ee;
+    position: relative;
+    z-index: 1;
+    color: #d8ccff;
     font-weight: 760;
+}
+
+.achievement-card .admin-muted {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.achievement-card.unlocked .admin-muted {
+    color: #ffd6f0;
+    border-color: rgba(255,84,160,0.24);
+    background: rgba(255,84,160,0.12);
+}
+
+.achievement-shell {
+    position: relative;
+    overflow: hidden;
+    margin-top: 12px;
+    padding: 18px;
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 88% 8%, rgba(255,84,160,0.18), transparent 26%),
+        linear-gradient(145deg, rgba(8,8,22,0.92), rgba(16,8,34,0.88));
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.32);
+}
+
+.achievement-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.achievement-summary h3 {
+    margin: 4px 0 0;
+    color: #ffffff;
+}
+
+.achievement-summary p {
+    margin: 0;
+    color: #d8ccff;
+    font-weight: 760;
+}
+
+.achievement-count-pill {
+    flex: 0 0 auto;
+    padding: 10px 13px;
+    border-radius: 999px;
+    color: #061015;
+    background: linear-gradient(135deg, #c77dff, #ff54a0);
+    font-weight: 950;
+    box-shadow: 0 14px 32px rgba(255,84,160,0.22);
 }
 
 .score-strip {
@@ -5503,8 +5653,18 @@ elif menu == "👤 Profil":
                 '</div>'
             )
 
-        st.markdown("### Achievements")
-        st.markdown(f'<div class="achievement-grid">{achievement_html}</div>', unsafe_allow_html=True)
+        with st.expander(f"Achievements anzeigen ({unlocked_count}/{len(achievements)} freigeschaltet)", expanded=False):
+            st.markdown(
+                '<div class="achievement-shell">'
+                '<div class="achievement-summary">'
+                '<div><div class="section-kicker">Profil-Trophäen</div><h3>Achievement-Sammlung</h3>'
+                '<p>Freigeschaltete Karten leuchten, offene Ziele bleiben gedimmt.</p></div>'
+                f'<div class="achievement-count-pill">{unlocked_count}/{len(achievements)}</div>'
+                '</div>'
+                f'<div class="achievement-grid">{achievement_html}</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
         best_score_text = "Noch kein Score gespeichert"
         if best_score:
