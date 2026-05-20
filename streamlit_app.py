@@ -2593,20 +2593,50 @@ h1::after {
 }
 
 .topbar {
-    background: linear-gradient(135deg, rgba(199,125,255,0.14), rgba(255,84,160,0.10));
+    background:
+        linear-gradient(135deg, rgba(199,125,255,0.16), rgba(255,84,160,0.08)),
+        rgba(8,10,18,0.72);
     border-radius: 14px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     margin-bottom: 14px;
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.13);
     backdrop-filter: blur(14px);
-    min-height: 44px;
+    min-height: 62px;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 10px;
     position: relative;
     z-index: 1000;
     overflow: visible;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.30);
+}
+
+.topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 950;
+}
+
+.topbar-brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,84,160,0.14);
+    border: 1px solid rgba(255,84,160,0.42);
+    box-shadow: 0 0 28px rgba(255,84,160,0.30);
+}
+
+.topbar-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .topbar-login-state {
@@ -3456,68 +3486,118 @@ h1::after {
     font-weight: 750;
 }
 
-.home-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-    gap: 14px;
-    align-items: stretch;
-    margin: 10px 0 16px;
-}
-
-.home-spotlight,
-.daily-card,
-.activity-card {
+.home-dashboard {
     position: relative;
     overflow: hidden;
-    border-radius: 8px;
-    padding: 22px;
+    margin: 4px 0 28px;
+    padding: 28px;
+    border-radius: 10px;
     background:
-        linear-gradient(135deg, rgba(82,185,160,0.14), rgba(199,125,255,0.12)),
-        rgba(255,255,255,0.055);
+        radial-gradient(circle at 68% 18%, rgba(255,84,160,0.25), transparent 28%),
+        radial-gradient(circle at 30% 88%, rgba(123,44,191,0.18), transparent 30%),
+        linear-gradient(145deg, rgba(8,8,22,0.96), rgba(16,8,34,0.94));
     border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+    box-shadow: 0 30px 90px rgba(0,0,0,0.42);
+}
+
+.home-dashboard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.95), transparent 82%);
+    pointer-events: none;
+}
+
+.home-dashboard > * {
+    position: relative;
+    z-index: 1;
+}
+
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+    gap: 20px;
+    align-items: stretch;
+    margin: 12px 0 18px;
 }
 
 .home-spotlight {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    min-height: 360px;
+    padding: 38px;
+    background:
+        radial-gradient(circle at 74% 48%, rgba(255,84,160,0.22), transparent 28%),
+        linear-gradient(135deg, rgba(199,125,255,0.10), rgba(255,84,160,0.06)),
+        rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
 }
 
+.home-spotlight::after {
+    content: "🧠";
+    position: absolute;
+    right: 8%;
+    top: 16%;
+    font-size: clamp(120px, 18vw, 230px);
+    line-height: 1;
+    filter: drop-shadow(0 0 35px rgba(255,84,160,0.70));
+    opacity: 0.88;
+}
+
 .home-spotlight h2 {
     position: relative;
     z-index: 1;
-    margin: 8px 0 10px;
-    font-size: 42px;
-    line-height: 1.05;
+    max-width: 650px;
+    margin: 8px 0 14px;
+    font-size: clamp(42px, 6vw, 86px);
+    line-height: 0.92;
+    letter-spacing: 0;
+    background: linear-gradient(135deg, #ffffff, #c77dff 42%, #ff54a0);
+    -webkit-background-clip: text;
+    color: transparent;
 }
 
 .home-spotlight p,
-.daily-card p,
-.activity-card p {
-    color: #e5f8ff;
+.daily-card p {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+    color: #d8ccff;
     font-weight: 760;
+    font-size: 16px;
 }
 
 .home-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin: 16px 0 0;
+    gap: 12px;
+    margin: 24px 0 0;
+    max-width: 720px;
 }
 
 .home-action-card {
-    min-height: 84px;
+    min-height: 98px;
     border-radius: 8px;
-    padding: 14px;
-    background: rgba(8,14,18,0.42);
-    border: 1px solid rgba(255,255,255,0.10);
+    padding: 16px;
+    background: rgba(8,14,24,0.64);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 0 24px rgba(255,84,160,0.06);
 }
 
 .home-action-card strong {
     display: block;
     color: #ffffff;
-    font-size: 20px;
+    font-size: 28px;
+    line-height: 1;
     margin-bottom: 8px;
 }
 
@@ -3526,23 +3606,83 @@ h1::after {
     font-weight: 760;
 }
 
+.home-dashboard-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.32fr);
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 18px;
+}
+
+.home-quote,
+.home-top-panel {
+    border-radius: 8px;
+    padding: 18px;
+    background: rgba(8,14,24,0.58);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.20);
+}
+
+.home-quote {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff9ee4;
+    font-weight: 900;
+    text-align: center;
+}
+
+.home-top-panel h3 {
+    margin: 6px 0 4px;
+    color: #ffffff;
+}
+
+.home-top-panel p {
+    margin: 0 0 12px;
+    color: #d8ccff;
+    font-weight: 760;
+}
+
+.home-top-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.home-top-row:last-child {
+    border-bottom: 0;
+}
+
+.home-top-row strong {
+    color: #ffffff;
+}
+
+.home-top-row span {
+    color: #ff9ee4;
+    font-weight: 900;
+}
+
 .daily-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
     min-height: 100%;
+    padding: 24px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     background:
-        linear-gradient(135deg, rgba(255,84,160,0.18), rgba(82,185,160,0.16)),
-        rgba(255,255,255,0.07);
-    border-color: rgba(255,255,255,0.16);
-}
-
-.daily-card h3,
-.activity-card h3 {
-    margin: 6px 0 8px;
+        radial-gradient(circle at 78% 12%, rgba(255,84,160,0.22), transparent 24%),
+        linear-gradient(135deg, rgba(255,84,160,0.16), rgba(199,125,255,0.10)),
+        rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
 }
 
 .daily-card h3 {
+    margin: 6px 0 8px;
     font-size: 30px;
     line-height: 1.08;
 }
@@ -3552,8 +3692,10 @@ h1::after {
 }
 
 .daily-claim-shell {
-    margin: -4px 0 22px auto;
-    max-width: 420px;
+    margin: -96px 24px 36px auto;
+    max-width: 280px;
+    position: relative;
+    z-index: 3;
 }
 
 .daily-claim-shell .stButton > button {
@@ -3574,8 +3716,10 @@ h1::after {
 }
 
 .home-login-actions {
-    margin: -4px 0 22px auto;
-    max-width: 360px;
+    margin: -86px 24px 36px auto;
+    max-width: 320px;
+    position: relative;
+    z-index: 3;
 }
 
 .home-login-actions .stButton > button {
@@ -3602,24 +3746,17 @@ h1::after {
     border-color: rgba(255,193,94,0.28);
 }
 
-.home-compact-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.45fr);
-    gap: 14px;
-    margin: 14px 0 22px;
-}
-
 .home-week-art {
     display: grid;
-    grid-template-columns: minmax(260px, 0.48fr) minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
     gap: 16px;
     align-items: center;
-    margin: 14px 0 22px;
+    margin: 18px 0 0;
     border-radius: 8px;
     padding: 18px;
     background:
-        linear-gradient(135deg, rgba(255,84,160,0.15), rgba(82,185,160,0.12)),
-        rgba(255,255,255,0.055);
+        linear-gradient(135deg, rgba(255,84,160,0.10), rgba(199,125,255,0.10)),
+        rgba(8,14,24,0.56);
     border: 1px solid rgba(255,255,255,0.12);
     box-shadow: 0 18px 44px rgba(0,0,0,0.24);
 }
@@ -4399,6 +4536,7 @@ h1::after {
     .profile-showcase-inner,
     .home-hero,
     .home-actions,
+    .home-dashboard-lower,
     .home-compact-grid,
     .home-week-art,
     .creative-shell,
@@ -4487,26 +4625,28 @@ h1::after {
 }
 
 .stRadio {
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
-    margin: 4px auto 34px auto;
+    margin: -80px auto 34px auto;
     position: relative;
-    z-index: 1;
+    z-index: 1001;
+    pointer-events: none;
 }
 
 .stRadio > div {
     width: fit-content;
-    max-width: min(100%, 1240px);
+    max-width: min(100%, 760px);
     margin: 0 auto;
     justify-content: center;
-    background: rgba(8,10,18,0.58);
-    border: 1px solid rgba(199,125,255,0.28);
+    background: transparent;
+    border: 0;
     border-radius: 999px;
     padding: 6px;
-    box-shadow: 0 16px 38px rgba(0,0,0,0.26);
+    box-shadow: none;
     backdrop-filter: blur(16px);
     overflow-x: auto;
     scrollbar-width: none;
+    pointer-events: auto;
 }
 
 .stRadio > div::-webkit-scrollbar {
@@ -4522,11 +4662,11 @@ h1::after {
 }
 
 .stRadio [role="radiogroup"] label {
-    min-height: 38px;
+    min-height: 40px;
     border-radius: 999px;
-    padding: 0 15px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.045);
+    padding: 0 16px;
+    border: 1px solid transparent;
+    background: transparent;
     transition: all 0.18s ease;
     white-space: nowrap;
     flex: 0 0 auto;
@@ -4550,17 +4690,17 @@ h1::after {
 
 .stRadio [role="radiogroup"] label:hover {
     border-color: rgba(199,125,255,0.55);
-    background: rgba(199,125,255,0.12);
+    background: rgba(199,125,255,0.10);
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) {
-    background: linear-gradient(135deg, #c77dff, #ff54a0);
+    background: transparent;
     border-color: transparent;
-    box-shadow: 0 10px 26px rgba(255,84,160,0.24);
+    box-shadow: inset 0 -2px 0 #ff54a0, 0 10px 26px rgba(255,84,160,0.16);
 }
 
 .stRadio [role="radiogroup"] label:has(input:checked) p {
-    color: #05050a !important;
+    color: #ffffff !important;
     font-weight: 900;
 }
 
@@ -4631,7 +4771,10 @@ topbar_account_html = (
     else '<div class="topbar-login-state is-guest">Status: <span>Nicht eingeloggt</span></div>'
 )
 st.markdown(
-    f'<div class="topbar">{topbar_account_html}<div class="topbar-menu-slot"></div></div>',
+    '<div class="topbar">'
+    '<div class="topbar-brand"><span class="topbar-brand-icon">🧠</span><span>Gehirnzone</span></div>'
+    f'<div class="topbar-right">{topbar_account_html}<div class="topbar-menu-slot"></div></div>'
+    '</div>',
     unsafe_allow_html=True,
 )
 _, account_col = st.columns([10, 1])
@@ -4742,7 +4885,8 @@ if logged_in_username:
                             st.error("Handel konnte nicht abgelehnt werden.")
                         st.rerun()
 
-st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
+if menu != "🏠 Home":
+    st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 # =========================
 # HOME
@@ -4750,17 +4894,14 @@ st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
 
 if menu == "🏠 Home":
 
-    st.markdown('<div class="section-kicker">Community Dashboard</div>', unsafe_allow_html=True)
-
-    spotlight_title = "Gehirnzone ist bereit"
-    spotlight_copy = "Sammle Gehirnzellen, spiele Chicken Jump und tauche im Community-Dashboard auf."
+    spotlight_title = "Willkommen in der Gehirnzone"
+    spotlight_copy = "Community, Rewards und Rankings fuer die schlauesten Koepfe."
+    top_viewer_name = "Noch niemand"
+    top_viewer_detail = "Warte auf den ersten Eintrag"
     if not leaderboard.empty:
         top_viewer = leaderboard.iloc[0]
-        spotlight_title = str(top_viewer["Viewer"])
-        spotlight_copy = (
-            f"Aktuell vorne mit {int(top_viewer['Gehirnzellen'])} Gehirnzellen "
-            f"und {int(top_viewer['Chickens'])} Chickens."
-        )
+        top_viewer_name = str(top_viewer["Viewer"])
+        top_viewer_detail = f'{int(top_viewer["Gehirnzellen"])} Gehirnzellen'
 
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
@@ -4779,21 +4920,43 @@ if menu == "🏠 Home":
             '<p>Streak halten, Bonus abholen und Gehirnzellen stapeln.</p>'
         )
 
+    top_three_rows = ""
+    for index, viewer in enumerate(leaderboard.head(3).to_dict("records"), start=1):
+        top_three_rows += (
+            '<div class="home-top-row">'
+            f'<strong>#{index} {html.escape(str(viewer["Viewer"]))}</strong>'
+            f'<span>{int(viewer["Gehirnzellen"])} 🧠</span>'
+            '</div>'
+        )
+    if not top_three_rows:
+        top_three_rows = '<div class="admin-muted">Noch keine Rangliste vorhanden.</div>'
+
     home_html = (
+        '<div class="home-dashboard">'
         '<div class="home-hero">'
         '<div class="home-spotlight">'
         '<div>'
-        '<div class="section-kicker">Aktueller Stand</div>'
+        '<div class="section-kicker">Gehirnzone</div>'
         f'<h2>{html.escape(spotlight_title)}</h2>'
         f'<p>{html.escape(spotlight_copy)}</p>'
         '</div>'
         '<div class="home-actions">'
-        f'<div class="home-action-card"><strong>{total_users}</strong><span>Viewer in der Zone</span></div>'
-        f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens</span></div>'
-        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen</span></div>'
+        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesamt</span></div>'
+        f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>'
+        f'<div class="home-action-card"><strong>{total_users}</strong><span>Mitglieder in der Zone</span></div>'
         '</div>'
         '</div>'
         f'<div class="daily-card">{daily_html}</div>'
+        '</div>'
+        '<div class="home-dashboard-lower">'
+        '<div class="home-quote">„Wissen ist Macht. Community ist Staerke. Zusammen sind wir die Gehirnzone.“</div>'
+        '<div class="home-top-panel">'
+        '<div class="section-kicker">Top 3</div>'
+        f'<h3>{html.escape(top_viewer_name)}</h3>'
+        f'<p>{html.escape(top_viewer_detail)}</p>'
+        f'{top_three_rows}'
+        '</div>'
+        '</div>'
         '</div>'
     )
     st.markdown(home_html, unsafe_allow_html=True)
