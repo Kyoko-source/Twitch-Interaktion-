@@ -1426,6 +1426,11 @@ def render_dnd_page():
                 st.markdown("##### Spielbrett bearbeiten")
                 with st.form("dnd_map_form"):
                     map_name = st.text_input("Kartenname", value=str(active_lobby.get("map_name") or "Karte"), max_chars=80)
+                    preset_map_name = st.selectbox(
+                        "Premade Map",
+                        ["Eigene Karte", "Dungeon", "Wald", "Strand"],
+                        key="dnd_builtin_map_select",
+                    )
                     current_map_url = str(active_lobby.get("map_image_url") or "")
                     map_url = st.text_input(
                         "Battlemap Bild-URL",
@@ -1448,9 +1453,21 @@ def render_dnd_page():
                         placeholder="Eine Notiz pro Zeile, z.B. Tür, Falle, Schatz, Questziel...",
                     )
                     if st.form_submit_button("Spielbrett speichern"):
-                        final_map_url = uploaded_image_to_data_uri(uploaded_map) if uploaded_map else map_url
-                        map_ok = update_dnd_lobby_map(active_lobby_id, final_map_url, grid_width, grid_height)
-                        tools_ok = update_dnd_lobby_board_tools(active_lobby_id, fog_enabled, fog_opacity, marker_notes, map_name)
+                        if preset_map_name in DND_PRESET_MAPS:
+                            preset_map = DND_PRESET_MAPS[preset_map_name]
+                            final_map_url = preset_map["image"]
+                            final_grid_width = preset_map["grid_width"]
+                            final_grid_height = preset_map["grid_height"]
+                            final_marker_notes = marker_notes or preset_map["marker_notes"]
+                            final_map_name = preset_map["name"]
+                        else:
+                            final_map_url = uploaded_image_to_data_uri(uploaded_map) if uploaded_map else map_url
+                            final_grid_width = grid_width
+                            final_grid_height = grid_height
+                            final_marker_notes = marker_notes
+                            final_map_name = map_name
+                        map_ok = update_dnd_lobby_map(active_lobby_id, final_map_url, final_grid_width, final_grid_height)
+                        tools_ok = update_dnd_lobby_board_tools(active_lobby_id, fog_enabled, fog_opacity, final_marker_notes, final_map_name)
                         if map_ok and tools_ok:
                             st.success("Spielbrett aktualisiert.")
                             st.rerun()
@@ -1702,9 +1719,10 @@ def render_dnd_page():
 
         last_roll = st.session_state.get("dnd_last_roll")
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
+            dice_theme = str(last_roll.get("theme") or "ice")
             st.markdown(
                 '<div class="dice-result-stage">'
-                f'<div class="dice-cube">{int(last_roll.get("total") or 0)}</div>'
+                f'{render_dnd_dice(int(last_roll.get("total") or 0), dice_theme)}'
                 '<div>'
                 f'<div class="section-kicker">{html.escape(str(last_roll.get("notation") or "Wurf"))}</div>'
                 f'<h3>{html.escape(str(last_roll.get("title") or "Würfelwurf"))}</h3>'
@@ -1863,12 +1881,13 @@ def render_dnd_page():
                     "notation": notation,
                     "title": reason,
                     "detail": f"Rohwürfe: {rolls}",
+                    "theme": DND_DICE_THEMES.get(st.session_state.get("dnd_dice_theme", "Eis Würfel"), "ice"),
                 }
                 st.success(f"{reason}: {total} ({rolls})")
                 st.rerun()
 
         st.markdown('<div class="dnd-section-title"><h3>Würfelroller</h3><span class="admin-muted">Freie Würfe für Angriffe, Checks und Schaden</span></div>', unsafe_allow_html=True)
-        roll_cols = st.columns([1, 1, 1, 1, 1.4])
+        roll_cols = st.columns([1, 1, 1, 1, 1, 1.4])
         with roll_cols[0]:
             roll_count = st.number_input("Anzahl", min_value=1, max_value=20, value=1, step=1, key="dnd_roll_count")
         with roll_cols[1]:
@@ -1878,6 +1897,8 @@ def render_dnd_page():
         with roll_cols[3]:
             roll_mode = st.selectbox("Modus", ["Normal", "Vorteil", "Nachteil"])
         with roll_cols[4]:
+            dice_theme_label = st.selectbox("Design", list(DND_DICE_THEMES.keys()), key="dnd_dice_theme")
+        with roll_cols[5]:
             roll_reason = st.text_input("Grund", max_chars=140, placeholder="Angriff, Wahrnehmung, Schaden...")
 
         if st.button("Würfeln", key="dnd_roll_button", use_container_width=True):
@@ -1898,6 +1919,7 @@ def render_dnd_page():
                 "notation": notation,
                 "title": roll_reason or "Würfelwurf",
                 "detail": detail,
+                "theme": DND_DICE_THEMES.get(dice_theme_label, "ice"),
             }
             st.success(f"{notation} = {total}. {detail}")
             st.rerun()
@@ -2122,6 +2144,89 @@ DND_ABILITIES = [
     ("wisdom", "Weisheit"),
     ("charisma", "Charisma"),
 ]
+DND_DICE_THEMES = {
+    "Eis Würfel": "ice",
+    "Feuer Würfel": "fire",
+    "Funken Würfel": "spark",
+    "Wasser Würfel": "water",
+    "Erd Würfel": "earth",
+}
+
+
+def svg_data_uri(svg):
+    return "data:image/svg+xml," + urllib.parse.quote(svg.strip())
+
+
+DND_PRESET_MAPS = {
+    "Dungeon": {
+        "name": "Dungeon",
+        "grid_width": 12,
+        "grid_height": 8,
+        "marker_notes": "Steintor im Westen\nAltar im Norden\nGeheimer Gang bei X10/Y6",
+        "image": svg_data_uri("""
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+          <defs>
+            <linearGradient id="dungeonBg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#151821"/><stop offset="1" stop-color="#33283b"/></linearGradient>
+            <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="4"/><feColorMatrix values=".25 0 0 0 0 .25 0 0 0 0 .3 0 0 0 0 0 0 0 .34 0"/></filter>
+          </defs>
+          <rect width="1200" height="800" fill="url(#dungeonBg)"/>
+          <rect width="1200" height="800" filter="url(#rough)" opacity=".7"/>
+          <g fill="#3d4150" stroke="#11151d" stroke-width="10">
+            <rect x="70" y="70" width="340" height="250" rx="10"/>
+            <rect x="470" y="70" width="290" height="190" rx="10"/>
+            <rect x="820" y="90" width="300" height="290" rx="10"/>
+            <rect x="120" y="420" width="410" height="250" rx="10"/>
+            <rect x="610" y="360" width="470" height="310" rx="10"/>
+          </g>
+          <g stroke="#6b7180" stroke-width="38" stroke-linecap="round" opacity=".78">
+            <path d="M400 190h95M720 210h130M335 315v130M530 520h105"/>
+          </g>
+          <g fill="#b58a44" opacity=".9"><circle cx="235" cy="185" r="34"/><circle cx="935" cy="230" r="42"/><rect x="780" y="482" width="92" height="64" rx="8"/></g>
+          <g stroke="#ffffff" stroke-opacity=".12" stroke-width="2"><path d="M0 100h1200M0 200h1200M0 300h1200M0 400h1200M0 500h1200M0 600h1200M0 700h1200M100 0v800M200 0v800M300 0v800M400 0v800M500 0v800M600 0v800M700 0v800M800 0v800M900 0v800M1000 0v800M1100 0v800"/></g>
+        </svg>
+        """),
+    },
+    "Wald": {
+        "name": "Wald",
+        "grid_width": 12,
+        "grid_height": 8,
+        "marker_notes": "Lichtung in der Mitte\nBachlauf im Osten\nDichter Nebel im Süden",
+        "image": svg_data_uri("""
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+          <defs><linearGradient id="forestBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#16341f"/><stop offset=".55" stop-color="#245431"/><stop offset="1" stop-color="#102817"/></linearGradient></defs>
+          <rect width="1200" height="800" fill="url(#forestBg)"/>
+          <path d="M980 0C840 190 980 330 820 500c-80 86-84 175-40 300h420V0z" fill="#245d6b" opacity=".55"/>
+          <ellipse cx="570" cy="380" rx="230" ry="150" fill="#7ca85b" opacity=".38"/>
+          <g fill="#0d2414" opacity=".95">
+            <circle cx="120" cy="120" r="70"/><circle cx="280" cy="95" r="54"/><circle cx="430" cy="145" r="76"/><circle cx="720" cy="95" r="66"/><circle cx="1040" cy="145" r="86"/>
+            <circle cx="130" cy="560" r="82"/><circle cx="330" cy="660" r="74"/><circle cx="560" cy="635" r="60"/><circle cx="900" cy="620" r="86"/><circle cx="1100" cy="545" r="70"/>
+          </g>
+          <g fill="#2f7a3d" opacity=".85">
+            <circle cx="210" cy="255" r="46"/><circle cx="385" cy="385" r="50"/><circle cx="695" cy="330" r="48"/><circle cx="835" cy="455" r="52"/><circle cx="1010" cy="350" r="42"/>
+          </g>
+          <path d="M0 740C180 650 300 690 430 610c140-85 250-70 360-145 135-92 235-88 410-175" fill="none" stroke="#5f4426" stroke-width="64" stroke-linecap="round" opacity=".72"/>
+          <g stroke="#ffffff" stroke-opacity=".12" stroke-width="2"><path d="M0 100h1200M0 200h1200M0 300h1200M0 400h1200M0 500h1200M0 600h1200M0 700h1200M100 0v800M200 0v800M300 0v800M400 0v800M500 0v800M600 0v800M700 0v800M800 0v800M900 0v800M1000 0v800M1100 0v800"/></g>
+        </svg>
+        """),
+    },
+    "Strand": {
+        "name": "Strand",
+        "grid_width": 12,
+        "grid_height": 8,
+        "marker_notes": "Boot am Steg\nFelsen im Wasser\nPalmenlinie im Süden",
+        "image": svg_data_uri("""
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+          <defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1fa7c9"/><stop offset="1" stop-color="#0f5e87"/></linearGradient><linearGradient id="sand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4d799"/><stop offset="1" stop-color="#c99b5a"/></linearGradient></defs>
+          <rect width="1200" height="800" fill="url(#sand)"/>
+          <path d="M0 0h1200v405C1020 340 840 455 650 385C420 300 220 415 0 330z" fill="url(#sea)"/>
+          <path d="M0 320C220 410 420 300 650 385c190 70 370-45 550 20" fill="none" stroke="#eafcff" stroke-width="34" opacity=".8"/>
+          <g fill="#8b6840" opacity=".85"><ellipse cx="165" cy="640" rx="76" ry="34"/><ellipse cx="960" cy="580" rx="90" ry="42"/><rect x="505" y="435" width="180" height="36" rx="8"/></g>
+          <g fill="#267a3e"><circle cx="95" cy="520" r="44"/><circle cx="190" cy="490" r="36"/><circle cx="1030" cy="700" r="48"/><circle cx="1105" cy="660" r="36"/></g>
+          <g stroke="#ffffff" stroke-opacity=".13" stroke-width="2"><path d="M0 100h1200M0 200h1200M0 300h1200M0 400h1200M0 500h1200M0 600h1200M0 700h1200M100 0v800M200 0v800M300 0v800M400 0v800M500 0v800M600 0v800M700 0v800M800 0v800M900 0v800M1000 0v800M1100 0v800"/></g>
+        </svg>
+        """),
+    },
+}
 
 MARKET_SPREAD = 0.12
 MARKET_DAILY_BUY_LIMIT = 25
@@ -2757,6 +2862,23 @@ def render_dnd_initiative_tracker(entries, active_turn_key):
             '</div>'
         )
     return f'<div class="dnd-turn-tracker">{html_rows}</div>'
+
+
+def render_dnd_dice(total, theme_key):
+    safe_theme = theme_key if theme_key in set(DND_DICE_THEMES.values()) else "ice"
+    side_values = [total, 20, 12, 8, 6, 4]
+    faces = ["front", "back", "right", "left", "top", "bottom"]
+    face_html = "".join(
+        f'<div class="dice-face {face}">{html.escape(str(value))}</div>'
+        for face, value in zip(faces, side_values)
+    )
+    particles = "".join('<span></span>' for _ in range(14))
+    return (
+        f'<div class="dice-scene dice-theme-{safe_theme}">'
+        f'<div class="dice-particles">{particles}</div>'
+        f'<div class="dice-cube-3d">{face_html}</div>'
+        '</div>'
+    )
 
 
 def render_dnd_battlemap(lobby, players, creatures):
@@ -5790,11 +5912,11 @@ h1::after {
 
 .dice-result-stage {
     display: grid;
-    grid-template-columns: minmax(170px, 0.35fr) minmax(0, 1fr);
-    gap: 16px;
+    grid-template-columns: minmax(190px, 0.34fr) minmax(0, 1fr);
+    gap: 20px;
     align-items: center;
     margin: 16px 0;
-    padding: 20px;
+    padding: 22px;
     border-radius: 10px;
     background:
         linear-gradient(145deg, rgba(124,255,178,0.12), rgba(0,245,255,0.08)),
@@ -5802,19 +5924,114 @@ h1::after {
     border: 1px solid rgba(124,255,178,0.22);
 }
 
-.dice-cube {
-    width: 120px;
-    height: 120px;
-    margin: auto;
+.dice-scene {
+    --dice-a: #effcff;
+    --dice-b: #7CFFB2;
+    --dice-c: #00f5ff;
+    --dice-glow: rgba(124,255,178,0.62);
+    position: relative;
+    width: 156px;
+    height: 156px;
+    margin: 0 auto;
+    perspective: 720px;
+}
+
+.dice-cube-3d {
+    position: absolute;
+    inset: 18px;
+    transform-style: preserve-3d;
+    animation: dice-tumble 1.55s cubic-bezier(.17,.84,.28,1.06) both;
+}
+
+.dice-face {
+    position: absolute;
+    inset: 0;
     display: grid;
     place-items: center;
-    border-radius: 26px;
+    border-radius: 22px;
     color: #061015;
-    font-size: 42px;
+    font-size: 34px;
     font-weight: 950;
-    background: linear-gradient(145deg, #effcff, #7CFFB2 52%, #00f5ff);
-    box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 2px 12px rgba(255,255,255,0.65);
-    animation: dice-pop 0.78s cubic-bezier(.18,.84,.24,1.24);
+    background:
+        radial-gradient(circle at 30% 24%, rgba(255,255,255,0.95), transparent 26%),
+        linear-gradient(145deg, var(--dice-a), var(--dice-b) 54%, var(--dice-c));
+    border: 2px solid rgba(255,255,255,0.58);
+    box-shadow: inset 0 0 18px rgba(255,255,255,0.34), 0 20px 45px rgba(0,0,0,0.30);
+}
+
+.dice-face.front { transform: translateZ(60px); }
+.dice-face.back { transform: rotateY(180deg) translateZ(60px); }
+.dice-face.right { transform: rotateY(90deg) translateZ(60px); }
+.dice-face.left { transform: rotateY(-90deg) translateZ(60px); }
+.dice-face.top { transform: rotateX(90deg) translateZ(60px); }
+.dice-face.bottom { transform: rotateX(-90deg) translateZ(60px); }
+
+.dice-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px var(--dice-glow));
+}
+
+.dice-particles span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--dice-b);
+    animation: dice-spark 1.45s ease-out both;
+}
+
+.dice-particles span:nth-child(1) { --x:-74px; --y:-44px; animation-delay:.05s; }
+.dice-particles span:nth-child(2) { --x:70px; --y:-52px; animation-delay:.12s; }
+.dice-particles span:nth-child(3) { --x:-64px; --y:48px; animation-delay:.18s; }
+.dice-particles span:nth-child(4) { --x:76px; --y:40px; animation-delay:.24s; }
+.dice-particles span:nth-child(5) { --x:-24px; --y:-86px; animation-delay:.08s; }
+.dice-particles span:nth-child(6) { --x:28px; --y:84px; animation-delay:.15s; }
+.dice-particles span:nth-child(7) { --x:-94px; --y:2px; animation-delay:.22s; }
+.dice-particles span:nth-child(8) { --x:94px; --y:-4px; animation-delay:.28s; }
+.dice-particles span:nth-child(9) { --x:-38px; --y:72px; animation-delay:.32s; }
+.dice-particles span:nth-child(10) { --x:40px; --y:-78px; animation-delay:.36s; }
+.dice-particles span:nth-child(11) { --x:-88px; --y:-78px; animation-delay:.16s; }
+.dice-particles span:nth-child(12) { --x:88px; --y:78px; animation-delay:.20s; }
+.dice-particles span:nth-child(13) { --x:-8px; --y:96px; animation-delay:.30s; }
+.dice-particles span:nth-child(14) { --x:8px; --y:-96px; animation-delay:.34s; }
+
+.dice-theme-ice {
+    --dice-a: #f7fdff;
+    --dice-b: #99e8ff;
+    --dice-c: #4b8dff;
+    --dice-glow: rgba(153,232,255,0.72);
+}
+
+.dice-theme-fire {
+    --dice-a: #fff0c2;
+    --dice-b: #ff8a00;
+    --dice-c: #ff245f;
+    --dice-glow: rgba(255,90,30,0.78);
+}
+
+.dice-theme-spark {
+    --dice-a: #fff7c8;
+    --dice-b: #ffe66d;
+    --dice-c: #b66dff;
+    --dice-glow: rgba(255,230,109,0.78);
+}
+
+.dice-theme-water {
+    --dice-a: #e8ffff;
+    --dice-b: #38d9ff;
+    --dice-c: #1464d2;
+    --dice-glow: rgba(56,217,255,0.76);
+}
+
+.dice-theme-earth {
+    --dice-a: #e6f6bd;
+    --dice-b: #8fb85a;
+    --dice-c: #6b4a2b;
+    --dice-glow: rgba(143,184,90,0.70);
 }
 
 .dice-result-stage h3 {
@@ -5832,6 +6049,19 @@ h1::after {
     0% { transform: translateY(18px) rotate(-24deg) scale(.58); opacity: 0; }
     55% { transform: translateY(-8px) rotate(12deg) scale(1.08); opacity: 1; }
     100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+}
+
+@keyframes dice-tumble {
+    0% { transform: translateY(-44px) rotateX(-220deg) rotateY(130deg) rotateZ(24deg) scale(.72); }
+    42% { transform: translateY(10px) rotateX(145deg) rotateY(300deg) rotateZ(-16deg) scale(1.08); }
+    72% { transform: translateY(-8px) rotateX(24deg) rotateY(48deg) rotateZ(8deg) scale(.98); }
+    100% { transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+}
+
+@keyframes dice-spark {
+    0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
+    35% { opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(.05); opacity: 0; }
 }
 
 .shop-category-title {
