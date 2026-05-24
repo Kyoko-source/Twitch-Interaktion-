@@ -9264,20 +9264,6 @@ elif menu.endswith("Minispiele"):
        .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
 
     st.markdown("## Weitere Abenteuer")
-    st.markdown("""
-    <div class="dnd-hero">
-        <div>
-            <div class="section-kicker">Tabletop Modus</div>
-            <h2>Dungeons and Dragons</h2>
-            <p>Öffne eine eigene Vollbild-Ansicht mit Lobbys, Charakteren, Party-Übersicht und DnD-Würfeln.</p>
-        </div>
-        <div class="dnd-rule-grid">
-            <div class="dnd-panel"><div class="dnd-pill">Lobbys</div><p>Offen oder mit Passwort.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Würfel</div><p>d4 bis d100 inklusive Vorteil und Nachteil.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Chronik</div><p>Würfe bleiben in der Runde sichtbar.</p></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
     if st.button("Dungeons and Dragons öffnen", key="open_dnd_minigame", use_container_width=True):
         st.session_state["minigame_view"] = "dnd"
         st.rerun()
