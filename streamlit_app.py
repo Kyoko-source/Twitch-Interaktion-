@@ -1423,6 +1423,36 @@ def render_dnd_page():
                         else:
                             st.error("Szene konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
+                st.markdown("##### Premade Maps")
+                map_preview_html = ""
+                for preset_name, preset_map in DND_PRESET_MAPS.items():
+                    map_preview_html += (
+                        '<div class="dnd-premade-map">'
+                        f'<div class="dnd-premade-thumb" style="background-image:url(&quot;{html.escape(preset_map["image"], quote=True)}&quot;);"></div>'
+                        f'<strong>{html.escape(preset_name)}</strong>'
+                        f'<span>{int(preset_map["grid_width"])}x{int(preset_map["grid_height"])} Grid</span>'
+                        '</div>'
+                    )
+                st.markdown(f'<div class="dnd-premade-grid">{map_preview_html}</div>', unsafe_allow_html=True)
+                premade_cols = st.columns(3)
+                for premade_col, preset_name in zip(premade_cols, DND_PRESET_MAPS.keys()):
+                    with premade_col:
+                        if st.button(f"{preset_name} laden", key=f"dnd_apply_builtin_{preset_name}", use_container_width=True):
+                            preset_map = DND_PRESET_MAPS[preset_name]
+                            map_ok = update_dnd_lobby_map(active_lobby_id, preset_map["image"], preset_map["grid_width"], preset_map["grid_height"])
+                            tools_ok = update_dnd_lobby_board_tools(
+                                active_lobby_id,
+                                active_lobby.get("map_fog_enabled") or False,
+                                active_lobby.get("map_fog_opacity") or 55,
+                                preset_map["marker_notes"],
+                                preset_map["name"],
+                            )
+                            if map_ok and tools_ok:
+                                st.success(f"{preset_name} geladen.")
+                                st.rerun()
+                            else:
+                                st.error("Premade Map konnte nicht geladen werden.")
+
                 st.markdown("##### Spielbrett bearbeiten")
                 with st.form("dnd_map_form"):
                     map_name = st.text_input("Kartenname", value=str(active_lobby.get("map_name") or "Karte"), max_chars=80)
@@ -1720,9 +1750,10 @@ def render_dnd_page():
         last_roll = st.session_state.get("dnd_last_roll")
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
             dice_theme = str(last_roll.get("theme") or "ice")
+            dice_sides = int(last_roll.get("sides") or 20)
             st.markdown(
                 '<div class="dice-result-stage">'
-                f'{render_dnd_dice(int(last_roll.get("total") or 0), dice_theme)}'
+                f'{render_dnd_dice(int(last_roll.get("total") or 0), dice_theme, dice_sides)}'
                 '<div>'
                 f'<div class="section-kicker">{html.escape(str(last_roll.get("notation") or "Wurf"))}</div>'
                 f'<h3>{html.escape(str(last_roll.get("title") or "Würfelwurf"))}</h3>'
@@ -1882,6 +1913,7 @@ def render_dnd_page():
                     "title": reason,
                     "detail": f"Rohwürfe: {rolls}",
                     "theme": DND_DICE_THEMES.get(st.session_state.get("dnd_dice_theme", "Eis Würfel"), "ice"),
+                    "sides": 20,
                 }
                 st.success(f"{reason}: {total} ({rolls})")
                 st.rerun()
@@ -1920,6 +1952,7 @@ def render_dnd_page():
                 "title": roll_reason or "Würfelwurf",
                 "detail": detail,
                 "theme": DND_DICE_THEMES.get(dice_theme_label, "ice"),
+                "sides": int(roll_sides),
             }
             st.success(f"{notation} = {total}. {detail}")
             st.rerun()
@@ -2864,19 +2897,20 @@ def render_dnd_initiative_tracker(entries, active_turn_key):
     return f'<div class="dnd-turn-tracker">{html_rows}</div>'
 
 
-def render_dnd_dice(total, theme_key):
+def render_dnd_dice(total, theme_key, sides=20):
     safe_theme = theme_key if theme_key in set(DND_DICE_THEMES.values()) else "ice"
-    side_values = [total, 20, 12, 8, 6, 4]
-    faces = ["front", "back", "right", "left", "top", "bottom"]
-    face_html = "".join(
-        f'<div class="dice-face {face}">{html.escape(str(value))}</div>'
-        for face, value in zip(faces, side_values)
+    die_sides = int(sides) if int(sides) in DND_DICE else 20
+    visual_sides = 10 if die_sides == 100 else die_sides
+    facet_count = {4: 4, 6: 6, 8: 8, 10: 10, 12: 12, 20: 16}.get(visual_sides, 12)
+    facet_html = "".join(
+        f'<span style="--i:{index};"></span>'
+        for index in range(facet_count)
     )
     particles = "".join('<span></span>' for _ in range(14))
     return (
-        f'<div class="dice-scene dice-theme-{safe_theme}">'
+        f'<div class="dice-scene dice-theme-{safe_theme} dice-shape-d{visual_sides}">'
         f'<div class="dice-particles">{particles}</div>'
-        f'<div class="dice-cube-3d">{face_html}</div>'
+        f'<div class="dice-polyhedron">{facet_html}<strong>{html.escape(str(total))}</strong><small>d{die_sides}</small></div>'
         '</div>'
     )
 
@@ -5674,6 +5708,45 @@ h1::after {
     color: #ffffff;
 }
 
+.dnd-premade-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 10px 0 12px;
+}
+
+.dnd-premade-map {
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.dnd-premade-thumb {
+    min-height: 116px;
+    background-size: cover;
+    background-position: center;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.dnd-premade-map strong,
+.dnd-premade-map span {
+    display: block;
+    padding: 10px 12px 0;
+}
+
+.dnd-premade-map strong {
+    color: #ffffff;
+}
+
+.dnd-premade-map span {
+    padding-top: 3px;
+    padding-bottom: 12px;
+    color: #cfc6e8;
+    font-size: 12px;
+    font-weight: 850;
+}
+
 .dnd-map-shell {
     margin: 12px 0 22px;
     padding: 14px;
@@ -5936,35 +6009,95 @@ h1::after {
     perspective: 720px;
 }
 
-.dice-cube-3d {
+.dice-polyhedron {
     position: absolute;
-    inset: 18px;
+    left: 50%;
+    top: 50%;
+    width: 126px;
+    height: 126px;
+    transform: translate(-50%, -50%);
     transform-style: preserve-3d;
-    animation: dice-tumble 1.55s cubic-bezier(.17,.84,.28,1.06) both;
-}
-
-.dice-face {
-    position: absolute;
-    inset: 0;
     display: grid;
     place-items: center;
-    border-radius: 22px;
-    color: #061015;
-    font-size: 34px;
-    font-weight: 950;
-    background:
-        radial-gradient(circle at 30% 24%, rgba(255,255,255,0.95), transparent 26%),
-        linear-gradient(145deg, var(--dice-a), var(--dice-b) 54%, var(--dice-c));
-    border: 2px solid rgba(255,255,255,0.58);
-    box-shadow: inset 0 0 18px rgba(255,255,255,0.34), 0 20px 45px rgba(0,0,0,0.30);
+    animation: dice-tumble 1.55s cubic-bezier(.17,.84,.28,1.06) both;
+    filter: drop-shadow(0 22px 28px rgba(0,0,0,0.34));
 }
 
-.dice-face.front { transform: translateZ(60px); }
-.dice-face.back { transform: rotateY(180deg) translateZ(60px); }
-.dice-face.right { transform: rotateY(90deg) translateZ(60px); }
-.dice-face.left { transform: rotateY(-90deg) translateZ(60px); }
-.dice-face.top { transform: rotateX(90deg) translateZ(60px); }
-.dice-face.bottom { transform: rotateX(-90deg) translateZ(60px); }
+.dice-polyhedron::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    color: #061015;
+    background:
+        radial-gradient(circle at 32% 24%, rgba(255,255,255,0.92), transparent 18%),
+        linear-gradient(145deg, var(--dice-a), var(--dice-b) 54%, var(--dice-c));
+    border: 2px solid rgba(255,255,255,0.58);
+    box-shadow: inset 0 0 22px rgba(255,255,255,0.34), inset -18px -22px 38px rgba(0,0,0,0.18);
+}
+
+.dice-polyhedron span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 52%;
+    height: 40%;
+    transform-origin: 0 0;
+    transform: rotate(calc(var(--i) * 24deg)) skewY(-18deg);
+    background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(0,0,0,0.13));
+    border-left: 1px solid rgba(255,255,255,0.22);
+    opacity: .72;
+}
+
+.dice-polyhedron strong,
+.dice-polyhedron small {
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.dice-polyhedron strong {
+    color: #061015;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 950;
+}
+
+.dice-polyhedron small {
+    position: absolute;
+    bottom: 28px;
+    color: rgba(6,16,21,0.76);
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.dice-shape-d4 .dice-polyhedron::before {
+    clip-path: polygon(50% 3%, 96% 92%, 4% 92%);
+}
+
+.dice-shape-d4 .dice-polyhedron small {
+    bottom: 34px;
+}
+
+.dice-shape-d6 .dice-polyhedron::before {
+    clip-path: polygon(15% 10%, 82% 4%, 98% 72%, 52% 100%, 4% 70%);
+    border-radius: 18px;
+}
+
+.dice-shape-d8 .dice-polyhedron::before {
+    clip-path: polygon(50% 0%, 92% 28%, 82% 78%, 50% 100%, 18% 78%, 8% 28%);
+}
+
+.dice-shape-d10 .dice-polyhedron::before {
+    clip-path: polygon(50% 0%, 86% 17%, 100% 52%, 72% 100%, 28% 100%, 0% 52%, 14% 17%);
+}
+
+.dice-shape-d12 .dice-polyhedron::before {
+    clip-path: polygon(50% 0%, 80% 8%, 100% 34%, 96% 66%, 76% 92%, 50% 100%, 24% 92%, 4% 66%, 0% 34%, 20% 8%);
+}
+
+.dice-shape-d20 .dice-polyhedron::before {
+    clip-path: polygon(50% 0%, 72% 12%, 95% 18%, 100% 50%, 90% 78%, 65% 92%, 50% 100%, 35% 92%, 10% 78%, 0% 50%, 5% 18%, 28% 12%);
+}
 
 .dice-particles {
     position: absolute;
@@ -6313,6 +6446,7 @@ h1::after {
     .dnd-roll-grid,
     .dnd-session-bar,
     .dnd-map-markers,
+    .dnd-premade-grid,
     .gazette-card-grid,
     .score-strip,
     .newspaper-grid,
