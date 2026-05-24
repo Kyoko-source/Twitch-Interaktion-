@@ -486,6 +486,7 @@ def update_user_profile(username, bio, favorite_game, avatar_url):
     )
 
 
+@st.cache_data(ttl=20)
 def get_pending_trades(username):
     username = username.strip()
     return api_get(
@@ -494,6 +495,7 @@ def get_pending_trades(username):
     )
 
 
+@st.cache_data(ttl=20)
 def get_outgoing_trades(username):
     username = username.strip()
     return api_get(
@@ -510,7 +512,7 @@ def create_chicken_trade(requester, recipient, trade_type, amount):
     if requester == recipient or trade_type not in ("gift", "request") or amount <= 0:
         return None
 
-    return api_post(
+    created = api_post(
         "chicken_trades",
         {
             "requester": requester,
@@ -521,16 +523,24 @@ def create_chicken_trade(requester, recipient, trade_type, amount):
             "created_at": datetime.now().isoformat()
         }
     )
+    if created:
+        get_pending_trades.clear()
+        get_outgoing_trades.clear()
+    return created
 
 
 def set_trade_status(trade_id, status):
-    return api_patch(
+    success = api_patch(
         f"chicken_trades?id=eq.{trade_id}",
         {
             "status": status,
             "responded_at": datetime.now().isoformat()
         }
     )
+    if success:
+        get_pending_trades.clear()
+        get_outgoing_trades.clear()
+    return success
 
 
 def accept_chicken_trade(trade):
@@ -3368,7 +3378,7 @@ def get_events():
     return api_get("events?select=*&order=id.desc")
 
 def create_event(title, description, event_date):
-    return api_post(
+    created = api_post(
         "events",
         {
             "title": title,
@@ -3377,11 +3387,19 @@ def create_event(title, description, event_date):
             "created_at": datetime.now().isoformat()
         }
     )
+    if created:
+        get_events.clear()
+    return created
 
 def delete_event(event_id):
     api_delete(f"event_signups?event_id=eq.{event_id}")
-    return api_delete(f"events?id=eq.{event_id}")
+    success = api_delete(f"events?id=eq.{event_id}")
+    if success:
+        get_events.clear()
+        get_event_signups.clear()
+    return success
 
+@st.cache_data(ttl=60)
 def get_event_signups(event_id):
     return api_get(f"event_signups?event_id=eq.{event_id}&select=*")
 
@@ -3409,12 +3427,16 @@ def signup_event(event_id, username):
             "created_at": datetime.now().isoformat()
         }
     )
+    get_event_signups.clear()
 
     return True
 
 def leave_event(event_id, username):
     username = username.strip()
-    return api_delete(f"event_signups?event_id=eq.{event_id}&username=eq.{urllib.parse.quote(username)}")
+    success = api_delete(f"event_signups?event_id=eq.{event_id}&username=eq.{urllib.parse.quote(username)}")
+    if success:
+        get_event_signups.clear()
+    return success
 
 # =========================
 # SHOP
@@ -6676,12 +6698,6 @@ iframe {
 # HEADER
 # =========================
 
-leaderboard = get_leaderboard()
-
-total_users = len(leaderboard)
-total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
-total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
-
 handle_twitch_callback()
 
 logged_in_username = get_logged_in_username()
@@ -6796,6 +6812,16 @@ if selected_nav != st.session_state.get("main_nav"):
 menu = st.session_state["app_menu"]
 
 logged_in_username = get_logged_in_username()
+
+leaderboard_pages = {"🏠 Home", "🏆 Rangliste"}
+if menu in leaderboard_pages:
+    leaderboard = get_leaderboard()
+else:
+    leaderboard = pd.DataFrame(columns=["Viewer", "Chickens", "Gehirnzellen"])
+
+total_users = len(leaderboard)
+total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
+total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
 
 if logged_in_username:
     incoming_trades = get_pending_trades(logged_in_username)
@@ -8061,8 +8087,10 @@ elif menu == "⚡ Events":
             event_id = event["id"]
 
             signups = get_event_signups(event_id)
-
-            signed_up = is_signed_up(event_id, effective_viewer_name)
+            signed_up = any(
+                str(signup.get("username") or "") == effective_viewer_name
+                for signup in signups
+            )
             event_date_text = str(event.get("event_date") or "")
             event_date_parts = event_date_text.split(" ", 1)
             event_day = event_date_parts[0] if event_date_parts else "TBA"
@@ -9676,6 +9704,8 @@ elif menu == "🔐 Admin":
 
         members = get_members()
         usernames = [str(member.get("username")) for member in members if member.get("username")]
+        admin_total_chickens = sum(int(member.get("chickens") or 0) for member in members)
+        admin_total_braincells = sum(int(member.get("braincells") or 0) for member in members)
         events = get_events()
         shop_items = get_shop_items()
         news_posts = get_news_posts()
@@ -9790,8 +9820,8 @@ elif menu == "🔐 Admin":
                     <h3>Live-Status</h3>
                     <div class="admin-stat-grid" style="grid-template-columns:1fr;">
                         <div class="admin-stat"><strong>{pending_trade_count}</strong><span>Offene Trades</span></div>
-                        <div class="admin-stat"><strong>{total_chickens}</strong><span>Gesamte Chickens</span></div>
-                        <div class="admin-stat"><strong>{total_braincells}</strong><span>Gesamte Gehirnzellen</span></div>
+                        <div class="admin-stat"><strong>{admin_total_chickens}</strong><span>Gesamte Chickens</span></div>
+                        <div class="admin-stat"><strong>{admin_total_braincells}</strong><span>Gesamte Gehirnzellen</span></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
