@@ -4176,6 +4176,10 @@ h1::after {
     color: #cfc6e8;
 }
 
+.arcade-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .profile-hero,
 .member-card {
     background:
@@ -8251,13 +8255,18 @@ elif menu.endswith("Minispiele"):
             <strong>Dungeons and Dragons</strong>
             <span>Öffne Lobbys, würfle Proben und spiele Abenteuer mit der Party.</span>
         </div>
+        <div class="arcade-card">
+            <strong>Chicken Racer</strong>
+            <span>Wette auf farbige Bot-Hühner und überlebe immer vollere Rennrunden.</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    minigame_labels = ["Chicken Jump", "Chicken Snake", "Dungeons and Dragons"]
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Dungeons and Dragons"]
     minigame_keys = {
         "Chicken Jump": "jump",
         "Chicken Snake": "snake",
+        "Chicken Racer": "race",
         "Dungeons and Dragons": "dnd",
     }
     minigame_label_by_key = {value: key for key, value in minigame_keys.items()}
@@ -9967,6 +9976,576 @@ elif menu.endswith("Minispiele"):
     </body>
     </html>
     """.replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=780, scrolling=True)
+
+    elif selected_minigame == "race":
+        st.markdown("## Chicken Racer")
+        components.html("""
+    <html>
+    <head>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 760px;
+            background:
+                radial-gradient(circle at 14% 12%, rgba(255,230,109,0.16), transparent 25%),
+                radial-gradient(circle at 86% 18%, rgba(0,212,255,0.16), transparent 26%),
+                radial-gradient(circle at 48% 90%, rgba(255,84,160,0.13), transparent 34%),
+                linear-gradient(180deg, #070911 0%, #121020 58%, #080711 100%);
+            color: #fff;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            overflow: auto;
+        }
+        .race-shell {
+            width: min(100%, 1080px);
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .race-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 286px;
+            gap: 14px;
+            align-items: stretch;
+        }
+        .race-stage {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+                rgba(7, 9, 17, 0.88);
+            box-shadow: 0 28px 80px rgba(0,0,0,0.38);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            background: #09101d;
+        }
+        .race-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background:
+                radial-gradient(circle at 50% 34%, rgba(255,230,109,0.16), transparent 25%),
+                linear-gradient(180deg, rgba(7,9,17,0.28), rgba(7,9,17,0.88));
+            z-index: 3;
+        }
+        .race-panel,
+        .race-card {
+            border: 1px solid rgba(255,255,255,0.13);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)),
+                rgba(12, 14, 24, 0.92);
+            box-shadow: 0 20px 58px rgba(0,0,0,0.28);
+        }
+        .race-panel {
+            width: min(620px, 94%);
+            border-radius: 18px;
+            padding: 22px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .race-kicker {
+            color: #ffe66d;
+            font-size: 12px;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .race-panel h1 {
+            margin: 8px 0 8px;
+            font-size: 42px;
+            line-height: 1;
+        }
+        .race-panel p {
+            margin: 0 auto 16px;
+            max-width: 520px;
+            color: #d8d1ec;
+            line-height: 1.45;
+            font-weight: 750;
+        }
+        .bet-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin: 14px 0;
+        }
+        button {
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 13px;
+            color: #061015;
+            cursor: pointer;
+            font-weight: 950;
+            background: linear-gradient(135deg, #ffe66d, #ff54a0);
+            box-shadow: 0 14px 30px rgba(255,84,160,0.18);
+        }
+        button:hover { transform: translateY(-1px); filter: brightness(1.07); }
+        button.secondary {
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: none;
+        }
+        button.bet {
+            color: #fff;
+            min-height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: none;
+        }
+        button.bet.active {
+            color: #061015;
+            background: linear-gradient(135deg, var(--hen-color), #ffffff);
+            border-color: rgba(255,255,255,0.50);
+            box-shadow: 0 14px 34px rgba(255,255,255,0.14);
+        }
+        .swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            display: inline-block;
+            background: var(--hen-color);
+            border: 2px solid rgba(255,255,255,0.78);
+        }
+        .race-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .race-side {
+            display: grid;
+            gap: 12px;
+        }
+        .race-card {
+            border-radius: 16px;
+            padding: 14px;
+        }
+        .race-card span {
+            display: block;
+            color: #aeb6d9;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .race-card strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 28px;
+        }
+        .race-card small {
+            display: block;
+            margin-top: 4px;
+            color: #cfc6e8;
+            font-weight: 750;
+            line-height: 1.35;
+        }
+        .race-score-list {
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none;
+            max-height: 230px;
+            overflow-y: auto;
+        }
+        .race-score-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 7px 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: #eadfff;
+            font-weight: 800;
+        }
+        @media (max-width: 780px) {
+            body { min-height: 900px; }
+            .race-layout,
+            .bet-grid { grid-template-columns: 1fr; }
+            .race-panel h1 { font-size: 34px; }
+        }
+    </style>
+    </head>
+    <body>
+    <div class="race-shell">
+        <div class="race-layout">
+            <div class="race-stage">
+                <canvas id="raceCanvas" width="1000" height="620"></canvas>
+                <div id="raceOverlay" class="race-overlay">
+                    <div class="race-panel">
+                        <div class="race-kicker" id="raceKicker">Wette vor dem Start</div>
+                        <h1 id="raceTitle">Chicken Racer</h1>
+                        <p id="raceText">Wähle ein Huhn. Gewinnt es, bekommst du +1 Punkt und die nächste Runde hat ein Huhn mehr.</p>
+                        <div id="betGrid" class="bet-grid"></div>
+                        <div class="race-actions">
+                            <button id="raceStart">Rennen starten</button>
+                            <button id="raceSave" class="secondary">Score speichern</button>
+                            <button id="raceRestart" class="secondary">Neu starten</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <aside class="race-side">
+                <div class="race-card"><span>Runde</span><strong id="raceRound">1</strong><small>Teilnehmer: Runde + 1</small></div>
+                <div class="race-card"><span>Score</span><strong id="raceScore">0</strong><small>+1 pro richtigem Gewinner</small></div>
+                <div class="race-card"><span>Wette</span><strong id="racePick">-</strong><small>Vor jedem Rennen neu wählen</small></div>
+                <div class="race-card">
+                    <span>Lokale Bestwerte</span>
+                    <ol id="raceScores" class="race-score-list"></ol>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script>
+    const canvas = document.getElementById("raceCanvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("raceOverlay");
+    const kickerEl = document.getElementById("raceKicker");
+    const titleEl = document.getElementById("raceTitle");
+    const textEl = document.getElementById("raceText");
+    const betGrid = document.getElementById("betGrid");
+    const startBtn = document.getElementById("raceStart");
+    const saveBtn = document.getElementById("raceSave");
+    const restartBtn = document.getElementById("raceRestart");
+    const roundEl = document.getElementById("raceRound");
+    const scoreEl = document.getElementById("raceScore");
+    const pickEl = document.getElementById("racePick");
+    const scoresEl = document.getElementById("raceScores");
+
+    const COLORS = [
+        ["Rot", "#ff4d6d"], ["Blau", "#00d4ff"], ["Gelb", "#ffe66d"],
+        ["Grün", "#7cffb2"], ["Pink", "#ff54a0"], ["Lila", "#c77dff"],
+        ["Orange", "#ff9f1c"], ["Mint", "#2ec4b6"], ["Weiß", "#f8f7ff"],
+        ["Nacht", "#7f8cff"], ["Limette", "#b8ff4d"], ["Koralle", "#ff8fab"]
+    ];
+
+    let round = 1;
+    let score = 0;
+    let hens = [];
+    let selectedHen = 0;
+    let state = "betting";
+    let winnerIndex = null;
+    let savedScore = false;
+    let frame = 0;
+    const startX = 68;
+    const finishX = 910;
+
+    function makeHens() {
+        const count = Math.min(round + 1, COLORS.length);
+        const laneHeight = Math.min(72, 470 / count);
+        const top = 72 + Math.max(0, (470 - laneHeight * count) / 2);
+        hens = Array.from({length: count}, (_, index) => {
+            const color = COLORS[index % COLORS.length];
+            return {
+                index,
+                name: color[0],
+                color: color[1],
+                x: startX,
+                y: top + laneHeight * index + laneHeight * 0.5,
+                laneHeight,
+                speed: 0,
+                base: 1.65 + Math.random() * 0.42 + index * 0.015,
+                stamina: 0.992 + Math.random() * 0.012,
+                chaos: 0.62 + Math.random() * 0.72,
+                burst: 0
+            };
+        });
+        selectedHen = Math.min(selectedHen, hens.length - 1);
+        winnerIndex = null;
+    }
+
+    function updateHud() {
+        roundEl.textContent = round;
+        scoreEl.textContent = score;
+        pickEl.textContent = hens[selectedHen] ? hens[selectedHen].name : "-";
+    }
+
+    function renderBetButtons() {
+        betGrid.innerHTML = hens.map((hen, index) => (
+            "<button class=\\"bet " + (index === selectedHen ? "active" : "") + "\\" data-hen=\\"" + index + "\\" style=\\"--hen-color:" + hen.color + "\\">" +
+            "<span class=\\"swatch\\"></span>" + hen.name +
+            "</button>"
+        )).join("");
+        document.querySelectorAll("[data-hen]").forEach(button => {
+            button.addEventListener("click", () => {
+                if (state !== "betting") return;
+                selectedHen = Number(button.dataset.hen || 0);
+                updateHud();
+                renderBetButtons();
+            });
+        });
+    }
+
+    function showBetting(message) {
+        state = "betting";
+        startBtn.onclick = null;
+        startBtn.textContent = "Rennen starten";
+        makeHens();
+        updateHud();
+        renderBetButtons();
+        overlay.style.display = "flex";
+        kickerEl.textContent = "Runde " + round + " · " + hens.length + " Hühner";
+        titleEl.textContent = message || "Wähle dein Huhn";
+        textEl.textContent = "Gewinnt deine Wette, steigt dein Score um 1 und die nächste Runde bekommt ein Huhn mehr.";
+        startBtn.style.display = "inline-flex";
+        saveBtn.style.display = score > 0 && !savedScore ? "inline-flex" : "none";
+        restartBtn.style.display = score > 0 ? "inline-flex" : "none";
+    }
+
+    function startRace() {
+        if (state !== "betting") return;
+        state = "racing";
+        overlay.style.display = "none";
+        winnerIndex = null;
+        frame = 0;
+        hens.forEach(hen => {
+            hen.x = startX;
+            hen.speed = hen.base + Math.random() * 0.45;
+            hen.burst = Math.random() * 12;
+        });
+    }
+
+    function finishRace(winner) {
+        state = "result";
+        winnerIndex = winner.index;
+        overlay.style.display = "flex";
+        const picked = hens[selectedHen];
+        const won = picked && winner.index === picked.index;
+        if (won) {
+            score += 1;
+            round += 1;
+            savedScore = false;
+            kickerEl.textContent = "Gewonnen";
+            titleEl.textContent = winner.name + " gewinnt!";
+            textEl.textContent = "Stark. Dein Score ist jetzt " + score + ". In der nächsten Runde laufen " + (round + 1) + " Hühner.";
+            startBtn.textContent = "Nächste Runde";
+            startBtn.style.display = "inline-flex";
+            saveBtn.style.display = "inline-flex";
+            restartBtn.style.display = "inline-flex";
+            startBtn.onclick = () => {
+                startBtn.textContent = "Rennen starten";
+                showBetting("Nächste Wette");
+            };
+        } else {
+            kickerEl.textContent = "Game Over";
+            titleEl.textContent = winner.name + " gewinnt";
+            textEl.textContent = "Deine Wette war " + (picked ? picked.name : "-") + ". Endscore: " + score + ".";
+            startBtn.textContent = "Nochmal spielen";
+            startBtn.style.display = "inline-flex";
+            saveBtn.style.display = score > 0 && !savedScore ? "inline-flex" : "none";
+            restartBtn.style.display = "none";
+            startBtn.onclick = resetGame;
+        }
+        renderBetButtons();
+        updateHud();
+    }
+
+    function resetGame() {
+        round = 1;
+        score = 0;
+        selectedHen = 0;
+        savedScore = false;
+        startBtn.textContent = "Rennen starten";
+        startBtn.onclick = startRace;
+        showBetting("Chicken Racer");
+    }
+
+    function drawBackground() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        sky.addColorStop(0, "#0a1324");
+        sky.addColorStop(0.58, "#11172a");
+        sky.addColorStop(1, "#101018");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        for (let x = -80; x < canvas.width + 120; x += 116) {
+            ctx.fillRect(x + (frame * 0.25 % 116), 48, 48, 4);
+        }
+
+        const trackTop = 66;
+        const trackBottom = 552;
+        ctx.fillStyle = "#2b1f23";
+        roundedRect(38, trackTop, 904, trackBottom - trackTop, 18);
+        ctx.fillStyle = "#442b26";
+        roundedRect(50, trackTop + 12, 880, trackBottom - trackTop - 24, 14);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.lineWidth = 2;
+        hens.forEach(hen => {
+            ctx.beginPath();
+            ctx.moveTo(54, hen.y + hen.laneHeight * 0.5);
+            ctx.lineTo(928, hen.y + hen.laneHeight * 0.5);
+            ctx.stroke();
+        });
+
+        ctx.strokeStyle = "#ffe66d";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(finishX, trackTop + 6);
+        ctx.lineTo(finishX, trackBottom - 6);
+        ctx.stroke();
+        for (let y = trackTop + 12; y < trackBottom - 12; y += 24) {
+            ctx.fillStyle = (Math.floor(y / 24) % 2) ? "#fff" : "#111";
+            ctx.fillRect(finishX - 12, y, 24, 12);
+        }
+    }
+
+    function roundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.fill();
+    }
+
+    function drawHen(hen) {
+        const bob = Math.sin(frame / 5 + hen.index) * 2.5;
+        const x = hen.x;
+        const y = hen.y + bob;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(16, 26, 26, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = hen.color;
+        roundedRect(-12, -20, 48, 38, 14);
+        ctx.fillStyle = "rgba(255,255,255,0.38)";
+        roundedRect(0, -13, 16, 8, 7);
+        ctx.fillStyle = "#ffd43b";
+        roundedRect(18, -30, 30, 26, 13);
+        ctx.fillStyle = "#ff922b";
+        ctx.beginPath();
+        ctx.moveTo(47, -20);
+        ctx.lineTo(64, -13);
+        ctx.lineTo(47, -6);
+        ctx.fill();
+        ctx.fillStyle = "#101010";
+        ctx.beginPath();
+        ctx.arc(38, -21, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ff4d6d";
+        roundedRect(23, -40, 18, 9, 5);
+        ctx.strokeStyle = "#ffb703";
+        ctx.lineWidth = 3;
+        const stride = Math.sin(frame / 3 + hen.index) * 5;
+        ctx.beginPath();
+        ctx.moveTo(2, 15);
+        ctx.lineTo(-2 + stride, 29);
+        ctx.moveTo(23, 14);
+        ctx.lineTo(28 - stride, 29);
+        ctx.stroke();
+        if (winnerIndex === hen.index) {
+            ctx.fillStyle = "#ffe66d";
+            ctx.font = "900 22px Inter, Arial";
+            ctx.fillText("★", 4, -42);
+        }
+        ctx.restore();
+    }
+
+    function drawHudText() {
+        ctx.fillStyle = "#fff";
+        ctx.font = "900 24px Inter, Arial";
+        ctx.fillText("Runde " + round, 54, 38);
+        ctx.fillStyle = "#ffe66d";
+        ctx.fillText("Score " + score, 178, 38);
+        ctx.fillStyle = "#cfc6e8";
+        ctx.font = "800 15px Inter, Arial";
+        ctx.fillText("Wette: " + (hens[selectedHen] ? hens[selectedHen].name : "-"), 306, 37);
+    }
+
+    function updateRace() {
+        if (state !== "racing") return;
+        frame++;
+        let leader = hens[0];
+        hens.forEach(hen => {
+            if (Math.random() < 0.035 * hen.chaos) {
+                hen.burst = 12 + Math.random() * 28;
+            }
+            const burstBoost = hen.burst > 0 ? 0.7 + Math.random() * 1.4 : 0;
+            hen.burst = Math.max(0, hen.burst - 1);
+            hen.speed = hen.speed * hen.stamina + 0.035 + Math.random() * hen.chaos + burstBoost;
+            hen.speed = Math.min(hen.speed, 8.4 + round * 0.08);
+            hen.x += hen.speed;
+            if (hen.x > leader.x) leader = hen;
+        });
+        if (leader.x >= finishX - 38) {
+            finishRace(leader);
+        }
+    }
+
+    function draw() {
+        drawBackground();
+        hens.slice().sort((a, b) => a.y - b.y).forEach(drawHen);
+        drawHudText();
+        updateRace();
+        requestAnimationFrame(draw);
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value;
+        return div.innerHTML;
+    }
+
+    function getScores() {
+        try {
+            return JSON.parse(localStorage.getItem("chicken_racer_scores") || "[]");
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function renderScores() {
+        const scores = getScores().sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 8);
+        if (!scores.length) {
+            scoresEl.innerHTML = "<li><span>Noch frei</span><b>0</b></li>";
+            return;
+        }
+        scoresEl.innerHTML = scores.map((entry, index) => (
+            "<li><span>#" + (index + 1) + " " + escapeHtml(entry.name || "Viewer") + "</span><b>" + Number(entry.score || 0) + "</b></li>"
+        )).join("");
+    }
+
+    function saveScore() {
+        if (savedScore || score <= 0) return;
+        const name = (prompt("Dein Twitch-Name für das Racer-Scoreboard:") || "").trim().slice(0, 32);
+        if (!name) return;
+        const scores = getScores();
+        scores.push({name, score, round: Math.max(1, round - 1), createdAt: new Date().toISOString()});
+        localStorage.setItem("chicken_racer_scores", JSON.stringify(scores.slice(-100)));
+        savedScore = true;
+        renderScores();
+        saveBtn.style.display = "none";
+    }
+
+    startBtn.addEventListener("click", startRace);
+    saveBtn.addEventListener("click", saveScore);
+    restartBtn.addEventListener("click", resetGame);
+
+    resetGame();
+    renderScores();
+    draw();
+    </script>
+    </body>
+    </html>
+    """, height=790, scrolling=True)
 
     st.markdown("## Glücksräder")
     wheel_entries = get_punishment_wheel_entries()
