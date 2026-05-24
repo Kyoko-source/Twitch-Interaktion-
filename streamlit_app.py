@@ -3578,6 +3578,7 @@ PATCH_NOTES = [
         "version": "Patch 1.0",
         "title": "Chicken Jump, Shop und Rangliste",
         "date": "16.05.2026",
+        "_sort_at": "2026-05-16T00:00:00+02:00",
         "changes": [
             "Chicken Jump optisch überarbeitet mit neuem Hintergrund, Holz-Zäunen, Partikeln und MP3-Musik.",
             "Chicken Jump Steuerung verbessert: kurzer Tap für kurzen Sprung, gedrückt halten für höheren Sprung.",
@@ -3593,11 +3594,17 @@ PATCH_NOTES = [
 
 @st.cache_data(ttl=180)
 def get_patch_notes():
+    def sort_id(note):
+        try:
+            return int(note.get("id") or 0)
+        except (TypeError, ValueError):
+            return 0
+
     rows = api_get_optional(
-        "patch_notes?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=30"
+        "patch_notes?select=*&active=eq.true&order=published_at.desc,created_at.desc,id.desc&limit=30"
     )
     if not rows:
-        return PATCH_NOTES
+        return sorted(PATCH_NOTES, key=lambda note: str(note.get("_sort_at") or ""), reverse=True)
 
     notes = []
     for row in rows:
@@ -3610,6 +3617,8 @@ def get_patch_notes():
             continue
 
         published_at = str(row.get("published_at") or row.get("created_at") or "")
+        created_at = str(row.get("created_at") or "")
+        sort_at = published_at or created_at
         date_text = published_at[:10]
         try:
             date_text = datetime.fromisoformat(published_at.replace("Z", "+00:00")).strftime("%d.%m.%Y")
@@ -3623,10 +3632,21 @@ def get_patch_notes():
                 "date": date_text,
                 "changes": changes,
                 "id": row.get("id"),
+                "_sort_at": sort_at,
             }
         )
 
-    return notes or PATCH_NOTES
+    if not notes:
+        return sorted(PATCH_NOTES, key=lambda note: str(note.get("_sort_at") or ""), reverse=True)
+
+    return sorted(
+        notes,
+        key=lambda note: (
+            str(note.get("_sort_at") or ""),
+            sort_id(note),
+        ),
+        reverse=True,
+    )
 
 
 def create_patch_note(version, title, changes, published_date):
