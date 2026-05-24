@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public.dnd_lobbies (
     name text NOT NULL,
     description text NOT NULL DEFAULT '',
     owner text NOT NULL,
+    dm_username text NOT NULL DEFAULT '',
     is_private boolean NOT NULL DEFAULT false,
     password_hash text NOT NULL DEFAULT '',
     scene text NOT NULL DEFAULT '',
@@ -44,6 +45,10 @@ ADD COLUMN IF NOT EXISTS scene text NOT NULL DEFAULT '';
 
 ALTER TABLE public.dnd_lobbies
 ADD COLUMN IF NOT EXISTS quest_log text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS dm_username text NOT NULL DEFAULT '';
+
 
 ALTER TABLE public.dnd_players
 ADD COLUMN IF NOT EXISTS race text NOT NULL DEFAULT 'Mensch';

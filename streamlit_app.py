@@ -1219,10 +1219,32 @@ def render_dnd_page():
                 placeholder="Kurzer Pitch, Levelbereich, Stimmung oder wer Spielleitung macht..."
             )
             lobby_password = st.text_input("Passwort optional", type="password", help="Leer lassen für eine offene Lobby.")
+            creator_role_label = st.radio(
+                "Deine Rolle",
+                ["Dungeon Master", "Spieler"],
+                horizontal=True,
+                key="dnd_create_role",
+            )
+            creator_character_name = ""
+            creator_character_class = DND_CLASSES[0]
+            if creator_role_label == "Spieler":
+                creator_cols = st.columns(2)
+                with creator_cols[0]:
+                    creator_character_name = st.text_input("Dein Charaktername", max_chars=80, placeholder="Marello der Mutige")
+                with creator_cols[1]:
+                    creator_character_class = st.selectbox("Deine Klasse", DND_CLASSES, key="dnd_create_character_class")
             create_lobby = st.form_submit_button("Lobby eröffnen")
 
         if create_lobby:
-            created_lobby = create_dnd_lobby(lobby_name, lobby_description, logged_in_username, lobby_password)
+            created_lobby = create_dnd_lobby(
+                lobby_name,
+                lobby_description,
+                logged_in_username,
+                lobby_password,
+                "dm" if creator_role_label == "Dungeon Master" else "player",
+                creator_character_name,
+                creator_character_class,
+            )
             if created_lobby:
                 st.session_state["dnd_lobby_id"] = str(created_lobby.get("id"))
                 st.success("Lobby eröffnet.")
@@ -1240,12 +1262,14 @@ def render_dnd_page():
             for lobby in lobbies:
                 status_class = "private" if lobby.get("is_private") else ""
                 status_text = "Geschlossen" if lobby.get("is_private") else "Offen"
+                dm_name = get_dnd_dm_username(lobby)
+                dm_text = dm_name if dm_name else "Wartet auf DM"
                 lobby_cards += (
                     '<article class="dnd-lobby-card">'
                     f'<span class="dnd-pill {status_class}">{status_text}</span>'
                     f'<h3>{html.escape(str(lobby.get("name") or "Unbenannte Lobby"))}</h3>'
                     f'<p>{html.escape(str(lobby.get("description") or "Kein Beschreibungstext."))}</p>'
-                    f'<div class="admin-muted">DM/Host: {html.escape(str(lobby.get("owner") or "Unbekannt"))}</div>'
+                    f'<div class="admin-muted">DM: {html.escape(dm_text)} · Erstellt von {html.escape(str(lobby.get("owner") or "Unbekannt"))}</div>'
                     '</article>'
                 )
             st.markdown(f'<div class="dnd-lobby-grid">{lobby_cards}</div>', unsafe_allow_html=True)
@@ -1263,13 +1287,29 @@ def render_dnd_page():
             key="dnd_lobby_select",
         )
         selected_lobby = get_dnd_lobby(selected_lobby_id)
+        selected_dm_username = get_dnd_dm_username(selected_lobby) if selected_lobby else ""
 
         with st.form("join_dnd_lobby_form"):
+            if selected_dm_username:
+                st.caption(f"Dungeon Master ist bereits gesetzt: {selected_dm_username}. Neue Beitritte sind Spieler.")
+                join_role_label = "Spieler"
+            else:
+                join_role_label = st.radio(
+                    "Deine Rolle",
+                    ["Dungeon Master", "Spieler"],
+                    horizontal=True,
+                    key="dnd_join_role",
+                )
             join_cols = st.columns([1, 1, 1, 1])
             with join_cols[0]:
-                character_name = st.text_input("Charaktername", max_chars=80, placeholder="Marello der Mutige")
+                character_name = st.text_input(
+                    "Charaktername",
+                    max_chars=80,
+                    placeholder="Marello der Mutige",
+                    disabled=join_role_label == "Dungeon Master",
+                )
             with join_cols[1]:
-                character_class = st.selectbox("Klasse", DND_CLASSES)
+                character_class = st.selectbox("Klasse", DND_CLASSES, disabled=join_role_label == "Dungeon Master")
             with join_cols[2]:
                 join_password = st.text_input("Lobby-Passwort", type="password")
             with join_cols[3]:
@@ -1284,6 +1324,7 @@ def render_dnd_page():
                 character_name,
                 character_class,
                 join_password,
+                "dm" if join_role_label == "Dungeon Master" else "player",
             )
             if success:
                 st.success(message)
@@ -1301,6 +1342,8 @@ def render_dnd_page():
             (player for player in players if str(player.get("username")) == str(logged_in_username)),
             None,
         )
+        dm_username = get_dnd_dm_username(active_lobby)
+        is_dnd_dm = bool(dm_username) and dm_username == logged_in_username
 
         scene_text = str(active_lobby.get("scene") or "Die Party steht am Rand eines unbekannten Ortes. Der Dungeon Master kann hier die Szene setzen.")
         quest_text = str(active_lobby.get("quest_log") or "Noch keine Quest aktiv.")
@@ -1314,7 +1357,7 @@ def render_dnd_page():
             '<div class="dnd-session-title">'
             '<div class="section-kicker">Aktive Runde</div>'
             f'<h3>{html.escape(str(active_lobby.get("name") or "Unbenannte Lobby"))}</h3>'
-            f'<div class="admin-muted">DM/Host: {html.escape(str(active_lobby.get("owner") or "Unbekannt"))}</div>'
+            f'<div class="admin-muted">DM: {html.escape(dm_username or "Noch offen")} · Deine Rolle: {html.escape("Dungeon Master" if is_dnd_dm else "Spieler" if current_player else "Zuschauer")}</div>'
             '</div>'
             f'<div class="dnd-session-stat"><strong>{len(players)}</strong><span>Charaktere</span></div>'
             f'<div class="dnd-session-stat"><strong>{len(creatures)}</strong><span>Kreaturen</span></div>'
@@ -1338,7 +1381,8 @@ def render_dnd_page():
             unsafe_allow_html=True,
         )
 
-        if active_lobby.get("owner") == logged_in_username:
+        if is_dnd_dm:
+            st.markdown('<div class="dnd-section-title"><h3>DM Bereich</h3><span class="admin-muted">Szene, Questlog und Kreaturen steuern</span></div>', unsafe_allow_html=True)
             with st.expander("Dungeon Master Bereich"):
                 with st.form("dnd_dm_notes_form"):
                     new_scene = st.text_area("Aktuelle Szene", value=scene_text, height=140, max_chars=1200)
@@ -1432,7 +1476,7 @@ def render_dnd_page():
             st.markdown('<div class="dnd-section-title"><h3>Kreaturen</h3><span class="admin-muted">Initiative, HP und Notizen</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-party-grid">{creature_html}</div>', unsafe_allow_html=True)
 
-            if active_lobby.get("owner") == logged_in_username:
+            if is_dnd_dm:
                 with st.expander("Kreaturen verwalten"):
                     for creature in creatures:
                         creature_id = str(creature.get("id"))
@@ -1480,6 +1524,7 @@ def render_dnd_page():
             )
 
         if current_player:
+            st.markdown('<div class="dnd-section-title"><h3>Spieler Bereich</h3><span class="admin-muted">Charakterbogen und Proben</span></div>', unsafe_allow_html=True)
             with st.expander("Charakterbogen bearbeiten", expanded=False):
                 with st.form("dnd_character_sheet_form"):
                     sheet_top = st.columns([1.2, 1, 0.7, 0.7, 0.7, 0.7])
@@ -1640,7 +1685,7 @@ def render_dnd_page():
             st.markdown('<div class="dnd-section-title"><h3>Wurfchronik</h3><span class="admin-muted">Die letzten Ergebnisse dieser Lobby</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-roll-grid">{roll_html}</div>', unsafe_allow_html=True)
 
-        if active_lobby.get("owner") == logged_in_username:
+        if is_dnd_dm:
             if st.button("Lobby schliessen", key="close_dnd_lobby", type="primary"):
                 if close_dnd_lobby(active_lobby_id):
                     st.session_state.pop("dnd_lobby_id", None)
@@ -2095,11 +2140,49 @@ def get_dnd_creatures(lobby_id):
     )
 
 
-def create_dnd_lobby(name, description, owner, password):
+def get_dnd_dm_username(lobby):
+    if "dm_username" in lobby:
+        return str(lobby.get("dm_username") or "").strip()
+    return str(lobby.get("owner") or "").strip()
+
+
+def create_dnd_player(lobby_id, username, character_name, character_class):
+    return api_post_optional(
+        "dnd_players",
+        {
+            "lobby_id": int(lobby_id),
+            "username": str(username).strip()[:50],
+            "character_name": str(character_name).strip()[:80],
+            "character_class": str(character_class).strip()[:40],
+            "race": "Mensch",
+            "level": 1,
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "initiative": 0,
+            "strength": 10,
+            "dexterity": 10,
+            "constitution": 10,
+            "intelligence": 10,
+            "wisdom": 10,
+            "charisma": 10,
+            "inventory": "",
+            "spells": "",
+            "notes": "",
+            "active": True,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+
+
+def create_dnd_lobby(name, description, owner, password, creator_role="dm", character_name="", character_class=None):
     clean_name = str(name).strip()[:80]
     clean_description = str(description).strip()[:500]
     clean_owner = str(owner).strip()[:50]
     if not clean_name or not clean_owner:
+        return None
+    creator_role = "dm" if creator_role == "dm" else "player"
+    if creator_role == "player" and not str(character_name).strip():
         return None
 
     clean_password = str(password or "").strip()
@@ -2109,14 +2192,31 @@ def create_dnd_lobby(name, description, owner, password):
             "name": clean_name,
             "description": clean_description,
             "owner": clean_owner,
+            "dm_username": clean_owner if creator_role == "dm" else "",
             "is_private": bool(clean_password),
             "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
             "active": True,
             "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
         }
     )
+    if not created:
+        return None
+
+    lobby = created[0]
+    if creator_role == "player":
+        player_created = create_dnd_player(
+            lobby.get("id"),
+            clean_owner,
+            character_name,
+            character_class or DND_CLASSES[0],
+        )
+        if not player_created:
+            close_dnd_lobby(lobby.get("id"))
+            return None
+
     get_dnd_lobbies.clear()
-    return created[0] if created else None
+    get_dnd_players.clear()
+    return lobby
 
 
 def close_dnd_lobby(lobby_id):
@@ -2179,9 +2279,9 @@ def delete_dnd_creature(creature_id):
     return success
 
 
-def join_dnd_lobby(lobby, username, character_name, character_class, password):
-    if not lobby or not str(username).strip() or not str(character_name).strip():
-        return False, "Bitte Name und Charakter eintragen."
+def join_dnd_lobby(lobby, username, character_name, character_class, password, requested_role="player"):
+    if not lobby or not str(username).strip():
+        return False, "Bitte melde dich zuerst an."
 
     if lobby.get("is_private"):
         password_hash = str(lobby.get("password_hash") or "")
@@ -2190,6 +2290,23 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
 
     lobby_id = str(lobby.get("id"))
     username = str(username).strip()[:50]
+    dm_username = get_dnd_dm_username(lobby)
+    role = "dm" if requested_role == "dm" and not dm_username else "player"
+
+    if role == "dm":
+        success = api_patch(
+            f"dnd_lobbies?id=eq.{urllib.parse.quote(lobby_id)}",
+            {"dm_username": username}
+        )
+        get_dnd_lobbies.clear()
+        if success:
+            st.session_state["dnd_lobby_id"] = lobby_id
+            return True, "Du bist jetzt Dungeon Master dieser Lobby."
+        return False, "DM-Rolle konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus."
+
+    if not str(character_name).strip():
+        return False, "Bitte trage einen Charakternamen ein."
+
     existing = api_get_optional(
         "dnd_players?select=id"
         f"&lobby_id=eq.{urllib.parse.quote(lobby_id)}"
@@ -2200,32 +2317,7 @@ def join_dnd_lobby(lobby, username, character_name, character_class, password):
         st.session_state["dnd_lobby_id"] = lobby_id
         return True, "Du bist bereits in dieser Lobby."
 
-    created = api_post_optional(
-        "dnd_players",
-        {
-            "lobby_id": int(lobby_id),
-            "username": username,
-            "character_name": str(character_name).strip()[:80],
-            "character_class": str(character_class).strip()[:40],
-            "race": "Mensch",
-            "level": 1,
-            "max_hp": 10,
-            "current_hp": 10,
-            "armor_class": 10,
-            "initiative": 0,
-            "strength": 10,
-            "dexterity": 10,
-            "constitution": 10,
-            "intelligence": 10,
-            "wisdom": 10,
-            "charisma": 10,
-            "inventory": "",
-            "spells": "",
-            "notes": "",
-            "active": True,
-            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
-        }
-    )
+    created = create_dnd_player(lobby_id, username, character_name, character_class)
     get_dnd_players.clear()
     if created:
         st.session_state["dnd_lobby_id"] = lobby_id
