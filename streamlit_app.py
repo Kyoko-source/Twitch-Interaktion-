@@ -5441,6 +5441,11 @@ with account_col:
             st.session_state["app_menu"] = "Patch Notes"
             st.rerun()
 
+        if st.button("🛟 Support", key="account_support", use_container_width=True):
+            st.session_state["app_menu"] = "🛟 Support"
+            st.session_state["main_nav"] = "🛟 Support"
+            st.rerun()
+
         if logged_in_username or twitch_display_name:
             st.divider()
             if st.button("Logout", key="account_logout", use_container_width=True):
