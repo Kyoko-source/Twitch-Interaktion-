@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS public.dnd_lobbies (
     password_hash text NOT NULL DEFAULT '',
     scene text NOT NULL DEFAULT '',
     quest_log text NOT NULL DEFAULT '',
+    map_image_url text NOT NULL DEFAULT '',
+    map_grid_width integer NOT NULL DEFAULT 12,
+    map_grid_height integer NOT NULL DEFAULT 8,
     active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -20,6 +23,9 @@ CREATE TABLE IF NOT EXISTS public.dnd_players (
     username text NOT NULL,
     character_name text NOT NULL,
     character_class text NOT NULL,
+    token_x integer NOT NULL DEFAULT 1,
+    token_y integer NOT NULL DEFAULT 1,
+    token_color text NOT NULL DEFAULT '#7CFFB2',
     race text NOT NULL DEFAULT 'Mensch',
     level integer NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 20),
     max_hp integer NOT NULL DEFAULT 10 CHECK (max_hp BETWEEN 1 AND 999),
@@ -49,9 +55,27 @@ ADD COLUMN IF NOT EXISTS quest_log text NOT NULL DEFAULT '';
 ALTER TABLE public.dnd_lobbies
 ADD COLUMN IF NOT EXISTS dm_username text NOT NULL DEFAULT '';
 
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS map_image_url text NOT NULL DEFAULT '';
+
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS map_grid_width integer NOT NULL DEFAULT 12;
+
+ALTER TABLE public.dnd_lobbies
+ADD COLUMN IF NOT EXISTS map_grid_height integer NOT NULL DEFAULT 8;
+
 
 ALTER TABLE public.dnd_players
 ADD COLUMN IF NOT EXISTS race text NOT NULL DEFAULT 'Mensch';
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS token_x integer NOT NULL DEFAULT 1;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS token_y integer NOT NULL DEFAULT 1;
+
+ALTER TABLE public.dnd_players
+ADD COLUMN IF NOT EXISTS token_color text NOT NULL DEFAULT '#7CFFB2';
 
 ALTER TABLE public.dnd_players
 ADD COLUMN IF NOT EXISTS level integer NOT NULL DEFAULT 1;
@@ -112,6 +136,9 @@ CHECK (
     AND intelligence BETWEEN 1 AND 30
     AND wisdom BETWEEN 1 AND 30
     AND charisma BETWEEN 1 AND 30
+    AND token_x BETWEEN 1 AND 40
+    AND token_y BETWEEN 1 AND 30
+    AND token_color ~ '^#[0-9A-Fa-f]{6}$'
 );
 
 CREATE TABLE IF NOT EXISTS public.dnd_rolls (

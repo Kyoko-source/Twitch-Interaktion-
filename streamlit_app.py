@@ -1004,6 +1004,26 @@ def canvas_image_to_data_uri(image_data):
     return f"data:image/png;base64,{encoded}"
 
 
+def uploaded_image_to_data_uri(uploaded_file, max_size=(1600, 1200)):
+    if uploaded_file is None:
+        return ""
+
+    image = Image.open(uploaded_file)
+    image.thumbnail(max_size)
+    if image.mode not in ("RGB", "RGBA"):
+        image = image.convert("RGB")
+
+    buffer = io.BytesIO()
+    image_format = "PNG" if image.mode == "RGBA" else "JPEG"
+    save_kwargs = {"format": image_format}
+    if image_format == "JPEG":
+        save_kwargs["quality"] = 86
+    image.save(buffer, **save_kwargs)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    mime = "image/png" if image_format == "PNG" else "image/jpeg"
+    return f"data:{mime};base64,{encoded}"
+
+
 def create_creative_art(username, title, image_data_uri):
     username = username.strip()
     clean_title = title.strip()[:80]
@@ -1395,6 +1415,28 @@ def render_dnd_page():
                         else:
                             st.error("Szene konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
+                st.markdown("##### Spielbrett bearbeiten")
+                with st.form("dnd_map_form"):
+                    current_map_url = str(active_lobby.get("map_image_url") or "")
+                    map_url = st.text_input(
+                        "Battlemap Bild-URL",
+                        value=current_map_url if current_map_url.startswith(("http://", "https://")) else "",
+                        placeholder="https://... oder Bild hochladen",
+                    )
+                    uploaded_map = st.file_uploader("Bild hochladen", type=["png", "jpg", "jpeg", "webp"], key="dnd_map_upload")
+                    map_cols = st.columns(2)
+                    with map_cols[0]:
+                        grid_width = st.number_input("Grid Breite", min_value=4, max_value=40, value=int(active_lobby.get("map_grid_width") or 12), step=1)
+                    with map_cols[1]:
+                        grid_height = st.number_input("Grid Höhe", min_value=4, max_value=30, value=int(active_lobby.get("map_grid_height") or 8), step=1)
+                    if st.form_submit_button("Spielbrett speichern"):
+                        final_map_url = uploaded_image_to_data_uri(uploaded_map) if uploaded_map else map_url
+                        if update_dnd_lobby_map(active_lobby_id, final_map_url, grid_width, grid_height):
+                            st.success("Spielbrett aktualisiert.")
+                            st.rerun()
+                        else:
+                            st.error("Spielbrett konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
+
                 st.markdown("##### Kreatur erstellen")
                 with st.form("dnd_create_creature_form"):
                     creature_cols = st.columns([1.2, 1, 0.7, 0.7, 0.7])
@@ -1415,6 +1457,9 @@ def render_dnd_page():
                             st.rerun()
                         else:
                             st.error("Kreatur konnte nicht erstellt werden. Führe die aktualisierte add_dnd_tables.sql aus.")
+
+        st.markdown('<div class="dnd-section-title"><h3>Spielbrett</h3><span class="admin-muted">Tokens auf dem Raster platzieren</span></div>', unsafe_allow_html=True)
+        st.markdown(render_dnd_battlemap(active_lobby, players), unsafe_allow_html=True)
 
         party_html = ""
         for player in players:
@@ -1526,6 +1571,36 @@ def render_dnd_page():
 
         if current_player:
             st.markdown('<div class="dnd-section-title"><h3>Spieler Bereich</h3><span class="admin-muted">Charakterbogen und Proben</span></div>', unsafe_allow_html=True)
+            with st.expander("Figur auf dem Spielbrett platzieren", expanded=True):
+                grid_width = max(4, min(int(active_lobby.get("map_grid_width") or 12), 40))
+                grid_height = max(4, min(int(active_lobby.get("map_grid_height") or 8), 30))
+                with st.form("dnd_token_position_form"):
+                    token_cols = st.columns([1, 1, 0.8])
+                    with token_cols[0]:
+                        token_x = st.number_input(
+                            "X Feld",
+                            min_value=1,
+                            max_value=grid_width,
+                            value=max(1, min(int(current_player.get("token_x") or 1), grid_width)),
+                            step=1,
+                        )
+                    with token_cols[1]:
+                        token_y = st.number_input(
+                            "Y Feld",
+                            min_value=1,
+                            max_value=grid_height,
+                            value=max(1, min(int(current_player.get("token_y") or 1), grid_height)),
+                            step=1,
+                        )
+                    with token_cols[2]:
+                        token_color = st.color_picker("Token-Farbe", value=str(current_player.get("token_color") or "#7CFFB2"))
+                    if st.form_submit_button("Figur platzieren"):
+                        if update_dnd_player_token(current_player.get("id"), token_x, token_y, token_color):
+                            st.success("Figur platziert.")
+                            st.rerun()
+                        else:
+                            st.error("Figur konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
+
             with st.expander("Charakterbogen bearbeiten", expanded=False):
                 with st.form("dnd_character_sheet_form"):
                     sheet_top = st.columns([1.2, 1, 0.7, 0.7, 0.7, 0.7])
@@ -2148,13 +2223,19 @@ def get_dnd_dm_username(lobby):
 
 
 def create_dnd_player(lobby_id, username, character_name, character_class):
+    clean_username = str(username).strip()[:50]
+    color_seed = hashlib.sha256(clean_username.encode("utf-8")).hexdigest()
+    token_color = f"#{color_seed[:6]}"
     return api_post_optional(
         "dnd_players",
         {
             "lobby_id": int(lobby_id),
-            "username": str(username).strip()[:50],
+            "username": clean_username,
             "character_name": str(character_name).strip()[:80],
             "character_class": str(character_class).strip()[:40],
+            "token_x": 1,
+            "token_y": 1,
+            "token_color": token_color,
             "race": "Mensch",
             "level": 1,
             "max_hp": 10,
@@ -2194,6 +2275,9 @@ def create_dnd_lobby(name, description, owner, password, creator_role="dm", char
             "description": clean_description,
             "owner": clean_owner,
             "dm_username": clean_owner if creator_role == "dm" else "",
+            "map_image_url": "",
+            "map_grid_width": 12,
+            "map_grid_height": 8,
             "is_private": bool(clean_password),
             "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
             "active": True,
@@ -2232,6 +2316,23 @@ def update_dnd_lobby_notes(lobby_id, scene, quest_log):
         {
             "scene": str(scene).strip()[:1200],
             "quest_log": str(quest_log).strip()[:1200],
+        }
+    )
+    get_dnd_lobbies.clear()
+    return success
+
+
+def update_dnd_lobby_map(lobby_id, map_image_url, grid_width, grid_height):
+    clean_url = str(map_image_url or "").strip()
+    if clean_url and not clean_url.startswith(("http://", "https://", "data:image/")):
+        return False
+
+    success = api_patch(
+        f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}",
+        {
+            "map_image_url": clean_url[:500000],
+            "map_grid_width": max(4, min(int(grid_width), 40)),
+            "map_grid_height": max(4, min(int(grid_height), 30)),
         }
     )
     get_dnd_lobbies.clear()
@@ -2278,6 +2379,62 @@ def delete_dnd_creature(creature_id):
     )
     get_dnd_creatures.clear()
     return success
+
+
+def update_dnd_player_token(player_id, token_x, token_y, token_color):
+    clean_color = str(token_color or "#7CFFB2").strip()
+    if not re.match(r"^#[0-9a-fA-F]{6}$", clean_color):
+        clean_color = "#7CFFB2"
+
+    success = api_patch(
+        f"dnd_players?id=eq.{urllib.parse.quote(str(player_id))}",
+        {
+            "token_x": max(1, min(int(token_x), 40)),
+            "token_y": max(1, min(int(token_y), 30)),
+            "token_color": clean_color,
+        }
+    )
+    get_dnd_players.clear()
+    return success
+
+
+def render_dnd_battlemap(lobby, players):
+    grid_width = max(4, min(int(lobby.get("map_grid_width") or 12), 40))
+    grid_height = max(4, min(int(lobby.get("map_grid_height") or 8), 30))
+    map_image_url = str(lobby.get("map_image_url") or "").strip()
+    map_background = (
+        f'url("{html.escape(map_image_url, quote=True)}")'
+        if map_image_url
+        else "linear-gradient(135deg, rgba(22,31,44,0.92), rgba(48,30,57,0.90))"
+    )
+    tokens_html = ""
+    for player in players:
+        token_x = max(1, min(int(player.get("token_x") or 1), grid_width))
+        token_y = max(1, min(int(player.get("token_y") or 1), grid_height))
+        left = ((token_x - 0.5) / grid_width) * 100
+        top = ((token_y - 0.5) / grid_height) * 100
+        color = str(player.get("token_color") or "#7CFFB2")
+        if not re.match(r"^#[0-9a-fA-F]{6}$", color):
+            color = "#7CFFB2"
+        character_name = str(player.get("character_name") or player.get("username") or "?")
+        initials = "".join(part[:1] for part in character_name.split()[:2]).upper() or "?"
+        tokens_html += (
+            '<div class="dnd-map-token" '
+            f'style="left:{left:.3f}%;top:{top:.3f}%;--token-color:{html.escape(color)};" '
+            f'title="{html.escape(character_name, quote=True)}">'
+            f'<span>{html.escape(initials[:2])}</span>'
+            f'<small>{html.escape(character_name[:18])}</small>'
+            '</div>'
+        )
+
+    return (
+        '<div class="dnd-map-shell">'
+        '<div class="dnd-map-board" '
+        f'style="--grid-width:{grid_width};--grid-height:{grid_height};--map-bg:{map_background};">'
+        f'{tokens_html}'
+        '</div>'
+        '</div>'
+    )
 
 
 def join_dnd_lobby(lobby, username, character_name, character_class, password, requested_role="player"):
@@ -4999,6 +5156,85 @@ h1::after {
 .dnd-section-title h3 {
     margin: 0;
     color: #ffffff;
+}
+
+.dnd-map-shell {
+    margin: 12px 0 22px;
+    padding: 14px;
+    border-radius: 10px;
+    background:
+        linear-gradient(135deg, rgba(0,245,255,0.07), rgba(124,255,178,0.06)),
+        rgba(10,14,22,0.78);
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 22px 70px rgba(0,0,0,0.30);
+}
+
+.dnd-map-board {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: var(--grid-width) / var(--grid-height);
+    min-height: 360px;
+    border-radius: 8px;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.20) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.20) 1px, transparent 1px),
+        var(--map-bg);
+    background-size:
+        calc(100% / var(--grid-width)) calc(100% / var(--grid-height)),
+        calc(100% / var(--grid-width)) calc(100% / var(--grid-height)),
+        cover;
+    background-position:
+        0 0,
+        0 0,
+        center;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+.dnd-map-board::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 48%, rgba(0,0,0,0.24));
+    pointer-events: none;
+}
+
+.dnd-map-token {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: clamp(34px, calc(70vw / var(--grid-width)), 58px);
+    height: clamp(34px, calc(70vw / var(--grid-width)), 58px);
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: var(--token-color);
+    color: #061015;
+    border: 3px solid rgba(255,255,255,0.86);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.36);
+    font-weight: 950;
+}
+
+.dnd-map-token span {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.dnd-map-token small {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 5px);
+    transform: translateX(-50%);
+    max-width: 120px;
+    padding: 3px 6px;
+    border-radius: 999px;
+    color: #effcff;
+    background: rgba(6,10,16,0.84);
+    border: 1px solid rgba(255,255,255,0.18);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
 }
 
 .dnd-roll-card {
