@@ -8235,31 +8235,45 @@ elif menu == "🏛️ Hall of Fame":
 
 elif menu.endswith("Minispiele"):
 
-    if st.session_state.get("minigame_view") == "dnd":
-        if st.button("Zurück zu den Minispielen", key="back_to_minigames", use_container_width=True):
-            st.session_state["minigame_view"] = "overview"
-            st.rerun()
-        render_dnd_page()
-        st.stop()
-
     st.markdown('<div class="section-kicker">Arcade</div>', unsafe_allow_html=True)
-    st.markdown("## Chicken Jump")
+    st.markdown("## Minispiele")
     st.markdown("""
     <div class="arcade-grid">
         <div class="arcade-card">
-            <strong>Saison-Jagd</strong>
-            <span>Spiele um Tages-, Wochen- und All-Time-Platzierungen.</span>
+            <strong>Chicken Jump</strong>
+            <span>Springe über Zäune und jage Tages-, Wochen- und All-Time-Scores.</span>
         </div>
         <div class="arcade-card">
-            <strong>Skill statt Zufall</strong>
-            <span>Je länger du überlebst, desto schneller wird das Spiel.</span>
+            <strong>Chicken Snake</strong>
+            <span>Sammle Gehirnzellen, wachse weiter und halte die Combo am Leben.</span>
         </div>
         <div class="arcade-card">
-            <strong>Globales Scoreboard</strong>
-            <span>Gespeicherte Scores sind für alle Viewer sichtbar.</span>
+            <strong>Dungeons and Dragons</strong>
+            <span>Öffne Lobbys, würfle Proben und spiele Abenteuer mit der Party.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Dungeons and Dragons"]
+    minigame_keys = {
+        "Chicken Jump": "jump",
+        "Chicken Snake": "snake",
+        "Dungeons and Dragons": "dnd",
+    }
+    minigame_label_by_key = {value: key for key, value in minigame_keys.items()}
+    current_minigame = st.session_state.get("minigame_view", "jump")
+    if current_minigame not in minigame_label_by_key:
+        current_minigame = "jump"
+    selected_minigame_label = st.radio(
+        "Minispiel auswählen",
+        minigame_labels,
+        index=minigame_labels.index(minigame_label_by_key[current_minigame]),
+        horizontal=True,
+        label_visibility="collapsed",
+        key="minigame_selector",
+    )
+    selected_minigame = minigame_keys[selected_minigame_label]
+    st.session_state["minigame_view"] = selected_minigame
 
     chicken_theme_data_uri = ""
     chicken_theme_path = Path(__file__).parent / "assets" / "chicken_theme.mp3"
@@ -8269,1007 +8283,1010 @@ elif menu.endswith("Minispiele"):
             + base64.b64encode(chicken_theme_path.read_bytes()).decode("ascii")
         )
 
-    components.html("""
-    <html>
-    <head>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            min-height: 820px;
-            background:
-                radial-gradient(circle at 16% 10%, rgba(255, 214, 102, 0.16), transparent 24%),
-                radial-gradient(circle at 82% 16%, rgba(0, 245, 255, 0.18), transparent 24%),
-                radial-gradient(circle at 50% 86%, rgba(255, 84, 160, 0.16), transparent 32%),
-                linear-gradient(180deg, #050816 0%, #13091f 52%, #070711 100%);
-            color: white;
-            font-family: Inter, Segoe UI, Arial, sans-serif;
-            overflow: auto;
-        }
-        .shell { width: min(100%, 1080px); margin: 0 auto; padding: 16px; }
-        .game-panel {
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 24px;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035)),
-                rgba(5, 8, 16, 0.78);
-            box-shadow:
-                0 30px 90px rgba(0,0,0,0.48),
-                0 0 0 1px rgba(199,125,255,0.08) inset;
-        }
-        .game-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(90deg, rgba(255,255,255,0.08), transparent 20%, transparent 80%, rgba(255,255,255,0.05)),
-                radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16), transparent 38%);
-            z-index: 1;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            aspect-ratio: 16 / 8;
-            background: #081020;
-        }
-        .overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 22px;
-            background:
-                radial-gradient(circle at 50% 34%, rgba(255,214,102,0.14), transparent 26%),
-                linear-gradient(180deg, rgba(7,9,18,0.30), rgba(7,9,18,0.86));
-            z-index: 2;
-        }
-        .menu-card {
-            width: min(520px, 92%);
-            border: 1px solid rgba(255,255,255,0.16);
-            border-radius: 22px;
-            padding: 28px;
-            text-align: center;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045)),
-                rgba(12, 14, 24, 0.90);
-            box-shadow:
-                0 0 48px rgba(157,78,221,0.26),
-                0 24px 70px rgba(0,0,0,0.38);
-            backdrop-filter: blur(10px);
-        }
-        .menu-card h1 { margin: 0 0 8px; font-size: 46px; line-height: 1; }
-        .menu-card p { margin: 8px auto 18px; color: #d7c8ff; line-height: 1.45; }
-        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        button {
-            border: 0;
-            border-radius: 999px;
-            padding: 12px 18px;
-            color: #05050a;
-            cursor: pointer;
-            font-weight: 900;
-            background: linear-gradient(135deg, #c77dff, #00d4ff);
-            box-shadow: 0 12px 28px rgba(0,212,255,0.20);
-        }
-        button:hover { transform: translateY(-1px); filter: brightness(1.08); }
-        button.secondary {
-            color: #fff;
-            background: rgba(255,255,255,0.10);
-            border: 1px solid rgba(255,255,255,0.16);
-            box-shadow: none;
-        }
-        button.sound-toggle {
-            color: #fff;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.16);
-            box-shadow: none;
-        }
-        .menu-options {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-            margin: 16px 0 4px;
-        }
-        .menu-option {
-            min-height: 70px;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 14px;
-            padding: 10px;
-            background: rgba(255,255,255,0.06);
-            color: #fff;
-            box-shadow: none;
-        }
-        .menu-option strong {
-            display: block;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-        .menu-option span {
-            display: block;
-            color: #cfc6e8;
-            font-size: 12px;
-            font-weight: 800;
-        }
-        .menu-option.off {
-            opacity: 0.62;
-            background: rgba(255,255,255,0.035);
-        }
-        .menu-info {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-            margin-top: 14px;
-            text-align: left;
-        }
-        .menu-info div {
-            border-radius: 12px;
-            padding: 10px;
-            background: rgba(0,0,0,0.18);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .menu-info strong {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 12px;
-            color: #ffe66d;
-        }
-        .menu-info span {
-            color: #cfc6e8;
-            font-size: 12px;
-            font-weight: 750;
-            line-height: 1.35;
-        }
-        .hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-        .hud-card {
-            min-height: 74px;
-            padding: 13px 14px;
-            border: 1px solid rgba(255,255,255,0.11);
-            border-radius: 16px;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
-                rgba(255,255,255,0.045);
-            box-shadow: 0 16px 38px rgba(0,0,0,0.20);
-        }
-        .hud-card span {
-            display: block;
-            color: #aeb6d9;
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-        .hud-card strong { display: block; margin-top: 4px; font-size: 26px; }
-        .scores {
-            margin-top: 12px;
-            border: 1px solid rgba(199,125,255,0.20);
-            border-radius: 18px;
-            padding: 14px;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035)),
-                rgba(255,255,255,0.045);
-            overflow: hidden;
-        }
-        .scores h3 { margin: 0 0 10px; font-size: 18px; }
-        .score-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .score-tabs button {
-            padding: 8px 12px;
-            color: #fff;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.14);
-            box-shadow: none;
-        }
-        .score-tabs button.active {
-            color: #05050a;
-            background: linear-gradient(135deg, #c77dff, #00d4ff);
-        }
-        .scores ol {
-            margin: 0;
-            padding: 0;
-            color: #e9ddff;
-            list-style: none;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-        .scores li {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin: 7px 0;
-            padding: 9px 11px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.055);
-            border: 1px solid rgba(255,255,255,0.07);
-        }
-        .hint-strip {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 10px 0 0;
-            color: #aeb6d9;
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-        .hint-strip span {
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        @media (max-width: 720px) {
-            body { min-height: 900px; }
-            .hud { grid-template-columns: 1fr; }
-            .scores li { align-items: flex-start; flex-direction: column; }
-            .menu-card h1 { font-size: 34px; }
-            .menu-options,
-            .menu-info { grid-template-columns: 1fr; }
-        }
-    </style>
-    </head>
-    <body>
-    <div class="shell">
-        <audio id="bgMusic" src="__CHICKEN_THEME_SRC__" loop preload="auto"></audio>
-        <div class="game-panel">
-            <canvas id="game" width="1000" height="500"></canvas>
-            <div id="overlay" class="overlay">
-                <div class="menu-card">
-                    <h1 id="menuTitle">Chicken Jump</h1>
-                    <p id="menuText">Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.</p>
-                    <div class="actions">
-                        <button id="startBtn">Spiel starten</button>
-                        <button id="scoreBtn" class="secondary">Score speichern</button>
-                    </div>
-                    <div class="menu-options">
-                        <button id="soundBtn" class="menu-option"><strong>Sound</strong><span>An</span></button>
-                        <button id="musicBtn" class="menu-option"><strong>Musik</strong><span>Cozy Loop</span></button>
-                        <button id="sfxBtn" class="menu-option"><strong>SFX</strong><span>Plings</span></button>
-                    </div>
-                    <div class="menu-info">
-                        <div><strong>Steuerung</strong><span>Space, Enter oder Klick.</span></div>
-                        <div><strong>Musik</strong><span>Startet erst nach Spielstart.</span></div>
-                        <div><strong>Ziel</strong><span>Timing halten, Zäune überspringen.</span></div>
+    if selected_minigame == "dnd":
+        render_dnd_page()
+        st.stop()
+
+    if selected_minigame == "jump":
+        st.markdown("## Chicken Jump")
+
+        components.html("""
+        <html>
+        <head>
+        <style>
+            * { box-sizing: border-box; }
+            body {
+                margin: 0;
+                min-height: 820px;
+                background:
+                    radial-gradient(circle at 16% 10%, rgba(255, 214, 102, 0.16), transparent 24%),
+                    radial-gradient(circle at 82% 16%, rgba(0, 245, 255, 0.18), transparent 24%),
+                    radial-gradient(circle at 50% 86%, rgba(255, 84, 160, 0.16), transparent 32%),
+                    linear-gradient(180deg, #050816 0%, #13091f 52%, #070711 100%);
+                color: white;
+                font-family: Inter, Segoe UI, Arial, sans-serif;
+                overflow: auto;
+            }
+            .shell { width: min(100%, 1080px); margin: 0 auto; padding: 16px; }
+            .game-panel {
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(255,255,255,0.16);
+                border-radius: 24px;
+                background:
+                    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035)),
+                    rgba(5, 8, 16, 0.78);
+                box-shadow:
+                    0 30px 90px rgba(0,0,0,0.48),
+                    0 0 0 1px rgba(199,125,255,0.08) inset;
+            }
+            .game-panel::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background:
+                    linear-gradient(90deg, rgba(255,255,255,0.08), transparent 20%, transparent 80%, rgba(255,255,255,0.05)),
+                    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16), transparent 38%);
+                z-index: 1;
+            }
+            canvas {
+                display: block;
+                width: 100%;
+                aspect-ratio: 16 / 8;
+                background: #081020;
+            }
+            .overlay {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 22px;
+                background:
+                    radial-gradient(circle at 50% 34%, rgba(255,214,102,0.14), transparent 26%),
+                    linear-gradient(180deg, rgba(7,9,18,0.30), rgba(7,9,18,0.86));
+                z-index: 2;
+            }
+            .menu-card {
+                width: min(520px, 92%);
+                border: 1px solid rgba(255,255,255,0.16);
+                border-radius: 22px;
+                padding: 28px;
+                text-align: center;
+                background:
+                    linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045)),
+                    rgba(12, 14, 24, 0.90);
+                box-shadow:
+                    0 0 48px rgba(157,78,221,0.26),
+                    0 24px 70px rgba(0,0,0,0.38);
+                backdrop-filter: blur(10px);
+            }
+            .menu-card h1 { margin: 0 0 8px; font-size: 46px; line-height: 1; }
+            .menu-card p { margin: 8px auto 18px; color: #d7c8ff; line-height: 1.45; }
+            .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+            button {
+                border: 0;
+                border-radius: 999px;
+                padding: 12px 18px;
+                color: #05050a;
+                cursor: pointer;
+                font-weight: 900;
+                background: linear-gradient(135deg, #c77dff, #00d4ff);
+                box-shadow: 0 12px 28px rgba(0,212,255,0.20);
+            }
+            button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+            button.secondary {
+                color: #fff;
+                background: rgba(255,255,255,0.10);
+                border: 1px solid rgba(255,255,255,0.16);
+                box-shadow: none;
+            }
+            button.sound-toggle {
+                color: #fff;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.16);
+                box-shadow: none;
+            }
+            .menu-options {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+                margin: 16px 0 4px;
+            }
+            .menu-option {
+                min-height: 70px;
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 14px;
+                padding: 10px;
+                background: rgba(255,255,255,0.06);
+                color: #fff;
+                box-shadow: none;
+            }
+            .menu-option strong {
+                display: block;
+                font-size: 13px;
+                margin-bottom: 4px;
+            }
+            .menu-option span {
+                display: block;
+                color: #cfc6e8;
+                font-size: 12px;
+                font-weight: 800;
+            }
+            .menu-option.off {
+                opacity: 0.62;
+                background: rgba(255,255,255,0.035);
+            }
+            .menu-info {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+                margin-top: 14px;
+                text-align: left;
+            }
+            .menu-info div {
+                border-radius: 12px;
+                padding: 10px;
+                background: rgba(0,0,0,0.18);
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            .menu-info strong {
+                display: block;
+                margin-bottom: 4px;
+                font-size: 12px;
+                color: #ffe66d;
+            }
+            .menu-info span {
+                color: #cfc6e8;
+                font-size: 12px;
+                font-weight: 750;
+                line-height: 1.35;
+            }
+            .hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+            .hud-card {
+                min-height: 74px;
+                padding: 13px 14px;
+                border: 1px solid rgba(255,255,255,0.11);
+                border-radius: 16px;
+                background:
+                    linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+                    rgba(255,255,255,0.045);
+                box-shadow: 0 16px 38px rgba(0,0,0,0.20);
+            }
+            .hud-card span {
+                display: block;
+                color: #aeb6d9;
+                font-size: 12px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .hud-card strong { display: block; margin-top: 4px; font-size: 26px; }
+            .scores {
+                margin-top: 12px;
+                border: 1px solid rgba(199,125,255,0.20);
+                border-radius: 18px;
+                padding: 14px;
+                background:
+                    linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035)),
+                    rgba(255,255,255,0.045);
+                overflow: hidden;
+            }
+            .scores h3 { margin: 0 0 10px; font-size: 18px; }
+            .score-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+            .score-tabs button {
+                padding: 8px 12px;
+                color: #fff;
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.14);
+                box-shadow: none;
+            }
+            .score-tabs button.active {
+                color: #05050a;
+                background: linear-gradient(135deg, #c77dff, #00d4ff);
+            }
+            .scores ol {
+                margin: 0;
+                padding: 0;
+                color: #e9ddff;
+                list-style: none;
+                max-height: 220px;
+                overflow-y: auto;
+            }
+            .scores li {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin: 7px 0;
+                padding: 9px 11px;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.055);
+                border: 1px solid rgba(255,255,255,0.07);
+            }
+            .hint-strip {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                margin: 10px 0 0;
+                color: #aeb6d9;
+                font-size: 12px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .hint-strip span {
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            @media (max-width: 720px) {
+                body { min-height: 900px; }
+                .hud { grid-template-columns: 1fr; }
+                .scores li { align-items: flex-start; flex-direction: column; }
+                .menu-card h1 { font-size: 34px; }
+                .menu-options,
+                .menu-info { grid-template-columns: 1fr; }
+            }
+        </style>
+        </head>
+        <body>
+        <div class="shell">
+            <audio id="bgMusic" src="__CHICKEN_THEME_SRC__" loop preload="auto"></audio>
+            <div class="game-panel">
+                <canvas id="game" width="1000" height="500"></canvas>
+                <div id="overlay" class="overlay">
+                    <div class="menu-card">
+                        <h1 id="menuTitle">Chicken Jump</h1>
+                        <p id="menuText">Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.</p>
+                        <div class="actions">
+                            <button id="startBtn">Spiel starten</button>
+                            <button id="scoreBtn" class="secondary">Score speichern</button>
+                        </div>
+                        <div class="menu-options">
+                            <button id="soundBtn" class="menu-option"><strong>Sound</strong><span>An</span></button>
+                            <button id="musicBtn" class="menu-option"><strong>Musik</strong><span>Cozy Loop</span></button>
+                            <button id="sfxBtn" class="menu-option"><strong>SFX</strong><span>Plings</span></button>
+                        </div>
+                        <div class="menu-info">
+                            <div><strong>Steuerung</strong><span>Space, Enter oder Klick.</span></div>
+                            <div><strong>Musik</strong><span>Startet erst nach Spielstart.</span></div>
+                            <div><strong>Ziel</strong><span>Timing halten, Zäune überspringen.</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="hud">
-            <div class="hud-card"><span>Score</span><strong id="scoreValue">0</strong></div>
-            <div class="hud-card"><span>Tempo</span><strong id="speedValue">1.0x</strong></div>
-            <div class="hud-card"><span>Level</span><strong id="levelValue">1</strong></div>
-        </div>
-        <div class="hint-strip"><span>Space / Klick zum Springen</span><span>Timing ist alles</span></div>
-
-        <div class="scores">
-            <h3>Scoreboard</h3>
-            <div class="score-tabs">
-                <button class="active" data-score-filter="all">All-Time</button>
-                <button data-score-filter="week">Diese Woche</button>
-                <button data-score-filter="today">Heute</button>
+            <div class="hud">
+                <div class="hud-card"><span>Score</span><strong id="scoreValue">0</strong></div>
+                <div class="hud-card"><span>Tempo</span><strong id="speedValue">1.0x</strong></div>
+                <div class="hud-card"><span>Level</span><strong id="levelValue">1</strong></div>
             </div>
-            <ol id="scores"></ol>
+            <div class="hint-strip"><span>Space / Klick zum Springen</span><span>Timing ist alles</span></div>
+
+            <div class="scores">
+                <h3>Scoreboard</h3>
+                <div class="score-tabs">
+                    <button class="active" data-score-filter="all">All-Time</button>
+                    <button data-score-filter="week">Diese Woche</button>
+                    <button data-score-filter="today">Heute</button>
+                </div>
+                <ol id="scores"></ol>
+            </div>
         </div>
-    </div>
 
-    <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    const overlay = document.getElementById("overlay");
-    const menuTitle = document.getElementById("menuTitle");
-    const menuText = document.getElementById("menuText");
-    const startBtn = document.getElementById("startBtn");
-    const scoreBtn = document.getElementById("scoreBtn");
-    const soundBtn = document.getElementById("soundBtn");
-    const musicBtn = document.getElementById("musicBtn");
-    const sfxBtn = document.getElementById("sfxBtn");
-    const scoreValue = document.getElementById("scoreValue");
-    const speedValue = document.getElementById("speedValue");
-    const levelValue = document.getElementById("levelValue");
-    const bgMusic = document.getElementById("bgMusic");
-    const SUPABASE_URL = "__SUPABASE_URL__";
-    const SUPABASE_KEY = "__SUPABASE_KEY__";
-    const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_scores";
+        <script>
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        const overlay = document.getElementById("overlay");
+        const menuTitle = document.getElementById("menuTitle");
+        const menuText = document.getElementById("menuText");
+        const startBtn = document.getElementById("startBtn");
+        const scoreBtn = document.getElementById("scoreBtn");
+        const soundBtn = document.getElementById("soundBtn");
+        const musicBtn = document.getElementById("musicBtn");
+        const sfxBtn = document.getElementById("sfxBtn");
+        const scoreValue = document.getElementById("scoreValue");
+        const speedValue = document.getElementById("speedValue");
+        const levelValue = document.getElementById("levelValue");
+        const bgMusic = document.getElementById("bgMusic");
+        const SUPABASE_URL = "__SUPABASE_URL__";
+        const SUPABASE_KEY = "__SUPABASE_KEY__";
+        const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_scores";
 
-    let chicken = { x: 120, y: 338, w: 54, h: 46, vy: 0, jumping: false };
-    const groundY = 390;
-    let gravity = 0.82;
-    let fences = [];
-    let clouds = [];
-    let particles = [];
-    let scorePops = [];
-    const START_SPEED = 4.35;
-    const MAX_SPEED = 10.4;
-    let speed = START_SPEED;
-    let score = 0;
-    let level = 1;
-    let state = "menu";
-    let frame = 0;
-    let savedCurrentScore = false;
-    let currentScoreFilter = "all";
-    let jumpHeld = false;
-    let jumpHoldFrames = 0;
-    let audioCtx = null;
-    let musicTimer = null;
-    let musicStep = 0;
-    let soundEnabled = true;
-    let musicEnabled = true;
-    let sfxEnabled = true;
-    const melody = [
-        {note: 659.25, bass: 164.81},
-        {note: 783.99, bass: 164.81},
-        {note: 880.00, bass: 220.00},
-        {note: 783.99, bass: 220.00},
-        {note: 659.25, bass: 196.00},
-        {note: 587.33, bass: 196.00},
-        {note: 659.25, bass: 246.94},
-        {note: 493.88, bass: 246.94}
-    ];
+        let chicken = { x: 120, y: 338, w: 54, h: 46, vy: 0, jumping: false };
+        const groundY = 390;
+        let gravity = 0.82;
+        let fences = [];
+        let clouds = [];
+        let particles = [];
+        let scorePops = [];
+        const START_SPEED = 4.35;
+        const MAX_SPEED = 10.4;
+        let speed = START_SPEED;
+        let score = 0;
+        let level = 1;
+        let state = "menu";
+        let frame = 0;
+        let savedCurrentScore = false;
+        let currentScoreFilter = "all";
+        let jumpHeld = false;
+        let jumpHoldFrames = 0;
+        let audioCtx = null;
+        let musicTimer = null;
+        let musicStep = 0;
+        let soundEnabled = true;
+        let musicEnabled = true;
+        let sfxEnabled = true;
+        const melody = [
+            {note: 659.25, bass: 164.81},
+            {note: 783.99, bass: 164.81},
+            {note: 880.00, bass: 220.00},
+            {note: 783.99, bass: 220.00},
+            {note: 659.25, bass: 196.00},
+            {note: 587.33, bass: 196.00},
+            {note: 659.25, bass: 246.94},
+            {note: 493.88, bass: 246.94}
+        ];
 
-    function ensureAudio() {
-        if (!soundEnabled) return null;
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        return audioCtx;
-    }
-
-    function playTone(freq, duration, type, volume, when = 0, pan = 0) {
-        const ctxAudio = ensureAudio();
-        if (!ctxAudio) return;
-        const start = ctxAudio.currentTime + when;
-        const osc = ctxAudio.createOscillator();
-        const gain = ctxAudio.createGain();
-        const panner = ctxAudio.createStereoPanner ? ctxAudio.createStereoPanner() : null;
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(volume, start + 0.018);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-        if (panner) {
-            panner.pan.setValueAtTime(pan, start);
-            osc.connect(gain).connect(panner).connect(ctxAudio.destination);
-        } else {
-            osc.connect(gain).connect(ctxAudio.destination);
-        }
-        osc.start(start);
-        osc.stop(start + duration + 0.04);
-    }
-
-    function playNoise(duration, volume) {
-        const ctxAudio = ensureAudio();
-        if (!ctxAudio) return;
-        const buffer = ctxAudio.createBuffer(1, ctxAudio.sampleRate * duration, ctxAudio.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < data.length; i++) {
-            data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-        }
-        const source = ctxAudio.createBufferSource();
-        const gain = ctxAudio.createGain();
-        source.buffer = buffer;
-        gain.gain.setValueAtTime(volume, ctxAudio.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctxAudio.currentTime + duration);
-        source.connect(gain).connect(ctxAudio.destination);
-        source.start();
-    }
-
-    function playJumpSound() {
-        if (!sfxEnabled) return;
-        playTone(520, 0.09, "triangle", 0.08, 0, -0.15);
-        playTone(760, 0.13, "sine", 0.055, 0.035, 0.12);
-    }
-
-    function playScoreSound() {
-        if (!sfxEnabled) return;
-        playTone(880, 0.08, "sine", 0.08, 0, -0.1);
-        playTone(1174.66, 0.12, "sine", 0.07, 0.065, 0.15);
-    }
-
-    function playCrashSound() {
-        if (!sfxEnabled) return;
-        playTone(180, 0.18, "sawtooth", 0.08, 0, 0);
-        playNoise(0.18, 0.05);
-    }
-
-    function playButtonSound() {
-        if (!sfxEnabled) return;
-        playTone(659.25, 0.06, "triangle", 0.055);
-    }
-
-    function musicTick() {
-        if (!soundEnabled || !musicEnabled || state !== "playing") return;
-        const step = melody[musicStep % melody.length];
-        const lift = Math.min(level - 1, 8) * 8;
-        playTone(step.bass, 0.22, "sine", 0.032, 0, -0.25);
-        playTone(step.note + lift, 0.18, "triangle", 0.035, 0.02, 0.18);
-        if (musicStep % 2 === 0) playTone(step.note * 1.5 + lift, 0.10, "sine", 0.018, 0.09, 0.35);
-        musicStep++;
-    }
-
-    function startMusic() {
-        if (!soundEnabled || !musicEnabled) return;
-        ensureAudio();
-        stopMusic();
-        if (bgMusic && bgMusic.getAttribute("src")) {
-            bgMusic.volume = 0.34;
-            bgMusic.currentTime = 0;
-            bgMusic.play().catch(() => {});
-            return;
-        }
-        musicStep = 0;
-        musicTick();
-        musicTimer = setInterval(musicTick, 360);
-    }
-
-    function stopMusic() {
-        if (musicTimer) clearInterval(musicTimer);
-        musicTimer = null;
-        if (bgMusic) {
-            bgMusic.pause();
-            bgMusic.currentTime = 0;
-        }
-    }
-
-    function updateSoundButton() {
-        soundBtn.querySelector("span").textContent = soundEnabled ? "An" : "Aus";
-        musicBtn.querySelector("span").textContent = musicEnabled ? "MP3 Loop" : "Aus";
-        sfxBtn.querySelector("span").textContent = sfxEnabled ? "Plings" : "Aus";
-        soundBtn.classList.toggle("off", !soundEnabled);
-        musicBtn.classList.toggle("off", !musicEnabled || !soundEnabled);
-        sfxBtn.classList.toggle("off", !sfxEnabled || !soundEnabled);
-    }
-
-    function showMenu(title, text, primaryText) {
-        menuTitle.textContent = title;
-        menuText.textContent = text;
-        startBtn.textContent = primaryText;
-        scoreBtn.style.display = state === "gameover" && score > 0 && !savedCurrentScore ? "inline-block" : "none";
-        overlay.style.display = "flex";
-    }
-
-    function hideMenu() {
-        overlay.style.display = "none";
-    }
-
-    function jump() {
-        if (state === "menu") {
-            startGame();
-            return;
-        }
-        if (state === "gameover") return;
-        if (!chicken.jumping) {
-            playJumpSound();
-            chicken.vy = -12.8;
-            chicken.jumping = true;
-            jumpHoldFrames = 0;
-            for (let i = 0; i < 10; i++) {
-                particles.push({
-                    x: chicken.x + 12 + Math.random() * 18,
-                    y: groundY - 10 + Math.random() * 8,
-                    vx: -1.5 - Math.random() * 2.2,
-                    vy: -0.8 - Math.random() * 1.8,
-                    r: 2 + Math.random() * 3,
-                    color: Math.random() > 0.5 ? "255, 230, 109" : "0, 212, 255",
-                    life: 18 + Math.random() * 10,
-                    maxLife: 28
-                });
+        function ensureAudio() {
+            if (!soundEnabled) return null;
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }
-    }
-
-    startBtn.addEventListener("click", function() {
-        playButtonSound();
-        startGame();
-    });
-    scoreBtn.addEventListener("click", saveScore);
-    soundBtn.addEventListener("click", function() {
-        soundEnabled = !soundEnabled;
-        if (!soundEnabled) stopMusic();
-        else if (state === "playing") startMusic();
-        updateSoundButton();
-        playButtonSound();
-    });
-    musicBtn.addEventListener("click", function() {
-        musicEnabled = !musicEnabled;
-        if (!musicEnabled) stopMusic();
-        else if (state === "playing") startMusic();
-        playButtonSound();
-        updateSoundButton();
-    });
-    sfxBtn.addEventListener("click", function() {
-        sfxEnabled = !sfxEnabled;
-        playButtonSound();
-        updateSoundButton();
-    });
-    canvas.addEventListener("pointerdown", function() {
-        jumpHeld = true;
-        jump();
-    });
-    canvas.addEventListener("pointerup", function() {
-        jumpHeld = false;
-    });
-    canvas.addEventListener("pointerleave", function() {
-        jumpHeld = false;
-    });
-    document.querySelectorAll("[data-score-filter]").forEach(button => {
-        button.addEventListener("click", async function() {
-            currentScoreFilter = this.dataset.scoreFilter;
-            document.querySelectorAll("[data-score-filter]").forEach(item => item.classList.remove("active"));
-            this.classList.add("active");
-            await renderScores();
-        });
-    });
-    document.addEventListener("keydown", function(e) {
-        if (e.code === "Space") {
-            e.preventDefault();
-            jumpHeld = true;
-            if (!e.repeat) jump();
-        } else if (e.code === "Enter" && state !== "playing") {
-            startGame();
-        }
-    });
-    document.addEventListener("keyup", function(e) {
-        if (e.code === "Space") jumpHeld = false;
-    });
-
-    function spawnFence() {
-        const earlyGame = score < 6;
-        const midGame = score < 16;
-        const height = earlyGame
-            ? 34 + Math.random() * 16
-            : midGame
-                ? 42 + Math.random() * 22
-                : 48 + Math.random() * 30;
-        fences.push({
-            x: canvas.width + 40,
-            y: groundY - height,
-            w: earlyGame ? 24 + Math.random() * 9 : 30 + Math.random() * 14,
-            h: height,
-            passed: false
-        });
-    }
-
-    function getSpawnInterval() {
-        const baseInterval = 166 - score * 1.45 - speed * 3.2;
-        return Math.max(72, Math.floor(baseInterval));
-    }
-
-    function spawnCloud() {
-        clouds.push({
-            x: canvas.width + 90,
-            y: 45 + Math.random() * 120,
-            w: 80 + Math.random() * 90,
-            speed: 0.45 + Math.random() * 0.55
-        });
-    }
-
-    function roundedRect(x, y, w, h, r) {
-        r = Math.max(0, Math.min(r, w / 2, h / 2));
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.fill();
-    }
-
-    function drawBackground() {
-        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        sky.addColorStop(0, "#071a33");
-        sky.addColorStop(0.42, "#17113a");
-        sky.addColorStop(0.74, "#321145");
-        sky.addColorStop(1, "#190b24");
-        ctx.fillStyle = sky;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const moon = ctx.createRadialGradient(810, 86, 4, 810, 86, 86);
-        moon.addColorStop(0, "rgba(255, 245, 204, 0.92)");
-        moon.addColorStop(0.22, "rgba(255, 245, 204, 0.42)");
-        moon.addColorStop(1, "rgba(255, 245, 204, 0)");
-        ctx.fillStyle = moon;
-        ctx.beginPath();
-        ctx.arc(810, 86, 86, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        for (let i = 0; i < 42; i++) {
-            const x = (i * 137 + frame * 0.18) % canvas.width;
-            const y = 18 + (i * 53) % 190;
-            ctx.fillRect(x, y, 2, 2);
+            if (audioCtx.state === "suspended") audioCtx.resume();
+            return audioCtx;
         }
 
-        drawHills(0.20, 318, "#1f2555", 58);
-        drawHills(0.38, 350, "#251346", 78);
-        drawHills(0.62, 378, "#32163c", 54);
-
-        if (frame % 180 === 0) spawnCloud();
-        clouds.forEach(c => {
-            c.x -= c.speed;
-            ctx.fillStyle = "rgba(255,255,255,0.15)";
-            roundedRect(c.x, c.y, c.w, 22, 999);
-            roundedRect(c.x + c.w * 0.18, c.y - 12, c.w * 0.45, 28, 999);
-            roundedRect(c.x + c.w * 0.52, c.y - 6, c.w * 0.35, 22, 999);
-        });
-        clouds = clouds.filter(c => c.x + c.w > -120);
-    }
-
-    function drawHills(rate, baseY, color, height) {
-        const offset = (frame * speed * rate) % 260;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(-260 - offset, canvas.height);
-        for (let x = -260 - offset; x <= canvas.width + 260; x += 130) {
-            ctx.quadraticCurveTo(x + 65, baseY - height, x + 130, baseY);
-        }
-        ctx.lineTo(canvas.width + 260, canvas.height);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    function drawGround() {
-        const ground = ctx.createLinearGradient(0, groundY, 0, canvas.height);
-        ground.addColorStop(0, "#3a1e52");
-        ground.addColorStop(0.45, "#22122f");
-        ground.addColorStop(1, "#110713");
-        ctx.fillStyle = ground;
-        ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-
-        ctx.fillStyle = "rgba(124,255,178,0.34)";
-        for (let i = 0; i < canvas.width + 80; i += 20) {
-            const x = i - (frame * speed * 0.65 % 20);
-            ctx.fillRect(x, groundY - 7, 3, 12);
-        }
-
-        ctx.fillStyle = "#00d4ff";
-        for (let i = 0; i < canvas.width + 60; i += 44) {
-            roundedRect(i - (frame * speed % 44), groundY + 12, 22, 4, 4);
-        }
-
-        ctx.fillStyle = "rgba(255,255,255,0.08)";
-        for (let i = 0; i < canvas.width + 120; i += 86) {
-            roundedRect(i - (frame * speed * 1.4 % 86), groundY + 58, 44, 5, 5);
-        }
-    }
-
-    function drawChicken() {
-        const bob = Math.sin(frame / 8) * 2;
-        ctx.save();
-        ctx.translate(chicken.x, chicken.y + bob);
-        ctx.fillStyle = "rgba(0,0,0,0.25)";
-        ctx.beginPath();
-        ctx.ellipse(28, 54, 30, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        ctx.beginPath();
-        ctx.ellipse(24, 29, 22, 17, -0.45, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffd43b";
-        roundedRect(0, 5, chicken.w, chicken.h, 14);
-        ctx.fillStyle = "#ffe66d";
-        roundedRect(16, -8, 32, 30, 14);
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
-        roundedRect(18, 2, 16, 8, 8);
-        ctx.fillStyle = "#ff922b";
-        ctx.beginPath();
-        ctx.moveTo(48, 4);
-        ctx.lineTo(68, 13);
-        ctx.lineTo(48, 21);
-        ctx.fill();
-        ctx.fillStyle = "#080808";
-        ctx.beginPath();
-        ctx.arc(39, 2, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(40, 0, 1.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ff6b6b";
-        roundedRect(18, -18, 20, 12, 5);
-        ctx.fillStyle = "#f03e3e";
-        roundedRect(25, -24, 12, 10, 6);
-        ctx.strokeStyle = "#ff922b";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        const legSwing = chicken.jumping ? 0 : Math.sin(frame / 5) * 4;
-        ctx.moveTo(17, 47);
-        ctx.lineTo(13 + legSwing, 58);
-        ctx.moveTo(38, 47);
-        ctx.lineTo(42 - legSwing, 58);
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    function drawFence(fence) {
-        const wood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
-        wood.addColorStop(0, "#c88742");
-        wood.addColorStop(0.45, "#9a5a28");
-        wood.addColorStop(1, "#5d341c");
-        const railWood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + 18);
-        railWood.addColorStop(0, "#d69a55");
-        railWood.addColorStop(1, "#7a421f");
-        ctx.shadowColor = "rgba(0,0,0,0.34)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 4;
-        ctx.fillStyle = wood;
-        roundedRect(fence.x, fence.y, fence.w, fence.h, 5);
-        ctx.fillStyle = railWood;
-        roundedRect(fence.x - 13, fence.y + fence.h * 0.25, fence.w + 26, 9, 4);
-        roundedRect(fence.x - 13, fence.y + fence.h * 0.62, fence.w + 26, 9, 4);
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
-        ctx.fillStyle = "rgba(255,230,180,0.28)";
-        roundedRect(fence.x + 5, fence.y + 8, Math.max(4, fence.w * 0.18), fence.h - 16, 4);
-        ctx.fillStyle = "rgba(58,31,14,0.46)";
-        for (let i = 0; i < 3; i++) {
-            const grainY = fence.y + 12 + i * (fence.h - 24) / 3;
-            roundedRect(fence.x + fence.w * 0.45, grainY, Math.max(5, fence.w * 0.34), 2, 2);
-        }
-        ctx.fillStyle = "#3d210f";
-        ctx.beginPath();
-        ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.18, 2.5, 0, Math.PI * 2);
-        ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.78, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    function collision(a, b) {
-        const body = {x: a.x + 6, y: a.y + 4, w: a.w - 10, h: a.h - 2};
-        return (
-            body.x < b.x + b.w &&
-            body.x + body.w > b.x &&
-            body.y < b.y + b.h &&
-            body.y + body.h > b.y
-        );
-    }
-
-    function drawParticles() {
-        particles.forEach(p => {
-            p.life -= 1;
-            p.x += (p.vx || -speed * 0.25);
-            p.y += (p.vy || 0.4);
-            p.vy = (p.vy || 0) + 0.08;
-            const alpha = Math.max(p.life / (p.maxLife || 18), 0);
-            ctx.fillStyle = "rgba(" + (p.color || "255, 230, 109") + "," + alpha + ")";
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r || 3, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        particles = particles.filter(p => p.life > 0);
-
-        scorePops.forEach(pop => {
-            pop.life -= 1;
-            pop.y -= 0.8;
-            ctx.fillStyle = "rgba(255, 230, 109," + Math.max(pop.life / 34, 0) + ")";
-            ctx.font = "900 22px Inter, Arial";
-            ctx.fillText("+1", pop.x, pop.y);
-        });
-        scorePops = scorePops.filter(pop => pop.life > 0);
-    }
-
-    function drawUI() {
-        scoreValue.textContent = score;
-        speedValue.textContent = (speed / START_SPEED).toFixed(1) + "x";
-        levelValue.textContent = level;
-    }
-
-    function startGame() {
-        ensureAudio();
-        chicken.y = groundY - chicken.h - 6;
-        chicken.vy = 0;
-        chicken.jumping = false;
-        jumpHeld = false;
-        jumpHoldFrames = 0;
-        fences = [];
-        particles = [];
-        scorePops = [];
-        speed = START_SPEED;
-        score = 0;
-        level = 1;
-        frame = 0;
-        savedCurrentScore = false;
-        state = "playing";
-        hideMenu();
-        startMusic();
-    }
-
-    function endGame() {
-        state = "gameover";
-        stopMusic();
-        playCrashSound();
-        showMenu("Game Over", "Score: " + score + " | Level: " + level, "Nochmal spielen");
-    }
-
-    async function saveScore() {
-        if (savedCurrentScore || score <= 0) return;
-        let name = prompt("Dein Twitch-Name für das Scoreboard:");
-        if (!name) return;
-        name = name.trim().slice(0, 50);
-        if (!name) return;
-
-        try {
-            const response = await fetch(SCOREBOARD_ENDPOINT, {
-                method: "POST",
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": "Bearer " + SUPABASE_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal"
-                },
-                body: JSON.stringify({
-                    username: name,
-                    score: score,
-                    level: level
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || ("HTTP " + response.status));
+        function playTone(freq, duration, type, volume, when = 0, pan = 0) {
+            const ctxAudio = ensureAudio();
+            if (!ctxAudio) return;
+            const start = ctxAudio.currentTime + when;
+            const osc = ctxAudio.createOscillator();
+            const gain = ctxAudio.createGain();
+            const panner = ctxAudio.createStereoPanner ? ctxAudio.createStereoPanner() : null;
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(volume, start + 0.018);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+            if (panner) {
+                panner.pan.setValueAtTime(pan, start);
+                osc.connect(gain).connect(panner).connect(ctxAudio.destination);
+            } else {
+                osc.connect(gain).connect(ctxAudio.destination);
             }
-
-            savedCurrentScore = true;
-            await renderScores();
-            showMenu("Score gespeichert", "Dein Score ist jetzt für alle sichtbar.", "Nochmal spielen");
-        } catch (error) {
-            console.error(error);
-            const message = String(error && error.message ? error.message : error).slice(0, 240);
-            showMenu("Speichern fehlgeschlagen", message || "Supabase hat den Score abgelehnt.", "Nochmal spielen");
+            osc.start(start);
+            osc.stop(start + duration + 0.04);
         }
-    }
 
-    function escapeHtml(value) {
-        const div = document.createElement("div");
-        div.textContent = value;
-        return div.innerHTML;
-    }
-
-    async function renderScores() {
-        let box = document.getElementById("scores");
-        box.innerHTML = "<li>Lade globale Scores...</li>";
-
-        try {
-            let query = "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=100";
-            if (currentScoreFilter !== "all") {
-                const now = new Date();
-                const from = new Date(now);
-                if (currentScoreFilter === "today") {
-                    from.setHours(0, 0, 0, 0);
-                } else {
-                    from.setDate(now.getDate() - 7);
-                }
-                query += "&created_at=gte." + encodeURIComponent(from.toISOString());
+        function playNoise(duration, volume) {
+            const ctxAudio = ensureAudio();
+            if (!ctxAudio) return;
+            const buffer = ctxAudio.createBuffer(1, ctxAudio.sampleRate * duration, ctxAudio.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
             }
+            const source = ctxAudio.createBufferSource();
+            const gain = ctxAudio.createGain();
+            source.buffer = buffer;
+            gain.gain.setValueAtTime(volume, ctxAudio.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctxAudio.currentTime + duration);
+            source.connect(gain).connect(ctxAudio.destination);
+            source.start();
+        }
 
-            const response = await fetch(
-                SCOREBOARD_ENDPOINT + query,
-                {
-                    headers: {
-                        "apikey": SUPABASE_KEY,
-                        "Authorization": "Bearer " + SUPABASE_KEY
-                    }
-                }
-            );
+        function playJumpSound() {
+            if (!sfxEnabled) return;
+            playTone(520, 0.09, "triangle", 0.08, 0, -0.15);
+            playTone(760, 0.13, "sine", 0.055, 0.035, 0.12);
+        }
 
-            if (!response.ok) throw new Error(await response.text());
+        function playScoreSound() {
+            if (!sfxEnabled) return;
+            playTone(880, 0.08, "sine", 0.08, 0, -0.1);
+            playTone(1174.66, 0.12, "sine", 0.07, 0.065, 0.15);
+        }
 
-            const scores = await response.json();
-            const bestByUser = new Map();
-            scores.forEach(s => {
-                const username = String(s.username || "").trim();
-                if (!username) return;
-                const key = username.toLowerCase();
-                const existing = bestByUser.get(key);
-                const currentScore = Number(s.score || 0);
-                if (!existing || currentScore > Number(existing.score || 0)) {
-                    bestByUser.set(key, {...s, username});
-                }
-            });
-            const leaderboardScores = Array.from(bestByUser.values())
-                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
-                .slice(0, 10);
+        function playCrashSound() {
+            if (!sfxEnabled) return;
+            playTone(180, 0.18, "sawtooth", 0.08, 0, 0);
+            playNoise(0.18, 0.05);
+        }
 
-            if (leaderboardScores.length === 0) {
-                box.innerHTML = "<li>Noch keine Scores.</li>";
+        function playButtonSound() {
+            if (!sfxEnabled) return;
+            playTone(659.25, 0.06, "triangle", 0.055);
+        }
+
+        function musicTick() {
+            if (!soundEnabled || !musicEnabled || state !== "playing") return;
+            const step = melody[musicStep % melody.length];
+            const lift = Math.min(level - 1, 8) * 8;
+            playTone(step.bass, 0.22, "sine", 0.032, 0, -0.25);
+            playTone(step.note + lift, 0.18, "triangle", 0.035, 0.02, 0.18);
+            if (musicStep % 2 === 0) playTone(step.note * 1.5 + lift, 0.10, "sine", 0.018, 0.09, 0.35);
+            musicStep++;
+        }
+
+        function startMusic() {
+            if (!soundEnabled || !musicEnabled) return;
+            ensureAudio();
+            stopMusic();
+            if (bgMusic && bgMusic.getAttribute("src")) {
+                bgMusic.volume = 0.34;
+                bgMusic.currentTime = 0;
+                bgMusic.play().catch(() => {});
                 return;
             }
-
-            box.innerHTML = leaderboardScores.map(s => {
-                const levelText = s.level ? " · Level " + s.level : "";
-                return "<li><strong>" + escapeHtml(s.username) + "</strong> - " + s.score + levelText + "</li>";
-            }).join("");
-        } catch (error) {
-            console.error(error);
-            box.innerHTML = "<li>Scoreboard noch nicht verbunden.</li>";
+            musicStep = 0;
+            musicTick();
+            musicTimer = setInterval(musicTick, 360);
         }
-    }
 
-    function loop() {
-        frame++;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawBackground();
-        drawGround();
-
-        if (state === "playing") {
-            chicken.vy += gravity;
-            if (chicken.jumping && jumpHeld && jumpHoldFrames < 18 && chicken.vy < 0) {
-                chicken.vy -= 0.42;
-                jumpHoldFrames++;
+        function stopMusic() {
+            if (musicTimer) clearInterval(musicTimer);
+            musicTimer = null;
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
             }
-            chicken.y += chicken.vy;
+        }
 
-            if (chicken.y >= groundY - chicken.h - 6) {
-                chicken.y = groundY - chicken.h - 6;
-                chicken.vy = 0;
-                chicken.jumping = false;
+        function updateSoundButton() {
+            soundBtn.querySelector("span").textContent = soundEnabled ? "An" : "Aus";
+            musicBtn.querySelector("span").textContent = musicEnabled ? "MP3 Loop" : "Aus";
+            sfxBtn.querySelector("span").textContent = sfxEnabled ? "Plings" : "Aus";
+            soundBtn.classList.toggle("off", !soundEnabled);
+            musicBtn.classList.toggle("off", !musicEnabled || !soundEnabled);
+            sfxBtn.classList.toggle("off", !sfxEnabled || !soundEnabled);
+        }
+
+        function showMenu(title, text, primaryText) {
+            menuTitle.textContent = title;
+            menuText.textContent = text;
+            startBtn.textContent = primaryText;
+            scoreBtn.style.display = state === "gameover" && score > 0 && !savedCurrentScore ? "inline-block" : "none";
+            overlay.style.display = "flex";
+        }
+
+        function hideMenu() {
+            overlay.style.display = "none";
+        }
+
+        function jump() {
+            if (state === "menu") {
+                startGame();
+                return;
+            }
+            if (state === "gameover") return;
+            if (!chicken.jumping) {
+                playJumpSound();
+                chicken.vy = -12.8;
+                chicken.jumping = true;
                 jumpHoldFrames = 0;
-            }
-
-            if (frame % getSpawnInterval() === 0) spawnFence();
-
-            fences.forEach(fence => {
-                fence.x -= speed;
-                if (!fence.passed && fence.x + fence.w < chicken.x) {
-                    fence.passed = true;
-                    score++;
-                    playScoreSound();
-                    speed = Math.min(MAX_SPEED, speed + 0.12 + Math.min(score, 20) * 0.003);
-                    level = 1 + Math.floor(score / 5);
-                    scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
-                    for (let i = 0; i < 16; i++) {
-                        particles.push({
-                            x: chicken.x + chicken.w,
-                            y: chicken.y + 14 + Math.random() * 22,
-                            vx: -1 + Math.random() * 3,
-                            vy: -2.2 + Math.random() * 1.8,
-                            r: 2 + Math.random() * 3.5,
-                            color: Math.random() > 0.45 ? "255, 230, 109" : "124, 255, 178",
-                            life: 18 + Math.random() * 16,
-                            maxLife: 34
-                        });
-                    }
+                for (let i = 0; i < 10; i++) {
+                    particles.push({
+                        x: chicken.x + 12 + Math.random() * 18,
+                        y: groundY - 10 + Math.random() * 8,
+                        vx: -1.5 - Math.random() * 2.2,
+                        vy: -0.8 - Math.random() * 1.8,
+                        r: 2 + Math.random() * 3,
+                        color: Math.random() > 0.5 ? "255, 230, 109" : "0, 212, 255",
+                        life: 18 + Math.random() * 10,
+                        maxLife: 28
+                    });
                 }
-                if (collision(chicken, fence)) endGame();
-                drawFence(fence);
-            });
-            fences = fences.filter(f => f.x > -80);
-        } else {
-            fences.forEach(drawFence);
+            }
         }
 
-        drawParticles();
-        drawChicken();
-        drawUI();
-        requestAnimationFrame(loop);
-    }
+        startBtn.addEventListener("click", function() {
+            playButtonSound();
+            startGame();
+        });
+        scoreBtn.addEventListener("click", saveScore);
+        soundBtn.addEventListener("click", function() {
+            soundEnabled = !soundEnabled;
+            if (!soundEnabled) stopMusic();
+            else if (state === "playing") startMusic();
+            updateSoundButton();
+            playButtonSound();
+        });
+        musicBtn.addEventListener("click", function() {
+            musicEnabled = !musicEnabled;
+            if (!musicEnabled) stopMusic();
+            else if (state === "playing") startMusic();
+            playButtonSound();
+            updateSoundButton();
+        });
+        sfxBtn.addEventListener("click", function() {
+            sfxEnabled = !sfxEnabled;
+            playButtonSound();
+            updateSoundButton();
+        });
+        canvas.addEventListener("pointerdown", function() {
+            jumpHeld = true;
+            jump();
+        });
+        canvas.addEventListener("pointerup", function() {
+            jumpHeld = false;
+        });
+        canvas.addEventListener("pointerleave", function() {
+            jumpHeld = false;
+        });
+        document.querySelectorAll("[data-score-filter]").forEach(button => {
+            button.addEventListener("click", async function() {
+                currentScoreFilter = this.dataset.scoreFilter;
+                document.querySelectorAll("[data-score-filter]").forEach(item => item.classList.remove("active"));
+                this.classList.add("active");
+                await renderScores();
+            });
+        });
+        document.addEventListener("keydown", function(e) {
+            if (e.code === "Space") {
+                e.preventDefault();
+                jumpHeld = true;
+                if (!e.repeat) jump();
+            } else if (e.code === "Enter" && state !== "playing") {
+                startGame();
+            }
+        });
+        document.addEventListener("keyup", function(e) {
+            if (e.code === "Space") jumpHeld = false;
+        });
 
-    renderScores();
-    updateSoundButton();
-    showMenu("Chicken Jump", "Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.", "Spiel starten");
-    loop();
-    </script>
-    </body>
-    </html>
-    """.replace("__SUPABASE_URL__", SUPABASE_URL)
-       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
-       .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
+        function spawnFence() {
+            const earlyGame = score < 6;
+            const midGame = score < 16;
+            const height = earlyGame
+                ? 34 + Math.random() * 16
+                : midGame
+                    ? 42 + Math.random() * 22
+                    : 48 + Math.random() * 30;
+            fences.push({
+                x: canvas.width + 40,
+                y: groundY - height,
+                w: earlyGame ? 24 + Math.random() * 9 : 30 + Math.random() * 14,
+                h: height,
+                passed: false
+            });
+        }
 
-    st.markdown("## Weitere Abenteuer")
-    if st.button("Dungeons and Dragons öffnen", key="open_dnd_minigame", use_container_width=True):
-        st.session_state["minigame_view"] = "dnd"
-        st.rerun()
+        function getSpawnInterval() {
+            const baseInterval = 166 - score * 1.45 - speed * 3.2;
+            return Math.max(72, Math.floor(baseInterval));
+        }
 
-    st.markdown("## Chicken Snake")
-    components.html("""
+        function spawnCloud() {
+            clouds.push({
+                x: canvas.width + 90,
+                y: 45 + Math.random() * 120,
+                w: 80 + Math.random() * 90,
+                speed: 0.45 + Math.random() * 0.55
+            });
+        }
+
+        function roundedRect(x, y, w, h, r) {
+            r = Math.max(0, Math.min(r, w / 2, h / 2));
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.fill();
+        }
+
+        function drawBackground() {
+            const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            sky.addColorStop(0, "#071a33");
+            sky.addColorStop(0.42, "#17113a");
+            sky.addColorStop(0.74, "#321145");
+            sky.addColorStop(1, "#190b24");
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const moon = ctx.createRadialGradient(810, 86, 4, 810, 86, 86);
+            moon.addColorStop(0, "rgba(255, 245, 204, 0.92)");
+            moon.addColorStop(0.22, "rgba(255, 245, 204, 0.42)");
+            moon.addColorStop(1, "rgba(255, 245, 204, 0)");
+            ctx.fillStyle = moon;
+            ctx.beginPath();
+            ctx.arc(810, 86, 86, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255,255,255,0.35)";
+            for (let i = 0; i < 42; i++) {
+                const x = (i * 137 + frame * 0.18) % canvas.width;
+                const y = 18 + (i * 53) % 190;
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            drawHills(0.20, 318, "#1f2555", 58);
+            drawHills(0.38, 350, "#251346", 78);
+            drawHills(0.62, 378, "#32163c", 54);
+
+            if (frame % 180 === 0) spawnCloud();
+            clouds.forEach(c => {
+                c.x -= c.speed;
+                ctx.fillStyle = "rgba(255,255,255,0.15)";
+                roundedRect(c.x, c.y, c.w, 22, 999);
+                roundedRect(c.x + c.w * 0.18, c.y - 12, c.w * 0.45, 28, 999);
+                roundedRect(c.x + c.w * 0.52, c.y - 6, c.w * 0.35, 22, 999);
+            });
+            clouds = clouds.filter(c => c.x + c.w > -120);
+        }
+
+        function drawHills(rate, baseY, color, height) {
+            const offset = (frame * speed * rate) % 260;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-260 - offset, canvas.height);
+            for (let x = -260 - offset; x <= canvas.width + 260; x += 130) {
+                ctx.quadraticCurveTo(x + 65, baseY - height, x + 130, baseY);
+            }
+            ctx.lineTo(canvas.width + 260, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawGround() {
+            const ground = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+            ground.addColorStop(0, "#3a1e52");
+            ground.addColorStop(0.45, "#22122f");
+            ground.addColorStop(1, "#110713");
+            ctx.fillStyle = ground;
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+            ctx.fillStyle = "rgba(124,255,178,0.34)";
+            for (let i = 0; i < canvas.width + 80; i += 20) {
+                const x = i - (frame * speed * 0.65 % 20);
+                ctx.fillRect(x, groundY - 7, 3, 12);
+            }
+
+            ctx.fillStyle = "#00d4ff";
+            for (let i = 0; i < canvas.width + 60; i += 44) {
+                roundedRect(i - (frame * speed % 44), groundY + 12, 22, 4, 4);
+            }
+
+            ctx.fillStyle = "rgba(255,255,255,0.08)";
+            for (let i = 0; i < canvas.width + 120; i += 86) {
+                roundedRect(i - (frame * speed * 1.4 % 86), groundY + 58, 44, 5, 5);
+            }
+        }
+
+        function drawChicken() {
+            const bob = Math.sin(frame / 8) * 2;
+            ctx.save();
+            ctx.translate(chicken.x, chicken.y + bob);
+            ctx.fillStyle = "rgba(0,0,0,0.25)";
+            ctx.beginPath();
+            ctx.ellipse(28, 54, 30, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.18)";
+            ctx.beginPath();
+            ctx.ellipse(24, 29, 22, 17, -0.45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffd43b";
+            roundedRect(0, 5, chicken.w, chicken.h, 14);
+            ctx.fillStyle = "#ffe66d";
+            roundedRect(16, -8, 32, 30, 14);
+            ctx.fillStyle = "rgba(255,255,255,0.35)";
+            roundedRect(18, 2, 16, 8, 8);
+            ctx.fillStyle = "#ff922b";
+            ctx.beginPath();
+            ctx.moveTo(48, 4);
+            ctx.lineTo(68, 13);
+            ctx.lineTo(48, 21);
+            ctx.fill();
+            ctx.fillStyle = "#080808";
+            ctx.beginPath();
+            ctx.arc(39, 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(40, 0, 1.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ff6b6b";
+            roundedRect(18, -18, 20, 12, 5);
+            ctx.fillStyle = "#f03e3e";
+            roundedRect(25, -24, 12, 10, 6);
+            ctx.strokeStyle = "#ff922b";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            const legSwing = chicken.jumping ? 0 : Math.sin(frame / 5) * 4;
+            ctx.moveTo(17, 47);
+            ctx.lineTo(13 + legSwing, 58);
+            ctx.moveTo(38, 47);
+            ctx.lineTo(42 - legSwing, 58);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawFence(fence) {
+            const wood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + fence.h);
+            wood.addColorStop(0, "#c88742");
+            wood.addColorStop(0.45, "#9a5a28");
+            wood.addColorStop(1, "#5d341c");
+            const railWood = ctx.createLinearGradient(fence.x, fence.y, fence.x, fence.y + 18);
+            railWood.addColorStop(0, "#d69a55");
+            railWood.addColorStop(1, "#7a421f");
+            ctx.shadowColor = "rgba(0,0,0,0.34)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 4;
+            ctx.fillStyle = wood;
+            roundedRect(fence.x, fence.y, fence.w, fence.h, 5);
+            ctx.fillStyle = railWood;
+            roundedRect(fence.x - 13, fence.y + fence.h * 0.25, fence.w + 26, 9, 4);
+            roundedRect(fence.x - 13, fence.y + fence.h * 0.62, fence.w + 26, 9, 4);
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillStyle = "rgba(255,230,180,0.28)";
+            roundedRect(fence.x + 5, fence.y + 8, Math.max(4, fence.w * 0.18), fence.h - 16, 4);
+            ctx.fillStyle = "rgba(58,31,14,0.46)";
+            for (let i = 0; i < 3; i++) {
+                const grainY = fence.y + 12 + i * (fence.h - 24) / 3;
+                roundedRect(fence.x + fence.w * 0.45, grainY, Math.max(5, fence.w * 0.34), 2, 2);
+            }
+            ctx.fillStyle = "#3d210f";
+            ctx.beginPath();
+            ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.18, 2.5, 0, Math.PI * 2);
+            ctx.arc(fence.x + fence.w * 0.5, fence.y + fence.h * 0.78, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function collision(a, b) {
+            const body = {x: a.x + 6, y: a.y + 4, w: a.w - 10, h: a.h - 2};
+            return (
+                body.x < b.x + b.w &&
+                body.x + body.w > b.x &&
+                body.y < b.y + b.h &&
+                body.y + body.h > b.y
+            );
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                p.life -= 1;
+                p.x += (p.vx || -speed * 0.25);
+                p.y += (p.vy || 0.4);
+                p.vy = (p.vy || 0) + 0.08;
+                const alpha = Math.max(p.life / (p.maxLife || 18), 0);
+                ctx.fillStyle = "rgba(" + (p.color || "255, 230, 109") + "," + alpha + ")";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r || 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            particles = particles.filter(p => p.life > 0);
+
+            scorePops.forEach(pop => {
+                pop.life -= 1;
+                pop.y -= 0.8;
+                ctx.fillStyle = "rgba(255, 230, 109," + Math.max(pop.life / 34, 0) + ")";
+                ctx.font = "900 22px Inter, Arial";
+                ctx.fillText("+1", pop.x, pop.y);
+            });
+            scorePops = scorePops.filter(pop => pop.life > 0);
+        }
+
+        function drawUI() {
+            scoreValue.textContent = score;
+            speedValue.textContent = (speed / START_SPEED).toFixed(1) + "x";
+            levelValue.textContent = level;
+        }
+
+        function startGame() {
+            ensureAudio();
+            chicken.y = groundY - chicken.h - 6;
+            chicken.vy = 0;
+            chicken.jumping = false;
+            jumpHeld = false;
+            jumpHoldFrames = 0;
+            fences = [];
+            particles = [];
+            scorePops = [];
+            speed = START_SPEED;
+            score = 0;
+            level = 1;
+            frame = 0;
+            savedCurrentScore = false;
+            state = "playing";
+            hideMenu();
+            startMusic();
+        }
+
+        function endGame() {
+            state = "gameover";
+            stopMusic();
+            playCrashSound();
+            showMenu("Game Over", "Score: " + score + " | Level: " + level, "Nochmal spielen");
+        }
+
+        async function saveScore() {
+            if (savedCurrentScore || score <= 0) return;
+            let name = prompt("Dein Twitch-Name für das Scoreboard:");
+            if (!name) return;
+            name = name.trim().slice(0, 50);
+            if (!name) return;
+
+            try {
+                const response = await fetch(SCOREBOARD_ENDPOINT, {
+                    method: "POST",
+                    headers: {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": "Bearer " + SUPABASE_KEY,
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal"
+                    },
+                    body: JSON.stringify({
+                        username: name,
+                        score: score,
+                        level: level
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || ("HTTP " + response.status));
+                }
+
+                savedCurrentScore = true;
+                await renderScores();
+                showMenu("Score gespeichert", "Dein Score ist jetzt für alle sichtbar.", "Nochmal spielen");
+            } catch (error) {
+                console.error(error);
+                const message = String(error && error.message ? error.message : error).slice(0, 240);
+                showMenu("Speichern fehlgeschlagen", message || "Supabase hat den Score abgelehnt.", "Nochmal spielen");
+            }
+        }
+
+        function escapeHtml(value) {
+            const div = document.createElement("div");
+            div.textContent = value;
+            return div.innerHTML;
+        }
+
+        async function renderScores() {
+            let box = document.getElementById("scores");
+            box.innerHTML = "<li>Lade globale Scores...</li>";
+
+            try {
+                let query = "?select=username,score,level,created_at&order=score.desc,created_at.asc&limit=100";
+                if (currentScoreFilter !== "all") {
+                    const now = new Date();
+                    const from = new Date(now);
+                    if (currentScoreFilter === "today") {
+                        from.setHours(0, 0, 0, 0);
+                    } else {
+                        from.setDate(now.getDate() - 7);
+                    }
+                    query += "&created_at=gte." + encodeURIComponent(from.toISOString());
+                }
+
+                const response = await fetch(
+                    SCOREBOARD_ENDPOINT + query,
+                    {
+                        headers: {
+                            "apikey": SUPABASE_KEY,
+                            "Authorization": "Bearer " + SUPABASE_KEY
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error(await response.text());
+
+                const scores = await response.json();
+                const bestByUser = new Map();
+                scores.forEach(s => {
+                    const username = String(s.username || "").trim();
+                    if (!username) return;
+                    const key = username.toLowerCase();
+                    const existing = bestByUser.get(key);
+                    const currentScore = Number(s.score || 0);
+                    if (!existing || currentScore > Number(existing.score || 0)) {
+                        bestByUser.set(key, {...s, username});
+                    }
+                });
+                const leaderboardScores = Array.from(bestByUser.values())
+                    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+                    .slice(0, 10);
+
+                if (leaderboardScores.length === 0) {
+                    box.innerHTML = "<li>Noch keine Scores.</li>";
+                    return;
+                }
+
+                box.innerHTML = leaderboardScores.map(s => {
+                    const levelText = s.level ? " · Level " + s.level : "";
+                    return "<li><strong>" + escapeHtml(s.username) + "</strong> - " + s.score + levelText + "</li>";
+                }).join("");
+            } catch (error) {
+                console.error(error);
+                box.innerHTML = "<li>Scoreboard noch nicht verbunden.</li>";
+            }
+        }
+
+        function loop() {
+            frame++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawGround();
+
+            if (state === "playing") {
+                chicken.vy += gravity;
+                if (chicken.jumping && jumpHeld && jumpHoldFrames < 18 && chicken.vy < 0) {
+                    chicken.vy -= 0.42;
+                    jumpHoldFrames++;
+                }
+                chicken.y += chicken.vy;
+
+                if (chicken.y >= groundY - chicken.h - 6) {
+                    chicken.y = groundY - chicken.h - 6;
+                    chicken.vy = 0;
+                    chicken.jumping = false;
+                    jumpHoldFrames = 0;
+                }
+
+                if (frame % getSpawnInterval() === 0) spawnFence();
+
+                fences.forEach(fence => {
+                    fence.x -= speed;
+                    if (!fence.passed && fence.x + fence.w < chicken.x) {
+                        fence.passed = true;
+                        score++;
+                        playScoreSound();
+                        speed = Math.min(MAX_SPEED, speed + 0.12 + Math.min(score, 20) * 0.003);
+                        level = 1 + Math.floor(score / 5);
+                        scorePops.push({x: chicken.x + chicken.w + 12, y: chicken.y + 8, life: 34});
+                        for (let i = 0; i < 16; i++) {
+                            particles.push({
+                                x: chicken.x + chicken.w,
+                                y: chicken.y + 14 + Math.random() * 22,
+                                vx: -1 + Math.random() * 3,
+                                vy: -2.2 + Math.random() * 1.8,
+                                r: 2 + Math.random() * 3.5,
+                                color: Math.random() > 0.45 ? "255, 230, 109" : "124, 255, 178",
+                                life: 18 + Math.random() * 16,
+                                maxLife: 34
+                            });
+                        }
+                    }
+                    if (collision(chicken, fence)) endGame();
+                    drawFence(fence);
+                });
+                fences = fences.filter(f => f.x > -80);
+            } else {
+                fences.forEach(drawFence);
+            }
+
+            drawParticles();
+            drawChicken();
+            drawUI();
+            requestAnimationFrame(loop);
+        }
+
+        renderScores();
+        updateSoundButton();
+        showMenu("Chicken Jump", "Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.", "Spiel starten");
+        loop();
+        </script>
+        </body>
+        </html>
+        """.replace("__SUPABASE_URL__", SUPABASE_URL)
+           .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
+           .replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=860, scrolling=True)
+
+    elif selected_minigame == "snake":
+        st.markdown("## Chicken Snake")
+        components.html("""
     <html>
     <head>
     <style>
@@ -10939,4 +10956,3 @@ elif menu == "🔐 Admin":
 
     elif password:
         st.error("Falsches Passwort")
-
