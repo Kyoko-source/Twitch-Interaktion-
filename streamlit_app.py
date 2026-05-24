@@ -2901,12 +2901,12 @@ def render_dnd_dice(total, theme_key, sides=20):
     safe_theme = theme_key if theme_key in set(DND_DICE_THEMES.values()) else "ice"
     die_sides = int(sides) if int(sides) in DND_DICE else 20
     visual_sides = 10 if die_sides == 100 else die_sides
-    facet_count = {4: 4, 6: 6, 8: 8, 10: 10, 12: 12, 20: 16}.get(visual_sides, 12)
+    facet_count = {4: 3, 6: 5, 8: 6, 10: 7, 12: 8, 20: 10}.get(visual_sides, 7)
     facet_html = "".join(
         f'<span style="--i:{index};"></span>'
         for index in range(facet_count)
     )
-    particles = "".join('<span></span>' for _ in range(14))
+    particles = "".join('<span></span>' for _ in range(8))
     return (
         f'<div class="dice-scene dice-theme-{safe_theme} dice-shape-d{visual_sides}">'
         f'<div class="dice-particles">{particles}</div>'
@@ -6007,6 +6007,7 @@ h1::after {
     height: 156px;
     margin: 0 auto;
     perspective: 720px;
+    contain: layout paint;
 }
 
 .dice-polyhedron {
@@ -6019,8 +6020,8 @@ h1::after {
     transform-style: preserve-3d;
     display: grid;
     place-items: center;
-    animation: dice-tumble 1.55s cubic-bezier(.17,.84,.28,1.06) both;
-    filter: drop-shadow(0 22px 28px rgba(0,0,0,0.34));
+    animation: dice-tumble .92s cubic-bezier(.18,.78,.24,1) both;
+    will-change: transform;
 }
 
 .dice-polyhedron::before {
@@ -6032,7 +6033,8 @@ h1::after {
         radial-gradient(circle at 32% 24%, rgba(255,255,255,0.92), transparent 18%),
         linear-gradient(145deg, var(--dice-a), var(--dice-b) 54%, var(--dice-c));
     border: 2px solid rgba(255,255,255,0.58);
-    box-shadow: inset 0 0 22px rgba(255,255,255,0.34), inset -18px -22px 38px rgba(0,0,0,0.18);
+    box-shadow: inset -12px -16px 26px rgba(0,0,0,0.18), 0 18px 34px rgba(0,0,0,0.30);
+    will-change: clip-path;
 }
 
 .dice-polyhedron span {
@@ -6043,9 +6045,9 @@ h1::after {
     height: 40%;
     transform-origin: 0 0;
     transform: rotate(calc(var(--i) * 24deg)) skewY(-18deg);
-    background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(0,0,0,0.13));
+    background: rgba(255,255,255,0.12);
     border-left: 1px solid rgba(255,255,255,0.22);
-    opacity: .72;
+    opacity: .62;
 }
 
 .dice-polyhedron strong,
@@ -6103,7 +6105,6 @@ h1::after {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    filter: drop-shadow(0 0 8px var(--dice-glow));
 }
 
 .dice-particles span {
@@ -6114,7 +6115,9 @@ h1::after {
     height: 7px;
     border-radius: 999px;
     background: var(--dice-b);
-    animation: dice-spark 1.45s ease-out both;
+    box-shadow: 0 0 10px var(--dice-glow);
+    animation: dice-spark .92s ease-out both;
+    will-change: transform, opacity;
 }
 
 .dice-particles span:nth-child(1) { --x:-74px; --y:-44px; animation-delay:.05s; }
@@ -6125,13 +6128,6 @@ h1::after {
 .dice-particles span:nth-child(6) { --x:28px; --y:84px; animation-delay:.15s; }
 .dice-particles span:nth-child(7) { --x:-94px; --y:2px; animation-delay:.22s; }
 .dice-particles span:nth-child(8) { --x:94px; --y:-4px; animation-delay:.28s; }
-.dice-particles span:nth-child(9) { --x:-38px; --y:72px; animation-delay:.32s; }
-.dice-particles span:nth-child(10) { --x:40px; --y:-78px; animation-delay:.36s; }
-.dice-particles span:nth-child(11) { --x:-88px; --y:-78px; animation-delay:.16s; }
-.dice-particles span:nth-child(12) { --x:88px; --y:78px; animation-delay:.20s; }
-.dice-particles span:nth-child(13) { --x:-8px; --y:96px; animation-delay:.30s; }
-.dice-particles span:nth-child(14) { --x:8px; --y:-96px; animation-delay:.34s; }
-
 .dice-theme-ice {
     --dice-a: #f7fdff;
     --dice-b: #99e8ff;
@@ -6178,23 +6174,16 @@ h1::after {
     font-weight: 800;
 }
 
-@keyframes dice-pop {
-    0% { transform: translateY(18px) rotate(-24deg) scale(.58); opacity: 0; }
-    55% { transform: translateY(-8px) rotate(12deg) scale(1.08); opacity: 1; }
-    100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
-}
-
 @keyframes dice-tumble {
-    0% { transform: translateY(-44px) rotateX(-220deg) rotateY(130deg) rotateZ(24deg) scale(.72); }
-    42% { transform: translateY(10px) rotateX(145deg) rotateY(300deg) rotateZ(-16deg) scale(1.08); }
-    72% { transform: translateY(-8px) rotateX(24deg) rotateY(48deg) rotateZ(8deg) scale(.98); }
-    100% { transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+    0% { transform: translate3d(-50%, -76%, 0) rotateX(-160deg) rotateY(110deg) rotateZ(18deg) scale(.82); opacity: .82; }
+    58% { transform: translate3d(-50%, -46%, 0) rotateX(34deg) rotateY(38deg) rotateZ(-7deg) scale(1.06); opacity: 1; }
+    100% { transform: translate3d(-50%, -50%, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); opacity: 1; }
 }
 
 @keyframes dice-spark {
-    0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
-    35% { opacity: 1; }
-    100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(.05); opacity: 0; }
+    0% { transform: translate3d(-50%, -50%, 0) scale(.25); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), 0) scale(.08); opacity: 0; }
 }
 
 .shop-category-title {
