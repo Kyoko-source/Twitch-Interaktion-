@@ -10202,7 +10202,7 @@ elif menu.endswith("Minispiele"):
                 <div class="race-card"><span>Score</span><strong id="raceScore">0</strong><small>+1 pro richtigem Gewinner</small></div>
                 <div class="race-card"><span>Wette</span><strong id="racePick">-</strong><small>Vor jedem Rennen neu wählen</small></div>
                 <div class="race-card">
-                    <span>Lokale Bestwerte</span>
+                    <span>Globale Bestwerte</span>
                     <ol id="raceScores" class="race-score-list"></ol>
                 </div>
             </aside>
@@ -10223,6 +10223,9 @@ elif menu.endswith("Minispiele"):
     const scoreEl = document.getElementById("raceScore");
     const pickEl = document.getElementById("racePick");
     const scoresEl = document.getElementById("raceScores");
+    const SUPABASE_URL = "__SUPABASE_URL__";
+    const SUPABASE_KEY = "__SUPABASE_KEY__";
+    const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_racer_scores";
 
     const COLORS = [
         ["Rot", "#ff4d6d"], ["Blau", "#00d4ff"], ["Gelb", "#ffe66d"],
@@ -10256,10 +10259,12 @@ elif menu.endswith("Minispiele"):
                 y: top + laneHeight * index + laneHeight * 0.5,
                 laneHeight,
                 speed: 0,
-                base: 1.65 + Math.random() * 0.42 + index * 0.015,
-                stamina: 0.992 + Math.random() * 0.012,
-                chaos: 0.62 + Math.random() * 0.72,
-                burst: 0
+                base: 0.52 + Math.random() * 0.30 + index * 0.01,
+                stamina: 0.973 + Math.random() * 0.012,
+                chaos: 0.75 + Math.random() * 1.25,
+                burst: 0,
+                pause: 0,
+                wobble: Math.random() * Math.PI * 2
             };
         });
         selectedHen = Math.min(selectedHen, hens.length - 1);
@@ -10312,8 +10317,9 @@ elif menu.endswith("Minispiele"):
         frame = 0;
         hens.forEach(hen => {
             hen.x = startX;
-            hen.speed = hen.base + Math.random() * 0.45;
-            hen.burst = Math.random() * 12;
+            hen.speed = hen.base + Math.random() * 0.24;
+            hen.burst = Math.random() * 8;
+            hen.pause = Math.random() * 10;
         });
     }
 
@@ -10456,6 +10462,11 @@ elif menu.endswith("Minispiele"):
             ctx.font = "900 22px Inter, Arial";
             ctx.fillText("★", 4, -42);
         }
+        if (hen.pause > 0 && state === "racing") {
+            ctx.fillStyle = "rgba(255,255,255,0.88)";
+            ctx.font = "900 18px Inter, Arial";
+            ctx.fillText("...", -7, -44);
+        }
         ctx.restore();
     }
 
@@ -10475,13 +10486,25 @@ elif menu.endswith("Minispiele"):
         frame++;
         let leader = hens[0];
         hens.forEach(hen => {
-            if (Math.random() < 0.035 * hen.chaos) {
-                hen.burst = 12 + Math.random() * 28;
+            if (hen.pause > 0) {
+                hen.pause -= 1;
+                hen.speed *= 0.55;
+                hen.x += Math.max(0, hen.speed * 0.18);
+                if (hen.x > leader.x) leader = hen;
+                return;
             }
-            const burstBoost = hen.burst > 0 ? 0.7 + Math.random() * 1.4 : 0;
+            if (Math.random() < 0.006 * hen.chaos) {
+                hen.pause = 16 + Math.random() * 42;
+                hen.speed *= 0.35;
+            }
+            if (Math.random() < 0.018 * hen.chaos) {
+                hen.burst = 10 + Math.random() * 26;
+            }
+            const burstBoost = hen.burst > 0 ? 0.42 + Math.random() * 0.95 : 0;
             hen.burst = Math.max(0, hen.burst - 1);
-            hen.speed = hen.speed * hen.stamina + 0.035 + Math.random() * hen.chaos + burstBoost;
-            hen.speed = Math.min(hen.speed, 8.4 + round * 0.08);
+            const laneWobble = Math.sin(frame / 19 + hen.wobble) * 0.05;
+            hen.speed = hen.speed * hen.stamina + 0.018 + Math.random() * hen.chaos * 0.32 + laneWobble + burstBoost;
+            hen.speed = Math.max(0.22, Math.min(hen.speed, 4.25 + round * 0.04));
             hen.x += hen.speed;
             if (hen.x > leader.x) leader = hen;
         });
@@ -10504,7 +10527,7 @@ elif menu.endswith("Minispiele"):
         return div.innerHTML;
     }
 
-    function getScores() {
+    function getLocalScores() {
         try {
             return JSON.parse(localStorage.getItem("chicken_racer_scores") || "[]");
         } catch (error) {
@@ -10512,8 +10535,7 @@ elif menu.endswith("Minispiele"):
         }
     }
 
-    function renderScores() {
-        const scores = getScores().sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 8);
+    function renderScoreRows(scores) {
         if (!scores.length) {
             scoresEl.innerHTML = "<li><span>Noch frei</span><b>0</b></li>";
             return;
@@ -10523,15 +10545,71 @@ elif menu.endswith("Minispiele"):
         )).join("");
     }
 
-    function saveScore() {
+    async function renderScores() {
+        scoresEl.innerHTML = "<li><span>Lade Scores...</span><b>...</b></li>";
+        try {
+            const response = await fetch(
+                SCOREBOARD_ENDPOINT + "?select=username,score,round,created_at&order=score.desc,round.desc,created_at.asc&limit=100",
+                {
+                    headers: {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": "Bearer " + SUPABASE_KEY
+                    }
+                }
+            );
+            if (!response.ok) throw new Error(await response.text());
+            const scores = await response.json();
+            const bestByUser = new Map();
+            scores.forEach(entry => {
+                const username = String(entry.username || "").trim();
+                if (!username) return;
+                const key = username.toLowerCase();
+                const existing = bestByUser.get(key);
+                const currentScore = Number(entry.score || 0);
+                if (!existing || currentScore > Number(existing.score || 0)) {
+                    bestByUser.set(key, {...entry, name: username});
+                }
+            });
+            renderScoreRows(Array.from(bestByUser.values())
+                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+                .slice(0, 8));
+        } catch (error) {
+            console.error(error);
+            const localScores = getLocalScores()
+                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+                .slice(0, 8);
+            renderScoreRows(localScores);
+        }
+    }
+
+    async function saveScore() {
         if (savedScore || score <= 0) return;
         const name = (prompt("Dein Twitch-Name für das Racer-Scoreboard:") || "").trim().slice(0, 32);
         if (!name) return;
-        const scores = getScores();
-        scores.push({name, score, round: Math.max(1, round - 1), createdAt: new Date().toISOString()});
-        localStorage.setItem("chicken_racer_scores", JSON.stringify(scores.slice(-100)));
+        try {
+            const response = await fetch(SCOREBOARD_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                body: JSON.stringify({
+                    username: name,
+                    score: score,
+                    round: Math.max(1, round - 1)
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
+        } catch (error) {
+            console.error(error);
+            const scores = getLocalScores();
+            scores.push({name, score, round: Math.max(1, round - 1), createdAt: new Date().toISOString()});
+            localStorage.setItem("chicken_racer_scores", JSON.stringify(scores.slice(-100)));
+        }
         savedScore = true;
-        renderScores();
+        await renderScores();
         saveBtn.style.display = "none";
     }
 
@@ -10545,7 +10623,8 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """, height=790, scrolling=True)
+    """.replace("__SUPABASE_URL__", SUPABASE_URL)
+       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=790, scrolling=True)
 
     st.markdown("## Glücksräder")
     wheel_entries = get_punishment_wheel_entries()
