@@ -190,6 +190,23 @@ def api_post_optional(table, payload):
     return response.json()
 
 
+def api_post_optional_with_error(table, payload):
+    response = requests.post(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        headers={**HEADERS, "Prefer": "return=representation"},
+        json=payload
+    )
+
+    if response.status_code >= 400:
+        try:
+            error = response.json()
+        except ValueError:
+            error = {"message": response.text}
+        return None, error
+
+    return response.json(), None
+
+
 def api_upsert_optional(table_path, payload):
     response = requests.post(
         f"{SUPABASE_URL}/rest/v1/{table_path}",
@@ -1270,7 +1287,11 @@ def render_dnd_page():
                 st.success("Lobby eröffnet.")
                 st.rerun()
             else:
-                st.error("Lobby konnte nicht erstellt werden. Führe add_dnd_tables.sql in Supabase aus.")
+                detail = st.session_state.pop("dnd_last_create_error", "")
+                if detail:
+                    st.error(f"Lobby konnte nicht erstellt werden: {detail}")
+                else:
+                    st.error("Lobby konnte nicht erstellt werden. Führe add_dnd_tables.sql in Supabase aus.")
 
     with lobby_col:
         st.markdown("### Aktive Lobbys")
@@ -1749,19 +1770,7 @@ def render_dnd_page():
 
         last_roll = st.session_state.get("dnd_last_roll")
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
-            dice_theme = str(last_roll.get("theme") or "ice")
-            dice_sides = int(last_roll.get("sides") or 20)
-            st.markdown(
-                '<div class="dice-result-stage">'
-                f'{render_dnd_dice(int(last_roll.get("total") or 0), dice_theme, dice_sides)}'
-                '<div>'
-                f'<div class="section-kicker">{html.escape(str(last_roll.get("notation") or "Wurf"))}</div>'
-                f'<h3>{html.escape(str(last_roll.get("title") or "Würfelwurf"))}</h3>'
-                f'<p>{html.escape(str(last_roll.get("detail") or ""))}</p>'
-                '</div>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
+            render_dnd_dice_result_component(last_roll)
 
         if current_player:
             st.markdown('<div class="dnd-section-title"><h3>Spieler Bereich</h3><span class="admin-muted">Charakterbogen und Proben</span></div>', unsafe_allow_html=True)
@@ -2563,35 +2572,45 @@ def create_dnd_player(lobby_id, username, character_name, character_class):
     clean_username = str(username).strip()[:50]
     color_seed = hashlib.sha256(clean_username.encode("utf-8")).hexdigest()
     token_color = f"#{color_seed[:6]}"
-    return api_post_optional(
-        "dnd_players",
-        {
-            "lobby_id": int(lobby_id),
-            "username": clean_username,
-            "character_name": str(character_name).strip()[:80],
-            "character_class": str(character_class).strip()[:40],
-            "token_x": 1,
-            "token_y": 1,
-            "token_color": token_color,
-            "race": "Mensch",
-            "level": 1,
-            "max_hp": 10,
-            "current_hp": 10,
-            "armor_class": 10,
-            "initiative": 0,
-            "strength": 10,
-            "dexterity": 10,
-            "constitution": 10,
-            "intelligence": 10,
-            "wisdom": 10,
-            "charisma": 10,
-            "inventory": "",
-            "spells": "",
-            "notes": "",
-            "active": True,
-            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
-        }
-    )
+    base_payload = {
+        "lobby_id": int(lobby_id),
+        "username": clean_username,
+        "character_name": str(character_name).strip()[:80],
+        "character_class": str(character_class).strip()[:40],
+        "active": True,
+        "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+    }
+    extended_payload = {
+        **base_payload,
+        "token_x": 1,
+        "token_y": 1,
+        "token_color": token_color,
+        "race": "Mensch",
+        "level": 1,
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "initiative": 0,
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10,
+        "inventory": "",
+        "spells": "",
+        "notes": "",
+    }
+    created, error = api_post_optional_with_error("dnd_players", extended_payload)
+    if created:
+        return created
+
+    fallback_created, fallback_error = api_post_optional_with_error("dnd_players", base_payload)
+    if fallback_error:
+        st.session_state["dnd_last_create_error"] = fallback_error.get("message") or str(fallback_error)
+    elif error:
+        st.session_state["dnd_last_create_error"] = error.get("message") or str(error)
+    return fallback_created
 
 
 def create_dnd_lobby(name, description, owner, password, creator_role="dm", character_name="", character_class=None):
@@ -2605,28 +2624,35 @@ def create_dnd_lobby(name, description, owner, password, creator_role="dm", char
         return None
 
     clean_password = str(password or "").strip()
-    created = api_post_optional(
-        "dnd_lobbies",
-        {
-            "name": clean_name,
-            "description": clean_description,
-            "owner": clean_owner,
-            "dm_username": clean_owner if creator_role == "dm" else "",
-            "map_image_url": "",
-            "map_name": "Startkarte",
-            "map_grid_width": 12,
-            "map_grid_height": 8,
-            "map_fog_enabled": False,
-            "map_fog_opacity": 55,
-            "map_marker_notes": "",
-            "active_turn_key": "",
-            "round_number": 1,
-            "is_private": bool(clean_password),
-            "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
-            "active": True,
-            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
-        }
-    )
+    base_payload = {
+        "name": clean_name,
+        "description": clean_description,
+        "owner": clean_owner,
+        "is_private": bool(clean_password),
+        "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
+        "active": True,
+        "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+    }
+    extended_payload = {
+        **base_payload,
+        "dm_username": clean_owner if creator_role == "dm" else "",
+        "map_image_url": "",
+        "map_name": "Startkarte",
+        "map_grid_width": 12,
+        "map_grid_height": 8,
+        "map_fog_enabled": False,
+        "map_fog_opacity": 55,
+        "map_marker_notes": "",
+        "active_turn_key": "",
+        "round_number": 1,
+    }
+    created, error = api_post_optional_with_error("dnd_lobbies", extended_payload)
+    if not created:
+        created, fallback_error = api_post_optional_with_error("dnd_lobbies", base_payload)
+        if fallback_error:
+            st.session_state["dnd_last_create_error"] = fallback_error.get("message") or str(fallback_error)
+        elif error:
+            st.session_state["dnd_last_create_error"] = error.get("message") or str(error)
     if not created:
         return None
 
@@ -2913,6 +2939,64 @@ def render_dnd_dice(total, theme_key, sides=20):
         f'<div class="dice-polyhedron">{facet_html}<strong>{html.escape(str(total))}</strong><small>d{die_sides}</small></div>'
         '</div>'
     )
+
+
+def render_dnd_dice_result_component(last_roll):
+    total = int(last_roll.get("total") or 0)
+    theme_key = str(last_roll.get("theme") or "ice")
+    safe_theme = theme_key if theme_key in set(DND_DICE_THEMES.values()) else "ice"
+    sides = int(last_roll.get("sides") or 20)
+    die_sides = sides if sides in DND_DICE else 20
+    visual_sides = 10 if die_sides == 100 else die_sides
+    facet_count = {4: 3, 6: 5, 8: 6, 10: 7, 12: 8, 20: 10}.get(visual_sides, 7)
+    facet_html = "".join(f'<span style="--i:{index};"></span>' for index in range(facet_count))
+    particles = "".join('<i></i>' for _ in range(8))
+    notation = html.escape(str(last_roll.get("notation") or "Wurf"))
+    title = html.escape(str(last_roll.get("title") or "Würfelwurf"))
+    detail = html.escape(str(last_roll.get("detail") or ""))
+
+    components.html(f"""
+    <div class="dice-result dice-theme-{safe_theme} dice-shape-d{visual_sides}">
+      <style>
+        .dice-result {{
+          --dice-a:#effcff; --dice-b:#7CFFB2; --dice-c:#00f5ff; --dice-glow:rgba(124,255,178,.62);
+          min-height:176px; display:grid; grid-template-columns:180px 1fr; gap:18px; align-items:center;
+          padding:18px; border-radius:10px; color:#effcff; font-family:Inter,system-ui,Segoe UI,sans-serif;
+          background:linear-gradient(145deg,rgba(124,255,178,.12),rgba(0,245,255,.08)),rgba(10,14,22,.82);
+          border:1px solid rgba(124,255,178,.22); overflow:hidden;
+        }}
+        .dice-theme-ice {{ --dice-a:#f7fdff; --dice-b:#99e8ff; --dice-c:#4b8dff; --dice-glow:rgba(153,232,255,.72); }}
+        .dice-theme-fire {{ --dice-a:#fff0c2; --dice-b:#ff8a00; --dice-c:#ff245f; --dice-glow:rgba(255,90,30,.78); }}
+        .dice-theme-spark {{ --dice-a:#fff7c8; --dice-b:#ffe66d; --dice-c:#b66dff; --dice-glow:rgba(255,230,109,.78); }}
+        .dice-theme-water {{ --dice-a:#e8ffff; --dice-b:#38d9ff; --dice-c:#1464d2; --dice-glow:rgba(56,217,255,.76); }}
+        .dice-theme-earth {{ --dice-a:#e6f6bd; --dice-b:#8fb85a; --dice-c:#6b4a2b; --dice-glow:rgba(143,184,90,.70); }}
+        .scene {{ position:relative; width:156px; height:156px; perspective:760px; contain:layout paint; }}
+        .die {{ position:absolute; left:50%; top:50%; width:126px; height:126px; display:grid; place-items:center; transform-style:preserve-3d; animation:tumble 1.05s cubic-bezier(.18,.78,.24,1) both; will-change:transform; }}
+        .die::before {{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 32% 24%,rgba(255,255,255,.92),transparent 18%),linear-gradient(145deg,var(--dice-a),var(--dice-b) 54%,var(--dice-c)); border:2px solid rgba(255,255,255,.58); box-shadow:inset -12px -16px 26px rgba(0,0,0,.18),0 18px 34px rgba(0,0,0,.3); }}
+        .die span {{ position:absolute; left:50%; top:50%; width:52%; height:40%; transform-origin:0 0; transform:rotate(calc(var(--i) * 24deg)) skewY(-18deg); background:rgba(255,255,255,.12); border-left:1px solid rgba(255,255,255,.22); opacity:.62; }}
+        .die strong {{ position:relative; z-index:2; color:#061015; font-size:34px; line-height:1; font-weight:950; text-shadow:0 1px 0 rgba(255,255,255,.45); }}
+        .die small {{ position:absolute; z-index:2; bottom:28px; color:rgba(6,16,21,.76); font-size:12px; font-weight:950; }}
+        .dice-shape-d4 .die::before {{ clip-path:polygon(50% 3%,96% 92%,4% 92%); }}
+        .dice-shape-d6 .die::before {{ clip-path:polygon(15% 10%,82% 4%,98% 72%,52% 100%,4% 70%); border-radius:18px; }}
+        .dice-shape-d8 .die::before {{ clip-path:polygon(50% 0%,92% 28%,82% 78%,50% 100%,18% 78%,8% 28%); }}
+        .dice-shape-d10 .die::before {{ clip-path:polygon(50% 0%,86% 17%,100% 52%,72% 100%,28% 100%,0% 52%,14% 17%); }}
+        .dice-shape-d12 .die::before {{ clip-path:polygon(50% 0%,80% 8%,100% 34%,96% 66%,76% 92%,50% 100%,24% 92%,4% 66%,0% 34%,20% 8%); }}
+        .dice-shape-d20 .die::before {{ clip-path:polygon(50% 0%,72% 12%,95% 18%,100% 50%,90% 78%,65% 92%,50% 100%,35% 92%,10% 78%,0% 50%,5% 18%,28% 12%); }}
+        .sparks {{ position:absolute; inset:0; pointer-events:none; }}
+        .sparks i {{ position:absolute; left:50%; top:50%; width:7px; height:7px; border-radius:999px; background:var(--dice-b); box-shadow:0 0 10px var(--dice-glow); animation:spark 1.05s ease-out both; }}
+        .sparks i:nth-child(1) {{ --x:-74px; --y:-44px; animation-delay:.05s; }} .sparks i:nth-child(2) {{ --x:70px; --y:-52px; animation-delay:.12s; }}
+        .sparks i:nth-child(3) {{ --x:-64px; --y:48px; animation-delay:.18s; }} .sparks i:nth-child(4) {{ --x:76px; --y:40px; animation-delay:.24s; }}
+        .sparks i:nth-child(5) {{ --x:-24px; --y:-86px; animation-delay:.08s; }} .sparks i:nth-child(6) {{ --x:28px; --y:84px; animation-delay:.15s; }}
+        .sparks i:nth-child(7) {{ --x:-94px; --y:2px; animation-delay:.22s; }} .sparks i:nth-child(8) {{ --x:94px; --y:-4px; animation-delay:.28s; }}
+        .label {{ color:#ff7ad9; font-size:12px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; }}
+        h3 {{ margin:4px 0 8px; font-size:30px; color:#fff; }} p {{ margin:0; color:#eadcff; font-weight:800; }}
+        @keyframes tumble {{ 0% {{ transform:translate3d(-50%,-76%,0) rotateX(-160deg) rotateY(110deg) rotateZ(18deg) scale(.82); opacity:.82; }} 58% {{ transform:translate3d(-50%,-46%,0) rotateX(34deg) rotateY(38deg) rotateZ(-7deg) scale(1.06); opacity:1; }} 100% {{ transform:translate3d(-50%,-50%,0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); opacity:1; }} }}
+        @keyframes spark {{ 0% {{ transform:translate3d(-50%,-50%,0) scale(.25); opacity:0; }} 25% {{ opacity:1; }} 100% {{ transform:translate3d(calc(-50% + var(--x)),calc(-50% + var(--y)),0) scale(.08); opacity:0; }} }}
+      </style>
+      <div class="scene"><div class="sparks">{particles}</div><div class="die">{facet_html}<strong>{total}</strong><small>d{die_sides}</small></div></div>
+      <div><div class="label">{notation}</div><h3>{title}</h3><p>{detail}</p></div>
+    </div>
+    """, height=196)
 
 
 def render_dnd_battlemap(lobby, players, creatures):
