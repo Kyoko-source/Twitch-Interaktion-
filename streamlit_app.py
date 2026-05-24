@@ -1188,13 +1188,13 @@ def render_dnd_page():
     <div class="dnd-hero">
         <div>
             <div class="section-kicker">Abenteuerbrett</div>
-            <h2>Runden, Party und Würfel an einem Ort</h2>
-            <p>Erstelle offene oder passwortgeschützte Lobbys, tritt mit einem Charakter bei und nutze DnD-typische Würfel wie d4, d6, d8, d10, d12, d20 und d100.</p>
+            <h2>Ein Spieltisch für Party, Szene und Würfel</h2>
+            <p>Lobbys, Charakterbögen, Kreaturen, Questlog und Wurfchronik sind jetzt wie ein Session-Dashboard aufgebaut: oben die Runde, darunter die Werkzeuge.</p>
         </div>
         <div class="dnd-rule-grid">
-            <div class="dnd-panel"><div class="dnd-pill">d20</div><p>Für Angriffe, Rettungswürfe und Proben.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Vorteil</div><p>2d20, der höhere Wurf zählt.</p></div>
-            <div class="dnd-panel"><div class="dnd-pill">Nachteil</div><p>2d20, der niedrigere Wurf zählt.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Session</div><p>Szene und Questlog bleiben sichtbar, ohne den Rest zu überladen.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Party</div><p>HP, AC, Initiative und Attribute direkt als scanbare Karten.</p></div>
+            <div class="dnd-panel"><div class="dnd-pill">Würfel</div><p>d4 bis d100, Vorteil, Nachteil und Chronik für die ganze Runde.</p></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1252,6 +1252,7 @@ def render_dnd_page():
 
     lobbies = get_dnd_lobbies()
     if lobbies:
+        st.markdown('<div class="dnd-section-title"><h3>Lobby beitreten</h3><span class="admin-muted">Charakter wählen und direkt an den Tisch</span></div>', unsafe_allow_html=True)
         selected_lobby_id = st.selectbox(
             "Lobby auswählen",
             [str(lobby.get("id")) for lobby in lobbies],
@@ -1301,11 +1302,27 @@ def render_dnd_page():
             None,
         )
 
-        st.markdown("---")
-        st.markdown(f"### Aktive Runde: {active_lobby.get('name')}")
-
         scene_text = str(active_lobby.get("scene") or "Die Party steht am Rand eines unbekannten Ortes. Der Dungeon Master kann hier die Szene setzen.")
         quest_text = str(active_lobby.get("quest_log") or "Noch keine Quest aktiv.")
+        last_roll = st.session_state.get("dnd_last_roll")
+        last_roll_total = "-"
+        if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
+            last_roll_total = str(int(last_roll.get("total") or 0))
+
+        st.markdown(
+            '<div class="dnd-session-bar">'
+            '<div class="dnd-session-title">'
+            '<div class="section-kicker">Aktive Runde</div>'
+            f'<h3>{html.escape(str(active_lobby.get("name") or "Unbenannte Lobby"))}</h3>'
+            f'<div class="admin-muted">DM/Host: {html.escape(str(active_lobby.get("owner") or "Unbekannt"))}</div>'
+            '</div>'
+            f'<div class="dnd-session-stat"><strong>{len(players)}</strong><span>Charaktere</span></div>'
+            f'<div class="dnd-session-stat"><strong>{len(creatures)}</strong><span>Kreaturen</span></div>'
+            f'<div class="dnd-session-stat"><strong>{html.escape(last_roll_total)}</strong><span>Letzter Wurf</span></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
         st.markdown(
             '<div class="dnd-hero">'
             '<div>'
@@ -1390,7 +1407,7 @@ def render_dnd_page():
                 '</div>'
                 '</div>'
             )
-        st.markdown("#### Charaktere")
+        st.markdown('<div class="dnd-section-title"><h3>Charaktere</h3><span class="admin-muted">Party-Status auf einen Blick</span></div>', unsafe_allow_html=True)
         if not party_html:
             party_html = '<div class="dnd-panel"><p>Noch keine Party.</p></div>'
         st.markdown(f'<div class="dnd-party-grid">{party_html}</div>', unsafe_allow_html=True)
@@ -1412,7 +1429,7 @@ def render_dnd_page():
                     f'<p>{html.escape(str(creature.get("notes") or ""))}</p>'
                     '</div>'
                 )
-            st.markdown("#### Kreaturen")
+            st.markdown('<div class="dnd-section-title"><h3>Kreaturen</h3><span class="admin-muted">Initiative, HP und Notizen</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-party-grid">{creature_html}</div>', unsafe_allow_html=True)
 
             if active_lobby.get("owner") == logged_in_username:
@@ -1448,14 +1465,6 @@ def render_dnd_page():
                                 else:
                                     st.error("Kreatur konnte nicht entfernt werden.")
 
-        scene_cols = st.columns(3)
-        with scene_cols[0]:
-            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Szene</div><h3>Taverne</h3><p>Startpunkt für Rollenspiel, Gerüchte und Quest-Hooks.</p></div>', unsafe_allow_html=True)
-        with scene_cols[1]:
-            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Kampf</div><h3>Initiative</h3><p>d20 plus Geschicklichkeitsmodifikator. Hohe Werte handeln zuerst.</p></div>', unsafe_allow_html=True)
-        with scene_cols[2]:
-            st.markdown('<div class="dnd-panel"><div class="dnd-pill">Loot</div><h3>Schatzkammer</h3><p>d100 eignet sich für Zufallstabellen, Beute und wilde Ereignisse.</p></div>', unsafe_allow_html=True)
-
         last_roll = st.session_state.get("dnd_last_roll")
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
             st.markdown(
@@ -1471,7 +1480,7 @@ def render_dnd_page():
             )
 
         if current_player:
-            with st.expander("Charakterbogen bearbeiten", expanded=True):
+            with st.expander("Charakterbogen bearbeiten", expanded=False):
                 with st.form("dnd_character_sheet_form"):
                     sheet_top = st.columns([1.2, 1, 0.7, 0.7, 0.7, 0.7])
                     with sheet_top[0]:
@@ -1547,7 +1556,7 @@ def render_dnd_page():
                         else:
                             st.error("Charakterbogen konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
-            st.markdown("#### Charakter-Proben")
+            st.markdown('<div class="dnd-section-title"><h3>Charakter-Proben</h3><span class="admin-muted">Attribut wählen, Bonus setzen, Wurf speichern</span></div>', unsafe_allow_html=True)
             check_cols = st.columns([1, 1, 1, 1.4])
             with check_cols[0]:
                 check_ability_key = st.selectbox(
@@ -1581,7 +1590,7 @@ def render_dnd_page():
                 st.success(f"{reason}: {total} ({rolls})")
                 st.rerun()
 
-        st.markdown("#### Würfelroller")
+        st.markdown('<div class="dnd-section-title"><h3>Würfelroller</h3><span class="admin-muted">Freie Würfe für Angriffe, Checks und Schaden</span></div>', unsafe_allow_html=True)
         roll_cols = st.columns([1, 1, 1, 1, 1.4])
         with roll_cols[0]:
             roll_count = st.number_input("Anzahl", min_value=1, max_value=20, value=1, step=1, key="dnd_roll_count")
@@ -1628,7 +1637,7 @@ def render_dnd_page():
                     f'<div class="admin-muted">{html.escape(str(roll.get("rolls") or ""))}</div>'
                     '</article>'
                 )
-            st.markdown("#### Wurfchronik")
+            st.markdown('<div class="dnd-section-title"><h3>Wurfchronik</h3><span class="admin-muted">Die letzten Ergebnisse dieser Lobby</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-roll-grid">{roll_html}</div>', unsafe_allow_html=True)
 
         if active_lobby.get("owner") == logged_in_username:
@@ -4735,35 +4744,57 @@ h1::after {
 .dnd-hero,
 .dnd-panel,
 .dnd-lobby-card,
-.dnd-roll-card {
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: linear-gradient(145deg, rgba(24,12,31,0.86), rgba(45,20,42,0.70));
-    box-shadow: 0 20px 55px rgba(0,0,0,0.25);
+.dnd-roll-card,
+.dnd-session-bar {
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10,14,22,0.74);
+    box-shadow: 0 22px 70px rgba(0,0,0,0.30);
 }
 
 .dnd-hero {
-    padding: 24px;
-    margin: 0 0 18px;
+    position: relative;
+    overflow: hidden;
+    padding: 30px;
+    margin: 0 0 20px;
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 20px;
     align-items: stretch;
     background:
-        radial-gradient(circle at 15% 20%, rgba(255,214,102,0.16), transparent 28%),
-        radial-gradient(circle at 84% 8%, rgba(255,84,160,0.14), transparent 26%),
-        linear-gradient(145deg, rgba(23,10,30,0.94), rgba(64,29,42,0.78));
+        linear-gradient(115deg, rgba(8,13,24,0.98), rgba(39,18,54,0.90) 52%, rgba(82,28,48,0.78)),
+        rgba(10,14,22,0.90);
+}
+
+.dnd-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,0.88), transparent 78%);
+    pointer-events: none;
+}
+
+.dnd-hero > * {
+    position: relative;
+    z-index: 1;
 }
 
 .dnd-hero h2 {
+    max-width: 760px;
     margin: 6px 0 10px;
-    font-size: 42px;
+    font-size: 44px;
+    line-height: 1.02;
+    color: #ffffff;
 }
 
 .dnd-hero p,
 .dnd-panel p,
 .dnd-lobby-card p {
-    color: #eadcff;
+    color: #e9e2f8;
     font-weight: 760;
     line-height: 1.5;
 }
@@ -4777,15 +4808,34 @@ h1::after {
     gap: 12px;
 }
 
+.dnd-rule-grid {
+    grid-template-columns: 1fr;
+}
+
 .dnd-panel,
 .dnd-lobby-card,
 .dnd-roll-card {
-    padding: 16px;
+    padding: 18px;
+}
+
+.dnd-panel {
+    background:
+        linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035)),
+        rgba(10,14,22,0.68);
+}
+
+.dnd-lobby-card {
+    min-height: 176px;
+    background:
+        linear-gradient(145deg, rgba(124,255,178,0.08), rgba(255,255,255,0.035)),
+        rgba(10,14,22,0.72);
 }
 
 .dnd-lobby-card h3,
-.dnd-roll-card h3 {
-    margin: 4px 0 8px;
+.dnd-roll-card h3,
+.dnd-panel h3 {
+    margin: 8px 0 8px;
+    color: #ffffff;
 }
 
 .dnd-pill {
@@ -4794,36 +4844,98 @@ h1::after {
     width: max-content;
     border-radius: 999px;
     padding: 6px 10px;
-    color: #16091f;
-    background: linear-gradient(135deg, #ffe66d, #ffb84d);
+    color: #071016;
+    background: linear-gradient(135deg, #7CFFB2, #00f5ff);
     font-weight: 950;
     font-size: 12px;
 }
 
 .dnd-pill.private {
-    background: linear-gradient(135deg, #ff8fab, #c77dff);
+    background: linear-gradient(135deg, #ff8fab, #ff54a0);
+}
+
+.dnd-session-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(120px, 0.18fr));
+    gap: 14px;
+    align-items: stretch;
+    margin: 16px 0;
+    padding: 18px;
+    background:
+        linear-gradient(135deg, rgba(0,245,255,0.08), rgba(255,84,160,0.08)),
+        rgba(10,14,22,0.78);
+}
+
+.dnd-session-title h3 {
+    margin: 4px 0 6px;
+    font-size: 28px;
+    color: #ffffff;
+}
+
+.dnd-session-stat {
+    display: grid;
+    align-content: center;
+    min-height: 86px;
+    padding: 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.065);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.dnd-session-stat strong {
+    color: #7CFFB2;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.dnd-session-stat span {
+    margin-top: 6px;
+    color: #cfc6e8;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.dnd-section-title {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 24px 0 10px;
+}
+
+.dnd-section-title h3 {
+    margin: 0;
+    color: #ffffff;
+}
+
+.dnd-roll-card {
+    background:
+        linear-gradient(145deg, rgba(0,245,255,0.09), rgba(199,125,255,0.06)),
+        rgba(10,14,22,0.72);
 }
 
 .dnd-roll-card strong {
     display: block;
-    font-size: 36px;
-    color: #ffe66d;
+    margin: 10px 0 4px;
+    font-size: 42px;
+    color: #7CFFB2;
     line-height: 1;
 }
 
 .dnd-character-card {
     position: relative;
     overflow: hidden;
-    min-height: 190px;
+    min-height: 210px;
 }
 
 .dnd-character-card::before {
     content: "";
     position: absolute;
-    inset: -40% 45% auto -20%;
-    height: 160px;
-    transform: rotate(-18deg);
-    background: linear-gradient(135deg, rgba(255,230,109,0.18), rgba(199,125,255,0.08));
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(124,255,178,0.13), transparent 38%),
+        linear-gradient(180deg, rgba(255,255,255,0.055), transparent 58%);
+    pointer-events: none;
 }
 
 .dnd-character-card > * {
@@ -4835,19 +4947,20 @@ h1::after {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
 .dnd-stat {
+    min-height: 62px;
     padding: 10px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.065);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.075);
     border: 1px solid rgba(255,255,255,0.10);
 }
 
 .dnd-stat strong {
     display: block;
-    color: #ffe66d;
+    color: #00f5ff;
     font-size: 18px;
 }
 
@@ -4874,9 +4987,9 @@ h1::after {
 
 .dnd-creature-card {
     background:
-        radial-gradient(circle at 18% 18%, rgba(255,84,160,0.18), transparent 28%),
-        linear-gradient(145deg, rgba(39,11,26,0.90), rgba(65,18,45,0.72));
-    border-color: rgba(255,122,154,0.22);
+        linear-gradient(145deg, rgba(255,84,160,0.13), rgba(255,255,255,0.035)),
+        rgba(20,10,18,0.80);
+    border-color: rgba(255,122,154,0.24);
 }
 
 .dnd-creature-card h3 {
@@ -4888,13 +5001,13 @@ h1::after {
     grid-template-columns: minmax(170px, 0.35fr) minmax(0, 1fr);
     gap: 16px;
     align-items: center;
-    margin: 14px 0;
+    margin: 16px 0;
     padding: 20px;
-    border-radius: 18px;
+    border-radius: 10px;
     background:
-        radial-gradient(circle at 16% 18%, rgba(255,230,109,0.20), transparent 28%),
-        linear-gradient(145deg, rgba(25,12,36,0.92), rgba(57,23,55,0.76));
-    border: 1px solid rgba(255,255,255,0.14);
+        linear-gradient(145deg, rgba(124,255,178,0.12), rgba(0,245,255,0.08)),
+        rgba(10,14,22,0.80);
+    border: 1px solid rgba(124,255,178,0.22);
 }
 
 .dice-cube {
@@ -4903,11 +5016,11 @@ h1::after {
     margin: auto;
     display: grid;
     place-items: center;
-    border-radius: 28px;
-    color: #16091f;
+    border-radius: 26px;
+    color: #061015;
     font-size: 42px;
     font-weight: 950;
-    background: linear-gradient(145deg, #fff8dc, #ffd166 52%, #ff7a9a);
+    background: linear-gradient(145deg, #effcff, #7CFFB2 52%, #00f5ff);
     box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 2px 12px rgba(255,255,255,0.65);
     animation: dice-pop 0.78s cubic-bezier(.18,.84,.24,1.24);
 }
@@ -5176,6 +5289,7 @@ h1::after {
     .dnd-lobby-grid,
     .dnd-party-grid,
     .dnd-roll-grid,
+    .dnd-session-bar,
     .gazette-card-grid,
     .score-strip,
     .newspaper-grid,
