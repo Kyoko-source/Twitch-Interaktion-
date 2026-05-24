@@ -1083,6 +1083,7 @@ def render_creative_gallery(limit=60):
                 for emoji in reaction_emojis
             )
             with column:
+                selector_key = f"show_reactions_{art_id}"
                 image_html = (
                     f'<img src="{html.escape(image_data, quote=True)}" alt="{html.escape(title or "Hall of Fame Bild", quote=True)}">'
                     if image_data else ""
@@ -1097,17 +1098,24 @@ def render_creative_gallery(limit=60):
                     '</article>',
                     unsafe_allow_html=True,
                 )
-                button_cols = st.columns(len(reaction_emojis))
-                for button_col, emoji in zip(button_cols, reaction_emojis):
-                    with button_col:
-                        if st.button(emoji, key=f"react_{art_id}_{emoji}", use_container_width=True):
-                            current_user = get_logged_in_username()
-                            if not current_user:
-                                gallery_notice = "Bitte melde dich an, um auf Bilder zu reagieren."
-                            elif set_creative_gallery_reaction(art_id, current_user, emoji):
-                                st.rerun()
-                            else:
-                                gallery_notice = "Reaktionen sind noch nicht aktiviert. Ein Admin muss die Supabase-Migration für Hall-of-Fame-Reaktionen einmal ausführen."
+                if st.button("Reaktion", key=f"toggle_reactions_{art_id}", use_container_width=True):
+                    st.session_state[selector_key] = not st.session_state.get(selector_key, False)
+
+                if st.session_state.get(selector_key, False):
+                    st.markdown('<div class="creative-reaction-picker">', unsafe_allow_html=True)
+                    button_cols = st.columns(len(reaction_emojis))
+                    for button_col, emoji in zip(button_cols, reaction_emojis):
+                        with button_col:
+                            if st.button(emoji, key=f"react_{art_id}_{emoji}", use_container_width=True):
+                                current_user = get_logged_in_username()
+                                if not current_user:
+                                    gallery_notice = "Bitte melde dich an, um auf Bilder zu reagieren."
+                                elif set_creative_gallery_reaction(art_id, current_user, emoji):
+                                    st.session_state[selector_key] = False
+                                    st.rerun()
+                                else:
+                                    gallery_notice = "Reaktionen sind noch nicht aktiviert. Ein Admin muss die Supabase-Migration für Hall-of-Fame-Reaktionen einmal ausführen."
+                    st.markdown('</div>', unsafe_allow_html=True)
 
     if gallery_notice:
         st.warning(gallery_notice)
@@ -1859,6 +1867,152 @@ def create_news_post(title, body, image_url):
 def delete_news_post(post_id):
     success = api_patch(f"news_posts?id=eq.{post_id}", {"active": False})
     get_news_posts.clear()
+    return success
+
+
+@st.cache_data(ttl=60)
+def get_support_messages(status: Optional[str] = None):
+    path = "support_messages?select=*&order=created_at.desc&limit=100"
+    if status:
+        path = (
+            "support_messages?select=*&"
+            f"status=eq.{urllib.parse.quote(status)}&order=created_at.desc&limit=100"
+        )
+    return api_get_optional(path)
+
+
+def create_support_message(username, category, title, message):
+    clean_title = str(title).strip()
+    clean_message = str(message).strip()
+    clean_username = str(username or "").strip() or "Gast"
+    clean_category = str(category or "Problem").strip()[:40]
+
+    if not clean_title or not clean_message:
+        return False, "Bitte gib einen Titel und eine Beschreibung ein."
+
+    created = api_post_optional(
+        "support_messages",
+        {
+            "id": str(uuid.uuid4()),
+            "username": clean_username[:80],
+            "category": clean_category,
+            "title": clean_title[:140],
+            "message": clean_message[:2500],
+            "status": "open",
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+
+    if created:
+        get_support_messages.clear()
+        return True, "Danke, deine Meldung ist im Support angekommen."
+    return False, "Support konnte nicht gespeichert werden. Führe zuerst add_support_tables.sql in Supabase aus."
+
+
+def set_support_message_status(message_id, status):
+    if status not in {"open", "done"}:
+        return False
+    success = api_patch(
+        f"support_messages?id=eq.{urllib.parse.quote(str(message_id))}",
+        {
+            "status": status,
+            "resolved_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat() if status == "done" else None,
+        }
+    )
+    if success:
+        get_support_messages.clear()
+    return success
+
+
+@st.cache_data(ttl=60)
+def get_wish_posts():
+    return api_get_optional(
+        "wish_posts?select=*&active=eq.true&order=created_at.desc&limit=100"
+    )
+
+
+@st.cache_data(ttl=60)
+def get_wish_reactions():
+    return api_get_optional(
+        "wish_reactions?select=wish_id,username,reaction,created_at&order=created_at.desc&limit=2000"
+    )
+
+
+def create_wish_post(username, title, description):
+    clean_title = str(title).strip()
+    clean_description = str(description).strip()
+    clean_username = str(username or "").strip() or "Gast"
+
+    if not clean_title or not clean_description:
+        return False, "Bitte gib einen Titel und eine Beschreibung ein."
+
+    created = api_post_optional(
+        "wish_posts",
+        {
+            "id": str(uuid.uuid4()),
+            "username": clean_username[:80],
+            "title": clean_title[:140],
+            "description": clean_description[:1800],
+            "active": True,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+
+    if created:
+        get_wish_posts.clear()
+        return True, "Dein Wunsch ist veröffentlicht."
+    return False, "Wunsch konnte nicht gespeichert werden. Führe zuerst add_support_tables.sql in Supabase aus."
+
+
+def summarize_wish_reactions(reactions):
+    summary = {}
+    for reaction in reactions:
+        wish_id = str(reaction.get("wish_id") or "")
+        reaction_value = str(reaction.get("reaction") or "")
+        if not wish_id or reaction_value not in {"up", "down"}:
+            continue
+        summary.setdefault(wish_id, {"up": 0, "down": 0})
+        summary[wish_id][reaction_value] += 1
+    return summary
+
+
+def get_user_wish_reactions(reactions, username):
+    if not username:
+        return {}
+    return {
+        str(reaction.get("wish_id") or ""): str(reaction.get("reaction") or "")
+        for reaction in reactions
+        if str(reaction.get("username") or "") == username
+    }
+
+
+def set_wish_reaction(wish_id, username, reaction):
+    if not wish_id or not username or reaction not in {"up", "down"}:
+        return False
+
+    created = api_upsert_optional(
+        "wish_reactions?on_conflict=wish_id,username",
+        {
+            "wish_id": str(wish_id),
+            "username": username.strip()[:80],
+            "reaction": reaction,
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    if created:
+        get_wish_reactions.clear()
+        return True
+    return False
+
+
+def delete_wish_post(wish_id):
+    success = api_patch(
+        f"wish_posts?id=eq.{urllib.parse.quote(str(wish_id))}",
+        {"active": False}
+    )
+    if success:
+        get_wish_posts.clear()
+        get_wish_reactions.clear()
     return success
 
 
@@ -3734,6 +3888,66 @@ h1::after {
     font-weight: 750;
 }
 
+.support-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    gap: 18px;
+    align-items: start;
+    margin: 12px 0 26px;
+}
+
+.support-intro,
+.wish-card {
+    border-radius: 10px;
+    padding: 22px;
+    background: rgba(8,14,18,0.74);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 18px 48px rgba(0,0,0,0.24);
+}
+
+.support-intro h2,
+.wish-card h3 {
+    margin: 6px 0 10px;
+    color: #ffffff;
+}
+
+.support-intro p,
+.wish-card p {
+    color: #d8ccff;
+    line-height: 1.55;
+}
+
+.wish-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.wish-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: #cfc6e8;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.wish-score-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.wish-score-pill {
+    padding: 8px 11px;
+    border-radius: 999px;
+    color: #effcff;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255,255,255,0.12);
+    font-weight: 900;
+}
+
 .home-dashboard {
     position: relative;
     overflow: hidden;
@@ -4352,6 +4566,14 @@ h1::after {
     border-color: rgba(82,185,160,0.36);
 }
 
+.creative-reaction-picker {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(8,14,24,0.68);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
 .chicken-scoreboard-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4962,6 +5184,7 @@ h1::after {
     .market-holdings,
     .shop-dashboard,
     .shop-status-row,
+    .support-shell,
     .admin-control-grid,
     .leaderboard-hero,
     .leaderboard-stats,
@@ -5165,6 +5388,7 @@ MAIN_MENU_OPTIONS = [
     "📰 News",
     "👥 Mitglieder",
     "👤 Profil",
+    "🛟 Support",
     "🛒 Shop",
     "🏆 Rangliste",
     "⚡ Events",
@@ -5460,7 +5684,7 @@ if menu == "🏠 Home":
         )
     st.markdown(week_art_html, unsafe_allow_html=True)
     if st.button("Zur Hall of Fame", key="home_hof_cta", use_container_width=True):
-        st.session_state["app_menu"] = MAIN_MENU_OPTIONS[8]
+        st.session_state["app_menu"] = "🏛️ Hall of Fame"
         st.rerun()
 
 # =========================
@@ -5761,6 +5985,134 @@ elif menu == "👤 Profil":
                     st.rerun()
                 else:
                     st.error("Profil konnte nicht gespeichert werden. Prüfe die URL oder die Supabase-Spalten.")
+
+# =========================
+# SUPPORT
+# =========================
+
+elif menu == "🛟 Support":
+
+    logged_in_username = get_logged_in_username()
+    display_name = get_logged_in_display_name() or logged_in_username
+
+    st.markdown('<div class="section-kicker">Support & Wünsche</div>', unsafe_allow_html=True)
+    st.markdown("## Support")
+
+    st.markdown(
+        """
+        <div class="support-shell">
+            <div class="support-intro">
+                <div class="section-kicker">Problem melden</div>
+                <h2>Etwas hakt?</h2>
+                <p>Schick eine kurze Meldung an den Adminbereich. Beschreibe am besten, was du geklickt hast und was stattdessen passiert ist.</p>
+            </div>
+            <div class="support-intro">
+                <div class="section-kicker">Wünsche</div>
+                <h2>Community-Ideen</h2>
+                <p>Wünsche sind öffentlich sichtbar. Andere können mit Daumen hoch oder runter abstimmen.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    problem_tab, wish_tab = st.tabs(["Problem melden", "Wünsche"])
+
+    with problem_tab:
+        with st.form("support_problem_form"):
+            if logged_in_username:
+                st.caption(f"Absender: {display_name}")
+                support_name = logged_in_username
+            else:
+                support_name = st.text_input("Dein Name", placeholder="Twitch-Name oder Gast")
+            support_category = st.selectbox("Kategorie", ["Problem", "Bug", "Login", "Shop", "Sonstiges"])
+            support_title = st.text_input("Titel", max_chars=140)
+            support_message = st.text_area("Beschreibung", height=180, max_chars=2500)
+            submit_support = st.form_submit_button("Problem senden")
+
+        if submit_support:
+            success, message = create_support_message(
+                support_name,
+                support_category,
+                support_title,
+                support_message,
+            )
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+
+    with wish_tab:
+        with st.form("create_wish_form"):
+            if logged_in_username:
+                st.caption(f"Wunsch von: {display_name}")
+                wish_name = logged_in_username
+            else:
+                wish_name = st.text_input("Dein Name", placeholder="Twitch-Name oder Gast")
+            wish_title = st.text_input("Wunsch-Titel", max_chars=140)
+            wish_description = st.text_area("Wunsch beschreiben", height=140, max_chars=1800)
+            submit_wish = st.form_submit_button("Wunsch veröffentlichen")
+
+        if submit_wish:
+            success, message = create_wish_post(wish_name, wish_title, wish_description)
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
+
+        wishes = get_wish_posts()
+        reactions = get_wish_reactions()
+        reaction_summary = summarize_wish_reactions(reactions)
+        user_reactions = get_user_wish_reactions(reactions, logged_in_username)
+
+        st.markdown("### Eingereichte Wünsche")
+        if not wishes:
+            st.info("Noch keine Wünsche vorhanden.")
+        else:
+            st.markdown('<div class="wish-list">', unsafe_allow_html=True)
+            for wish in wishes:
+                wish_id = str(wish.get("id") or "")
+                title = str(wish.get("title") or "Wunsch")
+                description = str(wish.get("description") or "")
+                username = str(wish.get("username") or "Gast")
+                created_at = format_gallery_timestamp(wish.get("created_at"))
+                counts = reaction_summary.get(wish_id, {"up": 0, "down": 0})
+                current_vote = user_reactions.get(wish_id)
+                vote_text = "👍" if current_vote == "up" else "👎" if current_vote == "down" else "offen"
+
+                st.markdown(
+                    '<div class="wish-card">'
+                    f'<div class="wish-meta"><span>von {html.escape(username)}</span><span>{html.escape(created_at)}</span></div>'
+                    f'<h3>{html.escape(title)}</h3>'
+                    f'<p>{html.escape(description)}</p>'
+                    '<div class="wish-score-row">'
+                    f'<div class="wish-score-pill">👍 {int(counts.get("up") or 0)}</div>'
+                    f'<div class="wish-score-pill">👎 {int(counts.get("down") or 0)}</div>'
+                    f'<div class="wish-score-pill">Deine Stimme: {html.escape(vote_text)}</div>'
+                    '</div>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+                vote_col_a, vote_col_b = st.columns(2)
+                with vote_col_a:
+                    if st.button("👍", key=f"wish_up_{wish_id}", use_container_width=True):
+                        if not logged_in_username:
+                            st.warning("Bitte melde dich zum Abstimmen zuerst an.")
+                        elif set_wish_reaction(wish_id, logged_in_username, "up"):
+                            st.rerun()
+                        else:
+                            st.error("Stimme konnte nicht gespeichert werden.")
+                with vote_col_b:
+                    if st.button("👎", key=f"wish_down_{wish_id}", use_container_width=True):
+                        if not logged_in_username:
+                            st.warning("Bitte melde dich zum Abstimmen zuerst an.")
+                        elif set_wish_reaction(wish_id, logged_in_username, "down"):
+                            st.rerun()
+                        else:
+                            st.error("Stimme konnte nicht gespeichert werden.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================
 # NEWS
@@ -8047,6 +8399,10 @@ elif menu == "🔐 Admin":
         news_posts = get_news_posts()
         patch_notes = get_patch_notes()
         creative_items = get_creative_gallery(100)
+        support_messages = get_support_messages()
+        open_support_count = len([message for message in support_messages if message.get("status") == "open"])
+        wish_posts = get_wish_posts()
+        wish_reactions = get_wish_reactions()
         pending_trade_count = len(api_get_optional("chicken_trades?status=eq.pending&select=id"))
         active_categories = len({str(item.get("category") or get_default_shop_category()) for item in shop_items})
         wheel_queue_count = len(get_punishment_wheel_entries())
@@ -8107,10 +8463,15 @@ elif menu == "🔐 Admin":
                 <h3>{len(creative_items)}</h3>
                 <div class="admin-muted">Bilder in der Hall of Fame</div>
             </div>
+            <div class="admin-control-card">
+                <div class="section-kicker">Support</div>
+                <h3>{open_support_count}</h3>
+                <div class="admin-muted">Offene Meldungen</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        overview_tab, registration_tab, viewer_tab, news_tab, patch_tab, shop_tab, event_tab, creative_tab, danger_tab = st.tabs([
+        overview_tab, registration_tab, viewer_tab, news_tab, patch_tab, shop_tab, event_tab, creative_tab, support_tab, danger_tab = st.tabs([
             "Dashboard",
             "Registrierungen",
             "Viewer",
@@ -8119,6 +8480,7 @@ elif menu == "🔐 Admin":
             "Shop",
             "Events",
             "Kreativwand",
+            "Support",
             "Moderation",
         ])
 
@@ -8497,6 +8859,75 @@ elif menu == "🔐 Admin":
                                 st.rerun()
                             else:
                                 st.error("Bild konnte nicht gelöscht werden.")
+
+        with support_tab:
+            st.markdown("### Support-Meldungen")
+            if not support_messages:
+                st.info("Noch keine Support-Meldungen vorhanden.")
+            else:
+                for message in support_messages:
+                    message_id = str(message.get("id") or "")
+                    title = str(message.get("title") or "Meldung")
+                    body = str(message.get("message") or "")
+                    username = str(message.get("username") or "Gast")
+                    category = str(message.get("category") or "Problem")
+                    status = str(message.get("status") or "open")
+                    created_at = format_gallery_timestamp(message.get("created_at"))
+
+                    st.markdown(
+                        '<div class="admin-list-item">'
+                        f'<b>{html.escape(title)}</b><br>'
+                        f'<span class="admin-muted">{html.escape(category)} · von {html.escape(username)} · {html.escape(created_at)} · {html.escape(status)}</span>'
+                        f'<p>{html.escape(body)}</p>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    done_col, open_col = st.columns(2)
+                    with done_col:
+                        if status != "done" and st.button("Als erledigt markieren", key=f"support_done_{message_id}"):
+                            if set_support_message_status(message_id, "done"):
+                                st.success("Meldung erledigt.")
+                                st.rerun()
+                            else:
+                                st.error("Status konnte nicht gespeichert werden.")
+                    with open_col:
+                        if status == "done" and st.button("Wieder öffnen", key=f"support_open_{message_id}"):
+                            if set_support_message_status(message_id, "open"):
+                                st.success("Meldung wieder geöffnet.")
+                                st.rerun()
+                            else:
+                                st.error("Status konnte nicht gespeichert werden.")
+
+            st.markdown("### Wünsche moderieren")
+            if not wish_posts:
+                st.info("Noch keine Wünsche vorhanden.")
+            else:
+                wish_summary = summarize_wish_reactions(wish_reactions)
+                for wish in wish_posts:
+                    wish_id = str(wish.get("id") or "")
+                    title = str(wish.get("title") or "Wunsch")
+                    description = str(wish.get("description") or "")
+                    username = str(wish.get("username") or "Gast")
+                    created_at = format_gallery_timestamp(wish.get("created_at"))
+                    counts = wish_summary.get(wish_id, {"up": 0, "down": 0})
+
+                    wish_col, action_col = st.columns([4, 1])
+                    with wish_col:
+                        st.markdown(
+                            '<div class="admin-list-item">'
+                            f'<b>{html.escape(title)}</b><br>'
+                            f'<span class="admin-muted">von {html.escape(username)} · {html.escape(created_at)} · 👍 {int(counts.get("up") or 0)} · 👎 {int(counts.get("down") or 0)}</span>'
+                            f'<p>{html.escape(description)}</p>'
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with action_col:
+                        if st.button("Wunsch entfernen", key=f"delete_wish_{wish_id}"):
+                            if delete_wish_post(wish_id):
+                                st.success("Wunsch entfernt.")
+                                st.rerun()
+                            else:
+                                st.error("Wunsch konnte nicht entfernt werden.")
 
         with danger_tab:
             st.markdown("### Moderation")
