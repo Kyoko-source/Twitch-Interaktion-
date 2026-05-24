@@ -9268,6 +9268,689 @@ elif menu.endswith("Minispiele"):
         st.session_state["minigame_view"] = "dnd"
         st.rerun()
 
+    st.markdown("## Chicken Snake")
+    components.html("""
+    <html>
+    <head>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 760px;
+            background:
+                radial-gradient(circle at 18% 8%, rgba(124,255,178,0.16), transparent 26%),
+                radial-gradient(circle at 84% 18%, rgba(255,84,160,0.18), transparent 28%),
+                linear-gradient(180deg, #070712 0%, #14091f 56%, #070711 100%);
+            color: #fff;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            overflow: auto;
+        }
+        .snake-shell {
+            width: min(100%, 1080px);
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .snake-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 14px;
+            align-items: stretch;
+        }
+        .snake-stage {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid rgba(124,255,178,0.22);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+                rgba(7, 8, 18, 0.88);
+            box-shadow: 0 26px 70px rgba(0,0,0,0.42), inset 0 0 44px rgba(124,255,178,0.06);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            background: #081020;
+        }
+        .snake-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background:
+                radial-gradient(circle at 48% 24%, rgba(124,255,178,0.16), transparent 26%),
+                linear-gradient(180deg, rgba(7,9,18,0.30), rgba(7,9,18,0.90));
+        }
+        .snake-lobby {
+            width: min(560px, 94%);
+            border-radius: 18px;
+            padding: 22px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.16);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+                rgba(12, 14, 24, 0.94);
+            box-shadow: 0 24px 70px rgba(0,0,0,0.42), 0 0 44px rgba(124,255,178,0.14);
+            backdrop-filter: blur(10px);
+        }
+        .snake-kicker {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            color: #05050a;
+            background: linear-gradient(135deg, #7cffb2, #46f0ff);
+            font-size: 12px;
+            font-weight: 950;
+        }
+        .snake-lobby h1 {
+            margin: 0 0 8px;
+            font-size: 42px;
+            line-height: 1;
+        }
+        .snake-lobby p {
+            margin: 0 auto 16px;
+            color: #ddceff;
+            font-weight: 760;
+            line-height: 1.42;
+        }
+        .snake-actions,
+        .snake-options {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 11px 16px;
+            cursor: pointer;
+            color: #05050a;
+            font-weight: 950;
+            background: linear-gradient(135deg, #7cffb2, #46f0ff);
+            box-shadow: 0 12px 28px rgba(70,240,255,0.18);
+        }
+        button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+        button.secondary {
+            color: #fff;
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: none;
+        }
+        button.active {
+            background: linear-gradient(135deg, #ff54a0, #ffe66d);
+            color: #090612;
+        }
+        .snake-options {
+            margin-top: 14px;
+        }
+        .snake-side,
+        .snake-card {
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.11);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+                rgba(255,255,255,0.045);
+            box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+        }
+        .snake-side {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .snake-card {
+            padding: 13px;
+        }
+        .snake-card span {
+            display: block;
+            color: #aeb6d9;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 900;
+        }
+        .snake-card strong {
+            display: block;
+            margin-top: 3px;
+            font-size: 24px;
+        }
+        .snake-card small {
+            display: block;
+            margin-top: 4px;
+            color: #ddceff;
+            font-weight: 760;
+        }
+        .snake-score-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .snake-score-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 8px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: #f5edff;
+            font-weight: 850;
+        }
+        .snake-touch {
+            display: none;
+            grid-template-columns: repeat(3, 54px);
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .snake-touch button {
+            width: 54px;
+            height: 46px;
+            padding: 0;
+        }
+        .snake-touch .empty {
+            visibility: hidden;
+        }
+        @media (max-width: 820px) {
+            body { min-height: 980px; }
+            .snake-layout { grid-template-columns: 1fr; }
+            .snake-touch { display: grid; }
+            .snake-lobby h1 { font-size: 34px; }
+        }
+    </style>
+    </head>
+    <body>
+    <div class="snake-shell">
+        <audio id="snakeMusicFile" src="__CHICKEN_THEME_SRC__" loop preload="auto"></audio>
+        <div class="snake-layout">
+            <div class="snake-stage">
+                <canvas id="snakeCanvas" width="900" height="600"></canvas>
+                <div id="snakeOverlay" class="snake-overlay">
+                    <div class="snake-lobby">
+                        <div class="snake-kicker">Arcade Lobby</div>
+                        <h1 id="snakeTitle">Chicken Snake</h1>
+                        <p id="snakeText">Sammle Gehirnzellen, füttere dein Chicken und weiche deiner eigenen Spur aus.</p>
+                        <div class="snake-actions">
+                            <button id="snakeStart">Spiel starten</button>
+                            <button id="snakeSave" class="secondary">Score speichern</button>
+                        </div>
+                        <div class="snake-options">
+                            <button class="difficulty active" data-speed="128">Normal</button>
+                            <button class="difficulty secondary" data-speed="96">Turbo</button>
+                            <button class="difficulty secondary" data-speed="72">Chaos</button>
+                            <button id="snakeSound" class="secondary">Sound: An</button>
+                            <button id="snakeMusic" class="secondary">Musik: An</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <aside class="snake-side">
+                <div class="snake-card"><span>Score</span><strong id="snakeScore">0</strong><small>+10 pro Gehirnzelle</small></div>
+                <div class="snake-card"><span>Länge</span><strong id="snakeLength">3</strong><small>Wächst bei jedem Snack</small></div>
+                <div class="snake-card"><span>Combo</span><strong id="snakeCombo">1x</strong><small>Sinkt nach Fehlern nicht, nur bei Neustart</small></div>
+                <div class="snake-card">
+                    <span>Bestenliste</span>
+                    <ol id="snakeScores" class="snake-score-list"></ol>
+                </div>
+            </aside>
+        </div>
+        <div class="snake-touch" aria-label="Touch Steuerung">
+            <button class="empty">.</button><button data-dir="up">↑</button><button class="empty">.</button>
+            <button data-dir="left">←</button><button data-dir="down">↓</button><button data-dir="right">→</button>
+        </div>
+    </div>
+
+    <script>
+    const canvas = document.getElementById("snakeCanvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("snakeOverlay");
+    const title = document.getElementById("snakeTitle");
+    const text = document.getElementById("snakeText");
+    const startBtn = document.getElementById("snakeStart");
+    const saveBtn = document.getElementById("snakeSave");
+    const soundBtn = document.getElementById("snakeSound");
+    const musicBtn = document.getElementById("snakeMusic");
+    const scoreEl = document.getElementById("snakeScore");
+    const lengthEl = document.getElementById("snakeLength");
+    const comboEl = document.getElementById("snakeCombo");
+    const scoresEl = document.getElementById("snakeScores");
+    const musicFile = document.getElementById("snakeMusicFile");
+
+    const cols = 30;
+    const rows = 20;
+    const tile = 30;
+    let snake = [];
+    let dir = {x: 1, y: 0};
+    let nextDir = {x: 1, y: 0};
+    let food = {x: 12, y: 10, kind: "brain"};
+    let particles = [];
+    let score = 0;
+    let combo = 1;
+    let tickMs = 128;
+    let baseTickMs = 128;
+    let state = "lobby";
+    let loopTimer = null;
+    let savedScore = false;
+    let audioCtx = null;
+    let soundEnabled = true;
+    let musicEnabled = true;
+    let musicTimer = null;
+    let musicStep = 0;
+
+    function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+    }
+
+    function tone(freq, duration, type, volume, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const start = ac.currentTime + delay;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain).connect(ac.destination);
+        osc.start(start);
+        osc.stop(start + duration + 0.04);
+    }
+
+    function biteSound() {
+        tone(740, 0.06, "triangle", 0.07);
+        tone(980, 0.10, "sine", 0.055, 0.045);
+    }
+
+    function crashSound() {
+        tone(180, 0.16, "sawtooth", 0.08);
+        tone(92, 0.24, "square", 0.05, 0.04);
+    }
+
+    function clickSound() {
+        tone(620, 0.05, "triangle", 0.045);
+    }
+
+    function musicTick() {
+        if (!musicEnabled || !soundEnabled || state !== "playing") return;
+        const notes = [392, 493.88, 587.33, 659.25, 587.33, 493.88, 440, 523.25];
+        const note = notes[musicStep % notes.length] + Math.min(combo - 1, 6) * 12;
+        tone(note, 0.12, "triangle", 0.028);
+        if (musicStep % 2 === 0) tone(note / 2, 0.18, "sine", 0.022);
+        musicStep++;
+    }
+
+    function startMusic() {
+        stopMusic();
+        if (!soundEnabled || !musicEnabled) return;
+        ensureAudio();
+        if (musicFile && musicFile.getAttribute("src")) {
+            musicFile.volume = 0.26;
+            musicFile.currentTime = 0;
+            musicFile.play().catch(() => {});
+            return;
+        }
+        musicStep = 0;
+        musicTick();
+        musicTimer = setInterval(musicTick, 340);
+    }
+
+    function stopMusic() {
+        if (musicTimer) clearInterval(musicTimer);
+        musicTimer = null;
+        if (musicFile) {
+            musicFile.pause();
+            musicFile.currentTime = 0;
+        }
+    }
+
+    function resetGame() {
+        snake = [
+            {x: 8, y: 10},
+            {x: 7, y: 10},
+            {x: 6, y: 10}
+        ];
+        dir = {x: 1, y: 0};
+        nextDir = {x: 1, y: 0};
+        score = 0;
+        combo = 1;
+        tickMs = baseTickMs;
+        particles = [];
+        savedScore = false;
+        placeFood();
+        updateHud();
+    }
+
+    function startGame() {
+        clickSound();
+        ensureAudio();
+        resetGame();
+        state = "playing";
+        overlay.style.display = "none";
+        startMusic();
+        clearInterval(loopTimer);
+        loopTimer = setInterval(step, tickMs);
+        draw();
+    }
+
+    function showLobby(newTitle, newText, buttonText) {
+        state = "lobby";
+        stopMusic();
+        clearInterval(loopTimer);
+        title.textContent = newTitle;
+        text.textContent = newText;
+        startBtn.textContent = buttonText;
+        overlay.style.display = "flex";
+        saveBtn.style.display = score > 0 ? "inline-flex" : "none";
+        renderScores();
+    }
+
+    function endGame() {
+        if (state !== "playing") return;
+        state = "over";
+        stopMusic();
+        crashSound();
+        showLobby("Game Over", "Score: " + score + " | Länge: " + snake.length + " | Combo: " + combo + "x", "Nochmal spielen");
+    }
+
+    function setDirection(x, y) {
+        if (state !== "playing") return;
+        if (snake.length > 1 && x === -dir.x && y === -dir.y) return;
+        nextDir = {x, y};
+    }
+
+    function placeFood() {
+        const occupied = new Set(snake.map(part => part.x + "," + part.y));
+        do {
+            food = {
+                x: Math.floor(Math.random() * cols),
+                y: Math.floor(Math.random() * rows),
+                kind: Math.random() < 0.14 ? "gold" : "brain"
+            };
+        } while (occupied.has(food.x + "," + food.y));
+    }
+
+    function step() {
+        dir = nextDir;
+        const head = snake[0];
+        const next = {x: head.x + dir.x, y: head.y + dir.y};
+
+        if (next.x < 0 || next.x >= cols || next.y < 0 || next.y >= rows) {
+            endGame();
+            return;
+        }
+        if (snake.some(part => part.x === next.x && part.y === next.y)) {
+            endGame();
+            return;
+        }
+
+        snake.unshift(next);
+        if (next.x === food.x && next.y === food.y) {
+            const gained = food.kind === "gold" ? 35 : 10;
+            score += gained * combo;
+            combo = Math.min(combo + 1, 9);
+            tickMs = Math.max(54, baseTickMs - Math.floor(snake.length / 3) * 4);
+            biteSound();
+            burst(next.x, next.y, food.kind === "gold" ? "255,230,109" : "124,255,178");
+            placeFood();
+            clearInterval(loopTimer);
+            loopTimer = setInterval(step, tickMs);
+        } else {
+            snake.pop();
+        }
+        updateHud();
+        draw();
+    }
+
+    function updateHud() {
+        scoreEl.textContent = score;
+        lengthEl.textContent = snake.length;
+        comboEl.textContent = combo + "x";
+    }
+
+    function burst(x, y, color) {
+        for (let i = 0; i < 18; i++) {
+            particles.push({
+                x: x * tile + tile / 2,
+                y: y * tile + tile / 2,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 22 + Math.random() * 12,
+                color
+            });
+        }
+    }
+
+    function roundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.fill();
+    }
+
+    function drawBoard() {
+        const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        bg.addColorStop(0, "#071328");
+        bg.addColorStop(0.52, "#141036");
+        bg.addColorStop(1, "#210b25");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.045)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= cols; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * tile, 0);
+            ctx.lineTo(x * tile, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= rows; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * tile);
+            ctx.lineTo(canvas.width, y * tile);
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(124,255,178,0.06)";
+        for (let i = 0; i < 26; i++) {
+            const x = ((i * 137) % canvas.width);
+            const y = ((i * 89) % canvas.height);
+            roundedRect(x, y, 18, 4, 4);
+        }
+    }
+
+    function drawFood() {
+        const cx = food.x * tile + tile / 2;
+        const cy = food.y * tile + tile / 2;
+        ctx.save();
+        ctx.shadowColor = food.kind === "gold" ? "#ffe66d" : "#7cffb2";
+        ctx.shadowBlur = 18;
+        if (food.kind === "gold") {
+            ctx.fillStyle = "#ffe66d";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 12, 15, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.45)";
+            ctx.beginPath();
+            ctx.ellipse(cx - 4, cy - 5, 4, 6, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = "#7cffb2";
+            ctx.beginPath();
+            ctx.arc(cx - 5, cy, 9, 0, Math.PI * 2);
+            ctx.arc(cx + 5, cy, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#46f0ff";
+            roundedRect(cx - 11, cy - 3, 22, 7, 6);
+        }
+        ctx.restore();
+    }
+
+    function drawSnake() {
+        snake.forEach((part, index) => {
+            const x = part.x * tile + 3;
+            const y = part.y * tile + 3;
+            const isHead = index === 0;
+            const gradient = ctx.createLinearGradient(x, y, x + tile, y + tile);
+            gradient.addColorStop(0, isHead ? "#ffe66d" : "#7cffb2");
+            gradient.addColorStop(1, isHead ? "#ff922b" : "#22d3ee");
+            ctx.fillStyle = gradient;
+            ctx.shadowColor = isHead ? "rgba(255,230,109,0.55)" : "rgba(124,255,178,0.30)";
+            ctx.shadowBlur = isHead ? 18 : 9;
+            roundedRect(x, y, tile - 6, tile - 6, 9);
+            ctx.shadowBlur = 0;
+
+            if (isHead) {
+                ctx.fillStyle = "#05050a";
+                const eyeOffsetX = dir.x === 0 ? 6 : dir.x * 5;
+                const eyeOffsetY = dir.y === 0 ? 6 : dir.y * 5;
+                ctx.beginPath();
+                ctx.arc(x + 10 + eyeOffsetX, y + 10 + eyeOffsetY, 2.6, 0, Math.PI * 2);
+                ctx.arc(x + 18 + eyeOffsetX, y + 10 + eyeOffsetY, 2.6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#ff54a0";
+                roundedRect(x + 9, y - 4, 12, 7, 4);
+            }
+        });
+    }
+
+    function drawParticles() {
+        particles.forEach(p => {
+            p.life -= 1;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.08;
+            ctx.fillStyle = "rgba(" + p.color + "," + Math.max(p.life / 32, 0) + ")";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        particles = particles.filter(p => p.life > 0);
+    }
+
+    function draw() {
+        drawBoard();
+        drawFood();
+        drawSnake();
+        drawParticles();
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value;
+        return div.innerHTML;
+    }
+
+    function getScores() {
+        try {
+            return JSON.parse(localStorage.getItem("chicken_snake_scores") || "[]");
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function renderScores() {
+        const scores = getScores().sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 8);
+        if (!scores.length) {
+            scoresEl.innerHTML = "<li><span>Noch frei</span><b>0</b></li>";
+            return;
+        }
+        scoresEl.innerHTML = scores.map((entry, index) => (
+            "<li><span>#" + (index + 1) + " " + escapeHtml(entry.name || "Viewer") + "</span><b>" + Number(entry.score || 0) + "</b></li>"
+        )).join("");
+    }
+
+    function saveScore() {
+        if (savedScore || score <= 0) return;
+        let name = prompt("Dein Name für die Chicken-Snake-Lobby:");
+        if (!name) return;
+        name = name.trim().slice(0, 36);
+        if (!name) return;
+        const scores = getScores();
+        scores.push({name, score, length: snake.length, combo, createdAt: new Date().toISOString()});
+        localStorage.setItem("chicken_snake_scores", JSON.stringify(scores.slice(-80)));
+        savedScore = true;
+        renderScores();
+        showLobby("Score gespeichert", "Dein Chicken-Snake-Run steht jetzt in deiner lokalen Lobby.", "Nochmal spielen");
+    }
+
+    startBtn.addEventListener("click", startGame);
+    saveBtn.addEventListener("click", saveScore);
+    soundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) stopMusic();
+        soundBtn.textContent = soundEnabled ? "Sound: An" : "Sound: Aus";
+        clickSound();
+    });
+    musicBtn.addEventListener("click", () => {
+        musicEnabled = !musicEnabled;
+        musicBtn.textContent = musicEnabled ? "Musik: An" : "Musik: Aus";
+        if (!musicEnabled) stopMusic();
+        else if (state === "playing") startMusic();
+        clickSound();
+    });
+    document.querySelectorAll(".difficulty").forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".difficulty").forEach(item => {
+                item.classList.remove("active");
+                item.classList.add("secondary");
+            });
+            button.classList.add("active");
+            button.classList.remove("secondary");
+            baseTickMs = Number(button.dataset.speed || 128);
+            tickMs = baseTickMs;
+            clickSound();
+        });
+    });
+    document.querySelectorAll("[data-dir]").forEach(button => {
+        button.addEventListener("click", () => {
+            const value = button.dataset.dir;
+            if (value === "up") setDirection(0, -1);
+            if (value === "down") setDirection(0, 1);
+            if (value === "left") setDirection(-1, 0);
+            if (value === "right") setDirection(1, 0);
+        });
+    });
+    document.addEventListener("keydown", event => {
+        const key = event.key.toLowerCase();
+        if (["arrowup", "w"].includes(key)) { event.preventDefault(); setDirection(0, -1); }
+        if (["arrowdown", "s"].includes(key)) { event.preventDefault(); setDirection(0, 1); }
+        if (["arrowleft", "a"].includes(key)) { event.preventDefault(); setDirection(-1, 0); }
+        if (["arrowright", "d"].includes(key)) { event.preventDefault(); setDirection(1, 0); }
+        if (event.code === "Space" && state !== "playing") {
+            event.preventDefault();
+            startGame();
+        }
+    });
+
+    resetGame();
+    draw();
+    renderScores();
+    showLobby("Chicken Snake", "Sammle Gehirnzellen, füttere dein Chicken und weiche deiner eigenen Spur aus.", "Spiel starten");
+    </script>
+    </body>
+    </html>
+    """.replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=780, scrolling=True)
+
     st.markdown("## Glücksräder")
     wheel_entries = get_punishment_wheel_entries()
     task_wheel_entries = get_task_wheel_entries()
