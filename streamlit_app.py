@@ -1463,8 +1463,8 @@ def render_dnd_page():
                             map_ok = update_dnd_lobby_map(active_lobby_id, preset_map["image"], preset_map["grid_width"], preset_map["grid_height"])
                             tools_ok = update_dnd_lobby_board_tools(
                                 active_lobby_id,
-                                active_lobby.get("map_fog_enabled") or False,
-                                active_lobby.get("map_fog_opacity") or 55,
+                                False,
+                                0,
                                 preset_map["marker_notes"],
                                 preset_map["name"],
                             )
@@ -3003,10 +3003,15 @@ def render_dnd_battlemap(lobby, players, creatures):
     grid_width = max(4, min(int(lobby.get("map_grid_width") or 12), 40))
     grid_height = max(4, min(int(lobby.get("map_grid_height") or 8), 30))
     map_image_url = str(lobby.get("map_image_url") or "").strip()
-    map_background = (
-        f'url("{html.escape(map_image_url, quote=True)}")'
+    map_layer = (
+        f"url('{html.escape(map_image_url, quote=True)}')"
         if map_image_url
         else "linear-gradient(135deg, rgba(22,31,44,0.92), rgba(48,30,57,0.90))"
+    )
+    board_background = (
+        "linear-gradient(rgba(255,255,255,0.20) 1px, transparent 1px),"
+        "linear-gradient(90deg, rgba(255,255,255,0.20) 1px, transparent 1px),"
+        f"{map_layer}"
     )
     tokens_html = ""
     all_tokens = []
@@ -3062,7 +3067,7 @@ def render_dnd_battlemap(lobby, players, creatures):
     return (
         '<div class="dnd-map-shell">'
         '<div class="dnd-map-board" '
-        f'style="--grid-width:{grid_width};--grid-height:{grid_height};--map-bg:{map_background};">'
+        f'style="--grid-width:{grid_width};--grid-height:{grid_height};background-image:{board_background};">'
         f'{fog_html}'
         f'{tokens_html}'
         '</div>'
@@ -5849,10 +5854,6 @@ h1::after {
     aspect-ratio: var(--grid-width) / var(--grid-height);
     min-height: 360px;
     border-radius: 8px;
-    background-image:
-        linear-gradient(rgba(255,255,255,0.20) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.20) 1px, transparent 1px),
-        var(--map-bg);
     background-size:
         calc(100% / var(--grid-width)) calc(100% / var(--grid-height)),
         calc(100% / var(--grid-width)) calc(100% / var(--grid-height)),
