@@ -6985,18 +6985,18 @@ elif menu == "Patch Notes":
             f"<li>{html.escape(change)}</li>"
             for change in patch["changes"]
         )
-        patch_cards += f"""
-        <article class="patch-note-card">
-            <div class="patch-note-head">
-                <div>
-                    <div class="patch-version">{html.escape(patch["version"])}</div>
-                    <h3>{html.escape(patch["title"])}</h3>
-                </div>
-                <div class="patch-date">{html.escape(patch["date"])}</div>
-            </div>
-            <ul class="patch-change-list">{change_items}</ul>
-        </article>
-        """
+        patch_cards += (
+            '<article class="patch-note-card">'
+            '<div class="patch-note-head">'
+            '<div>'
+            f'<div class="patch-version">{html.escape(patch["version"])}</div>'
+            f'<h3>{html.escape(patch["title"])}</h3>'
+            '</div>'
+            f'<div class="patch-date">{html.escape(patch["date"])}</div>'
+            '</div>'
+            f'<ul class="patch-change-list">{change_items}</ul>'
+            '</article>'
+        )
 
     st.markdown(f'<div class="patch-notes-shell">{patch_cards}</div>', unsafe_allow_html=True)
 
