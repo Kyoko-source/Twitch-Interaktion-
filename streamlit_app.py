@@ -1368,6 +1368,13 @@ def render_dnd_page():
 
         scene_text = str(active_lobby.get("scene") or "Die Party steht am Rand eines unbekannten Ortes. Der Dungeon Master kann hier die Szene setzen.")
         quest_text = str(active_lobby.get("quest_log") or "Noch keine Quest aktiv.")
+        initiative_entries = build_dnd_initiative(players, creatures)
+        active_turn_key = str(active_lobby.get("active_turn_key") or "")
+        if not active_turn_key and initiative_entries:
+            active_turn_key = initiative_entries[0]["key"]
+        round_number = max(1, int(active_lobby.get("round_number") or 1))
+        dnd_logs = get_dnd_logs(active_lobby_id)
+        dnd_maps = get_dnd_maps(active_lobby_id)
         last_roll = st.session_state.get("dnd_last_roll")
         last_roll_total = "-"
         if last_roll and str(last_roll.get("lobby_id")) == str(active_lobby_id):
@@ -1382,6 +1389,7 @@ def render_dnd_page():
             '</div>'
             f'<div class="dnd-session-stat"><strong>{len(players)}</strong><span>Charaktere</span></div>'
             f'<div class="dnd-session-stat"><strong>{len(creatures)}</strong><span>Kreaturen</span></div>'
+            f'<div class="dnd-session-stat"><strong>{round_number}</strong><span>Runde</span></div>'
             f'<div class="dnd-session-stat"><strong>{html.escape(last_roll_total)}</strong><span>Letzter Wurf</span></div>'
             '</div>',
             unsafe_allow_html=True,
@@ -1417,6 +1425,7 @@ def render_dnd_page():
 
                 st.markdown("##### Spielbrett bearbeiten")
                 with st.form("dnd_map_form"):
+                    map_name = st.text_input("Kartenname", value=str(active_lobby.get("map_name") or "Karte"), max_chars=80)
                     current_map_url = str(active_lobby.get("map_image_url") or "")
                     map_url = st.text_input(
                         "Battlemap Bild-URL",
@@ -1429,13 +1438,58 @@ def render_dnd_page():
                         grid_width = st.number_input("Grid Breite", min_value=4, max_value=40, value=int(active_lobby.get("map_grid_width") or 12), step=1)
                     with map_cols[1]:
                         grid_height = st.number_input("Grid Höhe", min_value=4, max_value=30, value=int(active_lobby.get("map_grid_height") or 8), step=1)
+                    fog_enabled = st.checkbox("Fog of War aktivieren", value=bool(active_lobby.get("map_fog_enabled")))
+                    fog_opacity = st.slider("Fog-Stärke", min_value=0, max_value=95, value=int(active_lobby.get("map_fog_opacity") or 55), step=5)
+                    marker_notes = st.text_area(
+                        "Marker / Notizen auf der Karte",
+                        value=str(active_lobby.get("map_marker_notes") or ""),
+                        height=90,
+                        max_chars=1200,
+                        placeholder="Eine Notiz pro Zeile, z.B. Tür, Falle, Schatz, Questziel...",
+                    )
                     if st.form_submit_button("Spielbrett speichern"):
                         final_map_url = uploaded_image_to_data_uri(uploaded_map) if uploaded_map else map_url
-                        if update_dnd_lobby_map(active_lobby_id, final_map_url, grid_width, grid_height):
+                        map_ok = update_dnd_lobby_map(active_lobby_id, final_map_url, grid_width, grid_height)
+                        tools_ok = update_dnd_lobby_board_tools(active_lobby_id, fog_enabled, fog_opacity, marker_notes, map_name)
+                        if map_ok and tools_ok:
                             st.success("Spielbrett aktualisiert.")
                             st.rerun()
                         else:
                             st.error("Spielbrett konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
+
+                st.markdown("##### Map-Vorlagen")
+                preset_cols = st.columns(2)
+                with preset_cols[0]:
+                    if st.button("Aktuelle Karte als Vorlage speichern", key="dnd_save_map_preset", use_container_width=True):
+                        if save_dnd_map_preset(
+                            active_lobby_id,
+                            active_lobby.get("map_name") or "Karte",
+                            active_lobby.get("map_image_url") or "",
+                            active_lobby.get("map_grid_width") or 12,
+                            active_lobby.get("map_grid_height") or 8,
+                            active_lobby.get("map_marker_notes") or "",
+                        ):
+                            st.success("Map-Vorlage gespeichert.")
+                            st.rerun()
+                        else:
+                            st.error("Map-Vorlage konnte nicht gespeichert werden.")
+                with preset_cols[1]:
+                    if dnd_maps:
+                        selected_map_id = st.selectbox(
+                            "Vorlage laden",
+                            [str(row.get("id")) for row in dnd_maps],
+                            format_func=lambda map_id: next((str(row.get("name") or "Karte") for row in dnd_maps if str(row.get("id")) == str(map_id)), "Karte"),
+                            key="dnd_map_preset_select",
+                        )
+                        if st.button("Vorlage anwenden", key="dnd_apply_map_preset", use_container_width=True):
+                            preset = next((row for row in dnd_maps if str(row.get("id")) == str(selected_map_id)), None)
+                            if preset and apply_dnd_map_preset(active_lobby_id, preset):
+                                st.success("Map-Vorlage geladen.")
+                                st.rerun()
+                            else:
+                                st.error("Map-Vorlage konnte nicht geladen werden.")
+                    else:
+                        st.caption("Noch keine Map-Vorlagen.")
 
                 st.markdown("##### Kreatur erstellen")
                 with st.form("dnd_create_creature_form"):
@@ -1459,7 +1513,98 @@ def render_dnd_page():
                             st.error("Kreatur konnte nicht erstellt werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
         st.markdown('<div class="dnd-section-title"><h3>Spielbrett</h3><span class="admin-muted">Tokens auf dem Raster platzieren</span></div>', unsafe_allow_html=True)
-        st.markdown(render_dnd_battlemap(active_lobby, players), unsafe_allow_html=True)
+        st.markdown(render_dnd_battlemap(active_lobby, players, creatures), unsafe_allow_html=True)
+
+        st.markdown('<div class="dnd-section-title"><h3>Initiative</h3><span class="admin-muted">Turn-Reihenfolge und aktueller Zug</span></div>', unsafe_allow_html=True)
+        st.markdown(render_dnd_initiative_tracker(initiative_entries, active_turn_key), unsafe_allow_html=True)
+        if is_dnd_dm and initiative_entries:
+            turn_cols = st.columns([1, 1, 1])
+            current_index = next((index for index, entry in enumerate(initiative_entries) if entry["key"] == active_turn_key), 0)
+            with turn_cols[0]:
+                selected_turn = st.selectbox(
+                    "Aktiver Zug",
+                    [entry["key"] for entry in initiative_entries],
+                    index=current_index,
+                    format_func=lambda key: next((entry["name"] for entry in initiative_entries if entry["key"] == key), key),
+                )
+                if st.button("Zug setzen", key="dnd_set_turn", use_container_width=True):
+                    if set_dnd_turn(active_lobby_id, selected_turn, round_number):
+                        st.rerun()
+            with turn_cols[1]:
+                if st.button("Nächster Zug", key="dnd_next_turn", use_container_width=True):
+                    next_index = (current_index + 1) % len(initiative_entries)
+                    next_round = round_number + 1 if next_index == 0 else round_number
+                    if set_dnd_turn(active_lobby_id, initiative_entries[next_index]["key"], next_round):
+                        st.rerun()
+            with turn_cols[2]:
+                new_round = st.number_input("Runde", min_value=1, max_value=999, value=round_number, step=1)
+                if st.button("Runde speichern", key="dnd_save_round", use_container_width=True):
+                    if set_dnd_turn(active_lobby_id, active_turn_key, new_round):
+                        st.rerun()
+
+        if is_dnd_dm:
+            with st.expander("DM: Tokens und HP steuern", expanded=False):
+                grid_width = max(4, min(int(active_lobby.get("map_grid_width") or 12), 40))
+                grid_height = max(4, min(int(active_lobby.get("map_grid_height") or 8), 30))
+                token_options = [f"player:{player.get('id')}" for player in players] + [f"creature:{creature.get('id')}" for creature in creatures]
+                if token_options:
+                    selected_token = st.selectbox(
+                        "Figur auswählen",
+                        token_options,
+                        format_func=lambda key: (
+                            next((f"Spieler: {player.get('character_name')}" for player in players if key == f"player:{player.get('id')}"), None)
+                            or next((f"Kreatur: {creature.get('name')}" for creature in creatures if key == f"creature:{creature.get('id')}"), key)
+                        ),
+                    )
+                    selected_entity = None
+                    selected_type, selected_id = selected_token.split(":", 1)
+                    if selected_type == "player":
+                        selected_entity = next((player for player in players if str(player.get("id")) == selected_id), None)
+                    else:
+                        selected_entity = next((creature for creature in creatures if str(creature.get("id")) == selected_id), None)
+                    if selected_entity:
+                        with st.form("dnd_dm_token_move_form"):
+                            move_cols = st.columns([1, 1, 1])
+                            with move_cols[0]:
+                                move_x = st.number_input("X", min_value=1, max_value=grid_width, value=max(1, min(int(selected_entity.get("token_x") or 1), grid_width)), step=1)
+                            with move_cols[1]:
+                                move_y = st.number_input("Y", min_value=1, max_value=grid_height, value=max(1, min(int(selected_entity.get("token_y") or 1), grid_height)), step=1)
+                            with move_cols[2]:
+                                move_color = st.color_picker("Farbe", value=str(selected_entity.get("token_color") or ("#ff54a0" if selected_type == "creature" else "#7CFFB2")))
+                            if st.form_submit_button("Token bewegen"):
+                                ok = (
+                                    update_dnd_player_token(selected_entity.get("id"), move_x, move_y, move_color)
+                                    if selected_type == "player"
+                                    else update_dnd_creature_token(selected_entity.get("id"), move_x, move_y, move_color)
+                                )
+                                if ok:
+                                    st.success("Token aktualisiert.")
+                                    st.rerun()
+                                else:
+                                    st.error("Token konnte nicht gespeichert werden.")
+
+                hp_targets = [f"player:{player.get('id')}" for player in players] + [f"creature:{creature.get('id')}" for creature in creatures]
+                if hp_targets:
+                    hp_target = st.selectbox(
+                        "HP Ziel",
+                        hp_targets,
+                        format_func=lambda key: (
+                            next((f"Spieler: {player.get('character_name')}" for player in players if key == f"player:{player.get('id')}"), None)
+                            or next((f"Kreatur: {creature.get('name')}" for creature in creatures if key == f"creature:{creature.get('id')}"), key)
+                        ),
+                        key="dnd_hp_target",
+                    )
+                    hp_type, hp_id = hp_target.split(":", 1)
+                    hp_entity = next((row for row in (players if hp_type == "player" else creatures) if str(row.get("id")) == hp_id), None)
+                    if hp_entity:
+                        hp_cols = st.columns(4)
+                        for hp_col, delta, label in zip(hp_cols, [-5, -1, 1, 5], ["-5", "-1", "+1", "+5"]):
+                            with hp_col:
+                                if st.button(label, key=f"dnd_hp_{hp_target}_{label}", use_container_width=True):
+                                    ok = adjust_dnd_player_hp(hp_entity, delta) if hp_type == "player" else adjust_dnd_creature_hp(hp_entity, delta)
+                                    if ok:
+                                        create_dnd_log(active_lobby_id, logged_in_username, "HP", f"{hp_entity.get('character_name') or hp_entity.get('name')} {label} HP")
+                                        st.rerun()
 
         party_html = ""
         for player in players:
@@ -1601,6 +1746,16 @@ def render_dnd_page():
                         else:
                             st.error("Figur konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
 
+            with st.expander("HP schnell ändern", expanded=False):
+                st.caption(f"Aktuelle HP: {int(current_player.get('current_hp') or 0)}/{int(current_player.get('max_hp') or 1)}")
+                hp_cols = st.columns(4)
+                for hp_col, delta, label in zip(hp_cols, [-5, -1, 1, 5], ["-5", "-1", "+1", "+5"]):
+                    with hp_col:
+                        if st.button(label, key=f"dnd_player_hp_{label}", use_container_width=True):
+                            if adjust_dnd_player_hp(current_player, delta):
+                                create_dnd_log(active_lobby_id, logged_in_username, "HP", f"{current_player.get('character_name')} {label} HP")
+                                st.rerun()
+
             with st.expander("Charakterbogen bearbeiten", expanded=False):
                 with st.form("dnd_character_sheet_form"):
                     sheet_top = st.columns([1.2, 1, 0.7, 0.7, 0.7, 0.7])
@@ -1701,6 +1856,7 @@ def render_dnd_page():
                 notation = f"{check_mode} d20{format_modifier(check_modifier)}" if check_mode != "Normal" else f"d20{format_modifier(check_modifier)}"
                 reason = check_reason or f"{ability_label}-Probe"
                 save_dnd_roll(active_lobby_id, logged_in_username, current_player.get("character_name"), notation, reason, rolls, total)
+                create_dnd_log(active_lobby_id, logged_in_username, "Wurf", f"{reason}: {total} ({rolls})")
                 st.session_state["dnd_last_roll"] = {
                     "lobby_id": active_lobby_id,
                     "total": total,
@@ -1732,6 +1888,7 @@ def render_dnd_page():
                 notation = f"{roll_mode} d20{mod_text}"
             character_for_roll = current_player.get("character_name") if current_player else logged_in_username
             save_dnd_roll(active_lobby_id, logged_in_username, character_for_roll, notation, roll_reason, rolls, total)
+            create_dnd_log(active_lobby_id, logged_in_username, "Wurf", f"{character_for_roll}: {notation} = {total}")
             detail = f"Rohwürfe: {rolls}"
             if kept:
                 detail += f" | Gewertet: {kept}"
@@ -1760,6 +1917,34 @@ def render_dnd_page():
                 )
             st.markdown('<div class="dnd-section-title"><h3>Wurfchronik</h3><span class="admin-muted">Die letzten Ergebnisse dieser Lobby</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-roll-grid">{roll_html}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="dnd-section-title"><h3>Kampflog</h3><span class="admin-muted">Aktionen, Schaden, Hinweise und Würfe</span></div>', unsafe_allow_html=True)
+        with st.form("dnd_log_form"):
+            log_cols = st.columns([0.8, 2.2, 0.7])
+            with log_cols[0]:
+                log_type = st.selectbox("Typ", ["Aktion", "Dialog", "HP", "Loot", "Notiz"], key="dnd_log_type")
+            with log_cols[1]:
+                log_message = st.text_input("Eintrag", max_chars=800, placeholder="Was passiert gerade?")
+            with log_cols[2]:
+                st.write("")
+                st.write("")
+                submit_log = st.form_submit_button("Eintragen")
+        if submit_log:
+            if create_dnd_log(active_lobby_id, logged_in_username, log_type, log_message):
+                st.success("Log gespeichert.")
+                st.rerun()
+            else:
+                st.error("Log konnte nicht gespeichert werden. Führe die aktualisierte add_dnd_tables.sql aus.")
+        if dnd_logs:
+            log_html = ""
+            for entry in dnd_logs[:16]:
+                log_html += (
+                    '<div class="dnd-log-row">'
+                    f'<strong>{html.escape(str(entry.get("entry_type") or "Aktion"))}</strong>'
+                    f'<span>{html.escape(str(entry.get("username") or ""))}: {html.escape(str(entry.get("message") or ""))}</span>'
+                    '</div>'
+                )
+            st.markdown(f'<div class="dnd-log-list">{log_html}</div>', unsafe_allow_html=True)
 
         if is_dnd_dm or is_lobby_owner:
             if st.button("Lobby schliessen", key="close_dnd_lobby", type="primary"):
@@ -2216,6 +2401,20 @@ def get_dnd_creatures(lobby_id):
     )
 
 
+@st.cache_data(ttl=20)
+def get_dnd_logs(lobby_id):
+    return api_get_optional(
+        f"dnd_logs?select=*&lobby_id=eq.{urllib.parse.quote(str(lobby_id))}&order=created_at.desc&limit=40"
+    )
+
+
+@st.cache_data(ttl=30)
+def get_dnd_maps(lobby_id):
+    return api_get_optional(
+        f"dnd_maps?select=*&lobby_id=eq.{urllib.parse.quote(str(lobby_id))}&order=created_at.desc&limit=20"
+    )
+
+
 def get_dnd_dm_username(lobby):
     if "dm_username" in lobby:
         return str(lobby.get("dm_username") or "").strip()
@@ -2276,8 +2475,14 @@ def create_dnd_lobby(name, description, owner, password, creator_role="dm", char
             "owner": clean_owner,
             "dm_username": clean_owner if creator_role == "dm" else "",
             "map_image_url": "",
+            "map_name": "Startkarte",
             "map_grid_width": 12,
             "map_grid_height": 8,
+            "map_fog_enabled": False,
+            "map_fog_opacity": 55,
+            "map_marker_notes": "",
+            "active_turn_key": "",
+            "round_number": 1,
             "is_private": bool(clean_password),
             "password_hash": hash_dnd_lobby_password(clean_password) if clean_password else "",
             "active": True,
@@ -2339,6 +2544,32 @@ def update_dnd_lobby_map(lobby_id, map_image_url, grid_width, grid_height):
     return success
 
 
+def update_dnd_lobby_board_tools(lobby_id, fog_enabled, fog_opacity, marker_notes, map_name=""):
+    success = api_patch(
+        f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}",
+        {
+            "map_fog_enabled": bool(fog_enabled),
+            "map_fog_opacity": max(0, min(int(fog_opacity), 95)),
+            "map_marker_notes": str(marker_notes or "").strip()[:1200],
+            "map_name": str(map_name or "").strip()[:80],
+        }
+    )
+    get_dnd_lobbies.clear()
+    return success
+
+
+def set_dnd_turn(lobby_id, active_turn_key, round_number):
+    success = api_patch(
+        f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}",
+        {
+            "active_turn_key": str(active_turn_key or "").strip()[:80],
+            "round_number": max(1, int(round_number)),
+        }
+    )
+    get_dnd_lobbies.clear()
+    return success
+
+
 def create_dnd_creature(lobby_id, name, creature_type, max_hp, armor_class, initiative, notes):
     clean_name = str(name).strip()[:80]
     if not clean_name:
@@ -2354,6 +2585,9 @@ def create_dnd_creature(lobby_id, name, creature_type, max_hp, armor_class, init
             "current_hp": int(max_hp),
             "armor_class": int(armor_class),
             "initiative": int(initiative),
+            "token_x": 1,
+            "token_y": 1,
+            "token_color": "#ff54a0",
             "notes": str(notes).strip()[:500],
             "active": True,
             "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
@@ -2372,10 +2606,48 @@ def update_dnd_creature_hp(creature_id, current_hp):
     return success
 
 
+def update_dnd_player_hp(player_id, current_hp):
+    success = api_patch(
+        f"dnd_players?id=eq.{urllib.parse.quote(str(player_id))}",
+        {"current_hp": max(0, min(int(current_hp), 999))}
+    )
+    get_dnd_players.clear()
+    return success
+
+
+def adjust_dnd_player_hp(player, delta):
+    current_hp = int(player.get("current_hp") or 0)
+    max_hp = int(player.get("max_hp") or 1)
+    return update_dnd_player_hp(player.get("id"), max(0, min(current_hp + int(delta), max_hp)))
+
+
+def adjust_dnd_creature_hp(creature, delta):
+    current_hp = int(creature.get("current_hp") or 0)
+    max_hp = int(creature.get("max_hp") or 1)
+    return update_dnd_creature_hp(creature.get("id"), max(0, min(current_hp + int(delta), max_hp)))
+
+
 def delete_dnd_creature(creature_id):
     success = api_patch(
         f"dnd_creatures?id=eq.{urllib.parse.quote(str(creature_id))}",
         {"active": False}
+    )
+    get_dnd_creatures.clear()
+    return success
+
+
+def update_dnd_creature_token(creature_id, token_x, token_y, token_color):
+    clean_color = str(token_color or "#ff54a0").strip()
+    if not re.match(r"^#[0-9a-fA-F]{6}$", clean_color):
+        clean_color = "#ff54a0"
+
+    success = api_patch(
+        f"dnd_creatures?id=eq.{urllib.parse.quote(str(creature_id))}",
+        {
+            "token_x": max(1, min(int(token_x), 40)),
+            "token_y": max(1, min(int(token_y), 30)),
+            "token_color": clean_color,
+        }
     )
     get_dnd_creatures.clear()
     return success
@@ -2398,7 +2670,96 @@ def update_dnd_player_token(player_id, token_x, token_y, token_color):
     return success
 
 
-def render_dnd_battlemap(lobby, players):
+def save_dnd_map_preset(lobby_id, name, map_image_url, grid_width, grid_height, marker_notes):
+    clean_name = str(name or "").strip()[:80] or "Karte"
+    created = api_post_optional(
+        "dnd_maps",
+        {
+            "lobby_id": int(lobby_id),
+            "name": clean_name,
+            "map_image_url": str(map_image_url or "").strip()[:500000],
+            "map_grid_width": max(4, min(int(grid_width), 40)),
+            "map_grid_height": max(4, min(int(grid_height), 30)),
+            "marker_notes": str(marker_notes or "").strip()[:1200],
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_maps.clear()
+    return bool(created)
+
+
+def apply_dnd_map_preset(lobby_id, preset):
+    success = api_patch(
+        f"dnd_lobbies?id=eq.{urllib.parse.quote(str(lobby_id))}",
+        {
+            "map_name": str(preset.get("name") or "Karte")[:80],
+            "map_image_url": str(preset.get("map_image_url") or "")[:500000],
+            "map_grid_width": int(preset.get("map_grid_width") or 12),
+            "map_grid_height": int(preset.get("map_grid_height") or 8),
+            "map_marker_notes": str(preset.get("marker_notes") or "")[:1200],
+        }
+    )
+    get_dnd_lobbies.clear()
+    return success
+
+
+def create_dnd_log(lobby_id, username, entry_type, message):
+    clean_message = str(message or "").strip()
+    if not clean_message:
+        return False
+    created = api_post_optional(
+        "dnd_logs",
+        {
+            "lobby_id": int(lobby_id),
+            "username": str(username or "").strip()[:50],
+            "entry_type": str(entry_type or "Aktion").strip()[:40],
+            "message": clean_message[:800],
+            "created_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        }
+    )
+    get_dnd_logs.clear()
+    return bool(created)
+
+
+def build_dnd_initiative(players, creatures):
+    entries = []
+    for player in players:
+        entries.append({
+            "key": f"player:{player.get('id')}",
+            "name": str(player.get("character_name") or player.get("username") or "Spieler"),
+            "type": "Spieler",
+            "initiative": int(player.get("initiative") or 0),
+            "hp": int(player.get("current_hp") or 0),
+            "max_hp": int(player.get("max_hp") or 1),
+        })
+    for creature in creatures:
+        entries.append({
+            "key": f"creature:{creature.get('id')}",
+            "name": str(creature.get("name") or "Kreatur"),
+            "type": "Kreatur",
+            "initiative": int(creature.get("initiative") or 0),
+            "hp": int(creature.get("current_hp") or 0),
+            "max_hp": int(creature.get("max_hp") or 1),
+        })
+    return sorted(entries, key=lambda entry: entry["initiative"], reverse=True)
+
+
+def render_dnd_initiative_tracker(entries, active_turn_key):
+    if not entries:
+        return '<div class="dnd-panel"><p>Noch keine Initiative vorhanden.</p></div>'
+    html_rows = ""
+    for entry in entries:
+        active_class = " active" if entry["key"] == active_turn_key else ""
+        html_rows += (
+            f'<div class="dnd-turn-row{active_class}">'
+            f'<strong>{html.escape(entry["name"])}</strong>'
+            f'<span>{html.escape(entry["type"])} · Init {entry["initiative"]:+d} · HP {entry["hp"]}/{entry["max_hp"]}</span>'
+            '</div>'
+        )
+    return f'<div class="dnd-turn-tracker">{html_rows}</div>'
+
+
+def render_dnd_battlemap(lobby, players, creatures):
     grid_width = max(4, min(int(lobby.get("map_grid_width") or 12), 40))
     grid_height = max(4, min(int(lobby.get("map_grid_height") or 8), 30))
     map_image_url = str(lobby.get("map_image_url") or "").strip()
@@ -2408,18 +2769,36 @@ def render_dnd_battlemap(lobby, players):
         else "linear-gradient(135deg, rgba(22,31,44,0.92), rgba(48,30,57,0.90))"
     )
     tokens_html = ""
+    all_tokens = []
     for player in players:
-        token_x = max(1, min(int(player.get("token_x") or 1), grid_width))
-        token_y = max(1, min(int(player.get("token_y") or 1), grid_height))
+        all_tokens.append({
+            "x": player.get("token_x"),
+            "y": player.get("token_y"),
+            "color": player.get("token_color") or "#7CFFB2",
+            "name": str(player.get("character_name") or player.get("username") or "?"),
+            "class": "player",
+        })
+    for creature in creatures:
+        all_tokens.append({
+            "x": creature.get("token_x"),
+            "y": creature.get("token_y"),
+            "color": creature.get("token_color") or "#ff54a0",
+            "name": str(creature.get("name") or "Kreatur"),
+            "class": "creature",
+        })
+
+    for token in all_tokens:
+        token_x = max(1, min(int(token.get("x") or 1), grid_width))
+        token_y = max(1, min(int(token.get("y") or 1), grid_height))
         left = ((token_x - 0.5) / grid_width) * 100
         top = ((token_y - 0.5) / grid_height) * 100
-        color = str(player.get("token_color") or "#7CFFB2")
+        color = str(token.get("color") or "#7CFFB2")
         if not re.match(r"^#[0-9a-fA-F]{6}$", color):
             color = "#7CFFB2"
-        character_name = str(player.get("character_name") or player.get("username") or "?")
+        character_name = str(token.get("name") or "?")
         initials = "".join(part[:1] for part in character_name.split()[:2]).upper() or "?"
         tokens_html += (
-            '<div class="dnd-map-token" '
+            f'<div class="dnd-map-token {html.escape(str(token.get("class") or ""))}" '
             f'style="left:{left:.3f}%;top:{top:.3f}%;--token-color:{html.escape(color)};" '
             f'title="{html.escape(character_name, quote=True)}">'
             f'<span>{html.escape(initials[:2])}</span>'
@@ -2427,12 +2806,27 @@ def render_dnd_battlemap(lobby, players):
             '</div>'
         )
 
+    fog_html = ""
+    if bool(lobby.get("map_fog_enabled")):
+        fog_opacity = max(0, min(int(lobby.get("map_fog_opacity") or 55), 95)) / 100
+        fog_html = f'<div class="dnd-map-fog" style="opacity:{fog_opacity:.2f};"></div>'
+
+    marker_notes = [
+        note.strip()
+        for note in str(lobby.get("map_marker_notes") or "").splitlines()
+        if note.strip()
+    ][:6]
+    marker_html = "".join(f'<li>{html.escape(note)}</li>' for note in marker_notes)
+    marker_block = f'<ul class="dnd-map-markers">{marker_html}</ul>' if marker_html else ""
+
     return (
         '<div class="dnd-map-shell">'
         '<div class="dnd-map-board" '
         f'style="--grid-width:{grid_width};--grid-height:{grid_height};--map-bg:{map_background};">'
+        f'{fog_html}'
         f'{tokens_html}'
         '</div>'
+        f'{marker_block}'
         '</div>'
     )
 
@@ -5106,7 +5500,7 @@ h1::after {
 
 .dnd-session-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(120px, 0.18fr));
+    grid-template-columns: minmax(0, 1fr) repeat(4, minmax(110px, 0.16fr));
     gap: 14px;
     align-items: stretch;
     margin: 16px 0;
@@ -5199,9 +5593,19 @@ h1::after {
     pointer-events: none;
 }
 
+.dnd-map-fog {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+        radial-gradient(circle at 38% 42%, transparent 0 18%, rgba(0,0,0,0.38) 28%, rgba(0,0,0,0.92) 72%),
+        rgba(0,0,0,0.84);
+    pointer-events: none;
+}
+
 .dnd-map-token {
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     display: grid;
     place-items: center;
     width: clamp(34px, calc(70vw / var(--grid-width)), 58px);
@@ -5213,6 +5617,10 @@ h1::after {
     border: 3px solid rgba(255,255,255,0.86);
     box-shadow: 0 10px 24px rgba(0,0,0,0.36);
     font-weight: 950;
+}
+
+.dnd-map-token.creature {
+    border-color: rgba(255,214,223,0.92);
 }
 
 .dnd-map-token span {
@@ -5235,6 +5643,61 @@ h1::after {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 11px;
+}
+
+.dnd-map-markers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dnd-map-markers li {
+    padding: 9px 11px;
+    border-radius: 8px;
+    color: #effcff;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255,255,255,0.10);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.dnd-turn-tracker,
+.dnd-log-list {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 18px;
+}
+
+.dnd-turn-row,
+.dnd-log-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.09);
+}
+
+.dnd-turn-row.active {
+    background: linear-gradient(135deg, rgba(124,255,178,0.18), rgba(0,245,255,0.09));
+    border-color: rgba(124,255,178,0.35);
+}
+
+.dnd-turn-row strong,
+.dnd-log-row strong {
+    color: #ffffff;
+}
+
+.dnd-turn-row span,
+.dnd-log-row span {
+    color: #cfc6e8;
+    font-weight: 800;
+    text-align: right;
 }
 
 .dnd-roll-card {
@@ -5619,6 +6082,7 @@ h1::after {
     .dnd-party-grid,
     .dnd-roll-grid,
     .dnd-session-bar,
+    .dnd-map-markers,
     .gazette-card-grid,
     .score-strip,
     .newspaper-grid,
