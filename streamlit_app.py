@@ -5388,7 +5388,6 @@ MAIN_MENU_OPTIONS = [
     "📰 News",
     "👥 Mitglieder",
     "👤 Profil",
-    "🛟 Support",
     "🛒 Shop",
     "🏆 Rangliste",
     "⚡ Events",
@@ -5443,7 +5442,6 @@ with account_col:
 
         if st.button("🛟 Support", key="account_support", use_container_width=True):
             st.session_state["app_menu"] = "🛟 Support"
-            st.session_state["main_nav"] = "🛟 Support"
             st.rerun()
 
         if logged_in_username or twitch_display_name:
