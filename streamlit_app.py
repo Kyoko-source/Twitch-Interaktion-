@@ -10259,9 +10259,9 @@ elif menu.endswith("Minispiele"):
                 y: top + laneHeight * index + laneHeight * 0.5,
                 laneHeight,
                 speed: 0,
-                base: 0.52 + Math.random() * 0.30 + index * 0.01,
-                stamina: 0.973 + Math.random() * 0.012,
-                chaos: 0.75 + Math.random() * 1.25,
+                base: 0.30 + Math.random() * 0.18 + index * 0.006,
+                stamina: 0.965 + Math.random() * 0.010,
+                chaos: 0.62 + Math.random() * 1.02,
                 burst: 0,
                 pause: 0,
                 wobble: Math.random() * Math.PI * 2
@@ -10317,9 +10317,9 @@ elif menu.endswith("Minispiele"):
         frame = 0;
         hens.forEach(hen => {
             hen.x = startX;
-            hen.speed = hen.base + Math.random() * 0.24;
-            hen.burst = Math.random() * 8;
-            hen.pause = Math.random() * 10;
+            hen.speed = hen.base + Math.random() * 0.12;
+            hen.burst = Math.random() * 6;
+            hen.pause = Math.random() * 16;
         });
     }
 
@@ -10493,18 +10493,18 @@ elif menu.endswith("Minispiele"):
                 if (hen.x > leader.x) leader = hen;
                 return;
             }
-            if (Math.random() < 0.006 * hen.chaos) {
-                hen.pause = 16 + Math.random() * 42;
+            if (Math.random() < 0.0075 * hen.chaos) {
+                hen.pause = 22 + Math.random() * 58;
                 hen.speed *= 0.35;
             }
-            if (Math.random() < 0.018 * hen.chaos) {
-                hen.burst = 10 + Math.random() * 26;
+            if (Math.random() < 0.014 * hen.chaos) {
+                hen.burst = 8 + Math.random() * 22;
             }
-            const burstBoost = hen.burst > 0 ? 0.42 + Math.random() * 0.95 : 0;
+            const burstBoost = hen.burst > 0 ? 0.24 + Math.random() * 0.58 : 0;
             hen.burst = Math.max(0, hen.burst - 1);
-            const laneWobble = Math.sin(frame / 19 + hen.wobble) * 0.05;
-            hen.speed = hen.speed * hen.stamina + 0.018 + Math.random() * hen.chaos * 0.32 + laneWobble + burstBoost;
-            hen.speed = Math.max(0.22, Math.min(hen.speed, 4.25 + round * 0.04));
+            const laneWobble = Math.sin(frame / 19 + hen.wobble) * 0.035;
+            hen.speed = hen.speed * hen.stamina + 0.010 + Math.random() * hen.chaos * 0.18 + laneWobble + burstBoost;
+            hen.speed = Math.max(0.12, Math.min(hen.speed, 2.55 + round * 0.025));
             hen.x += hen.speed;
             if (hen.x > leader.x) leader = hen;
         });
