@@ -1344,6 +1344,7 @@ def render_dnd_page():
         )
         dm_username = get_dnd_dm_username(active_lobby)
         is_dnd_dm = bool(dm_username) and dm_username == logged_in_username
+        is_lobby_owner = str(active_lobby.get("owner") or "") == str(logged_in_username)
 
         scene_text = str(active_lobby.get("scene") or "Die Party steht am Rand eines unbekannten Ortes. Der Dungeon Master kann hier die Szene setzen.")
         quest_text = str(active_lobby.get("quest_log") or "Noch keine Quest aktiv.")
@@ -1685,7 +1686,7 @@ def render_dnd_page():
             st.markdown('<div class="dnd-section-title"><h3>Wurfchronik</h3><span class="admin-muted">Die letzten Ergebnisse dieser Lobby</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="dnd-roll-grid">{roll_html}</div>', unsafe_allow_html=True)
 
-        if is_dnd_dm:
+        if is_dnd_dm or is_lobby_owner:
             if st.button("Lobby schliessen", key="close_dnd_lobby", type="primary"):
                 if close_dnd_lobby(active_lobby_id):
                     st.session_state.pop("dnd_lobby_id", None)
