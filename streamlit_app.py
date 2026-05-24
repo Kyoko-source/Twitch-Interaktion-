@@ -5025,64 +5025,6 @@ h1::after {
     font-weight: 760;
 }
 
-.home-dashboard-lower {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.32fr);
-    gap: 18px;
-    align-items: stretch;
-    margin-top: 18px;
-}
-
-.home-quote,
-.home-top-panel {
-    border-radius: 8px;
-    padding: 18px;
-    background: rgba(8,14,24,0.58);
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow: 0 18px 44px rgba(0,0,0,0.20);
-}
-
-.home-quote {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ff9ee4;
-    font-weight: 900;
-    text-align: center;
-}
-
-.home-top-panel h3 {
-    margin: 6px 0 4px;
-    color: #ffffff;
-}
-
-.home-top-panel p {
-    margin: 0 0 12px;
-    color: #d8ccff;
-    font-weight: 760;
-}
-
-.home-top-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-.home-top-row:last-child {
-    border-bottom: 0;
-}
-
-.home-top-row strong {
-    color: #ffffff;
-}
-
-.home-top-row span {
-    color: #ff9ee4;
-    font-weight: 900;
-}
-
 .daily-card {
     position: relative;
     overflow: hidden;
@@ -6504,7 +6446,6 @@ h1::after {
     .profile-showcase-inner,
     .home-hero,
     .home-actions,
-    .home-dashboard-lower,
     .members-hero,
     .members-stat-row,
     .home-compact-grid,
@@ -6882,13 +6823,6 @@ if menu == "🏠 Home":
 
     spotlight_title = "Willkommen in der Gehirnzone"
     spotlight_copy = "Community, Rewards und Rankings für die schlauesten Köpfe."
-    top_viewer_name = "Noch niemand"
-    top_viewer_detail = "Warte auf den ersten Eintrag"
-    if not leaderboard.empty:
-        top_viewer = leaderboard.iloc[0]
-        top_viewer_name = str(top_viewer["Viewer"])
-        top_viewer_detail = f'{int(top_viewer["Gehirnzellen"])} Gehirnzellen'
-
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
         '<h3>Heute wartet dein Bonus</h3>'
@@ -6905,17 +6839,6 @@ if menu == "🏠 Home":
             f'<div class="daily-streak">{int(daily_state["streak"])} Tage Streak</div>'
             '<p>Streak halten, Bonus abholen und Gehirnzellen stapeln.</p>'
         )
-
-    top_three_rows = ""
-    for index, viewer in enumerate(leaderboard.head(3).to_dict("records"), start=1):
-        top_three_rows += (
-            '<div class="home-top-row">'
-            f'<strong>#{index} {html.escape(str(viewer["Viewer"]))}</strong>'
-            f'<span>{int(viewer["Gehirnzellen"])} 🧠</span>'
-            '</div>'
-        )
-    if not top_three_rows:
-        top_three_rows = '<div class="admin-muted">Noch keine Rangliste vorhanden.</div>'
 
     home_html = (
         '<div class="home-dashboard">'
@@ -6966,15 +6889,6 @@ if menu == "🏠 Home":
         '</div>'
         '</div>'
         f'<div class="daily-card">{daily_html}</div>'
-        '</div>'
-        '<div class="home-dashboard-lower">'
-        '<div class="home-quote">„Wissen ist Macht. Community ist Stärke. Zusammen sind wir die Gehirnzone.“</div>'
-        '<div class="home-top-panel">'
-        '<div class="section-kicker">Top 3</div>'
-        f'<h3>{html.escape(top_viewer_name)}</h3>'
-        f'<p>{html.escape(top_viewer_detail)}</p>'
-        f'{top_three_rows}'
-        '</div>'
         '</div>'
         '</div>'
     )
