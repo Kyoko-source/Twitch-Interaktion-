@@ -8284,13 +8284,21 @@ elif menu.endswith("Minispiele"):
     selected_minigame = minigame_keys[selected_minigame_label]
     st.session_state["minigame_view"] = selected_minigame
 
-    chicken_theme_data_uri = ""
-    chicken_theme_path = Path(__file__).parent / "assets" / "chicken_theme.mp3"
-    if chicken_theme_path.exists():
-        chicken_theme_data_uri = (
+    def mp3_data_uri(path):
+        if not path.exists():
+            return ""
+        return (
             "data:audio/mpeg;base64,"
-            + base64.b64encode(chicken_theme_path.read_bytes()).decode("ascii")
+            + base64.b64encode(path.read_bytes()).decode("ascii")
         )
+
+    assets_dir = Path(__file__).parent / "assets"
+    chicken_theme_data_uri = mp3_data_uri(assets_dir / "chicken_theme.mp3")
+    chicken_snake_theme_data_uri = (
+        mp3_data_uri(assets_dir / "chicken-snake-theme.mp3")
+        or mp3_data_uri(assets_dir / "chicken_snake_theme.mp3")
+        or chicken_theme_data_uri
+    )
 
     if selected_minigame == "dnd":
         render_dnd_page()
@@ -9550,6 +9558,9 @@ elif menu.endswith("Minispiele"):
     const comboEl = document.getElementById("snakeCombo");
     const scoresEl = document.getElementById("snakeScores");
     const musicFile = document.getElementById("snakeMusicFile");
+    const SUPABASE_URL = "__SUPABASE_URL__";
+    const SUPABASE_KEY = "__SUPABASE_KEY__";
+    const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_snake_scores";
 
     const cols = 30;
     const rows = 20;
@@ -9886,7 +9897,7 @@ elif menu.endswith("Minispiele"):
         return div.innerHTML;
     }
 
-    function getScores() {
+    function getLocalScores() {
         try {
             return JSON.parse(localStorage.getItem("chicken_snake_scores") || "[]");
         } catch (_) {
@@ -9894,8 +9905,7 @@ elif menu.endswith("Minispiele"):
         }
     }
 
-    function renderScores() {
-        const scores = getScores().sort((a, b) => Number(b.score || 0) - Number(a.score || 0)).slice(0, 8);
+    function renderScoreRows(scores) {
         if (!scores.length) {
             scoresEl.innerHTML = "<li><span>Noch frei</span><b>0</b></li>";
             return;
@@ -9905,18 +9915,90 @@ elif menu.endswith("Minispiele"):
         )).join("");
     }
 
-    function saveScore() {
+    async function renderScores() {
+        scoresEl.innerHTML = "<li><span>Lade Scores...</span><b>...</b></li>";
+        try {
+            const response = await fetch(
+                SCOREBOARD_ENDPOINT + "?select=username,score,length,combo,created_at&order=score.desc,length.desc,combo.desc,created_at.asc&limit=100",
+                {
+                    headers: {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": "Bearer " + SUPABASE_KEY
+                    }
+                }
+            );
+            if (!response.ok) throw new Error(await response.text());
+            const scores = await response.json();
+            const bestByUser = new Map();
+            scores.forEach(entry => {
+                const username = String(entry.username || "").trim();
+                if (!username) return;
+                const key = username.toLowerCase();
+                const existing = bestByUser.get(key);
+                const currentScore = Number(entry.score || 0);
+                const currentLength = Number(entry.length || 0);
+                const currentCombo = Number(entry.combo || 0);
+                if (
+                    !existing ||
+                    currentScore > Number(existing.score || 0) ||
+                    (currentScore === Number(existing.score || 0) && currentLength > Number(existing.length || 0)) ||
+                    (currentScore === Number(existing.score || 0) && currentLength === Number(existing.length || 0) && currentCombo > Number(existing.combo || 0))
+                ) {
+                    bestByUser.set(key, {...entry, name: username});
+                }
+            });
+            renderScoreRows(Array.from(bestByUser.values())
+                .sort((a, b) =>
+                    Number(b.score || 0) - Number(a.score || 0) ||
+                    Number(b.length || 0) - Number(a.length || 0) ||
+                    Number(b.combo || 0) - Number(a.combo || 0)
+                )
+                .slice(0, 8));
+        } catch (error) {
+            console.error(error);
+            const localScores = getLocalScores()
+                .sort((a, b) =>
+                    Number(b.score || 0) - Number(a.score || 0) ||
+                    Number(b.length || 0) - Number(a.length || 0) ||
+                    Number(b.combo || 0) - Number(a.combo || 0)
+                )
+                .slice(0, 8);
+            renderScoreRows(localScores);
+        }
+    }
+
+    async function saveScore() {
         if (savedScore || score <= 0) return;
         let name = prompt("Dein Name für die Chicken-Snake-Lobby:");
         if (!name) return;
         name = name.trim().slice(0, 36);
         if (!name) return;
-        const scores = getScores();
-        scores.push({name, score, length: snake.length, combo, createdAt: new Date().toISOString()});
-        localStorage.setItem("chicken_snake_scores", JSON.stringify(scores.slice(-80)));
+        try {
+            const response = await fetch(SCOREBOARD_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                body: JSON.stringify({
+                    username: name,
+                    score: score,
+                    length: snake.length,
+                    combo: combo
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
+        } catch (error) {
+            console.error(error);
+            const scores = getLocalScores();
+            scores.push({name, score, length: snake.length, combo, createdAt: new Date().toISOString()});
+            localStorage.setItem("chicken_snake_scores", JSON.stringify(scores.slice(-100)));
+        }
         savedScore = true;
-        renderScores();
-        showLobby("Score gespeichert", "Dein Chicken-Snake-Run steht jetzt in deiner lokalen Lobby.", "Nochmal spielen");
+        await renderScores();
+        showLobby("Score gespeichert", "Dein Chicken-Snake-Run steht jetzt im globalen Scoreboard.", "Nochmal spielen");
     }
 
     startBtn.addEventListener("click", startGame);
@@ -9975,7 +10057,9 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """.replace("__CHICKEN_THEME_SRC__", chicken_theme_data_uri), height=780, scrolling=True)
+    """.replace("__CHICKEN_THEME_SRC__", chicken_snake_theme_data_uri)
+       .replace("__SUPABASE_URL__", SUPABASE_URL)
+       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=780, scrolling=True)
 
     elif selected_minigame == "race":
         st.markdown("## Chicken Racer")
