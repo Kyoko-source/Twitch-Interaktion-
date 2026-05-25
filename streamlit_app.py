@@ -10123,6 +10123,12 @@ elif menu.endswith("Minispiele"):
                 linear-gradient(180deg, rgba(7,9,17,0.28), rgba(7,9,17,0.88));
             z-index: 3;
         }
+        .race-overlay.compact {
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 12px;
+            background: linear-gradient(180deg, rgba(7,9,17,0.10), rgba(7,9,17,0.18));
+        }
         .race-panel,
         .race-card {
             border: 1px solid rgba(255,255,255,0.13);
@@ -10138,6 +10144,12 @@ elif menu.endswith("Minispiele"):
             text-align: center;
             backdrop-filter: blur(10px);
         }
+        .race-overlay.compact .race-panel {
+            width: min(390px, 92%);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: left;
+        }
         .race-kicker {
             color: #ffe66d;
             font-size: 12px;
@@ -10150,6 +10162,11 @@ elif menu.endswith("Minispiele"):
             font-size: 42px;
             line-height: 1;
         }
+        .race-overlay.compact .race-panel h1 {
+            margin: 5px 0;
+            font-size: 22px;
+            line-height: 1.05;
+        }
         .race-panel p {
             margin: 0 auto 16px;
             max-width: 520px;
@@ -10157,11 +10174,21 @@ elif menu.endswith("Minispiele"):
             line-height: 1.45;
             font-weight: 750;
         }
+        .race-overlay.compact .race-panel p {
+            margin: 0 0 8px;
+            max-width: none;
+            font-size: 12px;
+            line-height: 1.25;
+        }
         .bet-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
             margin: 14px 0;
+        }
+        .race-overlay.compact .bet-grid {
+            gap: 6px;
+            margin: 8px 0;
         }
         button {
             border: 0;
@@ -10191,6 +10218,15 @@ elif menu.endswith("Minispiele"):
             border: 1px solid rgba(255,255,255,0.12);
             box-shadow: none;
         }
+        .race-overlay.compact button {
+            border-radius: 10px;
+            padding: 7px 9px;
+            font-size: 12px;
+        }
+        .race-overlay.compact button.bet {
+            min-height: 34px;
+            gap: 5px;
+        }
         button.bet.active {
             color: #061015;
             background: linear-gradient(135deg, var(--hen-color), #ffffff);
@@ -10205,11 +10241,20 @@ elif menu.endswith("Minispiele"):
             background: var(--hen-color);
             border: 2px solid rgba(255,255,255,0.78);
         }
+        .race-overlay.compact .swatch {
+            width: 11px;
+            height: 11px;
+            border-width: 1px;
+        }
         .race-actions {
             display: flex;
             justify-content: center;
             gap: 10px;
             flex-wrap: wrap;
+        }
+        .race-overlay.compact .race-actions {
+            justify-content: flex-start;
+            gap: 6px;
         }
         .race-side {
             display: grid;
@@ -10262,6 +10307,7 @@ elif menu.endswith("Minispiele"):
             body { min-height: 900px; }
             .race-layout,
             .bet-grid { grid-template-columns: 1fr; }
+            .race-overlay.compact .bet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .race-panel h1 { font-size: 34px; }
         }
     </style>
@@ -10491,6 +10537,7 @@ elif menu.endswith("Minispiele"):
         updateHud();
         renderBetButtons();
         overlay.style.display = "flex";
+        overlay.classList.toggle("compact", score > 0);
         kickerEl.textContent = "Runde " + round + " · " + hens.length + " Hühner";
         titleEl.textContent = message || "Wähle dein Huhn";
         textEl.textContent = "Gewinnt deine Wette, steigt dein Score um 1 und die nächste Runde bekommt ein Huhn mehr.";
@@ -10518,12 +10565,12 @@ elif menu.endswith("Minispiele"):
 
     function finishRace(winner) {
         state = "result";
-        stopMusic();
         winnerIndex = winner.index;
         overlay.style.display = "flex";
         const picked = hens[selectedHen];
         const won = picked && winner.index === picked.index;
         if (won) {
+            overlay.classList.add("compact");
             winSound();
             score += 1;
             round += 1;
@@ -10540,6 +10587,8 @@ elif menu.endswith("Minispiele"):
                 showBetting("Nächste Wette");
             };
         } else {
+            stopMusic();
+            overlay.classList.remove("compact");
             loseSound();
             kickerEl.textContent = "Game Over";
             titleEl.textContent = winner.name + " gewinnt";
