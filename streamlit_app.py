@@ -10124,10 +10124,11 @@ elif menu.endswith("Minispiele"):
             z-index: 3;
         }
         .race-overlay.compact {
-            align-items: flex-start;
-            justify-content: flex-start;
-            padding: 12px;
-            background: linear-gradient(180deg, rgba(7,9,17,0.10), rgba(7,9,17,0.18));
+            align-items: flex-end;
+            justify-content: stretch;
+            padding: 0;
+            background: linear-gradient(180deg, transparent 0%, transparent 58%, rgba(7,9,17,0.70) 100%);
+            pointer-events: none;
         }
         .race-panel,
         .race-card {
@@ -10145,10 +10146,16 @@ elif menu.endswith("Minispiele"):
             backdrop-filter: blur(10px);
         }
         .race-overlay.compact .race-panel {
-            width: min(390px, 92%);
-            border-radius: 14px;
-            padding: 12px;
+            width: 100%;
+            border-width: 1px 0 0;
+            border-radius: 0;
+            padding: 10px 12px;
             text-align: left;
+            display: grid;
+            grid-template-columns: minmax(145px, 0.72fr) minmax(150px, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
         }
         .race-kicker {
             color: #ffe66d;
@@ -10163,8 +10170,8 @@ elif menu.endswith("Minispiele"):
             line-height: 1;
         }
         .race-overlay.compact .race-panel h1 {
-            margin: 5px 0;
-            font-size: 22px;
+            margin: 2px 0 0;
+            font-size: 18px;
             line-height: 1.05;
         }
         .race-panel p {
@@ -10175,7 +10182,7 @@ elif menu.endswith("Minispiele"):
             font-weight: 750;
         }
         .race-overlay.compact .race-panel p {
-            margin: 0 0 8px;
+            margin: 0;
             max-width: none;
             font-size: 12px;
             line-height: 1.25;
@@ -10187,8 +10194,9 @@ elif menu.endswith("Minispiele"):
             margin: 14px 0;
         }
         .race-overlay.compact .bet-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 6px;
-            margin: 8px 0;
+            margin: 0;
         }
         button {
             border: 0;
@@ -10222,6 +10230,7 @@ elif menu.endswith("Minispiele"):
             border-radius: 10px;
             padding: 7px 9px;
             font-size: 12px;
+            white-space: nowrap;
         }
         .race-overlay.compact button.bet {
             min-height: 34px;
@@ -10253,7 +10262,7 @@ elif menu.endswith("Minispiele"):
             flex-wrap: wrap;
         }
         .race-overlay.compact .race-actions {
-            justify-content: flex-start;
+            justify-content: flex-end;
             gap: 6px;
         }
         .race-side {
@@ -10307,7 +10316,9 @@ elif menu.endswith("Minispiele"):
             body { min-height: 900px; }
             .race-layout,
             .bet-grid { grid-template-columns: 1fr; }
+            .race-overlay.compact .race-panel { grid-template-columns: 1fr; }
             .race-overlay.compact .bet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .race-overlay.compact .race-actions { justify-content: flex-start; }
             .race-panel h1 { font-size: 34px; }
         }
     </style>
