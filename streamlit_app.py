@@ -8259,14 +8259,19 @@ elif menu.endswith("Minispiele"):
             <strong>Chicken Racer</strong>
             <span>Wette auf farbige Bot-Hühner und überlebe immer vollere Rennrunden.</span>
         </div>
+        <div class="arcade-card">
+            <strong>Braincell Survivor</strong>
+            <span>Ueberlebe Wellen, sammle XP, stacke Builds und jage Boss-Scores.</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Dungeons and Dragons"]
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Braincell Survivor", "Dungeons and Dragons"]
     minigame_keys = {
         "Chicken Jump": "jump",
         "Chicken Snake": "snake",
         "Chicken Racer": "race",
+        "Braincell Survivor": "survivor",
         "Dungeons and Dragons": "dnd",
     }
     minigame_label_by_key = {value: key for key, value in minigame_keys.items()}
@@ -10904,6 +10909,106 @@ elif menu.endswith("Minispiele"):
     """.replace("__RACER_THEME_SRC__", chicken_racer_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=790, scrolling=True)
+
+    elif selected_minigame == "survivor":
+        st.markdown("## Braincell Survivor")
+        components.html("""
+    <html>
+    <head>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 820px; color: #fff; font-family: Inter, Segoe UI, Arial, sans-serif; overflow: auto; background: radial-gradient(circle at 15% 10%, rgba(124,255,178,.18), transparent 26%), radial-gradient(circle at 85% 15%, rgba(255,84,160,.17), transparent 24%), linear-gradient(180deg,#060812,#111225 58%,#080711); }
+        .shell { width: min(100%, 1120px); margin: 0 auto; padding: 16px; }
+        .layout { display: grid; grid-template-columns: minmax(0,1fr) 292px; gap: 14px; }
+        .stage { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255,255,255,.14); background: #07101f; box-shadow: 0 28px 80px rgba(0,0,0,.42); }
+        canvas { display: block; width: 100%; aspect-ratio: 16 / 10; background: #07101f; }
+        .overlay { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 18px; background: radial-gradient(circle at 50% 36%, rgba(124,255,178,.14), transparent 26%), linear-gradient(180deg,rgba(6,8,18,.44),rgba(6,8,18,.90)); }
+        .panel, .card, .upgrade { border: 1px solid rgba(255,255,255,.13); background: linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.04)), rgba(12,14,24,.94); box-shadow: 0 20px 58px rgba(0,0,0,.30); }
+        .panel { width: min(720px,94%); border-radius: 18px; padding: 22px; text-align: center; backdrop-filter: blur(10px); }
+        .kicker { color: #7cffb2; font-size: 12px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+        h1 { margin: 8px 0; font-size: 44px; line-height: 1; }
+        p { margin: 0 auto 16px; max-width: 590px; color: #d8d1ec; line-height: 1.45; font-weight: 750; }
+        .actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .upgrade-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+        button { border: 0; border-radius: 12px; padding: 11px 13px; color: #061015; cursor: pointer; font-weight: 950; background: linear-gradient(135deg,#7cffb2,#46f0ff); box-shadow: 0 14px 30px rgba(70,240,255,.16); }
+        button:hover { transform: translateY(-1px); filter: brightness(1.07); }
+        button.secondary { color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); box-shadow: none; }
+        .upgrade { color: white; text-align: left; min-height: 148px; border-radius: 14px; padding: 14px; background: radial-gradient(circle at 18% 12%, rgba(124,255,178,.15), transparent 28%), rgba(15,18,32,.96); }
+        .upgrade strong { display: block; font-size: 16px; margin-bottom: 8px; }
+        .upgrade span { color: #cfc6e8; font-weight: 750; line-height: 1.35; font-size: 13px; }
+        .side { display: grid; gap: 12px; }
+        .card { border-radius: 16px; padding: 14px; }
+        .card span { display: block; color: #aeb6d9; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+        .card strong { display: block; margin-top: 4px; font-size: 28px; }
+        .card small { display: block; margin-top: 4px; color: #cfc6e8; font-weight: 750; line-height: 1.35; }
+        .bar { height: 9px; margin-top: 9px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.10); }
+        .bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg,#7cffb2,#46f0ff); }
+        .scores { margin: 10px 0 0; padding: 0; list-style: none; max-height: 216px; overflow-y: auto; }
+        .scores li { display: flex; justify-content: space-between; gap: 10px; margin: 7px 0; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.07); color: #eadfff; font-weight: 800; }
+        @media (max-width: 860px) { body { min-height: 980px; } .layout { grid-template-columns: 1fr; } .upgrade-grid { grid-template-columns: 1fr; } h1 { font-size: 34px; } }
+    </style>
+    </head>
+    <body>
+    <div class="shell"><div class="layout"><div class="stage">
+        <canvas id="game" width="1000" height="620"></canvas>
+        <div id="overlay" class="overlay"><div class="panel">
+            <div id="kicker" class="kicker">Roguelite Arena</div>
+            <h1 id="title">Braincell Survivor</h1>
+            <p id="text">WASD oder Pfeiltasten. Waffen feuern automatisch. Sammle XP, stacke Builds, ueberlebe Elites und Bosse.</p>
+            <div id="upgrades" class="upgrade-grid"></div>
+            <div class="actions"><button id="start">Run starten</button><button id="save" class="secondary">Score speichern</button><button id="restart" class="secondary">Neu starten</button></div>
+        </div></div>
+    </div><aside class="side">
+        <div class="card"><span>Zeit</span><strong id="time">0:00</strong><small>Boss alle 3 Minuten</small></div>
+        <div class="card"><span>Score</span><strong id="score">0</strong><small>Kills, Level und Zeit zaehlen</small></div>
+        <div class="card"><span>Level</span><strong id="level">1</strong><div class="bar"><i id="xpbar"></i></div><small id="build">Brain Bolt I</small></div>
+        <div class="card"><span>HP</span><strong id="hp">100</strong><div class="bar"><i id="hpbar"></i></div><small>Kite, sammle Herzen, werde absurd stark</small></div>
+        <div class="card"><span>Globale Bestwerte</span><ol id="scores" class="scores"></ol></div>
+    </aside></div></div>
+    <script>
+    const canvas=document.getElementById("game"),ctx=canvas.getContext("2d"),overlay=document.getElementById("overlay");
+    const kicker=document.getElementById("kicker"),title=document.getElementById("title"),text=document.getElementById("text"),upgradesEl=document.getElementById("upgrades");
+    const startBtn=document.getElementById("start"),saveBtn=document.getElementById("save"),restartBtn=document.getElementById("restart");
+    const timeEl=document.getElementById("time"),scoreEl=document.getElementById("score"),levelEl=document.getElementById("level"),hpEl=document.getElementById("hp"),xpbar=document.getElementById("xpbar"),hpbar=document.getElementById("hpbar"),buildEl=document.getElementById("build"),scoresEl=document.getElementById("scores");
+    const SUPABASE_URL="__SUPABASE_URL__",SUPABASE_KEY="__SUPABASE_KEY__",ENDPOINT=SUPABASE_URL+"/rest/v1/braincell_survivor_scores";
+    const W=canvas.width,H=canvas.height,keys={};
+    let state="menu",p,enemies,bullets,gems,drops,parts,texts,frame=0,seconds=0,score=0,kills=0,saved=false,lastBoss=0,shake=0;
+    const pool=[
+      ["bolt","Brain Bolt","+1 Projektil, schnelleres Auto-Aim",7],["orbit","Synapsen-Orbit","Kreisende Gehirnzellen zerlegen Nahkaempfer",6],["aura","Neural Aura","Schadenszone um dich herum",6],["bomb","Egg Bomb","Explosive Eier mit Flaechenschaden",5],["laser","Focus Laser","Periodischer Laser auf den staerksten Gegner",5],["speed","Chicken Boots","+12% Bewegungstempo",5],["magnet","Big Brain Magnet","Mehr Pickup-Reichweite",5],["might","Gehirnzellen-Power","+18% Gesamtschaden",7],["regen","Warm Nest","Regeneration und +8 Max-HP",5],["cooldown","Turbo Synapse","Alle Waffen laden schneller",6]
+    ];
+    function lv(id){return p.up[id]||0} function clamp(v,a,b){return Math.max(a,Math.min(b,v))} function time(v){return Math.floor(v/60)+":"+Math.floor(v%60).toString().padStart(2,"0")}
+    function esc(v){const d=document.createElement("div");d.textContent=v;return d.innerHTML}
+    function reset(){p={x:W/2,y:H/2,r:17,hp:100,max:100,xp:0,need:28,level:1,speed:3.35,inv:0,up:{bolt:1},tim:{bolt:0,bomb:0,laser:0}};enemies=[];bullets=[];gems=[];drops=[];parts=[];texts=[];frame=0;seconds=0;score=0;kills=0;saved=false;lastBoss=0;shake=0;hud()}
+    function start(){reset();state="play";overlay.style.display="none"}
+    function over(){state="over";overlay.style.display="flex";upgradesEl.innerHTML="";kicker.textContent="Run beendet";title.textContent="Game Over";text.textContent="Zeit: "+time(seconds)+" | Level: "+p.level+" | Kills: "+kills+" | Score: "+score;startBtn.textContent="Nochmal spielen";startBtn.style.display="inline-flex";saveBtn.style.display=score>0&&!saved?"inline-flex":"none";restartBtn.style.display="none";startBtn.onclick=start}
+    function choose(){const a=pool.filter(u=>lv(u[0])<u[3]);const c=[];while(c.length<3&&a.length)c.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);state="level";overlay.style.display="flex";kicker.textContent="Level "+p.level;title.textContent="Build waehlen";text.textContent="Stacke Waffen und Perks. Jede Wahl veraendert den Run.";startBtn.style.display="none";saveBtn.style.display="none";restartBtn.style.display="none";upgradesEl.innerHTML=c.map(u=>"<button class='upgrade' data-u='"+u[0]+"'><strong>"+esc(u[1])+" "+(lv(u[0])+1)+"</strong><span>"+esc(u[2])+"</span></button>").join("");document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>apply(b.dataset.u))}
+    function apply(id){p.up[id]=lv(id)+1;if(id==="speed")p.speed+=.42;if(id==="regen"){p.max+=8;p.hp=Math.min(p.max,p.hp+24)}state="play";overlay.style.display="none";upgradesEl.innerHTML="";hud()}
+    function spawn(kind="grunt"){const s=Math.floor(Math.random()*4),pos=[{x:-35,y:Math.random()*H},{x:W+35,y:Math.random()*H},{x:Math.random()*W,y:-35},{x:Math.random()*W,y:H+35}][s],m=seconds/60;
+      const t={grunt:[22+m*10,1.1+m*.05,14,7,12,"#ff54a0"],runner:[16+m*8,1.75+m*.06,11,8,16,"#46f0ff"],tank:[72+m*24,.72+m*.03,20,18,34,"#ffe66d"],elite:[150+m*42,1.05+m*.03,24,38,95,"#c77dff"],boss:[720+m*220,.82,38,130,450,"#ff922b"]}[kind];
+      enemies.push({...pos,kind,hp:t[0],max:t[0],speed:t[1],r:t[2],xp:t[3],score:t[4],color:t[5],hit:0})}
+    function wave(){const n=Math.min(8,1+Math.floor((1+seconds/38)/1.2));for(let i=0;i<n;i++){const r=Math.random(); if(seconds>90&&r<.09)spawn("tank"); else if(seconds>45&&r<.26)spawn("runner"); else spawn("grunt")} if(seconds>75&&frame%420===0)spawn("elite");const bm=Math.floor(seconds/180);if(bm>0&&bm!==lastBoss){lastBoss=bm;spawn("boss")}}
+    function nearest(){let best=null,bd=1e9;enemies.forEach(e=>{const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<bd){bd=d;best=e}});return best}
+    function fire(){const cd=Math.max(.46,1-lv("cooldown")*.075),might=1+lv("might")*.18;p.tim.bolt--;if(p.tim.bolt<=0&&enemies.length){const t=nearest(),amt=1+lv("bolt");for(let i=0;i<amt;i++){const a=Math.atan2(t.y-p.y,t.x-p.x)+(i-(amt-1)/2)*.16;bullets.push({x:p.x,y:p.y,vx:Math.cos(a)*7.2,vy:Math.sin(a)*7.2,r:5,d:18*might,life:74,k:"bolt",c:"#7cffb2"})}p.tim.bolt=Math.max(10,(38-lv("bolt")*3)*cd)}
+      if(lv("bomb")>0){p.tim.bomb--;if(p.tim.bomb<=0&&enemies.length){const t=nearest(),a=Math.atan2(t.y-p.y,t.x-p.x);bullets.push({x:p.x,y:p.y,vx:Math.cos(a)*4.5,vy:Math.sin(a)*4.5,r:9,d:(42+lv("bomb")*18)*might,life:86,k:"bomb",c:"#ffe66d"});p.tim.bomb=Math.max(42,(132-lv("bomb")*11)*cd)}}
+      if(lv("laser")>0){p.tim.laser--;if(p.tim.laser<=0&&enemies.length){const t=enemies.slice().sort((a,b)=>b.hp-a.hp)[0];hit(t,(72+lv("laser")*38)*might,true);parts.push({x1:p.x,y1:p.y,x2:t.x,y2:t.y,life:10,laser:true});p.tim.laser=Math.max(70,(190-lv("laser")*18)*cd)}}}
+    function hit(e,d,boom=false){if(!e)return;e.hp-=d;e.hit=5;if(Math.random()<.2)texts.push({x:e.x,y:e.y-e.r,v:Math.floor(d),life:26});if(e.hp<=0)kill(e);if(boom)shake=Math.min(8,shake+2)}
+    function kill(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);kills++;score+=Math.floor(e.score+seconds*.8+p.level*2);gems.push({x:e.x,y:e.y,v:e.xp,r:e.kind==="boss"?9:6});if(Math.random()<.035||e.kind==="elite")drops.push({x:e.x,y:e.y,k:"heart",r:8});if(Math.random()<.025||e.kind==="boss")drops.push({x:e.x,y:e.y,k:"magnet",r:8});for(let j=0;j<10;j++)parts.push({x:e.x,y:e.y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:26,c:e.color})}
+    function xp(v){p.xp+=v;while(p.xp>=p.need){p.xp-=p.need;p.level++;p.need=Math.floor(p.need*1.22+14);p.hp=Math.min(p.max,p.hp+10);score+=p.level*25;choose();break}}
+    function update(){let dx=0,dy=0;if(keys.arrowleft||keys.a)dx--;if(keys.arrowright||keys.d)dx++;if(keys.arrowup||keys.w)dy--;if(keys.arrowdown||keys.s)dy++;const l=Math.hypot(dx,dy)||1;p.x=clamp(p.x+dx/l*p.speed,p.r,W-p.r);p.y=clamp(p.y+dy/l*p.speed,p.r,H-p.r);p.inv=Math.max(0,p.inv-1);if(frame%60===0)p.hp=Math.min(p.max,p.hp+.35+lv("regen")*.9)}
+    function mobs(){const aura=lv("aura"),range=45+aura*16,orbit=lv("orbit");enemies.slice().forEach(e=>{const a=Math.atan2(p.y-e.y,p.x-e.x);e.x+=Math.cos(a)*e.speed;e.y+=Math.sin(a)*e.speed;e.hit=Math.max(0,e.hit-1);if(aura&&Math.hypot(e.x-p.x,e.y-p.y)<range)hit(e,.34*aura*(1+lv("might")*.18));if(orbit){for(let i=0;i<orbit;i++){const oa=frame/24+i*Math.PI*2/orbit,ox=p.x+Math.cos(oa)*(48+orbit*5),oy=p.y+Math.sin(oa)*(48+orbit*5);if(Math.hypot(e.x-ox,e.y-oy)<e.r+9)hit(e,.85*orbit*(1+lv("might")*.18))}} if(Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r&&p.inv<=0){p.hp-=e.kind==="boss"?22:e.kind==="tank"?13:8;p.inv=34;shake=8;if(p.hp<=0)over()}})}
+    function shots(){bullets.slice().forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.life--;enemies.slice().forEach(e=>{if(Math.hypot(e.x-b.x,e.y-b.y)<e.r+b.r){hit(e,b.d);if(b.k==="bomb"){enemies.slice().forEach(o=>{if(Math.hypot(o.x-b.x,o.y-b.y)<86)hit(o,b.d*.55)});shake=Math.min(9,shake+4)}b.life=0}})});bullets=bullets.filter(b=>b.life>0&&b.x>-40&&b.x<W+40&&b.y>-40&&b.y<H+40)}
+    function pickups(){const mag=76+lv("magnet")*36;gems.slice().forEach(g=>{const d=Math.hypot(g.x-p.x,g.y-p.y);if(d<mag){g.x+=(p.x-g.x)*.11;g.y+=(p.y-g.y)*.11}if(d<p.r+g.r+4){xp(g.v);gems.splice(gems.indexOf(g),1)}});drops.slice().forEach(d=>{const q=Math.hypot(d.x-p.x,d.y-p.y);if(q<mag){d.x+=(p.x-d.x)*.08;d.y+=(p.y-d.y)*.08}if(q<p.r+d.r+4){if(d.k==="heart")p.hp=Math.min(p.max,p.hp+30);if(d.k==="magnet"){gems.forEach(g=>xp(g.v));gems=[]}drops.splice(drops.indexOf(d),1)}})}
+    function hud(){timeEl.textContent=time(seconds);scoreEl.textContent=score;levelEl.textContent=p.level;hpEl.textContent=Math.max(0,Math.ceil(p.hp));xpbar.style.width=Math.min(100,p.xp/p.need*100)+"%";hpbar.style.width=Math.min(100,p.hp/p.max*100)+"%";buildEl.textContent=Object.entries(p.up).filter(([,v])=>v>0).map(([k,v])=>k+" "+v).join(" · ")}
+    function draw(){ctx.save();if(shake>0){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.86}let bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,"#071328");bg.addColorStop(.55,"#10172d");bg.addColorStop(1,"#170b20");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.strokeStyle="rgba(255,255,255,.045)";for(let x=-40;x<W+40;x+=40){ctx.beginPath();ctx.moveTo(x+frame%40,0);ctx.lineTo(x+frame%40,H);ctx.stroke()}for(let y=-40;y<H+40;y+=40){ctx.beginPath();ctx.moveTo(0,y+frame%40);ctx.lineTo(W,y+frame%40);ctx.stroke()} if(lv("aura")){ctx.fillStyle="rgba(124,255,178,.07)";ctx.beginPath();ctx.arc(p.x,p.y,45+lv("aura")*16,0,Math.PI*2);ctx.fill()}gems.forEach(g=>{ctx.fillStyle="#46f0ff";ctx.beginPath();ctx.arc(g.x,g.y,g.r,0,Math.PI*2);ctx.fill()});drops.forEach(d=>{ctx.fillStyle=d.k==="heart"?"#ff4d6d":"#ffe66d";ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fill()});bullets.forEach(b=>{ctx.fillStyle=b.c;ctx.shadowColor=b.c;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0});enemies.forEach(e=>{ctx.fillStyle=e.hit?"#fff":e.color;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(e.x-e.r,e.y-e.r-10,e.r*2,4);ctx.fillStyle="#7cffb2";ctx.fillRect(e.x-e.r,e.y-e.r-10,e.r*2*Math.max(0,e.hp/e.max),4)});for(let i=0;i<lv("orbit");i++){const a=frame/24+i*Math.PI*2/lv("orbit");ctx.fillStyle="#ffe66d";ctx.beginPath();ctx.arc(p.x+Math.cos(a)*(48+lv("orbit")*5),p.y+Math.sin(a)*(48+lv("orbit")*5),9,0,Math.PI*2);ctx.fill()}ctx.fillStyle=p.inv>0&&frame%8<4?"#fff":"#7cffb2";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.fillStyle="#061015";ctx.beginPath();ctx.arc(p.x-5,p.y-4,3,0,Math.PI*2);ctx.arc(p.x+6,p.y-4,3,0,Math.PI*2);ctx.fill();parts.forEach(o=>{if(o.laser){ctx.strokeStyle="rgba(70,240,255,"+o.life/10+")";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(o.x1,o.y1);ctx.lineTo(o.x2,o.y2);ctx.stroke()}else{ctx.fillStyle=o.c;ctx.globalAlpha=Math.max(0,o.life/26);ctx.beginPath();ctx.arc(o.x,o.y,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}});texts.forEach(t=>{ctx.fillStyle="rgba(255,255,255,"+t.life/26+")";ctx.font="900 13px Inter, Arial";ctx.fillText(t.v,t.x,t.y)});ctx.restore()}
+    function loop(){if(state==="play"){frame++;seconds=frame/60;if(frame%Math.max(16,58-Math.floor(seconds/8))===0)wave();update();fire();shots();mobs();pickups();parts.forEach(o=>{o.life--;if(!o.laser){o.x+=o.vx;o.y+=o.vy}});parts=parts.filter(o=>o.life>0);texts.forEach(t=>{t.life--;t.y-=.45});texts=texts.filter(t=>t.life>0);if(frame%60===0)score+=Math.floor(2+seconds/40);hud()}draw();requestAnimationFrame(loop)}
+    function local(){try{return JSON.parse(localStorage.getItem("braincell_survivor_scores")||"[]")}catch(_){return[]}} function rows(s){if(!s.length){scoresEl.innerHTML="<li><span>Noch frei</span><b>0</b></li>";return}scoresEl.innerHTML=s.map((e,i)=>"<li><span>#"+(i+1)+" "+esc(e.name||e.username||"Viewer")+"</span><b>"+Number(e.score||0)+"</b></li>").join("")}
+    async function renderScores(){scoresEl.innerHTML="<li><span>Lade Scores...</span><b>...</b></li>";try{const r=await fetch(ENDPOINT+"?select=username,score,seconds_survived,level,kills,created_at&order=score.desc,seconds_survived.desc,created_at.asc&limit=100",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});if(!r.ok)throw new Error(await r.text());const data=await r.json(),best=new Map();data.forEach(e=>{const u=String(e.username||"").trim();if(!u)return;const old=best.get(u.toLowerCase());if(!old||Number(e.score||0)>Number(old.score||0))best.set(u.toLowerCase(),{...e,name:u})});rows(Array.from(best.values()).sort((a,b)=>Number(b.score||0)-Number(a.score||0)).slice(0,8))}catch(e){console.error(e);rows(local().sort((a,b)=>Number(b.score||0)-Number(a.score||0)).slice(0,8))}}
+    async function saveScore(){if(saved||score<=0)return;const name=(prompt("Dein Twitch-Name fuer das Survivor-Scoreboard:")||"").trim().slice(0,32);if(!name)return;const build=Object.entries(p.up).filter(([,v])=>v>0).map(([k,v])=>k+":"+v).join(",");try{const r=await fetch(ENDPOINT,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({username:name,score,seconds_survived:Math.floor(seconds),level:p.level,kills,build})});if(!r.ok)throw new Error(await r.text())}catch(e){console.error(e);const s=local();s.push({name,score,seconds_survived:Math.floor(seconds),level:p.level,kills,build,createdAt:new Date().toISOString()});localStorage.setItem("braincell_survivor_scores",JSON.stringify(s.slice(-100)))}saved=true;await renderScores();saveBtn.style.display="none"}
+    document.addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(e.key.toLowerCase()))e.preventDefault()});document.addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false});
+    startBtn.onclick=start;saveBtn.onclick=saveScore;restartBtn.onclick=start;saveBtn.style.display="none";restartBtn.style.display="none";reset();renderScores();loop();
+    </script></body></html>
+    """.replace("__SUPABASE_URL__", SUPABASE_URL)
+       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
 
     st.markdown("## Glücksräder")
     wheel_entries = get_punishment_wheel_entries()
