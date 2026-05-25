@@ -8299,6 +8299,10 @@ elif menu.endswith("Minispiele"):
         or mp3_data_uri(assets_dir / "chicken_snake_theme.mp3")
         or chicken_theme_data_uri
     )
+    chicken_racer_theme_data_uri = (
+        mp3_data_uri(assets_dir / "chicken-racer-theme.mp3")
+        or mp3_data_uri(assets_dir / "chicken_racer_theme.mp3")
+    )
 
     if selected_minigame == "dnd":
         render_dnd_page()
@@ -10264,6 +10268,7 @@ elif menu.endswith("Minispiele"):
     </head>
     <body>
     <div class="race-shell">
+        <audio id="raceMusicFile" src="__RACER_THEME_SRC__" loop preload="auto"></audio>
         <div class="race-layout">
             <div class="race-stage">
                 <canvas id="raceCanvas" width="1000" height="620"></canvas>
@@ -10277,6 +10282,8 @@ elif menu.endswith("Minispiele"):
                             <button id="raceStart">Rennen starten</button>
                             <button id="raceSave" class="secondary">Score speichern</button>
                             <button id="raceRestart" class="secondary">Neu starten</button>
+                            <button id="raceSound" class="secondary">Sound: An</button>
+                            <button id="raceMusic" class="secondary">Musik: An</button>
                         </div>
                     </div>
                 </div>
@@ -10303,10 +10310,13 @@ elif menu.endswith("Minispiele"):
     const startBtn = document.getElementById("raceStart");
     const saveBtn = document.getElementById("raceSave");
     const restartBtn = document.getElementById("raceRestart");
+    const soundBtn = document.getElementById("raceSound");
+    const musicBtn = document.getElementById("raceMusic");
     const roundEl = document.getElementById("raceRound");
     const scoreEl = document.getElementById("raceScore");
     const pickEl = document.getElementById("racePick");
     const scoresEl = document.getElementById("raceScores");
+    const musicFile = document.getElementById("raceMusicFile");
     const SUPABASE_URL = "__SUPABASE_URL__";
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const SCOREBOARD_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_racer_scores";
@@ -10326,8 +10336,103 @@ elif menu.endswith("Minispiele"):
     let winnerIndex = null;
     let savedScore = false;
     let frame = 0;
+    let audioCtx = null;
+    let soundEnabled = true;
+    let musicEnabled = true;
+    let lastCluckFrame = 0;
     const startX = 68;
     const finishX = 910;
+
+    function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+    }
+
+    function tone(freq, duration, type, volume, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const start = ac.currentTime + delay;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain).connect(ac.destination);
+        osc.start(start);
+        osc.stop(start + duration + 0.04);
+    }
+
+    function noise(duration, volume, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const bufferSize = Math.max(1, Math.floor(ac.sampleRate * duration));
+        const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const source = ac.createBufferSource();
+        const filter = ac.createBiquadFilter();
+        const gain = ac.createGain();
+        const start = ac.currentTime + delay;
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(1500 + Math.random() * 900, start);
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        source.buffer = buffer;
+        source.connect(filter).connect(gain).connect(ac.destination);
+        source.start(start);
+        source.stop(start + duration + 0.03);
+    }
+
+    function clickSound() {
+        tone(620, 0.045, "triangle", 0.045);
+    }
+
+    function startSound() {
+        tone(440, 0.09, "triangle", 0.055);
+        tone(660, 0.10, "triangle", 0.05, 0.08);
+        tone(880, 0.12, "triangle", 0.05, 0.17);
+        noise(0.08, 0.018, 0.05);
+    }
+
+    function winSound() {
+        tone(523.25, 0.09, "triangle", 0.06);
+        tone(659.25, 0.10, "triangle", 0.055, 0.08);
+        tone(783.99, 0.14, "triangle", 0.055, 0.17);
+        cluckSound(0.25);
+    }
+
+    function loseSound() {
+        tone(220, 0.13, "sawtooth", 0.055);
+        tone(146.83, 0.18, "triangle", 0.045, 0.09);
+    }
+
+    function boostSound() {
+        tone(760 + Math.random() * 140, 0.04, "square", 0.025);
+        noise(0.05, 0.012);
+    }
+
+    function cluckSound(delay = 0) {
+        tone(360 + Math.random() * 80, 0.045, "square", 0.035, delay);
+        tone(240 + Math.random() * 50, 0.075, "sawtooth", 0.028, delay + 0.045);
+        noise(0.07, 0.016, delay + 0.015);
+    }
+
+    function startMusic() {
+        if (!soundEnabled || !musicEnabled || !musicFile || !musicFile.getAttribute("src")) return;
+        ensureAudio();
+        musicFile.volume = 0.28;
+        musicFile.play().catch(() => {});
+    }
+
+    function stopMusic() {
+        if (!musicFile) return;
+        musicFile.pause();
+        musicFile.currentTime = 0;
+    }
 
     function makeHens() {
         const count = Math.min(round + 1, COLORS.length);
@@ -10370,6 +10475,7 @@ elif menu.endswith("Minispiele"):
         document.querySelectorAll("[data-hen]").forEach(button => {
             button.addEventListener("click", () => {
                 if (state !== "betting") return;
+                clickSound();
                 selectedHen = Number(button.dataset.hen || 0);
                 updateHud();
                 renderBetButtons();
@@ -10395,10 +10501,13 @@ elif menu.endswith("Minispiele"):
 
     function startRace() {
         if (state !== "betting") return;
+        startSound();
+        startMusic();
         state = "racing";
         overlay.style.display = "none";
         winnerIndex = null;
         frame = 0;
+        lastCluckFrame = 0;
         hens.forEach(hen => {
             hen.x = startX;
             hen.speed = hen.base + Math.random() * 0.12;
@@ -10409,11 +10518,13 @@ elif menu.endswith("Minispiele"):
 
     function finishRace(winner) {
         state = "result";
+        stopMusic();
         winnerIndex = winner.index;
         overlay.style.display = "flex";
         const picked = hens[selectedHen];
         const won = picked && winner.index === picked.index;
         if (won) {
+            winSound();
             score += 1;
             round += 1;
             savedScore = false;
@@ -10429,6 +10540,7 @@ elif menu.endswith("Minispiele"):
                 showBetting("Nächste Wette");
             };
         } else {
+            loseSound();
             kickerEl.textContent = "Game Over";
             titleEl.textContent = winner.name + " gewinnt";
             textEl.textContent = "Deine Wette war " + (picked ? picked.name : "-") + ". Endscore: " + score + ".";
@@ -10442,7 +10554,9 @@ elif menu.endswith("Minispiele"):
         updateHud();
     }
 
-    function resetGame() {
+    function resetGame(silent = false) {
+        if (silent !== true) clickSound();
+        stopMusic();
         round = 1;
         score = 0;
         selectedHen = 0;
@@ -10580,9 +10694,11 @@ elif menu.endswith("Minispiele"):
             if (Math.random() < 0.0075 * hen.chaos) {
                 hen.pause = 22 + Math.random() * 58;
                 hen.speed *= 0.35;
+                if (Math.random() < 0.24) cluckSound();
             }
             if (Math.random() < 0.014 * hen.chaos) {
                 hen.burst = 8 + Math.random() * 22;
+                if (Math.random() < 0.14) boostSound();
             }
             const burstBoost = hen.burst > 0 ? 0.24 + Math.random() * 0.58 : 0;
             hen.burst = Math.max(0, hen.burst - 1);
@@ -10592,6 +10708,10 @@ elif menu.endswith("Minispiele"):
             hen.x += hen.speed;
             if (hen.x > leader.x) leader = hen;
         });
+        if (frame - lastCluckFrame > 180 && Math.random() < 0.006) {
+            cluckSound();
+            lastCluckFrame = frame;
+        }
         if (leader.x >= finishX - 38) {
             finishRace(leader);
         }
@@ -10700,14 +10820,29 @@ elif menu.endswith("Minispiele"):
     startBtn.addEventListener("click", startRace);
     saveBtn.addEventListener("click", saveScore);
     restartBtn.addEventListener("click", resetGame);
+    soundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) stopMusic();
+        soundBtn.textContent = soundEnabled ? "Sound: An" : "Sound: Aus";
+        if (musicBtn) musicBtn.textContent = musicEnabled ? "Musik: An" : "Musik: Aus";
+        clickSound();
+    });
+    musicBtn.addEventListener("click", () => {
+        musicEnabled = !musicEnabled;
+        musicBtn.textContent = musicEnabled ? "Musik: An" : "Musik: Aus";
+        if (!musicEnabled) stopMusic();
+        else if (state === "racing") startMusic();
+        clickSound();
+    });
 
-    resetGame();
+    resetGame(true);
     renderScores();
     draw();
     </script>
     </body>
     </html>
-    """.replace("__SUPABASE_URL__", SUPABASE_URL)
+    """.replace("__RACER_THEME_SRC__", chicken_racer_theme_data_uri)
+       .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=790, scrolling=True)
 
     st.markdown("## Glücksräder")
