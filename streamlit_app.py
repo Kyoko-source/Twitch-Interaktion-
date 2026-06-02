@@ -8260,17 +8260,22 @@ elif menu.endswith("Minispiele"):
             <span>Wette auf farbige Bot-Hühner und überlebe immer vollere Rennrunden.</span>
         </div>
         <div class="arcade-card">
+            <strong>Chicken Football</strong>
+            <span>Blau gegen Gruen: 10 Chaos-Huehner, ein Ball und Gehirnzellen-Wetten.</span>
+        </div>
+        <div class="arcade-card">
             <strong>Braincell Survivor</strong>
             <span>Ueberlebe Wellen, sammle XP, stacke Builds und jage Boss-Scores.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Braincell Survivor", "Dungeons and Dragons"]
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Chicken Football", "Braincell Survivor", "Dungeons and Dragons"]
     minigame_keys = {
         "Chicken Jump": "jump",
         "Chicken Snake": "snake",
         "Chicken Racer": "race",
+        "Chicken Football": "football",
         "Braincell Survivor": "survivor",
         "Dungeons and Dragons": "dnd",
     }
@@ -10073,6 +10078,603 @@ elif menu.endswith("Minispiele"):
     """.replace("__CHICKEN_THEME_SRC__", chicken_snake_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=780, scrolling=True)
+
+    elif selected_minigame == "football":
+        st.markdown("## Chicken Football")
+        football_username = get_logged_in_username()
+        football_user = get_user(football_username) if football_username else None
+        football_braincells = int(football_user.get("braincells") or 0) if football_user else 0
+        components.html("""
+    <html>
+    <head>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 800px;
+            color: #fff;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            overflow: auto;
+            background:
+                radial-gradient(circle at 12% 12%, rgba(0, 212, 255, .15), transparent 25%),
+                radial-gradient(circle at 88% 16%, rgba(124, 255, 178, .14), transparent 25%),
+                linear-gradient(180deg, #061015 0%, #10151f 58%, #070911 100%);
+        }
+        .football-shell { width: min(100%, 1120px); margin: 0 auto; padding: 16px; }
+        .football-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: stretch; }
+        .football-stage {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: #061915;
+            box-shadow: 0 28px 80px rgba(0,0,0,.42);
+        }
+        canvas { display: block; width: 100%; aspect-ratio: 16 / 10; background: #0d3f28; }
+        .football-side { display: grid; gap: 12px; align-content: start; }
+        .football-card, .bet-panel {
+            border: 1px solid rgba(255,255,255,.13);
+            border-radius: 14px;
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04)), rgba(10, 14, 22, .94);
+            box-shadow: 0 18px 48px rgba(0,0,0,.28);
+        }
+        .football-card span, .bet-panel label {
+            display: block;
+            color: #aeb6d9;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .football-card strong { display: block; margin-top: 4px; font-size: 28px; line-height: 1.05; }
+        .football-card small { display: block; margin-top: 6px; color: #d6d1e8; font-weight: 750; line-height: 1.35; }
+        .score-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+        .team-score { border-radius: 10px; padding: 10px; text-align: center; font-weight: 950; }
+        .team-score.blue { background: rgba(0, 132, 255, .18); color: #8ed8ff; }
+        .team-score.green { background: rgba(44, 255, 153, .16); color: #9cffc7; }
+        .versus { color: #ffe66d; font-weight: 950; }
+        .bet-panel { display: grid; gap: 10px; }
+        .team-pick, .stake-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 11px;
+            color: #061015;
+            cursor: pointer;
+            font-weight: 950;
+            background: linear-gradient(135deg, #ffe66d, #7cffb2);
+            box-shadow: 0 12px 28px rgba(124,255,178,.14);
+        }
+        button.secondary { color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); box-shadow: none; }
+        button.blue.active { background: linear-gradient(135deg, #00d4ff, #7f8cff); color: #061015; }
+        button.green.active { background: linear-gradient(135deg, #7cffb2, #b8ff4d); color: #061015; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        input {
+            min-width: 0;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 10px;
+            padding: 10px;
+            color: #fff;
+            background: rgba(255,255,255,.07);
+            font-weight: 900;
+        }
+        .log {
+            min-height: 78px;
+            color: #d6d1e8;
+            font-weight: 750;
+            line-height: 1.35;
+        }
+        .notice {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            z-index: 2;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 14px;
+            padding: 12px 14px;
+            background: rgba(8, 12, 20, .84);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            font-weight: 900;
+            box-shadow: 0 18px 46px rgba(0,0,0,.32);
+        }
+        .notice.hide { display: none; }
+        @media (max-width: 840px) {
+            body { min-height: 980px; }
+            .football-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+    </head>
+    <body>
+    <div class="football-shell">
+        <div class="football-layout">
+            <div class="football-stage">
+                <canvas id="footballCanvas" width="1000" height="620"></canvas>
+                <div id="notice" class="notice hide"></div>
+            </div>
+            <aside class="football-side">
+                <div class="football-card">
+                    <span>Match</span>
+                    <div class="score-row">
+                        <div class="team-score blue">Blau <strong id="blueScore">0</strong></div>
+                        <div class="versus">:</div>
+                        <div class="team-score green">Gruen <strong id="greenScore">0</strong></div>
+                    </div>
+                    <small>Erstes Team mit 5 Toren gewinnt. Danach startet automatisch ein neues Match.</small>
+                </div>
+                <div class="football-card">
+                    <span>Wettfenster</span>
+                    <strong id="betTimer">02:00</strong>
+                    <small id="betHint">Nur in den ersten 2 Minuten des Matches offen.</small>
+                </div>
+                <div class="bet-panel">
+                    <label>Wette</label>
+                    <div class="team-pick">
+                        <button id="pickBlue" class="secondary blue">Blau</button>
+                        <button id="pickGreen" class="secondary green">Gruen</button>
+                    </div>
+                    <div class="stake-row">
+                        <input id="stakeInput" type="number" min="1" step="1" value="10">
+                        <button id="placeBet">Setzen</button>
+                    </div>
+                    <div class="log" id="betLog"></div>
+                </div>
+                <div class="football-card">
+                    <span>Konto</span>
+                    <strong id="walletValue">0</strong>
+                    <small id="walletHint">Gehirnzellen</small>
+                </div>
+                <div class="football-card">
+                    <span>Spielstatus</span>
+                    <strong id="statusValue">Laeuft</strong>
+                    <small>Die Huehner bewegen sich komplett random und treffen den Ball nur, wenn sie reinlaufen.</small>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script>
+    const canvas = document.getElementById("footballCanvas");
+    const ctx = canvas.getContext("2d");
+    const blueScoreEl = document.getElementById("blueScore");
+    const greenScoreEl = document.getElementById("greenScore");
+    const betTimerEl = document.getElementById("betTimer");
+    const betHintEl = document.getElementById("betHint");
+    const pickBlueBtn = document.getElementById("pickBlue");
+    const pickGreenBtn = document.getElementById("pickGreen");
+    const placeBetBtn = document.getElementById("placeBet");
+    const stakeInput = document.getElementById("stakeInput");
+    const betLog = document.getElementById("betLog");
+    const walletValue = document.getElementById("walletValue");
+    const walletHint = document.getElementById("walletHint");
+    const statusValue = document.getElementById("statusValue");
+    const notice = document.getElementById("notice");
+    const SUPABASE_URL = "__SUPABASE_URL__";
+    const SUPABASE_KEY = "__SUPABASE_KEY__";
+    const USERNAME = __FOOTBALL_USERNAME__;
+    const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
+    const BET_SECONDS = 120;
+    const WIN_SCORE = 5;
+    const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 226, goalBottom: 394};
+    let wallet = __FOOTBALL_BRAINCELLS__;
+    let selectedTeam = "blue";
+    let bet = null;
+    let chickens = [];
+    let ball = {};
+    let score = {blue: 0, green: 0};
+    let matchNumber = Number(localStorage.getItem("chicken_football_match") || "1");
+    let matchStart = Date.now();
+    let pauseFrames = 0;
+    let frame = 0;
+
+    function teamLabel(team) {
+        return team === "blue" ? "Blau" : "Gruen";
+    }
+
+    function showNotice(text, ms = 4200) {
+        notice.textContent = text;
+        notice.classList.remove("hide");
+        clearTimeout(showNotice.timer);
+        showNotice.timer = setTimeout(() => notice.classList.add("hide"), ms);
+    }
+
+    function apiHeaders(extra = {}) {
+        return {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json",
+            ...extra
+        };
+    }
+
+    async function fetchWallet() {
+        if (!USERNAME) return wallet;
+        try {
+            const response = await fetch(USERS_ENDPOINT + "?select=chickens,braincells&username=eq." + encodeURIComponent(USERNAME) + "&limit=1", {
+                headers: apiHeaders()
+            });
+            if (!response.ok) throw new Error(await response.text());
+            const rows = await response.json();
+            if (rows.length) wallet = Number(rows[0].braincells || 0);
+        } catch (error) {
+            console.error(error);
+            walletHint.textContent = "Gehirnzellen, Live-Abgleich fehlgeschlagen";
+        }
+        walletValue.textContent = wallet;
+        return wallet;
+    }
+
+    async function setWallet(nextValue) {
+        wallet = Math.max(0, Math.floor(nextValue));
+        walletValue.textContent = wallet;
+        if (!USERNAME) return false;
+        try {
+            const response = await fetch(USERS_ENDPOINT + "?username=eq." + encodeURIComponent(USERNAME), {
+                method: "PATCH",
+                headers: apiHeaders({"Prefer": "return=minimal"}),
+                body: JSON.stringify({braincells: wallet})
+            });
+            if (!response.ok) throw new Error(await response.text());
+            return true;
+        } catch (error) {
+            console.error(error);
+            walletHint.textContent = "Gehirnzellen, Speichern fehlgeschlagen";
+            return false;
+        }
+    }
+
+    function resetBall(lastScorer = null) {
+        ball = {
+            x: 500,
+            y: 310,
+            vx: lastScorer === "blue" ? -2.4 : lastScorer === "green" ? 2.4 : (Math.random() - .5) * 2,
+            vy: (Math.random() - .5) * 2,
+            r: 16
+        };
+    }
+
+    function makeChicken(team, index) {
+        const side = team === "blue" ? 0 : 1;
+        return {
+            team,
+            index,
+            x: side ? 620 + Math.random() * 220 : 160 + Math.random() * 220,
+            y: field.top + 60 + Math.random() * (field.bottom - field.top - 120),
+            vx: 0,
+            vy: 0,
+            targetAngle: Math.random() * Math.PI * 2,
+            turnIn: 15 + Math.random() * 90,
+            radius: 20,
+            speed: .9 + Math.random() * 1.55,
+            color: team === "blue" ? "#00d4ff" : "#7cffb2"
+        };
+    }
+
+    function resetChickens() {
+        chickens = [];
+        for (let i = 0; i < 5; i++) {
+            chickens.push(makeChicken("blue", i));
+            chickens.push(makeChicken("green", i));
+        }
+    }
+
+    function newMatch() {
+        score = {blue: 0, green: 0};
+        matchStart = Date.now();
+        bet = null;
+        pauseFrames = 0;
+        resetChickens();
+        resetBall();
+        localStorage.setItem("chicken_football_match", String(matchNumber));
+        showNotice("Neues Chicken-Football-Match #" + matchNumber + " laeuft. Wetten sind 2 Minuten offen.", 5200);
+        updateHud();
+    }
+
+    function secondsLeft() {
+        return Math.max(0, BET_SECONDS - Math.floor((Date.now() - matchStart) / 1000));
+    }
+
+    function updateHud() {
+        blueScoreEl.textContent = score.blue;
+        greenScoreEl.textContent = score.green;
+        walletValue.textContent = wallet;
+        const left = secondsLeft();
+        const mm = String(Math.floor(left / 60)).padStart(2, "0");
+        const ss = String(left % 60).padStart(2, "0");
+        betTimerEl.textContent = mm + ":" + ss;
+        const bettingOpen = left > 0 && !bet;
+        placeBetBtn.disabled = !USERNAME || !bettingOpen;
+        stakeInput.disabled = !USERNAME || !bettingOpen;
+        pickBlueBtn.disabled = !USERNAME || !bettingOpen;
+        pickGreenBtn.disabled = !USERNAME || !bettingOpen;
+        betHintEl.textContent = bet
+            ? "Wette aktiv: " + bet.amount + " auf " + teamLabel(bet.team) + "."
+            : left > 0
+                ? "Wetten offen fuer eingeloggte Viewer."
+                : "Wettfenster geschlossen.";
+        pickBlueBtn.classList.toggle("active", selectedTeam === "blue");
+        pickGreenBtn.classList.toggle("active", selectedTeam === "green");
+        if (!USERNAME) {
+            betLog.textContent = "Bitte in der App einloggen, dann kannst du mit Gehirnzellen wetten.";
+        } else if (!bet && !betLog.textContent) {
+            betLog.textContent = "Eingeloggt als " + USERNAME + ". Einsatz waehlen und Team setzen.";
+        }
+    }
+
+    async function placeBet() {
+        const left = secondsLeft();
+        if (!USERNAME || left <= 0 || bet) return;
+        const amount = Math.max(1, Math.floor(Number(stakeInput.value || 0)));
+        await fetchWallet();
+        if (amount > wallet) {
+            betLog.textContent = "Nicht genug Gehirnzellen fuer diese Wette.";
+            return;
+        }
+        const saved = await setWallet(wallet - amount);
+        bet = {team: selectedTeam, amount, match: matchNumber, saved};
+        betLog.textContent = amount + " Gehirnzellen auf " + teamLabel(selectedTeam) + " gesetzt. Jetzt heisst es warten.";
+        showNotice("Wette gesetzt: " + amount + " auf " + teamLabel(selectedTeam) + ".", 3600);
+        updateHud();
+    }
+
+    async function settleBet(winnerTeam) {
+        if (!bet || bet.match !== matchNumber) return;
+        const won = bet.team === winnerTeam;
+        await fetchWallet();
+        if (won) {
+            const payout = bet.amount * 2;
+            const saved = await setWallet(wallet + payout);
+            const suffix = saved ? "" : " Speichern fehlgeschlagen.";
+            betLog.textContent = "Gewonnen! " + teamLabel(winnerTeam) + " siegt. +" + payout + " Gehirnzellen." + suffix;
+            showNotice("Gewonnen! " + teamLabel(winnerTeam) + " gewinnt: +" + payout + " Gehirnzellen.", 7200);
+        } else {
+            betLog.textContent = "Verloren. " + teamLabel(winnerTeam) + " gewinnt, dein Einsatz ist weg.";
+            showNotice("Verloren. " + teamLabel(winnerTeam) + " gewinnt, -" + bet.amount + " Gehirnzellen.", 7200);
+        }
+        bet = null;
+    }
+
+    function goal(team) {
+        score[team] += 1;
+        pauseFrames = 90;
+        showNotice("Tor fuer " + teamLabel(team) + "! " + score.blue + " : " + score.green, 2400);
+        if (score[team] >= WIN_SCORE) {
+            statusValue.textContent = teamLabel(team) + " gewinnt";
+            settleBet(team);
+            matchNumber += 1;
+            setTimeout(() => {
+                statusValue.textContent = "Laeuft";
+                newMatch();
+            }, 4800);
+        } else {
+            setTimeout(() => {
+                resetChickens();
+                resetBall(team);
+            }, 1400);
+        }
+    }
+
+    function drawField() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const grass = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grass.addColorStop(0, "#146b3a");
+        grass.addColorStop(1, "#0f512f");
+        ctx.fillStyle = grass;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let x = field.left; x < field.right; x += 92) {
+            ctx.fillStyle = Math.floor((x - field.left) / 92) % 2 ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.045)";
+            ctx.fillRect(x, field.top, 92, field.bottom - field.top);
+        }
+        ctx.strokeStyle = "rgba(255,255,255,.72)";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(field.left, field.top, field.right - field.left, field.bottom - field.top);
+        ctx.beginPath();
+        ctx.moveTo(500, field.top);
+        ctx.lineTo(500, field.bottom);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(500, 310, 82, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,.72)";
+        ctx.beginPath();
+        ctx.arc(500, 310, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(0, 212, 255, .24)";
+        ctx.fillRect(18, field.goalTop, 36, field.goalBottom - field.goalTop);
+        ctx.fillStyle = "rgba(124, 255, 178, .24)";
+        ctx.fillRect(946, field.goalTop, 36, field.goalBottom - field.goalTop);
+        ctx.strokeStyle = "#ffe66d";
+        ctx.lineWidth = 5;
+        ctx.strokeRect(18, field.goalTop, 36, field.goalBottom - field.goalTop);
+        ctx.strokeRect(946, field.goalTop, 36, field.goalBottom - field.goalTop);
+    }
+
+    function drawChicken(chicken) {
+        const bob = Math.sin(frame / 8 + chicken.index) * 2;
+        ctx.save();
+        ctx.translate(chicken.x, chicken.y + bob);
+        ctx.rotate(Math.atan2(chicken.vy, chicken.vx || .1) * .12);
+        ctx.fillStyle = "rgba(0,0,0,.24)";
+        ctx.beginPath();
+        ctx.ellipse(4, 18, 24, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        roundedRect(-18, -18, 38, 32, 12, chicken.color);
+        roundedRect(6, -28, 26, 22, 11, "#ffd43b");
+        ctx.fillStyle = "#ff922b";
+        ctx.beginPath();
+        ctx.moveTo(30, -20);
+        ctx.lineTo(45, -13);
+        ctx.lineTo(30, -7);
+        ctx.fill();
+        ctx.fillStyle = "#101010";
+        ctx.beginPath();
+        ctx.arc(22, -20, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = chicken.team === "blue" ? "#008cff" : "#29d96f";
+        ctx.font = "900 12px Inter, Arial";
+        ctx.fillText(String(chicken.index + 1), -4, 2);
+        ctx.restore();
+    }
+
+    function roundedRect(x, y, w, h, r, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.fill();
+    }
+
+    function drawBall() {
+        ctx.fillStyle = "rgba(0,0,0,.28)";
+        ctx.beginPath();
+        ctx.ellipse(ball.x + 4, ball.y + 12, 19, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const grad = ctx.createRadialGradient(ball.x - 6, ball.y - 6, 2, ball.x, ball.y, ball.r + 8);
+        grad.addColorStop(0, "#fff");
+        grad.addColorStop(.72, "#e7e9f3");
+        grad.addColorStop(1, "#aeb6d9");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#151925";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function updateChicken(chicken) {
+        chicken.turnIn -= 1;
+        if (chicken.turnIn <= 0) {
+            chicken.targetAngle = Math.random() * Math.PI * 2;
+            if (Math.random() < .20) {
+                chicken.targetAngle = Math.atan2(ball.y - chicken.y, ball.x - chicken.x) + (Math.random() - .5) * 1.4;
+            }
+            chicken.turnIn = 18 + Math.random() * 105;
+            chicken.speed = .55 + Math.random() * 1.9;
+        }
+        chicken.vx += Math.cos(chicken.targetAngle) * .075;
+        chicken.vy += Math.sin(chicken.targetAngle) * .075;
+        const maxSpeed = chicken.speed;
+        const current = Math.hypot(chicken.vx, chicken.vy) || 1;
+        if (current > maxSpeed) {
+            chicken.vx = chicken.vx / current * maxSpeed;
+            chicken.vy = chicken.vy / current * maxSpeed;
+        }
+        chicken.x += chicken.vx;
+        chicken.y += chicken.vy;
+        if (chicken.x < field.left + 18 || chicken.x > field.right - 18) {
+            chicken.vx *= -1;
+            chicken.targetAngle = Math.PI - chicken.targetAngle;
+        }
+        if (chicken.y < field.top + 18 || chicken.y > field.bottom - 18) {
+            chicken.vy *= -1;
+            chicken.targetAngle *= -1;
+        }
+        chicken.x = Math.max(field.left + 18, Math.min(field.right - 18, chicken.x));
+        chicken.y = Math.max(field.top + 18, Math.min(field.bottom - 18, chicken.y));
+        const dx = ball.x - chicken.x;
+        const dy = ball.y - chicken.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const minDist = chicken.radius + ball.r;
+        if (dist < minDist) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const kick = 2.4 + Math.hypot(chicken.vx, chicken.vy) * 1.8 + Math.random() * 1.6;
+            ball.vx += nx * kick + chicken.vx * .45;
+            ball.vy += ny * kick + chicken.vy * .45;
+            ball.x = chicken.x + nx * minDist;
+            ball.y = chicken.y + ny * minDist;
+        }
+    }
+
+    function updateBall() {
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.vx *= .992;
+        ball.vy *= .992;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > 9) {
+            ball.vx = ball.vx / speed * 9;
+            ball.vy = ball.vy / speed * 9;
+        }
+        if (ball.y < field.top + ball.r) {
+            ball.y = field.top + ball.r;
+            ball.vy = Math.abs(ball.vy) * .82;
+        }
+        if (ball.y > field.bottom - ball.r) {
+            ball.y = field.bottom - ball.r;
+            ball.vy = -Math.abs(ball.vy) * .82;
+        }
+        const inGoalY = ball.y > field.goalTop && ball.y < field.goalBottom;
+        if (ball.x < field.left + ball.r) {
+            if (inGoalY) goal("green");
+            else {
+                ball.x = field.left + ball.r;
+                ball.vx = Math.abs(ball.vx) * .84;
+            }
+        }
+        if (ball.x > field.right - ball.r) {
+            if (inGoalY) goal("blue");
+            else {
+                ball.x = field.right - ball.r;
+                ball.vx = -Math.abs(ball.vx) * .84;
+            }
+        }
+        if (Math.hypot(ball.vx, ball.vy) < .08 && Math.random() < .006) {
+            ball.vx += (Math.random() - .5) * 1.6;
+            ball.vy += (Math.random() - .5) * 1.6;
+        }
+    }
+
+    function drawHudOnCanvas() {
+        ctx.fillStyle = "rgba(6,10,18,.62)";
+        roundedRect(374, 16, 252, 44, 12, "rgba(6,10,18,.62)");
+        ctx.fillStyle = "#8ed8ff";
+        ctx.font = "950 24px Inter, Arial";
+        ctx.fillText("Blau " + score.blue, 398, 45);
+        ctx.fillStyle = "#ffe66d";
+        ctx.fillText(":", 497, 45);
+        ctx.fillStyle = "#9cffc7";
+        ctx.fillText(score.green + " Gruen", 524, 45);
+    }
+
+    function loop() {
+        frame += 1;
+        drawField();
+        if (pauseFrames > 0) {
+            pauseFrames -= 1;
+        } else {
+            chickens.forEach(updateChicken);
+            updateBall();
+        }
+        chickens.slice().sort((a, b) => a.y - b.y).forEach(drawChicken);
+        drawBall();
+        drawHudOnCanvas();
+        updateHud();
+        requestAnimationFrame(loop);
+    }
+
+    pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); });
+    pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); });
+    placeBetBtn.addEventListener("click", placeBet);
+
+    fetchWallet().then(() => {
+        newMatch();
+        loop();
+    });
+    </script>
+    </body>
+    </html>
+    """.replace("__FOOTBALL_USERNAME__", json.dumps(football_username))
+       .replace("__FOOTBALL_BRAINCELLS__", str(football_braincells))
+       .replace("__SUPABASE_URL__", SUPABASE_URL)
+       .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
 
     elif selected_minigame == "race":
         st.markdown("## Chicken Racer")
