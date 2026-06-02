@@ -10188,9 +10188,64 @@ elif menu.endswith("Minispiele"):
             box-shadow: 0 18px 46px rgba(0,0,0,.32);
         }
         .notice.hide { display: none; }
+        .bet-strip {
+            position: absolute;
+            top: 74px;
+            bottom: 18px;
+            z-index: 3;
+            display: grid;
+            align-content: start;
+            gap: 7px;
+            width: 178px;
+            pointer-events: none;
+        }
+        .bet-strip.left { left: 12px; }
+        .bet-strip.right { right: 12px; }
+        .bet-chip {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 7px;
+            min-height: 36px;
+            padding: 5px 7px;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 10px;
+            background: rgba(6, 10, 18, .68);
+            box-shadow: 0 10px 28px rgba(0,0,0,.24);
+            backdrop-filter: blur(6px);
+            font-weight: 950;
+        }
+        .bet-chip img, .bet-avatar-fallback {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,.25);
+        }
+        .bet-avatar-fallback {
+            display: grid;
+            place-items: center;
+            color: #061015;
+            background: linear-gradient(135deg, #ffe66d, #7cffb2);
+            font-size: 12px;
+        }
+        .bet-chip-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+        .bet-chip.blue .bet-chip-name { color: #8ed8ff; }
+        .bet-chip.green .bet-chip-name { color: #9cffc7; }
+        .bet-chip-amount { color: #ffe66d; font-size: 12px; }
         @media (max-width: 840px) {
             body { min-height: 980px; }
             .football-layout { grid-template-columns: 1fr; }
+            .bet-strip { width: 136px; top: 66px; }
+            .bet-chip { grid-template-columns: 24px minmax(0, 1fr); }
+            .bet-chip img, .bet-avatar-fallback { width: 24px; height: 24px; }
+            .bet-chip-amount { grid-column: 2; margin-top: -5px; }
         }
     </style>
     </head>
@@ -10201,6 +10256,8 @@ elif menu.endswith("Minispiele"):
             <div class="football-stage">
                 <canvas id="footballCanvas" width="1000" height="620"></canvas>
                 <div id="notice" class="notice hide"></div>
+                <div id="blueBets" class="bet-strip left"></div>
+                <div id="greenBets" class="bet-strip right"></div>
             </div>
             <aside class="football-side">
                 <div class="football-card">
@@ -10275,12 +10332,16 @@ elif menu.endswith("Minispiele"):
     const musicBtn = document.getElementById("footballMusic");
     const audioHint = document.getElementById("audioHint");
     const notice = document.getElementById("notice");
+    const blueBetsEl = document.getElementById("blueBets");
+    const greenBetsEl = document.getElementById("greenBets");
     const musicFile = document.getElementById("footballMusicFile");
     const SUPABASE_URL = "__SUPABASE_URL__";
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const USERNAME = __FOOTBALL_USERNAME__;
+    const AVATAR_URL = __FOOTBALL_AVATAR_URL__;
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
     const FOOTBALL_STATE_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_state";
+    const FOOTBALL_BETS_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_bets";
     const FOOTBALL_STATE_ID = "global";
     const FOOTBALL_PERSONAL_KEY = "chicken_football_personal_v2";
     const FOOTBALL_CLIENT_KEY = "chicken_football_client_id_v1";
@@ -10302,7 +10363,9 @@ elif menu.endswith("Minispiele"):
     let countdownUntil = 0;
     let lastSharedUpdatedAt = 0;
     let lastSharedSync = 0;
+    let lastBetsRefresh = 0;
     let syncingShared = false;
+    let syncingBets = false;
     let isController = false;
     let controllerId = localStorage.getItem(FOOTBALL_CLIENT_KEY);
     if (!controllerId) {
@@ -10405,6 +10468,60 @@ elif menu.endswith("Minispiele"):
             "Content-Type": "application/json",
             ...extra
         };
+    }
+
+    function renderBetList(target, rows, team) {
+        target.innerHTML = "";
+        rows.filter(row => row.team === team).slice(0, 9).forEach(row => {
+            const chip = document.createElement("div");
+            chip.className = "bet-chip " + team;
+            const avatar = String(row.avatar_url || "").trim();
+            if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+                const img = document.createElement("img");
+                img.src = avatar;
+                img.alt = "";
+                chip.appendChild(img);
+            } else {
+                const fallback = document.createElement("div");
+                fallback.className = "bet-avatar-fallback";
+                fallback.textContent = String(row.username || "?").slice(0, 1).toUpperCase();
+                chip.appendChild(fallback);
+            }
+            const name = document.createElement("div");
+            name.className = "bet-chip-name";
+            name.textContent = row.username || "Viewer";
+            chip.appendChild(name);
+            const amount = document.createElement("div");
+            amount.className = "bet-chip-amount";
+            amount.textContent = Number(row.amount || 0) + " GZ";
+            chip.appendChild(amount);
+            target.appendChild(chip);
+        });
+    }
+
+    async function refreshBets(force = false) {
+        const now = Date.now();
+        if (syncingBets || (!force && now - lastBetsRefresh < 2200)) return;
+        syncingBets = true;
+        lastBetsRefresh = now;
+        try {
+            const response = await fetch(FOOTBALL_BETS_ENDPOINT + "?select=username,team,amount,avatar_url,match_number&match_number=eq." + encodeURIComponent(matchNumber) + "&order=amount.desc", {
+                headers: apiHeaders()
+            });
+            if (!response.ok) throw new Error(await response.text());
+            const rows = await response.json();
+            renderBetList(blueBetsEl, rows, "blue");
+            renderBetList(greenBetsEl, rows, "green");
+            const own = USERNAME ? rows.find(row => row.username === USERNAME && Number(row.match_number) === matchNumber) : null;
+            if (own && !settledMatches[String(matchNumber)] && (!bet || bet.match !== matchNumber)) {
+                bet = {team: own.team === "green" ? "green" : "blue", amount: Number(own.amount || 0), match: matchNumber, saved: true};
+                savePersonalState();
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            syncingBets = false;
+        }
     }
 
     async function fetchWallet() {
@@ -10731,9 +10848,35 @@ elif menu.endswith("Minispiele"):
         }
         const saved = await setWallet(wallet - amount);
         bet = {team: selectedTeam, amount, match: matchNumber, saved};
+        let betListSaved = false;
+        try {
+            const response = await fetch(FOOTBALL_BETS_ENDPOINT + "?on_conflict=match_number,username", {
+                method: "POST",
+                headers: apiHeaders({"Prefer": "resolution=merge-duplicates,return=minimal"}),
+                body: JSON.stringify({
+                    match_number: matchNumber,
+                    username: USERNAME,
+                    team: selectedTeam,
+                    amount,
+                    avatar_url: AVATAR_URL || "",
+                    created_at: new Date().toISOString()
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
+            betListSaved = true;
+        } catch (error) {
+            console.error(error);
+            await setWallet(wallet + amount);
+            bet = null;
+            betLog.textContent = "Wette konnte nicht gespeichert werden. Bitte pruefe die Supabase-Tabelle chicken_football_bets.";
+            updateHud();
+            return;
+        }
+        if (!betListSaved) return;
         betLog.textContent = amount + " Gehirnzellen auf " + teamLabel(selectedTeam) + " gesetzt. Jetzt heisst es warten.";
         showNotice("Wette gesetzt: " + amount + " auf " + teamLabel(selectedTeam) + ".", 3600);
         saveFootballState();
+        refreshBets(true);
         updateHud();
     }
 
@@ -11009,6 +11152,7 @@ elif menu.endswith("Minispiele"):
         drawHudOnCanvas();
         updateHud();
         if (frame % 120 === 0) syncSharedState();
+        if (frame % 90 === 0) refreshBets();
         requestAnimationFrame(loop);
     }
 
@@ -11067,6 +11211,7 @@ elif menu.endswith("Minispiele"):
 
     fetchWallet().then(async () => {
         if (!(await loadFootballState())) newMatch();
+        refreshBets(true);
         loop();
     });
     </script>
@@ -11074,6 +11219,7 @@ elif menu.endswith("Minispiele"):
     </html>
     """.replace("__FOOTBALL_USERNAME__", json.dumps(football_username))
        .replace("__FOOTBALL_BRAINCELLS__", str(football_braincells))
+       .replace("__FOOTBALL_AVATAR_URL__", json.dumps(football_user.get("avatar_url") or "" if football_user else ""))
        .replace("__FOOTBALL_THEME_SRC__", chicken_football_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
