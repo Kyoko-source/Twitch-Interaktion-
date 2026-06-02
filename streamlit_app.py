@@ -10274,8 +10274,11 @@ elif menu.endswith("Minispiele"):
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const USERNAME = __FOOTBALL_USERNAME__;
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
-    const FOOTBALL_STATE_KEY = "chicken_football_state_v1";
+    const FOOTBALL_STATE_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_state";
+    const FOOTBALL_STATE_ID = "global";
+    const FOOTBALL_PERSONAL_KEY = "chicken_football_personal_v2";
     const BET_SECONDS = 30;
+    const RESTART_SECONDS = 60;
     const WIN_SCORE = 3;
     const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
@@ -10287,6 +10290,12 @@ elif menu.endswith("Minispiele"):
     let score = {blue: 0, green: 0};
     let matchNumber = Number(localStorage.getItem("chicken_football_match") || "1");
     let matchStart = Date.now();
+    let matchPhase = "play";
+    let countdownUntil = 0;
+    let lastSharedUpdatedAt = 0;
+    let lastSharedSync = 0;
+    let syncingShared = false;
+    let settledMatches = JSON.parse(localStorage.getItem("chicken_football_settled_v1") || "{}");
     let pauseFrames = 0;
     let frame = 0;
     let goalInProgress = false;
@@ -10420,6 +10429,35 @@ elif menu.endswith("Minispiele"):
         }
     }
 
+    function personalState() {
+        return {
+            selectedTeam,
+            bet,
+            settledMatches
+        };
+    }
+
+    function savePersonalState() {
+        try {
+            localStorage.setItem(FOOTBALL_PERSONAL_KEY, JSON.stringify(personalState()));
+            localStorage.setItem("chicken_football_settled_v1", JSON.stringify(settledMatches));
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function loadPersonalState() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(FOOTBALL_PERSONAL_KEY) || "null");
+            if (!saved) return;
+            selectedTeam = saved.selectedTeam === "green" ? "green" : "blue";
+            bet = saved.bet && saved.bet.match === matchNumber ? saved.bet : null;
+            settledMatches = saved.settledMatches || settledMatches || {};
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     function resetBall(lastScorer = null) {
         ball = {
             x: 500,
@@ -10455,47 +10493,120 @@ elif menu.endswith("Minispiele"):
         }
     }
 
+    function packSharedState() {
+        return {
+            v: 2,
+            matchNumber,
+            matchStart,
+            matchPhase,
+            countdownUntil,
+            score,
+            ball: {
+                x: Number(ball.x || 0),
+                y: Number(ball.y || 0),
+                vx: Number(ball.vx || 0),
+                vy: Number(ball.vy || 0),
+                r: Number(ball.r || 16)
+            },
+            chickens: chickens.map(c => [
+                c.team === "green" ? 1 : 0,
+                c.index,
+                +c.x.toFixed(2),
+                +c.y.toFixed(2),
+                +c.vx.toFixed(3),
+                +c.vy.toFixed(3),
+                +c.targetAngle.toFixed(4),
+                +c.turnIn.toFixed(1),
+                +c.speed.toFixed(3)
+            ]),
+            pauseFrames,
+            goalInProgress,
+            updatedAt: Date.now()
+        };
+    }
+
+    function applySharedState(saved) {
+        if (!saved || saved.v !== 2 || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
+        matchNumber = Number(saved.matchNumber || 1);
+        matchStart = Number(saved.matchStart || Date.now());
+        matchPhase = saved.matchPhase === "countdown" ? "countdown" : "play";
+        countdownUntil = Number(saved.countdownUntil || 0);
+        score = {
+            blue: Number(saved.score.blue || 0),
+            green: Number(saved.score.green || 0)
+        };
+        ball = {
+            x: Number(saved.ball.x || 500),
+            y: Number(saved.ball.y || 310),
+            vx: Number(saved.ball.vx || 0),
+            vy: Number(saved.ball.vy || 0),
+            r: Number(saved.ball.r || 16)
+        };
+        chickens = saved.chickens.map(row => ({
+            team: row[0] ? "green" : "blue",
+            index: Number(row[1] || 0),
+            x: Number(row[2] || 500),
+            y: Number(row[3] || 310),
+            vx: Number(row[4] || 0),
+            vy: Number(row[5] || 0),
+            targetAngle: Number(row[6] || 0),
+            turnIn: Number(row[7] || 60),
+            radius: 20,
+            speed: Number(row[8] || .45),
+            color: row[0] ? "#7cffb2" : "#00d4ff"
+        }));
+        pauseFrames = Number(saved.pauseFrames || 0);
+        goalInProgress = !!saved.goalInProgress;
+        lastSharedUpdatedAt = Number(saved.updatedAt || Date.now());
+        localStorage.setItem("chicken_football_match", String(matchNumber));
+        loadPersonalState();
+        maybeSettleWinner();
+        updateHud();
+        return chickens.length === 10 && Number.isFinite(ball.x) && Number.isFinite(ball.y);
+    }
+
     function saveFootballState() {
+        savePersonalState();
+        saveSharedState();
+    }
+
+    async function saveSharedState(force = false) {
+        const now = Date.now();
+        if (syncingShared || (!force && now - lastSharedSync < 650)) return;
+        syncingShared = true;
+        lastSharedSync = now;
+        const state = packSharedState();
+        lastSharedUpdatedAt = state.updatedAt;
         try {
-            localStorage.setItem(FOOTBALL_STATE_KEY, JSON.stringify({
-                matchNumber,
-                matchStart,
-                score,
-                selectedTeam,
-                bet,
-                ball,
-                chickens
-            }));
+            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?on_conflict=id", {
+                method: "POST",
+                headers: apiHeaders({"Prefer": "resolution=merge-duplicates,return=minimal"}),
+                body: JSON.stringify({
+                    id: FOOTBALL_STATE_ID,
+                    state,
+                    updated_at: new Date().toISOString()
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
         } catch (error) {
             console.error(error);
+            betHintEl.textContent = "Sync kurz nicht erreichbar, lokales Spiel laeuft weiter.";
+        } finally {
+            syncingShared = false;
         }
     }
 
-    function loadFootballState() {
+    async function loadFootballState() {
         try {
-            const saved = JSON.parse(localStorage.getItem(FOOTBALL_STATE_KEY) || "null");
-            if (!saved || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
-            matchNumber = Number(saved.matchNumber || matchNumber);
-            matchStart = Number(saved.matchStart || Date.now());
-            score = {
-                blue: Number(saved.score.blue || 0),
-                green: Number(saved.score.green || 0)
-            };
-            if (score.blue >= WIN_SCORE || score.green >= WIN_SCORE) {
-                matchNumber += 1;
-                newMatch();
-                return true;
-            }
-            selectedTeam = saved.selectedTeam === "green" ? "green" : "blue";
-            bet = saved.bet && saved.bet.match === matchNumber ? saved.bet : null;
-            ball = saved.ball;
-            chickens = saved.chickens;
-            pauseFrames = 0;
-            goalInProgress = false;
-            if (!chickens.length || !Number.isFinite(ball.x) || !Number.isFinite(ball.y)) return false;
+            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?select=state,updated_at&id=eq." + encodeURIComponent(FOOTBALL_STATE_ID) + "&limit=1", {
+                headers: apiHeaders()
+            });
+            if (!response.ok) throw new Error(await response.text());
+            const rows = await response.json();
+            const saved = rows.length && rows[0].state ? rows[0].state : null;
+            if (!applySharedState(saved)) return false;
             showNotice("Chicken-Football-Match #" + matchNumber + " fortgesetzt.", 3600);
             startMusic();
-            updateHud();
             return true;
         } catch (error) {
             console.error(error);
@@ -10506,6 +10617,8 @@ elif menu.endswith("Minispiele"):
     function newMatch() {
         score = {blue: 0, green: 0};
         matchStart = Date.now();
+        matchPhase = "play";
+        countdownUntil = 0;
         bet = null;
         pauseFrames = 0;
         goalInProgress = false;
@@ -10516,10 +10629,16 @@ elif menu.endswith("Minispiele"):
         startMusic();
         updateHud();
         saveFootballState();
+        saveSharedState(true);
     }
 
     function secondsLeft() {
+        if (matchPhase !== "play") return 0;
         return Math.max(0, BET_SECONDS - Math.floor((Date.now() - matchStart) / 1000));
+    }
+
+    function restartSecondsLeft() {
+        return Math.max(0, Math.ceil((countdownUntil - Date.now()) / 1000));
     }
 
     function updateHud() {
@@ -10530,23 +10649,29 @@ elif menu.endswith("Minispiele"):
         const mm = String(Math.floor(left / 60)).padStart(2, "0");
         const ss = String(left % 60).padStart(2, "0");
         betTimerEl.textContent = mm + ":" + ss;
-        const bettingOpen = left > 0 && !bet;
+        const bettingOpen = matchPhase === "play" && left > 0 && !bet;
         placeBetBtn.disabled = !USERNAME || !bettingOpen;
         stakeInput.disabled = !USERNAME || !bettingOpen;
         pickBlueBtn.disabled = !USERNAME || !bettingOpen;
         pickGreenBtn.disabled = !USERNAME || !bettingOpen;
-        betHintEl.textContent = bet
+        betHintEl.textContent = matchPhase === "countdown"
+            ? "Naechstes Match startet in " + restartSecondsLeft() + " Sekunden."
+            : bet
             ? "Wette aktiv: " + bet.amount + " auf " + teamLabel(bet.team) + "."
             : left > 0
                 ? "Wetten offen fuer eingeloggte Viewer."
                 : "Wettfenster geschlossen.";
         pickBlueBtn.classList.toggle("active", selectedTeam === "blue");
         pickGreenBtn.classList.toggle("active", selectedTeam === "green");
+        statusValue.textContent = matchPhase === "countdown"
+            ? "Neustart in " + restartSecondsLeft() + "s"
+            : "Laeuft";
         if (!USERNAME) {
             betLog.textContent = "Bitte in der App einloggen, dann kannst du mit Gehirnzellen wetten.";
         } else if (!bet && !betLog.textContent) {
             betLog.textContent = "Eingeloggt als " + USERNAME + ". Einsatz waehlen und Team setzen.";
         }
+        maybeSettleWinner();
     }
 
     async function placeBet() {
@@ -10568,6 +10693,9 @@ elif menu.endswith("Minispiele"):
 
     async function settleBet(winnerTeam) {
         if (!bet || bet.match !== matchNumber) return;
+        if (settledMatches[String(matchNumber)]) return;
+        settledMatches[String(matchNumber)] = winnerTeam;
+        savePersonalState();
         const won = bet.team === winnerTeam;
         await fetchWallet();
         if (won) {
@@ -10584,22 +10712,32 @@ elif menu.endswith("Minispiele"):
         saveFootballState();
     }
 
+    function winningTeam() {
+        if (score.blue >= WIN_SCORE) return "blue";
+        if (score.green >= WIN_SCORE) return "green";
+        return null;
+    }
+
+    function maybeSettleWinner() {
+        const winner = winningTeam();
+        if (winner && matchPhase === "countdown" && bet && bet.match === matchNumber) settleBet(winner);
+    }
+
     function goal(team) {
         if (goalInProgress) return;
         goalInProgress = true;
         score[team] += GOAL_POINTS;
         pauseFrames = 90;
         showNotice("Tor fuer " + teamLabel(team) + "! " + score.blue + " : " + score.green, 2400);
-        saveFootballState();
         if (score[team] >= WIN_SCORE) {
+            matchPhase = "countdown";
+            countdownUntil = Date.now() + RESTART_SECONDS * 1000;
             statusValue.textContent = teamLabel(team) + " gewinnt";
             settleBet(team);
-            matchNumber += 1;
-            setTimeout(() => {
-                statusValue.textContent = "Laeuft";
-                newMatch();
-            }, 4800);
+            saveSharedState(true);
+            savePersonalState();
         } else {
+            saveFootballState();
             setTimeout(() => {
                 resetChickens();
                 resetBall(team);
@@ -10804,7 +10942,12 @@ elif menu.endswith("Minispiele"):
     function loop() {
         frame += 1;
         drawField();
-        if (pauseFrames > 0) {
+        if (matchPhase === "countdown") {
+            if (Date.now() >= countdownUntil) {
+                matchNumber += 1;
+                newMatch();
+            }
+        } else if (pauseFrames > 0) {
             pauseFrames -= 1;
         } else {
             chickens.forEach(updateChicken);
@@ -10818,12 +10961,36 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
-        if (frame % 60 === 0) saveFootballState();
+        if (frame % 60 === 0) syncSharedState();
         requestAnimationFrame(loop);
     }
 
-    pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); saveFootballState(); });
-    pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); saveFootballState(); });
+    async function syncSharedState() {
+        if (syncingShared) return;
+        syncingShared = true;
+        try {
+            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?select=state,updated_at&id=eq." + encodeURIComponent(FOOTBALL_STATE_ID) + "&limit=1", {
+                headers: apiHeaders()
+            });
+            if (!response.ok) throw new Error(await response.text());
+            const rows = await response.json();
+            const remote = rows.length && rows[0].state ? rows[0].state : null;
+            if (remote && Number(remote.updatedAt || 0) > lastSharedUpdatedAt + 220) {
+                applySharedState(remote);
+            } else {
+                syncingShared = false;
+                saveSharedState();
+                return;
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            syncingShared = false;
+        }
+    }
+
+    pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); savePersonalState(); });
+    pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); savePersonalState(); });
     placeBetBtn.addEventListener("click", placeBet);
     soundBtn.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
@@ -10843,8 +11010,8 @@ elif menu.endswith("Minispiele"):
         musicBtn.textContent = "Musik: Fehlt";
     }
 
-    fetchWallet().then(() => {
-        if (!loadFootballState()) newMatch();
+    fetchWallet().then(async () => {
+        if (!(await loadFootballState())) newMatch();
         loop();
     });
     </script>
