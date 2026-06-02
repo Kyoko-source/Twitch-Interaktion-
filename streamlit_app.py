@@ -10217,6 +10217,11 @@ elif menu.endswith("Minispiele"):
                     <strong id="betTimer">00:30</strong>
                     <small id="betHint">Nur in den ersten 30 Sekunden des Matches offen.</small>
                 </div>
+                <div class="football-card">
+                    <span>Laufzeit</span>
+                    <strong id="matchRuntime">00:00</strong>
+                    <small>Reset erst nach dem Sieg bei 3 Toren und dem Neustart.</small>
+                </div>
                 <div class="bet-panel">
                     <label>Wette</label>
                     <div class="team-pick">
@@ -10256,6 +10261,7 @@ elif menu.endswith("Minispiele"):
     const blueScoreEl = document.getElementById("blueScore");
     const greenScoreEl = document.getElementById("greenScore");
     const betTimerEl = document.getElementById("betTimer");
+    const matchRuntimeEl = document.getElementById("matchRuntime");
     const betHintEl = document.getElementById("betHint");
     const pickBlueBtn = document.getElementById("pickBlue");
     const pickGreenBtn = document.getElementById("pickGreen");
@@ -10641,10 +10647,22 @@ elif menu.endswith("Minispiele"):
         return Math.max(0, Math.ceil((countdownUntil - Date.now()) / 1000));
     }
 
+    function formatClock(totalSeconds) {
+        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+        const hours = Math.floor(safeSeconds / 3600);
+        const minutes = Math.floor((safeSeconds % 3600) / 60);
+        const seconds = safeSeconds % 60;
+        if (hours > 0) {
+            return String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+        }
+        return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+    }
+
     function updateHud() {
         blueScoreEl.textContent = score.blue;
         greenScoreEl.textContent = score.green;
         walletValue.textContent = wallet;
+        matchRuntimeEl.textContent = formatClock((Date.now() - matchStart) / 1000);
         const left = secondsLeft();
         const mm = String(Math.floor(left / 60)).padStart(2, "0");
         const ss = String(left % 60).padStart(2, "0");
