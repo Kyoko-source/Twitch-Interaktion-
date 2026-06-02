@@ -10117,6 +10117,11 @@ elif menu.endswith("Minispiele"):
             box-shadow: 0 28px 80px rgba(0,0,0,.42);
         }
         .football-main { display: grid; gap: 12px; align-content: start; }
+        .football-bottom-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
         canvas { display: block; width: 100%; aspect-ratio: 16 / 10; background: #0d3f28; }
         .football-side { display: grid; gap: 12px; align-content: start; }
         .football-card, .bet-panel {
@@ -10238,6 +10243,7 @@ elif menu.endswith("Minispiele"):
         @media (max-width: 840px) {
             body { min-height: 980px; }
             .football-layout { grid-template-columns: 1fr; }
+            .football-bottom-grid { grid-template-columns: 1fr; }
             .player-row { min-width: 156px; grid-template-columns: 24px minmax(82px, 1fr) auto; }
         }
     </style>
@@ -10255,6 +10261,26 @@ elif menu.endswith("Minispiele"):
                     <span>Aktive Spieler</span>
                     <div id="playerList" class="player-list"></div>
                     <small>Lokale Matches, gemeinsame Anzeige.</small>
+                </div>
+                <div class="football-bottom-grid">
+                    <div class="football-card">
+                        <span>Konto</span>
+                        <strong id="walletValue">0</strong>
+                        <small id="walletHint">Gehirnzellen</small>
+                    </div>
+                    <div class="football-card">
+                        <span>Spielstatus</span>
+                        <strong id="statusValue">Laeuft</strong>
+                        <small>Die Huehner bewegen sich komplett random und treffen den Ball nur, wenn sie reinlaufen.</small>
+                    </div>
+                    <div class="football-card">
+                        <span>Audio</span>
+                        <div class="team-pick">
+                            <button id="footballSound" class="secondary">Sound: An</button>
+                            <button id="footballMusic" class="secondary">Musik: An</button>
+                        </div>
+                        <small id="audioHint">Musik nutzt assets/chicken-football-theme.mp3.</small>
+                    </div>
                 </div>
             </div>
             <aside class="football-side">
@@ -10288,24 +10314,6 @@ elif menu.endswith("Minispiele"):
                         <button id="placeBet">Setzen</button>
                     </div>
                     <div class="log" id="betLog"></div>
-                </div>
-                <div class="football-card">
-                    <span>Konto</span>
-                    <strong id="walletValue">0</strong>
-                    <small id="walletHint">Gehirnzellen</small>
-                </div>
-                <div class="football-card">
-                    <span>Spielstatus</span>
-                    <strong id="statusValue">Laeuft</strong>
-                    <small>Die Huehner bewegen sich komplett random und treffen den Ball nur, wenn sie reinlaufen.</small>
-                </div>
-                <div class="football-card">
-                    <span>Audio</span>
-                    <div class="team-pick">
-                        <button id="footballSound" class="secondary">Sound: An</button>
-                        <button id="footballMusic" class="secondary">Musik: An</button>
-                    </div>
-                    <small id="audioHint">Musik nutzt assets/chicken-football-theme.mp3.</small>
                 </div>
             </aside>
         </div>
