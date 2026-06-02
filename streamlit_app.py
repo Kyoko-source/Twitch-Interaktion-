@@ -11098,14 +11098,14 @@ elif menu.endswith("Minispiele"):
         }
         const inGoalY = ball.y > field.goalTop && ball.y < field.goalBottom;
         if (ball.x < field.left + ball.r) {
-            if (inGoalY) goal("green");
+            if (inGoalY && isController) goal("green");
             else {
                 ball.x = field.left + ball.r;
                 ball.vx = Math.abs(ball.vx) * .84;
             }
         }
         if (ball.x > field.right - ball.r) {
-            if (inGoalY) goal("blue");
+            if (inGoalY && isController) goal("blue");
             else {
                 ball.x = field.right - ball.r;
                 ball.vx = -Math.abs(ball.vx) * .84;
@@ -11151,7 +11151,7 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
-        if (frame % 120 === 0) syncSharedState();
+        if (frame % 60 === 0) syncSharedState();
         if (frame % 90 === 0) refreshBets();
         requestAnimationFrame(loop);
     }
