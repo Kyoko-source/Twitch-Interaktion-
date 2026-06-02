@@ -10116,6 +10116,7 @@ elif menu.endswith("Minispiele"):
             background: #061915;
             box-shadow: 0 28px 80px rgba(0,0,0,.42);
         }
+        .football-main { display: grid; gap: 12px; align-content: start; }
         canvas { display: block; width: 100%; aspect-ratio: 16 / 10; background: #0d3f28; }
         .football-side { display: grid; gap: 12px; align-content: start; }
         .football-card, .bet-panel {
@@ -10192,16 +10193,30 @@ elif menu.endswith("Minispiele"):
             border-color: rgba(124,255,178,.32);
             background: linear-gradient(135deg, rgba(124,255,178,.20), rgba(6,16,21,.94));
         }
-        .player-list { display: grid; gap: 7px; margin-top: 8px; }
+        .players-card.arena {
+            min-height: 94px;
+            padding: 12px;
+            border-radius: 0 0 8px 8px;
+            background: linear-gradient(180deg, rgba(18,111,61,.94), rgba(3,31,25,.96));
+            box-shadow: none;
+        }
+        .player-list {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
         .player-row {
             display: grid;
-            grid-template-columns: 26px minmax(0, 1fr) auto;
+            grid-template-columns: 26px minmax(96px, 1fr) auto;
             align-items: center;
             gap: 7px;
             padding: 6px;
             border-radius: 9px;
             background: rgba(6,10,18,.42);
             font-weight: 950;
+            min-width: 170px;
         }
         .player-row img, .player-avatar-fallback {
             width: 26px;
@@ -10223,6 +10238,7 @@ elif menu.endswith("Minispiele"):
         @media (max-width: 840px) {
             body { min-height: 980px; }
             .football-layout { grid-template-columns: 1fr; }
+            .player-row { min-width: 156px; grid-template-columns: 24px minmax(82px, 1fr) auto; }
         }
     </style>
     </head>
@@ -10230,9 +10246,16 @@ elif menu.endswith("Minispiele"):
     <div class="football-shell">
         <audio id="footballMusicFile" src="__FOOTBALL_THEME_SRC__" loop preload="auto"></audio>
         <div class="football-layout">
-            <div class="football-stage">
-                <canvas id="footballCanvas" width="1000" height="620"></canvas>
-                <div id="notice" class="notice hide"></div>
+            <div class="football-main">
+                <div class="football-stage">
+                    <canvas id="footballCanvas" width="1000" height="620"></canvas>
+                    <div id="notice" class="notice hide"></div>
+                </div>
+                <div class="football-card players-card arena">
+                    <span>Aktive Spieler</span>
+                    <div id="playerList" class="player-list"></div>
+                    <small>Lokale Matches, gemeinsame Anzeige.</small>
+                </div>
             </div>
             <aside class="football-side">
                 <div class="football-card">
@@ -10270,11 +10293,6 @@ elif menu.endswith("Minispiele"):
                     <span>Konto</span>
                     <strong id="walletValue">0</strong>
                     <small id="walletHint">Gehirnzellen</small>
-                </div>
-                <div class="football-card players-card">
-                    <span>Aktive Spieler</span>
-                    <div id="playerList" class="player-list"></div>
-                    <small>Lokale Matches, gemeinsame Anzeige.</small>
                 </div>
                 <div class="football-card">
                     <span>Spielstatus</span>
