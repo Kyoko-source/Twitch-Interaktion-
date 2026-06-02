@@ -10283,8 +10283,10 @@ elif menu.endswith("Minispiele"):
     const FOOTBALL_STATE_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_state";
     const FOOTBALL_STATE_ID = "global";
     const FOOTBALL_PERSONAL_KEY = "chicken_football_personal_v2";
+    const FOOTBALL_CLIENT_KEY = "chicken_football_client_id_v1";
     const BET_SECONDS = 30;
     const RESTART_SECONDS = 60;
+    const CONTROLLER_LEASE_MS = 5200;
     const WIN_SCORE = 3;
     const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
@@ -10301,6 +10303,12 @@ elif menu.endswith("Minispiele"):
     let lastSharedUpdatedAt = 0;
     let lastSharedSync = 0;
     let syncingShared = false;
+    let isController = false;
+    let controllerId = localStorage.getItem(FOOTBALL_CLIENT_KEY);
+    if (!controllerId) {
+        controllerId = "fb-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem(FOOTBALL_CLIENT_KEY, controllerId);
+    }
     let settledMatches = JSON.parse(localStorage.getItem("chicken_football_settled_v1") || "{}");
     let pauseFrames = 0;
     let frame = 0;
@@ -10527,6 +10535,8 @@ elif menu.endswith("Minispiele"):
             ]),
             pauseFrames,
             goalInProgress,
+            controllerId,
+            leaseUntil: Date.now() + CONTROLLER_LEASE_MS,
             updatedAt: Date.now()
         };
     }
@@ -10563,6 +10573,7 @@ elif menu.endswith("Minispiele"):
         }));
         pauseFrames = Number(saved.pauseFrames || 0);
         goalInProgress = !!saved.goalInProgress;
+        isController = saved.controllerId === controllerId;
         lastSharedUpdatedAt = Number(saved.updatedAt || Date.now());
         localStorage.setItem("chicken_football_match", String(matchNumber));
         loadPersonalState();
@@ -10578,6 +10589,7 @@ elif menu.endswith("Minispiele"):
 
     async function saveSharedState(force = false) {
         const now = Date.now();
+        if (!isController && !force) return;
         if (syncingShared || (!force && now - lastSharedSync < 650)) return;
         syncingShared = true;
         lastSharedSync = now;
@@ -10621,6 +10633,7 @@ elif menu.endswith("Minispiele"):
     }
 
     function newMatch() {
+        isController = true;
         score = {blue: 0, green: 0};
         matchStart = Date.now();
         matchPhase = "play";
@@ -10742,6 +10755,7 @@ elif menu.endswith("Minispiele"):
     }
 
     function goal(team) {
+        if (!isController) return;
         if (goalInProgress) return;
         goalInProgress = true;
         score[team] += GOAL_POINTS;
@@ -10961,7 +10975,7 @@ elif menu.endswith("Minispiele"):
         frame += 1;
         drawField();
         if (matchPhase === "countdown") {
-            if (Date.now() >= countdownUntil) {
+            if (isController && Date.now() >= countdownUntil) {
                 matchNumber += 1;
                 newMatch();
             }
@@ -10979,7 +10993,7 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
-        if (frame % 60 === 0) syncSharedState();
+        if (frame % 120 === 0) syncSharedState();
         requestAnimationFrame(loop);
     }
 
@@ -10993,7 +11007,15 @@ elif menu.endswith("Minispiele"):
             if (!response.ok) throw new Error(await response.text());
             const rows = await response.json();
             const remote = rows.length && rows[0].state ? rows[0].state : null;
-            if (remote && Number(remote.updatedAt || 0) > lastSharedUpdatedAt + 220) {
+            const leaseExpired = !remote || !remote.leaseUntil || Date.now() > Number(remote.leaseUntil);
+            if (leaseExpired) {
+                isController = true;
+                syncingShared = false;
+                saveSharedState(true);
+                return;
+            }
+            isController = remote.controllerId === controllerId;
+            if (!isController && remote && Number(remote.updatedAt || 0) > lastSharedUpdatedAt + 220) {
                 applySharedState(remote);
             } else {
                 syncingShared = false;
