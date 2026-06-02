@@ -10543,36 +10543,51 @@ elif menu.endswith("Minispiele"):
 
     function applySharedState(saved) {
         if (!saved || saved.v !== 2 || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
+        const previousMatch = matchNumber;
+        const previousPhase = matchPhase;
+        const previousScore = {...score};
+        const savedMatch = Number(saved.matchNumber || 1);
+        const savedScore = {
+            blue: Number(saved.score.blue || 0),
+            green: Number(saved.score.green || 0)
+        };
+        const sameLiveMatch = previousMatch === savedMatch
+            && previousPhase === "play"
+            && saved.matchPhase !== "countdown"
+            && previousScore.blue === savedScore.blue
+            && previousScore.green === savedScore.green
+            && chickens.length === 10
+            && Number.isFinite(ball.x)
+            && Number.isFinite(ball.y);
         matchNumber = Number(saved.matchNumber || 1);
         matchStart = Number(saved.matchStart || Date.now());
         matchPhase = saved.matchPhase === "countdown" ? "countdown" : "play";
         countdownUntil = Number(saved.countdownUntil || 0);
-        score = {
-            blue: Number(saved.score.blue || 0),
-            green: Number(saved.score.green || 0)
-        };
-        ball = {
-            x: Number(saved.ball.x || 500),
-            y: Number(saved.ball.y || 310),
-            vx: Number(saved.ball.vx || 0),
-            vy: Number(saved.ball.vy || 0),
-            r: Number(saved.ball.r || 16)
-        };
-        chickens = saved.chickens.map(row => ({
-            team: row[0] ? "green" : "blue",
-            index: Number(row[1] || 0),
-            x: Number(row[2] || 500),
-            y: Number(row[3] || 310),
-            vx: Number(row[4] || 0),
-            vy: Number(row[5] || 0),
-            targetAngle: Number(row[6] || 0),
-            turnIn: Number(row[7] || 60),
-            radius: 20,
-            speed: Number(row[8] || .45),
-            color: row[0] ? "#7cffb2" : "#00d4ff"
-        }));
-        pauseFrames = Number(saved.pauseFrames || 0);
-        goalInProgress = !!saved.goalInProgress;
+        score = savedScore;
+        if (!sameLiveMatch) {
+            ball = {
+                x: Number(saved.ball.x || 500),
+                y: Number(saved.ball.y || 310),
+                vx: Number(saved.ball.vx || 0),
+                vy: Number(saved.ball.vy || 0),
+                r: Number(saved.ball.r || 16)
+            };
+            chickens = saved.chickens.map(row => ({
+                team: row[0] ? "green" : "blue",
+                index: Number(row[1] || 0),
+                x: Number(row[2] || 500),
+                y: Number(row[3] || 310),
+                vx: Number(row[4] || 0),
+                vy: Number(row[5] || 0),
+                targetAngle: Number(row[6] || 0),
+                turnIn: Number(row[7] || 60),
+                radius: 20,
+                speed: Number(row[8] || .45),
+                color: row[0] ? "#7cffb2" : "#00d4ff"
+            }));
+            pauseFrames = Number(saved.pauseFrames || 0);
+            goalInProgress = !!saved.goalInProgress;
+        }
         isController = saved.controllerId === controllerId;
         lastSharedUpdatedAt = Number(saved.updatedAt || Date.now());
         localStorage.setItem("chicken_football_match", String(matchNumber));
