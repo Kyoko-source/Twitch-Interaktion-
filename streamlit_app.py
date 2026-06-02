@@ -10210,7 +10210,7 @@ elif menu.endswith("Minispiele"):
                         <div class="versus">:</div>
                         <div class="team-score green">Gruen <strong id="greenScore">0</strong></div>
                     </div>
-                    <small>Erstes Team mit 5 Toren gewinnt. Danach startet automatisch ein neues Match.</small>
+                    <small>Erstes Team mit 3 Punkten gewinnt. Jedes Tor zaehlt 1 Punkt.</small>
                 </div>
                 <div class="football-card">
                     <span>Wettfenster</span>
@@ -10274,8 +10274,10 @@ elif menu.endswith("Minispiele"):
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const USERNAME = __FOOTBALL_USERNAME__;
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
+    const FOOTBALL_STATE_KEY = "chicken_football_state_v1";
     const BET_SECONDS = 30;
-    const WIN_SCORE = 5;
+    const WIN_SCORE = 3;
+    const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
     let wallet = __FOOTBALL_BRAINCELLS__;
     let selectedTeam = "blue";
@@ -10452,6 +10454,53 @@ elif menu.endswith("Minispiele"):
         }
     }
 
+    function saveFootballState() {
+        try {
+            localStorage.setItem(FOOTBALL_STATE_KEY, JSON.stringify({
+                matchNumber,
+                matchStart,
+                score,
+                selectedTeam,
+                bet,
+                ball,
+                chickens
+            }));
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function loadFootballState() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(FOOTBALL_STATE_KEY) || "null");
+            if (!saved || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
+            matchNumber = Number(saved.matchNumber || matchNumber);
+            matchStart = Number(saved.matchStart || Date.now());
+            score = {
+                blue: Number(saved.score.blue || 0),
+                green: Number(saved.score.green || 0)
+            };
+            if (score.blue >= WIN_SCORE || score.green >= WIN_SCORE) {
+                matchNumber += 1;
+                newMatch();
+                return true;
+            }
+            selectedTeam = saved.selectedTeam === "green" ? "green" : "blue";
+            bet = saved.bet && saved.bet.match === matchNumber ? saved.bet : null;
+            ball = saved.ball;
+            chickens = saved.chickens;
+            pauseFrames = 0;
+            if (!chickens.length || !Number.isFinite(ball.x) || !Number.isFinite(ball.y)) return false;
+            showNotice("Chicken-Football-Match #" + matchNumber + " fortgesetzt.", 3600);
+            startMusic();
+            updateHud();
+            return true;
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
     function newMatch() {
         score = {blue: 0, green: 0};
         matchStart = Date.now();
@@ -10463,6 +10512,7 @@ elif menu.endswith("Minispiele"):
         showNotice("Neues Chicken-Football-Match #" + matchNumber + " laeuft. Wetten sind 30 Sekunden offen.", 5200);
         startMusic();
         updateHud();
+        saveFootballState();
     }
 
     function secondsLeft() {
@@ -10509,6 +10559,7 @@ elif menu.endswith("Minispiele"):
         bet = {team: selectedTeam, amount, match: matchNumber, saved};
         betLog.textContent = amount + " Gehirnzellen auf " + teamLabel(selectedTeam) + " gesetzt. Jetzt heisst es warten.";
         showNotice("Wette gesetzt: " + amount + " auf " + teamLabel(selectedTeam) + ".", 3600);
+        saveFootballState();
         updateHud();
     }
 
@@ -10527,12 +10578,14 @@ elif menu.endswith("Minispiele"):
             showNotice("Verloren. " + teamLabel(winnerTeam) + " gewinnt, -" + bet.amount + " Gehirnzellen.", 7200);
         }
         bet = null;
+        saveFootballState();
     }
 
     function goal(team) {
-        score[team] += 1;
+        score[team] += GOAL_POINTS;
         pauseFrames = 90;
         showNotice("Tor fuer " + teamLabel(team) + "! " + score.blue + " : " + score.green, 2400);
+        saveFootballState();
         if (score[team] >= WIN_SCORE) {
             statusValue.textContent = teamLabel(team) + " gewinnt";
             settleBet(team);
@@ -10545,6 +10598,7 @@ elif menu.endswith("Minispiele"):
             setTimeout(() => {
                 resetChickens();
                 resetBall(team);
+                saveFootballState();
             }, 1400);
         }
     }
@@ -10758,11 +10812,12 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
+        if (frame % 60 === 0) saveFootballState();
         requestAnimationFrame(loop);
     }
 
-    pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); });
-    pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); });
+    pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); saveFootballState(); });
+    pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); saveFootballState(); });
     placeBetBtn.addEventListener("click", placeBet);
     soundBtn.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
@@ -10783,7 +10838,7 @@ elif menu.endswith("Minispiele"):
     }
 
     fetchWallet().then(() => {
-        newMatch();
+        if (!loadFootballState()) newMatch();
         loop();
     });
     </script>
@@ -11734,6 +11789,8 @@ elif menu.endswith("Minispiele"):
         this.physics.add.overlap(this.player,this.enemies,(pl,e)=>{if(state==="play"&&p.inv<=0)this.playerDamage(e,Phaser.Math.Angle.Between(e.x,e.y,pl.x,pl.y))});
         this.physics.add.overlap(this.bullets,this.enemies,(b,e)=>this.bulletHit(b,e));this.physics.add.overlap(this.player,this.gems,(pl,g)=>this.pickGem(g));this.physics.add.overlap(this.player,this.drops,(pl,d)=>this.pickDrop(d));
         this.mini=this.add.graphics().setScrollFactor(0).setDepth(80);
+        this.runHud=this.add.graphics().setScrollFactor(0).setDepth(92);
+        this.runHudText=this.add.text(18,16,"",{font:"900 15px Inter,Arial",color:"#ffffff",stroke:"#061015",strokeThickness:4}).setScrollFactor(0).setDepth(93);
         this.resetRun();state="menu";this.scene.pause();this.events.on("resume",()=>{if(state==="play")startMusic()});
       }
       makeTextures(){
@@ -11757,7 +11814,7 @@ elif menu.endswith("Minispiele"):
       resetRun(){if(this.enemies)this.enemies.getChildren().forEach(e=>this.destroyEnemyBar(e));const mhp=104+meta.hp*10;p={hp:mhp,max:mhp,xp:0,need:34,level:1,speed:245+meta.spd*9,inv:0,healLock:0,up:{bolt:1},tim:{bolt:0,bomb:0,laser:0,drone:0,thunder:0,nova:3.8}};score=0;kills=0;seconds=0;saved=false;lastBoss=0;currentBoss=null;pauseStartedAt=0;this.nextTextAt=0;state="play";this.player.setPosition(WORLD_W/2,WORLD_H/2);this.player.body.enable=true;this.enemies.clear(true,true);this.bullets.clear(true,true);this.gems.clear(true,true);this.drops.clear(true,true);this.timeStart=this.time.now;pauseBtn.textContent="Pause";hud()}
       lv(id){return p.up[id]||0}
       evolved(id){return this.lv(id)>=(evo[id]||999)}
-      update(t,dt){if(state!=="play")return;seconds=(t-this.timeStart)/1000;this.move(dt);this.wave(t);this.fire(dt);this.mobs(dt);this.separateEnemies();this.effects(t);this.drawMiniMap();if(t%1000<17){score+=Math.floor(2+seconds/40);p.healLock=Math.max(0,p.healLock-60);if(p.healLock<=0)p.hp=Math.min(p.max,p.hp+.04+Math.min(1.05,this.lv("regen")*.16));hud()}}
+      update(t,dt){if(state!=="play")return;seconds=(t-this.timeStart)/1000;this.move(dt);this.wave(t);this.fire(dt);this.mobs(dt);this.separateEnemies();this.effects(t);this.drawMiniMap();this.drawRunHud();if(t%1000<17){score+=Math.floor(2+seconds/40);p.healLock=Math.max(0,p.healLock-60);if(p.healLock<=0)p.hp=Math.min(p.max,p.hp+.04+Math.min(1.05,this.lv("regen")*.16));hud()}}
       move(dt){let x=0,y=0;if(this.cursors.left.isDown||this.keys.A.isDown||moveKeys.arrowleft||moveKeys.a)x--;if(this.cursors.right.isDown||this.keys.D.isDown||moveKeys.arrowright||moveKeys.d)x++;if(this.cursors.up.isDown||this.keys.W.isDown||moveKeys.arrowup||moveKeys.w)y--;if(this.cursors.down.isDown||this.keys.S.isDown||moveKeys.arrowdown||moveKeys.s)y++;const l=Math.hypot(x,y)||1;this.player.setVelocity(x/l*p.speed,y/l*p.speed);p.inv=Math.max(0,p.inv-dt/16.6);this.playerGlow.setPosition(this.player.x,this.player.y).setScale(1+Math.sin(this.time.now*.008)*.08);this.player.setAngle(this.player.angle+dt*.05)}
       wave(t){if(!this.nextWave||t>this.nextWave){this.nextWave=t+(seconds<30?880:seconds<70?700:Math.max(260,700-Math.floor(seconds)*2));const cap=150+Math.min(70,Math.floor(seconds/6)),active=this.enemies.countActive();if(active<cap){const n=Math.min(cap-active,seconds<25?1:seconds<55?2:Math.min(12,3+Math.floor((seconds-55)/20)));for(let i=0;i<n;i++)this.spawnEnemy()}}const bm=Math.floor(seconds/150);if(bm>0&&bm!==lastBoss){lastBoss=bm;sfx("boss");this.spawnEnemy("boss")}}
       spawnEnemy(kind){const r=Math.random();if(!kind)kind=seconds>150&&r<.07?"healer":seconds>120&&r<.14?"shield":seconds>95&&r<.22?"exploder":seconds>130&&r<.30?"spitter":seconds>90&&r<.42?"tank":seconds>65&&r<.52?"elite":seconds>38&&r<.68?"runner":"grunt";const cam=this.cameras.main.worldView,s=Phaser.Math.Between(0,3),x=s===0?cam.left-100:s===1?cam.right+100:Phaser.Math.Between(cam.left,cam.right),y=s===2?cam.top-100:s===3?cam.bottom+100:Phaser.Math.Between(cam.top,cam.bottom),m=seconds/60,stats={grunt:[40+m*16,92+m*4,15,7,12,0xf8f7ff],runner:[30+m*13,150+m*5,12,8,16,0xffe66d],tank:[135+m*40,68+m*3,23,18,36,0xff9f1c],spitter:[70+m*22,86+m*3,16,14,28,0x46f0ff],exploder:[74+m*24,116+m*4,17,16,40,0xff4d6d],shield:[155+m*34,74+m*3,20,22,46,0x9bf6ff],healer:[95+m*26,82+m*3,18,20,52,0x7cffb2],elite:[285+m*78,96+m*3,28,42,110,0xff54a0],boss:[1220+m*340,72,45,145,500,0xc77dff]}[kind];const e=this.enemies.create(Phaser.Math.Clamp(x,30,WORLD_W-30),Phaser.Math.Clamp(y,30,WORLD_H-30),"chicken").setDepth(15).setTint(stats[5]).setScale(stats[2]/16);Object.assign(e,{kind,hp:stats[0],max:stats[0],speed:stats[1],base:stats[1],r:stats[2],xp:stats[3],score:stats[4],slow:0,nextSpecial:this.time.now+1800});e.body.setCircle(Math.max(9,stats[2]*.72),18-stats[2]*.45,18-stats[2]*.35);e.hpBg=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x000000,.58).setDepth(24);e.hpBar=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x7cffb2,.95).setDepth(25);if(kind==="boss"){currentBoss=e;this.cameras.main.flash(180,199,125,255);this.ring(e.x,e.y,230,0xc77dff)}}
@@ -11794,13 +11851,14 @@ elif menu.endswith("Minispiele"):
       ring(x,y,r,c){const ring=this.add.circle(x,y,18).setStrokeStyle(4,c,.85).setDepth(28).setBlendMode(Phaser.BlendModes.ADD);this.tweens.add({targets:ring,radius:r,alpha:0,duration:380,onComplete:()=>ring.destroy()})}
       telegraph(x,y,r,c,delay,cb){const warn=this.add.circle(x,y,r).setStrokeStyle(3,c,.92).setFillStyle(c,.08).setDepth(26);this.tweens.add({targets:warn,alpha:.25,scale:1.08,yoyo:true,repeat:2,duration:delay/3,onComplete:()=>{warn.destroy();this.ring(x,y,r,c);cb&&cb()}})}
       damageText(x,y,v,crit){if(!crit&&this.time.now<(this.nextTextAt||0))return;this.nextTextAt=this.time.now+28;const t=this.add.text(x,y,(crit?"CRIT ":"")+v,{font:"900 16px Inter,Arial",color:crit?"#ffe66d":"#ffffff",stroke:"#061015",strokeThickness:4}).setDepth(90).setOrigin(.5);this.tweens.add({targets:t,y:y-32,alpha:0,scale:crit?1.35:1,duration:420,onComplete:()=>t.destroy()})}
+      drawRunHud(){if(!p||!this.runHud)return;const hpPct=Phaser.Math.Clamp(p.hp/p.max,0,1),xpPct=Phaser.Math.Clamp(p.xp/p.need,0,1);this.runHud.clear();this.runHud.fillStyle(0x05070a,.72).fillRoundedRect(14,12,318,78,10);this.runHud.lineStyle(1,0xffffff,.18).strokeRoundedRect(14,12,318,78,10);this.runHud.fillStyle(0x261018,.92).fillRoundedRect(24,47,210,12,6);this.runHud.fillStyle(hpPct>.35?0x7cffb2:0xff4d6d,.95).fillRoundedRect(24,47,210*hpPct,12,6);this.runHud.fillStyle(0x101a26,.92).fillRoundedRect(24,68,210,8,4);this.runHud.fillStyle(0x46f0ff,.92).fillRoundedRect(24,68,210*xpPct,8,4);this.runHudText.setText("HP "+Math.max(0,Math.ceil(p.hp))+"/"+Math.ceil(p.max)+"   Zeit "+time(seconds)+"   Score "+score+"   Lv "+p.level)}
       drawMiniMap(){this.mini.clear();const x=830,y=18,w=150,h=104;this.mini.fillStyle(0x000000,.36).fillRoundedRect(x,y,w,h,8);this.mini.lineStyle(1,0xffffff,.22).strokeRoundedRect(x,y,w,h,8);this.mini.fillStyle(0x7cffb2,1).fillCircle(x+this.player.x/WORLD_W*w,y+this.player.y/WORLD_H*h,3.5);this.enemies.getChildren().slice(0,80).forEach(e=>{this.mini.fillStyle(e.kind==="boss"?0xc77dff:e.kind==="elite"?0xff54a0:0xffe66d,.9).fillCircle(x+e.x/WORLD_W*w,y+e.y/WORLD_H*h,e.kind==="boss"?3:1.6)});this.gems.getChildren().slice(0,40).forEach(g=>this.mini.fillStyle(0x46f0ff,.7).fillCircle(x+g.x/WORLD_W*w,y+g.y/WORLD_H*h,1))}
       burst(x,y,c,n){for(let i=0;i<n;i++){const p=this.add.image(x,y,"spark").setTint(c).setDepth(29);this.tweens.add({targets:p,x:x+Phaser.Math.Between(-70,70),y:y+Phaser.Math.Between(-70,70),alpha:0,scale:Phaser.Math.FloatBetween(.6,1.8),duration:Phaser.Math.Between(260,620),onComplete:()=>p.destroy()})}}
       blood(x,y,big){for(let i=0;i<(big?34:16);i++){const p=this.add.image(x+Phaser.Math.Between(-8,8),y+Phaser.Math.Between(-8,8),"blood").setDepth(27).setScale(Phaser.Math.FloatBetween(.6,big?1.8:1.25));this.tweens.add({targets:p,x:p.x+Phaser.Math.Between(-90,90),y:p.y+Phaser.Math.Between(-90,90),alpha:0,duration:Phaser.Math.Between(300,780),onComplete:()=>p.destroy()})}}
     }
     function tRadians(v){return Phaser.Math.DegToRad(v)}
     function hud(){if(!p)return;timeEl.textContent=time(seconds);scoreEl.textContent=score;levelEl.textContent=p.level;hpEl.textContent=Math.max(0,Math.ceil(p.hp));xpbar.style.width=Math.min(100,p.xp/p.need*100)+"%";hpbar.style.width=Math.min(100,p.hp/p.max*100)+"%";buildEl.textContent=Object.entries(p.up).filter(([,v])=>v>0).map(([k,v])=>(names[k]||k)+" "+v+(v>=(evo[k]||999)?"*":"")).join(" / ");dustEl.textContent=meta.dust;metaInfo.textContent="HP "+meta.hp+" / DMG "+meta.dmg+" / MAG "+meta.mag+" / SPD "+meta.spd;if(currentBoss&&currentBoss.active){bossNameEl.textContent=currentBoss.kind==="boss"?"Mega Chicken":"Elite";bossbar.style.width=Math.max(0,Math.min(100,currentBoss.hp/currentBoss.max*100))+"%";bossInfo.textContent=Math.ceil(currentBoss.hp)+" / "+Math.ceil(currentBoss.max)+" HP"}else{bossNameEl.textContent="Keiner";bossbar.style.width="0%";bossInfo.textContent="Naechster Boss wartet"}}
-    if(window.Phaser){game=new Phaser.Game({type:Phaser.AUTO,parent:"game",backgroundColor:"#07101f",width:1000,height:620,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:"arcade",arcade:{debug:false}},scene:SurvivorScene})}else{text.textContent="Phaser konnte nicht geladen werden. Internet/CDN pruefen.";startBtn.style.display="none"}
+    if(window.Phaser){game=new Phaser.Game({type:Phaser.AUTO,parent:"game",backgroundColor:"#07101f",width:1000,height:620,resolution:Math.min(2,window.devicePixelRatio||1),render:{antialias:true,roundPixels:false},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:"arcade",arcade:{debug:false}},scene:SurvivorScene})}else{text.textContent="Phaser konnte nicht geladen werden. Internet/CDN pruefen.";startBtn.style.display="none"}
     function start(){if(!scene)return;audio();sfx("start");startMusic();overlay.style.display="none";moveKeys={};scene.input.keyboard.enabled=true;scene.resetRun();scene.scene.resume();setTimeout(()=>{const c=document.querySelector("#game canvas");if(c)c.focus()},20)}
     function pauseRun(){if(!scene||state!=="play")return;pauseStartedAt=performance.now();state="paused";moveKeys={};if(scene.player)scene.player.setVelocity(0,0);scene.scene.pause();stopMusic();overlay.style.display="flex";kicker.textContent="Run pausiert";title.textContent="Pause";text.textContent="Apokalypse wartet kurz. Weiter spielen, neu starten oder Musik/Vollbild umschalten.";upgradesEl.innerHTML="";startBtn.textContent="Weiter";startBtn.style.display="inline-flex";saveBtn.style.display="none";restartBtn.style.display="inline-flex";musicBtn.style.display="inline-flex";pauseBtn.textContent="Weiter";startBtn.onclick=resumeRun}
     function resumeRun(){if(!scene||state!=="paused")return;const pauseMs=performance.now()-pauseStartedAt;if(scene.timeStart)scene.timeStart+=pauseMs;pauseStartedAt=0;state="play";overlay.style.display="none";restartBtn.style.display="none";pauseBtn.textContent="Pause";startBtn.onclick=start;startMusic();scene.scene.resume();setTimeout(()=>{const c=document.querySelector("#game canvas");if(c)c.focus()},20)}
@@ -11809,7 +11867,7 @@ elif menu.endswith("Minispiele"):
     async function renderScores(){scoresEl.innerHTML="<li><span>Lade Scores...</span><b>...</b></li>";try{const r=await fetch(ENDPOINT+"?select=username,score,seconds_survived,level,kills,created_at&order=score.desc,seconds_survived.desc,created_at.asc&limit=100",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});if(!r.ok)throw new Error(await r.text());const data=await r.json(),best=new Map();data.forEach(e=>{const u=String(e.username||"").trim();if(!u)return;const old=best.get(u.toLowerCase());if(!old||Number(e.score||0)>Number(old.score||0))best.set(u.toLowerCase(),{...e,name:u})});rows(Array.from(best.values()).sort((a,b)=>Number(b.score||0)-Number(a.score||0)).slice(0,8))}catch(e){console.error(e);rows(local().sort((a,b)=>Number(b.score||0)-Number(a.score||0)).slice(0,8))}}
     async function saveScore(){if(saved||score<=0)return;const name=(prompt("Dein Twitch-Name fuer das Survivor-Scoreboard:")||"").trim().slice(0,32);if(!name)return;const build=Object.entries(p.up).filter(([,v])=>v>0).map(([k,v])=>k+":"+v).join(",");try{const r=await fetch(ENDPOINT,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({username:name,score,seconds_survived:Math.floor(seconds),level:p.level,kills,build})});if(!r.ok)throw new Error(await r.text())}catch(e){console.error(e);const s=local();s.push({name,score,seconds_survived:Math.floor(seconds),level:p.level,kills,build,createdAt:new Date().toISOString()});localStorage.setItem("braincell_survivor_scores",JSON.stringify(s.slice(-100)))}saved=true;await renderScores();saveBtn.style.display="none"}
     document.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k==="p"||k==="escape"){e.preventDefault();if(state==="play")pauseRun();else if(state==="paused")resumeRun();return}moveKeys[k]=true;if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault()});document.addEventListener("keyup",e=>{moveKeys[e.key.toLowerCase()]=false});
-    startBtn.onclick=start;saveBtn.onclick=saveScore;restartBtn.onclick=start;pauseBtn.onclick=()=>{if(state==="play")pauseRun();else if(state==="paused")resumeRun()};musicBtn.onclick=()=>{musicOn=!musicOn;musicBtn.textContent=musicOn?"Musik: An":"Musik: Aus";if(!musicOn)stopMusic();else if(state==="play")startMusic()};fullscreenBtn.onclick=toggleFullscreen;document.addEventListener("fullscreenchange",()=>{fullscreenBtn.textContent=document.fullscreenElement?"Fenster":"Vollbild";setTimeout(()=>game&&game.scale.refresh(),80)});saveBtn.style.display="none";restartBtn.style.display="none";renderScores();
+    startBtn.onclick=start;saveBtn.onclick=saveScore;restartBtn.onclick=start;pauseBtn.onclick=()=>{if(state==="play")pauseRun();else if(state==="paused")resumeRun()};musicBtn.onclick=()=>{musicOn=!musicOn;musicBtn.textContent=musicOn?"Musik: An":"Musik: Aus";if(!musicOn)stopMusic();else if(state==="play")startMusic()};fullscreenBtn.onclick=toggleFullscreen;document.addEventListener("fullscreenchange",()=>{fullscreenBtn.textContent=document.fullscreenElement?"Fenster":"Vollbild";setTimeout(()=>{if(game){if(document.fullscreenElement)game.scale.resize(window.innerWidth,window.innerHeight);else game.scale.resize(1000,620);game.scale.refresh()}},80)});saveBtn.style.display="none";restartBtn.style.display="none";renderScores();
     </script></body></html>
     """.replace("__SURVIVOR_THEME_SRC__", braincell_survivor_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
