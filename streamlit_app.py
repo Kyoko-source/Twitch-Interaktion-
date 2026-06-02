@@ -10408,6 +10408,7 @@ elif menu.endswith("Minispiele"):
     let lastCluckFrame = 0;
     const startX = 68;
     const finishX = 910;
+    const racePace = 0.42;
 
     function ensureAudio() {
         if (!soundEnabled) return null;
@@ -10756,7 +10757,7 @@ elif menu.endswith("Minispiele"):
             if (hen.pause > 0) {
                 hen.pause -= 1;
                 hen.speed *= 0.55;
-                hen.x += Math.max(0, hen.speed * 0.18);
+                hen.x += Math.max(0, hen.speed * 0.18 * racePace);
                 if (hen.x > leader.x) leader = hen;
                 return;
             }
@@ -10774,7 +10775,7 @@ elif menu.endswith("Minispiele"):
             const laneWobble = Math.sin(frame / 19 + hen.wobble) * 0.035;
             hen.speed = hen.speed * hen.stamina + 0.010 + Math.random() * hen.chaos * 0.18 + laneWobble + burstBoost;
             hen.speed = Math.max(0.12, Math.min(hen.speed, 2.55 + round * 0.025));
-            hen.x += hen.speed;
+            hen.x += hen.speed * racePace;
             if (hen.x > leader.x) leader = hen;
         });
         if (frame - lastCluckFrame > 180 && Math.random() < 0.006) {
