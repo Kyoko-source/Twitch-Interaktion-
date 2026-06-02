@@ -10188,57 +10188,6 @@ elif menu.endswith("Minispiele"):
             box-shadow: 0 18px 46px rgba(0,0,0,.32);
         }
         .notice.hide { display: none; }
-        .bet-strip {
-            position: absolute;
-            top: 74px;
-            bottom: 18px;
-            z-index: 3;
-            display: grid;
-            align-content: start;
-            gap: 7px;
-            width: 178px;
-            pointer-events: none;
-        }
-        .bet-strip.left { left: 12px; }
-        .bet-strip.right { right: 12px; }
-        .bet-chip {
-            display: grid;
-            grid-template-columns: 28px minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 7px;
-            min-height: 36px;
-            padding: 5px 7px;
-            border: 1px solid rgba(255,255,255,.16);
-            border-radius: 10px;
-            background: rgba(6, 10, 18, .68);
-            box-shadow: 0 10px 28px rgba(0,0,0,.24);
-            backdrop-filter: blur(6px);
-            font-weight: 950;
-        }
-        .bet-chip img, .bet-avatar-fallback {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid rgba(255,255,255,.25);
-        }
-        .bet-avatar-fallback {
-            display: grid;
-            place-items: center;
-            color: #061015;
-            background: linear-gradient(135deg, #ffe66d, #7cffb2);
-            font-size: 12px;
-        }
-        .bet-chip-name {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 12px;
-        }
-        .bet-chip.blue .bet-chip-name { color: #8ed8ff; }
-        .bet-chip.green .bet-chip-name { color: #9cffc7; }
-        .bet-chip-amount { color: #ffe66d; font-size: 12px; }
         .players-card {
             border-color: rgba(124,255,178,.32);
             background: linear-gradient(135deg, rgba(124,255,178,.20), rgba(6,16,21,.94));
@@ -10274,10 +10223,6 @@ elif menu.endswith("Minispiele"):
         @media (max-width: 840px) {
             body { min-height: 980px; }
             .football-layout { grid-template-columns: 1fr; }
-            .bet-strip { width: 136px; top: 66px; }
-            .bet-chip { grid-template-columns: 24px minmax(0, 1fr); }
-            .bet-chip img, .bet-avatar-fallback { width: 24px; height: 24px; }
-            .bet-chip-amount { grid-column: 2; margin-top: -5px; }
         }
     </style>
     </head>
@@ -10288,8 +10233,6 @@ elif menu.endswith("Minispiele"):
             <div class="football-stage">
                 <canvas id="footballCanvas" width="1000" height="620"></canvas>
                 <div id="notice" class="notice hide"></div>
-                <div id="blueBets" class="bet-strip left"></div>
-                <div id="greenBets" class="bet-strip right"></div>
             </div>
             <aside class="football-side">
                 <div class="football-card">
@@ -10369,8 +10312,6 @@ elif menu.endswith("Minispiele"):
     const musicBtn = document.getElementById("footballMusic");
     const audioHint = document.getElementById("audioHint");
     const notice = document.getElementById("notice");
-    const blueBetsEl = document.getElementById("blueBets");
-    const greenBetsEl = document.getElementById("greenBets");
     const playerListEl = document.getElementById("playerList");
     const musicFile = document.getElementById("footballMusicFile");
     const SUPABASE_URL = "__SUPABASE_URL__";
@@ -10500,38 +10441,9 @@ elif menu.endswith("Minispiele"):
         };
     }
 
-    function renderBetList(target, rows, team) {
-        target.innerHTML = "";
-        rows.filter(row => row.team === team).slice(0, 9).forEach(row => {
-            const chip = document.createElement("div");
-            chip.className = "bet-chip " + team;
-            const avatar = String(row.avatar_url || "").trim();
-            if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
-                const img = document.createElement("img");
-                img.src = avatar;
-                img.alt = "";
-                chip.appendChild(img);
-            } else {
-                const fallback = document.createElement("div");
-                fallback.className = "bet-avatar-fallback";
-                fallback.textContent = String(row.username || "?").slice(0, 1).toUpperCase();
-                chip.appendChild(fallback);
-            }
-            const name = document.createElement("div");
-            name.className = "bet-chip-name";
-            name.textContent = row.username || "Viewer";
-            chip.appendChild(name);
-            const amount = document.createElement("div");
-            amount.className = "bet-chip-amount";
-            amount.textContent = Number(row.amount || 0) + " GZ";
-            chip.appendChild(amount);
-            target.appendChild(chip);
-        });
-    }
-
     function renderPlayerList(rows) {
         playerListEl.innerHTML = "";
-        const active = rows.filter(row => Date.now() - Date.parse(row.updated_at || 0) < 16000).slice(0, 12);
+        const active = rows.slice(0, 12);
         if (!active.length) {
             playerListEl.innerHTML = "<div class='player-row'><div class='player-avatar-fallback'>?</div><div class='player-name'>Noch niemand</div><div class='player-score'>0:0</div></div>";
             return;
@@ -10566,7 +10478,7 @@ elif menu.endswith("Minispiele"):
 
     async function savePresence(force = false) {
         const now = Date.now();
-        if (!USERNAME || (!force && now - lastPresenceSave < 2500)) return;
+        if (!USERNAME || (!force && now - lastPresenceSave < 1500)) return;
         lastPresenceSave = now;
         try {
             const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?on_conflict=username", {
@@ -10583,6 +10495,7 @@ elif menu.endswith("Minispiele"):
                 })
             });
             if (!response.ok) throw new Error(await response.text());
+            if (force) refreshPlayers(true);
         } catch (error) {
             console.error(error);
         }
@@ -10590,11 +10503,11 @@ elif menu.endswith("Minispiele"):
 
     async function refreshPlayers(force = false) {
         const now = Date.now();
-        if (syncingPlayers || (!force && now - lastPlayersRefresh < 2600)) return;
+        if (syncingPlayers || (!force && now - lastPlayersRefresh < 1800)) return;
         syncingPlayers = true;
         lastPlayersRefresh = now;
         try {
-            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?select=username,team,blue_score,green_score,avatar_url,updated_at&order=updated_at.desc&limit=50", {
+            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?select=username,team,blue_score,green_score,avatar_url,updated_at&order=username.asc&limit=50", {
                 headers: apiHeaders()
             });
             if (!response.ok) throw new Error(await response.text());
@@ -10617,8 +10530,6 @@ elif menu.endswith("Minispiele"):
             });
             if (!response.ok) throw new Error(await response.text());
             const rows = await response.json();
-            renderBetList(blueBetsEl, rows, "blue");
-            renderBetList(greenBetsEl, rows, "green");
             const own = USERNAME ? rows.find(row => row.username === USERNAME && Number(row.match_number) === matchNumber) : null;
             if (own && !settledMatches[String(matchNumber)] && (!bet || bet.match !== matchNumber)) {
                 bet = {team: own.team === "green" ? "green" : "blue", amount: Number(own.amount || 0), match: matchNumber, saved: true};
@@ -11151,9 +11062,9 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
-        if (frame % 60 === 0) saveFootballState();
+        if (frame % 45 === 0) saveFootballState();
         if (frame % 90 === 0) refreshBets();
-        if (frame % 100 === 0) refreshPlayers();
+        if (frame % 75 === 0) refreshPlayers();
         requestAnimationFrame(loop);
     }
 
