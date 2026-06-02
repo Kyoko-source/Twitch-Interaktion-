@@ -8313,6 +8313,12 @@ elif menu.endswith("Minispiele"):
         mp3_data_uri(assets_dir / "chicken-racer-theme.mp3")
         or mp3_data_uri(assets_dir / "chicken_racer_theme.mp3")
     )
+    chicken_football_theme_data_uri = (
+        mp3_data_uri(assets_dir / "chicken-football-theme.mp3")
+        or mp3_data_uri(assets_dir / "chicken_football_theme.mp3")
+        or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3")
+        or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3.mp3")
+    )
     braincell_survivor_theme_data_uri = (
         mp3_data_uri(assets_dir / "braincell-survivor-theme.mp3")
         or mp3_data_uri(assets_dir / "braincell_survivor_theme.mp3")
@@ -10190,6 +10196,7 @@ elif menu.endswith("Minispiele"):
     </head>
     <body>
     <div class="football-shell">
+        <audio id="footballMusicFile" src="__FOOTBALL_THEME_SRC__" loop preload="auto"></audio>
         <div class="football-layout">
             <div class="football-stage">
                 <canvas id="footballCanvas" width="1000" height="620"></canvas>
@@ -10207,8 +10214,8 @@ elif menu.endswith("Minispiele"):
                 </div>
                 <div class="football-card">
                     <span>Wettfenster</span>
-                    <strong id="betTimer">02:00</strong>
-                    <small id="betHint">Nur in den ersten 2 Minuten des Matches offen.</small>
+                    <strong id="betTimer">00:30</strong>
+                    <small id="betHint">Nur in den ersten 30 Sekunden des Matches offen.</small>
                 </div>
                 <div class="bet-panel">
                     <label>Wette</label>
@@ -10232,6 +10239,14 @@ elif menu.endswith("Minispiele"):
                     <strong id="statusValue">Laeuft</strong>
                     <small>Die Huehner bewegen sich komplett random und treffen den Ball nur, wenn sie reinlaufen.</small>
                 </div>
+                <div class="football-card">
+                    <span>Audio</span>
+                    <div class="team-pick">
+                        <button id="footballSound" class="secondary">Sound: An</button>
+                        <button id="footballMusic" class="secondary">Musik: An</button>
+                    </div>
+                    <small id="audioHint">Musik nutzt assets/chicken-football-theme.mp3.</small>
+                </div>
             </aside>
         </div>
     </div>
@@ -10250,12 +10265,16 @@ elif menu.endswith("Minispiele"):
     const walletValue = document.getElementById("walletValue");
     const walletHint = document.getElementById("walletHint");
     const statusValue = document.getElementById("statusValue");
+    const soundBtn = document.getElementById("footballSound");
+    const musicBtn = document.getElementById("footballMusic");
+    const audioHint = document.getElementById("audioHint");
     const notice = document.getElementById("notice");
+    const musicFile = document.getElementById("footballMusicFile");
     const SUPABASE_URL = "__SUPABASE_URL__";
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const USERNAME = __FOOTBALL_USERNAME__;
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
-    const BET_SECONDS = 120;
+    const BET_SECONDS = 30;
     const WIN_SCORE = 5;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
     let wallet = __FOOTBALL_BRAINCELLS__;
@@ -10268,6 +10287,11 @@ elif menu.endswith("Minispiele"):
     let matchStart = Date.now();
     let pauseFrames = 0;
     let frame = 0;
+    let audioCtx = null;
+    let soundEnabled = true;
+    let musicEnabled = true;
+    let lastCluckFrame = 0;
+    let lastKickFrame = -60;
 
     function teamLabel(team) {
         return team === "blue" ? "Blau" : "Gruen";
@@ -10278,6 +10302,74 @@ elif menu.endswith("Minispiele"):
         notice.classList.remove("hide");
         clearTimeout(showNotice.timer);
         showNotice.timer = setTimeout(() => notice.classList.add("hide"), ms);
+    }
+
+    function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+    }
+
+    function tone(freq, duration, type, volume, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const start = ac.currentTime + delay;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain).connect(ac.destination);
+        osc.start(start);
+        osc.stop(start + duration + 0.03);
+    }
+
+    function noise(duration, volume, delay = 0) {
+        const ac = ensureAudio();
+        if (!ac) return;
+        const bufferSize = Math.max(1, Math.floor(ac.sampleRate * duration));
+        const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const source = ac.createBufferSource();
+        const filter = ac.createBiquadFilter();
+        const gain = ac.createGain();
+        const start = ac.currentTime + delay;
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(700 + Math.random() * 900, start);
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        source.buffer = buffer;
+        source.connect(filter).connect(gain).connect(ac.destination);
+        source.start(start);
+        source.stop(start + duration + 0.03);
+    }
+
+    function cluckSound() {
+        tone(340 + Math.random() * 90, 0.045, "square", 0.024);
+        tone(220 + Math.random() * 70, 0.075, "sawtooth", 0.019, 0.04);
+        noise(0.055, 0.010, 0.012);
+    }
+
+    function kickSound(power = 1) {
+        const volume = Math.min(0.05, 0.018 + power * 0.006);
+        tone(85 + Math.random() * 35, 0.055, "triangle", volume);
+        noise(0.06, volume * 0.65, 0.008);
+    }
+
+    function startMusic() {
+        if (!musicEnabled || !musicFile || !musicFile.getAttribute("src")) return;
+        if (soundEnabled) ensureAudio();
+        musicFile.volume = 0.24;
+        musicFile.play().catch(() => {});
+    }
+
+    function stopMusic() {
+        if (!musicFile) return;
+        musicFile.pause();
+        musicFile.currentTime = 0;
     }
 
     function apiHeaders(extra = {}) {
@@ -10368,7 +10460,8 @@ elif menu.endswith("Minispiele"):
         resetChickens();
         resetBall();
         localStorage.setItem("chicken_football_match", String(matchNumber));
-        showNotice("Neues Chicken-Football-Match #" + matchNumber + " laeuft. Wetten sind 2 Minuten offen.", 5200);
+        showNotice("Neues Chicken-Football-Match #" + matchNumber + " laeuft. Wetten sind 30 Sekunden offen.", 5200);
+        startMusic();
         updateHud();
     }
 
@@ -10590,6 +10683,10 @@ elif menu.endswith("Minispiele"):
             ball.vy += ny * kick + chicken.vy * .24;
             ball.x = chicken.x + nx * minDist;
             ball.y = chicken.y + ny * minDist;
+            if (frame - lastKickFrame > 9) {
+                kickSound(kick);
+                lastKickFrame = frame;
+            }
         }
     }
 
@@ -10652,6 +10749,10 @@ elif menu.endswith("Minispiele"):
         } else {
             chickens.forEach(updateChicken);
             updateBall();
+            if (frame - lastCluckFrame > 150 && Math.random() < .014) {
+                cluckSound();
+                lastCluckFrame = frame;
+            }
         }
         chickens.slice().sort((a, b) => a.y - b.y).forEach(drawChicken);
         drawBall();
@@ -10663,6 +10764,23 @@ elif menu.endswith("Minispiele"):
     pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); });
     pickGreenBtn.addEventListener("click", () => { selectedTeam = "green"; updateHud(); });
     placeBetBtn.addEventListener("click", placeBet);
+    soundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) stopMusic();
+        soundBtn.textContent = soundEnabled ? "Sound: An" : "Sound: Aus";
+        if (musicEnabled && soundEnabled) startMusic();
+    });
+    musicBtn.addEventListener("click", () => {
+        musicEnabled = !musicEnabled;
+        musicBtn.textContent = musicEnabled ? "Musik: An" : "Musik: Aus";
+        if (musicEnabled) startMusic();
+        else stopMusic();
+    });
+    if (!musicFile || !musicFile.getAttribute("src")) {
+        audioHint.textContent = "Lege assets/chicken-football-theme.mp3 ab, dann spielt hier Musik.";
+        musicBtn.disabled = true;
+        musicBtn.textContent = "Musik: Fehlt";
+    }
 
     fetchWallet().then(() => {
         newMatch();
@@ -10673,6 +10791,7 @@ elif menu.endswith("Minispiele"):
     </html>
     """.replace("__FOOTBALL_USERNAME__", json.dumps(football_username))
        .replace("__FOOTBALL_BRAINCELLS__", str(football_braincells))
+       .replace("__FOOTBALL_THEME_SRC__", chicken_football_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
 
