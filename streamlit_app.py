@@ -10257,7 +10257,7 @@ elif menu.endswith("Minispiele"):
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
     const BET_SECONDS = 120;
     const WIN_SCORE = 5;
-    const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 226, goalBottom: 394};
+    const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
     let wallet = __FOOTBALL_BRAINCELLS__;
     let selectedTeam = "blue";
     let bet = null;
@@ -10329,8 +10329,8 @@ elif menu.endswith("Minispiele"):
         ball = {
             x: 500,
             y: 310,
-            vx: lastScorer === "blue" ? -2.4 : lastScorer === "green" ? 2.4 : (Math.random() - .5) * 2,
-            vy: (Math.random() - .5) * 2,
+            vx: lastScorer === "blue" ? -1.1 : lastScorer === "green" ? 1.1 : (Math.random() - .5) * .9,
+            vy: (Math.random() - .5) * .9,
             r: 16
         };
     }
@@ -10345,9 +10345,9 @@ elif menu.endswith("Minispiele"):
             vx: 0,
             vy: 0,
             targetAngle: Math.random() * Math.PI * 2,
-            turnIn: 15 + Math.random() * 90,
+            turnIn: 35 + Math.random() * 130,
             radius: 20,
-            speed: .9 + Math.random() * 1.55,
+            speed: .35 + Math.random() * .85,
             color: team === "blue" ? "#00d4ff" : "#7cffb2"
         };
     }
@@ -10555,11 +10555,11 @@ elif menu.endswith("Minispiele"):
             if (Math.random() < .20) {
                 chicken.targetAngle = Math.atan2(ball.y - chicken.y, ball.x - chicken.x) + (Math.random() - .5) * 1.4;
             }
-            chicken.turnIn = 18 + Math.random() * 105;
-            chicken.speed = .55 + Math.random() * 1.9;
+            chicken.turnIn = 35 + Math.random() * 130;
+            chicken.speed = .30 + Math.random() * .95;
         }
-        chicken.vx += Math.cos(chicken.targetAngle) * .075;
-        chicken.vy += Math.sin(chicken.targetAngle) * .075;
+        chicken.vx += Math.cos(chicken.targetAngle) * .034;
+        chicken.vy += Math.sin(chicken.targetAngle) * .034;
         const maxSpeed = chicken.speed;
         const current = Math.hypot(chicken.vx, chicken.vy) || 1;
         if (current > maxSpeed) {
@@ -10585,9 +10585,9 @@ elif menu.endswith("Minispiele"):
         if (dist < minDist) {
             const nx = dx / dist;
             const ny = dy / dist;
-            const kick = 2.4 + Math.hypot(chicken.vx, chicken.vy) * 1.8 + Math.random() * 1.6;
-            ball.vx += nx * kick + chicken.vx * .45;
-            ball.vy += ny * kick + chicken.vy * .45;
+            const kick = 1.05 + Math.hypot(chicken.vx, chicken.vy) * .85 + Math.random() * .75;
+            ball.vx += nx * kick + chicken.vx * .24;
+            ball.vy += ny * kick + chicken.vy * .24;
             ball.x = chicken.x + nx * minDist;
             ball.y = chicken.y + ny * minDist;
         }
@@ -10596,12 +10596,12 @@ elif menu.endswith("Minispiele"):
     function updateBall() {
         ball.x += ball.vx;
         ball.y += ball.vy;
-        ball.vx *= .992;
-        ball.vy *= .992;
+        ball.vx *= .984;
+        ball.vy *= .984;
         const speed = Math.hypot(ball.vx, ball.vy);
-        if (speed > 9) {
-            ball.vx = ball.vx / speed * 9;
-            ball.vy = ball.vy / speed * 9;
+        if (speed > 5.4) {
+            ball.vx = ball.vx / speed * 5.4;
+            ball.vy = ball.vy / speed * 5.4;
         }
         if (ball.y < field.top + ball.r) {
             ball.y = field.top + ball.r;
@@ -10626,9 +10626,9 @@ elif menu.endswith("Minispiele"):
                 ball.vx = -Math.abs(ball.vx) * .84;
             }
         }
-        if (Math.hypot(ball.vx, ball.vy) < .08 && Math.random() < .006) {
-            ball.vx += (Math.random() - .5) * 1.6;
-            ball.vy += (Math.random() - .5) * 1.6;
+        if (Math.hypot(ball.vx, ball.vy) < .06 && Math.random() < .004) {
+            ball.vx += (Math.random() - .5) * .8;
+            ball.vy += (Math.random() - .5) * .8;
         }
     }
 
