@@ -10239,6 +10239,38 @@ elif menu.endswith("Minispiele"):
         .bet-chip.blue .bet-chip-name { color: #8ed8ff; }
         .bet-chip.green .bet-chip-name { color: #9cffc7; }
         .bet-chip-amount { color: #ffe66d; font-size: 12px; }
+        .players-card {
+            border-color: rgba(124,255,178,.32);
+            background: linear-gradient(135deg, rgba(124,255,178,.20), rgba(6,16,21,.94));
+        }
+        .player-list { display: grid; gap: 7px; margin-top: 8px; }
+        .player-row {
+            display: grid;
+            grid-template-columns: 26px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 7px;
+            padding: 6px;
+            border-radius: 9px;
+            background: rgba(6,10,18,.42);
+            font-weight: 950;
+        }
+        .player-row img, .player-avatar-fallback {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .player-avatar-fallback {
+            display: grid;
+            place-items: center;
+            color: #061015;
+            background: #ffe66d;
+            font-size: 12px;
+        }
+        .player-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .player-row.blue .player-name { color: #8ed8ff; }
+        .player-row.green .player-name { color: #9cffc7; }
+        .player-score { color: #fff; font-size: 12px; }
         @media (max-width: 840px) {
             body { min-height: 980px; }
             .football-layout { grid-template-columns: 1fr; }
@@ -10296,6 +10328,11 @@ elif menu.endswith("Minispiele"):
                     <strong id="walletValue">0</strong>
                     <small id="walletHint">Gehirnzellen</small>
                 </div>
+                <div class="football-card players-card">
+                    <span>Aktive Spieler</span>
+                    <div id="playerList" class="player-list"></div>
+                    <small>Lokale Matches, gemeinsame Anzeige.</small>
+                </div>
                 <div class="football-card">
                     <span>Spielstatus</span>
                     <strong id="statusValue">Laeuft</strong>
@@ -10334,20 +10371,19 @@ elif menu.endswith("Minispiele"):
     const notice = document.getElementById("notice");
     const blueBetsEl = document.getElementById("blueBets");
     const greenBetsEl = document.getElementById("greenBets");
+    const playerListEl = document.getElementById("playerList");
     const musicFile = document.getElementById("footballMusicFile");
     const SUPABASE_URL = "__SUPABASE_URL__";
     const SUPABASE_KEY = "__SUPABASE_KEY__";
     const USERNAME = __FOOTBALL_USERNAME__;
     const AVATAR_URL = __FOOTBALL_AVATAR_URL__;
     const USERS_ENDPOINT = SUPABASE_URL + "/rest/v1/users";
-    const FOOTBALL_STATE_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_state";
+    const FOOTBALL_PLAYERS_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_players";
     const FOOTBALL_BETS_ENDPOINT = SUPABASE_URL + "/rest/v1/chicken_football_bets";
-    const FOOTBALL_STATE_ID = "global";
+    const FOOTBALL_STATE_KEY = "chicken_football_state_v3";
     const FOOTBALL_PERSONAL_KEY = "chicken_football_personal_v2";
-    const FOOTBALL_CLIENT_KEY = "chicken_football_client_id_v1";
     const BET_SECONDS = 30;
     const RESTART_SECONDS = 60;
-    const CONTROLLER_LEASE_MS = 5200;
     const WIN_SCORE = 3;
     const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
@@ -10361,17 +10397,11 @@ elif menu.endswith("Minispiele"):
     let matchStart = Date.now();
     let matchPhase = "play";
     let countdownUntil = 0;
-    let lastSharedUpdatedAt = 0;
-    let lastSharedSync = 0;
     let lastBetsRefresh = 0;
-    let syncingShared = false;
+    let lastPlayersRefresh = 0;
+    let lastPresenceSave = 0;
     let syncingBets = false;
-    let isController = false;
-    let controllerId = localStorage.getItem(FOOTBALL_CLIENT_KEY);
-    if (!controllerId) {
-        controllerId = "fb-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-        localStorage.setItem(FOOTBALL_CLIENT_KEY, controllerId);
-    }
+    let syncingPlayers = false;
     let settledMatches = JSON.parse(localStorage.getItem("chicken_football_settled_v1") || "{}");
     let pauseFrames = 0;
     let frame = 0;
@@ -10499,6 +10529,83 @@ elif menu.endswith("Minispiele"):
         });
     }
 
+    function renderPlayerList(rows) {
+        playerListEl.innerHTML = "";
+        const active = rows.filter(row => Date.now() - Date.parse(row.updated_at || 0) < 16000).slice(0, 12);
+        if (!active.length) {
+            playerListEl.innerHTML = "<div class='player-row'><div class='player-avatar-fallback'>?</div><div class='player-name'>Noch niemand</div><div class='player-score'>0:0</div></div>";
+            return;
+        }
+        active.forEach(row => {
+            const team = row.team === "green" ? "green" : "blue";
+            const item = document.createElement("div");
+            item.className = "player-row " + team;
+            const avatar = String(row.avatar_url || "").trim();
+            if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+                const img = document.createElement("img");
+                img.src = avatar;
+                img.alt = "";
+                item.appendChild(img);
+            } else {
+                const fallback = document.createElement("div");
+                fallback.className = "player-avatar-fallback";
+                fallback.textContent = String(row.username || "?").slice(0, 1).toUpperCase();
+                item.appendChild(fallback);
+            }
+            const name = document.createElement("div");
+            name.className = "player-name";
+            name.textContent = row.username || "Viewer";
+            item.appendChild(name);
+            const scoreText = document.createElement("div");
+            scoreText.className = "player-score";
+            scoreText.textContent = Number(row.blue_score || 0) + ":" + Number(row.green_score || 0);
+            item.appendChild(scoreText);
+            playerListEl.appendChild(item);
+        });
+    }
+
+    async function savePresence(force = false) {
+        const now = Date.now();
+        if (!USERNAME || (!force && now - lastPresenceSave < 2500)) return;
+        lastPresenceSave = now;
+        try {
+            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?on_conflict=username", {
+                method: "POST",
+                headers: apiHeaders({"Prefer": "resolution=merge-duplicates,return=minimal"}),
+                body: JSON.stringify({
+                    username: USERNAME,
+                    team: bet && bet.match === matchNumber ? bet.team : selectedTeam,
+                    blue_score: score.blue,
+                    green_score: score.green,
+                    match_number: matchNumber,
+                    avatar_url: AVATAR_URL || "",
+                    updated_at: new Date().toISOString()
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function refreshPlayers(force = false) {
+        const now = Date.now();
+        if (syncingPlayers || (!force && now - lastPlayersRefresh < 2600)) return;
+        syncingPlayers = true;
+        lastPlayersRefresh = now;
+        try {
+            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?select=username,team,blue_score,green_score,avatar_url,updated_at&order=updated_at.desc&limit=50", {
+                headers: apiHeaders()
+            });
+            if (!response.ok) throw new Error(await response.text());
+            renderPlayerList(await response.json());
+        } catch (error) {
+            console.error(error);
+        } finally {
+            syncingPlayers = false;
+        }
+    }
+
     async function refreshBets(force = false) {
         const now = Date.now();
         if (syncingBets || (!force && now - lastBetsRefresh < 2200)) return;
@@ -10624,139 +10731,34 @@ elif menu.endswith("Minispiele"):
         }
     }
 
-    function packSharedState() {
-        return {
-            v: 2,
-            matchNumber,
-            matchStart,
-            matchPhase,
-            countdownUntil,
-            score,
-            ball: {
-                x: Number(ball.x || 0),
-                y: Number(ball.y || 0),
-                vx: Number(ball.vx || 0),
-                vy: Number(ball.vy || 0),
-                r: Number(ball.r || 16)
-            },
-            chickens: chickens.map(c => [
-                c.team === "green" ? 1 : 0,
-                c.index,
-                +c.x.toFixed(2),
-                +c.y.toFixed(2),
-                +c.vx.toFixed(3),
-                +c.vy.toFixed(3),
-                +c.targetAngle.toFixed(4),
-                +c.turnIn.toFixed(1),
-                +c.speed.toFixed(3)
-            ]),
-            pauseFrames,
-            goalInProgress,
-            controllerId,
-            leaseUntil: Date.now() + CONTROLLER_LEASE_MS,
-            updatedAt: Date.now()
-        };
-    }
-
-    function applySharedState(saved) {
-        if (!saved || saved.v !== 2 || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
-        const previousMatch = matchNumber;
-        const previousPhase = matchPhase;
-        const previousScore = {...score};
-        const savedMatch = Number(saved.matchNumber || 1);
-        const savedScore = {
-            blue: Number(saved.score.blue || 0),
-            green: Number(saved.score.green || 0)
-        };
-        const sameLiveMatch = previousMatch === savedMatch
-            && previousPhase === "play"
-            && saved.matchPhase !== "countdown"
-            && previousScore.blue === savedScore.blue
-            && previousScore.green === savedScore.green
-            && chickens.length === 10
-            && Number.isFinite(ball.x)
-            && Number.isFinite(ball.y);
-        matchNumber = Number(saved.matchNumber || 1);
-        matchStart = Number(saved.matchStart || Date.now());
-        matchPhase = saved.matchPhase === "countdown" ? "countdown" : "play";
-        countdownUntil = Number(saved.countdownUntil || 0);
-        score = savedScore;
-        if (!sameLiveMatch) {
-            ball = {
-                x: Number(saved.ball.x || 500),
-                y: Number(saved.ball.y || 310),
-                vx: Number(saved.ball.vx || 0),
-                vy: Number(saved.ball.vy || 0),
-                r: Number(saved.ball.r || 16)
-            };
-            chickens = saved.chickens.map(row => ({
-                team: row[0] ? "green" : "blue",
-                index: Number(row[1] || 0),
-                x: Number(row[2] || 500),
-                y: Number(row[3] || 310),
-                vx: Number(row[4] || 0),
-                vy: Number(row[5] || 0),
-                targetAngle: Number(row[6] || 0),
-                turnIn: Number(row[7] || 60),
-                radius: 20,
-                speed: Number(row[8] || .45),
-                color: row[0] ? "#7cffb2" : "#00d4ff"
-            }));
-            pauseFrames = Number(saved.pauseFrames || 0);
-            goalInProgress = !!saved.goalInProgress;
-        }
-        isController = saved.controllerId === controllerId;
-        lastSharedUpdatedAt = Number(saved.updatedAt || Date.now());
-        localStorage.setItem("chicken_football_match", String(matchNumber));
-        loadPersonalState();
-        maybeSettleWinner();
-        updateHud();
-        return chickens.length === 10 && Number.isFinite(ball.x) && Number.isFinite(ball.y);
-    }
-
     function saveFootballState() {
         savePersonalState();
-        saveSharedState();
-    }
-
-    async function saveSharedState(force = false) {
-        const now = Date.now();
-        if (!isController && !force) return;
-        if (syncingShared || (!force && now - lastSharedSync < 650)) return;
-        syncingShared = true;
-        lastSharedSync = now;
-        const state = packSharedState();
-        lastSharedUpdatedAt = state.updatedAt;
         try {
-            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?on_conflict=id", {
-                method: "POST",
-                headers: apiHeaders({"Prefer": "resolution=merge-duplicates,return=minimal"}),
-                body: JSON.stringify({
-                    id: FOOTBALL_STATE_ID,
-                    state,
-                    updated_at: new Date().toISOString()
-                })
-            });
-            if (!response.ok) throw new Error(await response.text());
+            localStorage.setItem(FOOTBALL_STATE_KEY, JSON.stringify({matchNumber,matchStart,matchPhase,countdownUntil,score,ball,chickens,pauseFrames,goalInProgress}));
         } catch (error) {
             console.error(error);
-            betHintEl.textContent = "Sync kurz nicht erreichbar, lokales Spiel laeuft weiter.";
-        } finally {
-            syncingShared = false;
         }
+        savePresence();
     }
 
-    async function loadFootballState() {
+    function loadFootballState() {
         try {
-            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?select=state,updated_at&id=eq." + encodeURIComponent(FOOTBALL_STATE_ID) + "&limit=1", {
-                headers: apiHeaders()
-            });
-            if (!response.ok) throw new Error(await response.text());
-            const rows = await response.json();
-            const saved = rows.length && rows[0].state ? rows[0].state : null;
-            if (!applySharedState(saved)) return false;
+            const saved = JSON.parse(localStorage.getItem(FOOTBALL_STATE_KEY) || "null");
+            if (!saved || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
+            matchNumber = Number(saved.matchNumber || matchNumber);
+            matchStart = Number(saved.matchStart || Date.now());
+            matchPhase = saved.matchPhase === "countdown" ? "countdown" : "play";
+            countdownUntil = Number(saved.countdownUntil || 0);
+            score = {blue: Number(saved.score.blue || 0), green: Number(saved.score.green || 0)};
+            ball = saved.ball;
+            chickens = saved.chickens;
+            pauseFrames = Number(saved.pauseFrames || 0);
+            goalInProgress = !!saved.goalInProgress;
+            if (!chickens.length || !Number.isFinite(ball.x) || !Number.isFinite(ball.y)) return false;
+            loadPersonalState();
             showNotice("Chicken-Football-Match #" + matchNumber + " fortgesetzt.", 3600);
             startMusic();
+            updateHud();
             return true;
         } catch (error) {
             console.error(error);
@@ -10765,7 +10767,6 @@ elif menu.endswith("Minispiele"):
     }
 
     function newMatch() {
-        isController = true;
         score = {blue: 0, green: 0};
         matchStart = Date.now();
         matchPhase = "play";
@@ -10780,7 +10781,7 @@ elif menu.endswith("Minispiele"):
         startMusic();
         updateHud();
         saveFootballState();
-        saveSharedState(true);
+        savePresence(true);
     }
 
     function secondsLeft() {
@@ -10913,7 +10914,6 @@ elif menu.endswith("Minispiele"):
     }
 
     function goal(team) {
-        if (!isController) return;
         if (goalInProgress) return;
         goalInProgress = true;
         score[team] += GOAL_POINTS;
@@ -10924,7 +10924,7 @@ elif menu.endswith("Minispiele"):
             countdownUntil = Date.now() + RESTART_SECONDS * 1000;
             statusValue.textContent = teamLabel(team) + " gewinnt";
             settleBet(team);
-            saveSharedState(true);
+            saveFootballState();
             savePersonalState();
         } else {
             saveFootballState();
@@ -11098,14 +11098,14 @@ elif menu.endswith("Minispiele"):
         }
         const inGoalY = ball.y > field.goalTop && ball.y < field.goalBottom;
         if (ball.x < field.left + ball.r) {
-            if (inGoalY && isController) goal("green");
+            if (inGoalY) goal("green");
             else {
                 ball.x = field.left + ball.r;
                 ball.vx = Math.abs(ball.vx) * .84;
             }
         }
         if (ball.x > field.right - ball.r) {
-            if (inGoalY && isController) goal("blue");
+            if (inGoalY) goal("blue");
             else {
                 ball.x = field.right - ball.r;
                 ball.vx = -Math.abs(ball.vx) * .84;
@@ -11133,7 +11133,7 @@ elif menu.endswith("Minispiele"):
         frame += 1;
         drawField();
         if (matchPhase === "countdown") {
-            if (isController && Date.now() >= countdownUntil) {
+            if (Date.now() >= countdownUntil) {
                 matchNumber += 1;
                 newMatch();
             }
@@ -11151,41 +11151,10 @@ elif menu.endswith("Minispiele"):
         drawBall();
         drawHudOnCanvas();
         updateHud();
-        if (frame % 60 === 0) syncSharedState();
+        if (frame % 60 === 0) saveFootballState();
         if (frame % 90 === 0) refreshBets();
+        if (frame % 100 === 0) refreshPlayers();
         requestAnimationFrame(loop);
-    }
-
-    async function syncSharedState() {
-        if (syncingShared) return;
-        syncingShared = true;
-        try {
-            const response = await fetch(FOOTBALL_STATE_ENDPOINT + "?select=state,updated_at&id=eq." + encodeURIComponent(FOOTBALL_STATE_ID) + "&limit=1", {
-                headers: apiHeaders()
-            });
-            if (!response.ok) throw new Error(await response.text());
-            const rows = await response.json();
-            const remote = rows.length && rows[0].state ? rows[0].state : null;
-            const leaseExpired = !remote || !remote.leaseUntil || Date.now() > Number(remote.leaseUntil);
-            if (leaseExpired) {
-                isController = true;
-                syncingShared = false;
-                saveSharedState(true);
-                return;
-            }
-            isController = remote.controllerId === controllerId;
-            if (!isController && remote && Number(remote.updatedAt || 0) > lastSharedUpdatedAt + 220) {
-                applySharedState(remote);
-            } else {
-                syncingShared = false;
-                saveSharedState();
-                return;
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            syncingShared = false;
-        }
     }
 
     pickBlueBtn.addEventListener("click", () => { selectedTeam = "blue"; updateHud(); savePersonalState(); });
@@ -11210,8 +11179,10 @@ elif menu.endswith("Minispiele"):
     }
 
     fetchWallet().then(async () => {
-        if (!(await loadFootballState())) newMatch();
+        if (!loadFootballState()) newMatch();
         refreshBets(true);
+        refreshPlayers(true);
+        savePresence(true);
         loop();
     });
     </script>
@@ -12193,7 +12164,7 @@ elif menu.endswith("Minispiele"):
       evolved(id){return this.lv(id)>=(evo[id]||999)}
       update(t,dt){if(state!=="play")return;seconds=(t-this.timeStart)/1000;this.move(dt);this.wave(t);this.fire(dt);this.mobs(dt);this.separateEnemies();this.effects(t);this.drawMiniMap();this.drawRunHud();if(t%1000<17){score+=Math.floor(2+seconds/40);p.healLock=Math.max(0,p.healLock-60);if(p.healLock<=0)p.hp=Math.min(p.max,p.hp+.04+Math.min(1.05,this.lv("regen")*.16));hud()}}
       move(dt){let x=0,y=0;if(this.cursors.left.isDown||this.keys.A.isDown||moveKeys.arrowleft||moveKeys.a)x--;if(this.cursors.right.isDown||this.keys.D.isDown||moveKeys.arrowright||moveKeys.d)x++;if(this.cursors.up.isDown||this.keys.W.isDown||moveKeys.arrowup||moveKeys.w)y--;if(this.cursors.down.isDown||this.keys.S.isDown||moveKeys.arrowdown||moveKeys.s)y++;const l=Math.hypot(x,y)||1;this.player.setVelocity(x/l*p.speed,y/l*p.speed);p.inv=Math.max(0,p.inv-dt/16.6);this.playerGlow.setPosition(this.player.x,this.player.y).setScale(1+Math.sin(this.time.now*.008)*.08);this.player.setAngle(this.player.angle+dt*.05)}
-      wave(t){if(!this.nextWave||t>this.nextWave){this.nextWave=t+(seconds<30?980:seconds<70?780:Math.max(360,780-Math.floor(seconds)*1.45));const cap=105+Math.min(55,Math.floor(seconds/8)),active=this.enemies.countActive();if(active<cap){const n=Math.min(cap-active,seconds<25?1:seconds<55?2:Math.min(8,2+Math.floor((seconds-55)/24)));for(let i=0;i<n;i++)this.spawnEnemy()}}const bm=Math.floor(seconds/150);if(bm>0&&bm!==lastBoss){lastBoss=bm;sfx("boss");this.spawnEnemy("boss")}}
+      wave(t){if(!this.nextWave||t>this.nextWave){this.nextWave=t+(seconds<30?980:seconds<70?780:Math.max(390,780-Math.floor(seconds)*1.25));const cap=100+Math.min(48,Math.floor(seconds/9)),active=this.enemies.countActive();if(active<cap){const n=Math.min(cap-active,seconds<25?1:seconds<55?2:Math.min(6,2+Math.floor((seconds-55)/30)));for(let i=0;i<n;i++)this.spawnEnemy()}}const bm=Math.floor(seconds/180);if(bm>0&&bm!==lastBoss){lastBoss=bm;sfx("boss");this.spawnEnemy("boss")}}
       spawnEnemy(kind){const r=Math.random();if(!kind)kind=seconds>150&&r<.07?"healer":seconds>120&&r<.14?"shield":seconds>95&&r<.22?"exploder":seconds>130&&r<.30?"spitter":seconds>90&&r<.42?"tank":seconds>65&&r<.52?"elite":seconds>38&&r<.68?"runner":"grunt";const cam=this.cameras.main.worldView,s=Phaser.Math.Between(0,3),x=s===0?cam.left-100:s===1?cam.right+100:Phaser.Math.Between(cam.left,cam.right),y=s===2?cam.top-100:s===3?cam.bottom+100:Phaser.Math.Between(cam.top,cam.bottom),m=seconds/60,stats={grunt:[40+m*16,92+m*4,15,7,12,0xf8f7ff],runner:[30+m*13,150+m*5,12,8,16,0xffe66d],tank:[135+m*40,68+m*3,23,18,36,0xff9f1c],spitter:[70+m*22,86+m*3,16,14,28,0x46f0ff],exploder:[74+m*24,116+m*4,17,16,40,0xff4d6d],shield:[155+m*34,74+m*3,20,22,46,0x9bf6ff],healer:[95+m*26,82+m*3,18,20,52,0x7cffb2],elite:[285+m*78,96+m*3,28,42,110,0xff54a0],boss:[1220+m*340,72,45,145,500,0xc77dff]}[kind];const e=this.enemies.create(Phaser.Math.Clamp(x,30,WORLD_W-30),Phaser.Math.Clamp(y,30,WORLD_H-30),"chicken").setDepth(15).setTint(stats[5]).setScale(stats[2]/16);Object.assign(e,{kind,hp:stats[0],max:stats[0],speed:stats[1],base:stats[1],r:stats[2],xp:stats[3],score:stats[4],slow:0,nextSpecial:this.time.now+1800});e.body.setCircle(Math.max(9,stats[2]*.72),18-stats[2]*.45,18-stats[2]*.35);e.hpBg=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x000000,.58).setDepth(24);e.hpBar=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x7cffb2,.95).setDepth(25);if(kind==="boss"){currentBoss=e;this.cameras.main.flash(180,199,125,255);this.ring(e.x,e.y,230,0xc77dff)}}
       fire(dt){const cd=Math.max(.44,1-this.lv("cooldown")*.07),might=1+this.lv("might")*.16+meta.dmg*.04;p.tim.bolt-=dt/1000;if(p.tim.bolt<=0){const aim=this.aimPoint(),amt=this.lv("bolt");sfx("shoot",amt);for(let i=0;i<amt;i++)this.shootAtPoint(this.player.x,this.player.y,aim.x,aim.y,"bolt",(i-(amt-1)/2)*.15,(14+this.lv("frost")*2)*might,0xffffff,this.evolved("bolt"));p.tim.bolt=Math.max(.11,(.50-this.lv("bolt")*.03)*cd)}if(this.lv("bomb")){p.tim.bomb-=dt/1000;if(p.tim.bomb<=0&&this.enemies.countActive()){sfx("bomb");this.shootAt(this.player.x,this.player.y,this.nearest(),"bomb",0,(44+this.lv("bomb")*19)*might,0xffffff,this.evolved("bomb"));p.tim.bomb=Math.max(.32,(1.30-this.lv("bomb")*.12)*cd)}}if(this.lv("laser")){p.tim.laser-=dt/1000;if(p.tim.laser<=0&&this.enemies.countActive()){const e=this.enemies.getChildren().sort((a,b)=>b.hp-a.hp)[0];sfx("laser");this.laser(e,(62+this.lv("laser")*31)*might);if(this.evolved("laser"))this.enemies.getChildren().slice(0,3).forEach(o=>{if(o!==e)this.laser(o,(42+this.lv("laser")*18)*might)});p.tim.laser=Math.max(.62,(2.16-this.lv("laser")*.18)*cd)}}if(this.lv("drone")){p.tim.drone-=dt/1000;if(p.tim.drone<=0&&this.enemies.countActive()){sfx("drone");for(let i=0;i<this.lv("drone");i++){const a=tRadians(this.time.now/280+i*360/this.lv("drone"));this.shootAt(this.player.x+Math.cos(a)*48,this.player.y+Math.sin(a)*48,this.nearest(),"bolt",0,(12+this.lv("drone")*4)*might,0xc77dff,this.evolved("drone"))}p.tim.drone=Math.max(.16,(.86-this.lv("drone")*.08)*cd)}}if(this.lv("thunder")){p.tim.thunder-=dt/1000;if(p.tim.thunder<=0&&this.enemies.countActive()){sfx("thunder");let ox=this.player.x,oy=this.player.y;this.enemies.getChildren().sort((a,b)=>Phaser.Math.Distance.Between(a.x,a.y,this.player.x,this.player.y)-Phaser.Math.Distance.Between(b.x,b.y,this.player.x,this.player.y)).slice(0,(this.evolved("thunder")?5:2)+this.lv("thunder")).forEach(e=>{this.line(ox,oy,e.x,e.y,0xf8f7ff);this.hit(e,(24+this.lv("thunder")*9)*might);ox=e.x;oy=e.y});p.tim.thunder=Math.max(.42,(1.68-this.lv("thunder")*.13)*cd)}}if(this.lv("nova")){p.tim.nova-=dt/1000;if(p.tim.nova<=0){const r=(this.evolved("nova")?170:120)+this.lv("nova")*28;sfx("nova");this.ring(this.player.x,this.player.y,r,0xff54a0);this.enemies.getChildren().forEach(e=>{if(Phaser.Math.Distance.Between(e.x,e.y,this.player.x,this.player.y)<r)this.hit(e,(28+this.lv("nova")*15)*might)});this.cameras.main.shake(110,.004);p.tim.nova=Math.max(.70,(2.60-this.lv("nova")*.22)*cd)}}}
       shootAt(x,y,target,key,spread,dmg,tint,pierce=false){if(!target||this.bullets.countActive()>260)return;const a=Phaser.Math.Angle.Between(x,y,target.x,target.y)+spread,b=this.bullets.create(x,y,key==="bomb"?"bomb":"bolt").setDepth(18).setTint(tint||0xffffff);b.setVelocity(Math.cos(a)*(key==="bomb"?330:560),Math.sin(a)*(key==="bomb"?330:560));Object.assign(b,{dmg,key,pierce:pierce?2:0,life:this.time.now+(key==="bomb"?1600:1200)})}
@@ -12207,14 +12178,14 @@ elif menu.endswith("Minispiele"):
       pullPickups(){const range=95+this.lv("magnet")*38+meta.mag*18;[...this.gems.getChildren(),...this.drops.getChildren()].forEach(o=>{const d=Phaser.Math.Distance.Between(o.x,o.y,this.player.x,this.player.y);if(d<range){const a=Phaser.Math.Angle.Between(o.x,o.y,this.player.x,this.player.y),v=180+(range-d)*2;o.setVelocity(Math.cos(a)*v,Math.sin(a)*v)}})}
       bulletHit(b,e){this.hit(e,b.dmg);if(b.key==="bomb"){weaponSfx("explode");const r=this.evolved("bomb")?145:105;this.ring(b.x,b.y,r,0xffe66d);this.enemies.getChildren().forEach(o=>{if(Phaser.Math.Distance.Between(o.x,o.y,b.x,b.y)<r)this.hit(o,b.dmg*.58)});this.cameras.main.shake(90,.005)}if(b.pierce>0){b.pierce--;return}b.destroy()}
       popBullet(b){this.burst(b.x,b.y,0xffffff,5);b.destroy()}
-      hit(e,d){if(!e.active)return;if(e.kind==="shield")d*=.62;let crit=Math.random()<.08+this.lv("might")*.01;if(crit)d*=1.85;e.hp-=d;this.damageText(e.x,e.y-e.r,Math.floor(d),crit);this.updateEnemyBar(e);this.bossPhase(e);if(this.lv("frost")&&Math.random()<.55){e.slow=900+this.lv("frost")*160;e.setTint(0x9bf6ff);if(Math.random()<.12)weaponSfx("freeze")}if(Math.random()<.08)sfx("hit");if(e.hp<=0)this.kill(e)}
-      kill(e){sfx("kill");kills++;score+=Math.floor(e.score+seconds*.8+p.level*2);this.blood(e.x,e.y,e.kind==="boss"||e.kind==="elite");this.burst(e.x,e.y,e.tintTopLeft||0xffffff,e.kind==="boss"?38:14);if(e.kind==="exploder"){weaponSfx("explode");this.ring(e.x,e.y,115,0xff4d6d);this.enemies.getChildren().forEach(o=>{if(o!==e&&Phaser.Math.Distance.Between(o.x,o.y,e.x,e.y)<115)this.hit(o,48)});if(Phaser.Math.Distance.Between(this.player.x,this.player.y,e.x,e.y)<105&&p.inv<=0)this.playerDamage(e,Phaser.Math.Angle.Between(e.x,e.y,this.player.x,this.player.y))}this.spawnGem(e.x,e.y,e.xp,e.kind==="boss"?1.7:1);if(Math.random()<.035||e.kind==="elite")this.spawnDrop(e.x,e.y,"heart");if(Math.random()<.022||e.kind==="boss")this.spawnDrop(e.x,e.y,"magnet");if(currentBoss===e)currentBoss=null;this.destroyEnemyBar(e);e.destroy();hud()}
+      hit(e,d){if(!e.active||e.dead)return;if(e.kind==="shield")d*=.62;let crit=Math.random()<.08+this.lv("might")*.01;if(crit)d*=1.85;e.hp-=d;this.damageText(e.x,e.y-e.r,Math.floor(d),crit);this.updateEnemyBar(e);this.bossPhase(e);if(this.lv("frost")&&Math.random()<.55){e.slow=900+this.lv("frost")*160;e.setTint(0x9bf6ff);if(Math.random()<.12)weaponSfx("freeze")}if(Math.random()<.08)sfx("hit");if(e.hp<=0)this.kill(e)}
+      kill(e){if(!e.active||e.dead)return;e.dead=true;sfx("kill");kills++;score+=Math.floor(e.score+seconds*.8+p.level*2);this.blood(e.x,e.y,e.kind==="boss"||e.kind==="elite");this.burst(e.x,e.y,e.tintTopLeft||0xffffff,e.kind==="boss"?24:12);if(e.kind==="exploder"){weaponSfx("explode");this.ring(e.x,e.y,105,0xff4d6d);this.enemies.getChildren().slice(0,45).forEach(o=>{if(o!==e&&o.active&&!o.dead&&Phaser.Math.Distance.Between(o.x,o.y,e.x,e.y)<105)this.hit(o,o.kind==="exploder"?18:42)});if(Phaser.Math.Distance.Between(this.player.x,this.player.y,e.x,e.y)<95&&p.inv<=0)this.playerDamage(e,Phaser.Math.Angle.Between(e.x,e.y,this.player.x,this.player.y))}this.spawnGem(e.x,e.y,e.xp,e.kind==="boss"?1.7:1);if(Math.random()<.03||e.kind==="elite")this.spawnDrop(e.x,e.y,"heart");if(Math.random()<.018||e.kind==="boss")this.spawnDrop(e.x,e.y,"magnet");if(currentBoss===e)currentBoss=null;this.destroyEnemyBar(e);e.destroy();hud()}
       updateEnemyBar(e){if(!e.hpBg||!e.hpBar)return;const w=e.r*2.4,pct=Phaser.Math.Clamp(e.hp/e.max,0,1),y=e.y-e.r-18;e.hpBg.setPosition(e.x,y).setSize(w,5);e.hpBar.setPosition(e.x-w*(1-pct)/2,y).setSize(w*pct,5).setFillStyle(e.slow>0?0x9bf6ff:0x7cffb2,.95);if(currentBoss===e)hud()}
       destroyEnemyBar(e){if(e.hpBg)e.hpBg.destroy();if(e.hpBar)e.hpBar.destroy()}
-      bossPhase(e){if(currentBoss!==e)return;const pct=e.hp/e.max,next=pct<.25?3:pct<.5?2:pct<.75?1:0;if((e.phase||0)<next){e.phase=next;e.base+=18;this.cameras.main.flash(180,199,125,255);this.ring(e.x,e.y,260,0xc77dff);for(let i=0;i<next+2;i++)this.spawnEnemy(i%2?"runner":"exploder")}}
+      bossPhase(e){if(currentBoss!==e||e.dead)return;const pct=e.hp/e.max,next=pct<.25?3:pct<.5?2:pct<.75?1:0;if((e.phase||0)<next){e.phase=next;e.base+=14;this.cameras.main.flash(160,199,125,255);this.ring(e.x,e.y,230,0xc77dff);for(let i=0;i<Math.min(3,next+1);i++)this.spawnEnemy(i%2?"runner":"tank")}}
       separateEnemies(){const a=this.enemies.getChildren().slice(0,70);for(let i=0;i<a.length;i++){const e=a[i];for(let j=i+1;j<Math.min(a.length,i+10);j++){const o=a[j],d=Phaser.Math.Distance.Between(e.x,e.y,o.x,o.y),min=(e.r+o.r)*.72;if(d>0&&d<min){const ang=Phaser.Math.Angle.Between(o.x,o.y,e.x,e.y),push=(min-d)*.035;e.x+=Math.cos(ang)*push;o.x-=Math.cos(ang)*push;e.y+=Math.sin(ang)*push;o.y-=Math.sin(ang)*push}}}}
-      spawnGem(x,y,v,s=1){const g=this.gems.create(x,y,"gem").setDepth(12).setScale(s);g.v=v;g.body.setCircle(18)}
-      spawnDrop(x,y,k){const d=this.drops.create(x,y,k==="heart"?"heart":"magnetDrop").setDepth(12);d.k=k;d.body.setCircle(18)}
+      spawnGem(x,y,v,s=1){if(this.gems.countActive()>140){const old=this.gems.getChildren()[0];if(old)old.destroy()}const g=this.gems.create(x,y,"gem").setDepth(12).setScale(s);g.v=v;g.body.setCircle(18)}
+      spawnDrop(x,y,k){if(this.drops.countActive()>18){const old=this.drops.getChildren()[0];if(old)old.destroy()}const d=this.drops.create(x,y,k==="heart"?"heart":"magnetDrop").setDepth(12);d.k=k;d.body.setCircle(18)}
       pickGem(g){sfx("pickup");this.ring(g.x,g.y,36,0x9bf6ff);this.gainXp(g.v);g.destroy()}
       pickDrop(d){if(d.k==="heart"){sfx("heart");p.hp=Math.min(p.max,p.hp+22)}else{sfx("magnet");this.gems.getChildren().forEach(g=>{this.gainXp(g.v);g.destroy()});this.ring(this.player.x,this.player.y,190,0x46f0ff)}d.destroy();hud()}
       gainXp(v){p.xp+=v;while(p.xp>=p.need){p.xp-=p.need;p.level++;p.need=Math.floor(p.need*1.24+18);p.hp=Math.min(p.max,p.hp+3);score+=p.level*25;sfx("level");this.choose();break}}
@@ -12230,8 +12201,8 @@ elif menu.endswith("Minispiele"):
       damageText(x,y,v,crit){if(!crit&&this.time.now<(this.nextTextAt||0))return;this.nextTextAt=this.time.now+28;const t=this.add.text(x,y,(crit?"CRIT ":"")+v,{font:"900 16px Inter,Arial",color:crit?"#ffe66d":"#ffffff",stroke:"#061015",strokeThickness:4}).setDepth(90).setOrigin(.5);this.tweens.add({targets:t,y:y-32,alpha:0,scale:crit?1.35:1,duration:420,onComplete:()=>t.destroy()})}
       drawRunHud(){try{if(!p||!this.runHud)return;const hpPct=Phaser.Math.Clamp(p.hp/p.max,0,1),xpPct=Phaser.Math.Clamp(p.xp/p.need,0,1);this.runHud.clear();this.runHud.fillStyle(0x05070a,.72).fillRect(14,12,318,78);this.runHud.lineStyle(1,0xffffff,.18).strokeRect(14,12,318,78);this.runHud.fillStyle(0x261018,.92).fillRect(24,47,210,12);this.runHud.fillStyle(hpPct>.35?0x7cffb2:0xff4d6d,.95).fillRect(24,47,Math.max(1,210*hpPct),12);this.runHud.fillStyle(0x101a26,.92).fillRect(24,68,210,8);this.runHud.fillStyle(0x46f0ff,.92).fillRect(24,68,Math.max(1,210*xpPct),8);if(this.runHudText)this.runHudText.setText("HP "+Math.max(0,Math.ceil(p.hp))+"/"+Math.ceil(p.max)+"   Zeit "+time(seconds)+"   Score "+score+"   Lv "+p.level)}catch(e){console.error(e)}}
       drawMiniMap(){this.mini.clear();const x=830,y=18,w=150,h=104;this.mini.fillStyle(0x000000,.36).fillRoundedRect(x,y,w,h,8);this.mini.lineStyle(1,0xffffff,.22).strokeRoundedRect(x,y,w,h,8);this.mini.fillStyle(0x7cffb2,1).fillCircle(x+this.player.x/WORLD_W*w,y+this.player.y/WORLD_H*h,3.5);this.enemies.getChildren().slice(0,80).forEach(e=>{this.mini.fillStyle(e.kind==="boss"?0xc77dff:e.kind==="elite"?0xff54a0:0xffe66d,.9).fillCircle(x+e.x/WORLD_W*w,y+e.y/WORLD_H*h,e.kind==="boss"?3:1.6)});this.gems.getChildren().slice(0,40).forEach(g=>this.mini.fillStyle(0x46f0ff,.7).fillCircle(x+g.x/WORLD_W*w,y+g.y/WORLD_H*h,1))}
-      burst(x,y,c,n){for(let i=0;i<n;i++){const p=this.add.image(x,y,"spark").setTint(c).setDepth(29);this.tweens.add({targets:p,x:x+Phaser.Math.Between(-70,70),y:y+Phaser.Math.Between(-70,70),alpha:0,scale:Phaser.Math.FloatBetween(.6,1.8),duration:Phaser.Math.Between(260,620),onComplete:()=>p.destroy()})}}
-      blood(x,y,big){for(let i=0;i<(big?34:16);i++){const p=this.add.image(x+Phaser.Math.Between(-8,8),y+Phaser.Math.Between(-8,8),"blood").setDepth(27).setScale(Phaser.Math.FloatBetween(.6,big?1.8:1.25));this.tweens.add({targets:p,x:p.x+Phaser.Math.Between(-90,90),y:p.y+Phaser.Math.Between(-90,90),alpha:0,duration:Phaser.Math.Between(300,780),onComplete:()=>p.destroy()})}}
+      burst(x,y,c,n){n=Math.min(n,seconds>150?14:n);for(let i=0;i<n;i++){const p=this.add.image(x,y,"spark").setTint(c).setDepth(29);this.tweens.add({targets:p,x:x+Phaser.Math.Between(-60,60),y:y+Phaser.Math.Between(-60,60),alpha:0,scale:Phaser.Math.FloatBetween(.55,1.45),duration:Phaser.Math.Between(230,500),onComplete:()=>p.destroy()})}}
+      blood(x,y,big){const n=seconds>150?(big?14:8):(big?24:12);for(let i=0;i<n;i++){const p=this.add.image(x+Phaser.Math.Between(-8,8),y+Phaser.Math.Between(-8,8),"blood").setDepth(27).setScale(Phaser.Math.FloatBetween(.55,big?1.45:1.1));this.tweens.add({targets:p,x:p.x+Phaser.Math.Between(-75,75),y:p.y+Phaser.Math.Between(-75,75),alpha:0,duration:Phaser.Math.Between(260,620),onComplete:()=>p.destroy()})}}
     }
     function tRadians(v){return Phaser.Math.DegToRad(v)}
     function hud(){if(!p)return;timeEl.textContent=time(seconds);scoreEl.textContent=score;levelEl.textContent=p.level;hpEl.textContent=Math.max(0,Math.ceil(p.hp));xpbar.style.width=Math.min(100,p.xp/p.need*100)+"%";hpbar.style.width=Math.min(100,p.hp/p.max*100)+"%";buildEl.textContent=Object.entries(p.up).filter(([,v])=>v>0).map(([k,v])=>(names[k]||k)+" "+v+(v>=(evo[k]||999)?"*":"")).join(" / ");dustEl.textContent=meta.dust;metaInfo.textContent="HP "+meta.hp+" / DMG "+meta.dmg+" / MAG "+meta.mag+" / SPD "+meta.spd;if(currentBoss&&currentBoss.active){bossNameEl.textContent=currentBoss.kind==="boss"?"Mega Chicken":"Elite";bossbar.style.width=Math.max(0,Math.min(100,currentBoss.hp/currentBoss.max*100))+"%";bossInfo.textContent=Math.ceil(currentBoss.hp)+" / "+Math.ceil(currentBoss.max)+" HP"}else{bossNameEl.textContent="Keiner";bossbar.style.width="0%";bossInfo.textContent="Naechster Boss wartet"}}
