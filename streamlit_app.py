@@ -10351,6 +10351,7 @@ elif menu.endswith("Minispiele"):
     const FOOTBALL_PERSONAL_KEY = "chicken_football_personal_v2";
     const BET_SECONDS = 30;
     const RESTART_SECONDS = 60;
+    const STALE_MATCH_SECONDS = 60 * 60;
     const WIN_SCORE = 3;
     const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
@@ -10362,6 +10363,8 @@ elif menu.endswith("Minispiele"):
     let score = {blue: 0, green: 0};
     let matchNumber = Number(localStorage.getItem("chicken_football_match") || "1");
     let matchStart = Date.now();
+    let matchElapsedMs = 0;
+    let lastTickAt = Date.now();
     let matchPhase = "play";
     let countdownUntil = 0;
     let lastBetsRefresh = 0;
@@ -10671,7 +10674,7 @@ elif menu.endswith("Minispiele"):
     function saveFootballState() {
         savePersonalState();
         try {
-            localStorage.setItem(FOOTBALL_STATE_KEY, JSON.stringify({matchNumber,matchStart,matchPhase,countdownUntil,score,ball,chickens,pauseFrames,goalInProgress}));
+            localStorage.setItem(FOOTBALL_STATE_KEY, JSON.stringify({matchNumber,matchStart,matchElapsedMs,matchPhase,countdownUntil,score,ball,chickens,pauseFrames,goalInProgress}));
         } catch (error) {
             console.error(error);
         }
@@ -10684,6 +10687,10 @@ elif menu.endswith("Minispiele"):
             if (!saved || !saved.score || !saved.ball || !Array.isArray(saved.chickens)) return false;
             matchNumber = Number(saved.matchNumber || matchNumber);
             matchStart = Number(saved.matchStart || Date.now());
+            const wallElapsedMs = Date.now() - matchStart;
+            if (!Number.isFinite(wallElapsedMs) || wallElapsedMs < 0 || wallElapsedMs / 1000 > STALE_MATCH_SECONDS) return false;
+            matchElapsedMs = Number.isFinite(Number(saved.matchElapsedMs)) ? Math.max(0, Number(saved.matchElapsedMs)) : wallElapsedMs;
+            lastTickAt = Date.now();
             matchPhase = saved.matchPhase === "countdown" ? "countdown" : "play";
             countdownUntil = Number(saved.countdownUntil || 0);
             score = {blue: Number(saved.score.blue || 0), green: Number(saved.score.green || 0)};
@@ -10706,6 +10713,8 @@ elif menu.endswith("Minispiele"):
     function newMatch() {
         score = {blue: 0, green: 0};
         matchStart = Date.now();
+        matchElapsedMs = 0;
+        lastTickAt = Date.now();
         matchPhase = "play";
         countdownUntil = 0;
         bet = null;
@@ -10745,7 +10754,7 @@ elif menu.endswith("Minispiele"):
         blueScoreEl.textContent = score.blue;
         greenScoreEl.textContent = score.green;
         walletValue.textContent = wallet;
-        matchRuntimeEl.textContent = formatClock((Date.now() - matchStart) / 1000);
+        matchRuntimeEl.textContent = formatClock(matchElapsedMs / 1000);
         const left = secondsLeft();
         const mm = String(Math.floor(left / 60)).padStart(2, "0");
         const ss = String(left % 60).padStart(2, "0");
@@ -11066,11 +11075,37 @@ elif menu.endswith("Minispiele"):
         ctx.fillText(score.green + " Gruen", 524, 45);
     }
 
+    function drawRestartCountdown() {
+        const left = restartSecondsLeft();
+        const mm = String(Math.floor(left / 60)).padStart(2, "0");
+        const ss = String(left % 60).padStart(2, "0");
+        const winner = score.blue >= WIN_SCORE ? "Blau" : "Gruen";
+        roundedRect(300, 212, 400, 172, 18, "rgba(6,10,18,.82)");
+        ctx.strokeStyle = "rgba(255,230,109,.82)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(310, 222, 380, 152);
+        ctx.fillStyle = "#ffe66d";
+        ctx.font = "950 24px Inter, Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(winner + " gewinnt!", 500, 260);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "950 54px Inter, Arial";
+        ctx.fillText(mm + ":" + ss, 500, 324);
+        ctx.fillStyle = "#d6d1e8";
+        ctx.font = "850 17px Inter, Arial";
+        ctx.fillText("Naechstes Match startet gleich", 500, 354);
+        ctx.textAlign = "start";
+    }
+
     function loop() {
+        const now = Date.now();
+        const deltaMs = Math.max(0, Math.min(1000, now - lastTickAt));
+        lastTickAt = now;
+        if (matchPhase === "play") matchElapsedMs += deltaMs;
         frame += 1;
         drawField();
         if (matchPhase === "countdown") {
-            if (Date.now() >= countdownUntil) {
+            if (now >= countdownUntil) {
                 matchNumber += 1;
                 newMatch();
             }
@@ -11087,6 +11122,7 @@ elif menu.endswith("Minispiele"):
         chickens.slice().sort((a, b) => a.y - b.y).forEach(drawChicken);
         drawBall();
         drawHudOnCanvas();
+        if (matchPhase === "countdown") drawRestartCountdown();
         updateHud();
         if (frame % 45 === 0) saveFootballState();
         if (frame % 90 === 0) refreshBets();
