@@ -6964,40 +6964,126 @@ if menu == "🏠 Home":
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    creative_items = get_creative_gallery(30)
-    creative_reactions = get_creative_gallery_reactions()
-    week_art = get_creative_image_of_week(creative_items, creative_reactions)
-    if week_art:
-        week_title = str(week_art.get("title") or "").strip()
-        week_heading = week_title or "Bild der Woche"
-        week_image = html.escape(str(week_art.get("image_data") or ""), quote=True)
-        week_artist = html.escape(str(week_art.get("username") or "Unbekannt"))
-        week_date = html.escape(format_gallery_timestamp(week_art.get("created_at")))
-        week_art_html = (
-            '<div class="home-week-art">'
-            f'<img src="{week_image}" alt="{html.escape(week_heading, quote=True)}">'
-            '<div>'
-            '<div class="section-kicker">Bild der Woche</div>'
-            f'<h3>{html.escape(week_heading)}</h3>'
-            f'<p>Aus der Hall of Fame von {week_artist}.</p>'
-            f'<span class="creative-date">{week_date}</span>'
-            '</div>'
-            '</div>'
+    trailer_path = Path(__file__).parent / "assets" / "einsmarello-kanaltrailer.mp4"
+    if trailer_path.exists():
+        trailer_data = base64.b64encode(trailer_path.read_bytes()).decode("ascii")
+        components.html(
+            f"""
+            <style>
+                html, body {{
+                    margin: 0;
+                    background: transparent;
+                    color: white;
+                    font-family: Inter, system-ui, sans-serif;
+                }}
+                .trailer-shell {{
+                    position: relative;
+                    overflow: hidden;
+                    border: 1px solid rgba(199, 125, 255, .34);
+                    border-radius: 24px;
+                    padding: 18px;
+                    background:
+                        radial-gradient(circle at 12% 0%, rgba(145, 70, 255, .28), transparent 42%),
+                        linear-gradient(145deg, rgba(18, 12, 31, .98), rgba(8, 10, 18, .98));
+                    box-shadow: 0 22px 55px rgba(0, 0, 0, .35);
+                }}
+                .trailer-head {{
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    margin-bottom: 14px;
+                }}
+                .trailer-kicker {{
+                    color: #d7b5ff;
+                    font-size: 11px;
+                    font-weight: 900;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                }}
+                .trailer-head h2 {{
+                    margin: 4px 0 0;
+                    font-size: 24px;
+                }}
+                .live-pill {{
+                    flex: 0 0 auto;
+                    border: 1px solid rgba(255, 84, 160, .5);
+                    border-radius: 999px;
+                    padding: 8px 12px;
+                    color: #ffd4ec;
+                    background: rgba(255, 84, 160, .12);
+                    font-size: 12px;
+                    font-weight: 900;
+                }}
+                .video-frame {{
+                    position: relative;
+                    overflow: hidden;
+                    border: 1px solid rgba(255, 255, 255, .12);
+                    border-radius: 18px;
+                    background: #030409;
+                    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+                }}
+                video {{
+                    display: block;
+                    width: 100%;
+                    max-height: 560px;
+                    aspect-ratio: 16 / 9;
+                    object-fit: contain;
+                    background: #030409;
+                }}
+                .sound-button {{
+                    position: absolute;
+                    right: 14px;
+                    bottom: 14px;
+                    border: 1px solid rgba(255, 255, 255, .35);
+                    border-radius: 999px;
+                    padding: 10px 15px;
+                    color: white;
+                    background: rgba(8, 10, 18, .82);
+                    font-weight: 850;
+                    cursor: pointer;
+                    backdrop-filter: blur(12px);
+                }}
+                .sound-button:hover {{
+                    background: rgba(145, 70, 255, .9);
+                }}
+                .trailer-note {{
+                    margin: 13px 2px 0;
+                    color: #c9c2dc;
+                    font-size: 13px;
+                    font-weight: 650;
+                }}
+            </style>
+            <section class="trailer-shell">
+                <div class="trailer-head">
+                    <div>
+                        <div class="trailer-kicker">Kanaltrailer</div>
+                        <h2>Willkommen bei einsmarello</h2>
+                    </div>
+                    <div class="live-pill">Twitch · einsmarello</div>
+                </div>
+                <div class="video-frame">
+                    <video id="channelTrailer" autoplay muted loop playsinline
+                        src="data:video/mp4;base64,{trailer_data}"></video>
+                    <button id="soundToggle" class="sound-button" type="button">Ton einschalten</button>
+                </div>
+                <p class="trailer-note">Der Trailer läuft automatisch in Dauerschleife. Du entscheidest, ob du ihn mit Ton sehen möchtest.</p>
+            </section>
+            <script>
+                const trailer = document.getElementById("channelTrailer");
+                const soundToggle = document.getElementById("soundToggle");
+                soundToggle.addEventListener("click", () => {{
+                    trailer.muted = !trailer.muted;
+                    soundToggle.textContent = trailer.muted ? "Ton einschalten" : "Ton ausschalten";
+                    if (trailer.paused) trailer.play().catch(() => {{}});
+                }});
+            </script>
+            """,
+            height=720,
+            scrolling=False,
         )
     else:
-        week_art_html = (
-            '<div class="home-week-art">'
-            '<div>'
-            '<div class="section-kicker">Bild der Woche</div>'
-            '<h3>Hall of Fame wartet</h3>'
-            '<p>Sobald ein Bild veröffentlicht wurde, bekommt es hier seinen Platz auf der Startseite.</p>'
-            '</div>'
-            '</div>'
-        )
-    st.markdown(week_art_html, unsafe_allow_html=True)
-    if st.button("Zur Hall of Fame", key="home_hof_cta", use_container_width=True):
-        st.session_state["app_menu"] = "🏛️ Hall of Fame"
-        st.rerun()
+        st.info("Lege den Kanaltrailer unter `assets/einsmarello-kanaltrailer.mp4` ab.")
 
 # =========================
 # LOGIN
