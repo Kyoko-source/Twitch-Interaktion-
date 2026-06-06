@@ -41,6 +41,8 @@ AVIARY_PASS_SEASON_ID = "season-1"
 AVIARY_PASS_SEASON_NAME = "Season 1 · Aufbruch"
 AVIARY_PASS_XP_PER_LEVEL = 1000
 AVIARY_PASS_PREMIUM_COST = 5000
+PRESENCE_HEARTBEAT_SECONDS = 15
+PRESENCE_ONLINE_SECONDS = 45
 AVIARY_PASS_REWARDS = [
     {"level": 1, "free": ("title", "Neststarter"), "premium": ("pepples", 150)},
     {"level": 2, "free": ("pepples", 100), "premium": ("chickens", 500)},
@@ -108,6 +110,9 @@ def login_user(username: str, password: str) -> Optional[dict]:
 
 
 def logout_user():
+    username = get_logged_in_username()
+    if username:
+        remove_user_presence(username)
     st.session_state.pop("logged_in_username", None)
 
 # =========================
@@ -500,6 +505,91 @@ def update_user_profile(username, bio, favorite_game, avatar_url):
             "favorite_game": favorite_game.strip()[:80],
             "avatar_url": avatar_url[:500]
         }
+    )
+
+
+def touch_user_presence(username):
+    if not validate_username(username):
+        return False
+
+    touched = api_upsert_optional(
+        "user_presence?on_conflict=username",
+        {
+            "username": username.strip(),
+            "last_seen": datetime.now(ZoneInfo("UTC")).isoformat(),
+        },
+    )
+    return touched is not None
+
+
+def remove_user_presence(username):
+    if not validate_username(username):
+        return False
+    response = requests.delete(
+        f"{SUPABASE_URL}/rest/v1/user_presence?username=eq.{urllib.parse.quote(username.strip())}",
+        headers=HEADERS,
+    )
+    return response.status_code < 400
+
+
+def get_online_users():
+    cutoff = datetime.now(ZoneInfo("UTC")) - timedelta(seconds=PRESENCE_ONLINE_SECONDS)
+    presence_rows = api_get_optional(
+        "user_presence?select=username,last_seen"
+        f"&last_seen=gte.{urllib.parse.quote(cutoff.isoformat())}"
+        "&order=last_seen.desc"
+    )
+    online_names = [str(row.get("username") or "") for row in presence_rows if row.get("username")]
+    if not online_names:
+        return []
+
+    users = api_get_optional("users?select=username,avatar_url,braincells")
+    users_by_name = {str(user.get("username") or ""): user for user in users}
+    return [users_by_name.get(username, {"username": username}) for username in online_names]
+
+
+@st.fragment(run_every=f"{PRESENCE_HEARTBEAT_SECONDS}s")
+def maintain_user_presence(username):
+    if username:
+        touch_user_presence(username)
+
+
+@st.fragment(run_every=f"{PRESENCE_HEARTBEAT_SECONDS}s")
+def render_online_presence():
+    online_users = get_online_users()
+    cards = []
+    for user in online_users:
+        online_username = str(user.get("username") or "")
+        avatar_markup = get_avatar_markup(online_username, user.get("avatar_url") or "", 54)
+        level = get_profile_level(int(user.get("braincells") or 0))
+        cards.append(
+            '<div class="home-online-profile">'
+            '<div class="home-online-avatar">'
+            f'{avatar_markup}<span class="home-online-dot" title="Online"></span>'
+            '</div>'
+            '<div>'
+            f'<strong>{html.escape(online_username)}</strong>'
+            f'<span>Level {level} · online</span>'
+            '</div>'
+            '</div>'
+        )
+
+    profiles_html = (
+        "".join(cards)
+        if cards
+        else '<div class="home-online-empty">Gerade ist noch niemand online.</div>'
+    )
+    count_label = f"{len(online_users)} online"
+    st.markdown(
+        '<div class="home-online-shell">'
+        '<div class="home-online-head">'
+        '<div><div class="section-kicker">Live in der Aviary</div>'
+        '<h3>Gerade online</h3></div>'
+        f'<div class="home-status-pill">{html.escape(count_label)}</div>'
+        '</div>'
+        f'<div class="home-online-grid">{profiles_html}</div>'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
 
@@ -5398,6 +5488,98 @@ h1::after {
     border-color: rgba(255,193,94,0.28);
 }
 
+.home-online-shell {
+    margin: 18px 0 24px;
+    padding: 22px;
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 92% 10%, rgba(70,240,255,0.12), transparent 28%),
+        linear-gradient(135deg, rgba(82,185,160,0.09), rgba(199,125,255,0.08)),
+        rgba(8,14,24,0.64);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+}
+
+.home-online-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.home-online-head h3 {
+    margin: 4px 0 0;
+    font-size: 28px;
+}
+
+.home-online-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.home-online-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.home-online-avatar {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.home-online-profile .profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(82,185,160,0.58);
+    font-size: 18px;
+}
+
+.home-online-dot {
+    position: absolute;
+    right: 0;
+    bottom: 1px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #52e0a4;
+    border: 2px solid #101020;
+    box-shadow: 0 0 12px rgba(82,224,164,0.82);
+}
+
+.home-online-profile strong,
+.home-online-profile span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-online-profile strong {
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.home-online-profile span {
+    margin-top: 2px;
+    color: #bfffe9;
+    font-size: 13px;
+    font-weight: 760;
+}
+
+.home-online-empty {
+    color: #cfc4e8;
+    font-weight: 760;
+}
+
 .channel-trailer-head {
     display: flex;
     align-items: center;
@@ -7081,6 +7263,8 @@ menu = st.session_state["app_menu"]
 
 logged_in_username = get_logged_in_username()
 
+maintain_user_presence(logged_in_username)
+
 leaderboard_pages = {"🏠 Home", "🏆 Rangliste"}
 if menu in leaderboard_pages:
     leaderboard = normalize_leaderboard_columns(get_leaderboard())
@@ -7229,6 +7413,8 @@ if menu == "🏠 Home":
             st.session_state["app_menu"] = "\U0001f511 Login"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+
+    render_online_presence()
 
     trailer_assets_dir = Path(__file__).parent / "assets"
     trailer_path = next(
