@@ -6964,8 +6964,20 @@ if menu == "🏠 Home":
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    trailer_path = Path(__file__).parent / "assets" / "einsmarello-kanaltrailer.mp4"
-    if trailer_path.exists():
+    trailer_assets_dir = Path(__file__).parent / "assets"
+    trailer_path = next(
+        (
+            trailer_assets_dir / filename
+            for filename in (
+                "einsmarello-kanaltrailer.mp4",
+                "assetseinsmarello-kanaltrailer.mp4",
+                "assetseinsmarello-kanaltrailer.mp4.mp4",
+            )
+            if (trailer_assets_dir / filename).exists()
+        ),
+        None,
+    )
+    if trailer_path:
         trailer_data = base64.b64encode(trailer_path.read_bytes()).decode("ascii")
         components.html(
             f"""
