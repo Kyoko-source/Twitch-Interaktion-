@@ -37,6 +37,23 @@ PASSWORD_SALT = "gehirnzone_guest_auth_salt"
 REGISTRATION_CODE_SALT = "gehirnzone_registration_code_salt"
 DND_LOBBY_PASSWORD_SALT = "gehirnzone_dnd_lobby_salt"
 
+AVIARY_PASS_SEASON_ID = "season-1"
+AVIARY_PASS_SEASON_NAME = "Season 1 · Aufbruch"
+AVIARY_PASS_XP_PER_LEVEL = 1000
+AVIARY_PASS_PREMIUM_COST = 5000
+AVIARY_PASS_REWARDS = [
+    {"level": 1, "free": ("title", "Neststarter"), "premium": ("pepples", 150)},
+    {"level": 2, "free": ("pepples", 100), "premium": ("chickens", 500)},
+    {"level": 3, "free": ("chickens", 300), "premium": ("cosmetic", "Profilrahmen Federwind")},
+    {"level": 4, "free": ("cosmetic", "Blaues Vogelei"), "premium": ("pepples", 300)},
+    {"level": 5, "free": ("pepples", 250), "premium": ("cosmetic", "Vogel Nachtfalke")},
+    {"level": 6, "free": ("chickens", 600), "premium": ("cosmetic", "Pepple-Survivor Partikeleffekt")},
+    {"level": 7, "free": ("cosmetic", "Titel Schwarmfreund"), "premium": ("pepples", 500)},
+    {"level": 8, "free": ("pepples", 400), "premium": ("cosmetic", "Animiertes Aviary Banner")},
+    {"level": 9, "free": ("chickens", 1000), "premium": ("cosmetic", "Titel Schwarmwächter")},
+    {"level": 10, "free": ("cosmetic", "Goldener Nest-Rahmen"), "premium": ("cosmetic", "Legendärer Vogel Sonnenfeder")},
+]
+
 # =========================
 # VALIDATION
 # =========================
@@ -931,6 +948,145 @@ def claim_daily_reward(username):
     get_leaderboard.clear()
     get_chicken_scores.clear()
     return True, f"Daily Reward abgeholt: +{reward_chickens} Chickens und +{reward_braincells} Pepples."
+
+
+def get_aviary_pass_xp(user, unlocked_achievements, best_score, daily_streak):
+    pepples = int(user.get("braincells") or 0)
+    score = int(best_score.get("score") or 0) if best_score else 0
+    return pepples + int(unlocked_achievements) * 150 + score * 10 + int(daily_streak) * 50
+
+
+def get_aviary_pass_claims(username):
+    if not username:
+        return []
+    return api_get_optional(
+        "aviary_pass_claims?select=level,track,reward_type,reward_value,claimed_at&"
+        f"username=eq.{urllib.parse.quote(username)}&"
+        f"season_id=eq.{urllib.parse.quote(AVIARY_PASS_SEASON_ID)}"
+    )
+
+
+def get_aviary_pass_profile(username):
+    if not username:
+        return {"premium_unlocked": False}
+    rows = api_get_optional(
+        "aviary_pass_profiles?select=premium_unlocked&"
+        f"username=eq.{urllib.parse.quote(username)}&"
+        f"season_id=eq.{urllib.parse.quote(AVIARY_PASS_SEASON_ID)}&limit=1"
+    )
+    return rows[0] if rows else {"premium_unlocked": False}
+
+
+def format_aviary_pass_reward(reward):
+    reward_type, reward_value = reward
+    if reward_type == "pepples":
+        return f"🪶 {int(reward_value)} Pepples"
+    if reward_type == "chickens":
+        return f"🥚 {int(reward_value)} Chickens"
+    if reward_type == "title":
+        return f"🏷️ Titel: {reward_value}"
+    return f"✨ {reward_value}"
+
+
+def unlock_aviary_pass_premium(username):
+    user = get_user(username)
+    if not user:
+        return False, "Profil konnte nicht geladen werden."
+    if get_aviary_pass_profile(username).get("premium_unlocked"):
+        return False, "Premium-Pfad ist bereits freigeschaltet."
+
+    chickens = int(user.get("chickens") or 0)
+    if chickens < AVIARY_PASS_PREMIUM_COST:
+        return False, f"Du brauchst {AVIARY_PASS_PREMIUM_COST} Chickens für den Premium-Pfad."
+
+    unlocked = api_upsert_optional(
+        "aviary_pass_profiles?on_conflict=username,season_id",
+        {
+            "username": username,
+            "season_id": AVIARY_PASS_SEASON_ID,
+            "premium_unlocked": True,
+            "unlocked_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        },
+    )
+    if not unlocked:
+        return False, "Aviary-Pass-Tabellen fehlen wahrscheinlich noch in Supabase."
+
+    if not update_user(username, chickens - AVIARY_PASS_PREMIUM_COST, int(user.get("braincells") or 0)):
+        api_delete(
+            "aviary_pass_profiles?"
+            f"username=eq.{urllib.parse.quote(username)}&"
+            f"season_id=eq.{urllib.parse.quote(AVIARY_PASS_SEASON_ID)}"
+        )
+        return False, "Chickens konnten nicht abgezogen werden."
+    get_members.clear()
+    get_leaderboard.clear()
+    return True, "Premium-Pfad freigeschaltet."
+
+
+def claim_aviary_pass_reward(username, level, track, current_level):
+    if level > current_level:
+        return False, "Diese Stufe ist noch nicht erreicht."
+    if track not in ("free", "premium"):
+        return False, "Unbekannter Belohnungspfad."
+    if track == "premium" and not get_aviary_pass_profile(username).get("premium_unlocked"):
+        return False, "Schalte zuerst den Premium-Pfad frei."
+
+    reward_row = next((row for row in AVIARY_PASS_REWARDS if row["level"] == level), None)
+    if not reward_row:
+        return False, "Belohnung wurde nicht gefunden."
+
+    claimed = {
+        (int(row.get("level") or 0), str(row.get("track") or ""))
+        for row in get_aviary_pass_claims(username)
+    }
+    if (level, track) in claimed:
+        return False, "Diese Belohnung wurde bereits abgeholt."
+
+    reward_type, reward_value = reward_row[track]
+    created = api_post_optional(
+        "aviary_pass_claims",
+        {
+            "username": username,
+            "season_id": AVIARY_PASS_SEASON_ID,
+            "level": level,
+            "track": track,
+            "reward_type": reward_type,
+            "reward_value": str(reward_value),
+            "claimed_at": datetime.now(ZoneInfo("Europe/Berlin")).isoformat(),
+        },
+    )
+    if not created:
+        return False, "Aviary-Pass-Tabellen fehlen wahrscheinlich noch in Supabase."
+
+    user = get_user(username)
+    reward_saved = True
+    if not user:
+        reward_saved = False
+    elif reward_type == "pepples":
+        reward_saved = update_user(
+            username,
+            int(user.get("chickens") or 0),
+            int(user.get("braincells") or 0) + int(reward_value),
+        )
+    elif reward_type == "chickens":
+        reward_saved = update_user(
+            username,
+            int(user.get("chickens") or 0) + int(reward_value),
+            int(user.get("braincells") or 0),
+        )
+
+    if not reward_saved:
+        api_delete(
+            "aviary_pass_claims?"
+            f"username=eq.{urllib.parse.quote(username)}&"
+            f"season_id=eq.{urllib.parse.quote(AVIARY_PASS_SEASON_ID)}&"
+            f"level=eq.{int(level)}&track=eq.{track}"
+        )
+        return False, "Belohnung konnte nicht gutgeschrieben werden."
+
+    get_members.clear()
+    get_leaderboard.clear()
+    return True, f"Belohnung erhalten: {format_aviary_pass_reward((reward_type, reward_value))}"
 
 
 @st.cache_data(ttl=120)
@@ -4672,6 +4828,82 @@ h1::after {
     font-weight: 800;
 }
 
+.aviary-pass-hero {
+    position: relative;
+    overflow: hidden;
+    margin: 24px 0 14px;
+    border-radius: 20px;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 88% 20%, rgba(255,223,110,0.24), transparent 34%),
+        radial-gradient(circle at 8% 12%, rgba(70,240,255,0.24), transparent 38%),
+        linear-gradient(145deg, rgba(12,24,39,0.98), rgba(20,10,34,0.98));
+    border: 1px solid rgba(70,240,255,0.28);
+    box-shadow: 0 24px 65px rgba(0,0,0,0.34);
+}
+
+.aviary-pass-head,
+.aviary-pass-progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.aviary-pass-head h2 {
+    margin: 4px 0 8px;
+}
+
+.aviary-pass-level {
+    min-width: 94px;
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+    color: #061015;
+    background: linear-gradient(135deg, #46f0ff, #ffdf6e);
+    font-weight: 950;
+}
+
+.aviary-pass-track {
+    height: 18px;
+    margin: 18px 0 9px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.aviary-pass-track div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #46f0ff, #8d8cff, #ffdf6e);
+    box-shadow: 0 0 24px rgba(70,240,255,0.42);
+}
+
+.aviary-pass-reward {
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.11);
+}
+
+.aviary-pass-reward.premium {
+    background: linear-gradient(135deg, rgba(255,223,110,0.12), rgba(199,125,255,0.10));
+    border-color: rgba(255,223,110,0.28);
+}
+
+.aviary-pass-reward strong,
+.aviary-pass-reward span {
+    display: block;
+}
+
+.aviary-pass-reward span {
+    margin-top: 6px;
+    color: #cfc6e8;
+    font-size: 13px;
+    font-weight: 800;
+}
+
 .event-ticket {
     display: grid;
     grid-template-columns: 118px minmax(0, 1fr) minmax(150px, 0.32fr);
@@ -7180,6 +7412,29 @@ elif menu == "👤 Profil":
         daily_state = get_daily_reward_state(logged_in_username)
         achievements = build_achievements(user, rank_position, best_score, daily_state)
         unlocked_count = sum(1 for _, _, unlocked in achievements if unlocked)
+        aviary_pass_xp = get_aviary_pass_xp(user, unlocked_count, best_score, daily_state["streak"])
+        aviary_pass_level = min(
+            len(AVIARY_PASS_REWARDS),
+            aviary_pass_xp // AVIARY_PASS_XP_PER_LEVEL + 1,
+        )
+        aviary_pass_level_xp = aviary_pass_xp % AVIARY_PASS_XP_PER_LEVEL
+        aviary_pass_progress = (
+            100
+            if aviary_pass_level >= len(AVIARY_PASS_REWARDS)
+            else int((aviary_pass_level_xp / AVIARY_PASS_XP_PER_LEVEL) * 100)
+        )
+        aviary_pass_profile = get_aviary_pass_profile(logged_in_username)
+        aviary_pass_premium = bool(aviary_pass_profile.get("premium_unlocked"))
+        aviary_pass_claims = get_aviary_pass_claims(logged_in_username)
+        aviary_pass_claimed = {
+            (int(row.get("level") or 0), str(row.get("track") or ""))
+            for row in aviary_pass_claims
+        }
+        aviary_pass_cosmetics = [
+            str(row.get("reward_value") or "")
+            for row in aviary_pass_claims
+            if row.get("reward_type") in ("cosmetic", "title") and row.get("reward_value")
+        ]
         completed_fields = sum([
             bool(str(user.get("bio") or "").strip()),
             bool(str(user.get("favorite_game") or "").strip()),
@@ -7273,6 +7528,114 @@ elif menu == "👤 Profil":
             <div class="score-card"><strong>{unlocked_count}/{len(achievements)}</strong><span>Achievements freigeschaltet</span></div>
         </div>
         """, unsafe_allow_html=True)
+
+        pass_status = "Premium aktiv" if aviary_pass_premium else "Free-Pfad aktiv"
+        pass_xp_text = (
+            "Maximale Stufe erreicht"
+            if aviary_pass_level >= len(AVIARY_PASS_REWARDS)
+            else f"{aviary_pass_level_xp}/{AVIARY_PASS_XP_PER_LEVEL} XP bis Stufe {aviary_pass_level + 1}"
+        )
+        st.markdown(
+            f"""
+            <div class="aviary-pass-hero">
+                <div class="aviary-pass-head">
+                    <div>
+                        <div class="section-kicker">Aviary Pass</div>
+                        <h2>{html.escape(AVIARY_PASS_SEASON_NAME)}</h2>
+                        <div class="admin-muted">Pepples, Achievements, Daily Streaks und Chicken-Jump-Scores geben Pass-XP.</div>
+                    </div>
+                    <div class="aviary-pass-level">Stufe {aviary_pass_level}<br><small>{pass_status}</small></div>
+                </div>
+                <div class="aviary-pass-track"><div style="width:{aviary_pass_progress}%;"></div></div>
+                <div class="aviary-pass-progress-row">
+                    <strong>{aviary_pass_xp} Pass-XP gesamt</strong>
+                    <span>{pass_xp_text}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if not aviary_pass_premium:
+            if st.button(
+                f"Premium-Pfad für {AVIARY_PASS_PREMIUM_COST} Chickens freischalten",
+                key="aviary_pass_unlock_premium",
+                use_container_width=True,
+            ):
+                success, message = unlock_aviary_pass_premium(logged_in_username)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+        if aviary_pass_cosmetics:
+            cosmetic_chips = "".join(
+                f'<div class="profile-chip">✨ {html.escape(cosmetic)}</div>'
+                for cosmetic in aviary_pass_cosmetics
+            )
+            st.markdown(
+                '<div class="section-kicker">Freigeschaltete Pass-Kosmetik</div>'
+                f'<div class="profile-chip-row">{cosmetic_chips}</div>',
+                unsafe_allow_html=True,
+            )
+
+        with st.expander("Aviary-Pass-Belohnungen anzeigen", expanded=True):
+            for reward_row in AVIARY_PASS_REWARDS:
+                pass_level = int(reward_row["level"])
+                level_open = pass_level <= aviary_pass_level
+                free_claimed = (pass_level, "free") in aviary_pass_claimed
+                premium_claimed = (pass_level, "premium") in aviary_pass_claimed
+                free_reward = format_aviary_pass_reward(reward_row["free"])
+                premium_reward = format_aviary_pass_reward(reward_row["premium"])
+
+                st.markdown(f"#### Stufe {pass_level} {'· Freigeschaltet' if level_open else '· Gesperrt'}")
+                free_col, premium_col = st.columns(2)
+                with free_col:
+                    st.markdown(
+                        '<div class="aviary-pass-reward">'
+                        '<strong>Free-Pfad</strong>'
+                        f'<span>{html.escape(free_reward)}</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Abgeholt" if free_claimed else "Free-Belohnung abholen",
+                        key=f"aviary_pass_free_{pass_level}",
+                        disabled=free_claimed or not level_open,
+                        use_container_width=True,
+                    ):
+                        success, message = claim_aviary_pass_reward(
+                            logged_in_username, pass_level, "free", aviary_pass_level
+                        )
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+
+                with premium_col:
+                    st.markdown(
+                        '<div class="aviary-pass-reward premium">'
+                        '<strong>Premium-Pfad</strong>'
+                        f'<span>{html.escape(premium_reward)}</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Abgeholt" if premium_claimed else "Premium-Belohnung abholen",
+                        key=f"aviary_pass_premium_{pass_level}",
+                        disabled=premium_claimed or not level_open or not aviary_pass_premium,
+                        use_container_width=True,
+                    ):
+                        success, message = claim_aviary_pass_reward(
+                            logged_in_username, pass_level, "premium", aviary_pass_level
+                        )
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
 
         if st.button("Kreativwand öffnen", key="profile_creative_wall", use_container_width=True):
             st.session_state["app_menu"] = "🎨 Kreativwand"
