@@ -8319,10 +8319,13 @@ elif menu.endswith("Minispiele"):
         or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3")
         or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3.mp3")
     )
-    braincell_survivor_theme_data_uri = (
-        mp3_data_uri(assets_dir / "braincell-survivor-theme.mp3")
-        or mp3_data_uri(assets_dir / "braincell_survivor_theme.mp3")
-    )
+    braincell_survivor_theme_paths = sorted(assets_dir.glob("braincell-survivor-theme*.mp3"))
+    if not braincell_survivor_theme_paths:
+        braincell_survivor_theme_paths = sorted(assets_dir.glob("braincell_survivor_theme*.mp3"))
+    braincell_survivor_playlist = [
+        mp3_data_uri(path)
+        for path in braincell_survivor_theme_paths
+    ]
 
     if selected_minigame == "dnd":
         render_dnd_page()
@@ -12053,7 +12056,7 @@ elif menu.endswith("Minispiele"):
     </head>
     <body>
     <div class="shell"><div class="layout"><div id="stage" class="stage">
-        <audio id="musicFile" src="__SURVIVOR_THEME_SRC__" loop preload="auto"></audio>
+        <audio id="musicFile" preload="auto"></audio>
         <div id="game"></div>
         <div id="overlay" class="overlay"><div class="panel">
             <div id="kicker" class="kicker">Phaser Arena</div>
@@ -12078,8 +12081,9 @@ elif menu.endswith("Minispiele"):
     const startBtn=document.getElementById("start"),saveBtn=document.getElementById("save"),restartBtn=document.getElementById("restart"),musicBtn=document.getElementById("musicToggle"),fullscreenBtn=document.getElementById("fullscreenToggle"),pauseBtn=document.getElementById("pauseToggle"),musicFile=document.getElementById("musicFile");
     const timeEl=document.getElementById("time"),scoreEl=document.getElementById("score"),levelEl=document.getElementById("level"),hpEl=document.getElementById("hp"),xpbar=document.getElementById("xpbar"),hpbar=document.getElementById("hpbar"),buildEl=document.getElementById("build"),bossNameEl=document.getElementById("bossName"),bossbar=document.getElementById("bossbar"),bossInfo=document.getElementById("bossInfo"),dustEl=document.getElementById("dust"),metaInfo=document.getElementById("metaInfo"),scoresEl=document.getElementById("scores");
     const SUPABASE_URL="__SUPABASE_URL__",SUPABASE_KEY="__SUPABASE_KEY__",ENDPOINT=SUPABASE_URL+"/rest/v1/braincell_survivor_scores";
+    const musicPlaylist=__SURVIVOR_PLAYLIST__;
     const WORLD_W=5200,WORLD_H=3600;
-    let game=null,scene=null,state="menu",p=null,score=0,kills=0,seconds=0,saved=false,lastBoss=0,currentBoss=null,musicOn=true,audioCtx=null,moveKeys={},meta=loadMeta(),pauseStartedAt=0;
+    let game=null,scene=null,state="menu",p=null,score=0,kills=0,seconds=0,saved=false,lastBoss=0,currentBoss=null,musicOn=true,musicTrack=0,audioCtx=null,moveKeys={},meta=loadMeta(),pauseStartedAt=0;
     const pool=[["bolt","Brain Bolt","+1 Auto-Aim Projektil",8],["orbit","Synapsen-Orbit","Mehr kreisende Mini-Brains",7],["aura","Neural Aura","Groessere Schadenszone",7],["bomb","Egg Bomb","Explosive Flaechen-Eier",6],["laser","Focus Laser","Dicker Laser auf Elites",6],["drone","Synapse Drone","Begleiter feuern Plasma",5],["thunder","Thought Thunder","Kettenblitze springen weiter",5],["nova","Panic Nova","Schockwelle pulsiert schneller",5],["frost","Memory Freeze","Treffer verlangsamen Gegner",5],["shield","Mind Shield","Mehr HP und weniger Schaden",5],["speed","Chicken Boots","+12% Bewegungstempo",5],["magnet","Big Brain Magnet","Mehr Pickup-Reichweite",6],["might","Gehirnzellen-Power","+18% Gesamtschaden",8],["regen","Warm Nest","Mehr Regeneration und Max-HP",6],["cooldown","Turbo Synapse","Alle Waffen laden schneller",7]];
     const names={bolt:"Bolt",orbit:"Orbit",aura:"Aura",bomb:"Bomb",laser:"Laser",drone:"Drone",thunder:"Thunder",nova:"Nova",frost:"Freeze",shield:"Shield",speed:"Speed",magnet:"Magnet",might:"Power",regen:"Regen",cooldown:"Turbo"};
     const evo={bolt:8,bomb:6,laser:6,orbit:7,aura:7,drone:5,thunder:5,nova:5};
@@ -12088,8 +12092,10 @@ elif menu.endswith("Minispiele"):
     function esc(v){const d=document.createElement("div");d.textContent=v;return d.innerHTML}
     function time(v){return Math.floor(v/60)+":"+Math.floor(v%60).toString().padStart(2,"0")}
     function audio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx}
-    function startMusic(){if(!musicOn||!musicFile||!musicFile.getAttribute("src"))return;musicFile.volume=.12;musicFile.play().catch(()=>{})}
+    function loadMusicTrack(){if(!musicFile||!musicPlaylist.length)return false;musicTrack%=musicPlaylist.length;if(musicFile.getAttribute("src")!==musicPlaylist[musicTrack])musicFile.src=musicPlaylist[musicTrack];return true}
+    function startMusic(){if(!musicOn||!loadMusicTrack())return;musicFile.volume=.12;musicFile.play().catch(()=>{})}
     function stopMusic(){if(!musicFile)return;musicFile.pause();musicFile.currentTime=0}
+    if(musicFile)musicFile.addEventListener("ended",()=>{if(!musicOn||!musicPlaylist.length)return;musicTrack=(musicTrack+1)%musicPlaylist.length;musicFile.src=musicPlaylist[musicTrack];startMusic()});
     function tone(f,d,type="triangle",vol=.04,delay=0){const a=audio(),s=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(vol,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g).connect(a.destination);o.start(s);o.stop(s+d+.04)}
     function noise(d=.12,vol=.035,delay=0){const a=audio(),s=a.currentTime+delay,b=a.createBuffer(1,a.sampleRate*d,a.sampleRate),data=b.getChannelData(0),src=a.createBufferSource(),g=a.createGain(),filter=a.createBiquadFilter();for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);src.buffer=b;filter.type="highpass";filter.frequency.value=900;g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(.0001,s+d);src.connect(filter).connect(g).connect(a.destination);src.start(s);src.stop(s+d)}
     const sfxLast={},sfxMin={shoot:42,hit:90,kill:70,laserHit:90,freeze:240,explode:170,pickup:55,drone:90};
@@ -12190,7 +12196,7 @@ elif menu.endswith("Minispiele"):
     document.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k==="p"||k==="escape"){e.preventDefault();if(state==="play")pauseRun();else if(state==="paused")resumeRun();return}moveKeys[k]=true;if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault()});document.addEventListener("keyup",e=>{moveKeys[e.key.toLowerCase()]=false});
     startBtn.onclick=start;saveBtn.onclick=saveScore;restartBtn.onclick=start;pauseBtn.onclick=()=>{if(state==="play")pauseRun();else if(state==="paused")resumeRun()};musicBtn.onclick=()=>{musicOn=!musicOn;musicBtn.textContent=musicOn?"Musik: An":"Musik: Aus";if(!musicOn)stopMusic();else if(state==="play")startMusic()};fullscreenBtn.onclick=toggleFullscreen;document.addEventListener("fullscreenchange",()=>{fullscreenBtn.textContent=document.fullscreenElement?"Fenster":"Vollbild";setTimeout(()=>{try{if(game&&game.scale)game.scale.refresh()}catch(e){console.error(e)}},120)});saveBtn.style.display="none";restartBtn.style.display="none";renderScores();
     </script></body></html>
-    """.replace("__SURVIVOR_THEME_SRC__", braincell_survivor_theme_data_uri)
+    """.replace("__SURVIVOR_PLAYLIST__", json.dumps(braincell_survivor_playlist))
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
 
