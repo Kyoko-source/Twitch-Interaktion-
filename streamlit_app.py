@@ -543,7 +543,7 @@ def get_online_users():
     if not online_names:
         return []
 
-    users = api_get_optional("users?select=username,avatar_url,braincells")
+    users = api_get_optional("users?select=*")
     users_by_name = {str(user.get("username") or ""): user for user in users}
     return [users_by_name.get(username, {"username": username}) for username in online_names]
 
@@ -560,18 +560,32 @@ def render_online_presence():
     cards = []
     for user in online_users:
         online_username = str(user.get("username") or "")
-        avatar_markup = get_avatar_markup(online_username, user.get("avatar_url") or "", 54)
-        level = get_profile_level(int(user.get("braincells") or 0))
+        braincells = int(user.get("braincells") or 0)
+        avatar_markup = get_avatar_markup(online_username, user.get("avatar_url") or "", 58)
+        level = get_profile_level(braincells)
+        frame_class = get_profile_frame_class(braincells)
+        rank_name = get_rank(braincells)[0]
+        favorite_game = str(user.get("favorite_game") or "Noch nicht gesetzt")
+        bio = str(user.get("bio") or "Dieses Profil sammelt noch seine Geschichte.")
+        profile_url = f"?member={urllib.parse.quote(online_username)}"
         cards.append(
-            '<div class="home-online-profile">'
-            '<div class="home-online-avatar">'
+            f'<a class="home-online-profile" href="{profile_url}" target="_self" '
+            f'title="Profil von {html.escape(online_username, quote=True)} öffnen">'
+            f'<div class="home-online-avatar profile-identity-frame {frame_class}">'
             f'{avatar_markup}<span class="home-online-dot" title="Online"></span>'
             '</div>'
-            '<div>'
+            '<div class="home-online-copy">'
             f'<strong>{html.escape(online_username)}</strong>'
-            f'<span>Level {level} · online</span>'
+            f'<span>Level {level} · {html.escape(get_level_title(level))}</span>'
+            f'<small>{html.escape(get_profile_status(user))}</small>'
             '</div>'
+            '<div class="home-online-hover">'
+            f'<b>{html.escape(rank_name)}</b>'
+            f'<span>Lieblingsspiel: {html.escape(favorite_game)}</span>'
+            f'<p>{html.escape(bio)}</p>'
+            '<em>Profil öffnen →</em>'
             '</div>'
+            '</a>'
         )
 
     profiles_html = (
@@ -919,6 +933,26 @@ def get_level_title(level):
     if level >= 5:
         return "Aufsteiger"
     return "Frisch geschlüpft"
+
+
+def get_profile_frame_class(points):
+    level = get_profile_level(points)
+    if level >= 50:
+        return "frame-legendary"
+    if level >= 20:
+        return "frame-gold"
+    if level >= 10:
+        return "frame-aurora"
+    if level >= 5:
+        return "frame-neon"
+    return "frame-starter"
+
+
+def get_profile_status(user):
+    favorite_game = str(user.get("favorite_game") or "").strip()
+    if favorite_game:
+        return f"Spielt gerne {favorite_game}"
+    return "Bereit für den nächsten Schwarm-Moment"
 
 
 def get_avatar_markup(username, avatar_url, size=96):
@@ -3972,6 +4006,15 @@ def delete_patch_note(note_id):
 st.markdown("""
 <style>
 
+:root {
+    --aviary-live: #52e0c4;
+    --aviary-action: #ff54a0;
+    --aviary-reward: #ffdf6e;
+    --aviary-violet: #c77dff;
+    --aviary-panel: rgba(8,14,24,0.72);
+    --aviary-border: rgba(255,255,255,0.12);
+}
+
 .stApp {
     background:
     radial-gradient(circle at 12% 16%, rgba(199,125,255,0.24), transparent 28%),
@@ -4466,6 +4509,71 @@ h1::after {
     background: linear-gradient(135deg, #7b2cbf, #c77dff, #ff54a0);
 }
 
+.profile-identity-frame {
+    position: relative;
+    width: fit-content;
+    padding: 4px;
+    border-radius: 27px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.32), rgba(199,125,255,0.42));
+    box-shadow: 0 0 24px rgba(199,125,255,0.18);
+}
+
+.profile-identity-frame .profile-avatar {
+    display: flex;
+    border-color: rgba(8,14,24,0.86);
+    box-shadow: none;
+}
+
+.profile-identity-frame-large {
+    padding: 6px;
+    border-radius: 31px;
+}
+
+.profile-identity-frame.frame-neon {
+    background: linear-gradient(135deg, #52e0c4, #46f0ff, #c77dff);
+    box-shadow: 0 0 30px rgba(70,240,255,0.30);
+}
+
+.profile-identity-frame.frame-aurora {
+    background: linear-gradient(120deg, #52e0c4, #c77dff, #ff54a0, #52e0c4);
+    background-size: 240% 240%;
+    box-shadow: 0 0 34px rgba(199,125,255,0.34);
+    animation: aviary-frame-flow 5s ease-in-out infinite;
+}
+
+.profile-identity-frame.frame-gold {
+    background: linear-gradient(135deg, #fff4b0, #ffbf47, #ff54a0);
+    box-shadow: 0 0 34px rgba(255,223,110,0.34);
+}
+
+.profile-identity-frame.frame-legendary {
+    background: conic-gradient(from 0deg, #fff4b0, #52e0c4, #c77dff, #ff54a0, #fff4b0);
+    box-shadow: 0 0 42px rgba(255,223,110,0.42);
+    animation: aviary-legendary-pulse 2.8s ease-in-out infinite;
+}
+
+.profile-live-status,
+.member-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    margin: 8px 0 12px;
+    color: #bfffe9;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.profile-live-status span,
+.member-status span {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--aviary-live);
+    box-shadow: 0 0 14px rgba(82,224,196,0.78);
+}
+
 .profile-initials {
     display: flex;
     align-items: center;
@@ -4629,6 +4737,14 @@ h1::after {
         rgba(8,14,24,0.74);
     border: 1px solid rgba(255,255,255,0.12);
     box-shadow: 0 22px 60px rgba(0,0,0,0.30);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+    animation: aviary-card-in 520ms ease both;
+}
+
+.member-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(199,125,255,0.34);
+    box-shadow: 0 28px 74px rgba(0,0,0,0.38), 0 0 28px rgba(199,125,255,0.12);
 }
 
 .member-card::before {
@@ -4863,8 +4979,10 @@ h1::after {
 .profile-progress-fill {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #7b2cbf, #c77dff, #ff54a0);
+    background: linear-gradient(90deg, #7b2cbf, var(--aviary-violet), var(--aviary-action));
     box-shadow: 0 0 24px rgba(255,84,160,0.32);
+    transform-origin: left;
+    animation: aviary-progress-in 900ms cubic-bezier(.2,.8,.2,1) both;
 }
 
 .profile-level-card {
@@ -5239,6 +5357,7 @@ h1::after {
         linear-gradient(145deg, rgba(8,8,22,0.96), rgba(16,8,34,0.94));
     border: 1px solid rgba(255,255,255,0.12);
     box-shadow: 0 30px 90px rgba(0,0,0,0.42);
+    animation: aviary-card-in 520ms ease both;
 }
 
 .home-dashboard::before {
@@ -5282,6 +5401,7 @@ h1::after {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    isolation: isolate;
 }
 
 .home-spotlight::before {
@@ -5308,6 +5428,40 @@ h1::after {
     filter: blur(8px);
     opacity: 0.58;
     z-index: 0;
+    animation: aviary-orb-drift 9s ease-in-out infinite alternate;
+}
+
+.home-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.home-particles span {
+    position: absolute;
+    left: var(--x);
+    bottom: -20px;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background: var(--color);
+    box-shadow: 0 0 18px var(--color);
+    opacity: 0;
+    animation: aviary-particle-rise var(--duration) linear infinite;
+    animation-delay: var(--delay);
+}
+
+.home-particles span:nth-child(1) { --x: 10%; --size: 4px; --color: #52e0c4; --duration: 9s; --delay: -2s; }
+.home-particles span:nth-child(2) { --x: 26%; --size: 3px; --color: #ffdf6e; --duration: 12s; --delay: -8s; }
+.home-particles span:nth-child(3) { --x: 47%; --size: 5px; --color: #c77dff; --duration: 11s; --delay: -5s; }
+.home-particles span:nth-child(4) { --x: 68%; --size: 3px; --color: #52e0c4; --duration: 10s; --delay: -7s; }
+.home-particles span:nth-child(5) { --x: 82%; --size: 4px; --color: #ff54a0; --duration: 13s; --delay: -4s; }
+.home-particles span:nth-child(6) { --x: 94%; --size: 3px; --color: #ffdf6e; --duration: 9s; --delay: -6s; }
+
+.home-aviary-visual {
+    animation: aviary-visual-float 7s ease-in-out infinite;
 }
 
 .home-aviary-visual {
@@ -5391,6 +5545,13 @@ h1::after {
     background: rgba(8,14,24,0.64);
     border: 1px solid rgba(255,255,255,0.12);
     box-shadow: inset 0 0 24px rgba(255,84,160,0.06);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.home-action-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,223,110,0.30);
+    box-shadow: inset 0 0 24px rgba(255,223,110,0.08), 0 18px 30px rgba(0,0,0,0.22);
 }
 
 .home-action-card strong {
@@ -5399,6 +5560,7 @@ h1::after {
     font-size: 28px;
     line-height: 1;
     margin-bottom: 8px;
+    animation: aviary-number-pop 620ms cubic-bezier(.2,.9,.2,1) both;
 }
 
 .home-action-card span {
@@ -5520,6 +5682,7 @@ h1::after {
 }
 
 .home-online-profile {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -5528,6 +5691,18 @@ h1::after {
     border-radius: 8px;
     background: rgba(255,255,255,0.045);
     border: 1px solid rgba(255,255,255,0.10);
+    color: inherit;
+    text-decoration: none;
+    transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+    animation: aviary-card-in 480ms ease both;
+}
+
+.home-online-profile:hover {
+    z-index: 4;
+    transform: translateY(-4px);
+    background: rgba(82,224,196,0.075);
+    border-color: rgba(82,224,196,0.34);
+    box-shadow: 0 20px 44px rgba(0,0,0,0.30), 0 0 28px rgba(82,224,196,0.10);
 }
 
 .home-online-avatar {
@@ -5553,26 +5728,93 @@ h1::after {
     background: #52e0a4;
     border: 2px solid #101020;
     box-shadow: 0 0 12px rgba(82,224,164,0.82);
+    animation: aviary-online-pulse 1.8s ease-in-out infinite;
 }
 
-.home-online-profile strong,
-.home-online-profile span {
+.home-online-copy {
+    min-width: 0;
+}
+
+.home-online-copy strong,
+.home-online-copy span,
+.home-online-copy small {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.home-online-profile strong {
+.home-online-copy strong {
     color: #ffffff;
     font-size: 16px;
 }
 
-.home-online-profile span {
+.home-online-copy span {
     margin-top: 2px;
     color: #bfffe9;
     font-size: 13px;
     font-weight: 760;
+}
+
+.home-online-copy small {
+    margin-top: 4px;
+    color: #cfc6e8;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.home-online-hover {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: calc(100% + 8px);
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(8,14,24,0.97);
+    border: 1px solid rgba(82,224,196,0.28);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.42);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-5px);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+    pointer-events: none;
+}
+
+.home-online-profile:hover .home-online-hover {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.home-online-hover b,
+.home-online-hover span,
+.home-online-hover em {
+    display: block;
+}
+
+.home-online-hover b {
+    color: var(--aviary-reward);
+}
+
+.home-online-hover span {
+    margin-top: 5px;
+    color: #bfffe9;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.home-online-hover p {
+    margin: 8px 0;
+    color: #e7dff5;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.home-online-hover em {
+    color: var(--aviary-live);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 900;
 }
 
 .home-online-empty {
@@ -6930,7 +7172,79 @@ h1::after {
     border: 1px solid rgba(255,255,255,0.09);
 }
 
+@keyframes aviary-card-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes aviary-number-pop {
+    from { opacity: 0; transform: translateY(8px) scale(0.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes aviary-progress-in {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes aviary-frame-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes aviary-legendary-pulse {
+    0%, 100% { box-shadow: 0 0 28px rgba(255,223,110,0.30); }
+    50% { box-shadow: 0 0 48px rgba(255,223,110,0.58); }
+}
+
+@keyframes aviary-online-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(82,224,164,0.70); }
+    50% { transform: scale(1.15); box-shadow: 0 0 20px rgba(82,224,164,0.95); }
+}
+
+@keyframes aviary-orb-drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(-34px, 18px, 0) scale(1.08); }
+}
+
+@keyframes aviary-visual-float {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes aviary-particle-rise {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.7); }
+    18% { opacity: 0.72; }
+    82% { opacity: 0.34; }
+    100% { opacity: 0; transform: translate3d(18px, -390px, 0) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stApp,
+    .home-dashboard,
+    .home-spotlight::after,
+    .home-particles span,
+    .home-aviary-visual,
+    .home-action-card strong,
+    .home-online-profile,
+    .home-online-dot,
+    .member-card,
+    .profile-progress-fill,
+    .profile-identity-frame {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 @media (max-width: 780px) {
+    .home-online-hover {
+        display: none;
+    }
+
+    .home-online-profile {
+        padding: 10px;
+    }
+
     .podium-grid,
     .arcade-grid,
     .member-grid,
@@ -7032,11 +7346,14 @@ h1::after {
     font-weight: 900;
     padding: 0.6rem 1rem;
     box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
 }
 
 .stButton > button:hover {
     transform: translateY(-2px);
     box-shadow: 0 18px 42px rgba(255,84,160,0.24);
+    border-color: rgba(255,255,255,0.38);
+    filter: saturate(1.12) brightness(1.04);
 }
 
 .stRadio {
@@ -7172,6 +7489,16 @@ if "app_menu" not in st.session_state:
 
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "🏠 Home"
+
+requested_member = str(st.query_params.get("member") or "").strip()
+if requested_member:
+    st.session_state["member_search"] = requested_member
+    st.session_state["app_menu"] = "👥 Mitglieder"
+    st.session_state["main_nav"] = "👥 Mitglieder"
+    try:
+        del st.query_params["member"]
+    except KeyError:
+        pass
 
 topbar_account_label = logged_in_username or twitch_display_name
 topbar_account_html = (
@@ -7319,8 +7646,16 @@ if menu != "🏠 Home":
 
 if menu == "🏠 Home":
 
-    spotlight_title = "Willkommen in der Aviary"
-    spotlight_copy = "Community, Rewards und Rankings für den stärksten Schwarm."
+    spotlight_title = (
+        f"Willkommen zurück, {logged_in_username}"
+        if logged_in_username
+        else "Willkommen in der Aviary"
+    )
+    spotlight_copy = (
+        "Dein Profil leuchtet, der Schwarm ist wach und die nächste Belohnung wartet."
+        if logged_in_username
+        else "Community, Rewards und Rankings für den stärksten Schwarm."
+    )
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
         '<h3>Heute wartet dein Bonus</h3>'
@@ -7342,6 +7677,9 @@ if menu == "🏠 Home":
         '<div class="home-dashboard">'
         '<div class="home-hero">'
         '<div class="home-spotlight">'
+        '<div class="home-particles" aria-hidden="true">'
+        '<span></span><span></span><span></span><span></span><span></span><span></span>'
+        '</div>'
         '''
         <div class="home-aviary-visual" aria-hidden="true">
             <svg viewBox="0 0 420 320" role="img">
@@ -7588,6 +7926,8 @@ elif menu == "👤 Profil":
         favorite_game = user.get("favorite_game") or "Noch nicht gesetzt"
         avatar_url = user.get("avatar_url") or ""
         avatar_markup = get_avatar_markup(user["username"], avatar_url, 136)
+        profile_frame_class = get_profile_frame_class(braincells)
+        profile_status = get_profile_status(user)
         members = get_members()
         sorted_members = sorted(members, key=lambda member: int(member.get("braincells") or 0), reverse=True)
         rank_position = next(
@@ -7631,10 +7971,13 @@ elif menu == "👤 Profil":
         <div class="profile-shell">
             <div class="profile-showcase">
                 <div class="profile-showcase-inner">
-                    {avatar_markup}
+                    <div class="profile-identity-frame profile-identity-frame-large {profile_frame_class}">
+                        {avatar_markup}
+                    </div>
                     <div>
                         <div class="profile-rank-badge">Level {level} · {html.escape(level_title)}</div>
                         <div class="profile-big-name">{html.escape(user["username"])}</div>
+                        <div class="profile-live-status"><span></span>{html.escape(profile_status)}</div>
                         <div class="profile-bio-large">{html.escape(bio)}</div>
                         <div class="profile-chip-row">
                             <div class="profile-chip">Lieblingsspiel: {html.escape(favorite_game)}</div>
@@ -8111,7 +8454,11 @@ elif menu == "👥 Mitglieder":
             unsafe_allow_html=True,
         )
 
-        search_member = st.text_input("Mitglied suchen", placeholder="Name eingeben...")
+        search_member = st.text_input(
+            "Mitglied suchen",
+            placeholder="Name eingeben...",
+            key="member_search",
+        )
         rank_lookup = {
             str(member.get("username") or ""): index
             for index, member in enumerate(ranked_members, start=1)
@@ -8138,13 +8485,15 @@ elif menu == "👥 Mitglieder":
             bio = member.get("bio") or "Noch keine Bio."
             favorite_game = member.get("favorite_game") or "Nicht gesetzt"
             avatar_markup = get_avatar_markup(username, member.get("avatar_url") or "", 94)
+            member_frame_class = get_profile_frame_class(braincells)
 
             members_html += (
                 '<div class="member-card">'
                 f'<div class="member-rank-pill">#{rank_lookup.get(username, "-")}</div>'
-                f'{avatar_markup}'
+                f'<div class="profile-identity-frame {member_frame_class}">{avatar_markup}</div>'
                 f'<div class="profile-name">{html.escape(username)}</div>'
                 f'<div class="profile-meta">Level {level} · {html.escape(rank_name)}</div>'
+                f'<div class="member-status"><span></span>{html.escape(get_profile_status(member))}</div>'
                 '<div class="member-stat-strip">'
                 f'<div class="member-stat-chip"><strong>🪶 {braincells}</strong><span>Pepples</span></div>'
                 f'<div class="member-stat-chip"><strong>🥚 {chickens}</strong><span>Chickens</span></div>'
