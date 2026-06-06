@@ -126,10 +126,8 @@ def show_login_animation():
         )
     else:
         media_html = (
-            f'<video id="login-transition-video" autoplay playsinline controls '
-            f'src="data:{mime_type};base64,'
+            f'<video autoplay muted playsinline src="data:{mime_type};base64,'
             f'{encoded_animation}"></video>'
-            '<button id="login-transition-start" type="button">Mit Ton starten</button>'
         )
 
     components.html(
@@ -141,7 +139,6 @@ def show_login_animation():
                 background: transparent;
             }}
             .login-animation {{
-                position: relative;
                 height: 620px;
                 display: grid;
                 place-items: center;
@@ -150,12 +147,7 @@ def show_login_animation():
                 background:
                     radial-gradient(circle at center, rgba(108, 92, 231, .28), transparent 60%),
                     rgba(7, 10, 20, .96);
-                animation: loginFadeIn .4s ease forwards;
-                transition: opacity .6s ease, transform .6s ease;
-            }}
-            .login-animation.finished {{
-                opacity: 0;
-                transform: scale(1.02);
+                animation: loginFade 3.2s ease forwards;
             }}
             .login-animation img,
             .login-animation video {{
@@ -164,57 +156,13 @@ def show_login_animation():
                 max-height: 100%;
                 object-fit: contain;
             }}
-            #login-transition-start {{
-                position: absolute;
-                z-index: 2;
-                padding: 14px 22px;
-                border: 1px solid rgba(255,255,255,.35);
-                border-radius: 999px;
-                color: white;
-                background: rgba(10, 12, 24, .88);
-                font: 700 16px system-ui, sans-serif;
-                cursor: pointer;
-                box-shadow: 0 14px 35px rgba(0,0,0,.35);
-            }}
-            #login-transition-start.hidden {{
-                display: none;
-            }}
-            @keyframes loginFadeIn {{
-                from {{ opacity: 0; transform: scale(.98); }}
-                to {{ opacity: 1; transform: scale(1); }}
+            @keyframes loginFade {{
+                0% {{ opacity: 0; transform: scale(.98); }}
+                12%, 82% {{ opacity: 1; transform: scale(1); }}
+                100% {{ opacity: 0; transform: scale(1.02); }}
             }}
         </style>
         <div class="login-animation">{media_html}</div>
-        <script>
-            const video = document.getElementById("login-transition-video");
-            const startButton = document.getElementById("login-transition-start");
-
-            if (video && startButton) {{
-                const playWithSound = () => {{
-                    video.muted = false;
-                    video.volume = 1;
-                    video.play()
-                        .then(() => startButton.classList.add("hidden"))
-                        .catch(() => startButton.classList.remove("hidden"));
-                }};
-
-                video.addEventListener("ended", () => {{
-                    video.parentElement.classList.add("finished");
-                    window.setTimeout(() => {{
-                        window.parent.postMessage(
-                            {{
-                                isStreamlitMessage: true,
-                                type: "streamlit:setFrameHeight",
-                                height: 0
-                            }},
-                            "*"
-                        );
-                    }}, 650);
-                }});
-                startButton.addEventListener("click", playWithSound);
-                playWithSound();
-            }}
-        </script>
         """,
         height=620,
         scrolling=False,
@@ -507,8 +455,6 @@ def handle_twitch_callback():
     st.session_state["twitch_user"] = twitch_user
     st.session_state["twitch_access_token"] = access_token
     st.session_state["show_login_animation"] = True
-    st.session_state["app_menu"] = "🏠 Home"
-    st.session_state["main_nav"] = "🏠 Home"
     try:
         st.query_params.clear()
     except:
@@ -6947,9 +6893,6 @@ menu = st.session_state["app_menu"]
 
 logged_in_username = get_logged_in_username()
 
-if st.session_state.pop("show_login_animation", False):
-    show_login_animation()
-
 leaderboard_pages = {"🏠 Home", "🏆 Rangliste"}
 if menu in leaderboard_pages:
     leaderboard = get_leaderboard()
@@ -7168,6 +7111,8 @@ elif menu == "🔑 Login":
     logged_in_username = get_logged_in_username()
 
     if logged_in_username:
+        if st.session_state.pop("show_login_animation", False):
+            show_login_animation()
         st.success(f"Angemeldet als **{logged_in_username}**")
         if st.button("Abmelden", key="logout_button"):
             logout_user()
@@ -7190,8 +7135,6 @@ elif menu == "🔑 Login":
                     if user:
                         st.session_state["logged_in_username"] = user["username"]
                         st.session_state["show_login_animation"] = True
-                        st.session_state["app_menu"] = "🏠 Home"
-                        st.session_state["main_nav"] = "🏠 Home"
                         st.success("Erfolgreich angemeldet.")
                         st.rerun()
                     else:
@@ -7233,8 +7176,6 @@ elif menu == "🔑 Login":
                     if user:
                         st.session_state["logged_in_username"] = user["username"]
                         st.session_state["show_login_animation"] = True
-                        st.session_state["app_menu"] = "🏠 Home"
-                        st.session_state["main_nav"] = "🏠 Home"
                         st.success(message)
                         st.rerun()
                     else:
