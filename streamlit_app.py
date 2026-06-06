@@ -8319,8 +8319,15 @@ elif menu.endswith("Minispiele"):
         or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3")
         or mp3_data_uri(assets_dir / "assetschicken-football-theme.mp3.mp3")
     )
-    braincell_survivor_theme_paths = sorted(assets_dir.glob("braincell-survivor-theme*.mp3"))
-    if not braincell_survivor_theme_paths:
+    braincell_survivor_primary_theme = assets_dir / "braincell-survivor-theme.mp3"
+    braincell_survivor_theme_paths = sorted(
+        path
+        for path in assets_dir.glob("braincell-survivor-theme*.mp3")
+        if path != braincell_survivor_primary_theme
+    )
+    if braincell_survivor_primary_theme.exists():
+        braincell_survivor_theme_paths.insert(0, braincell_survivor_primary_theme)
+    elif not braincell_survivor_theme_paths:
         braincell_survivor_theme_paths = sorted(assets_dir.glob("braincell_survivor_theme*.mp3"))
     braincell_survivor_playlist = [
         mp3_data_uri(path)
@@ -12082,6 +12089,7 @@ elif menu.endswith("Minispiele"):
     const timeEl=document.getElementById("time"),scoreEl=document.getElementById("score"),levelEl=document.getElementById("level"),hpEl=document.getElementById("hp"),xpbar=document.getElementById("xpbar"),hpbar=document.getElementById("hpbar"),buildEl=document.getElementById("build"),bossNameEl=document.getElementById("bossName"),bossbar=document.getElementById("bossbar"),bossInfo=document.getElementById("bossInfo"),dustEl=document.getElementById("dust"),metaInfo=document.getElementById("metaInfo"),scoresEl=document.getElementById("scores");
     const SUPABASE_URL="__SUPABASE_URL__",SUPABASE_KEY="__SUPABASE_KEY__",ENDPOINT=SUPABASE_URL+"/rest/v1/braincell_survivor_scores";
     const musicPlaylist=__SURVIVOR_PLAYLIST__;
+    for(let i=musicPlaylist.length-1;i>1;i--){const j=1+Math.floor(Math.random()*i);[musicPlaylist[i],musicPlaylist[j]]=[musicPlaylist[j],musicPlaylist[i]]}
     const WORLD_W=5200,WORLD_H=3600;
     let game=null,scene=null,state="menu",p=null,score=0,kills=0,seconds=0,saved=false,lastBoss=0,currentBoss=null,musicOn=true,musicTrack=0,audioCtx=null,moveKeys={},meta=loadMeta(),pauseStartedAt=0;
     const pool=[["bolt","Brain Bolt","+1 Auto-Aim Projektil",8],["orbit","Synapsen-Orbit","Mehr kreisende Mini-Brains",7],["aura","Neural Aura","Groessere Schadenszone",7],["bomb","Egg Bomb","Explosive Flaechen-Eier",6],["laser","Focus Laser","Dicker Laser auf Elites",6],["drone","Synapse Drone","Begleiter feuern Plasma",5],["thunder","Thought Thunder","Kettenblitze springen weiter",5],["nova","Panic Nova","Schockwelle pulsiert schneller",5],["frost","Memory Freeze","Treffer verlangsamen Gegner",5],["shield","Mind Shield","Mehr HP und weniger Schaden",5],["speed","Chicken Boots","+12% Bewegungstempo",5],["magnet","Big Brain Magnet","Mehr Pickup-Reichweite",6],["might","Gehirnzellen-Power","+18% Gesamtschaden",8],["regen","Warm Nest","Mehr Regeneration und Max-HP",6],["cooldown","Turbo Synapse","Alle Waffen laden schneller",7]];
