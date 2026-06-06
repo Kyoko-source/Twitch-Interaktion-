@@ -5508,7 +5508,7 @@ h1::after {
 .home-spotlight h2 {
     position: relative;
     z-index: 3;
-    max-width: 540px;
+    max-width: 620px;
     margin: 8px 0 14px;
     font-size: clamp(42px, 6vw, 86px);
     line-height: 0.92;
@@ -5516,6 +5516,19 @@ h1::after {
     background: linear-gradient(135deg, #ffffff, #46f0ff 42%, #ffdf6e);
     -webkit-background-clip: text;
     color: transparent;
+}
+
+.home-welcome-prefix,
+.home-welcome-name {
+    display: block;
+}
+
+.home-welcome-name {
+    max-width: 100%;
+    margin-top: 8px;
+    font-size: clamp(18px, 4.25vw, var(--welcome-name-size, 62px));
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .home-spotlight p,
@@ -7646,10 +7659,13 @@ if menu != "🏠 Home":
 
 if menu == "🏠 Home":
 
-    spotlight_title = (
-        f"Willkommen zurück, {logged_in_username}"
+    welcome_name_size = max(18, min(62, int(720 / max(len(logged_in_username), 1)))) if logged_in_username else 62
+    spotlight_title_html = (
+        '<span class="home-welcome-prefix">Willkommen zurück,</span>'
+        f'<span class="home-welcome-name" style="--welcome-name-size:{welcome_name_size}px;">'
+        f'{html.escape(logged_in_username)}</span>'
         if logged_in_username
-        else "Willkommen in der Aviary"
+        else '<span class="home-welcome-prefix">Willkommen in der Aviary</span>'
     )
     spotlight_copy = (
         "Dein Profil leuchtet, der Schwarm ist wach und die nächste Belohnung wartet."
@@ -7717,7 +7733,7 @@ if menu == "🏠 Home":
         '''
         '<div>'
         '<div class="section-kicker">Aviary</div>'
-        f'<h2>{html.escape(spotlight_title)}</h2>'
+        f'<h2>{spotlight_title_html}</h2>'
         f'<p>{html.escape(spotlight_copy)}</p>'
         '</div>'
         '<div class="home-actions">'
@@ -11300,6 +11316,7 @@ elif menu.endswith("Minispiele"):
     const BET_SECONDS = 30;
     const RESTART_SECONDS = 60;
     const STALE_MATCH_SECONDS = 60 * 60;
+    const PLAYER_ACTIVE_SECONDS = 10;
     const WIN_SCORE = 3;
     const GOAL_POINTS = 1;
     const field = {left: 54, right: 946, top: 58, bottom: 562, goalTop: 256, goalBottom: 364};
@@ -11484,7 +11501,8 @@ elif menu.endswith("Minispiele"):
         syncingPlayers = true;
         lastPlayersRefresh = now;
         try {
-            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?select=username,team,blue_score,green_score,avatar_url,updated_at&order=username.asc&limit=50", {
+            const activeSince = new Date(now - PLAYER_ACTIVE_SECONDS * 1000).toISOString();
+            const response = await fetch(FOOTBALL_PLAYERS_ENDPOINT + "?select=username,team,blue_score,green_score,avatar_url,updated_at&updated_at=gte." + encodeURIComponent(activeSince) + "&order=username.asc&limit=50", {
                 headers: apiHeaders()
             });
             if (!response.ok) throw new Error(await response.text());
