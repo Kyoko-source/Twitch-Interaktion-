@@ -93,6 +93,81 @@ def login_user(username: str, password: str) -> Optional[dict]:
 def logout_user():
     st.session_state.pop("logged_in_username", None)
 
+
+def show_login_animation():
+    assets_dir = Path(__file__).parent / "assets"
+    animation_path = next(
+        (
+            assets_dir / filename
+            for filename in (
+                "login-animation.webm",
+                "login-animation.mp4",
+                "login-animation.gif",
+            )
+            if (assets_dir / filename).exists()
+        ),
+        None,
+    )
+    if not animation_path:
+        return
+
+    mime_types = {
+        ".gif": "image/gif",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+    }
+    mime_type = mime_types[animation_path.suffix.lower()]
+    encoded_animation = base64.b64encode(animation_path.read_bytes()).decode("ascii")
+
+    if animation_path.suffix.lower() == ".gif":
+        media_html = (
+            f'<img src="data:{mime_type};base64,{encoded_animation}" '
+            'alt="Login-Animation">'
+        )
+    else:
+        media_html = (
+            f'<video autoplay muted playsinline src="data:{mime_type};base64,'
+            f'{encoded_animation}"></video>'
+        )
+
+    components.html(
+        f"""
+        <style>
+            html, body {{
+                margin: 0;
+                overflow: hidden;
+                background: transparent;
+            }}
+            .login-animation {{
+                height: 620px;
+                display: grid;
+                place-items: center;
+                border-radius: 24px;
+                overflow: hidden;
+                background:
+                    radial-gradient(circle at center, rgba(108, 92, 231, .28), transparent 60%),
+                    rgba(7, 10, 20, .96);
+                animation: loginFade 3.2s ease forwards;
+            }}
+            .login-animation img,
+            .login-animation video {{
+                display: block;
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }}
+            @keyframes loginFade {{
+                0% {{ opacity: 0; transform: scale(.98); }}
+                12%, 82% {{ opacity: 1; transform: scale(1); }}
+                100% {{ opacity: 0; transform: scale(1.02); }}
+            }}
+        </style>
+        <div class="login-animation">{media_html}</div>
+        """,
+        height=620,
+        scrolling=False,
+    )
+
 # =========================
 # SUPABASE
 # =========================
@@ -379,6 +454,7 @@ def handle_twitch_callback():
 
     st.session_state["twitch_user"] = twitch_user
     st.session_state["twitch_access_token"] = access_token
+    st.session_state["show_login_animation"] = True
     try:
         st.query_params.clear()
     except:
@@ -7035,6 +7111,8 @@ elif menu == "🔑 Login":
     logged_in_username = get_logged_in_username()
 
     if logged_in_username:
+        if st.session_state.pop("show_login_animation", False):
+            show_login_animation()
         st.success(f"Angemeldet als **{logged_in_username}**")
         if st.button("Abmelden", key="logout_button"):
             logout_user()
@@ -7056,6 +7134,7 @@ elif menu == "🔑 Login":
                     user = login_user(login_name, login_password)
                     if user:
                         st.session_state["logged_in_username"] = user["username"]
+                        st.session_state["show_login_animation"] = True
                         st.success("Erfolgreich angemeldet.")
                         st.rerun()
                     else:
@@ -7096,6 +7175,7 @@ elif menu == "🔑 Login":
                     user, message = complete_registration(complete_name, complete_password, complete_code)
                     if user:
                         st.session_state["logged_in_username"] = user["username"]
+                        st.session_state["show_login_animation"] = True
                         st.success(message)
                         st.rerun()
                     else:
