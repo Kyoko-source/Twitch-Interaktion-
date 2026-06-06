@@ -5153,6 +5153,25 @@ h1::after {
     border-color: rgba(255,193,94,0.28);
 }
 
+.channel-trailer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 10px;
+}
+
+.channel-trailer-head h2 {
+    margin: 4px 0 0;
+}
+
+[data-testid="stVideo"] video {
+    border: 1px solid rgba(199,125,255,0.28);
+    border-radius: 18px;
+    background: #030409;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.30);
+}
+
 .home-week-art {
     display: grid;
     grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
@@ -6978,122 +6997,30 @@ if menu == "🏠 Home":
         None,
     )
     if trailer_path:
-        trailer_data = base64.b64encode(trailer_path.read_bytes()).decode("ascii")
-        components.html(
-            f"""
-            <style>
-                html, body {{
-                    margin: 0;
-                    background: transparent;
-                    color: white;
-                    font-family: Inter, system-ui, sans-serif;
-                }}
-                .trailer-shell {{
-                    position: relative;
-                    overflow: hidden;
-                    border: 1px solid rgba(199, 125, 255, .34);
-                    border-radius: 24px;
-                    padding: 18px;
-                    background:
-                        radial-gradient(circle at 12% 0%, rgba(145, 70, 255, .28), transparent 42%),
-                        linear-gradient(145deg, rgba(18, 12, 31, .98), rgba(8, 10, 18, .98));
-                    box-shadow: 0 22px 55px rgba(0, 0, 0, .35);
-                }}
-                .trailer-head {{
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 16px;
-                    margin-bottom: 14px;
-                }}
-                .trailer-kicker {{
-                    color: #d7b5ff;
-                    font-size: 11px;
-                    font-weight: 900;
-                    letter-spacing: .16em;
-                    text-transform: uppercase;
-                }}
-                .trailer-head h2 {{
-                    margin: 4px 0 0;
-                    font-size: 24px;
-                }}
-                .live-pill {{
-                    flex: 0 0 auto;
-                    border: 1px solid rgba(255, 84, 160, .5);
-                    border-radius: 999px;
-                    padding: 8px 12px;
-                    color: #ffd4ec;
-                    background: rgba(255, 84, 160, .12);
-                    font-size: 12px;
-                    font-weight: 900;
-                }}
-                .video-frame {{
-                    position: relative;
-                    overflow: hidden;
-                    border: 1px solid rgba(255, 255, 255, .12);
-                    border-radius: 18px;
-                    background: #030409;
-                    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-                }}
-                video {{
-                    display: block;
-                    width: 100%;
-                    max-height: 560px;
-                    aspect-ratio: 16 / 9;
-                    object-fit: contain;
-                    background: #030409;
-                }}
-                .sound-button {{
-                    position: absolute;
-                    right: 14px;
-                    bottom: 14px;
-                    border: 1px solid rgba(255, 255, 255, .35);
-                    border-radius: 999px;
-                    padding: 10px 15px;
-                    color: white;
-                    background: rgba(8, 10, 18, .82);
-                    font-weight: 850;
-                    cursor: pointer;
-                    backdrop-filter: blur(12px);
-                }}
-                .sound-button:hover {{
-                    background: rgba(145, 70, 255, .9);
-                }}
-                .trailer-note {{
-                    margin: 13px 2px 0;
-                    color: #c9c2dc;
-                    font-size: 13px;
-                    font-weight: 650;
-                }}
-            </style>
-            <section class="trailer-shell">
-                <div class="trailer-head">
+        with st.container(border=True):
+            st.markdown(
+                """
+                <div class="channel-trailer-head">
                     <div>
-                        <div class="trailer-kicker">Kanaltrailer</div>
+                        <div class="section-kicker">Kanaltrailer</div>
                         <h2>Willkommen bei einsmarello</h2>
                     </div>
-                    <div class="live-pill">Twitch · einsmarello</div>
+                    <div class="home-status-pill">Twitch · einsmarello</div>
                 </div>
-                <div class="video-frame">
-                    <video id="channelTrailer" autoplay muted loop playsinline
-                        src="data:video/mp4;base64,{trailer_data}"></video>
-                    <button id="soundToggle" class="sound-button" type="button">Ton einschalten</button>
-                </div>
-                <p class="trailer-note">Der Trailer läuft automatisch in Dauerschleife. Du entscheidest, ob du ihn mit Ton sehen möchtest.</p>
-            </section>
-            <script>
-                const trailer = document.getElementById("channelTrailer");
-                const soundToggle = document.getElementById("soundToggle");
-                soundToggle.addEventListener("click", () => {{
-                    trailer.muted = !trailer.muted;
-                    soundToggle.textContent = trailer.muted ? "Ton einschalten" : "Ton ausschalten";
-                    if (trailer.paused) trailer.play().catch(() => {{}});
-                }});
-            </script>
-            """,
-            height=720,
-            scrolling=False,
-        )
+                """,
+                unsafe_allow_html=True,
+            )
+            st.video(
+                str(trailer_path),
+                format="video/mp4",
+                loop=True,
+                autoplay=True,
+                muted=True,
+            )
+            st.caption(
+                "Der Trailer läuft automatisch in Dauerschleife und startet ohne Ton. "
+                "Über die Videosteuerung kannst du den Ton einschalten."
+            )
     else:
         st.info("Lege den Kanaltrailer unter `assets/einsmarello-kanaltrailer.mp4` ab.")
 
