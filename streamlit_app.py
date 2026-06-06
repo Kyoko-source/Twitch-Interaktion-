@@ -28,8 +28,8 @@ except ImportError:
     st_canvas = None
 
 st.set_page_config(
-    page_title="Gehirnzone",
-    page_icon="🧠",
+    page_title="Aviary",
+    page_icon="🪶",
     layout="wide"
 )
 
@@ -755,17 +755,17 @@ def get_leaderboard():
     users = api_get("users?select=*&order=braincells.desc")
 
     if not users:
-        return pd.DataFrame(columns=["Viewer", "Chickens", "Gehirnzellen"])
+        return pd.DataFrame(columns=["Viewer", "Chickens", "Pepples"])
 
     df = pd.DataFrame(users)
 
     df = df.rename(columns={
         "username": "Viewer",
         "chickens": "Chickens",
-        "braincells": "Gehirnzellen"
+        "braincells": "Pepples"
     })
 
-    return df[["Viewer", "Chickens", "Gehirnzellen"]]
+    return df[["Viewer", "Chickens", "Pepples"]]
 
 
 @st.cache_data(ttl=300)
@@ -791,7 +791,7 @@ def get_level_title(level):
     if level >= 50:
         return "Endgame Legende"
     if level >= 30:
-        return "Gehirnzone Veteran"
+        return "Aviary Veteran"
     if level >= 20:
         return "Community Champion"
     if level >= 10:
@@ -917,7 +917,7 @@ def claim_daily_reward(username):
     get_members.clear()
     get_leaderboard.clear()
     get_chicken_scores.clear()
-    return True, f"Daily Reward abgeholt: +{reward_chickens} Chickens und +{reward_braincells} Gehirnzellen."
+    return True, f"Daily Reward abgeholt: +{reward_chickens} Chickens und +{reward_braincells} Pepples."
 
 
 @st.cache_data(ttl=120)
@@ -1179,7 +1179,7 @@ def render_auto_gazette(members, recent_purchases, scores, creative_items):
         (
             "Top Viewer",
             str(top_member.get("username") or "Noch niemand") if top_member else "Noch niemand",
-            f'{int(top_member.get("braincells") or 0)} Gehirnzellen' if top_member else "Warte auf den ersten Eintrag",
+            f'{int(top_member.get("braincells") or 0)} Pepples' if top_member else "Warte auf den ersten Eintrag",
         ),
         (
             "Chicken Konto",
@@ -2045,21 +2045,21 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
     achievements = [
         ("Profil-Profi", "Bio, Lieblingsspiel und Avatar gesetzt", bool(bio and favorite_game and avatar_url)),
         ("Chicken Sammler", "Mindestens 1.000 Chickens besitzen", chickens >= 1000),
-        ("Gehirntraining", "Mindestens 500 Gehirnzellen gesammelt", braincells >= 500),
+        ("Pepple-Sammler", "Mindestens 500 Pepples gesammelt", braincells >= 500),
         ("Top 3 Energie", "In der Rangliste unter den Top 3", isinstance(rank_position, int) and rank_position <= 3),
         ("Jump Talent", "Chicken Jump Score von 10+ erreicht", score >= 10),
         ("Daily Streak", "3 Tage Daily Reward in Folge", streak >= 3),
-        ("Erste Gehirnzelle", "Mindestens 1 Gehirnzelle gesammelt", braincells >= 1),
-        ("Gedankenstarter", "Mindestens 100 Gehirnzellen gesammelt", braincells >= 100),
-        ("Kopfkino", "Mindestens 250 Gehirnzellen gesammelt", braincells >= 250),
-        ("Synapsensturm", "Mindestens 1.000 Gehirnzellen gesammelt", braincells >= 1000),
-        ("Denkmaschine", "Mindestens 2.000 Gehirnzellen gesammelt", braincells >= 2000),
-        ("Overclock Warmup", "Mindestens 3.500 Gehirnzellen gesammelt", braincells >= 3500),
-        ("Neuronennetz", "Mindestens 5.000 Gehirnzellen gesammelt", braincells >= 5000),
-        ("Brain Boss", "Mindestens 7.500 Gehirnzellen gesammelt", braincells >= 7500),
-        ("Gigadenker", "Mindestens 10.000 Gehirnzellen gesammelt", braincells >= 10000),
-        ("Galaxiekopf", "Mindestens 25.000 Gehirnzellen gesammelt", braincells >= 25000),
-        ("Endboss Mind", "Mindestens 50.000 Gehirnzellen gesammelt", braincells >= 50000),
+        ("Erste Pepple", "Mindestens 1 Pepple gesammelt", braincells >= 1),
+        ("Neststarter", "Mindestens 100 Pepples gesammelt", braincells >= 100),
+        ("Federfund", "Mindestens 250 Pepples gesammelt", braincells >= 250),
+        ("Schwarmruf", "Mindestens 1.000 Pepples gesammelt", braincells >= 1000),
+        ("Flugtalent", "Mindestens 2.000 Pepples gesammelt", braincells >= 2000),
+        ("Aufwind", "Mindestens 3.500 Pepples gesammelt", braincells >= 3500),
+        ("Aviary Scout", "Mindestens 5.000 Pepples gesammelt", braincells >= 5000),
+        ("Schwarmkapitän", "Mindestens 7.500 Pepples gesammelt", braincells >= 7500),
+        ("Himmelswächter", "Mindestens 10.000 Pepples gesammelt", braincells >= 10000),
+        ("Sternenflieger", "Mindestens 25.000 Pepples gesammelt", braincells >= 25000),
+        ("Aviary Legende", "Mindestens 50.000 Pepples gesammelt", braincells >= 50000),
         ("Erstes Ei", "Mindestens 1 Chicken besitzen", chickens >= 1),
         ("Chicken Polster", "Mindestens 100 Chickens besitzen", chickens >= 100),
         ("Chicken Beutel", "Mindestens 250 Chickens besitzen", chickens >= 250),
@@ -2082,7 +2082,7 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
         ("Drei Wochen Dran", "21 Tage Daily Reward Streak", streak >= 21),
         ("Monatsmaschine", "30 Tage Daily Reward Streak", streak >= 30),
         ("Streak Fanatiker", "50 Tage Daily Reward Streak", streak >= 50),
-        ("Hundert Tage Kopf", "100 Tage Daily Reward Streak", streak >= 100),
+        ("Hundert Tage Flug", "100 Tage Daily Reward Streak", streak >= 100),
         ("Rang sichtbar", "In der Rangliste unter den Top 50", has_rank and rank_position <= 50),
         ("Top 25 Signal", "In der Rangliste unter den Top 25", has_rank and rank_position <= 25),
         ("Top 10 Fokus", "In der Rangliste unter den Top 10", has_rank and rank_position <= 10),
@@ -2109,21 +2109,21 @@ def build_achievements(user, rank_position=None, best_score=None, daily_state=No
 
 def get_rank(points):
     ranks = [
-        ("🥔 Kartoffelhirn", 0, 100),
-        ("🤖 NPC-Gehirn", 100, 500),
-        ("🧪 Laborhirn", 500, 2000),
-        ("🧠 Großhirn", 2000, 5000),
-        ("⚡ Overclocked Brain", 5000, 10000),
-        ("👑 Gigagehirn", 10000, 25000),
-        ("🌌 Galaxiehirn", 25000, 50000),
-        ("🧬 Endboss-Gehirn", 50000, 999999999)
+        ("🥚 Frisch im Nest", 0, 100),
+        ("🐣 Nestling", 100, 500),
+        ("🪶 Federfinder", 500, 2000),
+        ("🐦 Schwarmflieger", 2000, 5000),
+        ("⚡ Aufwind-Profi", 5000, 10000),
+        ("👑 Schwarmkapitän", 10000, 25000),
+        ("🌌 Sternenflieger", 25000, 50000),
+        ("🏛️ Aviary Legende", 50000, 999999999)
     ]
 
     for name, minimum, next_level in ranks:
         if minimum <= points < next_level:
             return name, minimum, next_level
 
-    return "🧬 Endboss-Gehirn", 50000, 999999999
+    return "🏛️ Aviary Legende", 50000, 999999999
 
 def get_progress(points):
     rank_name, minimum, next_level = get_rank(points)
@@ -2136,7 +2136,7 @@ def get_progress(points):
     progress = int((current / needed) * 100)
     missing = next_level - points
 
-    return rank_name, progress, f"{missing} Gehirnzellen bis zum nächsten Rang"
+    return rank_name, progress, f"{missing} Pepples bis zum nächsten Rang"
 
 # =========================
 # EVENTS
@@ -4968,14 +4968,14 @@ h1::after {
     height: 260px;
     border-radius: 999px;
     background:
-        radial-gradient(circle at 52% 46%, rgba(255,84,160,0.34), transparent 38%),
-        radial-gradient(circle at 66% 60%, rgba(199,125,255,0.24), transparent 34%);
+        radial-gradient(circle at 52% 46%, rgba(70,240,255,0.30), transparent 38%),
+        radial-gradient(circle at 66% 60%, rgba(255,223,110,0.22), transparent 34%);
     filter: blur(8px);
     opacity: 0.58;
     z-index: 0;
 }
 
-.home-brain-visual {
+.home-aviary-visual {
     position: absolute;
     right: -52px;
     top: 42px;
@@ -4987,33 +4987,33 @@ h1::after {
     opacity: 0.72;
     filter:
         drop-shadow(0 0 16px rgba(255,255,255,0.20))
-        drop-shadow(0 0 34px rgba(255,84,160,0.58))
-        drop-shadow(0 0 68px rgba(199,125,255,0.44));
+        drop-shadow(0 0 34px rgba(70,240,255,0.52))
+        drop-shadow(0 0 68px rgba(255,223,110,0.34));
 }
 
-.home-brain-visual svg {
+.home-aviary-visual svg {
     width: 100%;
     height: 100%;
     overflow: visible;
 }
 
-.home-brain-fill {
-    fill: url(#homeBrainFill);
+.home-aviary-fill {
+    fill: url(#homeAviaryFill);
     opacity: 0.42;
 }
 
-.home-brain-line {
+.home-aviary-line {
     fill: none;
-    stroke: url(#homeBrainStroke);
+    stroke: url(#homeAviaryStroke);
     stroke-width: 7;
     stroke-linecap: round;
     stroke-linejoin: round;
     opacity: 0.96;
 }
 
-.home-brain-spark {
-    fill: #ffd6f0;
-    filter: drop-shadow(0 0 12px rgba(255,84,160,0.72));
+.home-aviary-spark {
+    fill: #fff1ad;
+    filter: drop-shadow(0 0 12px rgba(70,240,255,0.72));
 }
 
 .home-spotlight h2 {
@@ -5024,7 +5024,7 @@ h1::after {
     font-size: clamp(42px, 6vw, 86px);
     line-height: 0.92;
     letter-spacing: 0;
-    background: linear-gradient(135deg, #ffffff, #c77dff 42%, #ff54a0);
+    background: linear-gradient(135deg, #ffffff, #46f0ff 42%, #ffdf6e);
     -webkit-background-clip: text;
     color: transparent;
 }
@@ -6548,7 +6548,7 @@ h1::after {
         text-align: left;
     }
 
-    .home-brain-visual {
+    .home-aviary-visual {
         right: -90px;
         top: 96px;
         width: 260px;
@@ -6754,7 +6754,7 @@ topbar_account_html = (
 )
 st.markdown(
     '<div class="topbar">'
-    '<div class="topbar-brand"><span class="topbar-brand-icon">🧠</span><span>Gehirnzone</span></div>'
+    '<div class="topbar-brand"><span class="topbar-brand-icon">🪶</span><span>Aviary</span></div>'
     f'<div class="topbar-right">{topbar_account_html}<div class="topbar-menu-slot"></div></div>'
     '</div>',
     unsafe_allow_html=True,
@@ -6840,11 +6840,11 @@ leaderboard_pages = {"🏠 Home", "🏆 Rangliste"}
 if menu in leaderboard_pages:
     leaderboard = get_leaderboard()
 else:
-    leaderboard = pd.DataFrame(columns=["Viewer", "Chickens", "Gehirnzellen"])
+    leaderboard = pd.DataFrame(columns=["Viewer", "Chickens", "Pepples"])
 
 total_users = len(leaderboard)
 total_chickens = int(leaderboard["Chickens"].sum()) if not leaderboard.empty else 0
-total_braincells = int(leaderboard["Gehirnzellen"].sum()) if not leaderboard.empty else 0
+total_braincells = int(leaderboard["Pepples"].sum()) if not leaderboard.empty else 0
 
 if logged_in_username:
     incoming_trades = get_pending_trades(logged_in_username)
@@ -6882,7 +6882,7 @@ if logged_in_username:
                         st.rerun()
 
 if menu != "🏠 Home":
-    st.markdown("<h1>Gehirnzone</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Aviary</h1>", unsafe_allow_html=True)
 
 # =========================
 # HOME
@@ -6890,12 +6890,12 @@ if menu != "🏠 Home":
 
 if menu == "🏠 Home":
 
-    spotlight_title = "Willkommen in der Gehirnzone"
-    spotlight_copy = "Community, Rewards und Rankings für die schlauesten Köpfe."
+    spotlight_title = "Willkommen in der Aviary"
+    spotlight_copy = "Community, Rewards und Rankings für den stärksten Schwarm."
     daily_html = (
         '<div class="section-kicker">Daily Reward</div>'
         '<h3>Heute wartet dein Bonus</h3>'
-        '<p>Melde dich an und hol dir Chickens plus Gehirnzellen für den Stream.</p>'
+        '<p>Melde dich an und hol dir Chickens plus Pepples für den Stream.</p>'
     )
     daily_state = None
     if logged_in_username:
@@ -6906,7 +6906,7 @@ if menu == "🏠 Home":
             '<div class="section-kicker">Daily Reward</div>'
             f'<h3>{claim_text}</h3>'
             f'<div class="daily-streak">{int(daily_state["streak"])} Tage Streak</div>'
-            '<p>Streak halten, Bonus abholen und Gehirnzellen stapeln.</p>'
+            '<p>Streak halten, Bonus abholen und Pepples stapeln.</p>'
         )
 
     home_html = (
@@ -6914,21 +6914,21 @@ if menu == "🏠 Home":
         '<div class="home-hero">'
         '<div class="home-spotlight">'
         '''
-        <div class="home-brain-visual" aria-hidden="true">
+        <div class="home-aviary-visual" aria-hidden="true">
             <svg viewBox="0 0 420 320" role="img">
                 <defs>
-                    <linearGradient id="homeBrainFill" x1="72" y1="42" x2="340" y2="276" gradientUnits="userSpaceOnUse">
-                        <stop offset="0" stop-color="#ffd1f1"/>
-                        <stop offset="0.42" stop-color="#ff54c7"/>
-                        <stop offset="1" stop-color="#8b5cff"/>
+                    <linearGradient id="homeAviaryFill" x1="72" y1="42" x2="340" y2="276" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#fff1ad"/>
+                        <stop offset="0.42" stop-color="#46f0ff"/>
+                        <stop offset="1" stop-color="#4f7cff"/>
                     </linearGradient>
-                    <linearGradient id="homeBrainStroke" x1="64" y1="40" x2="360" y2="284" gradientUnits="userSpaceOnUse">
+                    <linearGradient id="homeAviaryStroke" x1="64" y1="40" x2="360" y2="284" gradientUnits="userSpaceOnUse">
                         <stop offset="0" stop-color="#ffffff"/>
-                        <stop offset="0.28" stop-color="#ff9ee4"/>
-                        <stop offset="0.72" stop-color="#ff54a0"/>
-                        <stop offset="1" stop-color="#c77dff"/>
+                        <stop offset="0.28" stop-color="#fff1ad"/>
+                        <stop offset="0.72" stop-color="#46f0ff"/>
+                        <stop offset="1" stop-color="#7c8cff"/>
                     </linearGradient>
-                    <filter id="homeBrainGlow" x="-40%" y="-40%" width="180%" height="180%">
+                    <filter id="homeAviaryGlow" x="-40%" y="-40%" width="180%" height="180%">
                         <feGaussianBlur stdDeviation="7" result="blur"/>
                         <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1  0 0 0 0 0.18  0 0 0 0 0.72  0 0 0 0.86 0" result="pinkGlow"/>
                         <feMerge>
@@ -6937,24 +6937,26 @@ if menu == "🏠 Home":
                         </feMerge>
                     </filter>
                 </defs>
-                <path class="home-brain-fill" filter="url(#homeBrainGlow)" d="M207 58c28-34 84-26 100 14 34 1 61 27 62 61 26 16 36 50 22 79-11 25-35 41-63 42h-26v35c0 11-13 16-21 8l-45-43H130c-39 0-71-30-73-68-27-20-31-61-7-87 2-40 40-70 79-58 18-23 56-25 78 17z"/>
-                <path class="home-brain-line" d="M129 58c-39-12-77 18-79 58-24 26-20 67 7 87 2 38 34 68 73 68h106l45 43c8 8 21 3 21-8v-35h26c28-1 52-17 63-42 14-29 4-63-22-79-1-34-28-60-62-61-16-40-72-48-100-14-22-42-60-40-78-17z"/>
-                <path class="home-brain-line" d="M130 87c-20 6-33 22-35 42m29 93c-20-1-38-15-42-35m54-25c-19 4-38-8-43-27m99-60c-19 8-30 24-28 45m43-45c22 3 37 19 39 40m-82 5c-5 24 8 43 31 49m51-54c-21 3-38 18-42 39m43 41c-20 1-37-10-43-27m99-79c22 10 32 34 23 57m-54-10c21 7 34 26 32 48m-100 7c21 2 38 15 44 36m-102-38c-2 22-17 39-39 43"/>
-                <circle class="home-brain-spark" cx="88" cy="80" r="5"/>
-                <circle class="home-brain-spark" cx="340" cy="70" r="4"/>
-                <circle class="home-brain-spark" cx="372" cy="208" r="4"/>
+                <circle class="home-aviary-fill" filter="url(#homeAviaryGlow)" cx="220" cy="158" r="112"/>
+                <path class="home-aviary-line" d="M94 235c57-32 194-35 264 0-44-9-85-9-124 0-47 11-91 11-140 0z"/>
+                <path class="home-aviary-line" d="M149 160c25-5 43-22 55-49 11 28 31 47 61 57-20 7-36 20-48 39-17-22-39-37-68-47z"/>
+                <path class="home-aviary-line" d="M205 111c14-42 60-64 107-51-22 10-38 27-48 49 27-9 53-6 77 10-31 3-57 15-76 36"/>
+                <path class="home-aviary-line" d="M217 207c-5 23-19 43-42 60m58-58c5 23 20 42 45 56"/>
+                <circle class="home-aviary-spark" cx="112" cy="92" r="5"/>
+                <circle class="home-aviary-spark" cx="342" cy="72" r="4"/>
+                <circle class="home-aviary-spark" cx="365" cy="211" r="4"/>
             </svg>
         </div>
         '''
         '<div>'
-        '<div class="section-kicker">Gehirnzone</div>'
+        '<div class="section-kicker">Aviary</div>'
         f'<h2>{html.escape(spotlight_title)}</h2>'
         f'<p>{html.escape(spotlight_copy)}</p>'
         '</div>'
         '<div class="home-actions">'
-        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Gehirnzellen gesamt</span></div>'
+        f'<div class="home-action-card"><strong>{total_braincells}</strong><span>Pepples gesamt</span></div>'
         f'<div class="home-action-card"><strong>{total_chickens}</strong><span>Chickens im Umlauf</span></div>'
-        f'<div class="home-action-card"><strong>{total_users}</strong><span>Mitglieder in der Zone</span></div>'
+        f'<div class="home-action-card"><strong>{total_users}</strong><span>Mitglieder im Schwarm</span></div>'
         '</div>'
         '</div>'
         f'<div class="daily-card">{daily_html}</div>'
@@ -7206,7 +7208,7 @@ elif menu == "👤 Profil":
                     </div>
                     <div class="profile-xp-row">
                         <span>{level_xp}/{level_needed_xp} XP</span>
-                        <span>{points_to_level} Gehirnzellen fehlen</span>
+                        <span>{points_to_level} Pepples fehlen</span>
                     </div>
                 </div>
                 <div class="profile-progress-track">
@@ -7214,7 +7216,7 @@ elif menu == "👤 Profil":
                 </div>
                 <div class="admin-muted">Rang: {rank_progress}% · {html.escape(progress_text)}</div>
                 <div class="profile-stat-grid">
-                    <div class="profile-stat"><strong>{braincells}</strong><span>Gehirnzellen</span></div>
+                    <div class="profile-stat"><strong>{braincells}</strong><span>Pepples</span></div>
                     <div class="profile-stat"><strong>{chickens}</strong><span>Chickens</span></div>
                     <div class="profile-stat"><strong>{points_to_level}</strong><span>Bis Level {level + 1}</span></div>
                 </div>
@@ -7457,7 +7459,7 @@ elif menu == "🛟 Support":
 
 elif menu == "📰 News":
 
-    st.markdown('<div class="section-kicker">Gehirnzone Gazette</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-kicker">Aviary Gazette</div>', unsafe_allow_html=True)
     st.markdown("## News")
 
     posts = get_news_posts()
@@ -7528,19 +7530,19 @@ elif menu == "👥 Mitglieder":
             '<div class="members-hero">'
             '<div class="members-hero-main">'
             '<div class="section-kicker">Community</div>'
-            '<h2>Mitglieder der Gehirnzone</h2>'
-            '<p>Alle Viewer, Profile und Rangfortschritte an einem Ort. Finde Namen, vergleiche Gehirnzellen und entdecke, wer gerade vorne leuchtet.</p>'
+            '<h2>Mitglieder der Aviary</h2>'
+            '<p>Alle Viewer, Profile und Rangfortschritte an einem Ort. Finde Namen, vergleiche Pepples und entdecke, wer gerade vorne leuchtet.</p>'
             '<div class="members-stat-row">'
             f'<div class="members-stat"><strong>{member_count}</strong><span>Mitglieder</span></div>'
-            f'<div class="members-stat"><strong>{member_braincells}</strong><span>Gehirnzellen</span></div>'
+            f'<div class="members-stat"><strong>{member_braincells}</strong><span>Pepples</span></div>'
             f'<div class="members-stat"><strong>{member_chickens}</strong><span>Chickens</span></div>'
             '</div>'
             '</div>'
             '<aside class="members-spotlight">'
             '<div class="section-kicker">Top Signal</div>'
             f'<h3>{html.escape(top_name)}</h3>'
-            f'<p>{html.escape(top_rank)} mit durchschnittlich {average_braincells} Gehirnzellen in der Community.</p>'
-            f'<div class="members-spotlight-score">🧠 {top_braincells} · #1</div>'
+            f'<p>{html.escape(top_rank)} mit durchschnittlich {average_braincells} Pepples in der Community.</p>'
+            f'<div class="members-spotlight-score">🪶 {top_braincells} · #1</div>'
             '</aside>'
             '</div>'
             '</div>',
@@ -7582,7 +7584,7 @@ elif menu == "👥 Mitglieder":
                 f'<div class="profile-name">{html.escape(username)}</div>'
                 f'<div class="profile-meta">Level {level} · {html.escape(rank_name)}</div>'
                 '<div class="member-stat-strip">'
-                f'<div class="member-stat-chip"><strong>🧠 {braincells}</strong><span>Gehirnzellen</span></div>'
+                f'<div class="member-stat-chip"><strong>🪶 {braincells}</strong><span>Pepples</span></div>'
                 f'<div class="member-stat-chip"><strong>🥚 {chickens}</strong><span>Chickens</span></div>'
                 '</div>'
                 f'<div class="member-mini-progress"><div style="width:{member_progress}%;"></div></div>'
@@ -7953,23 +7955,23 @@ elif menu == "🏆 Rangliste":
 
     else:
         leader = leaderboard.iloc[0]
-        average_braincells = int(leaderboard["Gehirnzellen"].mean()) if not leaderboard.empty else 0
+        average_braincells = int(leaderboard["Pepples"].mean()) if not leaderboard.empty else 0
         st.markdown(f"""
         <div class="leaderboard-hero">
             <div class="leaderboard-panel">
                 <div class="section-kicker">Leaderboard Arena</div>
-                <h2>Top Viewer der Gehirnzone</h2>
-                <div class="admin-muted">Vergleiche Gehirnzellen, Chickens und Rangfortschritt der Community.</div>
+                <h2>Top Viewer der Aviary</h2>
+                <div class="admin-muted">Vergleiche Pepples, Chickens und Rangfortschritt der Community.</div>
                 <div class="leaderboard-stats">
                     <div class="leaderboard-stat"><strong>{len(leaderboard)}</strong><span>Viewer</span></div>
-                    <div class="leaderboard-stat"><strong>{total_braincells}</strong><span>Gehirnzellen gesamt</span></div>
-                    <div class="leaderboard-stat"><strong>{average_braincells}</strong><span>Ø Gehirnzellen</span></div>
+                    <div class="leaderboard-stat"><strong>{total_braincells}</strong><span>Pepples gesamt</span></div>
+                    <div class="leaderboard-stat"><strong>{average_braincells}</strong><span>Ø Pepples</span></div>
                 </div>
             </div>
             <div class="leaderboard-focus">
                 <div class="section-kicker">Aktuelle Nummer 1</div>
                 <h3>{html.escape(str(leader["Viewer"]))}</h3>
-                <div class="podium-score">🧠 {int(leader["Gehirnzellen"])} · 🥚 {int(leader["Chickens"])}</div>
+                <div class="podium-score">🪶 {int(leader["Pepples"])} · 🥚 {int(leader["Chickens"])}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -7989,7 +7991,7 @@ elif menu == "🏆 Rangliste":
                     f'<div class="podium-card {style}">'
                     f'<div class="podium-rank">#{place}</div>'
                     f'<div class="podium-name">{viewer_name}</div>'
-                    f'<div class="podium-score">🧠 {int(viewer["Gehirnzellen"])} · 🥚 {int(viewer["Chickens"])}</div>'
+                    f'<div class="podium-score">🪶 {int(viewer["Pepples"])} · 🥚 {int(viewer["Chickens"])}</div>'
                     f'</div>'
                 )
             else:
@@ -8010,17 +8012,17 @@ elif menu == "🏆 Rangliste":
         if search:
             ranked = ranked[ranked["Viewer"].str.contains(search, case=False, na=False)]
 
-        ranked["Rang"] = ranked["Gehirnzellen"].apply(
+        ranked["Rang"] = ranked["Pepples"].apply(
             lambda x: get_rank(int(x))[0]
         )
 
         if ranked.empty:
             st.info("Keine Viewer für diese Suche gefunden.")
         else:
-            max_braincells = max(1, int(leaderboard["Gehirnzellen"].max()))
+            max_braincells = max(1, int(leaderboard["Pepples"].max()))
             rank_rows = ""
             for index, viewer in ranked.reset_index(drop=True).iterrows():
-                braincells = int(viewer["Gehirnzellen"])
+                braincells = int(viewer["Pepples"])
                 chickens = int(viewer["Chickens"])
                 rank_name, rank_progress, _ = get_progress(braincells)
                 total_progress = min(100, int((braincells / max_braincells) * 100))
@@ -8035,7 +8037,7 @@ elif menu == "🏆 Rangliste":
                     f'<div class="rank-progress"><div style="width:{total_progress}%;"></div></div>'
                     '</div>'
                     '<div class="rank-side">'
-                    f'<strong>🧠 {braincells}</strong>'
+                    f'<strong>🪶 {braincells}</strong>'
                     f'<span>🥚 {chickens} Chickens</span>'
                     '</div>'
                     '</div>'
@@ -8274,7 +8276,7 @@ elif menu.endswith("Minispiele"):
         </div>
         <div class="arcade-card">
             <strong>Chicken Snake</strong>
-            <span>Sammle Gehirnzellen, wachse weiter und halte die Combo am Leben.</span>
+            <span>Sammle Pepples, wachse weiter und halte die Combo am Leben.</span>
         </div>
         <div class="arcade-card">
             <strong>Dungeons and Dragons</strong>
@@ -8286,22 +8288,22 @@ elif menu.endswith("Minispiele"):
         </div>
         <div class="arcade-card">
             <strong>Chicken Football</strong>
-            <span>Blau gegen Gruen: 10 Chaos-Huehner, ein Ball und Gehirnzellen-Wetten.</span>
+            <span>Blau gegen Gruen: 10 Chaos-Huehner, ein Ball und Pepples-Wetten.</span>
         </div>
         <div class="arcade-card">
-            <strong>Braincell Survivor</strong>
+            <strong>Pepple Survivor</strong>
             <span>Ueberlebe Wellen, sammle XP, stacke Builds und jage Boss-Scores.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Chicken Football", "Braincell Survivor", "Dungeons and Dragons"]
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Chicken Football", "Pepple Survivor", "Dungeons and Dragons"]
     minigame_keys = {
         "Chicken Jump": "jump",
         "Chicken Snake": "snake",
         "Chicken Racer": "race",
         "Chicken Football": "football",
-        "Braincell Survivor": "survivor",
+        "Pepple Survivor": "survivor",
         "Dungeons and Dragons": "dnd",
     }
     minigame_label_by_key = {value: key for key, value in minigame_keys.items()}
@@ -8617,7 +8619,7 @@ elif menu.endswith("Minispiele"):
                 <div id="overlay" class="overlay">
                     <div class="menu-card">
                         <h1 id="menuTitle">Chicken Jump</h1>
-                        <p id="menuText">Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.</p>
+                        <p id="menuText">Spring über Zäune, sammle Pepples und halte so lange wie möglich durch.</p>
                         <div class="actions">
                             <button id="startBtn">Spiel starten</button>
                             <button id="scoreBtn" class="secondary">Score speichern</button>
@@ -9351,7 +9353,7 @@ elif menu.endswith("Minispiele"):
 
         renderScores();
         updateSoundButton();
-        showMenu("Chicken Jump", "Spring über Zäune, sammle Gehirnzellen und halte so lange wie möglich durch.", "Spiel starten");
+        showMenu("Chicken Jump", "Spring über Zäune, sammle Pepples und halte so lange wie möglich durch.", "Spiel starten");
         loop();
         </script>
         </body>
@@ -9571,7 +9573,7 @@ elif menu.endswith("Minispiele"):
                     <div class="snake-lobby">
                         <div class="snake-kicker">Arcade Lobby</div>
                         <h1 id="snakeTitle">Chicken Snake</h1>
-                        <p id="snakeText">Sammle Gehirnzellen, füttere dein Chicken und weiche deiner eigenen Spur aus.</p>
+                        <p id="snakeText">Sammle Pepples, füttere dein Chicken und weiche deiner eigenen Spur aus.</p>
                         <div class="snake-actions">
                             <button id="snakeStart">Spiel starten</button>
                             <button id="snakeSave" class="secondary">Score speichern</button>
@@ -9587,7 +9589,7 @@ elif menu.endswith("Minispiele"):
                 </div>
             </div>
             <aside class="snake-side">
-                <div class="snake-card"><span>Score</span><strong id="snakeScore">0</strong><small>+10 pro Gehirnzelle</small></div>
+                <div class="snake-card"><span>Score</span><strong id="snakeScore">0</strong><small>+10 pro Pepple</small></div>
                 <div class="snake-card"><span>Länge</span><strong id="snakeLength">3</strong><small>Wächst bei jedem Snack</small></div>
                 <div class="snake-card"><span>Combo</span><strong id="snakeCombo">1x</strong><small>Sinkt nach Fehlern nicht, nur bei Neustart</small></div>
                 <div class="snake-card">
@@ -10112,7 +10114,7 @@ elif menu.endswith("Minispiele"):
     resetGame();
     draw();
     renderScores();
-    showLobby("Chicken Snake", "Sammle Gehirnzellen, füttere dein Chicken und weiche deiner eigenen Spur aus.", "Spiel starten");
+    showLobby("Chicken Snake", "Sammle Pepples, füttere dein Chicken und weiche deiner eigenen Spur aus.", "Spiel starten");
     </script>
     </body>
     </html>
@@ -10301,7 +10303,7 @@ elif menu.endswith("Minispiele"):
                     <div class="football-card">
                         <span>Konto</span>
                         <strong id="walletValue">0</strong>
-                        <small id="walletHint">Gehirnzellen</small>
+                        <small id="walletHint">Pepples</small>
                     </div>
                     <div class="football-card">
                         <span>Spielstatus</span>
@@ -10617,7 +10619,7 @@ elif menu.endswith("Minispiele"):
             if (rows.length) wallet = Number(rows[0].braincells || 0);
         } catch (error) {
             console.error(error);
-            walletHint.textContent = "Gehirnzellen, Live-Abgleich fehlgeschlagen";
+            walletHint.textContent = "Pepples, Live-Abgleich fehlgeschlagen";
         }
         walletValue.textContent = wallet;
         return wallet;
@@ -10637,7 +10639,7 @@ elif menu.endswith("Minispiele"):
             return true;
         } catch (error) {
             console.error(error);
-            walletHint.textContent = "Gehirnzellen, Speichern fehlgeschlagen";
+            walletHint.textContent = "Pepples, Speichern fehlgeschlagen";
             return false;
         }
     }
@@ -10812,7 +10814,7 @@ elif menu.endswith("Minispiele"):
             ? "Neustart in " + restartSecondsLeft() + "s"
             : "Laeuft";
         if (!USERNAME) {
-            betLog.textContent = "Bitte in der App einloggen, dann kannst du mit Gehirnzellen wetten.";
+            betLog.textContent = "Bitte in der App einloggen, dann kannst du mit Pepples wetten.";
         } else if (!bet && !betLog.textContent) {
             betLog.textContent = "Eingeloggt als " + USERNAME + ". Einsatz waehlen und Team setzen.";
         }
@@ -10825,7 +10827,7 @@ elif menu.endswith("Minispiele"):
         const amount = Math.max(1, Math.floor(Number(stakeInput.value || 0)));
         await fetchWallet();
         if (amount > wallet) {
-            betLog.textContent = "Nicht genug Gehirnzellen fuer diese Wette.";
+            betLog.textContent = "Nicht genug Pepples fuer diese Wette.";
             return;
         }
         const saved = await setWallet(wallet - amount);
@@ -10855,7 +10857,7 @@ elif menu.endswith("Minispiele"):
             return;
         }
         if (!betListSaved) return;
-        betLog.textContent = amount + " Gehirnzellen auf " + teamLabel(selectedTeam) + " gesetzt. Jetzt heisst es warten.";
+        betLog.textContent = amount + " Pepples auf " + teamLabel(selectedTeam) + " gesetzt. Jetzt heisst es warten.";
         showNotice("Wette gesetzt: " + amount + " auf " + teamLabel(selectedTeam) + ".", 3600);
         saveFootballState();
         refreshBets(true);
@@ -10873,11 +10875,11 @@ elif menu.endswith("Minispiele"):
             const payout = bet.amount * 2;
             const saved = await setWallet(wallet + payout);
             const suffix = saved ? "" : " Speichern fehlgeschlagen.";
-            betLog.textContent = "Gewonnen! " + teamLabel(winnerTeam) + " siegt. +" + payout + " Gehirnzellen." + suffix;
-            showNotice("Gewonnen! " + teamLabel(winnerTeam) + " gewinnt: +" + payout + " Gehirnzellen.", 7200);
+            betLog.textContent = "Gewonnen! " + teamLabel(winnerTeam) + " siegt. +" + payout + " Pepples." + suffix;
+            showNotice("Gewonnen! " + teamLabel(winnerTeam) + " gewinnt: +" + payout + " Pepples.", 7200);
         } else {
             betLog.textContent = "Verloren. " + teamLabel(winnerTeam) + " gewinnt, dein Einsatz ist weg.";
-            showNotice("Verloren. " + teamLabel(winnerTeam) + " gewinnt, -" + bet.amount + " Gehirnzellen.", 7200);
+            showNotice("Verloren. " + teamLabel(winnerTeam) + " gewinnt, -" + bet.amount + " Pepples.", 7200);
         }
         bet = null;
         saveFootballState();
@@ -12045,7 +12047,7 @@ elif menu.endswith("Minispiele"):
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=790, scrolling=True)
 
     elif selected_minigame == "survivor":
-        st.markdown("## Braincell Survivor")
+        st.markdown("## Pepple Survivor")
         components.html("""
     <html>
     <head>
@@ -12092,7 +12094,7 @@ elif menu.endswith("Minispiele"):
         <div id="game"></div>
         <div id="overlay" class="overlay"><div class="panel">
             <div id="kicker" class="kicker">Phaser Arena</div>
-            <h1 id="title">Braincell Survivor</h1>
+            <h1 id="title">Pepple Survivor</h1>
             <p id="text">WASD oder Pfeiltasten. Engine-Upgrade mit Kamera, Partikeln, Glow-Pickups, groesserer Arena und lauterem Waffenfeedback.</p>
             <div id="upgrades" class="upgrade-grid"></div>
             <div class="actions"><button id="start">Run starten</button><button id="save" class="secondary">Score speichern</button><button id="restart" class="secondary">Neu starten</button><button id="musicToggle" class="secondary">Musik: An</button><button id="fullscreenToggle" class="secondary">Vollbild</button></div>
@@ -12100,7 +12102,7 @@ elif menu.endswith("Minispiele"):
     </div><aside class="side">
         <div class="card"><span>Zeit</span><strong id="time">0:00</strong><small>Boss alle 3 Minuten</small></div>
         <div class="card"><span>Score</span><strong id="score">0</strong><small>Kills, Level und Zeit zaehlen</small></div>
-        <div class="card"><span>Level</span><strong id="level">1</strong><div class="bar"><i id="xpbar"></i></div><small id="build">Brain Bolt I</small></div>
+        <div class="card"><span>Level</span><strong id="level">1</strong><div class="bar"><i id="xpbar"></i></div><small id="build">Feather Bolt I</small></div>
         <div class="card"><span>HP</span><strong id="hp">100</strong><div class="bar"><i id="hpbar"></i></div><small>Kite, sammle Herzen, werde absurd stark</small></div>
         <div class="card"><span>Boss</span><strong id="bossName">Keiner</strong><div class="bar"><i id="bossbar"></i></div><small id="bossInfo">Naechster Boss wartet</small></div>
         <div class="card"><span>Meta</span><strong id="dust">0</strong><small id="metaInfo">Permanente Upgrades nach Runs</small></div>
@@ -12117,7 +12119,7 @@ elif menu.endswith("Minispiele"):
     for(let i=musicPlaylist.length-1;i>1;i--){const j=1+Math.floor(Math.random()*i);[musicPlaylist[i],musicPlaylist[j]]=[musicPlaylist[j],musicPlaylist[i]]}
     const WORLD_W=5200,WORLD_H=3600;
     let game=null,scene=null,state="menu",p=null,score=0,kills=0,seconds=0,saved=false,lastBoss=0,currentBoss=null,musicOn=true,musicTrack=0,audioCtx=null,moveKeys={},meta=loadMeta(),pauseStartedAt=0;
-    const pool=[["bolt","Brain Bolt","+1 Auto-Aim Projektil",8],["orbit","Synapsen-Orbit","Mehr kreisende Mini-Brains",7],["aura","Neural Aura","Groessere Schadenszone",7],["bomb","Egg Bomb","Explosive Flaechen-Eier",6],["laser","Focus Laser","Dicker Laser auf Elites",6],["drone","Synapse Drone","Begleiter feuern Plasma",5],["thunder","Thought Thunder","Kettenblitze springen weiter",5],["nova","Panic Nova","Schockwelle pulsiert schneller",5],["frost","Memory Freeze","Treffer verlangsamen Gegner",5],["shield","Mind Shield","Mehr HP und weniger Schaden",5],["speed","Chicken Boots","+12% Bewegungstempo",5],["magnet","Big Brain Magnet","Mehr Pickup-Reichweite",6],["might","Gehirnzellen-Power","+18% Gesamtschaden",8],["regen","Warm Nest","Mehr Regeneration und Max-HP",6],["cooldown","Turbo Synapse","Alle Waffen laden schneller",7]];
+    const pool=[["bolt","Feather Bolt","+1 Auto-Aim Projektil",8],["orbit","Feder-Orbit","Mehr kreisende Mini-Federn",7],["aura","Nest Aura","Groessere Schadenszone",7],["bomb","Egg Bomb","Explosive Flaechen-Eier",6],["laser","Focus Laser","Dicker Laser auf Elites",6],["drone","Schwarm Drone","Begleiter feuern Plasma",5],["thunder","Schwarmblitz","Kettenblitze springen weiter",5],["nova","Panic Nova","Schockwelle pulsiert schneller",5],["frost","Frostfeder","Treffer verlangsamen Gegner",5],["shield","Fluegelschild","Mehr HP und weniger Schaden",5],["speed","Chicken Boots","+12% Bewegungstempo",5],["magnet","Pepple Magnet","Mehr Pickup-Reichweite",6],["might","Pepples-Power","+18% Gesamtschaden",8],["regen","Warm Nest","Mehr Regeneration und Max-HP",6],["cooldown","Turbo-Fluegel","Alle Waffen laden schneller",7]];
     const names={bolt:"Bolt",orbit:"Orbit",aura:"Aura",bomb:"Bomb",laser:"Laser",drone:"Drone",thunder:"Thunder",nova:"Nova",frost:"Freeze",shield:"Shield",speed:"Speed",magnet:"Magnet",might:"Power",regen:"Regen",cooldown:"Turbo"};
     const evo={bolt:8,bomb:6,laser:6,orbit:7,aura:7,drone:5,thunder:5,nova:5};
     function loadMeta(){try{return Object.assign({dust:0,hp:0,dmg:0,mag:0,spd:0},JSON.parse(localStorage.getItem("braincell_survivor_meta")||"{}"))}catch(_){return{dust:0,hp:0,dmg:0,mag:0,spd:0}}}
@@ -12680,7 +12682,7 @@ elif menu == "🔐 Admin":
         <div class="admin-hero">
             <div>
                 <div class="section-kicker">Admin Center</div>
-                <h2>Gehirnzone Kontrolle</h2>
+                <h2>Aviary Kontrolle</h2>
                 <div class="admin-muted">Viewer, Punkte, Shop und Events an einem Ort.</div>
             </div>
         </div>
@@ -12763,7 +12765,7 @@ elif menu == "🔐 Admin":
                         top_members_html += (
                             '<div class="admin-list-item">'
                             f'<b>#{index} {html.escape(str(member.get("username") or "Unbekannt"))}</b><br>'
-                            f'<span class="admin-muted">🧠 {int(member.get("braincells") or 0)} · 🥚 {int(member.get("chickens") or 0)}</span>'
+                            f'<span class="admin-muted">🪶 {int(member.get("braincells") or 0)} · 🥚 {int(member.get("chickens") or 0)}</span>'
                             '</div>'
                         )
                     st.markdown(f'<div class="admin-panel"><h3>Top Viewer</h3>{top_members_html}</div>', unsafe_allow_html=True)
@@ -12777,7 +12779,7 @@ elif menu == "🔐 Admin":
                     <div class="admin-stat-grid" style="grid-template-columns:1fr;">
                         <div class="admin-stat"><strong>{pending_trade_count}</strong><span>Offene Trades</span></div>
                         <div class="admin-stat"><strong>{admin_total_chickens}</strong><span>Gesamte Chickens</span></div>
-                        <div class="admin-stat"><strong>{admin_total_braincells}</strong><span>Gesamte Gehirnzellen</span></div>
+                        <div class="admin-stat"><strong>{admin_total_braincells}</strong><span>Gesamte Pepples</span></div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -12866,17 +12868,17 @@ elif menu == "🔐 Admin":
                 <div class="admin-panel">
                     <div class="section-kicker">Ausgewählter Viewer</div>
                     <h3>{html.escape(selected_user)}</h3>
-                    <div class="admin-muted">{html.escape(rank_name)} · 🧠 {current_brain} · 🥚 {current_chickens}</div>
+                    <div class="admin-muted">{html.escape(rank_name)} · 🪶 {current_brain} · 🥚 {current_chickens}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
                 with st.form("admin_points_form"):
                     col_a, col_b = st.columns(2)
                     with col_a:
-                        add_brain = st.number_input("Gehirnzellen hinzufügen", min_value=0, step=10)
+                        add_brain = st.number_input("Pepples hinzufügen", min_value=0, step=10)
                         add_chickens = st.number_input("Chickens hinzufügen", min_value=0, step=10)
                     with col_b:
-                        remove_brain = st.number_input("Gehirnzellen abziehen", min_value=0, step=10)
+                        remove_brain = st.number_input("Pepples abziehen", min_value=0, step=10)
                         remove_chickens = st.number_input("Chickens abziehen", min_value=0, step=10)
 
                     if st.form_submit_button("Punkte speichern"):
