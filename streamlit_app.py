@@ -768,6 +768,19 @@ def get_leaderboard():
     return df[["Viewer", "Chickens", "Pepples"]]
 
 
+def normalize_leaderboard_columns(leaderboard):
+    leaderboard = leaderboard.copy()
+    for old_column in ("braincells", "Gehirnzellen"):
+        if old_column in leaderboard.columns and "Pepples" not in leaderboard.columns:
+            leaderboard = leaderboard.rename(columns={old_column: "Pepples"})
+
+    for column in ("Viewer", "Chickens", "Pepples"):
+        if column not in leaderboard.columns:
+            leaderboard[column] = pd.Series(dtype="object")
+
+    return leaderboard[["Viewer", "Chickens", "Pepples"]]
+
+
 @st.cache_data(ttl=300)
 def get_members():
     return api_get("users?select=*&order=braincells.desc")
@@ -6838,7 +6851,7 @@ logged_in_username = get_logged_in_username()
 
 leaderboard_pages = {"🏠 Home", "🏆 Rangliste"}
 if menu in leaderboard_pages:
-    leaderboard = get_leaderboard()
+    leaderboard = normalize_leaderboard_columns(get_leaderboard())
 else:
     leaderboard = pd.DataFrame(columns=["Viewer", "Chickens", "Pepples"])
 
