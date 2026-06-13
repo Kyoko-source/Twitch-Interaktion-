@@ -17,6 +17,7 @@ import json
 import math
 import base64
 import io
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -119,11 +120,23 @@ def logout_user():
 # SUPABASE
 # =========================
 
-try:
-    SUPABASE_URL = st.secrets["supabase"]["url"]
-    SUPABASE_ANON_KEY = st.secrets["supabase"].get("anon_key") or st.secrets["supabase"].get("key")
-    SUPABASE_SERVICE_KEY = st.secrets["supabase"].get("service_key") or st.secrets["supabase"].get("key")
-except KeyError:
+def get_secret_value(section, key, env_name):
+    env_value = os.getenv(env_name)
+    if env_value:
+        return env_value
+
+    try:
+        return st.secrets.get(section, {}).get(key)
+    except Exception:
+        return None
+
+
+SUPABASE_URL = get_secret_value("supabase", "url", "SUPABASE_URL")
+SUPABASE_FALLBACK_KEY = get_secret_value("supabase", "key", "SUPABASE_KEY")
+SUPABASE_ANON_KEY = get_secret_value("supabase", "anon_key", "SUPABASE_ANON_KEY") or SUPABASE_FALLBACK_KEY
+SUPABASE_SERVICE_KEY = get_secret_value("supabase", "service_key", "SUPABASE_SERVICE_KEY") or SUPABASE_FALLBACK_KEY
+
+if not SUPABASE_URL:
     st.error("Supabase-Secrets sind nicht konfiguriert. Bitte setze url, anon_key und service_key in den App-Einstellungen.")
     st.stop()
 
@@ -276,11 +289,11 @@ TWITCH_USER_URL = "https://api.twitch.tv/helix/users"
 
 
 def get_twitch_config():
-    try:
-        twitch = st.secrets["twitch"]
-        return twitch["client_id"], twitch["client_secret"], twitch["redirect_uri"]
-    except KeyError as e:
-        return None, None, None
+    return (
+        get_secret_value("twitch", "client_id", "TWITCH_CLIENT_ID"),
+        get_secret_value("twitch", "client_secret", "TWITCH_CLIENT_SECRET"),
+        get_secret_value("twitch", "redirect_uri", "TWITCH_REDIRECT_URI"),
+    )
 
 
 def twitch_oauth_authorize_url():

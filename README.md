@@ -1,5 +1,20 @@
 # Twitch-Interaktion-
 
+## Railway Deployment
+
+Das Repository enthält ein `Dockerfile` und eine `railway.json` für Railway.
+Folgende Variablen müssen im Railway-Service gesetzt werden:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_KEY`
+- `TWITCH_CLIENT_ID`
+- `TWITCH_CLIENT_SECRET`
+- `TWITCH_REDIRECT_URI`
+
+`TWITCH_REDIRECT_URI` muss auf die öffentliche Railway-Domain zeigen. Railway setzt
+`PORT` automatisch; der Container startet Streamlit auf diesem Port.
+
 ## Supabase Datenbank
 
 Falls du die neue Gast-Registrierung nutzen möchtest, lege in der Supabase-Tabelle `users` die Spalte `password_hash` an.
