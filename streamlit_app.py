@@ -7463,6 +7463,340 @@ h1::after {
     gap: 5px;
 }
 
+/* Global responsive layer for Streamlit widgets and all Aviary pages. */
+@media (max-width: 1024px) {
+    .block-container {
+        max-width: 100%;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .stRadio {
+        margin-bottom: 24px;
+    }
+
+    .stRadio > div {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .stRadio [role="radiogroup"] {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 780px) {
+    html {
+        scroll-padding-top: 12px;
+    }
+
+    body,
+    .stApp {
+        overflow-x: hidden;
+    }
+
+    .block-container {
+        padding: 0.75rem 0.75rem 5rem;
+    }
+
+    h1 {
+        font-size: clamp(34px, 12vw, 52px) !important;
+        line-height: 0.96;
+        margin: 8px 0 16px !important;
+    }
+
+    h1::after {
+        margin-top: 8px;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    h2 {
+        font-size: clamp(24px, 8vw, 34px);
+        line-height: 1.05;
+    }
+
+    h3 {
+        font-size: clamp(19px, 6vw, 26px);
+    }
+
+    p,
+    li,
+    [data-testid="stMarkdownContainer"] {
+        overflow-wrap: anywhere;
+    }
+
+    .topbar {
+        min-height: 54px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        margin-bottom: 4px;
+        gap: 8px;
+    }
+
+    .topbar-brand {
+        gap: 8px;
+        font-size: 16px;
+    }
+
+    .topbar-brand-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .topbar-login-state {
+        max-width: 42vw;
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .topbar-login-state:not(.is-guest) {
+        font-size: 0;
+    }
+
+    .topbar-login-state:not(.is-guest) span {
+        font-size: 11px;
+    }
+
+    .topbar-menu-slot {
+        width: 40px;
+    }
+
+    .stRadio {
+        margin: 4px calc(-0.75rem) 22px;
+        width: calc(100% + 1.5rem);
+    }
+
+    .stRadio > div {
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+        padding: 6px 0.75rem;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stRadio [role="radiogroup"] {
+        gap: 5px;
+    }
+
+    .stRadio [role="radiogroup"] label {
+        min-height: 42px;
+        padding: 0 13px;
+        scroll-snap-align: start;
+    }
+
+    .stRadio [role="radiogroup"] label p {
+        font-size: 12px;
+    }
+
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap;
+        gap: 0.65rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        min-width: min(100%, 240px) !important;
+        flex: 1 1 240px !important;
+        width: 100% !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:empty {
+        display: none;
+    }
+
+    [data-testid="stForm"],
+    [data-testid="stExpander"],
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 14px;
+    }
+
+    .stForm {
+        padding: 12px;
+    }
+
+    .stButton > button,
+    [data-testid="stDownloadButton"] > button,
+    [data-testid="stPopover"] > button {
+        min-height: 44px;
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    [data-testid="stTextInput"] input,
+    [data-testid="stNumberInput"] input,
+    [data-testid="stTextArea"] textarea,
+    [data-testid="stSelectbox"] > div > div,
+    [data-testid="stDateInput"] input,
+    [data-testid="stTimeInput"] input {
+        font-size: 16px !important;
+    }
+
+    [data-testid="stTabs"] [role="tablist"] {
+        overflow-x: auto;
+        justify-content: flex-start;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
+        display: none;
+    }
+
+    [data-testid="stTabs"] [role="tab"] {
+        flex: 0 0 auto;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"],
+    .stTable,
+    table {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    [data-testid="stImage"] img,
+    [data-testid="stVideo"] video,
+    iframe,
+    canvas,
+    svg {
+        max-width: 100%;
+    }
+
+    .home-dashboard,
+    .members-dashboard,
+    .profile-shell,
+    .shop-dashboard,
+    .support-shell,
+    .leaderboard-shell,
+    .admin-shell {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .home-spotlight,
+    .daily-card,
+    .members-hero-main,
+    .members-spotlight,
+    .profile-showcase,
+    .profile-side-panel,
+    .support-card,
+    .admin-danger-panel {
+        padding: 18px;
+    }
+
+    .home-spotlight h2 {
+        max-width: calc(100% - 20px);
+        font-size: clamp(34px, 11vw, 52px);
+        line-height: 0.98;
+    }
+
+    .home-welcome-name {
+        font-size: clamp(20px, 9vw, 42px);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .home-actions {
+        margin-top: 18px;
+        gap: 8px;
+    }
+
+    .home-action-card {
+        min-height: 82px;
+        padding: 13px;
+    }
+
+    .home-action-card strong {
+        font-size: 23px;
+    }
+
+    .daily-claim-shell,
+    .home-login-actions {
+        max-width: none;
+        margin: 12px 0 28px;
+    }
+
+    .member-card,
+    .profile-stat,
+    .achievement-card,
+    .market-card,
+    .shop-card,
+    .rank-row,
+    .event-ticket {
+        min-width: 0;
+    }
+
+    .profile-chip-row,
+    .topbar-actions {
+        gap: 6px;
+    }
+
+    .profile-chip {
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 480px) {
+    .block-container {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    .topbar-login-state.is-guest {
+        display: none;
+    }
+
+    .topbar-menu-slot {
+        width: 34px;
+    }
+
+    .stRadio {
+        margin-left: -0.6rem;
+        margin-right: -0.6rem;
+        width: calc(100% + 1.2rem);
+    }
+
+    .stRadio > div {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        min-width: 100% !important;
+        flex-basis: 100% !important;
+    }
+
+    .home-aviary-visual {
+        right: -120px;
+        opacity: 0.2;
+    }
+
+    .home-spotlight,
+    .daily-card,
+    .members-hero-main,
+    .members-spotlight,
+    .profile-showcase,
+    .profile-side-panel {
+        padding: 15px;
+    }
+
+    .home-online-shell,
+    .stForm {
+        padding: 10px;
+    }
+
+    .event-ticket-main,
+    .event-ticket-date {
+        padding: 14px;
+    }
+}
+
 .small {
     color: #aaa;
 }
