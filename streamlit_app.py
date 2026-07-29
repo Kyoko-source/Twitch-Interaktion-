@@ -150,6 +150,8 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
+API_TIMEOUT_SECONDS = 10
+
 # =========================
 # API
 # =========================
@@ -173,64 +175,91 @@ def show_api_error(response):
     st.error(error_text)
 
 
-def api_get(path):
-    response = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        headers=HEADERS
-    )
+def show_api_connection_error(error):
+    st.error(f"Datenbank ist gerade nicht erreichbar: {error.__class__.__name__}. Bitte versuche es gleich erneut.")
+
+
+def supabase_request(method, path, *, headers=None, show_errors=True, allow_error_response=False, **kwargs):
+    try:
+        response = requests.request(
+            method,
+            f"{SUPABASE_URL}/rest/v1/{path}",
+            headers=headers or HEADERS,
+            timeout=API_TIMEOUT_SECONDS,
+            **kwargs
+        )
+    except requests.RequestException as error:
+        if show_errors:
+            show_api_connection_error(error)
+        return None
 
     if response.status_code >= 400:
-        show_api_error(response)
+        if allow_error_response:
+            return response
+        if show_errors:
+            show_api_error(response)
+        return None
+
+    return response
+
+
+def api_get(path):
+    response = supabase_request("GET", path)
+    if response is None:
         return []
 
     return response.json()
 
 
 def api_get_optional(path):
-    response = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        headers=HEADERS
-    )
-
-    if response.status_code >= 400:
+    response = supabase_request("GET", path, show_errors=False)
+    if response is None:
         return []
 
     return response.json()
 
 
 def api_post(table, payload):
-    response = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{table}",
+    response = supabase_request(
+        "POST",
+        table,
         headers={**HEADERS, "Prefer": "return=representation"},
         json=payload
     )
 
-    if response.status_code >= 400:
-        show_api_error(response)
+    if response is None:
         return None
 
     return response.json()
 
 
 def api_post_optional(table, payload):
-    response = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{table}",
+    response = supabase_request(
+        "POST",
+        table,
         headers={**HEADERS, "Prefer": "return=representation"},
-        json=payload
+        json=payload,
+        show_errors=False
     )
 
-    if response.status_code >= 400:
+    if response is None:
         return None
 
     return response.json()
 
 
 def api_post_optional_with_error(table, payload):
-    response = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{table}",
+    response = supabase_request(
+        "POST",
+        table,
         headers={**HEADERS, "Prefer": "return=representation"},
-        json=payload
+        json=payload,
+        show_errors=False,
+        allow_error_response=True
     )
+
+    if response is None:
+        return None, {"message": "Datenbank ist gerade nicht erreichbar."}
 
     if response.status_code >= 400:
         try:
@@ -243,38 +272,35 @@ def api_post_optional_with_error(table, payload):
 
 
 def api_upsert_optional(table_path, payload):
-    response = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{table_path}",
+    response = supabase_request(
+        "POST",
+        table_path,
         headers={**HEADERS, "Prefer": "return=representation,resolution=merge-duplicates"},
-        json=payload
+        json=payload,
+        show_errors=False
     )
 
-    if response.status_code >= 400:
+    if response is None:
         return None
 
     return response.json()
 
 def api_patch(path, payload):
-    response = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        headers=HEADERS,
+    response = supabase_request(
+        "PATCH",
+        path,
         json=payload
     )
 
-    if response.status_code >= 400:
-        show_api_error(response)
+    if response is None:
         return False
 
     return True
 
 def api_delete(path):
-    response = requests.delete(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        headers=HEADERS
-    )
+    response = supabase_request("DELETE", path)
 
-    if response.status_code >= 400:
-        show_api_error(response)
+    if response is None:
         return False
 
     return True
@@ -538,11 +564,7 @@ def touch_user_presence(username):
 def remove_user_presence(username):
     if not validate_username(username):
         return False
-    response = requests.delete(
-        f"{SUPABASE_URL}/rest/v1/user_presence?username=eq.{urllib.parse.quote(username.strip())}",
-        headers=HEADERS,
-    )
-    return response.status_code < 400
+    return api_delete(f"user_presence?username=eq.{urllib.parse.quote(username.strip())}")
 
 
 def get_online_users():
