@@ -18,6 +18,7 @@ import math
 import base64
 import io
 import os
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -123,15 +124,30 @@ def logout_user():
 def get_secret_value(section, key, env_name):
     env_value = os.getenv(env_name)
     if env_value:
-        return env_value
+        return env_value.strip() if isinstance(env_value, str) else env_value
 
     try:
-        return st.secrets.get(section, {}).get(key)
+        secret_value = st.secrets.get(section, {}).get(key)
     except Exception:
         return None
 
+    return secret_value.strip() if isinstance(secret_value, str) else secret_value
 
-SUPABASE_URL = get_secret_value("supabase", "url", "SUPABASE_URL")
+
+def normalize_supabase_url(url):
+    if not url:
+        return None
+
+    normalized = str(url).strip().rstrip("/")
+    if normalized.endswith("/rest/v1"):
+        normalized = normalized[:-len("/rest/v1")].rstrip("/")
+    if normalized and not normalized.startswith(("http://", "https://")):
+        normalized = f"https://{normalized}"
+
+    return normalized
+
+
+SUPABASE_URL = normalize_supabase_url(get_secret_value("supabase", "url", "SUPABASE_URL"))
 SUPABASE_FALLBACK_KEY = get_secret_value("supabase", "key", "SUPABASE_KEY")
 SUPABASE_ANON_KEY = get_secret_value("supabase", "anon_key", "SUPABASE_ANON_KEY") or SUPABASE_FALLBACK_KEY
 SUPABASE_SERVICE_KEY = get_secret_value("supabase", "service_key", "SUPABASE_SERVICE_KEY") or SUPABASE_FALLBACK_KEY
@@ -151,6 +167,7 @@ HEADERS = {
 }
 
 API_TIMEOUT_SECONDS = 10
+API_RETRY_ATTEMPTS = 2
 
 # =========================
 # API
@@ -180,17 +197,24 @@ def show_api_connection_error(error):
 
 
 def supabase_request(method, path, *, headers=None, show_errors=True, allow_error_response=False, **kwargs):
-    try:
-        response = requests.request(
-            method,
-            f"{SUPABASE_URL}/rest/v1/{path}",
-            headers=headers or HEADERS,
-            timeout=API_TIMEOUT_SECONDS,
-            **kwargs
-        )
-    except requests.RequestException as error:
-        if show_errors:
-            show_api_connection_error(error)
+    last_error = None
+    for attempt in range(API_RETRY_ATTEMPTS):
+        try:
+            response = requests.request(
+                method,
+                f"{SUPABASE_URL}/rest/v1/{path}",
+                headers=headers or HEADERS,
+                timeout=API_TIMEOUT_SECONDS,
+                **kwargs
+            )
+            break
+        except requests.RequestException as error:
+            last_error = error
+            if attempt + 1 < API_RETRY_ATTEMPTS:
+                time.sleep(0.5)
+    else:
+        if show_errors and last_error is not None:
+            show_api_connection_error(last_error)
         return None
 
     if response.status_code >= 400:
