@@ -204,7 +204,7 @@ main {
 
 .sideRail {
   position: sticky;
-  top: 154px;
+  top: 72px;
   align-self: start;
   display: grid;
   gap: 22px;
@@ -1886,7 +1886,7 @@ textarea {
   display: grid;
   gap: 12px;
   position: sticky;
-  top: 136px;
+  top: 72px;
 }
 
 .systematicsEditor h2 {
@@ -1989,7 +1989,7 @@ textarea {
   grid-template-columns: 222px minmax(0, 1fr);
   gap: 18px;
   width: min(1540px, calc(100% - 32px));
-  margin: 10px auto 70px;
+  margin: 14px auto 70px;
 }
 
 .appFrame main {
@@ -1997,7 +1997,7 @@ textarea {
 }
 
 .sideRail {
-  top: 136px;
+  top: 72px;
   gap: 18px;
   padding: 12px 11px;
 }

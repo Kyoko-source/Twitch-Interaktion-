@@ -89,7 +89,6 @@ function Avatar({ user, className = "viewerAvatar" }) {
 }
 
 function Shell({ page, setPage, user, onLogout, children }) {
-  const primaryNav = nav.slice(0, 11);
   return (
     <>
       <header className="topbar">
@@ -114,17 +113,6 @@ function Shell({ page, setPage, user, onLogout, children }) {
           )}
         </div>
       </header>
-      <nav className="mainnav">
-        {primaryNav.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button className={page === item.id ? "active" : ""} key={item.id} onClick={() => setPage(item.id)} type="button">
-              <Icon size={17} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
       <div className="appFrame">
         <aside className="sideRail">
           <div className="sideGroup">
