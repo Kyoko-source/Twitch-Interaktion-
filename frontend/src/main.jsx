@@ -143,9 +143,28 @@ function HomePage({ user, setPage }) {
           <Stat label="Chickens im Umlauf" value={data.stats.chickens} />
           <Stat label="Mitglieder" value={data.stats.users} />
         </div>
-        <div className="aviarySigil" aria-hidden="true">
-          <Sparkles size={30} />
-          <span />
+        <div className="birdcageScene" aria-hidden="true">
+          <div className="cageHalo" />
+          <div className="birdcage">
+            <span className="cageHook" />
+            <span className="cageDome" />
+            <span className="cageBase" />
+            <span className="cageBar bar1" />
+            <span className="cageBar bar2" />
+            <span className="cageBar bar3" />
+            <span className="cageBar bar4" />
+            <span className="cageBar bar5" />
+            <span className="cagePerch" />
+            <span className="neonBird">
+              <span className="birdBody" />
+              <span className="birdWing" />
+              <span className="birdTail" />
+            </span>
+            <span className="cageSpark spark1" />
+            <span className="cageSpark spark2" />
+            <span className="cageSpark spark3" />
+          </div>
+          <Sparkles className="sceneSparkle" size={30} />
         </div>
       </div>
       {error && <div className="notice error">{error}</div>}
