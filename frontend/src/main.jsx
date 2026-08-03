@@ -920,6 +920,7 @@ function PeppleSurvivor({ user }) {
   ];
   const stateRef = useRef({
     player: { x: 640, y: 360, hp: 150, maxHp: 150, invuln: 0 },
+    camera: { x: 0, y: 0 },
     gems: [],
     enemies: [],
     shots: [],
@@ -1145,6 +1146,21 @@ function PeppleSurvivor({ user }) {
     }
   }
 
+  function updateCamera(state, canvas) {
+    const camera = state.camera || { x: 0, y: 0 };
+    const screenX = state.player.x - camera.x;
+    const screenY = state.player.y - camera.y;
+    const leftEdge = canvas.width * 0.34;
+    const rightEdge = canvas.width * 0.66;
+    const topEdge = canvas.height * 0.32;
+    const bottomEdge = canvas.height * 0.68;
+    if (screenX > rightEdge) camera.x = state.player.x - rightEdge;
+    if (screenX < leftEdge) camera.x = state.player.x - leftEdge;
+    if (screenY > bottomEdge) camera.y = state.player.y - bottomEdge;
+    if (screenY < topEdge) camera.y = state.player.y - topEdge;
+    state.camera = camera;
+  }
+
   function spawnBoss(state, canvas) {
     const oldEnemies = state.enemies.filter((enemy) => !enemy.boss);
     oldEnemies.forEach((enemy) => {
@@ -1181,8 +1197,8 @@ function PeppleSurvivor({ user }) {
   }
 
   function spawnEnemy(state, canvas) {
-    const viewLeft = state.player.x - canvas.width / 2;
-    const viewTop = state.player.y - canvas.height / 2;
+    const viewLeft = state.camera?.x ?? state.player.x - canvas.width / 2;
+    const viewTop = state.camera?.y ?? state.player.y - canvas.height / 2;
     const side = Math.floor(Math.random() * 4);
     const edge = [
       { x: viewLeft - 80, y: viewTop + Math.random() * canvas.height },
@@ -1498,8 +1514,8 @@ function PeppleSurvivor({ user }) {
       const scale = Math.max(canvas.width / bgImage.naturalWidth, canvas.height / bgImage.naturalHeight) * 1.14;
       const width = bgImage.naturalWidth * scale;
       const height = bgImage.naturalHeight * scale;
-      const panX = Math.sin(frame / 820) * 18 - (state.player.x * 0.025) % 70;
-      const panY = Math.cos(frame / 960) * 12 - (state.player.y * 0.025) % 70;
+      const panX = Math.sin(frame / 820) * 18 - ((state.camera?.x || 0) * 0.025) % 70;
+      const panY = Math.cos(frame / 960) * 12 - ((state.camera?.y || 0) * 0.025) % 70;
       ctx.drawImage(bgImage, (canvas.width - width) / 2 + panX, (canvas.height - height) / 2 + panY, width, height);
       ctx.fillStyle = "rgba(2,4,11,.22)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1531,8 +1547,8 @@ function PeppleSurvivor({ user }) {
     ctx.save();
     for (let i = 0; i < 150; i += 1) {
       const speed = (i % 5) + 0.2;
-      const x = (i * 97 + frame * speed * 0.12 - state.player.x * 0.08) % canvas.width;
-      const y = (i * 53 + Math.sin(frame / 70 + i) * 7 - state.player.y * 0.08) % canvas.height;
+      const x = (i * 97 + frame * speed * 0.12 - (state.camera?.x || 0) * 0.08) % canvas.width;
+      const y = (i * 53 + Math.sin(frame / 70 + i) * 7 - (state.camera?.y || 0) * 0.08) % canvas.height;
       const size = i % 11 === 0 ? 2.2 : i % 7 === 0 ? 1.5 : 0.9;
       ctx.fillStyle = i % 9 ? "rgba(255,244,233,.58)" : "rgba(122,244,220,.7)";
       ctx.globalAlpha = 0.28 + (i % 6) * 0.09;
@@ -1600,6 +1616,7 @@ function PeppleSurvivor({ user }) {
       const len = Math.max(1, Math.hypot(mx, my));
       state.player.x += (mx / len) * speed * (dt / 16);
       state.player.y += (my / len) * speed * (dt / 16);
+      updateCamera(state, canvas);
       state.player.invuln = Math.max(0, state.player.invuln - dt);
       if (mx || my) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 260, ttl: 260, color: "#ffcf8a" });
 
@@ -1913,8 +1930,8 @@ function PeppleSurvivor({ user }) {
     });
     state.particles = state.particles.filter((particle) => particle.life > 0 && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4).slice(-260);
 
-    const cameraX = statusRef.current === "menu" ? 0 : state.player.x - canvas.width / 2;
-    const cameraY = statusRef.current === "menu" ? 0 : state.player.y - canvas.height / 2;
+    const cameraX = statusRef.current === "menu" ? 0 : (state.camera?.x || 0);
+    const cameraY = statusRef.current === "menu" ? 0 : (state.camera?.y || 0);
     ctx.save();
     ctx.translate(-cameraX, -cameraY);
 
@@ -2161,6 +2178,7 @@ function PeppleSurvivor({ user }) {
   function start() {
     stateRef.current = {
       player: { x: 640, y: 360, hp: 150, maxHp: 150, invuln: 0 },
+      camera: { x: 0, y: 0 },
       gems: [],
       enemies: [],
       shots: [],
