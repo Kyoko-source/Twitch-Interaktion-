@@ -910,6 +910,7 @@ function PeppleSurvivor({ user }) {
   const musicRef = useRef(null);
   const bgRef = useRef(null);
   const spriteRef = useRef(null);
+  const titleRef = useRef(null);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
   const musicPlaylist = [
@@ -978,6 +979,9 @@ function PeppleSurvivor({ user }) {
     const sprites = new Image();
     sprites.src = "/assets/pepple-survivor-sprites.png";
     spriteRef.current = sprites;
+    const title = new Image();
+    title.src = "/assets/pepple-survivor-title.png";
+    titleRef.current = title;
   }, []);
 
   useEffect(() => {
@@ -2144,20 +2148,45 @@ function PeppleSurvivor({ user }) {
     ctx.strokeRect(barX, canvas.height - 38, 210, 12);
 
     if (statusRef.current === "menu") {
-      ctx.fillStyle = "rgba(3,5,12,.52)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawSprite(ctx, "chicken", canvas.width / 2 - 300, canvas.height * 0.56, 128, 162, { shadowBlur: 36, shadowColor: "#ffcf8a" });
-      drawSprite(ctx, "alienPink", canvas.width / 2 + 300, canvas.height * 0.54, 94, 106, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
-      drawSprite(ctx, "alienGreen", canvas.width / 2 + 410, canvas.height * 0.61, 82, 88, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
-      drawSprite(ctx, "alienGold", canvas.width / 2 + 178, canvas.height * 0.62, 88, 86, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
-      drawSprite(ctx, "feather", canvas.width / 2 - 108, canvas.height * 0.58, 54, 74, { rotate: -0.78, shadowBlur: 22, shadowColor: "#7af4dc" });
-      drawSprite(ctx, "nova", canvas.width / 2 + 105, canvas.height * 0.58, 66, 66, { rotate: frame / 28, shadowBlur: 24, shadowColor: "#ff6fb7" });
+      const titleImage = titleRef.current;
+      if (titleImage?.complete && titleImage.naturalWidth) {
+        const scale = Math.max(canvas.width / titleImage.naturalWidth, canvas.height / titleImage.naturalHeight);
+        const width = titleImage.naturalWidth * scale;
+        const height = titleImage.naturalHeight * scale;
+        const x = (canvas.width - width) / 2;
+        const y = (canvas.height - height) / 2;
+        ctx.drawImage(titleImage, x, y, width, height);
+        const titleShade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        titleShade.addColorStop(0, "rgba(5,2,12,.12)");
+        titleShade.addColorStop(0.48, "rgba(8,3,14,.2)");
+        titleShade.addColorStop(1, "rgba(4,2,10,.62)");
+        ctx.fillStyle = titleShade;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const titleGlow = ctx.createRadialGradient(canvas.width * 0.26, canvas.height * 0.26, 20, canvas.width * 0.26, canvas.height * 0.26, canvas.width * 0.42);
+        titleGlow.addColorStop(0, "rgba(255,207,138,.34)");
+        titleGlow.addColorStop(1, "rgba(255,207,138,0)");
+        ctx.fillStyle = titleGlow;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "rgba(3,5,12,.52)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawSprite(ctx, "chicken", canvas.width / 2 - 300, canvas.height * 0.56, 128, 162, { shadowBlur: 36, shadowColor: "#ffcf8a" });
+        drawSprite(ctx, "alienPink", canvas.width / 2 + 300, canvas.height * 0.54, 94, 106, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
+        drawSprite(ctx, "alienGreen", canvas.width / 2 + 410, canvas.height * 0.61, 82, 88, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
+        drawSprite(ctx, "alienGold", canvas.width / 2 + 178, canvas.height * 0.62, 88, 86, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
+        drawSprite(ctx, "feather", canvas.width / 2 - 108, canvas.height * 0.58, 54, 74, { rotate: -0.78, shadowBlur: 22, shadowColor: "#7af4dc" });
+        drawSprite(ctx, "nova", canvas.width / 2 + 105, canvas.height * 0.58, 66, 66, { rotate: frame / 28, shadowBlur: 24, shadowColor: "#ff6fb7" });
+      }
+      ctx.save();
+      ctx.shadowBlur = 28;
+      ctx.shadowColor = "rgba(0,0,0,.85)";
       ctx.fillStyle = "#fff4e9";
-      ctx.font = "900 34px Inter, Arial";
-      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, canvas.height * 0.28);
+      ctx.font = "900 44px Inter, Arial";
+      ctx.fillText("Pepple Survivor", canvas.width * 0.08, canvas.height * 0.18);
       ctx.font = "700 16px Inter, Arial";
-      ctx.fillStyle = "#d9c4d2";
-      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, canvas.height * 0.28 + 32);
+      ctx.fillStyle = "#ffcf8a";
+      ctx.fillText("Flieh vor dem Alien-Maul. Sammle XP. Bau dein Waffenchaos.", canvas.width * 0.08, canvas.height * 0.18 + 34);
+      ctx.restore();
     }
     if (statusRef.current === "levelup") {
       ctx.fillStyle = "rgba(3,5,12,.44)";
