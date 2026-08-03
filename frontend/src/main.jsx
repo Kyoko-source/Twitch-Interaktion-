@@ -908,6 +908,7 @@ function PeppleSurvivor({ user }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const keysRef = useRef({});
   const musicRef = useRef(null);
+  const bgRef = useRef(null);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
   const musicPlaylist = [
@@ -963,6 +964,12 @@ function PeppleSurvivor({ user }) {
     }
     audioRef.current.ctx?.close?.();
     audioRef.current.ctx = null;
+  }, []);
+
+  useEffect(() => {
+    const image = new Image();
+    image.src = "/assets/pepple-survivor-space-bg.png";
+    bgRef.current = image;
   }, []);
 
   useEffect(() => {
@@ -1310,13 +1317,25 @@ function PeppleSurvivor({ user }) {
     musicTick();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const bg = ctx.createRadialGradient(canvas.width * 0.55, canvas.height * 0.42, 30, canvas.width * 0.5, canvas.height * 0.5, canvas.width);
-    bg.addColorStop(0, "#311745");
-    bg.addColorStop(0.24, "#17091f");
-    bg.addColorStop(0.58, "#070913");
-    bg.addColorStop(1, "#02040b");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const bgImage = bgRef.current;
+    if (bgImage?.complete && bgImage.naturalWidth) {
+      const scale = Math.max(canvas.width / bgImage.naturalWidth, canvas.height / bgImage.naturalHeight);
+      const width = bgImage.naturalWidth * scale;
+      const height = bgImage.naturalHeight * scale;
+      const panX = Math.sin(frame / 820) * 18;
+      const panY = Math.cos(frame / 960) * 12;
+      ctx.drawImage(bgImage, (canvas.width - width) / 2 + panX, (canvas.height - height) / 2 + panY, width, height);
+      ctx.fillStyle = "rgba(2,4,11,.22)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      const bg = ctx.createRadialGradient(canvas.width * 0.55, canvas.height * 0.42, 30, canvas.width * 0.5, canvas.height * 0.5, canvas.width);
+      bg.addColorStop(0, "#311745");
+      bg.addColorStop(0.24, "#17091f");
+      bg.addColorStop(0.58, "#070913");
+      bg.addColorStop(1, "#02040b");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     ctx.save();
     const nebulaA = ctx.createRadialGradient(canvas.width * 0.2, canvas.height * 0.75, 20, canvas.width * 0.22, canvas.height * 0.72, 520);
