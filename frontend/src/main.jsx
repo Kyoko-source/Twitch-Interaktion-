@@ -898,10 +898,10 @@ function PeppleSurvivor({ user }) {
     level: 1,
     seconds: 0,
     kills: 0,
-    hp: 110,
-    maxHp: 110,
+    hp: 150,
+    maxHp: 150,
     xp: 0,
-    nextXp: 60,
+    nextXp: 45,
     wave: 1,
     weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }],
   });
@@ -919,7 +919,7 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-4.mp3",
   ];
   const stateRef = useRef({
-    player: { x: 640, y: 360, hp: 110, maxHp: 110, invuln: 0 },
+    player: { x: 640, y: 360, hp: 150, maxHp: 150, invuln: 0 },
     gems: [],
     enemies: [],
     shots: [],
@@ -930,7 +930,7 @@ function PeppleSurvivor({ user }) {
     particles: [],
     score: 0,
     xp: 0,
-    nextXp: 60,
+    nextXp: 45,
     seconds: 0,
     kills: 0,
     level: 1,
@@ -938,7 +938,7 @@ function PeppleSurvivor({ user }) {
     spawn: 0,
     nextBossAt: 120,
     bossActive: false,
-    timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000 },
+    timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000, comfortRegen: 1000 },
     weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
     over: false,
   });
@@ -1139,7 +1139,7 @@ function PeppleSurvivor({ user }) {
     while (state.xp >= state.nextXp) {
       state.xp -= state.nextXp;
       state.level += 1;
-      state.nextXp = Math.floor(state.nextXp * 1.22 + 34);
+      state.nextXp = Math.floor(state.nextXp * 1.16 + 24);
       enterLevelUp(state);
       break;
     }
@@ -1162,16 +1162,16 @@ function PeppleSurvivor({ user }) {
     state.enemies.push({
       x: state.player.x + Math.cos(angle) * distance,
       y: state.player.y + Math.sin(angle) * distance,
-      hp: 680 * waveScale,
-      maxHp: 680 * waveScale,
-      speed: 0.78 + state.wave * 0.045,
+      hp: 520 * waveScale,
+      maxHp: 520 * waveScale,
+      speed: 0.62 + state.wave * 0.035,
       radius: 62,
       elite: true,
       boss: true,
       variant: "boss",
       wobble: Math.random() * 8,
       tint: "#ffcf8a",
-      ability: 1800,
+      ability: 2600,
       phase: 0,
     });
     state.bossActive = true;
@@ -1195,9 +1195,9 @@ function PeppleSurvivor({ user }) {
     const variants = ["green", "pink", "blue", "gold"];
     state.enemies.push({
       ...edge,
-      hp: elite ? 54 * waveScale : 22 * waveScale,
-      maxHp: elite ? 54 * waveScale : 22 * waveScale,
-      speed: (elite ? 1.05 : 1.72) + state.wave * 0.08,
+      hp: elite ? 44 * waveScale : 18 * waveScale,
+      maxHp: elite ? 44 * waveScale : 18 * waveScale,
+      speed: (elite ? 0.88 : 1.36) + state.wave * 0.055,
       radius: elite ? 19 : 12,
       elite,
       boss: false,
@@ -1598,8 +1598,8 @@ function PeppleSurvivor({ user }) {
       const mx = (keysRef.current.d || keysRef.current.arrowright ? 1 : 0) - (keysRef.current.a || keysRef.current.arrowleft ? 1 : 0);
       const my = (keysRef.current.s || keysRef.current.arrowdown ? 1 : 0) - (keysRef.current.w || keysRef.current.arrowup ? 1 : 0);
       const len = Math.max(1, Math.hypot(mx, my));
-    state.player.x += (mx / len) * speed * (dt / 16);
-    state.player.y += (my / len) * speed * (dt / 16);
+      state.player.x += (mx / len) * speed * (dt / 16);
+      state.player.y += (my / len) * speed * (dt / 16);
       state.player.invuln = Math.max(0, state.player.invuln - dt);
       if (mx || my) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 260, ttl: 260, color: "#ffcf8a" });
 
@@ -1607,9 +1607,9 @@ function PeppleSurvivor({ user }) {
 
       state.spawn -= dt;
       if (!state.bossActive && state.spawn <= 0) {
-        const count = 1 + Math.floor(Math.min(4, state.wave / 3));
+        const count = 1 + Math.floor(Math.min(3, Math.max(0, state.wave - 2) / 4));
         for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
-        state.spawn = Math.max(90, 640 - state.seconds * 8);
+        state.spawn = Math.max(170, 900 - state.seconds * 5.4);
       }
 
       state.timers.bolt -= dt;
@@ -1708,6 +1708,11 @@ function PeppleSurvivor({ user }) {
         state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1.6 + state.weapons.regen * 0.8);
         state.timers.regen = 1000;
       }
+      state.timers.comfortRegen -= dt;
+      if (state.timers.comfortRegen <= 0) {
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1.2);
+        state.timers.comfortRegen = 1000;
+      }
 
       state.enemies.forEach((enemy) => {
         const dx = state.player.x - enemy.x;
@@ -1724,23 +1729,23 @@ function PeppleSurvivor({ user }) {
           if (enemy.ability <= 0) {
             const pattern = Math.floor(state.seconds / 2) % 3;
             if (pattern === 0) {
-              state.hazards.push({ type: "ring", x: enemy.x, y: enemy.y, radius: 28, max: 260, life: 1050, ttl: 1050, damage: 24, hit: false, color: "#ff6fb7" });
+              state.hazards.push({ type: "ring", x: enemy.x, y: enemy.y, radius: 28, max: 240, life: 1350, ttl: 1350, damage: 16, hit: false, color: "#ff6fb7" });
               enemy.phase = 1;
             } else if (pattern === 1) {
-              for (let i = 0; i < 5; i += 1) {
-                const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x) + (i - 2) * 0.24;
-                state.hazards.push({ type: "orb", x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 5.4, vy: Math.sin(angle) * 5.4, radius: 18, life: 1800, ttl: 1800, damage: 18, color: i === 2 ? "#ffcf8a" : "#b46cff" });
+              for (let i = 0; i < 3; i += 1) {
+                const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x) + (i - 1) * 0.28;
+                state.hazards.push({ type: "orb", x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 4.4, vy: Math.sin(angle) * 4.4, radius: 16, life: 2100, ttl: 2100, damage: 12, color: i === 1 ? "#ffcf8a" : "#b46cff" });
               }
             } else {
-              state.hazards.push({ type: "beam", x1: enemy.x, y1: enemy.y, x2: state.player.x, y2: state.player.y, life: 520, ttl: 520, damage: 22, width: 24, color: "#ffcf8a", hit: false });
+              state.hazards.push({ type: "beam", x1: enemy.x, y1: enemy.y, x2: state.player.x, y2: state.player.y, life: 760, ttl: 760, damage: 15, width: 20, color: "#ffcf8a", hit: false });
             }
-            enemy.ability = 1700 - Math.min(680, state.wave * 34);
+            enemy.ability = 2600 - Math.min(700, state.wave * 28);
             sfx("thunder");
           }
         }
         if (dist < enemy.radius + 18 && state.player.invuln <= 0) {
-          state.player.hp -= Math.max(5, (enemy.boss ? 31 : enemy.elite ? 20 : 13) - state.weapons.shield * 2.2);
-          state.player.invuln = 720;
+          state.player.hp -= Math.max(3, (enemy.boss ? 18 : enemy.elite ? 12 : 8) - state.weapons.shield * 2.2);
+          state.player.invuln = enemy.boss ? 980 : 820;
           burst(state.player.x, state.player.y, "#ff6fb7", 14);
           sfx("hit");
           if (state.player.hp <= 0) {
@@ -1814,8 +1819,8 @@ function PeppleSurvivor({ user }) {
           hazard.radius = hazard.max * (1 - hazard.life / hazard.ttl);
           const dist = Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y);
           if (!hazard.hit && Math.abs(dist - hazard.radius) < 24 && state.player.invuln <= 0) {
-            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
-            state.player.invuln = 620;
+            state.player.hp -= Math.max(4, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 760;
             hazard.hit = true;
             burst(state.player.x, state.player.y, "#ff6fb7", 12);
           }
@@ -1823,8 +1828,8 @@ function PeppleSurvivor({ user }) {
           hazard.x += hazard.vx * (dt / 16);
           hazard.y += hazard.vy * (dt / 16);
           if (Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y) < hazard.radius + 19 && state.player.invuln <= 0) {
-            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
-            state.player.invuln = 620;
+            state.player.hp -= Math.max(4, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 760;
             hazard.life = 0;
             burst(state.player.x, state.player.y, hazard.color, 12);
           }
@@ -1836,8 +1841,8 @@ function PeppleSurvivor({ user }) {
           const px = hazard.x1 + vx * t;
           const py = hazard.y1 + vy * t;
           if (!hazard.hit && Math.hypot(state.player.x - px, state.player.y - py) < hazard.width && state.player.invuln <= 0) {
-            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
-            state.player.invuln = 700;
+            state.player.hp -= Math.max(4, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 820;
             hazard.hit = true;
             burst(state.player.x, state.player.y, "#ffcf8a", 16);
           }
@@ -2155,7 +2160,7 @@ function PeppleSurvivor({ user }) {
 
   function start() {
     stateRef.current = {
-      player: { x: 640, y: 360, hp: 110, maxHp: 110, invuln: 0 },
+      player: { x: 640, y: 360, hp: 150, maxHp: 150, invuln: 0 },
       gems: [],
       enemies: [],
       shots: [],
@@ -2166,7 +2171,7 @@ function PeppleSurvivor({ user }) {
       particles: [],
       score: 0,
       xp: 0,
-      nextXp: 60,
+      nextXp: 45,
       seconds: 0,
       kills: 0,
       level: 1,
@@ -2174,12 +2179,12 @@ function PeppleSurvivor({ user }) {
       spawn: 0,
       nextBossAt: 120,
       bossActive: false,
-      timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000 },
+      timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000, comfortRegen: 1000 },
       weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
       over: false,
     };
     setChoices([]);
-    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 110, maxHp: 110, xp: 0, nextXp: 60, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
+    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
     setMessage("Sammle XP-Kristalle. Beim Level-Up waehlt ihr den Build.");
     audio();
     sfx("start");
@@ -2190,10 +2195,10 @@ function PeppleSurvivor({ user }) {
     const state = stateRef.current;
     state.weapons[upgrade.id] = Number(state.weapons[upgrade.id] || 0) + 1;
     if (upgrade.id === "shield") {
-      state.player.maxHp += 18;
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 24);
+      state.player.maxHp += 24;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 34);
     }
-    if (upgrade.id === "speed") state.player.invuln = Math.max(state.player.invuln, 420);
+    if (upgrade.id === "speed") state.player.invuln = Math.max(state.player.invuln, 620);
     setChoices([]);
     setMessage(`${upgrade.name} Level ${state.weapons[upgrade.id]} aktiviert.`);
     syncSnapshot(state);
