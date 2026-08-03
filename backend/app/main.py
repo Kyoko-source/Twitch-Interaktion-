@@ -189,7 +189,7 @@ def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
 def dashboard() -> dict[str, Any]:
     users = rows("users?select=*&order=braincells.desc")
     news = rows("news_posts?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=5")
-    events = rows("events?select=*&active=eq.true&order=created_at.desc&limit=5")
+    events = rows("events?select=*&order=id.desc&limit=5")
     gallery = rows("creative_gallery?select=*&order=created_at.desc&limit=6")
     leaderboard = [public_user(user) for user in users]
     return {
@@ -297,7 +297,7 @@ def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_us
 
 @app.get("/api/events")
 def events() -> list[dict[str, Any]]:
-    return rows("events?select=*&active=eq.true&order=created_at.desc")
+    return rows("events?select=*&order=id.desc")
 
 
 @app.post("/api/events/signup")
