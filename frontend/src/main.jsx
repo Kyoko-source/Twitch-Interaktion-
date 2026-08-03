@@ -82,6 +82,7 @@ function Avatar({ user, className = "viewerAvatar" }) {
 }
 
 function Shell({ page, setPage, user, onLogout, children }) {
+  const primaryNav = nav.slice(0, 10);
   return (
     <>
       <header className="topbar">
@@ -89,6 +90,10 @@ function Shell({ page, setPage, user, onLogout, children }) {
           <Crown size={22} />
           <span>Aviary</span>
         </button>
+        <div className="topCounters">
+          <div><ShoppingBasket size={17} /><strong>{user?.chickens ?? "4.374"}</strong><span>Chickens</span></div>
+          <div><Sparkles size={17} /><strong>{user?.braincells ?? "3.612"}</strong><span>Pepples</span></div>
+        </div>
         <div className="account">
           <span>{user ? `Eingeloggt als ${user.username}` : "Nicht eingeloggt"}</span>
           {user ? (
@@ -103,7 +108,7 @@ function Shell({ page, setPage, user, onLogout, children }) {
         </div>
       </header>
       <nav className="mainnav">
-        {nav.map((item) => {
+        {primaryNav.map((item) => {
           const Icon = item.icon;
           return (
             <button className={page === item.id ? "active" : ""} key={item.id} onClick={() => setPage(item.id)} type="button">
@@ -113,8 +118,40 @@ function Shell({ page, setPage, user, onLogout, children }) {
           );
         })}
       </nav>
-      <main>{children}</main>
+      <div className="appFrame">
+        <aside className="sideRail">
+          <div className="sideGroup">
+            <span>Uebersicht</span>
+            <SideButton item={nav[0]} page={page} setPage={setPage} />
+          </div>
+          <div className="sideGroup">
+            <span>Community</span>
+            {nav.slice(1, 8).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+          </div>
+          <div className="sideGroup">
+            <span>Account</span>
+            {nav.slice(8, 10).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+          </div>
+          <div className="dailyBox">
+            <Star size={20} />
+            <strong>Taegliche Belohnung</strong>
+            <span>Hol dir deinen Schub im Profil.</span>
+            <button onClick={() => setPage("profile")} type="button">Oeffnen</button>
+          </div>
+        </aside>
+        <main>{children}</main>
+      </div>
     </>
+  );
+}
+
+function SideButton({ item, page, setPage }) {
+  const Icon = item.icon;
+  return (
+    <button className={page === item.id ? "active" : ""} onClick={() => setPage(item.id)} type="button">
+      <Icon size={17} />
+      <span>{item.label}</span>
+    </button>
   );
 }
 
@@ -154,14 +191,27 @@ function HomePage({ user, setPage }) {
 
   return (
     <section className="homePage">
-      <div className="hero">
+      <div className="dashboardHero">
         <div className="heroCopy">
-          <p className="kicker">Aviary</p>
-          <h1>{user ? `Willkommen zurueck, ${user.username}` : "Willkommen in der Aviary"}</h1>
-          <p>Dein Community-Hub fuer Pepples, Chickens, Rewards, Events, Galerie und flimmernde Arcade-Runs.</p>
+          <p className="kicker">Willkommen zurueck</p>
+          <h1>{user?.username || "magical_kyoko_"}</h1>
+          <p>Gemeinsam wachsen, gemeinsam glaenzen. Dein Aviary-Dashboard fuer Games, Rewards und Community-Energie.</p>
+          <div className="levelStrip">
+            <div><span>Level</span><strong>{user ? Math.max(1, Math.floor(Number(user.braincells || 0) / 140) + 1) : 27}</strong></div>
+            <div className="levelBar"><span style={{ width: `${user ? Math.min(98, Number(user.braincells || 0) % 140) : 72}%` }} /></div>
+            <small>Naechster Rang wartet im Kaefiglicht.</small>
+          </div>
           <div className="actions">
             <button onClick={() => setPage(user ? "profile" : "login")} type="button">{user ? "Profil oeffnen" : "Einloggen"}</button>
             <button className="ghost" onClick={() => setPage("games")} type="button">Minispiele</button>
+          </div>
+        </div>
+        <div className="overviewPanel">
+          <p className="kicker">Deine Uebersicht</p>
+          <div className="overviewStats">
+            <Stat label="Chickens" value={user?.chickens ?? data.stats.chickens} />
+            <Stat label="Pepples" value={user?.braincells ?? data.stats.braincells} />
+            <Stat label="Mitglieder" value={data.stats.users} />
           </div>
           {nextNews && (
             <button className="newsTicker" onClick={() => setPage("news")} type="button">
@@ -170,50 +220,77 @@ function HomePage({ user, setPage }) {
             </button>
           )}
         </div>
-        <div className="heroPanel">
-          <Stat label="Pepples gesamt" value={data.stats.braincells} />
-          <Stat label="Chickens im Umlauf" value={data.stats.chickens} />
-          <Stat label="Mitglieder" value={data.stats.users} />
-        </div>
         <CageMark />
       </div>
       {error && <div className="notice error">{error}</div>}
       {loading && <div className="notice">Lade Aviary-Daten...</div>}
-      <section className="dashboardSplit">
-        <div className="spotlightPanel">
-          <p className="kicker">Aktuelle Nummer 1</p>
-          <h2>{topViewer?.username || "Noch frei"}</h2>
-          <p>{topViewer ? `${topViewer.braincells || 0} Pepples und ${topViewer.chickens || 0} Chickens` : "Der naechste Run kann alles drehen."}</p>
-          <div className="podium">
+      <section className="cockpitGrid">
+        <div className="miniGamesPanel">
+          <PanelTitle icon={Gamepad2} title="Minispiele" action="Alle Spiele anzeigen" onClick={() => setPage("games")} />
+          <div className="homeGameDeck">
+            {Object.entries(gameMeta).slice(0, 4).map(([id, meta], index) => (
+              <button className="homeGameCard" onClick={() => setPage("games")} type="button" key={id} style={{ "--game-accent": meta.accent }}>
+                <span className="gameArt">{["P", "K", "B", "C"][index]}</span>
+                <strong>{meta.title}</strong>
+                <small>Highscore aktiv</small>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rankPanel">
+          <PanelTitle icon={Trophy} title="Top Rangliste" action="Komplette Rangliste" onClick={() => setPage("leaderboard")} />
+          <div className="conceptPodium">
             {podium.map((item, index) => (
-              <article className={`podiumCard place${index + 1}`} key={item.username}>
+              <article className={`conceptPodiumItem place${index + 1}`} key={item.username}>
+                <Avatar user={item} />
                 <span>#{index + 1}</span>
                 <strong>{item.username}</strong>
                 <small>{item.braincells || 0} Pepples</small>
               </article>
             ))}
           </div>
-        </div>
-        <div className="activityPanel">
-          <p className="kicker">Live-Schwarm</p>
-          <h2>Heute in der Aviary</h2>
-          <div className="activityList">
-            <div><Star size={17} /><span>{data.news.length ? `${data.news.length} News aktiv` : "Keine neuen News"}</span></div>
-            <div><CalendarDays size={17} /><span>{data.events.length ? `${data.events.length} Events geplant` : "Keine Events geplant"}</span></div>
-            <div><Palette size={17} /><span>{data.gallery.length ? `${data.gallery.length} Hall-of-Fame Bilder` : "Galerie wartet auf Kunst"}</span></div>
+          <div className="leaderMiniRows">
+            {data.leaderboard.slice(3, 8).map((item, index) => <div key={item.username}><span>#{index + 4} {item.username}</span><b>{item.braincells || 0}</b></div>)}
           </div>
         </div>
+        <div className="rightColumn">
+          <div className="activePanel">
+            <PanelTitle icon={Users} title="Aktive Mitglieder" action="Alle Mitglieder" onClick={() => setPage("members")} />
+            <div className="activeList">
+              {data.leaderboard.slice(0, 5).map((item, index) => (
+                <div key={item.username}>
+                  <Avatar user={item} />
+                  <span><strong>{item.username}</strong><small>{index % 3 === 0 ? "Im Spiel" : "Online"}</small></span>
+                  <b>{Math.max(1, Math.floor(Number(item.braincells || 0) / 120))}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="adminControlTeaser">
+            <PanelTitle icon={Shield} title="Admin Kontrollzentrum" />
+            <div className="adminTeaserGrid">
+              <button onClick={() => setPage("admin")} type="button"><Users size={18} /> Benutzer</button>
+              <button onClick={() => setPage("admin")} type="button"><Newspaper size={18} /> News</button>
+              <button onClick={() => setPage("admin")} type="button"><CalendarDays size={18} /> Events</button>
+              <button onClick={() => setPage("admin")} type="button"><Shield size={18} /> Reports</button>
+            </div>
+          </div>
+        </div>
+        <div className="newsPanel">
+          <PanelTitle icon={Newspaper} title="Aktuelle Neuigkeiten" action="Alle News" onClick={() => setPage("news")} />
+          {nextNews ? <div className="newsFeature"><div /><span><strong>{nextNews.title}</strong><small>{nextNews.body}</small></span></div> : <p>Keine neuen News.</p>}
+        </div>
       </section>
-      <CardGrid title="Top Viewer" items={data.leaderboard.slice(0, 8)} render={(item, index) => (
-        <article className="viewerCard" key={item.username}>
-          <span className="rank">#{index + 1}</span>
-          <Avatar user={item} />
-          <h3>{item.username}</h3>
-          <p>{item.braincells || 0} Pepples</p>
-          <small>{item.chickens || 0} Chickens</small>
-        </article>
-      )} />
     </section>
+  );
+}
+
+function PanelTitle({ icon: Icon, title, action, onClick }) {
+  return (
+    <div className="panelTitle">
+      <h2><Icon size={18} /> {title}</h2>
+      {action && <button className="textButton" onClick={onClick} type="button">{action}</button>}
+    </div>
   );
 }
 
