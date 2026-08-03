@@ -55,7 +55,8 @@ body::after {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -1339,13 +1340,23 @@ h3 {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   padding: 12px 13px;
   background: rgba(15, 8, 18, 0.50);
   color: #fff;
+}
+
+select {
+  min-height: 44px;
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--amber) 50%) calc(100% - 18px) 18px / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--amber) 50%, transparent 50%) calc(100% - 13px) 18px / 7px 7px no-repeat,
+    rgba(15, 8, 18, 0.50);
 }
 
 textarea {
@@ -1900,11 +1911,19 @@ textarea {
 
 .systematicsEditor input:disabled,
 .systematicsEditor textarea:disabled,
+.systematicsEditor select:disabled,
 .systematicsToolbar button:disabled,
 .editorActions button:disabled,
 .linkList button:disabled {
   opacity: 0.52;
   cursor: not-allowed;
+}
+
+.systematicsQuickAdd {
+  border-color: rgba(122, 244, 220, 0.22);
+  background:
+    radial-gradient(circle at 88% 10%, rgba(122, 244, 220, 0.12), transparent 32%),
+    var(--panel);
 }
 
 .fileInput {

@@ -1019,18 +1019,21 @@ function SystematicsPage() {
   const boardRef = useRef(null);
   const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });
   const [selectedId, setSelectedId] = useState("");
+  const [newBox, setNewBox] = useState({ parentId: "", title: "Neue Box", subtitle: "Beschreibung", color: "#b46cff", template: "custom" });
   const [adminPassword, setAdminPassword] = useState("");
   const [editing, setEditing] = useState(false);
   const [connectFrom, setConnectFrom] = useState("");
   const [message, setMessage] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const selected = doc.nodes.find((node) => node.id === selectedId) || doc.nodes[0];
+  const parentId = selected ? parentForNode(doc, selected.id) : "";
 
   useEffect(() => {
     api("/api/systematics")
       .then((result) => {
         setDoc(autoLayoutSystematics(result));
         setSelectedId(result.nodes?.[0]?.id || "");
+        setNewBox((current) => ({ ...current, parentId: result.nodes?.[0]?.id || "" }));
       })
       .catch((err) => setMessage(err.message));
   }, [reloadKey]);
@@ -1046,14 +1049,14 @@ function SystematicsPage() {
     }));
   }
 
-  function addNode(asChild = true) {
-    const parent = selected || doc.nodes[0];
+  function addNode(overrides = {}) {
+    const parent = doc.nodes.find((node) => node.id === (overrides.parentId || newBox.parentId || selected?.id)) || doc.nodes[0];
     const id = `node-${Date.now()}`;
     const node = {
       id,
-      title: "Neue Box",
-      subtitle: "Beschreibung",
-      color: "#b46cff",
+      title: overrides.title || newBox.title || "Neue Box",
+      subtitle: overrides.subtitle || newBox.subtitle || "Beschreibung",
+      color: overrides.color || newBox.color || "#b46cff",
       image_url: "",
       x: 0,
       y: 0,
@@ -1061,9 +1064,10 @@ function SystematicsPage() {
     setDoc((current) => autoLayoutSystematics({
       ...current,
       nodes: [...current.nodes, node],
-      links: asChild && parent ? [...current.links, { source: parent.id, target: id }] : current.links,
+      links: parent ? [...current.links.filter((link) => link.target !== id), { source: parent.id, target: id }] : current.links,
     }));
     setSelectedId(id);
+    setNewBox((current) => ({ ...current, title: "Neue Box", subtitle: "Beschreibung", template: "custom", parentId: parent?.id || "" }));
   }
 
   function deleteNode() {
@@ -1094,6 +1098,28 @@ function SystematicsPage() {
 
   function removeLink(source, target) {
     setDoc((current) => autoLayoutSystematics({ ...current, links: current.links.filter((link) => link.source !== source || link.target !== target) }));
+  }
+
+  function changeParent(nodeId, nextParentId) {
+    if (!nodeId || nodeId === nextParentId) return;
+    const descendantIds = descendantsForNode(doc, nodeId);
+    if (descendantIds.has(nextParentId)) {
+      setMessage("Diese Box kann nicht unter ihr eigenes Kind einsortiert werden.");
+      return;
+    }
+    setDoc((current) => autoLayoutSystematics({
+      ...current,
+      links: [
+        ...current.links.filter((link) => link.target !== nodeId),
+        ...(nextParentId ? [{ source: nextParentId, target: nodeId }] : []),
+      ],
+    }));
+  }
+
+  function applyTemplate(templateKey) {
+    const template = systematicsTemplates.find((item) => item.id === templateKey);
+    if (!template) return;
+    setNewBox((current) => ({ ...current, template: templateKey, title: template.title, subtitle: template.subtitle, color: template.color }));
   }
 
   function pointerDown(event, node) {
@@ -1159,8 +1185,8 @@ function SystematicsPage() {
               {connectFrom && <span className="editBadge active">Zielbox anklicken: verbindet und sortiert automatisch</span>}
             </div>
             <div>
-              <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Verbinden</button>
-              <button onClick={() => addNode(true)} disabled={!editing} type="button"><Plus size={16} /> Kind-Box</button>
+              <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Spezial-Verbindung</button>
+              <button onClick={() => addNode({ parentId: selected?.id })} disabled={!editing || !selected} type="button"><Plus size={16} /> Kind zu Auswahl</button>
               <button className="ghost" onClick={() => setDoc((current) => autoLayoutSystematics(current))} disabled={!editing} type="button"><RefreshCw size={16} /> Auto sortieren</button>
               <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
             </div>
@@ -1208,16 +1234,39 @@ function SystematicsPage() {
             <label>Titel<input disabled={!editing} value={doc.title} onChange={(event) => updateDoc({ title: event.target.value })} /></label>
             <label>Beschreibung<textarea disabled={!editing} value={doc.description} onChange={(event) => updateDoc({ description: event.target.value })} /></label>
           </div>
+          <div className="panel form systematicsQuickAdd">
+            <h2><Plus size={18} /> Neue Box</h2>
+            <label>Gehört zu
+              <select disabled={!editing} value={newBox.parentId || selected?.id || ""} onChange={(event) => setNewBox({ ...newBox, parentId: event.target.value })}>
+                {doc.nodes.map((node) => <option value={node.id} key={node.id}>{node.title}</option>)}
+              </select>
+            </label>
+            <label>Vorlage
+              <select disabled={!editing} value={newBox.template} onChange={(event) => applyTemplate(event.target.value)}>
+                {systematicsTemplates.map((template) => <option value={template.id} key={template.id}>{template.label}</option>)}
+              </select>
+            </label>
+            <label>Text<input disabled={!editing} value={newBox.title} onChange={(event) => setNewBox({ ...newBox, title: event.target.value, template: "custom" })} /></label>
+            <label>Untertext<input disabled={!editing} value={newBox.subtitle} onChange={(event) => setNewBox({ ...newBox, subtitle: event.target.value, template: "custom" })} /></label>
+            <label>Farbe<input disabled={!editing} type="color" value={newBox.color} onChange={(event) => setNewBox({ ...newBox, color: event.target.value, template: "custom" })} /></label>
+            <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfuegen</button>
+          </div>
           {selected && (
             <div className="panel form">
               <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
+              <label>Diese Box gehört zu
+                <select disabled={!editing || doc.nodes.length <= 1} value={parentId} onChange={(event) => changeParent(selected.id, event.target.value)}>
+                  <option value="">Oberste Ebene</option>
+                  {doc.nodes.filter((node) => node.id !== selected.id && !descendantsForNode(doc, selected.id).has(node.id)).map((node) => <option value={node.id} key={node.id}>{node.title}</option>)}
+                </select>
+              </label>
               <label>Text<input disabled={!editing} value={selected.title} onChange={(event) => updateNode(selected.id, { title: event.target.value })} /></label>
               <label>Untertext<input disabled={!editing} value={selected.subtitle} onChange={(event) => updateNode(selected.id, { subtitle: event.target.value })} /></label>
               <label>Farbe<input disabled={!editing} type="color" value={selected.color} onChange={(event) => updateNode(selected.id, { color: event.target.value })} /></label>
               <label>Bild-URL<input disabled={!editing} value={selected.image_url?.startsWith("data:") ? "" : selected.image_url} onChange={(event) => updateNode(selected.id, { image_url: event.target.value })} /></label>
               <label className="fileInput"><ImageIcon size={16} /> Bild hochladen<input disabled={!editing} type="file" accept="image/*" onChange={imageUpload} /></label>
               <div className="editorActions">
-                <button onClick={() => addNode(true)} disabled={!editing} type="button">Kind hinzufuegen</button>
+                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufuegen</button>
                 <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
               </div>
             </div>
@@ -1236,6 +1285,36 @@ function SystematicsPage() {
 
 function TypeIcon() {
   return <span className="typeIcon">T</span>;
+}
+
+const systematicsTemplates = [
+  { id: "custom", label: "Eigene Box", title: "Neue Box", subtitle: "Beschreibung", color: "#b46cff" },
+  { id: "kingdom", label: "Reich", title: "Tierreich", subtitle: "Animalia", color: "#ffcf8a" },
+  { id: "class", label: "Klasse", title: "Voegel", subtitle: "Aves", color: "#7af4dc" },
+  { id: "order", label: "Ordnung", title: "Huehnervoegel", subtitle: "Galliformes", color: "#ff6fb7" },
+  { id: "family", label: "Familie", title: "Fasanenartige", subtitle: "Phasianidae", color: "#c88956" },
+  { id: "genus", label: "Gattung", title: "Kammhuehner", subtitle: "Gallus", color: "#b46cff" },
+  { id: "species", label: "Art", title: "Haushuhn", subtitle: "Gallus gallus domesticus", color: "#ffcf8a" },
+  { id: "mammal", label: "Saeugetier", title: "Saeugetiere", subtitle: "Mammalia", color: "#7af4dc" },
+  { id: "reptile", label: "Reptil", title: "Reptilien", subtitle: "Reptilia", color: "#8edb75" },
+];
+
+function parentForNode(doc, nodeId) {
+  return doc.links.find((link) => link.target === nodeId)?.source || "";
+}
+
+function descendantsForNode(doc, nodeId) {
+  const children = new Map(doc.nodes.map((node) => [node.id, []]));
+  doc.links.forEach((link) => children.get(link.source)?.push(link.target));
+  const result = new Set();
+  const queue = [...(children.get(nodeId) || [])];
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || result.has(current)) continue;
+    result.add(current);
+    queue.push(...(children.get(current) || []));
+  }
+  return result;
 }
 
 function autoLayoutSystematics(input) {
