@@ -1549,6 +1549,238 @@ textarea {
   border-color: rgba(122, 244, 220, 0.18);
 }
 
+/* Final cockpit scale tuning */
+.topbar {
+  height: 58px;
+}
+
+.brand {
+  font-size: 24px;
+}
+
+.account {
+  font-size: 13px;
+}
+
+.topCounters div {
+  min-height: 38px;
+  padding: 7px 11px;
+}
+
+.topCounters strong {
+  font-size: 14px;
+}
+
+.mainnav {
+  top: 58px;
+  padding: 10px clamp(16px, 3vw, 32px);
+}
+
+.mainnav button {
+  min-height: 38px;
+  padding: 8px 12px;
+  gap: 7px;
+  font-size: 15px;
+}
+
+.appFrame {
+  grid-template-columns: 222px minmax(0, 1fr);
+  gap: 18px;
+  width: min(1540px, calc(100% - 32px));
+  margin: 10px auto 70px;
+}
+
+.appFrame main {
+  min-width: 0;
+}
+
+.sideRail {
+  top: 136px;
+  gap: 18px;
+  padding: 12px 11px;
+}
+
+.sideGroup {
+  gap: 6px;
+}
+
+.sideRail button {
+  min-height: 38px;
+  padding: 8px 10px;
+  gap: 9px;
+  font-size: 15px;
+}
+
+.dailyBox {
+  gap: 8px;
+  padding: 14px;
+}
+
+.dailyBox span {
+  font-size: 13px;
+}
+
+.hero h1,
+.profileHero h1,
+.narrow h1,
+.dashboardHero h1 {
+  font-size: clamp(32px, 3.5vw, 54px);
+}
+
+.heroCopy > p:not(.kicker),
+.dashboardHero .heroCopy > p:not(.kicker) {
+  max-width: 520px;
+  font-size: 16px;
+  line-height: 1.32;
+}
+
+.kicker {
+  font-size: 11px;
+}
+
+.stat {
+  min-height: 78px;
+  padding: 15px;
+}
+
+.stat strong {
+  font-size: 28px;
+}
+
+.stat span {
+  font-size: 13px;
+}
+
+.dashboardHero {
+  min-height: 252px;
+  padding: clamp(22px, 3vw, 40px);
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.72fr);
+}
+
+.dashboardHero .heroCopy {
+  max-width: 690px;
+  padding-left: min(23vw, 260px);
+}
+
+.dashboardHero .birdcageScene {
+  bottom: -14px;
+  transform: scale(0.82);
+  opacity: 0.36;
+}
+
+.overviewPanel {
+  padding: 17px;
+}
+
+.overviewStats {
+  gap: 10px;
+}
+
+.levelStrip {
+  width: min(452px, 100%);
+  margin-top: 15px;
+  padding: 11px 12px;
+  font-size: 14px;
+}
+
+.actions {
+  margin-top: 18px;
+}
+
+.cockpitGrid {
+  grid-template-columns: minmax(0, 1.06fr) minmax(348px, 0.92fr) minmax(280px, 0.56fr);
+  gap: 13px;
+}
+
+.miniGamesPanel,
+.rankPanel,
+.activePanel,
+.adminControlTeaser,
+.newsPanel {
+  padding: 13px;
+}
+
+.panelTitle {
+  margin-bottom: 12px;
+}
+
+.panelTitle h2 {
+  font-size: 13px;
+}
+
+.textButton {
+  font-size: 12px;
+}
+
+.homeGameDeck {
+  gap: 10px;
+}
+
+.homeGameCard {
+  min-height: 198px;
+  padding: 11px;
+}
+
+.gameArt {
+  margin-bottom: 10px;
+  font-size: 40px;
+}
+
+.homeGameCard strong {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.homeGameCard small {
+  font-size: 12px;
+}
+
+.conceptPodium {
+  min-height: 218px;
+  padding: 16px 9px 12px;
+}
+
+.conceptPodiumItem {
+  min-height: 140px;
+  padding: 12px 8px;
+}
+
+.conceptPodiumItem.place1 {
+  min-height: 184px;
+}
+
+.conceptPodiumItem strong {
+  font-size: 15px;
+}
+
+.conceptPodiumItem small {
+  font-size: 12px;
+}
+
+.leaderMiniRows div,
+.activeList div {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.activeList .viewerAvatar {
+  width: 36px;
+  height: 36px;
+}
+
+.adminTeaserGrid button {
+  min-height: 70px;
+  font-size: 13px;
+}
+
+.newsFeature {
+  grid-template-columns: 138px minmax(0, 1fr);
+}
+
+.newsFeature > div {
+  min-height: 92px;
+}
+
 @media (max-width: 900px) {
   .appFrame {
     grid-template-columns: 1fr;
@@ -1633,7 +1865,7 @@ textarea {
   }
 
   .mainnav {
-    top: 70px;
+    top: 58px;
     padding: 10px 14px;
   }
 
