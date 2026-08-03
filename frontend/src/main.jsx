@@ -926,6 +926,7 @@ function PeppleSurvivor({ user }) {
     bombs: [],
     beams: [],
     wells: [],
+    hazards: [],
     particles: [],
     score: 0,
     xp: 0,
@@ -935,6 +936,8 @@ function PeppleSurvivor({ user }) {
     level: 1,
     wave: 1,
     spawn: 0,
+    nextBossAt: 120,
+    bossActive: false,
     timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000 },
     weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
     over: false,
@@ -1069,6 +1072,25 @@ function PeppleSurvivor({ user }) {
     }
   }
 
+  function alienBloodBurst(x, y, color = "#9cff4a", amount = 12, force = 1) {
+    const state = stateRef.current;
+    for (let i = 0; i < amount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = (1.4 + Math.random() * 5.8) * force;
+      state.particles.push({
+        type: "slime",
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 2.5 + Math.random() * 7,
+        life: 620 + Math.random() * 760,
+        ttl: 1380,
+        color,
+      });
+    }
+  }
+
   function damageMult(state) {
     return 1 + state.weapons.might * 0.18;
   }
@@ -1123,29 +1145,65 @@ function PeppleSurvivor({ user }) {
     }
   }
 
+  function spawnBoss(state, canvas) {
+    const oldEnemies = state.enemies.filter((enemy) => !enemy.boss);
+    oldEnemies.forEach((enemy) => {
+      alienBloodBurst(enemy.x, enemy.y, enemy.tint || "#9cff4a", enemy.elite ? 22 : 12, enemy.elite ? 1.2 : 0.8);
+      state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.elite ? 14 : 5, spin: Math.random() * 7 });
+    });
+    state.enemies = [];
+    state.shots = [];
+    state.bombs = [];
+    state.wells = [];
+    state.hazards = [];
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.min(canvas.width, canvas.height) * 0.58;
+    const waveScale = 1 + state.wave * 0.26;
+    state.enemies.push({
+      x: state.player.x + Math.cos(angle) * distance,
+      y: state.player.y + Math.sin(angle) * distance,
+      hp: 680 * waveScale,
+      maxHp: 680 * waveScale,
+      speed: 0.78 + state.wave * 0.045,
+      radius: 62,
+      elite: true,
+      boss: true,
+      variant: "boss",
+      wobble: Math.random() * 8,
+      tint: "#ffcf8a",
+      ability: 1800,
+      phase: 0,
+    });
+    state.bossActive = true;
+    setMessage("BOSSALARM. Alle kleinen Aliens sind weg. Nur du gegen das Vieh.");
+    state.particles.push({ ring: true, x: state.player.x, y: state.player.y, vx: 0, vy: 0, max: 460, life: 760, ttl: 760, color: "#ffcf8a" });
+    sfx("nova");
+  }
+
   function spawnEnemy(state, canvas) {
+    const viewLeft = state.player.x - canvas.width / 2;
+    const viewTop = state.player.y - canvas.height / 2;
     const side = Math.floor(Math.random() * 4);
     const edge = [
-      { x: -36, y: Math.random() * canvas.height },
-      { x: canvas.width + 36, y: Math.random() * canvas.height },
-      { x: Math.random() * canvas.width, y: -36 },
-      { x: Math.random() * canvas.width, y: canvas.height + 36 },
+      { x: viewLeft - 80, y: viewTop + Math.random() * canvas.height },
+      { x: viewLeft + canvas.width + 80, y: viewTop + Math.random() * canvas.height },
+      { x: viewLeft + Math.random() * canvas.width, y: viewTop - 80 },
+      { x: viewLeft + Math.random() * canvas.width, y: viewTop + canvas.height + 80 },
     ][side];
-    const boss = state.seconds > 55 && Math.floor(state.seconds) % 45 < 2 && Math.random() < 0.18;
-    const elite = boss || Math.random() < Math.min(0.26, state.seconds / 190);
+    const elite = Math.random() < Math.min(0.26, state.seconds / 190);
     const waveScale = 1 + state.wave * 0.16;
     const variants = ["green", "pink", "blue", "gold"];
     state.enemies.push({
       ...edge,
-      hp: boss ? 220 * waveScale : elite ? 54 * waveScale : 22 * waveScale,
-      maxHp: boss ? 220 * waveScale : elite ? 54 * waveScale : 22 * waveScale,
-      speed: (boss ? 0.68 : elite ? 1.05 : 1.72) + state.wave * 0.08,
-      radius: boss ? 31 : elite ? 19 : 12,
+      hp: elite ? 54 * waveScale : 22 * waveScale,
+      maxHp: elite ? 54 * waveScale : 22 * waveScale,
+      speed: (elite ? 1.05 : 1.72) + state.wave * 0.08,
+      radius: elite ? 19 : 12,
       elite,
-      boss,
-      variant: boss ? "boss" : elite ? "elite" : variants[Math.floor(Math.random() * variants.length)],
+      boss: false,
+      variant: elite ? "elite" : variants[Math.floor(Math.random() * variants.length)],
       wobble: Math.random() * 8,
-      tint: boss ? "#ffcf8a" : elite ? "#b46cff" : "#ff6fb7",
+      tint: elite ? "#b46cff" : "#ff6fb7",
     });
   }
 
@@ -1284,6 +1342,7 @@ function PeppleSurvivor({ user }) {
       }
       return;
     }
+    const scale = enemy.boss ? 1.35 : enemy.elite ? 1.08 : 1;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     ctx.rotate(Math.sin(frame / 22 + enemy.wobble) * 0.18);
@@ -1436,11 +1495,11 @@ function PeppleSurvivor({ user }) {
 
     const bgImage = bgRef.current;
     if (bgImage?.complete && bgImage.naturalWidth) {
-      const scale = Math.max(canvas.width / bgImage.naturalWidth, canvas.height / bgImage.naturalHeight);
+      const scale = Math.max(canvas.width / bgImage.naturalWidth, canvas.height / bgImage.naturalHeight) * 1.14;
       const width = bgImage.naturalWidth * scale;
       const height = bgImage.naturalHeight * scale;
-      const panX = Math.sin(frame / 820) * 18;
-      const panY = Math.cos(frame / 960) * 12;
+      const panX = Math.sin(frame / 820) * 18 - (state.player.x * 0.025) % 70;
+      const panY = Math.cos(frame / 960) * 12 - (state.player.y * 0.025) % 70;
       ctx.drawImage(bgImage, (canvas.width - width) / 2 + panX, (canvas.height - height) / 2 + panY, width, height);
       ctx.fillStyle = "rgba(2,4,11,.22)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1472,8 +1531,8 @@ function PeppleSurvivor({ user }) {
     ctx.save();
     for (let i = 0; i < 150; i += 1) {
       const speed = (i % 5) + 0.2;
-      const x = (i * 97 + frame * speed * 0.12) % canvas.width;
-      const y = (i * 53 + Math.sin(frame / 70 + i) * 7) % canvas.height;
+      const x = (i * 97 + frame * speed * 0.12 - state.player.x * 0.08) % canvas.width;
+      const y = (i * 53 + Math.sin(frame / 70 + i) * 7 - state.player.y * 0.08) % canvas.height;
       const size = i % 11 === 0 ? 2.2 : i % 7 === 0 ? 1.5 : 0.9;
       ctx.fillStyle = i % 9 ? "rgba(255,244,233,.58)" : "rgba(122,244,220,.7)";
       ctx.globalAlpha = 0.28 + (i % 6) * 0.09;
@@ -1539,15 +1598,15 @@ function PeppleSurvivor({ user }) {
       const mx = (keysRef.current.d || keysRef.current.arrowright ? 1 : 0) - (keysRef.current.a || keysRef.current.arrowleft ? 1 : 0);
       const my = (keysRef.current.s || keysRef.current.arrowdown ? 1 : 0) - (keysRef.current.w || keysRef.current.arrowup ? 1 : 0);
       const len = Math.max(1, Math.hypot(mx, my));
-      state.player.x += (mx / len) * speed * (dt / 16);
-      state.player.y += (my / len) * speed * (dt / 16);
-      state.player.x = Math.max(30, Math.min(canvas.width - 30, state.player.x));
-      state.player.y = Math.max(30, Math.min(canvas.height - 30, state.player.y));
+    state.player.x += (mx / len) * speed * (dt / 16);
+    state.player.y += (my / len) * speed * (dt / 16);
       state.player.invuln = Math.max(0, state.player.invuln - dt);
       if (mx || my) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 260, ttl: 260, color: "#ffcf8a" });
 
+      if (!state.bossActive && state.seconds >= state.nextBossAt) spawnBoss(state, canvas);
+
       state.spawn -= dt;
-      if (state.spawn <= 0) {
+      if (!state.bossActive && state.spawn <= 0) {
         const count = 1 + Math.floor(Math.min(4, state.wave / 3));
         for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
         state.spawn = Math.max(90, 640 - state.seconds * 8);
@@ -1656,8 +1715,29 @@ function PeppleSurvivor({ user }) {
         const dist = Math.max(1, Math.hypot(dx, dy));
         enemy.slow = Math.max(0, (enemy.slow || 0) - dt);
         const enemySpeed = enemy.speed * (enemy.slow > 0 ? 0.48 : 1);
-        enemy.x += (dx / dist * enemySpeed + Math.sin(state.seconds * 3 + enemy.wobble) * 0.22) * (dt / 16);
-        enemy.y += (dy / dist * enemySpeed + Math.cos(state.seconds * 2 + enemy.wobble) * 0.16) * (dt / 16);
+        const bossRush = enemy.boss && enemy.phase === 1 ? 2.1 : 1;
+        enemy.x += (dx / dist * enemySpeed * bossRush + Math.sin(state.seconds * 3 + enemy.wobble) * (enemy.boss ? 0.5 : 0.22)) * (dt / 16);
+        enemy.y += (dy / dist * enemySpeed * bossRush + Math.cos(state.seconds * 2 + enemy.wobble) * (enemy.boss ? 0.4 : 0.16)) * (dt / 16);
+        if (enemy.boss) {
+          enemy.ability -= dt;
+          enemy.phase = Math.max(0, enemy.phase - dt / 900);
+          if (enemy.ability <= 0) {
+            const pattern = Math.floor(state.seconds / 2) % 3;
+            if (pattern === 0) {
+              state.hazards.push({ type: "ring", x: enemy.x, y: enemy.y, radius: 28, max: 260, life: 1050, ttl: 1050, damage: 24, hit: false, color: "#ff6fb7" });
+              enemy.phase = 1;
+            } else if (pattern === 1) {
+              for (let i = 0; i < 5; i += 1) {
+                const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x) + (i - 2) * 0.24;
+                state.hazards.push({ type: "orb", x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 5.4, vy: Math.sin(angle) * 5.4, radius: 18, life: 1800, ttl: 1800, damage: 18, color: i === 2 ? "#ffcf8a" : "#b46cff" });
+              }
+            } else {
+              state.hazards.push({ type: "beam", x1: enemy.x, y1: enemy.y, x2: state.player.x, y2: state.player.y, life: 520, ttl: 520, damage: 22, width: 24, color: "#ffcf8a", hit: false });
+            }
+            enemy.ability = 1700 - Math.min(680, state.wave * 34);
+            sfx("thunder");
+          }
+        }
         if (dist < enemy.radius + 18 && state.player.invuln <= 0) {
           state.player.hp -= Math.max(5, (enemy.boss ? 31 : enemy.elite ? 20 : 13) - state.weapons.shield * 2.2);
           state.player.invuln = 720;
@@ -1679,11 +1759,12 @@ function PeppleSurvivor({ user }) {
         shot.y += shot.vy * (dt / 16);
         shot.life -= dt;
       });
-      state.shots = state.shots.filter((shot) => shot.life > 0 && shot.x > -30 && shot.x < canvas.width + 30 && shot.y > -30 && shot.y < canvas.height + 30);
+      state.shots = state.shots.filter((shot) => shot.life > 0 && Math.hypot(shot.x - state.player.x, shot.y - state.player.y) < Math.max(canvas.width, canvas.height) * 0.95);
       state.shots.forEach((shot) => {
         state.enemies.forEach((enemy) => {
           if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < enemy.radius + 7 && shot.life > 0) {
             enemy.hp -= shot.damage;
+            alienBloodBurst(shot.x, shot.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 8 : 5, enemy.boss ? 0.75 : 0.55);
             if (state.weapons.frost) {
               enemy.slow = Math.max(enemy.slow || 0, 650 + state.weapons.frost * 180);
               enemy.tint = "#9bf6ff";
@@ -1703,7 +1784,10 @@ function PeppleSurvivor({ user }) {
         bomb.life -= dt;
         if (t >= 0.95 || bomb.life <= 0) {
           state.enemies.forEach((enemy) => {
-            if (Math.hypot(enemy.x - bomb.x, enemy.y - bomb.y) < bomb.radius) enemy.hp -= bomb.damage;
+            if (Math.hypot(enemy.x - bomb.x, enemy.y - bomb.y) < bomb.radius) {
+              enemy.hp -= bomb.damage;
+              alienBloodBurst(enemy.x, enemy.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 18 : 10, 1);
+            }
           });
           burst(bomb.x, bomb.y, "#ffcf8a", 24);
         }
@@ -1724,6 +1808,48 @@ function PeppleSurvivor({ user }) {
       });
       state.wells = state.wells.filter((well) => well.life > 0);
 
+      state.hazards.forEach((hazard) => {
+        hazard.life -= dt;
+        if (hazard.type === "ring") {
+          hazard.radius = hazard.max * (1 - hazard.life / hazard.ttl);
+          const dist = Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y);
+          if (!hazard.hit && Math.abs(dist - hazard.radius) < 24 && state.player.invuln <= 0) {
+            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 620;
+            hazard.hit = true;
+            burst(state.player.x, state.player.y, "#ff6fb7", 12);
+          }
+        } else if (hazard.type === "orb") {
+          hazard.x += hazard.vx * (dt / 16);
+          hazard.y += hazard.vy * (dt / 16);
+          if (Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y) < hazard.radius + 19 && state.player.invuln <= 0) {
+            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 620;
+            hazard.life = 0;
+            burst(state.player.x, state.player.y, hazard.color, 12);
+          }
+        } else if (hazard.type === "beam") {
+          const vx = hazard.x2 - hazard.x1;
+          const vy = hazard.y2 - hazard.y1;
+          const lenBeam = Math.max(1, Math.hypot(vx, vy));
+          const t = Math.max(0, Math.min(1, ((state.player.x - hazard.x1) * vx + (state.player.y - hazard.y1) * vy) / (lenBeam * lenBeam)));
+          const px = hazard.x1 + vx * t;
+          const py = hazard.y1 + vy * t;
+          if (!hazard.hit && Math.hypot(state.player.x - px, state.player.y - py) < hazard.width && state.player.invuln <= 0) {
+            state.player.hp -= Math.max(7, hazard.damage - state.weapons.shield * 2);
+            state.player.invuln = 700;
+            hazard.hit = true;
+            burst(state.player.x, state.player.y, "#ffcf8a", 16);
+          }
+        }
+      });
+      state.hazards = state.hazards.filter((hazard) => hazard.life > 0);
+      if (state.player.hp <= 0) {
+        state.over = true;
+        setGameStatus("gameover");
+        setMessage(`Run beendet: ${state.score} Punkte, ${state.kills} Aliens zerlegt.`);
+      }
+
       if (state.weapons.orbit) {
         const count = 2 + Math.floor(state.weapons.orbit / 2);
         const radius = 58 + state.weapons.orbit * 6;
@@ -1740,11 +1866,20 @@ function PeppleSurvivor({ user }) {
       state.enemies = state.enemies.filter((enemy) => {
         if (enemy.hp > 0) return true;
         state.kills += 1;
-        state.score += enemy.boss ? 120 : enemy.elite ? 32 : 12;
-        state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.boss ? 55 : enemy.elite ? 18 : 8, spin: Math.random() * 7 });
-        burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.elite ? 18 : 10);
+        state.score += enemy.boss ? 900 : enemy.elite ? 32 : 12;
+        if (enemy.boss) {
+          state.bossActive = false;
+          state.nextBossAt += 120;
+          state.hazards = [];
+          setMessage("Boss zerlegt. Der Schwarm kommt zurueck.");
+        }
+        state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.boss ? 150 : enemy.elite ? 18 : 8, spin: Math.random() * 7 });
+        alienBloodBurst(enemy.x, enemy.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 70 : enemy.elite ? 24 : 14, enemy.boss ? 1.25 : 0.9);
+        burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.boss ? 34 : enemy.elite ? 18 : 10);
         return false;
       });
+
+      state.enemies = state.enemies.filter((enemy) => enemy.boss || Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.15);
 
       const magnetRadius = 58 + state.weapons.magnet * 44;
       state.gems = state.gems.filter((gem) => {
@@ -1771,7 +1906,12 @@ function PeppleSurvivor({ user }) {
       particle.y += particle.vy * (dt / 16);
       particle.life -= dt;
     });
-    state.particles = state.particles.filter((particle) => particle.life > 0).slice(-180);
+    state.particles = state.particles.filter((particle) => particle.life > 0 && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4).slice(-260);
+
+    const cameraX = statusRef.current === "menu" ? 0 : state.player.x - canvas.width / 2;
+    const cameraY = statusRef.current === "menu" ? 0 : state.player.y - canvas.height / 2;
+    ctx.save();
+    ctx.translate(-cameraX, -cameraY);
 
     state.gems.forEach((gem) => {
       const spin = frame / 18 + gem.spin;
@@ -1868,6 +2008,50 @@ function PeppleSurvivor({ user }) {
       ctx.restore();
     });
 
+    state.hazards.forEach((hazard) => {
+      const alpha = Math.max(0, hazard.life / hazard.ttl);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, 0.25 + alpha);
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = hazard.color;
+      if (hazard.type === "ring") {
+        ctx.strokeStyle = hazard.color;
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.arc(hazard.x, hazard.y, hazard.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,244,233,.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(hazard.x, hazard.y, hazard.radius + 10, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (hazard.type === "orb") {
+        const grd = ctx.createRadialGradient(hazard.x - 6, hazard.y - 8, 2, hazard.x, hazard.y, hazard.radius * 1.6);
+        grd.addColorStop(0, "#fff4e9");
+        grd.addColorStop(0.4, hazard.color);
+        grd.addColorStop(1, "rgba(40,7,35,.12)");
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(hazard.x, hazard.y, hazard.radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (hazard.type === "beam") {
+        ctx.lineCap = "round";
+        ctx.strokeStyle = `rgba(255,207,138,${alpha * 0.32})`;
+        ctx.lineWidth = hazard.width * 2.4;
+        ctx.beginPath();
+        ctx.moveTo(hazard.x1, hazard.y1);
+        ctx.lineTo(hazard.x2, hazard.y2);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(255,244,233,${alpha * 0.88})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(hazard.x1, hazard.y1);
+        ctx.lineTo(hazard.x2, hazard.y2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+
     const player = state.player;
     if (state.weapons.aura) {
       const radius = 76 + state.weapons.aura * 18;
@@ -1906,14 +2090,23 @@ function PeppleSurvivor({ user }) {
         ctx.shadowBlur = 0;
       } else {
         ctx.fillStyle = particle.color;
+        ctx.shadowBlur = particle.type === "slime" ? 12 : 0;
+        ctx.shadowColor = particle.color;
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+        if (particle.type === "slime") {
+          ctx.ellipse(particle.x, particle.y, particle.size || 5, Math.max(2, (particle.size || 5) * 0.54), Math.atan2(particle.vy, particle.vx), 0, Math.PI * 2);
+        } else {
+          ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+        }
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
       ctx.globalAlpha = 1;
     });
 
     if (statusRef.current !== "menu") drawAstronautChicken(ctx, player, frame);
+
+    ctx.restore();
 
     const barX = 24;
     ctx.fillStyle = "rgba(5,7,14,.66)";
@@ -1969,6 +2162,7 @@ function PeppleSurvivor({ user }) {
       bombs: [],
       beams: [],
       wells: [],
+      hazards: [],
       particles: [],
       score: 0,
       xp: 0,
@@ -1978,6 +2172,8 @@ function PeppleSurvivor({ user }) {
       level: 1,
       wave: 1,
       spawn: 0,
+      nextBossAt: 120,
+      bossActive: false,
       timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000 },
       weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
       over: false,
