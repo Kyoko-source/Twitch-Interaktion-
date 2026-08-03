@@ -2232,8 +2232,16 @@ function PeppleSurvivor({ user }) {
         </div>
       </div>
       <div className="survivorBars">
-        <div><span>HP</span><b>{snapshot.hp}</b><i><em style={{ width: `${Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 110) * 100))}%` }} /></i></div>
-        <div><span>XP</span><b>{snapshot.xp}/{snapshot.nextXp}</b><i><em className="xpFill" style={{ width: `${Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100))}%` }} /></i></div>
+        <div className="survivorMeter healthMeter">
+          <span>HP</span>
+          <b>{snapshot.hp}/{snapshot.maxHp}</b>
+          <i><em style={{ width: `${Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100))}%` }} /></i>
+        </div>
+        <div className="survivorMeter xpMeter">
+          <span>Level {snapshot.level}</span>
+          <b>{snapshot.xp}/{snapshot.nextXp}</b>
+          <i><em className="xpFill" style={{ width: `${Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100))}%` }} /></i>
+        </div>
       </div>
       <div className="survivorBuild">
         <span>Build</span>
