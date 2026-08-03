@@ -10,7 +10,9 @@ import {
   Newspaper,
   Palette,
   Shield,
+  Sparkles,
   ShoppingBasket,
+  Star,
   Trophy,
   User,
   Users,
@@ -110,14 +112,17 @@ function HomePage({ user, setPage }) {
     events: [],
     gallery: [],
   });
+  const topViewer = data.leaderboard[0];
+  const podium = data.leaderboard.slice(0, 3);
+  const nextNews = data.news[0];
 
   return (
-    <section className="stack">
+    <section className="homePage">
       <div className="hero">
-        <div>
+        <div className="heroCopy">
           <p className="kicker">Aviary</p>
           <h1>{user ? `Willkommen zurueck, ${user.username}` : "Willkommen in der Aviary"}</h1>
-          <p>Community, Rewards, Rankings, Events und Minispiele in einer schnellen Web-App.</p>
+          <p>Dein Community-Hub fuer Pepples, Chickens, Rewards, Events, Galerie und Arcade-Momente.</p>
           <div className="actions">
             <button onClick={() => setPage(user ? "profile" : "login")} type="button">
               {user ? "Profil oeffnen" : "Einloggen"}
@@ -126,20 +131,57 @@ function HomePage({ user, setPage }) {
               Minispiele
             </button>
           </div>
+          {nextNews && (
+            <button className="newsTicker" onClick={() => setPage("news")} type="button">
+              <Newspaper size={16} />
+              <span>{nextNews.title}</span>
+            </button>
+          )}
         </div>
         <div className="heroPanel">
           <Stat label="Pepples gesamt" value={data.stats.braincells} />
           <Stat label="Chickens im Umlauf" value={data.stats.chickens} />
           <Stat label="Mitglieder" value={data.stats.users} />
         </div>
+        <div className="aviarySigil" aria-hidden="true">
+          <Sparkles size={30} />
+          <span />
+        </div>
       </div>
       {error && <div className="notice error">{error}</div>}
       {loading && <div className="notice">Lade Aviary-Daten...</div>}
-      <CardGrid title="Top Viewer" items={data.leaderboard.slice(0, 6)} render={(item, index) => (
-        <article className="card">
+      <section className="dashboardSplit">
+        <div className="spotlightPanel">
+          <p className="kicker">Aktuelle Nummer 1</p>
+          <h2>{topViewer?.username || "Noch frei"}</h2>
+          <p>{topViewer ? `${topViewer.braincells || 0} Pepples und ${topViewer.chickens || 0} Chickens` : "Der naechste Run kann alles drehen."}</p>
+          <div className="podium">
+            {podium.map((item, index) => (
+              <article className={`podiumCard place${index + 1}`} key={item.username}>
+                <span>#{index + 1}</span>
+                <strong>{item.username}</strong>
+                <small>{item.braincells || 0} Pepples</small>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="activityPanel">
+          <p className="kicker">Live-Schwarm</p>
+          <h2>Heute in der Aviary</h2>
+          <div className="activityList">
+            <div><Star size={17} /><span>{data.news.length ? `${data.news.length} News aktiv` : "Keine neuen News"}</span></div>
+            <div><CalendarDays size={17} /><span>{data.events.length ? `${data.events.length} Events geplant` : "Keine Events geplant"}</span></div>
+            <div><Palette size={17} /><span>{data.gallery.length ? `${data.gallery.length} Hall-of-Fame Bilder` : "Galerie wartet auf Kunst"}</span></div>
+          </div>
+        </div>
+      </section>
+      <CardGrid title="Top Viewer" items={data.leaderboard.slice(0, 8)} render={(item, index) => (
+        <article className="viewerCard" key={item.username}>
           <span className="rank">#{index + 1}</span>
+          <div className="viewerAvatar">{item.avatar_url ? <img src={item.avatar_url} alt="" /> : item.username?.slice(0, 2)}</div>
           <h3>{item.username}</h3>
-          <p>{item.braincells || 0} Pepples · {item.chickens || 0} Chickens</p>
+          <p>{item.braincells || 0} Pepples</p>
+          <small>{item.chickens || 0} Chickens</small>
         </article>
       )} />
     </section>
