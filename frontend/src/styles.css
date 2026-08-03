@@ -1760,6 +1760,10 @@ textarea {
   flex-wrap: wrap;
 }
 
+.systematicsToolbar > div:last-child {
+  justify-content: flex-end;
+}
+
 .systematicsToolbar button,
 .editorActions button {
   display: inline-flex;
@@ -1832,12 +1836,8 @@ textarea {
     radial-gradient(circle at 50% 16%, color-mix(in srgb, var(--node-color) 30%, transparent), transparent 42%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.045)),
     rgba(22, 13, 27, 0.92);
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
-}
-
-.systemNode:active {
-  cursor: grabbing;
 }
 
 .systemNode.selected {

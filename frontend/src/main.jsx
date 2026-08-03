@@ -1017,7 +1017,6 @@ function GamesPage({ user }) {
 
 function SystematicsPage() {
   const boardRef = useRef(null);
-  const dragRef = useRef(null);
   const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });
   const [selectedId, setSelectedId] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -1030,32 +1029,11 @@ function SystematicsPage() {
   useEffect(() => {
     api("/api/systematics")
       .then((result) => {
-        setDoc(result);
+        setDoc(autoLayoutSystematics(result));
         setSelectedId(result.nodes?.[0]?.id || "");
       })
       .catch((err) => setMessage(err.message));
   }, [reloadKey]);
-
-  useEffect(() => {
-    function move(event) {
-      if (!dragRef.current || !editing || !boardRef.current) return;
-      const rect = boardRef.current.getBoundingClientRect();
-      const { id, dx, dy } = dragRef.current;
-      updateNode(id, {
-        x: Math.max(8, Math.min(920, event.clientX - rect.left - dx)),
-        y: Math.max(8, Math.min(560, event.clientY - rect.top - dy)),
-      });
-    }
-    function up() {
-      dragRef.current = null;
-    }
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-  }, [editing, doc.nodes]);
 
   function updateDoc(patch) {
     setDoc((current) => ({ ...current, ...patch }));
@@ -1077,10 +1055,10 @@ function SystematicsPage() {
       subtitle: "Beschreibung",
       color: "#b46cff",
       image_url: "",
-      x: parent ? Number(parent.x || 0) + 210 : 360,
-      y: parent ? Number(parent.y || 0) + 120 : 180,
+      x: 0,
+      y: 0,
     };
-    setDoc((current) => ({
+    setDoc((current) => autoLayoutSystematics({
       ...current,
       nodes: [...current.nodes, node],
       links: asChild && parent ? [...current.links, { source: parent.id, target: id }] : current.links,
@@ -1090,7 +1068,7 @@ function SystematicsPage() {
 
   function deleteNode() {
     if (!selected || doc.nodes.length <= 1) return;
-    setDoc((current) => ({
+    setDoc((current) => autoLayoutSystematics({
       ...current,
       nodes: current.nodes.filter((node) => node.id !== selected.id),
       links: current.links.filter((link) => link.source !== selected.id && link.target !== selected.id),
@@ -1108,25 +1086,23 @@ function SystematicsPage() {
     if (connectFrom !== nodeId) {
       setDoc((current) => {
         const exists = current.links.some((link) => link.source === connectFrom && link.target === nodeId);
-        return exists ? current : { ...current, links: [...current.links, { source: connectFrom, target: nodeId }] };
+        return exists ? current : autoLayoutSystematics({ ...current, links: [...current.links, { source: connectFrom, target: nodeId }] });
       });
     }
     setConnectFrom("");
   }
 
   function removeLink(source, target) {
-    setDoc((current) => ({ ...current, links: current.links.filter((link) => link.source !== source || link.target !== target) }));
+    setDoc((current) => autoLayoutSystematics({ ...current, links: current.links.filter((link) => link.source !== source || link.target !== target) }));
   }
 
   function pointerDown(event, node) {
-    setSelectedId(node.id);
-    if (!editing) return;
+    event.preventDefault();
     if (connectFrom) {
       handleConnect(node.id);
       return;
     }
-    const rect = event.currentTarget.getBoundingClientRect();
-    dragRef.current = { id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+    setSelectedId(node.id);
   }
 
   async function unlock() {
@@ -1141,11 +1117,13 @@ function SystematicsPage() {
 
   async function save() {
     try {
+      const arranged = autoLayoutSystematics(doc);
       const result = await api("/api/admin/systematics", {
         method: "PUT",
         headers: { "X-Admin-Password": adminPassword },
-        body: JSON.stringify(doc),
+        body: JSON.stringify(arranged),
       });
+      setDoc(arranged);
       setMessage(result.message);
       setReloadKey((value) => value + 1);
     } catch (err) {
@@ -1178,11 +1156,12 @@ function SystematicsPage() {
           <div className="systematicsToolbar">
             <div>
               <span className={editing ? "editBadge active" : "editBadge"}>{editing ? "Admin Bearbeitung aktiv" : "Nur Ansicht"}</span>
-              {connectFrom && <span className="editBadge active">Verbinden: Zielbox klicken</span>}
+              {connectFrom && <span className="editBadge active">Zielbox anklicken: verbindet und sortiert automatisch</span>}
             </div>
             <div>
               <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Verbinden</button>
               <button onClick={() => addNode(true)} disabled={!editing} type="button"><Plus size={16} /> Kind-Box</button>
+              <button className="ghost" onClick={() => setDoc((current) => autoLayoutSystematics(current))} disabled={!editing} type="button"><RefreshCw size={16} /> Auto sortieren</button>
               <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
             </div>
           </div>
@@ -1221,7 +1200,7 @@ function SystematicsPage() {
           <div className="panel form">
             <h2><Lock size={18} /> Admin</h2>
             <label>Admin Passwort<input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} /></label>
-            <button onClick={unlock} type="button"><MousePointer2 size={16} /> Bearbeiten freischalten</button>
+            <button onClick={unlock} type="button"><MousePointer2 size={16} /> Builder freischalten</button>
             {message && <div className="notice">{message}</div>}
           </div>
           <div className="panel form">
@@ -1257,6 +1236,64 @@ function SystematicsPage() {
 
 function TypeIcon() {
   return <span className="typeIcon">T</span>;
+}
+
+function autoLayoutSystematics(input) {
+  const nodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawLinks = Array.isArray(input?.links) ? input.links : [];
+  const ids = new Set(nodes.map((node) => node.id));
+  const links = rawLinks.filter((link) => ids.has(link.source) && ids.has(link.target) && link.source !== link.target);
+  const incoming = new Map(nodes.map((node) => [node.id, 0]));
+  const children = new Map(nodes.map((node) => [node.id, []]));
+  links.forEach((link) => {
+    incoming.set(link.target, (incoming.get(link.target) || 0) + 1);
+    children.get(link.source)?.push(link.target);
+  });
+
+  const roots = nodes.filter((node) => (incoming.get(node.id) || 0) === 0);
+  const levelById = new Map();
+  const queue = (roots.length ? roots : nodes.slice(0, 1)).map((node) => ({ id: node.id, level: 0 }));
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current) continue;
+    const previous = levelById.get(current.id);
+    if (previous !== undefined && previous <= current.level) continue;
+    levelById.set(current.id, current.level);
+    (children.get(current.id) || []).forEach((childId) => queue.push({ id: childId, level: current.level + 1 }));
+  }
+
+  nodes.forEach((node) => {
+    if (!levelById.has(node.id)) levelById.set(node.id, Math.max(0, levelById.size ? Math.max(...levelById.values()) + 1 : 0));
+  });
+
+  const levels = new Map();
+  nodes.forEach((node) => {
+    const level = levelById.get(node.id) || 0;
+    levels.set(level, [...(levels.get(level) || []), node]);
+  });
+
+  const width = 1080;
+  const nodeWidth = 164;
+  const top = 42;
+  const rowGap = 156;
+  const arrangedNodes = nodes.map((node) => {
+    const level = levelById.get(node.id) || 0;
+    const row = levels.get(level) || [];
+    const index = row.findIndex((item) => item.id === node.id);
+    const gap = Math.max(24, (width - row.length * nodeWidth) / (row.length + 1));
+    return {
+      ...node,
+      x: Math.round(gap + index * (nodeWidth + gap)),
+      y: Math.round(top + level * rowGap),
+    };
+  });
+
+  return {
+    title: input?.title || "Systematik",
+    description: input?.description || "",
+    nodes: arrangedNodes,
+    links,
+  };
 }
 
 function AdminPage() {
