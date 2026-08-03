@@ -74,6 +74,39 @@ class PointsUpdate(BaseModel):
     braincells_delta: int = 0
 
 
+class ScoreCreate(BaseModel):
+    game: str
+    score: int
+    level: int = 1
+    round: int = 1
+    seconds_survived: int = 0
+    kills: int = 0
+    build: str = ""
+
+
+class NewsCreate(BaseModel):
+    title: str = Field(max_length=140)
+    body: str = Field(max_length=2500)
+    image_url: str = Field(default="", max_length=500)
+
+
+class ShopItemCreate(BaseModel):
+    name: str = Field(max_length=100)
+    description: str = Field(default="", max_length=1200)
+    price: int = 0
+    category: str = Field(default="Rewards", max_length=80)
+
+
+class EventCreate(BaseModel):
+    title: str = Field(max_length=140)
+    description: str = Field(default="", max_length=1800)
+    event_date: str = Field(default="", max_length=80)
+
+
+class IdPayload(BaseModel):
+    id: str
+
+
 def clean_username(username: str) -> str:
     value = username.strip()
     if not USERNAME_RE.match(value):
@@ -83,6 +116,15 @@ def clean_username(username: str) -> str:
 
 def rows(path: str) -> list[dict[str, Any]]:
     return supabase().get(path)
+
+
+def score_table(game: str) -> str | None:
+    return {
+        "chicken-jump": "chicken_scores",
+        "chicken-snake": "chicken_snake_scores",
+        "chicken-racer": "chicken_racer_scores",
+        "braincell-survivor": "braincell_survivor_scores",
+    }.get(game)
 
 
 def single_user(username: str) -> dict[str, Any] | None:
@@ -349,16 +391,34 @@ def create_wish(payload: WishCreate, user: dict[str, Any] = Depends(current_user
 
 @app.get("/api/scores/{game}")
 def scores(game: str) -> list[dict[str, Any]]:
-    tables = {
-        "chicken-jump": "chicken_scores",
-        "chicken-snake": "chicken_snake_scores",
-        "chicken-racer": "chicken_racer_scores",
-        "braincell-survivor": "braincell_survivor_scores",
-    }
-    table = tables.get(game)
+    table = score_table(game)
     if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
     return rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
+
+
+@app.post("/api/scores")
+def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    table = score_table(payload.game)
+    if not table:
+        raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
+    data: dict[str, Any] = {
+        "username": user["username"],
+        "score": max(0, int(payload.score)),
+        "level": max(1, int(payload.level)),
+    }
+    if payload.game == "chicken-racer":
+        data["round"] = max(1, int(payload.round))
+    if payload.game == "braincell-survivor":
+        data.update(
+            {
+                "seconds_survived": max(0, int(payload.seconds_survived)),
+                "kills": max(0, int(payload.kills)),
+                "build": payload.build[:500],
+            }
+        )
+    supabase().post(table, data, returning=False)
+    return {"message": "Score gespeichert."}
 
 
 @app.get("/api/admin/overview", dependencies=[Depends(require_admin)])
@@ -400,3 +460,80 @@ def approve_registration(request_id: str) -> dict[str, str]:
         },
     )
     return {"code": code}
+
+
+@app.post("/api/admin/news", dependencies=[Depends(require_admin)])
+def admin_create_news(payload: NewsCreate) -> dict[str, str]:
+    supabase().post(
+        "news_posts",
+        {
+            "title": payload.title.strip(),
+            "body": payload.body.strip(),
+            "image_url": payload.image_url.strip(),
+            "active": True,
+            "published_at": datetime.now().isoformat(),
+        },
+        returning=False,
+    )
+    return {"message": "News erstellt."}
+
+
+@app.delete("/api/admin/news/{post_id}", dependencies=[Depends(require_admin)])
+def admin_delete_news(post_id: str) -> dict[str, str]:
+    supabase().delete(f"news_posts?id=eq.{quote(post_id)}")
+    return {"message": "News geloescht."}
+
+
+@app.post("/api/admin/shop", dependencies=[Depends(require_admin)])
+def admin_create_shop_item(payload: ShopItemCreate) -> dict[str, str]:
+    supabase().post(
+        "shop_items",
+        {
+            "name": payload.name.strip(),
+            "description": payload.description.strip(),
+            "price": max(0, int(payload.price)),
+            "category": payload.category.strip() or "Rewards",
+            "active": True,
+        },
+        returning=False,
+    )
+    return {"message": "Shop-Item erstellt."}
+
+
+@app.delete("/api/admin/shop/{item_id}", dependencies=[Depends(require_admin)])
+def admin_delete_shop_item(item_id: str) -> dict[str, str]:
+    supabase().patch(f"shop_items?id=eq.{quote(item_id)}", {"active": False})
+    return {"message": "Shop-Item deaktiviert."}
+
+
+@app.post("/api/admin/events", dependencies=[Depends(require_admin)])
+def admin_create_event(payload: EventCreate) -> dict[str, str]:
+    supabase().post(
+        "events",
+        {
+            "title": payload.title.strip(),
+            "description": payload.description.strip(),
+            "event_date": payload.event_date.strip(),
+        },
+        returning=False,
+    )
+    return {"message": "Event erstellt."}
+
+
+@app.delete("/api/admin/events/{event_id}", dependencies=[Depends(require_admin)])
+def admin_delete_event(event_id: str) -> dict[str, str]:
+    supabase().delete(f"event_signups?event_id=eq.{quote(event_id)}")
+    supabase().delete(f"events?id=eq.{quote(event_id)}")
+    return {"message": "Event geloescht."}
+
+
+@app.delete("/api/admin/wishes/{wish_id}", dependencies=[Depends(require_admin)])
+def admin_delete_wish(wish_id: str) -> dict[str, str]:
+    supabase().patch(f"wish_posts?id=eq.{quote(wish_id)}", {"active": False})
+    return {"message": "Wunsch entfernt."}
+
+
+@app.patch("/api/admin/support/{message_id}", dependencies=[Depends(require_admin)])
+def admin_close_support(message_id: str) -> dict[str, str]:
+    supabase().patch(f"support_messages?id=eq.{quote(message_id)}", {"status": "closed"})
+    return {"message": "Meldung geschlossen."}

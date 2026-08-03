@@ -807,16 +807,355 @@ textarea {
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.30);
 }
 
+.sectionHero,
+.membersHeader,
+.leaderHero,
+.adminHero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  min-height: 190px;
+  padding: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.16);
+  background:
+    linear-gradient(135deg, rgba(48, 21, 63, 0.88), rgba(44, 28, 40, 0.78)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.sectionHero h1,
+.membersHeader h1,
+.leaderHero h1,
+.adminHero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(38px, 5vw, 64px);
+}
+
+.sectionHero > svg,
+.leaderHero > svg,
+.adminHero > svg {
+  color: var(--amber);
+  filter: drop-shadow(0 0 24px rgba(180, 108, 255, 0.36));
+}
+
+.memberStats,
+.adminStats,
+.gameHud,
+.miniStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminStats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.memberSpotlight {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 207, 138, 0.24);
+  background:
+    linear-gradient(120deg, rgba(255, 207, 138, 0.16), rgba(180, 108, 255, 0.11)),
+    var(--panel);
+}
+
+.memberSpotlight h2 {
+  margin: 6px 0;
+  font-size: 34px;
+}
+
+.memberSpotlight > strong {
+  color: var(--amber);
+  font-size: 28px;
+}
+
+.searchInput {
+  max-width: 520px;
+}
+
+.memberGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 15px;
+}
+
+.memberCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 240px;
+  padding: 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 80% 18%, rgba(180, 108, 255, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(42, 25, 45, 0.94), rgba(21, 13, 26, 0.9));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.memberCard h3 {
+  margin: 10px 0 4px;
+  font-size: 22px;
+}
+
+.memberCard p {
+  color: var(--muted);
+  min-height: 44px;
+}
+
+.miniStats {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 14px;
+}
+
+.miniStats span {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff1e8;
+  font-weight: 850;
+}
+
+.stagePodium {
+  align-items: end;
+}
+
+.stagePodium .podiumCard {
+  text-align: center;
+  min-height: 210px;
+}
+
+.stagePodium .place1 {
+  min-height: 260px;
+}
+
+.stagePodium .viewerAvatar {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.leaderTable {
+  display: grid;
+  gap: 10px;
+}
+
+.leaderRow {
+  display: grid;
+  grid-template-columns: 56px 58px minmax(150px, 1fr) minmax(160px, 0.9fr) 90px 120px;
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(31, 20, 36, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.leaderName {
+  display: grid;
+  gap: 4px;
+}
+
+.leaderName small,
+.leaderRow small {
+  color: var(--muted);
+}
+
+.progressTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--violet), var(--amber));
+  box-shadow: 0 0 18px rgba(180, 108, 255, 0.32);
+}
+
+.gamesShell {
+  display: grid;
+  gap: 18px;
+}
+
+.arcadeHero {
+  min-height: 170px;
+}
+
+.gameTabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.gameTabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff4e9;
+  border: 1px solid var(--line);
+}
+
+.gameTabs button.active {
+  color: #160d17;
+  background: linear-gradient(135deg, var(--game-accent, var(--violet)), var(--amber));
+}
+
+.gameTabs button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.gameFrame {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.16);
+  background:
+    radial-gradient(circle at 74% 18%, color-mix(in srgb, var(--game-accent, var(--violet)) 18%, transparent), transparent 33%),
+    rgba(22, 13, 27, 0.88);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.gameHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.45fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.gameHeader h2 {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 46px);
+}
+
+.gameCanvas {
+  width: 100%;
+  aspect-ratio: 92 / 42;
+  min-height: 320px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.16);
+  background: #100915;
+  box-shadow: inset 0 0 44px rgba(180, 108, 255, 0.12);
+}
+
+.gameActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gameActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gameScores {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameScores li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.racePicker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.racePicker button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--pick) 55%, transparent);
+}
+
+.racePicker button.active {
+  color: #150d17;
+  background: linear-gradient(135deg, var(--pick), var(--amber));
+}
+
+.adminHero {
+  border-color: rgba(180, 108, 255, 0.25);
+}
+
+.adminTabs {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.dangerButton {
+  width: 48px;
+  padding: 10px;
+  color: #ffd7d7;
+}
+
+.shopCard {
+  display: grid;
+  gap: 10px;
+}
+
+.eventTicket {
+  border-color: rgba(122, 244, 220, 0.18);
+}
+
 @media (max-width: 900px) {
   .hero,
   .profileHero,
   .twoCol,
-  .dashboardSplit {
+  .dashboardSplit,
+  .gameHeader,
+  .membersHeader,
+  .leaderRow {
     grid-template-columns: 1fr;
   }
 
   .podium {
     grid-template-columns: 1fr;
+  }
+
+  .sectionHero,
+  .leaderHero,
+  .adminHero,
+  .memberSpotlight {
+    align-items: flex-start;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .memberStats,
+  .adminStats,
+  .gameHud {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .adminTabs {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
