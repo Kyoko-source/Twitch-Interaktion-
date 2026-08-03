@@ -871,31 +871,71 @@ function ChickenRacer({ user }) {
 }
 
 function PeppleSurvivor({ user }) {
-  const [running, setRunning] = useState(false);
+  const upgradePool = [
+    { id: "bolt", name: "Federblitz", kind: "weapon", icon: "feather", desc: "Feuert zielsuchende Federbolzen auf nahe Gegner.", color: "#c88cff" },
+    { id: "orbit", name: "Orbit-Kaefig", kind: "weapon", icon: "orbit", desc: "Beschwoert kreisende Kaefig-Ringe um dich.", color: "#ffcf8a" },
+    { id: "nova", name: "Nova-Puls", kind: "weapon", icon: "nova", desc: "Stoesst in Intervallen alle Gegner zurueck.", color: "#ff6fb7" },
+    { id: "laser", name: "Sternenlaser", kind: "weapon", icon: "laser", desc: "Schneidet den staerksten Gegner mit Licht.", color: "#7af4dc" },
+    { id: "egg", name: "Kosmo-Ei", kind: "weapon", icon: "egg", desc: "Laesst explosive Eier in die Schwarmbahn fallen.", color: "#fff4e9" },
+    { id: "aura", name: "Nest-Aura", kind: "weapon", icon: "aura", desc: "Verbrennt nahe Drohnen mit warmer Kaefigenergie.", color: "#c88956" },
+    { id: "speed", name: "Kometenboots", kind: "passive", icon: "boots", desc: "Mehr Tempo und bessere Ausweichfenster.", color: "#7af4dc" },
+    { id: "magnet", name: "Pepple-Magnet", kind: "passive", icon: "magnet", desc: "Zieht XP-Kristalle aus groesserer Distanz an.", color: "#b46cff" },
+    { id: "shield", name: "Schildfedern", kind: "passive", icon: "shield", desc: "Mehr maximale HP und weniger Kontaktschaden.", color: "#ffcf8a" },
+    { id: "regen", name: "Warmnest", kind: "passive", icon: "regen", desc: "Regeneriert im Lauf langsam HP.", color: "#ff9f6e" },
+    { id: "might", name: "Pepple-Fokus", kind: "passive", icon: "might", desc: "Alle Waffen verursachen mehr Schaden.", color: "#ff6fb7" },
+    { id: "cooldown", name: "Taktgeber", kind: "passive", icon: "cooldown", desc: "Waffen laden schneller wieder auf.", color: "#dfb8ff" },
+  ];
+  const [status, setStatus] = useState("menu");
   const [audioOn, setAudioOn] = useState(true);
-  const [message, setMessage] = useState("WASD bewegen, Pepples sammeln, Schwarm ueberleben.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, seconds: 0, kills: 0, hp: 100 });
+  const [choices, setChoices] = useState([]);
+  const [message, setMessage] = useState("WASD bewegen, XP sammeln, beim Level-Up Waffen waehlen.");
+  const [snapshot, setSnapshot] = useState({
+    score: 0,
+    level: 1,
+    seconds: 0,
+    kills: 0,
+    hp: 110,
+    maxHp: 110,
+    xp: 0,
+    nextXp: 60,
+    wave: 1,
+    weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }],
+  });
   const [refreshKey, setRefreshKey] = useState(0);
   const keysRef = useRef({});
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
+  const statusRef = useRef("menu");
   const stateRef = useRef({
-    player: { x: 460, y: 210, hp: 100, invuln: 0 },
+    player: { x: 460, y: 250, hp: 110, maxHp: 110, invuln: 0 },
     gems: [],
     enemies: [],
     shots: [],
+    bombs: [],
+    beams: [],
     particles: [],
     score: 0,
+    xp: 0,
+    nextXp: 60,
     seconds: 0,
     kills: 0,
     level: 1,
+    wave: 1,
     spawn: 0,
-    shot: 0,
-    pulse: 0,
+    timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, regen: 1000 },
+    weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
     over: false,
   });
 
+  function setGameStatus(next) {
+    statusRef.current = next;
+    setStatus(next);
+  }
+
   useEffect(() => {
-    function down(event) { keysRef.current[event.key.toLowerCase()] = true; }
+    function down(event) {
+      if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(event.key.toLowerCase())) event.preventDefault();
+      keysRef.current[event.key.toLowerCase()] = true;
+    }
     function up(event) { keysRef.current[event.key.toLowerCase()] = false; }
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -935,21 +975,21 @@ function PeppleSurvivor({ user }) {
 
   function musicTick() {
     const ctxAudio = audio();
-    if (!ctxAudio || !running) return;
+    if (!ctxAudio || statusRef.current !== "play") return;
     const now = ctxAudio.currentTime;
     if (now < audioRef.current.nextBeat) return;
     const osc = ctxAudio.createOscillator();
     const gain = ctxAudio.createGain();
-    const notes = [146.83, 174.61, 220, 261.63, 220, 174.61];
-    const note = notes[Math.floor(now * 2) % notes.length];
+    const notes = [98, 130.81, 146.83, 196, 220, 261.63, 293.66, 220];
+    const note = notes[Math.floor(now * 2.35) % notes.length];
     osc.type = "sine";
     osc.frequency.setValueAtTime(note, now);
-    gain.gain.setValueAtTime(0.026, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+    gain.gain.setValueAtTime(0.022, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
     osc.connect(gain).connect(ctxAudio.destination);
     osc.start(now);
-    osc.stop(now + 0.36);
-    audioRef.current.nextBeat = now + 0.42;
+    osc.stop(now + 0.46);
+    audioRef.current.nextBeat = now + 0.36;
   }
 
   function burst(x, y, color, amount = 10) {
@@ -961,57 +1001,237 @@ function PeppleSurvivor({ user }) {
     }
   }
 
+  function damageMult(state) {
+    return 1 + state.weapons.might * 0.18;
+  }
+
+  function cooldownMult(state) {
+    return Math.max(0.5, 1 - state.weapons.cooldown * 0.08);
+  }
+
+  function makeChoices(state) {
+    const pool = upgradePool
+      .filter((upgrade) => Number(state.weapons[upgrade.id] || 0) < 8)
+      .map((upgrade) => ({ ...upgrade, level: Number(state.weapons[upgrade.id] || 0) + 1 }))
+      .sort(() => Math.random() - 0.5);
+    return pool.slice(0, 3);
+  }
+
+  function syncSnapshot(state) {
+    const weapons = upgradePool
+      .filter((upgrade) => Number(state.weapons[upgrade.id] || 0) > 0)
+      .map((upgrade) => ({ id: upgrade.id, name: upgrade.name, level: state.weapons[upgrade.id], color: upgrade.color, icon: upgrade.icon }));
+    setSnapshot({
+      score: state.score,
+      level: state.level,
+      seconds: Math.floor(state.seconds),
+      kills: state.kills,
+      hp: Math.max(0, Math.ceil(state.player.hp)),
+      maxHp: state.player.maxHp,
+      xp: Math.floor(state.xp),
+      nextXp: state.nextXp,
+      wave: state.wave,
+      weapons,
+    });
+  }
+
+  function enterLevelUp(state) {
+    const nextChoices = makeChoices(state);
+    setChoices(nextChoices);
+    setMessage("Level Up. Waehle dein naechstes Upgrade.");
+    setGameStatus("levelup");
+    sfx("level");
+    syncSnapshot(state);
+  }
+
+  function gainXp(state, amount) {
+    state.xp += amount;
+    while (state.xp >= state.nextXp) {
+      state.xp -= state.nextXp;
+      state.level += 1;
+      state.nextXp = Math.floor(state.nextXp * 1.22 + 34);
+      enterLevelUp(state);
+      break;
+    }
+  }
+
+  function spawnEnemy(state, canvas) {
+    const side = Math.floor(Math.random() * 4);
+    const edge = [
+      { x: -36, y: Math.random() * canvas.height },
+      { x: canvas.width + 36, y: Math.random() * canvas.height },
+      { x: Math.random() * canvas.width, y: -36 },
+      { x: Math.random() * canvas.width, y: canvas.height + 36 },
+    ][side];
+    const boss = state.seconds > 55 && Math.floor(state.seconds) % 45 < 2 && Math.random() < 0.18;
+    const elite = boss || Math.random() < Math.min(0.26, state.seconds / 190);
+    const waveScale = 1 + state.wave * 0.16;
+    state.enemies.push({
+      ...edge,
+      hp: boss ? 220 * waveScale : elite ? 54 * waveScale : 22 * waveScale,
+      maxHp: boss ? 220 * waveScale : elite ? 54 * waveScale : 22 * waveScale,
+      speed: (boss ? 0.68 : elite ? 1.05 : 1.72) + state.wave * 0.08,
+      radius: boss ? 31 : elite ? 19 : 12,
+      elite,
+      boss,
+      wobble: Math.random() * 8,
+      tint: boss ? "#ffcf8a" : elite ? "#b46cff" : "#ff6fb7",
+    });
+  }
+
+  function drawUpgradeIcon(ctx, icon, x, y, size, color, frame = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = Math.max(2, size / 16);
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = color;
+    if (icon === "feather") {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.18, size * 0.48, -0.75, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fff4e9";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.28, size * 0.3);
+      ctx.lineTo(size * 0.28, -size * 0.36);
+      ctx.stroke();
+    } else if (icon === "orbit") {
+      for (let i = 0; i < 3; i += 1) {
+        ctx.rotate(Math.PI / 3);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.42, size * 0.17, frame / 40 + i, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (icon === "nova") {
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      for (let i = 0; i < 12; i += 1) {
+        const a = i / 12 * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * size * 0.32, Math.sin(a) * size * 0.32);
+        ctx.lineTo(Math.cos(a) * size * 0.52, Math.sin(a) * size * 0.52);
+        ctx.stroke();
+      }
+    } else if (icon === "laser") {
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.42, size * 0.22);
+      ctx.lineTo(size * 0.42, -size * 0.22);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(size * 0.42, -size * 0.22, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (icon === "egg") {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.25, size * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffcf8a";
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.32, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   const canvasRef = useCanvasGame((ctx, canvas, dt, frame) => {
     const state = stateRef.current;
+    const isPlaying = statusRef.current === "play";
     musicTick();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    bg.addColorStop(0, "#12061a");
-    bg.addColorStop(0.45, "#281234");
-    bg.addColorStop(1, "#22120f");
+
+    const bg = ctx.createRadialGradient(canvas.width * 0.55, canvas.height * 0.42, 30, canvas.width * 0.5, canvas.height * 0.5, canvas.width);
+    bg.addColorStop(0, "#311745");
+    bg.addColorStop(0.24, "#17091f");
+    bg.addColorStop(0.58, "#070913");
+    bg.addColorStop(1, "#02040b");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-    ctx.globalAlpha = 0.34;
-    for (let i = 0; i < 8; i += 1) {
-      const x = 130 + i * 96 + Math.sin(frame / 90 + i) * 9;
-      const rail = ctx.createLinearGradient(x, 40, x, canvas.height);
-      rail.addColorStop(0, "rgba(255,207,138,.02)");
-      rail.addColorStop(0.45, "rgba(180,108,255,.28)");
-      rail.addColorStop(1, "rgba(200,137,86,.16)");
-      ctx.strokeStyle = rail;
-      ctx.lineWidth = i % 2 ? 2 : 1;
-      ctx.beginPath();
-      ctx.moveTo(x, 78);
-      ctx.quadraticCurveTo(canvas.width / 2, -80, canvas.width - x, 78);
-      ctx.lineTo(canvas.width - x + Math.sin(frame / 75 + i) * 6, canvas.height - 38);
-      ctx.stroke();
+    const nebulaA = ctx.createRadialGradient(canvas.width * 0.2, canvas.height * 0.75, 20, canvas.width * 0.22, canvas.height * 0.72, 520);
+    nebulaA.addColorStop(0, "rgba(180,108,255,.28)");
+    nebulaA.addColorStop(0.38, "rgba(255,111,183,.13)");
+    nebulaA.addColorStop(1, "rgba(255,111,183,0)");
+    ctx.fillStyle = nebulaA;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const nebulaB = ctx.createRadialGradient(canvas.width * 0.82, canvas.height * 0.22, 10, canvas.width * 0.82, canvas.height * 0.22, 390);
+    nebulaB.addColorStop(0, "rgba(122,244,220,.18)");
+    nebulaB.addColorStop(0.42, "rgba(180,108,255,.09)");
+    nebulaB.addColorStop(1, "rgba(122,244,220,0)");
+    ctx.fillStyle = nebulaB;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    ctx.save();
+    for (let i = 0; i < 150; i += 1) {
+      const speed = (i % 5) + 0.2;
+      const x = (i * 97 + frame * speed * 0.12) % canvas.width;
+      const y = (i * 53 + Math.sin(frame / 70 + i) * 7) % canvas.height;
+      const size = i % 11 === 0 ? 2.2 : i % 7 === 0 ? 1.5 : 0.9;
+      ctx.fillStyle = i % 9 ? "rgba(255,244,233,.58)" : "rgba(122,244,220,.7)";
+      ctx.globalAlpha = 0.28 + (i % 6) * 0.09;
+      ctx.fillRect(x, y, size, size);
     }
     ctx.restore();
 
     ctx.save();
-    for (let i = 0; i < 92; i += 1) {
-      const x = (i * 113 + frame * (i % 3 + 0.35)) % canvas.width;
-      const y = (i * 67 + Math.sin(frame / 35 + i) * 10) % canvas.height;
-      ctx.fillStyle = i % 7 ? "rgba(255,218,184,.16)" : "rgba(122,244,220,.34)";
-      ctx.fillRect(x, y, i % 7 ? 1.5 : 2.5, i % 7 ? 1.5 : 2.5);
+    ctx.translate(118, canvas.height - 86);
+    const planet = ctx.createRadialGradient(-18, -22, 4, 0, 0, 95);
+    planet.addColorStop(0, "#f5b06c");
+    planet.addColorStop(0.48, "#7f493a");
+    planet.addColorStop(1, "#25111b");
+    ctx.fillStyle = planet;
+    ctx.globalAlpha = 0.82;
+    ctx.beginPath();
+    ctx.arc(0, 0, 86, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,207,138,.2)";
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    for (let i = 0; i < 24; i += 1) {
+      const x = (i * 187 - frame * (0.22 + i % 3 * 0.05)) % (canvas.width + 90) - 45;
+      const y = (i * 73 + Math.sin(frame / 55 + i) * 14) % canvas.height;
+      ctx.translate(x, y);
+      ctx.rotate(frame / 220 + i);
+      ctx.fillStyle = "rgba(88,57,53,.72)";
+      ctx.beginPath();
+      ctx.moveTo(-10, -5);
+      ctx.lineTo(-2, -12);
+      ctx.lineTo(12, -5);
+      ctx.lineTo(9, 9);
+      ctx.lineTo(-8, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.restore();
 
-    ctx.strokeStyle = "rgba(255,207,138,.17)";
-    ctx.lineWidth = 1;
-    for (let r = 80; r < 560; r += 88) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,183,99,.2)";
+    ctx.lineWidth = 1.2;
+    for (let r = 110; r < 660; r += 74) {
       ctx.beginPath();
-      ctx.ellipse(canvas.width / 2, canvas.height / 2, r * 1.08, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(canvas.width / 2, canvas.height / 2, r * 1.22, r * 0.58, frame / 760, 0, Math.PI * 2);
       ctx.stroke();
     }
+    for (let i = 0; i < 16; i += 1) {
+      const a = i / 16 * Math.PI * 2 + frame / 1200;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height / 2);
+      ctx.lineTo(canvas.width / 2 + Math.cos(a) * 740, canvas.height / 2 + Math.sin(a) * 340);
+      ctx.stroke();
+    }
+    ctx.restore();
 
-    if (running && !state.over) {
+    if (isPlaying && !state.over) {
       state.seconds += dt / 1000;
-      state.pulse += dt;
-      state.level = 1 + Math.floor(state.seconds / 18);
-      const speed = 3.5 + Math.min(1.8, state.level * 0.13);
+      state.wave = 1 + Math.floor(state.seconds / 24);
+      const speed = 3.15 + state.weapons.speed * 0.34;
       const mx = (keysRef.current.d || keysRef.current.arrowright ? 1 : 0) - (keysRef.current.a || keysRef.current.arrowleft ? 1 : 0);
       const my = (keysRef.current.s || keysRef.current.arrowdown ? 1 : 0) - (keysRef.current.w || keysRef.current.arrowup ? 1 : 0);
       const len = Math.max(1, Math.hypot(mx, my));
@@ -1024,33 +1244,63 @@ function PeppleSurvivor({ user }) {
 
       state.spawn -= dt;
       if (state.spawn <= 0) {
-        const side = Math.floor(Math.random() * 4);
-        const edge = [
-          { x: -30, y: Math.random() * canvas.height },
-          { x: canvas.width + 30, y: Math.random() * canvas.height },
-          { x: Math.random() * canvas.width, y: -30 },
-          { x: Math.random() * canvas.width, y: canvas.height + 30 },
-        ][side];
-        const elite = Math.random() < Math.min(0.22, state.seconds / 220);
-        state.enemies.push({ ...edge, hp: elite ? 34 : 18, maxHp: elite ? 34 : 18, speed: (elite ? 1.1 : 1.75) + state.level * 0.12, radius: elite ? 18 : 12, elite, wobble: Math.random() * 6 });
-        if (Math.random() < 0.72) state.gems.push({ x: 34 + Math.random() * (canvas.width - 68), y: 34 + Math.random() * (canvas.height - 68), spin: Math.random() * 7 });
-        state.spawn = Math.max(155, 760 - state.seconds * 11);
+        const count = 1 + Math.floor(Math.min(4, state.wave / 3));
+        for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
+        state.spawn = Math.max(90, 640 - state.seconds * 8);
       }
 
-      state.shot -= dt;
-      if (state.shot <= 0 && state.enemies.length) {
-        let target = state.enemies[0];
-        let best = Infinity;
+      state.timers.bolt -= dt;
+      if (state.weapons.bolt && state.timers.bolt <= 0 && state.enemies.length) {
+        const targets = [...state.enemies].sort((a, b) => Math.hypot(a.x - state.player.x, a.y - state.player.y) - Math.hypot(b.x - state.player.x, b.y - state.player.y));
+        const bolts = Math.min(targets.length, 1 + Math.floor((state.weapons.bolt - 1) / 2));
+        for (let i = 0; i < bolts; i += 1) {
+          const target = targets[i];
+          const dx = target.x - state.player.x;
+          const dy = target.y - state.player.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          state.shots.push({ type: "bolt", x: state.player.x, y: state.player.y, vx: dx / dist * 10.2, vy: dy / dist * 10.2, life: 820, damage: (14 + state.weapons.bolt * 4) * damageMult(state), pierce: Math.floor(state.weapons.bolt / 3) });
+        }
+        state.timers.bolt = Math.max(130, (520 - state.weapons.bolt * 28) * cooldownMult(state));
+        if (frame % 3 === 0) sfx("shot");
+      }
+
+      state.timers.egg -= dt;
+      if (state.weapons.egg && state.timers.egg <= 0 && state.enemies.length) {
+        const target = state.enemies[Math.floor(Math.random() * state.enemies.length)];
+        state.bombs.push({ x: state.player.x, y: state.player.y, tx: target.x, ty: target.y, life: 650, ttl: 650, radius: 54 + state.weapons.egg * 8, damage: (28 + state.weapons.egg * 8) * damageMult(state) });
+        state.timers.egg = Math.max(650, (2100 - state.weapons.egg * 110) * cooldownMult(state));
+      }
+
+      state.timers.nova -= dt;
+      if (state.weapons.nova && state.timers.nova <= 0) {
+        const radius = 150 + state.weapons.nova * 26;
         state.enemies.forEach((enemy) => {
           const dist = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
-          if (dist < best) { best = dist; target = enemy; }
+          if (dist < radius) {
+            enemy.hp -= (22 + state.weapons.nova * 8) * damageMult(state);
+            const dx = (enemy.x - state.player.x) / Math.max(1, dist);
+            const dy = (enemy.y - state.player.y) / Math.max(1, dist);
+            enemy.x += dx * 22;
+            enemy.y += dy * 22;
+          }
         });
-        const dx = target.x - state.player.x;
-        const dy = target.y - state.player.y;
-        const dist = Math.max(1, Math.hypot(dx, dy));
-        state.shots.push({ x: state.player.x, y: state.player.y, vx: dx / dist * 9.5, vy: dy / dist * 9.5, life: 720 });
-        state.shot = Math.max(170, 460 - state.level * 18);
-        if (frame % 3 === 0) sfx("shot");
+        state.particles.push({ ring: true, x: state.player.x, y: state.player.y, vx: 0, vy: 0, max: radius, life: 420, ttl: 420, color: "#ff6fb7" });
+        state.timers.nova = Math.max(1800, (6200 - state.weapons.nova * 390) * cooldownMult(state));
+        sfx("level");
+      }
+
+      state.timers.laser -= dt;
+      if (state.weapons.laser && state.timers.laser <= 0 && state.enemies.length) {
+        const target = [...state.enemies].sort((a, b) => b.hp - a.hp)[0];
+        state.beams.push({ x1: state.player.x, y1: state.player.y, x2: target.x, y2: target.y, life: 220, ttl: 220, color: "#7af4dc" });
+        target.hp -= (40 + state.weapons.laser * 18) * damageMult(state);
+        state.timers.laser = Math.max(950, (3600 - state.weapons.laser * 220) * cooldownMult(state));
+      }
+
+      state.timers.regen -= dt;
+      if (state.weapons.regen && state.timers.regen <= 0) {
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1.6 + state.weapons.regen * 0.8);
+        state.timers.regen = 1000;
       }
 
       state.enemies.forEach((enemy) => {
@@ -1060,15 +1310,18 @@ function PeppleSurvivor({ user }) {
         enemy.x += (dx / dist * enemy.speed + Math.sin(state.seconds * 3 + enemy.wobble) * 0.22) * (dt / 16);
         enemy.y += (dy / dist * enemy.speed + Math.cos(state.seconds * 2 + enemy.wobble) * 0.16) * (dt / 16);
         if (dist < enemy.radius + 18 && state.player.invuln <= 0) {
-          state.player.hp -= enemy.elite ? 22 : 14;
+          state.player.hp -= Math.max(5, (enemy.boss ? 31 : enemy.elite ? 20 : 13) - state.weapons.shield * 2.2);
           state.player.invuln = 720;
           burst(state.player.x, state.player.y, "#ff6fb7", 14);
           sfx("hit");
           if (state.player.hp <= 0) {
             state.over = true;
-            setRunning(false);
+            setGameStatus("gameover");
             setMessage(`Run beendet: ${state.score} Punkte, ${state.kills} Drohnen zerlegt.`);
           }
+        }
+        if (state.weapons.aura && dist < 76 + state.weapons.aura * 18) {
+          enemy.hp -= (0.12 + state.weapons.aura * 0.055) * dt * damageMult(state);
         }
       });
 
@@ -1081,24 +1334,62 @@ function PeppleSurvivor({ user }) {
       state.shots.forEach((shot) => {
         state.enemies.forEach((enemy) => {
           if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < enemy.radius + 7 && shot.life > 0) {
-            shot.life = 0;
-            enemy.hp -= 10;
+            enemy.hp -= shot.damage;
+            shot.pierce -= 1;
+            if (shot.pierce < 0) shot.life = 0;
             burst(shot.x, shot.y, enemy.elite ? "#b46cff" : "#ff6fb7", 5);
           }
         });
       });
+
+      state.bombs.forEach((bomb) => {
+        const t = 1 - bomb.life / bomb.ttl;
+        bomb.x += (bomb.tx - bomb.x) * 0.08;
+        bomb.y += (bomb.ty - bomb.y) * 0.08;
+        bomb.life -= dt;
+        if (t >= 0.95 || bomb.life <= 0) {
+          state.enemies.forEach((enemy) => {
+            if (Math.hypot(enemy.x - bomb.x, enemy.y - bomb.y) < bomb.radius) enemy.hp -= bomb.damage;
+          });
+          burst(bomb.x, bomb.y, "#ffcf8a", 24);
+        }
+      });
+      state.bombs = state.bombs.filter((bomb) => bomb.life > 0);
+      state.beams.forEach((beam) => { beam.life -= dt; });
+      state.beams = state.beams.filter((beam) => beam.life > 0);
+
+      if (state.weapons.orbit) {
+        const count = 2 + Math.floor(state.weapons.orbit / 2);
+        const radius = 58 + state.weapons.orbit * 6;
+        for (let i = 0; i < count; i += 1) {
+          const angle = frame / 24 + i / count * Math.PI * 2;
+          const ox = state.player.x + Math.cos(angle) * radius;
+          const oy = state.player.y + Math.sin(angle) * radius;
+          state.enemies.forEach((enemy) => {
+            if (Math.hypot(enemy.x - ox, enemy.y - oy) < enemy.radius + 12) enemy.hp -= (0.2 + state.weapons.orbit * 0.09) * dt * damageMult(state);
+          });
+        }
+      }
+
       state.enemies = state.enemies.filter((enemy) => {
         if (enemy.hp > 0) return true;
         state.kills += 1;
-        state.score += enemy.elite ? 18 : 10;
+        state.score += enemy.boss ? 120 : enemy.elite ? 32 : 12;
+        state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.boss ? 55 : enemy.elite ? 18 : 8, spin: Math.random() * 7 });
         burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.elite ? 18 : 10);
         return false;
       });
 
+      const magnetRadius = 58 + state.weapons.magnet * 44;
       state.gems = state.gems.filter((gem) => {
+        const dist = Math.hypot(gem.x - state.player.x, gem.y - state.player.y);
+        if (dist < magnetRadius) {
+          gem.x += (state.player.x - gem.x) * Math.min(0.18, 5 / Math.max(1, dist));
+          gem.y += (state.player.y - gem.y) * Math.min(0.18, 5 / Math.max(1, dist));
+        }
         if (Math.hypot(gem.x - state.player.x, gem.y - state.player.y) < 24) {
-          state.score += 12 + Math.floor(state.seconds / 12);
-          state.player.hp = Math.min(100, state.player.hp + 3);
+          state.score += Math.floor(gem.value * 1.5);
+          gainXp(state, gem.value);
           burst(gem.x, gem.y, "#7af4dc", 12);
           sfx("pepple");
           return false;
@@ -1106,8 +1397,7 @@ function PeppleSurvivor({ user }) {
         return true;
       });
 
-      if (Math.floor((state.seconds - dt / 1000) / 18) < Math.floor(state.seconds / 18)) sfx("level");
-      if (frame % 10 === 0) setSnapshot({ score: state.score, level: state.level, seconds: Math.floor(state.seconds), kills: state.kills, hp: Math.max(0, Math.ceil(state.player.hp)) });
+      if (frame % 10 === 0) syncSnapshot(state);
     }
 
     state.particles.forEach((particle) => {
@@ -1177,16 +1467,80 @@ function PeppleSurvivor({ user }) {
       ctx.restore();
     });
 
-    state.particles.forEach((particle) => {
-      ctx.globalAlpha = Math.max(0, particle.life / particle.ttl);
-      ctx.fillStyle = particle.color;
+    state.beams.forEach((beam) => {
+      const alpha = Math.max(0, beam.life / beam.ttl);
+      ctx.strokeStyle = `rgba(122,244,220,${alpha * 0.82})`;
+      ctx.lineWidth = 6;
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = beam.color;
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+      ctx.moveTo(beam.x1, beam.y1);
+      ctx.lineTo(beam.x2, beam.y2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    });
+
+    state.bombs.forEach((bomb) => {
+      ctx.save();
+      ctx.translate(bomb.x, bomb.y);
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = "#ffcf8a";
+      ctx.fillStyle = "#fff4e9";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 14, 0.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "rgba(255,207,138,.5)";
+      ctx.beginPath();
+      ctx.arc(0, 0, bomb.radius * (1 - bomb.life / bomb.ttl), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     });
 
     const player = state.player;
+    if (state.weapons.aura) {
+      const radius = 76 + state.weapons.aura * 18;
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = "#c88956";
+      ctx.shadowBlur = 28;
+      ctx.shadowColor = "#c88956";
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (state.weapons.orbit) {
+      const count = 2 + Math.floor(state.weapons.orbit / 2);
+      const radius = 58 + state.weapons.orbit * 6;
+      for (let i = 0; i < count; i += 1) {
+        const angle = frame / 24 + i / count * Math.PI * 2;
+        const ox = player.x + Math.cos(angle) * radius;
+        const oy = player.y + Math.sin(angle) * radius;
+        drawUpgradeIcon(ctx, "orbit", ox, oy, 22, "#ffcf8a", frame);
+      }
+    }
+
+    state.particles.forEach((particle) => {
+      ctx.globalAlpha = Math.max(0, particle.life / particle.ttl);
+      if (particle.ring) {
+        ctx.strokeStyle = particle.color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.max * (1 - particle.life / particle.ttl), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.shadowBlur = 28;
@@ -1217,32 +1571,87 @@ function PeppleSurvivor({ user }) {
     ctx.stroke();
     ctx.restore();
 
-    ctx.fillStyle = "rgba(16,9,21,.5)";
-    ctx.fillRect(24, canvas.height - 54, 210, 16);
+    const barX = 24;
+    ctx.fillStyle = "rgba(5,7,14,.66)";
+    ctx.fillRect(barX, canvas.height - 62, 210, 16);
     ctx.fillStyle = "#ff6f7f";
-    ctx.fillRect(24, canvas.height - 54, 210 * Math.max(0, player.hp) / 100, 16);
+    ctx.fillRect(barX, canvas.height - 62, 210 * Math.max(0, player.hp) / player.maxHp, 16);
+    ctx.fillStyle = "rgba(5,7,14,.66)";
+    ctx.fillRect(barX, canvas.height - 38, 210, 12);
+    ctx.fillStyle = "#b46cff";
+    ctx.fillRect(barX, canvas.height - 38, 210 * Math.max(0, state.xp) / Math.max(1, state.nextXp), 12);
     ctx.strokeStyle = "rgba(255,218,184,.25)";
-    ctx.strokeRect(24, canvas.height - 54, 210, 16);
+    ctx.strokeRect(barX, canvas.height - 62, 210, 16);
+    ctx.strokeRect(barX, canvas.height - 38, 210, 12);
 
-    if (!running && !state.over && state.score === 0) {
-      ctx.fillStyle = "rgba(16,9,21,.56)";
+    if (statusRef.current === "menu") {
+      ctx.fillStyle = "rgba(3,5,12,.52)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff4e9";
       ctx.font = "900 34px Inter, Arial";
-      ctx.fillText("Pepple Survivor", canvas.width / 2 - 146, canvas.height / 2 - 12);
+      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, canvas.height / 2 - 12);
       ctx.font = "700 16px Inter, Arial";
       ctx.fillStyle = "#d9c4d2";
-      ctx.fillText("Start druecken, WASD bewegen, Auto-Federn feuern.", canvas.width / 2 - 198, canvas.height / 2 + 22);
+      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, canvas.height / 2 + 22);
     }
-  }, [running, audioOn]);
+    if (statusRef.current === "levelup") {
+      ctx.fillStyle = "rgba(3,5,12,.44)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    if (statusRef.current === "gameover") {
+      ctx.fillStyle = "rgba(3,5,12,.62)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff4e9";
+      ctx.font = "900 34px Inter, Arial";
+      ctx.fillText("Run beendet", canvas.width / 2 - 100, canvas.height / 2 - 12);
+      ctx.font = "700 16px Inter, Arial";
+      ctx.fillStyle = "#ffcf8a";
+      ctx.fillText(`${state.score} Score · ${state.kills} Kills · Level ${state.level}`, canvas.width / 2 - 132, canvas.height / 2 + 22);
+    }
+  }, [status, audioOn]);
 
   function start() {
-    stateRef.current = { player: { x: 460, y: 210, hp: 100, invuln: 0 }, gems: [], enemies: [], shots: [], particles: [], score: 0, seconds: 0, kills: 0, level: 1, spawn: 0, shot: 200, pulse: 0, over: false };
-    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 100 });
-    setMessage("Sammle Pepple-Kerne, die Federwaffe zielt automatisch.");
+    stateRef.current = {
+      player: { x: 460, y: 250, hp: 110, maxHp: 110, invuln: 0 },
+      gems: [],
+      enemies: [],
+      shots: [],
+      bombs: [],
+      beams: [],
+      particles: [],
+      score: 0,
+      xp: 0,
+      nextXp: 60,
+      seconds: 0,
+      kills: 0,
+      level: 1,
+      wave: 1,
+      spawn: 0,
+      timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, regen: 1000 },
+      weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
+      over: false,
+    };
+    setChoices([]);
+    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 110, maxHp: 110, xp: 0, nextXp: 60, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
+    setMessage("Sammle XP-Kristalle. Beim Level-Up waehlt ihr den Build.");
     audio();
     sfx("start");
-    setRunning(true);
+    setGameStatus("play");
+  }
+
+  function chooseUpgrade(upgrade) {
+    const state = stateRef.current;
+    state.weapons[upgrade.id] = Number(state.weapons[upgrade.id] || 0) + 1;
+    if (upgrade.id === "shield") {
+      state.player.maxHp += 18;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 24);
+    }
+    if (upgrade.id === "speed") state.player.invuln = Math.max(state.player.invuln, 420);
+    setChoices([]);
+    setMessage(`${upgrade.name} Level ${state.weapons[upgrade.id]} aktiviert.`);
+    syncSnapshot(state);
+    sfx("start");
+    setGameStatus("play");
   }
 
   async function save() {
@@ -1256,7 +1665,7 @@ function PeppleSurvivor({ user }) {
   }
 
   return (
-    <section className="survivorFrame" style={{ "--game-accent": gameMeta["braincell-survivor"].accent }}>
+    <section className="survivorFrame survivorComplete" style={{ "--game-accent": gameMeta["braincell-survivor"].accent }}>
       <div className="survivorHeader">
         <div>
           <h2>Pepple Survivor</h2>
@@ -1265,20 +1674,49 @@ function PeppleSurvivor({ user }) {
         <div className="survivorHud">
           <Stat label="Score" value={snapshot.score} />
           <Stat label="Level" value={snapshot.level} />
+          <Stat label="Welle" value={snapshot.wave} />
           <Stat label="Kills" value={snapshot.kills} />
           <Stat label="Zeit" value={`${snapshot.seconds}s`} />
         </div>
       </div>
+      <div className="survivorBars">
+        <div><span>HP</span><b>{snapshot.hp}</b><i><em style={{ width: `${Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 110) * 100))}%` }} /></i></div>
+        <div><span>XP</span><b>{snapshot.xp}/{snapshot.nextXp}</b><i><em className="xpFill" style={{ width: `${Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100))}%` }} /></i></div>
+      </div>
+      <div className="survivorBuild">
+        <span>Build</span>
+        {snapshot.weapons.map((weapon) => (
+          <div className="weaponChip" key={weapon.id} style={{ "--weapon": weapon.color }}>
+            <b>{weapon.name}</b><small>Lv {weapon.level}</small>
+          </div>
+        ))}
+      </div>
       <div className="survivorStage">
         <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="920" height="500" />
-        <div className="survivorMeter" aria-label={`HP ${snapshot.hp}`}>
-          <span style={{ width: `${Math.max(0, Math.min(100, snapshot.hp))}%` }} />
-        </div>
+        {status === "levelup" && (
+          <div className="levelUpOverlay">
+            <div className="levelUpPanel">
+              <h3>Level Up</h3>
+              <p>Waehle ein Upgrade</p>
+              <div className="upgradeGrid">
+                {choices.map((choice) => (
+                  <button className="upgradeCard" key={choice.id} onClick={() => chooseUpgrade(choice)} type="button" style={{ "--weapon": choice.color }}>
+                    <span className={`upgradeIcon upgradeIcon-${choice.icon}`} />
+                    <strong>{choice.name}</strong>
+                    <small>{choice.kind === "weapon" && choice.level === 1 ? "Neue Waffe" : `Level ${choice.level}`}</small>
+                    <em>{choice.desc}</em>
+                    <b>Waehlen</b>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="gameActions survivorActions">
-        <button onClick={start} type="button"><RefreshCw size={16} /> {running ? "Neu starten" : "Start"}</button>
+        <button onClick={start} type="button"><RefreshCw size={16} /> {status === "play" ? "Neu starten" : "Start"}</button>
         <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Musik {audioOn ? "an" : "aus"}</button>
-        {user && snapshot.score > 0 && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+        {user && snapshot.score > 0 && status === "gameover" && <button className="ghost" onClick={save} type="button">Score speichern</button>}
       </div>
       <div className="survivorScorePanel">
         <h3>Top Scores</h3>

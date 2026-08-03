@@ -1686,7 +1686,7 @@ textarea {
     linear-gradient(115deg, rgba(180, 108, 255, 0.11) 0 1px, transparent 1px 100%),
     radial-gradient(circle at 18% 6%, rgba(255, 111, 183, 0.24), transparent 28%),
     radial-gradient(circle at 82% 12%, rgba(255, 207, 138, 0.18), transparent 31%),
-    linear-gradient(135deg, rgba(31, 13, 42, 0.96), rgba(38, 20, 21, 0.92));
+    linear-gradient(135deg, rgba(8, 7, 18, 0.98), rgba(35, 18, 25, 0.94));
   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
@@ -1749,7 +1749,7 @@ textarea {
 
 .survivorHud {
   display: grid;
-  grid-template-columns: repeat(4, minmax(76px, 1fr));
+  grid-template-columns: repeat(5, minmax(74px, 1fr));
   gap: 10px;
 }
 
@@ -1765,7 +1765,98 @@ textarea {
   font-size: clamp(24px, 2.4vw, 34px);
 }
 
+.survivorBars {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.survivorBars div {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.15);
+  background: rgba(6, 7, 14, 0.58);
+}
+
+.survivorBars span,
+.survivorBuild > span {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.survivorBars b {
+  min-width: 54px;
+  color: #fff4e9;
+  font-size: 13px;
+}
+
+.survivorBars i {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 218, 184, 0.13);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.survivorBars em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff5f7c, #ffcf8a);
+  box-shadow: 0 0 18px rgba(255, 111, 127, 0.34);
+  transition: width 0.18s ease;
+}
+
+.survivorBars .xpFill {
+  background: linear-gradient(90deg, #b46cff, #7af4dc);
+  box-shadow: 0 0 18px rgba(122, 244, 220, 0.34);
+}
+
+.survivorBuild {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-height: 44px;
+}
+
+.weaponChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--weapon) 42%, rgba(255, 218, 184, 0.12));
+  background:
+    radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--weapon) 22%, transparent), transparent 48%),
+    rgba(9, 9, 18, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.weaponChip b {
+  color: #fff4e9;
+  font-size: 12px;
+}
+
+.weaponChip small {
+  color: var(--weapon);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .survivorStage {
+  position: relative;
   padding: 10px;
   border-radius: 8px;
   border: 1px solid rgba(223, 184, 255, 0.2);
@@ -1788,22 +1879,120 @@ textarea {
     0 18px 70px rgba(0, 0, 0, 0.38);
 }
 
-.survivorMeter {
-  height: 11px;
-  margin-top: 10px;
-  overflow: hidden;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 218, 184, 0.16);
-  background: rgba(10, 7, 14, 0.74);
+.levelUpOverlay {
+  position: absolute;
+  inset: 10px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(180, 108, 255, 0.22), transparent 42%),
+    rgba(2, 4, 11, 0.54);
+  backdrop-filter: blur(7px);
 }
 
-.survivorMeter span {
+.levelUpPanel {
+  width: min(780px, 100%);
+  padding: clamp(16px, 2vw, 22px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 207, 138, 0.32);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 207, 138, 0.14), transparent 35%),
+    linear-gradient(145deg, rgba(28, 13, 39, 0.96), rgba(22, 10, 18, 0.95));
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.levelUpPanel h3 {
+  margin: 0;
+  color: #fff4e9;
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 1;
+}
+
+.levelUpPanel p {
+  margin: 7px 0 16px;
+  color: var(--amber);
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.upgradeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.upgradeCard {
+  min-height: 240px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 15px;
+  text-align: left;
+  color: #fff4e9;
+  border: 1px solid color-mix(in srgb, var(--weapon) 46%, rgba(255, 218, 184, 0.14));
+  background:
+    radial-gradient(circle at 50% 14%, color-mix(in srgb, var(--weapon) 28%, transparent), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02)),
+    rgba(7, 8, 16, 0.9);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.upgradeCard:hover {
+  border-color: var(--weapon);
+  box-shadow: 0 22px 56px color-mix(in srgb, var(--weapon) 20%, rgba(0, 0, 0, 0.34));
+}
+
+.upgradeCard strong {
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.upgradeCard small {
+  color: var(--weapon);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.upgradeCard em {
+  min-height: 54px;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.upgradeCard > b {
+  align-self: end;
+  justify-self: start;
+  margin-top: 8px;
+  color: #170a18;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, var(--weapon), var(--amber));
+}
+
+.upgradeIcon {
+  width: 60px;
+  height: 60px;
   display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #ff6f7f, #ffcf8a);
-  box-shadow: 0 0 18px rgba(255, 111, 127, 0.42);
-  transition: width 0.18s ease;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--weapon) 50%, rgba(255, 255, 255, 0.16));
+  background:
+    radial-gradient(circle at 34% 24%, #fff4e9, color-mix(in srgb, var(--weapon) 78%, #fff4e9) 28%, transparent 58%),
+    rgba(255, 255, 255, 0.045);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--weapon) 38%, transparent);
+  position: relative;
+}
+
+.upgradeIcon::after {
+  content: "";
+  position: absolute;
+  inset: 17px;
+  border-radius: 999px;
+  border: 2px solid #170a18;
 }
 
 .survivorActions {
@@ -2497,9 +2686,18 @@ textarea {
   .adminStats,
   .gameHud,
   .survivorHud,
+  .survivorBars,
   .systematicsLayout {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .upgradeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .upgradeCard {
+    min-height: 190px;
   }
 
   .survivorCanvas {
