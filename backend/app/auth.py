@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
 from typing import Any
 
 from fastapi import Depends, Header, HTTPException
@@ -11,6 +12,7 @@ from .supabase import supabase
 
 TOKEN_ALGORITHM = "HS256"
 TOKEN_TTL_HOURS = 24 * 7
+LEGACY_PASSWORD_SALT = "gehirnzone_guest_auth_salt"
 
 
 def create_access_token(username: str) -> str:
@@ -27,14 +29,17 @@ def create_access_token(username: str) -> str:
 def verify_password(password: str, password_hash: str | None) -> bool:
     if not password_hash:
         return False
+    if password_hash.startswith("$pbkdf2-sha256$"):
+        try:
+            return pbkdf2_sha256.verify(password, password_hash)
+        except ValueError:
+            return False
+    legacy_hash = hashlib.sha256(f"{password}{LEGACY_PASSWORD_SALT}".encode("utf-8")).hexdigest()
+    return legacy_hash == password_hash
 
 
 def hash_password(password: str) -> str:
     return pbkdf2_sha256.hash(password)
-    try:
-        return pbkdf2_sha256.verify(password, password_hash)
-    except ValueError:
-        return False
 
 
 def get_user(username: str) -> dict[str, Any] | None:
