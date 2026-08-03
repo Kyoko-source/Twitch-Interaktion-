@@ -1027,6 +1027,8 @@ function SystematicsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const selected = doc.nodes.find((node) => node.id === selectedId) || doc.nodes[0];
   const parentId = selected ? parentForNode(doc, selected.id) : "";
+  const nodeOptions = buildNodeOptions(doc);
+  const selectedPath = selected ? pathForNode(doc, selected.id) : "";
 
   useEffect(() => {
     api("/api/systematics")
@@ -1047,6 +1049,11 @@ function SystematicsPage() {
       ...current,
       nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
     }));
+  }
+
+  function selectNode(nodeId) {
+    setSelectedId(nodeId);
+    setNewBox((current) => ({ ...current, parentId: nodeId }));
   }
 
   function addNode(overrides = {}) {
@@ -1088,6 +1095,11 @@ function SystematicsPage() {
       return;
     }
     if (connectFrom !== nodeId) {
+      if (descendantsForNode(doc, nodeId).has(connectFrom)) {
+        setMessage("Diese Verbindung wuerde eine Schleife bauen. Bitte anders einsortieren.");
+        setConnectFrom("");
+        return;
+      }
       setDoc((current) => {
         const exists = current.links.some((link) => link.source === connectFrom && link.target === nodeId);
         return exists ? current : autoLayoutSystematics({ ...current, links: [...current.links, { source: connectFrom, target: nodeId }] });
@@ -1128,7 +1140,16 @@ function SystematicsPage() {
       handleConnect(node.id);
       return;
     }
-    setSelectedId(node.id);
+    selectNode(node.id);
+  }
+
+  function addSibling() {
+    addNode({ parentId, title: "Neue Box daneben" });
+  }
+
+  function repairStructure() {
+    setDoc((current) => autoLayoutSystematics({ ...current, links: primaryTreeLinks(current) }));
+    setMessage("Struktur bereinigt: jede Box hat nur noch eine Haupt-Elternbox.");
   }
 
   async function unlock() {
@@ -1187,6 +1208,7 @@ function SystematicsPage() {
             <div>
               <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Spezial-Verbindung</button>
               <button onClick={() => addNode({ parentId: selected?.id })} disabled={!editing || !selected} type="button"><Plus size={16} /> Kind zu Auswahl</button>
+              <button className="ghost" onClick={addSibling} disabled={!editing || !selected} type="button"><Plus size={16} /> Daneben</button>
               <button className="ghost" onClick={() => setDoc((current) => autoLayoutSystematics(current))} disabled={!editing} type="button"><RefreshCw size={16} /> Auto sortieren</button>
               <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
             </div>
@@ -1209,7 +1231,7 @@ function SystematicsPage() {
               <button
                 className={`systemNode ${selected?.id === node.id ? "selected" : ""} ${connectFrom === node.id ? "connecting" : ""}`}
                 key={node.id}
-                onClick={() => setSelectedId(node.id)}
+                onClick={() => selectNode(node.id)}
                 onDoubleClick={() => handleConnect(node.id)}
                 onPointerDown={(event) => pointerDown(event, node)}
                 style={{ left: node.x, top: node.y, "--node-color": node.color }}
@@ -1236,9 +1258,13 @@ function SystematicsPage() {
           </div>
           <div className="panel form systematicsQuickAdd">
             <h2><Plus size={18} /> Neue Box</h2>
+            <div className="builderHint">
+              <strong>1. Ziel waehlen</strong>
+              <span>Beispiel: fuer Huhn erst `Voegel` oder `Huehnervoegel` auswaehlen, dann einfuegen.</span>
+            </div>
             <label>Gehört zu
               <select disabled={!editing} value={newBox.parentId || selected?.id || ""} onChange={(event) => setNewBox({ ...newBox, parentId: event.target.value })}>
-                {doc.nodes.map((node) => <option value={node.id} key={node.id}>{node.title}</option>)}
+                {nodeOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
               </select>
             </label>
             <label>Vorlage
@@ -1246,18 +1272,29 @@ function SystematicsPage() {
                 {systematicsTemplates.map((template) => <option value={template.id} key={template.id}>{template.label}</option>)}
               </select>
             </label>
+            <div className="templateChips">
+              {systematicsTemplates.slice(2).map((template) => (
+                <button disabled={!editing} onClick={() => applyTemplate(template.id)} type="button" key={template.id} style={{ "--node-color": template.color }}>{template.label}</button>
+              ))}
+            </div>
             <label>Text<input disabled={!editing} value={newBox.title} onChange={(event) => setNewBox({ ...newBox, title: event.target.value, template: "custom" })} /></label>
             <label>Untertext<input disabled={!editing} value={newBox.subtitle} onChange={(event) => setNewBox({ ...newBox, subtitle: event.target.value, template: "custom" })} /></label>
             <label>Farbe<input disabled={!editing} type="color" value={newBox.color} onChange={(event) => setNewBox({ ...newBox, color: event.target.value, template: "custom" })} /></label>
+            <div className="newBoxPreview" style={{ "--node-color": newBox.color }}>
+              <span>{doc.nodes.find((node) => node.id === newBox.parentId)?.title || "Oberste Ebene"}</span>
+              <strong>{newBox.title}</strong>
+              <small>{newBox.subtitle}</small>
+            </div>
             <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfuegen</button>
           </div>
           {selected && (
             <div className="panel form">
               <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
+              {selectedPath && <div className="builderHint"><strong>Aktueller Pfad</strong><span>{selectedPath}</span></div>}
               <label>Diese Box gehört zu
                 <select disabled={!editing || doc.nodes.length <= 1} value={parentId} onChange={(event) => changeParent(selected.id, event.target.value)}>
                   <option value="">Oberste Ebene</option>
-                  {doc.nodes.filter((node) => node.id !== selected.id && !descendantsForNode(doc, selected.id).has(node.id)).map((node) => <option value={node.id} key={node.id}>{node.title}</option>)}
+                  {nodeOptions.filter((option) => option.id !== selected.id && !descendantsForNode(doc, selected.id).has(option.id)).map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
                 </select>
               </label>
               <label>Text<input disabled={!editing} value={selected.title} onChange={(event) => updateNode(selected.id, { title: event.target.value })} /></label>
@@ -1273,6 +1310,7 @@ function SystematicsPage() {
           )}
           <div className="panel">
             <h2><Link2 size={18} /> Verbindungen</h2>
+            <button className="ghost repairButton" disabled={!editing} onClick={repairStructure} type="button"><RefreshCw size={16} /> Hauptstruktur bereinigen</button>
             <div className="linkList">
               {doc.links.map((link) => <button disabled={!editing} onClick={() => removeLink(link.source, link.target)} type="button" key={`${link.source}-${link.target}`}>{nodeById.get(link.source)?.title}{" -> "}{nodeById.get(link.target)?.title}</button>)}
             </div>
@@ -1301,6 +1339,39 @@ const systematicsTemplates = [
 
 function parentForNode(doc, nodeId) {
   return doc.links.find((link) => link.target === nodeId)?.source || "";
+}
+
+function pathForNode(doc, nodeId) {
+  const byId = new Map(doc.nodes.map((node) => [node.id, node]));
+  const parts = [];
+  const seen = new Set();
+  let currentId = nodeId;
+  while (currentId && byId.has(currentId) && !seen.has(currentId)) {
+    seen.add(currentId);
+    parts.unshift(byId.get(currentId)?.title || "Box");
+    currentId = parentForNode(doc, currentId);
+  }
+  return parts.join(" > ");
+}
+
+function buildNodeOptions(doc) {
+  return doc.nodes
+    .map((node) => ({ id: node.id, label: pathForNode(doc, node.id) || node.title }))
+    .sort((a, b) => a.label.localeCompare(b.label, "de"));
+}
+
+function primaryTreeLinks(doc) {
+  const ids = new Set(doc.nodes.map((node) => node.id));
+  const accepted = [];
+  const targetSeen = new Set();
+  for (const link of doc.links) {
+    if (!ids.has(link.source) || !ids.has(link.target) || link.source === link.target || targetSeen.has(link.target)) continue;
+    const draft = { ...doc, links: [...accepted, link] };
+    if (descendantsForNode(draft, link.target).has(link.source)) continue;
+    accepted.push(link);
+    targetSeen.add(link.target);
+  }
+  return accepted;
 }
 
 function descendantsForNode(doc, nodeId) {
