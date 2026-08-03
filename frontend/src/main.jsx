@@ -872,11 +872,27 @@ function ChickenRacer({ user }) {
 
 function PeppleSurvivor({ user }) {
   const [running, setRunning] = useState(false);
-  const [message, setMessage] = useState("WASD bewegen, laenger ueberleben.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, seconds: 0, kills: 0 });
+  const [audioOn, setAudioOn] = useState(true);
+  const [message, setMessage] = useState("WASD bewegen, Pepples sammeln, Schwarm ueberleben.");
+  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, seconds: 0, kills: 0, hp: 100 });
   const [refreshKey, setRefreshKey] = useState(0);
   const keysRef = useRef({});
-  const stateRef = useRef({ player: { x: 460, y: 200 }, gems: [], enemies: [], score: 0, seconds: 0, spawn: 0, over: false });
+  const audioRef = useRef({ ctx: null, nextBeat: 0 });
+  const stateRef = useRef({
+    player: { x: 460, y: 210, hp: 100, invuln: 0 },
+    gems: [],
+    enemies: [],
+    shots: [],
+    particles: [],
+    score: 0,
+    seconds: 0,
+    kills: 0,
+    level: 1,
+    spawn: 0,
+    shot: 0,
+    pulse: 0,
+    over: false,
+  });
 
   useEffect(() => {
     function down(event) { keysRef.current[event.key.toLowerCase()] = true; }
@@ -886,57 +902,346 @@ function PeppleSurvivor({ user }) {
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
   }, []);
 
-  const canvasRef = useCanvasGame((ctx, canvas, dt) => {
+  useEffect(() => () => {
+    audioRef.current.ctx?.close?.();
+    audioRef.current.ctx = null;
+  }, []);
+
+  function audio() {
+    if (!audioOn) return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!audioRef.current.ctx) audioRef.current.ctx = new AudioCtx();
+    if (audioRef.current.ctx.state === "suspended") audioRef.current.ctx.resume();
+    return audioRef.current.ctx;
+  }
+
+  function sfx(type) {
+    const ctxAudio = audio();
+    if (!ctxAudio) return;
+    const osc = ctxAudio.createOscillator();
+    const gain = ctxAudio.createGain();
+    const now = ctxAudio.currentTime;
+    const notes = { start: 196, pepple: 740, hit: 96, shot: 440, level: 980 };
+    osc.type = type === "hit" ? "sawtooth" : "triangle";
+    osc.frequency.setValueAtTime(notes[type] || 360, now);
+    osc.frequency.exponentialRampToValueAtTime(type === "hit" ? 44 : (notes[type] || 360) * 1.55, now + 0.14);
+    gain.gain.setValueAtTime(type === "hit" ? 0.1 : 0.055, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(gain).connect(ctxAudio.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  function musicTick() {
+    const ctxAudio = audio();
+    if (!ctxAudio || !running) return;
+    const now = ctxAudio.currentTime;
+    if (now < audioRef.current.nextBeat) return;
+    const osc = ctxAudio.createOscillator();
+    const gain = ctxAudio.createGain();
+    const notes = [146.83, 174.61, 220, 261.63, 220, 174.61];
+    const note = notes[Math.floor(now * 2) % notes.length];
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(note, now);
+    gain.gain.setValueAtTime(0.026, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+    osc.connect(gain).connect(ctxAudio.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+    audioRef.current.nextBeat = now + 0.42;
+  }
+
+  function burst(x, y, color, amount = 10) {
     const state = stateRef.current;
+    for (let i = 0; i < amount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.8 + Math.random() * 3.2;
+      state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 420 + Math.random() * 360, ttl: 800, color });
+    }
+  }
+
+  const canvasRef = useCanvasGame((ctx, canvas, dt, frame) => {
+    const state = stateRef.current;
+    musicTick();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#100916"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(180,108,255,.08)";
-    for (let i = 0; i < 70; i += 1) ctx.fillRect((i * 113) % canvas.width, (i * 67) % canvas.height, 2, 2);
+    const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    bg.addColorStop(0, "#12061a");
+    bg.addColorStop(0.45, "#281234");
+    bg.addColorStop(1, "#22120f");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.globalAlpha = 0.34;
+    for (let i = 0; i < 8; i += 1) {
+      const x = 130 + i * 96 + Math.sin(frame / 90 + i) * 9;
+      const rail = ctx.createLinearGradient(x, 40, x, canvas.height);
+      rail.addColorStop(0, "rgba(255,207,138,.02)");
+      rail.addColorStop(0.45, "rgba(180,108,255,.28)");
+      rail.addColorStop(1, "rgba(200,137,86,.16)");
+      ctx.strokeStyle = rail;
+      ctx.lineWidth = i % 2 ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 78);
+      ctx.quadraticCurveTo(canvas.width / 2, -80, canvas.width - x, 78);
+      ctx.lineTo(canvas.width - x + Math.sin(frame / 75 + i) * 6, canvas.height - 38);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    for (let i = 0; i < 92; i += 1) {
+      const x = (i * 113 + frame * (i % 3 + 0.35)) % canvas.width;
+      const y = (i * 67 + Math.sin(frame / 35 + i) * 10) % canvas.height;
+      ctx.fillStyle = i % 7 ? "rgba(255,218,184,.16)" : "rgba(122,244,220,.34)";
+      ctx.fillRect(x, y, i % 7 ? 1.5 : 2.5, i % 7 ? 1.5 : 2.5);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(255,207,138,.17)";
+    ctx.lineWidth = 1;
+    for (let r = 80; r < 560; r += 88) {
+      ctx.beginPath();
+      ctx.ellipse(canvas.width / 2, canvas.height / 2, r * 1.08, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     if (running && !state.over) {
       state.seconds += dt / 1000;
-      const speed = 4.2;
-      if (keysRef.current.w || keysRef.current.arrowup) state.player.y -= speed;
-      if (keysRef.current.s || keysRef.current.arrowdown) state.player.y += speed;
-      if (keysRef.current.a || keysRef.current.arrowleft) state.player.x -= speed;
-      if (keysRef.current.d || keysRef.current.arrowright) state.player.x += speed;
-      state.player.x = Math.max(20, Math.min(canvas.width - 20, state.player.x));
-      state.player.y = Math.max(20, Math.min(canvas.height - 20, state.player.y));
+      state.pulse += dt;
+      state.level = 1 + Math.floor(state.seconds / 18);
+      const speed = 3.5 + Math.min(1.8, state.level * 0.13);
+      const mx = (keysRef.current.d || keysRef.current.arrowright ? 1 : 0) - (keysRef.current.a || keysRef.current.arrowleft ? 1 : 0);
+      const my = (keysRef.current.s || keysRef.current.arrowdown ? 1 : 0) - (keysRef.current.w || keysRef.current.arrowup ? 1 : 0);
+      const len = Math.max(1, Math.hypot(mx, my));
+      state.player.x += (mx / len) * speed * (dt / 16);
+      state.player.y += (my / len) * speed * (dt / 16);
+      state.player.x = Math.max(30, Math.min(canvas.width - 30, state.player.x));
+      state.player.y = Math.max(30, Math.min(canvas.height - 30, state.player.y));
+      state.player.invuln = Math.max(0, state.player.invuln - dt);
+      if (mx || my) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 260, ttl: 260, color: "#ffcf8a" });
+
       state.spawn -= dt;
       if (state.spawn <= 0) {
-        state.enemies.push({ x: Math.random() * canvas.width, y: -20, speed: 1.5 + state.seconds / 28 });
-        state.gems.push({ x: 30 + Math.random() * (canvas.width - 60), y: 30 + Math.random() * (canvas.height - 60) });
-        state.spawn = Math.max(260, 900 - state.seconds * 8);
+        const side = Math.floor(Math.random() * 4);
+        const edge = [
+          { x: -30, y: Math.random() * canvas.height },
+          { x: canvas.width + 30, y: Math.random() * canvas.height },
+          { x: Math.random() * canvas.width, y: -30 },
+          { x: Math.random() * canvas.width, y: canvas.height + 30 },
+        ][side];
+        const elite = Math.random() < Math.min(0.22, state.seconds / 220);
+        state.enemies.push({ ...edge, hp: elite ? 34 : 18, maxHp: elite ? 34 : 18, speed: (elite ? 1.1 : 1.75) + state.level * 0.12, radius: elite ? 18 : 12, elite, wobble: Math.random() * 6 });
+        if (Math.random() < 0.72) state.gems.push({ x: 34 + Math.random() * (canvas.width - 68), y: 34 + Math.random() * (canvas.height - 68), spin: Math.random() * 7 });
+        state.spawn = Math.max(155, 760 - state.seconds * 11);
       }
+
+      state.shot -= dt;
+      if (state.shot <= 0 && state.enemies.length) {
+        let target = state.enemies[0];
+        let best = Infinity;
+        state.enemies.forEach((enemy) => {
+          const dist = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
+          if (dist < best) { best = dist; target = enemy; }
+        });
+        const dx = target.x - state.player.x;
+        const dy = target.y - state.player.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        state.shots.push({ x: state.player.x, y: state.player.y, vx: dx / dist * 9.5, vy: dy / dist * 9.5, life: 720 });
+        state.shot = Math.max(170, 460 - state.level * 18);
+        if (frame % 3 === 0) sfx("shot");
+      }
+
       state.enemies.forEach((enemy) => {
         const dx = state.player.x - enemy.x;
         const dy = state.player.y - enemy.y;
         const dist = Math.max(1, Math.hypot(dx, dy));
-        enemy.x += dx / dist * enemy.speed;
-        enemy.y += dy / dist * enemy.speed;
-        if (dist < 25) {
-          state.over = true;
-          setRunning(false);
-          setMessage(`Run beendet: ${state.score} Punkte`);
+        enemy.x += (dx / dist * enemy.speed + Math.sin(state.seconds * 3 + enemy.wobble) * 0.22) * (dt / 16);
+        enemy.y += (dy / dist * enemy.speed + Math.cos(state.seconds * 2 + enemy.wobble) * 0.16) * (dt / 16);
+        if (dist < enemy.radius + 18 && state.player.invuln <= 0) {
+          state.player.hp -= enemy.elite ? 22 : 14;
+          state.player.invuln = 720;
+          burst(state.player.x, state.player.y, "#ff6fb7", 14);
+          sfx("hit");
+          if (state.player.hp <= 0) {
+            state.over = true;
+            setRunning(false);
+            setMessage(`Run beendet: ${state.score} Punkte, ${state.kills} Drohnen zerlegt.`);
+          }
         }
       });
+
+      state.shots.forEach((shot) => {
+        shot.x += shot.vx * (dt / 16);
+        shot.y += shot.vy * (dt / 16);
+        shot.life -= dt;
+      });
+      state.shots = state.shots.filter((shot) => shot.life > 0 && shot.x > -30 && shot.x < canvas.width + 30 && shot.y > -30 && shot.y < canvas.height + 30);
+      state.shots.forEach((shot) => {
+        state.enemies.forEach((enemy) => {
+          if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < enemy.radius + 7 && shot.life > 0) {
+            shot.life = 0;
+            enemy.hp -= 10;
+            burst(shot.x, shot.y, enemy.elite ? "#b46cff" : "#ff6fb7", 5);
+          }
+        });
+      });
+      state.enemies = state.enemies.filter((enemy) => {
+        if (enemy.hp > 0) return true;
+        state.kills += 1;
+        state.score += enemy.elite ? 18 : 10;
+        burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.elite ? 18 : 10);
+        return false;
+      });
+
       state.gems = state.gems.filter((gem) => {
         if (Math.hypot(gem.x - state.player.x, gem.y - state.player.y) < 24) {
-          state.score += 8 + Math.floor(state.seconds / 10);
-          setSnapshot({ score: state.score, level: 1 + Math.floor(state.seconds / 20), seconds: Math.floor(state.seconds), kills: Math.floor(state.score / 18) });
+          state.score += 12 + Math.floor(state.seconds / 12);
+          state.player.hp = Math.min(100, state.player.hp + 3);
+          burst(gem.x, gem.y, "#7af4dc", 12);
+          sfx("pepple");
           return false;
         }
         return true;
       });
+
+      if (Math.floor((state.seconds - dt / 1000) / 18) < Math.floor(state.seconds / 18)) sfx("level");
+      if (frame % 10 === 0) setSnapshot({ score: state.score, level: state.level, seconds: Math.floor(state.seconds), kills: state.kills, hp: Math.max(0, Math.ceil(state.player.hp)) });
     }
-    state.gems.forEach((gem) => { ctx.fillStyle = "#7af4dc"; ctx.beginPath(); ctx.arc(gem.x, gem.y, 7, 0, Math.PI * 2); ctx.fill(); });
-    state.enemies.forEach((enemy) => { ctx.fillStyle = "#ff6fb7"; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, 13, 0, Math.PI * 2); ctx.fill(); });
-    ctx.fillStyle = "#ffcf8a"; ctx.beginPath(); ctx.arc(state.player.x, state.player.y, 18, 0, Math.PI * 2); ctx.fill();
-  }, [running]);
+
+    state.particles.forEach((particle) => {
+      particle.x += particle.vx * (dt / 16);
+      particle.y += particle.vy * (dt / 16);
+      particle.life -= dt;
+    });
+    state.particles = state.particles.filter((particle) => particle.life > 0).slice(-180);
+
+    state.gems.forEach((gem) => {
+      const spin = frame / 18 + gem.spin;
+      ctx.save();
+      ctx.translate(gem.x, gem.y);
+      ctx.rotate(spin);
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = "#7af4dc";
+      const grd = ctx.createLinearGradient(-10, -10, 10, 10);
+      grd.addColorStop(0, "#effff8");
+      grd.addColorStop(0.45, "#7af4dc");
+      grd.addColorStop(1, "#b46cff");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+
+    state.shots.forEach((shot) => {
+      ctx.strokeStyle = "rgba(255,207,138,.85)";
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = "#ffcf8a";
+      ctx.beginPath();
+      ctx.moveTo(shot.x - shot.vx * 1.5, shot.y - shot.vy * 1.5);
+      ctx.lineTo(shot.x, shot.y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    });
+
+    state.enemies.forEach((enemy) => {
+      const glow = enemy.elite ? "#b46cff" : "#ff6fb7";
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.rotate(Math.sin(frame / 24 + enemy.wobble) * 0.25);
+      ctx.shadowBlur = enemy.elite ? 24 : 16;
+      ctx.shadowColor = glow;
+      ctx.fillStyle = enemy.elite ? "#4a2761" : "#55213a";
+      ctx.beginPath();
+      for (let i = 0; i < 6; i += 1) {
+        const a = i / 6 * Math.PI * 2;
+        const r = enemy.radius * (i % 2 ? 0.76 : 1.18);
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#fff4e9";
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(-4, -3, 3, 3);
+      ctx.fillRect(4, -3, 3, 3);
+      ctx.restore();
+    });
+
+    state.particles.forEach((particle) => {
+      ctx.globalAlpha = Math.max(0, particle.life / particle.ttl);
+      ctx.fillStyle = particle.color;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    const player = state.player;
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.shadowBlur = 28;
+    ctx.shadowColor = player.invuln > 0 ? "#fff4e9" : "#ffcf8a";
+    ctx.fillStyle = "#ffcf8a";
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 19, 16, Math.sin(frame / 14) * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff4e9";
+    ctx.beginPath();
+    ctx.arc(7, -8, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#c88956";
+    ctx.beginPath();
+    ctx.moveTo(16, -8);
+    ctx.lineTo(28, -4);
+    ctx.lineTo(16, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#180d16";
+    ctx.beginPath();
+    ctx.arc(9, -11, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,207,138,.42)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 1, 32 + Math.sin(frame / 10) * 3, 25, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = "rgba(16,9,21,.5)";
+    ctx.fillRect(24, canvas.height - 54, 210, 16);
+    ctx.fillStyle = "#ff6f7f";
+    ctx.fillRect(24, canvas.height - 54, 210 * Math.max(0, player.hp) / 100, 16);
+    ctx.strokeStyle = "rgba(255,218,184,.25)";
+    ctx.strokeRect(24, canvas.height - 54, 210, 16);
+
+    if (!running && !state.over && state.score === 0) {
+      ctx.fillStyle = "rgba(16,9,21,.56)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff4e9";
+      ctx.font = "900 34px Inter, Arial";
+      ctx.fillText("Pepple Survivor", canvas.width / 2 - 146, canvas.height / 2 - 12);
+      ctx.font = "700 16px Inter, Arial";
+      ctx.fillStyle = "#d9c4d2";
+      ctx.fillText("Start druecken, WASD bewegen, Auto-Federn feuern.", canvas.width / 2 - 198, canvas.height / 2 + 22);
+    }
+  }, [running, audioOn]);
 
   function start() {
-    stateRef.current = { player: { x: 460, y: 200 }, gems: [], enemies: [], score: 0, seconds: 0, spawn: 0, over: false };
-    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0 });
-    setMessage("Sammle Pepple-Kerne und bleib in Bewegung.");
+    stateRef.current = { player: { x: 460, y: 210, hp: 100, invuln: 0 }, gems: [], enemies: [], shots: [], particles: [], score: 0, seconds: 0, kills: 0, level: 1, spawn: 0, shot: 200, pulse: 0, over: false };
+    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 100 });
+    setMessage("Sammle Pepple-Kerne, die Federwaffe zielt automatisch.");
+    audio();
+    sfx("start");
     setRunning(true);
   }
 
@@ -950,7 +1255,37 @@ function PeppleSurvivor({ user }) {
     }
   }
 
-  return <GameFrame meta={gameMeta["braincell-survivor"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onSave={user && snapshot.score > 0 ? save : null} refreshKey={refreshKey} game="braincell-survivor" />;
+  return (
+    <section className="survivorFrame" style={{ "--game-accent": gameMeta["braincell-survivor"].accent }}>
+      <div className="survivorHeader">
+        <div>
+          <h2>Pepple Survivor</h2>
+          <p>{message}</p>
+        </div>
+        <div className="survivorHud">
+          <Stat label="Score" value={snapshot.score} />
+          <Stat label="Level" value={snapshot.level} />
+          <Stat label="Kills" value={snapshot.kills} />
+          <Stat label="Zeit" value={`${snapshot.seconds}s`} />
+        </div>
+      </div>
+      <div className="survivorStage">
+        <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="920" height="500" />
+        <div className="survivorMeter" aria-label={`HP ${snapshot.hp}`}>
+          <span style={{ width: `${Math.max(0, Math.min(100, snapshot.hp))}%` }} />
+        </div>
+      </div>
+      <div className="gameActions survivorActions">
+        <button onClick={start} type="button"><RefreshCw size={16} /> {running ? "Neu starten" : "Start"}</button>
+        <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Musik {audioOn ? "an" : "aus"}</button>
+        {user && snapshot.score > 0 && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+      </div>
+      <div className="survivorScorePanel">
+        <h3>Top Scores</h3>
+        <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />
+      </div>
+    </section>
+  );
 }
 
 function GameHeader({ meta, message, score, level }) {
@@ -984,7 +1319,20 @@ function GameFrame({ meta, canvasRef, message, score, level, onStart, onSave, re
 }
 
 function GamesPage({ user }) {
-  const [game, setGame] = useState("chicken-jump");
+  const gameFromHash = () => {
+    const [, nextGame] = window.location.hash.replace("#", "").split("/");
+    return gameMeta[nextGame] && nextGame !== "dnd" ? nextGame : "chicken-jump";
+  };
+  const [game, setGameState] = useState(gameFromHash);
+  function setGame(nextGame) {
+    setGameState(nextGame);
+    window.history.replaceState(null, "", `#games/${nextGame}`);
+  }
+  useEffect(() => {
+    function syncGame() { setGameState(gameFromHash()); }
+    window.addEventListener("hashchange", syncGame);
+    return () => window.removeEventListener("hashchange", syncGame);
+  }, []);
   const current = {
     "chicken-jump": <ChickenJump user={user} />,
     "chicken-snake": <ChickenSnake user={user} />,
@@ -1656,11 +2004,26 @@ function EmptyLogin({ setPage }) {
 }
 
 function App() {
-  const [page, setPage] = useState("home");
+  const pageFromHash = () => {
+    const next = window.location.hash.replace("#", "").split("/")[0];
+    return nav.some((item) => item.id === next) || ["login", "support"].includes(next) ? next : "home";
+  };
+  const [page, setPageState] = useState(pageFromHash);
   const [user, setUser] = useState(null);
+
+  function setPage(next) {
+    setPageState(next);
+    if (window.location.hash !== `#${next}`) window.history.replaceState(null, "", `#${next}`);
+  }
 
   useEffect(() => {
     api("/api/auth/me").then((result) => setUser(result.user)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function syncPage() { setPageState(pageFromHash()); }
+    window.addEventListener("hashchange", syncPage);
+    return () => window.removeEventListener("hashchange", syncPage);
   }, []);
 
   const content = useMemo(() => {
