@@ -909,6 +909,7 @@ function PeppleSurvivor({ user }) {
   const keysRef = useRef({});
   const musicRef = useRef(null);
   const bgRef = useRef(null);
+  const spriteRef = useRef(null);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
   const musicPlaylist = [
@@ -970,6 +971,9 @@ function PeppleSurvivor({ user }) {
     const image = new Image();
     image.src = "/assets/pepple-survivor-space-bg.png";
     bgRef.current = image;
+    const sprites = new Image();
+    sprites.src = "/assets/pepple-survivor-sprites.png";
+    spriteRef.current = sprites;
   }, []);
 
   useEffect(() => {
@@ -1130,6 +1134,7 @@ function PeppleSurvivor({ user }) {
     const boss = state.seconds > 55 && Math.floor(state.seconds) % 45 < 2 && Math.random() < 0.18;
     const elite = boss || Math.random() < Math.min(0.26, state.seconds / 190);
     const waveScale = 1 + state.wave * 0.16;
+    const variants = ["green", "pink", "blue", "gold"];
     state.enemies.push({
       ...edge,
       hp: boss ? 220 * waveScale : elite ? 54 * waveScale : 22 * waveScale,
@@ -1138,12 +1143,57 @@ function PeppleSurvivor({ user }) {
       radius: boss ? 31 : elite ? 19 : 12,
       elite,
       boss,
+      variant: boss ? "boss" : elite ? "elite" : variants[Math.floor(Math.random() * variants.length)],
       wobble: Math.random() * 8,
       tint: boss ? "#ffcf8a" : elite ? "#b46cff" : "#ff6fb7",
     });
   }
 
+  const spriteMap = {
+    chicken: { x: 38, y: 24, w: 286, h: 354 },
+    alienGreen: { x: 396, y: 125, w: 224, h: 236 },
+    alienPink: { x: 678, y: 86, w: 226, h: 278 },
+    alienBlue: { x: 957, y: 98, w: 230, h: 270 },
+    alienGold: { x: 1194, y: 108, w: 248, h: 258 },
+    alienElite: { x: 228, y: 410, w: 392, h: 318 },
+    alienBoss: { x: 668, y: 383, w: 548, h: 326 },
+    laser: { x: 24, y: 774, w: 184, h: 134 },
+    feather: { x: 238, y: 734, w: 184, h: 244 },
+    egg: { x: 430, y: 743, w: 178, h: 184 },
+    thunder: { x: 622, y: 756, w: 174, h: 188 },
+    gravity: { x: 805, y: 760, w: 178, h: 156 },
+    frost: { x: 1010, y: 732, w: 170, h: 236 },
+    orbit: { x: 1192, y: 760, w: 178, h: 166 },
+    nova: { x: 1378, y: 760, w: 144, h: 160 },
+  };
+
+  function getSprite(name) {
+    const sheet = spriteRef.current;
+    if (!sheet?.complete || !sheet.naturalWidth) return null;
+    const rect = spriteMap[name];
+    if (!rect) return null;
+    return { sheet, rect };
+  }
+
+  function drawSprite(ctx, name, x, y, width, height, options = {}) {
+    const asset = getSprite(name);
+    if (!asset) return false;
+    const { sheet, rect } = asset;
+    ctx.save();
+    ctx.translate(x, y);
+    if (options.rotate) ctx.rotate(options.rotate);
+    if (options.flip) ctx.scale(-1, 1);
+    if (options.alpha != null) ctx.globalAlpha = options.alpha;
+    ctx.shadowBlur = options.shadowBlur ?? 0;
+    ctx.shadowColor = options.shadowColor || "transparent";
+    ctx.drawImage(sheet, rect.x, rect.y, rect.w, rect.h, -width / 2, -height / 2, width, height);
+    ctx.restore();
+    return true;
+  }
+
   function drawUpgradeIcon(ctx, icon, x, y, size, color, frame = 0) {
+    const spriteName = icon === "drone" ? "laser" : icon === "boots" ? "feather" : icon === "magnet" ? "gravity" : icon === "shield" ? "orbit" : icon === "regen" ? "egg" : icon === "might" ? "nova" : icon === "cooldown" ? "thunder" : icon;
+    if (drawSprite(ctx, spriteName, x, y, size * 1.55, size * 1.55, { rotate: Math.sin(frame / 35) * 0.08, shadowBlur: 18, shadowColor: color })) return;
     ctx.save();
     ctx.translate(x, y);
     ctx.strokeStyle = color;
@@ -1202,7 +1252,38 @@ function PeppleSurvivor({ user }) {
 
   function drawAlien(ctx, enemy, frame) {
     const glow = enemy.slow > 0 ? "#9bf6ff" : enemy.tint || (enemy.elite ? "#b46cff" : "#ff6fb7");
-    const scale = enemy.boss ? 1.35 : enemy.elite ? 1.08 : 1;
+    const spriteName = enemy.variant === "boss" ? "alienBoss" : enemy.variant === "elite" ? "alienElite" : `alien${(enemy.variant || "pink").replace(/^./, (char) => char.toUpperCase())}`;
+    const bob = Math.sin(frame / 14 + enemy.wobble) * (enemy.boss ? 3 : 2);
+    const spriteW = enemy.boss ? enemy.radius * 5.4 : enemy.elite ? enemy.radius * 4.1 : enemy.radius * 3.6;
+    const spriteH = enemy.boss ? enemy.radius * 3.45 : enemy.elite ? enemy.radius * 3.25 : enemy.radius * 3.35;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y + bob);
+    ctx.rotate(Math.sin(frame / 22 + enemy.wobble) * 0.08);
+    if (enemy.slow > 0) {
+      ctx.globalAlpha = 0.34;
+      ctx.fillStyle = "#9bf6ff";
+      ctx.shadowBlur = 26;
+      ctx.shadowColor = "#9bf6ff";
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(spriteW, spriteH) * 0.36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    const usedSprite = drawSprite(ctx, spriteName, 0, 0, spriteW, spriteH, { shadowBlur: enemy.boss ? 38 : enemy.elite ? 28 : 20, shadowColor: glow });
+    ctx.restore();
+    if (usedSprite) {
+      if (enemy.hp < enemy.maxHp) {
+        const pct = Math.max(0, enemy.hp / enemy.maxHp);
+        ctx.save();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(2,4,11,.78)";
+        ctx.fillRect(enemy.x - enemy.radius * 1.35, enemy.y - spriteH * 0.58, enemy.radius * 2.7, 4);
+        ctx.fillStyle = glow;
+        ctx.fillRect(enemy.x - enemy.radius * 1.35, enemy.y - spriteH * 0.58, enemy.radius * 2.7 * pct, 4);
+        ctx.restore();
+      }
+      return;
+    }
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     ctx.rotate(Math.sin(frame / 22 + enemy.wobble) * 0.18);
@@ -1256,6 +1337,19 @@ function PeppleSurvivor({ user }) {
   }
 
   function drawAstronautChicken(ctx, player, frame) {
+    const bob = Math.sin(frame / 18) * 2;
+    if (drawSprite(ctx, "chicken", player.x, player.y + bob, 72, 90, { shadowBlur: 34, shadowColor: player.invuln > 0 ? "#fff4e9" : "#ffcf8a" })) {
+      ctx.save();
+      ctx.strokeStyle = player.invuln > 0 ? "rgba(255,244,233,.9)" : "rgba(122,244,220,.48)";
+      ctx.lineWidth = player.invuln > 0 ? 3.2 : 1.8;
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = player.invuln > 0 ? "#fff4e9" : "#7af4dc";
+      ctx.beginPath();
+      ctx.ellipse(player.x, player.y + bob - 9, 31 + Math.sin(frame / 11) * 1.6, 35, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.shadowBlur = 34;
@@ -1309,6 +1403,29 @@ function PeppleSurvivor({ user }) {
     ctx.ellipse(0, 1, 36 + Math.sin(frame / 10) * 3, 28, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
+  }
+
+  function drawWeaponProjectile(ctx, shot, frame) {
+    const angle = Math.atan2(shot.vy, shot.vx) + Math.PI / 2;
+    const spriteName = shot.type === "drone" ? "laser" : stateRef.current.weapons.frost ? "frost" : "feather";
+    const color = shot.type === "drone" ? "#8f7bff" : stateRef.current.weapons.frost ? "#9bf6ff" : "#ffcf8a";
+    ctx.save();
+    ctx.strokeStyle = shot.type === "drone" ? "rgba(143,123,255,.36)" : "rgba(255,207,138,.34)";
+    ctx.lineWidth = shot.type === "drone" ? 9 : 7;
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = color;
+    ctx.beginPath();
+    ctx.moveTo(shot.x - shot.vx * 3.2, shot.y - shot.vy * 3.2);
+    ctx.lineTo(shot.x, shot.y);
+    ctx.stroke();
+    ctx.restore();
+    if (drawSprite(ctx, spriteName, shot.x, shot.y, shot.type === "drone" ? 42 : 34, shot.type === "drone" ? 28 : 48, { rotate: angle, shadowBlur: 18, shadowColor: color })) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = shot.type === "drone" ? 3 : 4;
+    ctx.beginPath();
+    ctx.moveTo(shot.x - shot.vx * 1.5, shot.y - shot.vy * 1.5);
+    ctx.lineTo(shot.x, shot.y);
+    ctx.stroke();
   }
 
   const canvasRef = useCanvasGame((ctx, canvas, dt, frame) => {
@@ -1678,45 +1795,56 @@ function PeppleSurvivor({ user }) {
       ctx.restore();
     });
 
-    state.shots.forEach((shot) => {
-      const shotColor = shot.type === "drone" ? "#8f7bff" : "#ffcf8a";
-      ctx.strokeStyle = shot.type === "drone" ? "rgba(143,123,255,.9)" : "rgba(255,207,138,.88)";
-      ctx.lineWidth = shot.type === "drone" ? 3 : 4;
-      ctx.shadowBlur = 16;
-      ctx.shadowColor = shotColor;
-      ctx.beginPath();
-      ctx.moveTo(shot.x - shot.vx * 1.5, shot.y - shot.vy * 1.5);
-      ctx.lineTo(shot.x, shot.y);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    });
+    state.shots.forEach((shot) => drawWeaponProjectile(ctx, shot, frame));
 
     state.enemies.forEach((enemy) => drawAlien(ctx, enemy, frame));
 
     state.beams.forEach((beam) => {
       const alpha = Math.max(0, beam.life / beam.ttl);
       const isThunder = beam.color === "#ffe66d";
-      ctx.strokeStyle = isThunder ? `rgba(255,230,109,${alpha * 0.86})` : `rgba(122,244,220,${alpha * 0.82})`;
-      ctx.lineWidth = beam.width || 6;
-      ctx.shadowBlur = 24;
+      ctx.save();
+      ctx.strokeStyle = isThunder ? `rgba(255,230,109,${alpha * 0.26})` : `rgba(122,244,220,${alpha * 0.24})`;
+      ctx.lineWidth = (beam.width || 6) * 4.2;
+      ctx.lineCap = "round";
+      ctx.shadowBlur = 34;
       ctx.shadowColor = beam.color;
       ctx.beginPath();
       ctx.moveTo(beam.x1, beam.y1);
       ctx.lineTo(beam.x2, beam.y2);
       ctx.stroke();
+      ctx.strokeStyle = isThunder ? `rgba(255,252,205,${alpha * 0.92})` : `rgba(228,255,251,${alpha * 0.88})`;
+      ctx.lineWidth = Math.max(2, (beam.width || 6) * 0.42);
+      ctx.beginPath();
+      ctx.moveTo(beam.x1, beam.y1);
+      if (isThunder) {
+        const steps = 9;
+        for (let i = 1; i < steps; i += 1) {
+          const t = i / steps;
+          const nx = beam.x1 + (beam.x2 - beam.x1) * t + Math.sin(frame + i * 9) * 8;
+          const ny = beam.y1 + (beam.y2 - beam.y1) * t + Math.cos(frame + i * 7) * 8;
+          ctx.lineTo(nx, ny);
+        }
+      }
+      ctx.lineTo(beam.x2, beam.y2);
+      ctx.stroke();
       ctx.shadowBlur = 0;
+      ctx.restore();
     });
 
     state.bombs.forEach((bomb) => {
       ctx.save();
       ctx.translate(bomb.x, bomb.y);
-      ctx.shadowBlur = 18;
+      ctx.rotate(frame / 24);
+      ctx.shadowBlur = 26;
       ctx.shadowColor = "#ffcf8a";
-      ctx.fillStyle = "#fff4e9";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 14, 0.2, 0, Math.PI * 2);
-      ctx.fill();
+      if (!drawSprite(ctx, "egg", 0, 0, 44, 44, { shadowBlur: 24, shadowColor: "#ffcf8a" })) {
+        ctx.fillStyle = "#fff4e9";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 14, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.strokeStyle = "rgba(255,207,138,.5)";
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.arc(0, 0, bomb.radius * (1 - bomb.life / bomb.ttl), 0, Math.PI * 2);
       ctx.stroke();
@@ -1728,13 +1856,10 @@ function PeppleSurvivor({ user }) {
       ctx.save();
       ctx.translate(well.x, well.y);
       ctx.rotate(frame / 38);
-      ctx.globalAlpha = 0.18 + alpha * 0.24;
-      ctx.fillStyle = "#05030a";
-      ctx.shadowBlur = 34;
+      ctx.globalAlpha = 0.25 + alpha * 0.38;
+      ctx.shadowBlur = 42;
       ctx.shadowColor = "#6d4cff";
-      ctx.beginPath();
-      ctx.arc(0, 0, well.radius * (0.45 + 0.08 * Math.sin(frame / 8)), 0, Math.PI * 2);
-      ctx.fill();
+      drawSprite(ctx, "gravity", 0, 0, well.radius * 1.05, well.radius * 0.92, { rotate: -frame / 26, shadowBlur: 38, shadowColor: "#6d4cff" });
       ctx.strokeStyle = "#6d4cff";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1764,7 +1889,7 @@ function PeppleSurvivor({ user }) {
         const angle = frame / 24 + i / count * Math.PI * 2;
         const ox = player.x + Math.cos(angle) * radius;
         const oy = player.y + Math.sin(angle) * radius;
-        drawUpgradeIcon(ctx, "orbit", ox, oy, 22, "#ffcf8a", frame);
+        drawUpgradeIcon(ctx, "orbit", ox, oy, 28, "#ffcf8a", frame);
       }
     }
 
@@ -1788,7 +1913,7 @@ function PeppleSurvivor({ user }) {
       ctx.globalAlpha = 1;
     });
 
-    drawAstronautChicken(ctx, player, frame);
+    if (statusRef.current !== "menu") drawAstronautChicken(ctx, player, frame);
 
     const barX = 24;
     ctx.fillStyle = "rgba(5,7,14,.66)";
@@ -1806,12 +1931,18 @@ function PeppleSurvivor({ user }) {
     if (statusRef.current === "menu") {
       ctx.fillStyle = "rgba(3,5,12,.52)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawSprite(ctx, "chicken", canvas.width / 2 - 224, 194, 100, 126, { shadowBlur: 36, shadowColor: "#ffcf8a" });
+      drawSprite(ctx, "alienPink", canvas.width / 2 + 220, 192, 74, 82, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
+      drawSprite(ctx, "alienGreen", canvas.width / 2 + 308, 218, 64, 68, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
+      drawSprite(ctx, "alienGold", canvas.width / 2 + 132, 222, 70, 68, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
+      drawSprite(ctx, "feather", canvas.width / 2 - 78, 212, 42, 58, { rotate: -0.78, shadowBlur: 22, shadowColor: "#7af4dc" });
+      drawSprite(ctx, "nova", canvas.width / 2 + 76, 210, 50, 50, { rotate: frame / 28, shadowBlur: 24, shadowColor: "#ff6fb7" });
       ctx.fillStyle = "#fff4e9";
       ctx.font = "900 34px Inter, Arial";
-      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, canvas.height / 2 - 12);
+      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, 116);
       ctx.font = "700 16px Inter, Arial";
       ctx.fillStyle = "#d9c4d2";
-      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, canvas.height / 2 + 22);
+      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, 148);
     }
     if (statusRef.current === "levelup") {
       ctx.fillStyle = "rgba(3,5,12,.44)";
