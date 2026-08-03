@@ -230,7 +230,10 @@ function HomePage({ user, setPage }) {
           <div className="homeGameDeck">
             {Object.entries(gameMeta).slice(0, 4).map(([id, meta], index) => (
               <button className="homeGameCard" onClick={() => setPage("games")} type="button" key={id} style={{ "--game-accent": meta.accent }}>
-                <span className="gameArt">{["P", "K", "B", "C"][index]}</span>
+                <span className={`gameArt gameArt${index + 1}`}>
+                  <span className="gameOrb" />
+                  <span className="gameAvatarMark" />
+                </span>
                 <strong>{meta.title}</strong>
                 <small>Highscore aktiv</small>
               </button>
