@@ -919,7 +919,7 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-4.mp3",
   ];
   const stateRef = useRef({
-    player: { x: 460, y: 250, hp: 110, maxHp: 110, invuln: 0 },
+    player: { x: 640, y: 360, hp: 110, maxHp: 110, invuln: 0 },
     gems: [],
     enemies: [],
     shots: [],
@@ -1931,18 +1931,18 @@ function PeppleSurvivor({ user }) {
     if (statusRef.current === "menu") {
       ctx.fillStyle = "rgba(3,5,12,.52)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawSprite(ctx, "chicken", canvas.width / 2 - 224, 194, 100, 126, { shadowBlur: 36, shadowColor: "#ffcf8a" });
-      drawSprite(ctx, "alienPink", canvas.width / 2 + 220, 192, 74, 82, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
-      drawSprite(ctx, "alienGreen", canvas.width / 2 + 308, 218, 64, 68, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
-      drawSprite(ctx, "alienGold", canvas.width / 2 + 132, 222, 70, 68, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
-      drawSprite(ctx, "feather", canvas.width / 2 - 78, 212, 42, 58, { rotate: -0.78, shadowBlur: 22, shadowColor: "#7af4dc" });
-      drawSprite(ctx, "nova", canvas.width / 2 + 76, 210, 50, 50, { rotate: frame / 28, shadowBlur: 24, shadowColor: "#ff6fb7" });
+      drawSprite(ctx, "chicken", canvas.width / 2 - 300, canvas.height * 0.56, 128, 162, { shadowBlur: 36, shadowColor: "#ffcf8a" });
+      drawSprite(ctx, "alienPink", canvas.width / 2 + 300, canvas.height * 0.54, 94, 106, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
+      drawSprite(ctx, "alienGreen", canvas.width / 2 + 410, canvas.height * 0.61, 82, 88, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
+      drawSprite(ctx, "alienGold", canvas.width / 2 + 178, canvas.height * 0.62, 88, 86, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
+      drawSprite(ctx, "feather", canvas.width / 2 - 108, canvas.height * 0.58, 54, 74, { rotate: -0.78, shadowBlur: 22, shadowColor: "#7af4dc" });
+      drawSprite(ctx, "nova", canvas.width / 2 + 105, canvas.height * 0.58, 66, 66, { rotate: frame / 28, shadowBlur: 24, shadowColor: "#ff6fb7" });
       ctx.fillStyle = "#fff4e9";
       ctx.font = "900 34px Inter, Arial";
-      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, 116);
+      ctx.fillText("Pepple Survivor", canvas.width / 2 - 148, canvas.height * 0.28);
       ctx.font = "700 16px Inter, Arial";
       ctx.fillStyle = "#d9c4d2";
-      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, 148);
+      ctx.fillText("Start druecken, XP sammeln, Waffen-Build eskalieren.", canvas.width / 2 - 212, canvas.height * 0.28 + 32);
     }
     if (statusRef.current === "levelup") {
       ctx.fillStyle = "rgba(3,5,12,.44)";
@@ -1962,7 +1962,7 @@ function PeppleSurvivor({ user }) {
 
   function start() {
     stateRef.current = {
-      player: { x: 460, y: 250, hp: 110, maxHp: 110, invuln: 0 },
+      player: { x: 640, y: 360, hp: 110, maxHp: 110, invuln: 0 },
       gems: [],
       enemies: [],
       shots: [],
@@ -2052,7 +2052,7 @@ function PeppleSurvivor({ user }) {
             startMusic();
           }}
         />
-        <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="920" height="500" />
+        <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="1280" height="720" />
         {status === "levelup" && (
           <div className="levelUpOverlay">
             <div className="levelUpPanel">

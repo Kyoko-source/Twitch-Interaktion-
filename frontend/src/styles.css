@@ -1857,7 +1857,7 @@ textarea {
 
 .survivorStage {
   position: relative;
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid rgba(223, 184, 255, 0.2);
   background:
@@ -1869,8 +1869,8 @@ textarea {
 }
 
 .survivorCanvas {
-  aspect-ratio: 92 / 50;
-  min-height: 420px;
+  aspect-ratio: 16 / 9;
+  min-height: clamp(540px, 58vh, 720px);
   border-color: rgba(255, 207, 138, 0.26);
   background: #110719;
   box-shadow:
@@ -2701,7 +2701,7 @@ textarea {
   }
 
   .survivorCanvas {
-    min-height: 330px;
+    min-height: 420px;
   }
 
   .systematicsEditor {
