@@ -15,6 +15,19 @@ Folgende Variablen müssen im Railway-Service gesetzt werden:
 `TWITCH_REDIRECT_URI` muss auf die öffentliche Railway-Domain zeigen. Railway setzt
 `PORT` automatisch; der Container startet Streamlit auf diesem Port.
 
+## Hetzner Deployment
+
+Für einen eigenen Hetzner-Server liegen vorbereitete Dateien im Ordner `deploy/`:
+
+- `deploy/docker-compose.hetzner.yml`
+- `deploy/Caddyfile`
+- `deploy/.env.example`
+- `deploy/HETZNER.md`
+
+Die Kurzfassung: Server mit Ubuntu 24.04 erstellen, Domain auf die Server-IP zeigen lassen, Docker installieren, Repository nach `/opt/twitch-interaktion` klonen, `deploy/.env` ausfüllen und mit Docker Compose starten.
+
+Die vollständige Schritt-für-Schritt-Anleitung steht in `deploy/HETZNER.md`.
+
 ## Supabase Datenbank
 
 Falls du die neue Gast-Registrierung nutzen möchtest, lege in der Supabase-Tabelle `users` die Spalte `password_hash` an.

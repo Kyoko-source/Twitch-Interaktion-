@@ -1,6 +1,7 @@
 .git
 .devcontainer
 .streamlit/secrets.toml
+deploy/.env
 secrets.toml
 __pycache__
 *.py[cod]
