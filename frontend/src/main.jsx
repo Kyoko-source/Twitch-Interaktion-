@@ -2216,6 +2216,9 @@ function PeppleSurvivor({ user }) {
     }
   }
 
+  const healthPct = Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100));
+  const xpPct = Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100));
+
   return (
     <section className="survivorFrame survivorComplete" style={{ "--game-accent": gameMeta["braincell-survivor"].accent }}>
       <div className="survivorHeader">
@@ -2232,15 +2235,23 @@ function PeppleSurvivor({ user }) {
         </div>
       </div>
       <div className="survivorBars">
-        <div className="survivorMeter healthMeter">
-          <span>HP</span>
-          <b>{snapshot.hp}/{snapshot.maxHp}</b>
-          <i><em style={{ width: `${Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100))}%` }} /></i>
+        <div className="survivorMeter healthMeter" style={{ "--pct": `${healthPct}%` }}>
+          <div className="meterIcon"><Shield size={17} /></div>
+          <div className="meterCopy">
+            <span>Lebensenergie</span>
+            <b>{snapshot.hp}<small>/{snapshot.maxHp}</small></b>
+          </div>
+          <i><em style={{ width: `${healthPct}%` }} /></i>
+          <strong>{Math.round(healthPct)}%</strong>
         </div>
-        <div className="survivorMeter xpMeter">
-          <span>Level {snapshot.level}</span>
-          <b>{snapshot.xp}/{snapshot.nextXp}</b>
-          <i><em className="xpFill" style={{ width: `${Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100))}%` }} /></i>
+        <div className="survivorMeter xpMeter" style={{ "--pct": `${xpPct}%` }}>
+          <div className="meterIcon"><Sparkles size={17} /></div>
+          <div className="meterCopy">
+            <span>Level {snapshot.level}</span>
+            <b>{snapshot.xp}<small>/{snapshot.nextXp} XP</small></b>
+          </div>
+          <i><em className="xpFill" style={{ width: `${xpPct}%` }} /></i>
+          <strong>{Math.round(xpPct)}%</strong>
         </div>
       </div>
       <div className="survivorBuild">
