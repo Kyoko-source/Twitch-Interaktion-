@@ -1988,6 +1988,20 @@ textarea {
   justify-content: center;
 }
 
+.selectedBoxEditor {
+  border-color: rgba(255, 207, 138, 0.22);
+}
+
+.systematicsAdvanced summary {
+  cursor: pointer;
+  color: var(--violet-soft);
+  font-weight: 900;
+}
+
+.systematicsAdvanced .form {
+  margin-top: 14px;
+}
+
 .fileInput {
   min-height: 42px;
   padding: 11px 12px;

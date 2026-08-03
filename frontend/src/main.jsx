@@ -1033,7 +1033,7 @@ function SystematicsPage() {
   useEffect(() => {
     api("/api/systematics")
       .then((result) => {
-        setDoc(autoLayoutSystematics(result));
+        setDoc(autoLayoutSystematics({ ...result, links: primaryTreeLinks(result) }));
         setSelectedId(result.nodes?.[0]?.id || "");
         setNewBox((current) => ({ ...current, parentId: result.nodes?.[0]?.id || "" }));
       })
@@ -1164,7 +1164,7 @@ function SystematicsPage() {
 
   async function save() {
     try {
-      const arranged = autoLayoutSystematics(doc);
+      const arranged = autoLayoutSystematics({ ...doc, links: primaryTreeLinks(doc) });
       const result = await api("/api/admin/systematics", {
         method: "PUT",
         headers: { "X-Admin-Password": adminPassword },
@@ -1251,11 +1251,6 @@ function SystematicsPage() {
             <button onClick={unlock} type="button"><MousePointer2 size={16} /> Builder freischalten</button>
             {message && <div className="notice">{message}</div>}
           </div>
-          <div className="panel form">
-            <h2><TypeIcon /> Inhalt</h2>
-            <label>Titel<input disabled={!editing} value={doc.title} onChange={(event) => updateDoc({ title: event.target.value })} /></label>
-            <label>Beschreibung<textarea disabled={!editing} value={doc.description} onChange={(event) => updateDoc({ description: event.target.value })} /></label>
-          </div>
           <div className="panel form systematicsQuickAdd">
             <h2><Plus size={18} /> Neue Box</h2>
             <div className="builderHint">
@@ -1267,16 +1262,6 @@ function SystematicsPage() {
                 {nodeOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
               </select>
             </label>
-            <label>Vorlage
-              <select disabled={!editing} value={newBox.template} onChange={(event) => applyTemplate(event.target.value)}>
-                {systematicsTemplates.map((template) => <option value={template.id} key={template.id}>{template.label}</option>)}
-              </select>
-            </label>
-            <div className="templateChips">
-              {systematicsTemplates.slice(2).map((template) => (
-                <button disabled={!editing} onClick={() => applyTemplate(template.id)} type="button" key={template.id} style={{ "--node-color": template.color }}>{template.label}</button>
-              ))}
-            </div>
             <label>Text<input disabled={!editing} value={newBox.title} onChange={(event) => setNewBox({ ...newBox, title: event.target.value, template: "custom" })} /></label>
             <label>Untertext<input disabled={!editing} value={newBox.subtitle} onChange={(event) => setNewBox({ ...newBox, subtitle: event.target.value, template: "custom" })} /></label>
             <label>Farbe<input disabled={!editing} type="color" value={newBox.color} onChange={(event) => setNewBox({ ...newBox, color: event.target.value, template: "custom" })} /></label>
@@ -1288,9 +1273,13 @@ function SystematicsPage() {
             <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfuegen</button>
           </div>
           {selected && (
-            <div className="panel form">
+            <div className="panel form selectedBoxEditor">
               <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
               {selectedPath && <div className="builderHint"><strong>Aktueller Pfad</strong><span>{selectedPath}</span></div>}
+              <div className="editorActions">
+                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufuegen</button>
+                <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
+              </div>
               <label>Diese Box gehört zu
                 <select disabled={!editing || doc.nodes.length <= 1} value={parentId} onChange={(event) => changeParent(selected.id, event.target.value)}>
                   <option value="">Oberste Ebene</option>
@@ -1302,12 +1291,25 @@ function SystematicsPage() {
               <label>Farbe<input disabled={!editing} type="color" value={selected.color} onChange={(event) => updateNode(selected.id, { color: event.target.value })} /></label>
               <label>Bild-URL<input disabled={!editing} value={selected.image_url?.startsWith("data:") ? "" : selected.image_url} onChange={(event) => updateNode(selected.id, { image_url: event.target.value })} /></label>
               <label className="fileInput"><ImageIcon size={16} /> Bild hochladen<input disabled={!editing} type="file" accept="image/*" onChange={imageUpload} /></label>
-              <div className="editorActions">
-                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufuegen</button>
-                <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
-              </div>
             </div>
           )}
+          <details className="panel systematicsAdvanced">
+            <summary>Erweitert</summary>
+            <div className="form">
+              <label>Systematik Titel<input disabled={!editing} value={doc.title} onChange={(event) => updateDoc({ title: event.target.value })} /></label>
+              <label>Beschreibung<textarea disabled={!editing} value={doc.description} onChange={(event) => updateDoc({ description: event.target.value })} /></label>
+              <label>Vorlage
+                <select disabled={!editing} value={newBox.template} onChange={(event) => applyTemplate(event.target.value)}>
+                  {systematicsTemplates.map((template) => <option value={template.id} key={template.id}>{template.label}</option>)}
+                </select>
+              </label>
+              <div className="templateChips">
+                {systematicsTemplates.slice(2).map((template) => (
+                  <button disabled={!editing} onClick={() => applyTemplate(template.id)} type="button" key={template.id} style={{ "--node-color": template.color }}>{template.label}</button>
+                ))}
+              </div>
+            </div>
+          </details>
           <div className="panel">
             <h2><Link2 size={18} /> Verbindungen</h2>
             <button className="ghost repairButton" disabled={!editing} onClick={repairStructure} type="button"><RefreshCw size={16} /> Hauptstruktur bereinigen</button>
