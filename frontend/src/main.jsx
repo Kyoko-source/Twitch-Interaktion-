@@ -5,13 +5,19 @@ import {
   Check,
   Crown,
   Gamepad2,
+  GitBranch,
   Home,
+  Image as ImageIcon,
+  Link2,
   LogIn,
   LogOut,
+  Lock,
+  MousePointer2,
   Newspaper,
   Palette,
   Plus,
   RefreshCw,
+  Save,
   Shield,
   Sparkles,
   ShoppingBasket,
@@ -34,6 +40,7 @@ const nav = [
   { id: "leaderboard", label: "Rangliste", icon: Trophy },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "games", label: "Minispiele", icon: Gamepad2 },
+  { id: "systematics", label: "Systematik", icon: GitBranch },
   { id: "gallery", label: "Hall of Fame", icon: Palette },
   { id: "admin", label: "Admin", icon: Shield },
 ];
@@ -82,7 +89,7 @@ function Avatar({ user, className = "viewerAvatar" }) {
 }
 
 function Shell({ page, setPage, user, onLogout, children }) {
-  const primaryNav = nav.slice(0, 10);
+  const primaryNav = nav.slice(0, 11);
   return (
     <>
       <header className="topbar">
@@ -126,11 +133,11 @@ function Shell({ page, setPage, user, onLogout, children }) {
           </div>
           <div className="sideGroup">
             <span>Community</span>
-            {nav.slice(1, 8).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+            {nav.slice(1, 9).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
           </div>
           <div className="sideGroup">
             <span>Account</span>
-            {nav.slice(8, 10).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+            {nav.slice(9, 11).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
           </div>
           <div className="dailyBox">
             <Star size={20} />
@@ -1020,6 +1027,250 @@ function GamesPage({ user }) {
   );
 }
 
+function SystematicsPage() {
+  const boardRef = useRef(null);
+  const dragRef = useRef(null);
+  const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });
+  const [selectedId, setSelectedId] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [connectFrom, setConnectFrom] = useState("");
+  const [message, setMessage] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const selected = doc.nodes.find((node) => node.id === selectedId) || doc.nodes[0];
+
+  useEffect(() => {
+    api("/api/systematics")
+      .then((result) => {
+        setDoc(result);
+        setSelectedId(result.nodes?.[0]?.id || "");
+      })
+      .catch((err) => setMessage(err.message));
+  }, [reloadKey]);
+
+  useEffect(() => {
+    function move(event) {
+      if (!dragRef.current || !editing || !boardRef.current) return;
+      const rect = boardRef.current.getBoundingClientRect();
+      const { id, dx, dy } = dragRef.current;
+      updateNode(id, {
+        x: Math.max(8, Math.min(920, event.clientX - rect.left - dx)),
+        y: Math.max(8, Math.min(560, event.clientY - rect.top - dy)),
+      });
+    }
+    function up() {
+      dragRef.current = null;
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [editing, doc.nodes]);
+
+  function updateDoc(patch) {
+    setDoc((current) => ({ ...current, ...patch }));
+  }
+
+  function updateNode(id, patch) {
+    setDoc((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
+    }));
+  }
+
+  function addNode(asChild = true) {
+    const parent = selected || doc.nodes[0];
+    const id = `node-${Date.now()}`;
+    const node = {
+      id,
+      title: "Neue Box",
+      subtitle: "Beschreibung",
+      color: "#b46cff",
+      image_url: "",
+      x: parent ? Number(parent.x || 0) + 210 : 360,
+      y: parent ? Number(parent.y || 0) + 120 : 180,
+    };
+    setDoc((current) => ({
+      ...current,
+      nodes: [...current.nodes, node],
+      links: asChild && parent ? [...current.links, { source: parent.id, target: id }] : current.links,
+    }));
+    setSelectedId(id);
+  }
+
+  function deleteNode() {
+    if (!selected || doc.nodes.length <= 1) return;
+    setDoc((current) => ({
+      ...current,
+      nodes: current.nodes.filter((node) => node.id !== selected.id),
+      links: current.links.filter((link) => link.source !== selected.id && link.target !== selected.id),
+    }));
+    setSelectedId(doc.nodes.find((node) => node.id !== selected.id)?.id || "");
+  }
+
+  function handleConnect(nodeId) {
+    if (!editing) return;
+    if (!connectFrom) {
+      setConnectFrom(nodeId);
+      setMessage("Zielbox anklicken, um automatisch zu verbinden.");
+      return;
+    }
+    if (connectFrom !== nodeId) {
+      setDoc((current) => {
+        const exists = current.links.some((link) => link.source === connectFrom && link.target === nodeId);
+        return exists ? current : { ...current, links: [...current.links, { source: connectFrom, target: nodeId }] };
+      });
+    }
+    setConnectFrom("");
+  }
+
+  function removeLink(source, target) {
+    setDoc((current) => ({ ...current, links: current.links.filter((link) => link.source !== source || link.target !== target) }));
+  }
+
+  function pointerDown(event, node) {
+    setSelectedId(node.id);
+    if (!editing) return;
+    if (connectFrom) {
+      handleConnect(node.id);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    dragRef.current = { id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+  }
+
+  async function unlock() {
+    try {
+      await api("/api/admin/overview", { headers: { "X-Admin-Password": adminPassword } });
+      setEditing(true);
+      setMessage("Bearbeitungsmodus aktiv.");
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function save() {
+    try {
+      const result = await api("/api/admin/systematics", {
+        method: "PUT",
+        headers: { "X-Admin-Password": adminPassword },
+        body: JSON.stringify(doc),
+      });
+      setMessage(result.message);
+      setReloadKey((value) => value + 1);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  function imageUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file || !selected) return;
+    const reader = new FileReader();
+    reader.onload = () => updateNode(selected.id, { image_url: String(reader.result || "") });
+    reader.readAsDataURL(file);
+  }
+
+  const nodeById = new Map(doc.nodes.map((node) => [node.id, node]));
+
+  return (
+    <section className="systematicsShell">
+      <div className="sectionHero systematicsHero">
+        <div>
+          <p className="kicker">Baukasten</p>
+          <h1>{doc.title}</h1>
+          <p>{doc.description}</p>
+        </div>
+        <GitBranch size={68} />
+      </div>
+      <div className="systematicsLayout">
+        <div className="systematicsBoardWrap">
+          <div className="systematicsToolbar">
+            <div>
+              <span className={editing ? "editBadge active" : "editBadge"}>{editing ? "Admin Bearbeitung aktiv" : "Nur Ansicht"}</span>
+              {connectFrom && <span className="editBadge active">Verbinden: Zielbox klicken</span>}
+            </div>
+            <div>
+              <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Verbinden</button>
+              <button onClick={() => addNode(true)} disabled={!editing} type="button"><Plus size={16} /> Kind-Box</button>
+              <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
+            </div>
+          </div>
+          <div className="systematicsBoard" ref={boardRef}>
+            <svg className="systematicsLinks" viewBox="0 0 1080 650" preserveAspectRatio="none">
+              {doc.links.map((link) => {
+                const source = nodeById.get(link.source);
+                const target = nodeById.get(link.target);
+                if (!source || !target) return null;
+                const x1 = Number(source.x || 0) + 82;
+                const y1 = Number(source.y || 0) + 104;
+                const x2 = Number(target.x || 0) + 82;
+                const y2 = Number(target.y || 0);
+                const mid = (y1 + y2) / 2;
+                return <path key={`${link.source}-${link.target}`} d={`M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`} />;
+              })}
+            </svg>
+            {doc.nodes.map((node) => (
+              <button
+                className={`systemNode ${selected?.id === node.id ? "selected" : ""} ${connectFrom === node.id ? "connecting" : ""}`}
+                key={node.id}
+                onClick={() => setSelectedId(node.id)}
+                onDoubleClick={() => handleConnect(node.id)}
+                onPointerDown={(event) => pointerDown(event, node)}
+                style={{ left: node.x, top: node.y, "--node-color": node.color }}
+                type="button"
+              >
+                <span className="systemNodeImage">{node.image_url ? <img src={node.image_url} alt="" /> : <GitBranch size={28} />}</span>
+                <strong>{node.title}</strong>
+                <small>{node.subtitle}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+        <aside className="systematicsEditor">
+          <div className="panel form">
+            <h2><Lock size={18} /> Admin</h2>
+            <label>Admin Passwort<input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} /></label>
+            <button onClick={unlock} type="button"><MousePointer2 size={16} /> Bearbeiten freischalten</button>
+            {message && <div className="notice">{message}</div>}
+          </div>
+          <div className="panel form">
+            <h2><TypeIcon /> Inhalt</h2>
+            <label>Titel<input disabled={!editing} value={doc.title} onChange={(event) => updateDoc({ title: event.target.value })} /></label>
+            <label>Beschreibung<textarea disabled={!editing} value={doc.description} onChange={(event) => updateDoc({ description: event.target.value })} /></label>
+          </div>
+          {selected && (
+            <div className="panel form">
+              <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
+              <label>Text<input disabled={!editing} value={selected.title} onChange={(event) => updateNode(selected.id, { title: event.target.value })} /></label>
+              <label>Untertext<input disabled={!editing} value={selected.subtitle} onChange={(event) => updateNode(selected.id, { subtitle: event.target.value })} /></label>
+              <label>Farbe<input disabled={!editing} type="color" value={selected.color} onChange={(event) => updateNode(selected.id, { color: event.target.value })} /></label>
+              <label>Bild-URL<input disabled={!editing} value={selected.image_url?.startsWith("data:") ? "" : selected.image_url} onChange={(event) => updateNode(selected.id, { image_url: event.target.value })} /></label>
+              <label className="fileInput"><ImageIcon size={16} /> Bild hochladen<input disabled={!editing} type="file" accept="image/*" onChange={imageUpload} /></label>
+              <div className="editorActions">
+                <button onClick={() => addNode(true)} disabled={!editing} type="button">Kind hinzufuegen</button>
+                <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
+              </div>
+            </div>
+          )}
+          <div className="panel">
+            <h2><Link2 size={18} /> Verbindungen</h2>
+            <div className="linkList">
+              {doc.links.map((link) => <button disabled={!editing} onClick={() => removeLink(link.source, link.target)} type="button" key={`${link.source}-${link.target}`}>{nodeById.get(link.source)?.title}{" -> "}{nodeById.get(link.target)?.title}</button>)}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function TypeIcon() {
+  return <span className="typeIcon">T</span>;
+}
+
 function AdminPage() {
   const [password, setPassword] = useState("");
   const [overview, setOverview] = useState(null);
@@ -1245,6 +1496,7 @@ function App() {
     if (page === "leaderboard") return <LeaderboardPage />;
     if (page === "events") return <EventsPage user={user} setPage={setPage} />;
     if (page === "games") return <GamesPage user={user} />;
+    if (page === "systematics") return <SystematicsPage />;
     if (page === "gallery") return <ListPage title="Hall of Fame" path="/api/gallery" render={(item) => <article className="card imageCard" key={item.id}>{item.image_data && <img src={item.image_data} alt="" />}<h3>{item.title || "Kunstwerk"}</h3><p>{item.username}</p></article>} />;
     if (page === "admin") return <AdminPage />;
     return <SupportPage user={user} />;

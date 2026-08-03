@@ -1,6 +1,8 @@
 import re
 import secrets
+import json
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -14,6 +16,7 @@ from .supabase import supabase
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
+SYSTEMATICS_FILE = Path("/data/systematics.json")
 
 app = FastAPI(title="Aviary API")
 settings = get_settings()
@@ -107,6 +110,28 @@ class IdPayload(BaseModel):
     id: str
 
 
+class SystematicsNode(BaseModel):
+    id: str
+    title: str = Field(max_length=120)
+    subtitle: str = Field(default="", max_length=220)
+    color: str = Field(default="#b46cff", max_length=32)
+    image_url: str = Field(default="", max_length=500)
+    x: float = 0
+    y: float = 0
+
+
+class SystematicsLink(BaseModel):
+    source: str
+    target: str
+
+
+class SystematicsDocument(BaseModel):
+    title: str = Field(default="Systematik", max_length=120)
+    description: str = Field(default="Baue deine eigene Systematik mit Boxen, Farben, Bildern und Verbindungen.", max_length=500)
+    nodes: list[SystematicsNode]
+    links: list[SystematicsLink]
+
+
 def clean_username(username: str) -> str:
     value = username.strip()
     if not USERNAME_RE.match(value):
@@ -116,6 +141,33 @@ def clean_username(username: str) -> str:
 
 def rows(path: str) -> list[dict[str, Any]]:
     return supabase().get(path)
+
+
+def default_systematics() -> dict[str, Any]:
+    return {
+        "title": "Tier-Systematik",
+        "description": "Ein frei bearbeitbarer Baukasten fuer Klassen, Gruppen, Arten oder eigene Kategorien.",
+        "nodes": [
+            {"id": "root", "title": "Lebewesen", "subtitle": "Startpunkt", "color": "#ffcf8a", "image_url": "", "x": 420, "y": 48},
+            {"id": "animals", "title": "Tiere", "subtitle": "Animalia", "color": "#b46cff", "image_url": "", "x": 250, "y": 210},
+            {"id": "birds", "title": "Voegel", "subtitle": "Aves", "color": "#7af4dc", "image_url": "", "x": 585, "y": 210},
+            {"id": "chicken", "title": "Huehnervoegel", "subtitle": "Galliformes", "color": "#ff6fb7", "image_url": "", "x": 585, "y": 380},
+        ],
+        "links": [
+            {"source": "root", "target": "animals"},
+            {"source": "root", "target": "birds"},
+            {"source": "birds", "target": "chicken"},
+        ],
+    }
+
+
+def load_systematics() -> dict[str, Any]:
+    try:
+        if SYSTEMATICS_FILE.exists():
+            return json.loads(SYSTEMATICS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pass
+    return default_systematics()
 
 
 def score_table(game: str) -> str | None:
@@ -356,6 +408,19 @@ def signup(payload: EventSignup, user: dict[str, Any] = Depends(current_user)) -
 @app.get("/api/gallery")
 def gallery() -> list[dict[str, Any]]:
     return rows("creative_gallery?select=*&order=created_at.desc&limit=60")
+
+
+@app.get("/api/systematics")
+def systematics() -> dict[str, Any]:
+    return load_systematics()
+
+
+@app.put("/api/admin/systematics", dependencies=[Depends(require_admin)])
+def save_systematics(payload: SystematicsDocument) -> dict[str, str]:
+    data = payload.model_dump()
+    SYSTEMATICS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SYSTEMATICS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"message": "Systematik gespeichert."}
 
 
 @app.get("/api/support/wishes")
