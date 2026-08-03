@@ -28,6 +28,26 @@ Die Kurzfassung: Server mit Ubuntu 24.04 erstellen, Domain auf die Server-IP zei
 
 Die vollständige Schritt-für-Schritt-Anleitung steht in `deploy/HETZNER.md`.
 
+## Neue Web-App ohne Streamlit
+
+Der Umbau von Streamlit zu einer klassischen Web-App liegt parallel in:
+
+- `backend/`: FastAPI API fuer Supabase, Login, Profile, Shop, Events, Support und Admin-Grundfunktionen
+- `frontend/`: React/Vite Frontend
+- `deploy/docker-compose.web.yml`: Docker Compose fuer Backend + Frontend + Caddy
+
+Lokaler Start fuer die neue Variante:
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+cd ../frontend
+npm install
+npm run dev
+```
+
+Auf dem Server kann die neue Variante spaeter mit `deploy/docker-compose.web.yml` statt `deploy/docker-compose.hetzner.yml` gestartet werden.
+
 ## Supabase Datenbank
 
 Falls du die neue Gast-Registrierung nutzen möchtest, lege in der Supabase-Tabelle `users` die Spalte `password_hash` an.

@@ -6,3 +6,6 @@ secrets.toml
 __pycache__
 *.py[cod]
 *.sql
+backend/**/__pycache__
+frontend/node_modules
+frontend/dist
