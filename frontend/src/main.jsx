@@ -1054,10 +1054,10 @@ function PeppleSurvivor({ user }) {
     sprites.src = "/assets/pepple-survivor-sprites.png";
     spriteRef.current = sprites;
     const title = new Image();
-    title.src = "/assets/pepple-survivor-title.png";
+    title.src = "/assets/pepple-survivor-title-flori-v2.png?v=2";
     titleRef.current = title;
     const playerFace = new Image();
-    playerFace.src = "/assets/player-face.jpeg";
+    playerFace.src = "/assets/player-face.jpeg?v=2";
     playerFaceRef.current = playerFace;
   }, []);
 
