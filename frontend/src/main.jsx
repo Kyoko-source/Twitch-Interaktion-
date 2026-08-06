@@ -939,6 +939,8 @@ function PeppleSurvivor({ user }) {
     kills: 0,
     hp: 150,
     maxHp: 150,
+    playerX: worldConfig.spawnX,
+    playerY: worldConfig.spawnY,
     xp: 0,
     nextXp: 45,
     wave: 1,
@@ -1497,6 +1499,8 @@ function PeppleSurvivor({ user }) {
       kills: state.kills,
       hp: Math.max(0, Math.ceil(state.player.hp)),
       maxHp: state.player.maxHp,
+      playerX: state.player.x,
+      playerY: state.player.y,
       xp: Math.floor(state.xp),
       nextXp: state.nextXp,
       wave: state.wave,
@@ -3223,7 +3227,7 @@ function PeppleSurvivor({ user }) {
     stateRef.current = makeSurvivorState();
     setChoices([]);
     setLastRun(null);
-    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
+    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, playerX: worldConfig.spawnX, playerY: worldConfig.spawnY, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
     setMessage("Sammle XP-Kristalle. Beim Level-Up waehlt ihr den Build.");
     setGameStatus("play");
     requestAnimationFrame(() => stageRef.current?.focus?.());
@@ -3286,6 +3290,10 @@ function PeppleSurvivor({ user }) {
   const xpPct = Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100));
   const bloodIntensity = status === "play" || status === "paused" || status === "levelup" ? Math.max(0, Math.min(1, (55 - healthPct) / 55)) : 0;
   const criticalHealth = status === "play" && healthPct > 0 && healthPct <= 20;
+  const playerX = Number.isFinite(snapshot.playerX) ? snapshot.playerX : worldConfig.spawnX;
+  const playerY = Number.isFinite(snapshot.playerY) ? snapshot.playerY : worldConfig.spawnY;
+  const edgeDistance = Math.min(playerX, playerY, worldConfig.width - playerX, worldConfig.height - playerY);
+  const simulationEdge = status === "play" && !criticalHealth && edgeDistance <= 260;
 
   useEffect(() => {
     if (!criticalHealth) {
@@ -3354,6 +3362,7 @@ function PeppleSurvivor({ user }) {
         <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="1280" height="720" />
         <div className="bloodEdge" aria-hidden="true" />
         {criticalHealth && <div className="criticalHealthWarning" aria-live="assertive">Leben Kritisch!</div>}
+        {simulationEdge && <div className="simulationEdgeWarning" aria-live="polite">Rande der Simulation</div>}
         {status === "menu" && (
           <div className="survivorMainMenu">
             <button onClick={start} type="button"><Gamepad2 size={19} /> Spiel starten</button>

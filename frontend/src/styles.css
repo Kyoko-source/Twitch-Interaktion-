@@ -2091,6 +2091,36 @@ textarea {
   animation: criticalHealthFlash 0.46s steps(2, end) infinite;
 }
 
+.simulationEdgeWarning {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 7;
+  width: min(780px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  padding: 18px 24px;
+  border: 4px solid #f4dcff;
+  border-radius: 8px;
+  background: rgba(84, 20, 150, 0.88);
+  color: #f7e9ff;
+  font-size: clamp(30px, 5.4vw, 70px);
+  font-weight: 1000;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow:
+    0 4px 0 rgba(24, 0, 58, 0.9),
+    0 0 28px rgba(244, 220, 255, 0.78),
+    0 0 52px rgba(180, 108, 255, 1);
+  box-shadow:
+    0 0 0 9999px rgba(84, 20, 150, 0.16),
+    0 0 54px rgba(180, 108, 255, 0.95),
+    inset 0 0 28px rgba(255, 255, 255, 0.28);
+  animation: simulationEdgeFlash 0.72s steps(2, end) infinite;
+}
+
 @keyframes criticalHealthFlash {
   0% {
     background: rgba(190, 0, 32, 0.96);
@@ -2109,6 +2139,27 @@ textarea {
     color: #fff4e9;
     border-color: #fff4e9;
     filter: saturate(1.4);
+  }
+}
+
+@keyframes simulationEdgeFlash {
+  0% {
+    background: rgba(84, 20, 150, 0.96);
+    color: #f7e9ff;
+    border-color: #f4dcff;
+    filter: saturate(1.3);
+  }
+  50% {
+    background: rgba(232, 207, 255, 0.96);
+    color: #4e1398;
+    border-color: #b46cff;
+    filter: saturate(1.7) brightness(1.1);
+  }
+  100% {
+    background: rgba(84, 20, 150, 0.96);
+    color: #f7e9ff;
+    border-color: #f4dcff;
+    filter: saturate(1.3);
   }
 }
 
