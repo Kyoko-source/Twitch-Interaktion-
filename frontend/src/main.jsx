@@ -632,6 +632,33 @@ function useCanvasGame(draw, deps, onError) {
   return canvasRef;
 }
 
+const survivorSettingsKey = "pepple-survivor-settings-v1";
+const defaultSurvivorSettings = { audioOn: true, volume: 0.75, controlMode: "wasd" };
+
+function readSurvivorSettings() {
+  if (typeof window === "undefined") return defaultSurvivorSettings;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(survivorSettingsKey) || "{}");
+    const volume = Number.isFinite(Number(saved.volume)) ? Math.min(1, Math.max(0, Number(saved.volume))) : defaultSurvivorSettings.volume;
+    return {
+      audioOn: typeof saved.audioOn === "boolean" ? saved.audioOn : defaultSurvivorSettings.audioOn,
+      volume,
+      controlMode: saved.controlMode === "arrows" ? "arrows" : "wasd",
+    };
+  } catch {
+    return defaultSurvivorSettings;
+  }
+}
+
+function writeSurvivorSettings(settings) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(survivorSettingsKey, JSON.stringify(settings));
+  } catch {
+    // Local storage can be blocked in private or hardened browsers.
+  }
+}
+
 function ChickenJump({ user }) {
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("Bereit fuer den Sprung.");
@@ -896,10 +923,11 @@ function PeppleSurvivor({ user }) {
     { id: "might", name: "Pepple-Fokus", kind: "passive", icon: "might", desc: "Alle Waffen verursachen mehr Schaden.", color: "#ff6fb7" },
     { id: "cooldown", name: "Taktgeber", kind: "passive", icon: "cooldown", desc: "Waffen laden schneller wieder auf.", color: "#dfb8ff" },
   ];
+  const initialSettingsRef = useRef(readSurvivorSettings());
   const [status, setStatus] = useState("menu");
-  const [audioOn, setAudioOn] = useState(true);
-  const [volume, setVolume] = useState(0.75);
-  const [controlMode, setControlMode] = useState("wasd");
+  const [audioOn, setAudioOn] = useState(() => initialSettingsRef.current.audioOn);
+  const [volume, setVolume] = useState(() => initialSettingsRef.current.volume);
+  const [controlMode, setControlMode] = useState(() => initialSettingsRef.current.controlMode);
   const [fullscreen, setFullscreen] = useState(false);
   const [choices, setChoices] = useState([]);
   const [message, setMessage] = useState("WASD bewegen, XP sammeln, beim Level-Up Waffen waehlen.");
@@ -923,6 +951,7 @@ function PeppleSurvivor({ user }) {
   const bgRef = useRef(null);
   const spriteRef = useRef(null);
   const titleRef = useRef(null);
+  const playerArtRef = useRef(null);
   const playerFaceRef = useRef(null);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
@@ -1056,10 +1085,18 @@ function PeppleSurvivor({ user }) {
     const title = new Image();
     title.src = "/assets/pepple-survivor-title-flori-v2.png?v=2";
     titleRef.current = title;
+    const playerArt = new Image();
+    playerArt.src = "/assets/player-chicken-ai-v1.png?v=1";
+    playerArtRef.current = playerArt;
     const playerFace = new Image();
     playerFace.src = "/assets/player-face.jpeg?v=2";
     playerFaceRef.current = playerFace;
   }, []);
+
+  useEffect(() => {
+    writeSurvivorSettings({ audioOn, volume, controlMode });
+    if (musicRef.current) musicRef.current.volume = 0.18 * volume;
+  }, [audioOn, volume, controlMode]);
 
   useEffect(() => {
     if (!audioOn) {
@@ -1681,6 +1718,24 @@ function PeppleSurvivor({ user }) {
 
   function drawAstronautChicken(ctx, player, frame) {
     const bob = Math.sin(frame / 18) * 2;
+    const playerArt = playerArtRef.current;
+    if (playerArt?.complete && playerArt.naturalWidth) {
+      const pulse = player.invuln > 0 ? 1 + Math.sin(frame / 4) * 0.04 : 1;
+      const width = 94 * pulse;
+      const height = 112 * pulse;
+      ctx.save();
+      ctx.translate(player.x, player.y + bob);
+      ctx.shadowBlur = player.invuln > 0 ? 42 : 28;
+      ctx.shadowColor = player.invuln > 0 ? "#fff4e9" : "#ffcf8a";
+      ctx.drawImage(playerArt, -width / 2, -height * 0.68, width, height);
+      ctx.strokeStyle = player.invuln > 0 ? "rgba(255,244,233,.9)" : "rgba(122,244,220,.32)";
+      ctx.lineWidth = player.invuln > 0 ? 3 : 1.6;
+      ctx.beginPath();
+      ctx.ellipse(2, -37, 28 * pulse, 32 * pulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
     if (drawSprite(ctx, "chicken", player.x, player.y + bob, 72, 90, { shadowBlur: 34, shadowColor: player.invuln > 0 ? "#fff4e9" : "#ffcf8a" })) {
       drawPlayerFace(ctx, player.x + 4, player.y + bob - 22, 0.84, frame);
       ctx.save();
@@ -2691,9 +2746,10 @@ function PeppleSurvivor({ user }) {
     setLastRun(null);
     setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
     setMessage("Sammle XP-Kristalle. Beim Level-Up waehlt ihr den Build.");
+    setGameStatus("play");
+    requestAnimationFrame(() => stageRef.current?.focus?.());
     audio();
     sfx("start");
-    setGameStatus("play");
   }
 
   function chooseUpgrade(upgrade) {
@@ -2794,7 +2850,7 @@ function PeppleSurvivor({ user }) {
           </div>
         ))}
       </div>
-      <div className="survivorStage" ref={stageRef} style={{ "--blood": bloodIntensity }}>
+      <div className="survivorStage" ref={stageRef} style={{ "--blood": bloodIntensity }} tabIndex={-1}>
         <audio
           ref={musicRef}
           preload="auto"
