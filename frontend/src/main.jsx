@@ -3463,6 +3463,19 @@ function PeppleSurvivor({ user }) {
             </div>
           </div>
         )}
+        {status === "gameover" && (
+          <div className="levelUpOverlay">
+            <div className="levelUpPanel compactPanel">
+              <h3>Run beendet</h3>
+              <p>{snapshot.score} Score · {snapshot.kills} Kills · Level {snapshot.level}</p>
+              <div className="gameActions survivorActions">
+                <button onClick={start} type="button"><RefreshCw size={16} /> Run neu starten</button>
+                {user && snapshot.score > 0 && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+                <button className="ghost" onClick={toggleFullscreen} type="button"><Gamepad2 size={16} /> {fullscreen ? "Vollbild aus" : "Vollbild"}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="gameActions survivorActions">
         <button onClick={start} type="button"><RefreshCw size={16} /> {status === "play" ? "Neu starten" : "Start"}</button>
