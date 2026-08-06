@@ -1146,8 +1146,10 @@ function PeppleSurvivor({ user }) {
   }
 
   function burst(x, y, color, amount = 10) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const state = stateRef.current;
-    for (let i = 0; i < amount; i += 1) {
+    const count = clamp(Math.floor(Number(amount) || 0), 0, 60);
+    for (let i = 0; i < count; i += 1) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 0.8 + Math.random() * 3.2;
       state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 420 + Math.random() * 360, ttl: 800, color });
@@ -1155,14 +1157,18 @@ function PeppleSurvivor({ user }) {
   }
 
   function pushRing(state, x, y, radius, life, color) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || !Number.isFinite(life)) return;
     state.particles.push({ ring: true, x, y, vx: 0, vy: 0, max: radius, life, ttl: life, color });
   }
 
   function alienBloodBurst(x, y, color = "#9cff4a", amount = 12, force = 1) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const state = stateRef.current;
-    for (let i = 0; i < amount; i += 1) {
+    const count = clamp(Math.floor(Number(amount) || 0), 0, 70);
+    const safeForce = Number.isFinite(force) ? clamp(force, 0.1, 2.4) : 1;
+    for (let i = 0; i < count; i += 1) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = (1.4 + Math.random() * 5.8) * force;
+      const speed = (1.4 + Math.random() * 5.8) * safeForce;
       state.particles.push({
         type: "slime",
         x,
@@ -1189,6 +1195,10 @@ function PeppleSurvivor({ user }) {
     return Math.min(max, Math.max(min, value));
   }
 
+  function finitePoint(entity) {
+    return entity && Number.isFinite(entity.x) && Number.isFinite(entity.y);
+  }
+
   function obstacleHitRadius(obstacle) {
     return (obstacle.collisionRadius || obstacle.radius) * (obstacle.scale || 1);
   }
@@ -1198,6 +1208,7 @@ function PeppleSurvivor({ user }) {
   }
 
   function segmentHitsObstacle(state, x1, y1, x2, y2, padding = 0) {
+    if (![x1, y1, x2, y2].every(Number.isFinite)) return true;
     return (state.obstacles || []).some((obstacle) => {
       const vx = x2 - x1;
       const vy = y2 - y1;
@@ -1210,7 +1221,7 @@ function PeppleSurvivor({ user }) {
   }
 
   function visibleTargets(state, targets, x, y, padding = 8) {
-    return targets.filter((target) => !segmentHitsObstacle(state, x, y, target.x, target.y, padding));
+    return targets.filter((target) => finitePoint(target) && !segmentHitsObstacle(state, x, y, target.x, target.y, padding));
   }
 
   function pushOutOfObstacles(state, entity, radius = 18) {
@@ -1434,6 +1445,7 @@ function PeppleSurvivor({ user }) {
   function drawSprite(ctx, name, x, y, width, height, options = {}) {
     const asset = getSprite(name);
     if (!asset) return false;
+    if (![x, y, width, height].every(Number.isFinite) || width <= 0 || height <= 0) return false;
     const { sheet, rect } = asset;
     ctx.save();
     ctx.translate(x, y);
@@ -2059,10 +2071,26 @@ function PeppleSurvivor({ user }) {
 
       state.timers.egg -= dt;
       if (state.weapons.egg && state.timers.egg <= 0 && state.enemies.length) {
-        const target = state.enemies[Math.floor(Math.random() * state.enemies.length)];
-        state.bombs.push({ x: state.player.x, y: state.player.y, tx: target.x, ty: target.y, life: 650, ttl: 650, radius: 54 + state.weapons.egg * 8, damage: (28 + state.weapons.egg * 8) * damageMult(state) });
+        const targets = visibleTargets(state, state.enemies, state.player.x, state.player.y, 16);
+        const pool = targets.length ? targets : state.enemies.filter(finitePoint);
+        const target = pool[Math.floor(Math.random() * pool.length)];
+        const radius = 54 + state.weapons.egg * 8;
+        const damage = (28 + state.weapons.egg * 8) * damageMult(state);
+        if (finitePoint(target) && finitePoint(state.player) && Number.isFinite(radius) && Number.isFinite(damage)) {
+          state.bombs.push({
+            x: state.player.x,
+            y: state.player.y,
+            tx: target.x,
+            ty: target.y,
+            life: 650,
+            ttl: 650,
+            radius,
+            damage,
+            exploded: false,
+          });
+          sfx("bomb");
+        }
         state.timers.egg = Math.max(650, (2100 - state.weapons.egg * 110) * cooldownMult(state));
-        sfx("bomb");
       }
 
       state.timers.drone -= dt;
@@ -2235,22 +2263,27 @@ function PeppleSurvivor({ user }) {
       });
 
       state.bombs.forEach((bomb) => {
-        if (![bomb.x, bomb.y, bomb.tx, bomb.ty, bomb.life, bomb.ttl, bomb.radius].every(Number.isFinite)) {
+        if (![bomb.x, bomb.y, bomb.tx, bomb.ty, bomb.life, bomb.ttl, bomb.radius, bomb.damage].every(Number.isFinite) || bomb.ttl <= 0 || bomb.radius <= 0) {
           bomb.life = 0;
           return;
         }
-        const t = 1 - bomb.life / bomb.ttl;
+        const t = clamp(1 - bomb.life / Math.max(1, bomb.ttl), 0, 1);
         bomb.x += (bomb.tx - bomb.x) * 0.08;
         bomb.y += (bomb.ty - bomb.y) * 0.08;
+        const world = state.world || worldConfig;
+        bomb.x = clamp(bomb.x, 0, world.width);
+        bomb.y = clamp(bomb.y, 0, world.height);
         bomb.life -= dt;
-        if (t >= 0.95 || bomb.life <= 0) {
+        if (!bomb.exploded && (t >= 0.95 || bomb.life <= 0)) {
+          bomb.exploded = true;
           state.enemies.forEach((enemy) => {
-            if (Math.hypot(enemy.x - bomb.x, enemy.y - bomb.y) < bomb.radius) {
+            if (finitePoint(enemy) && Math.hypot(enemy.x - bomb.x, enemy.y - bomb.y) < bomb.radius) {
               enemy.hp -= bomb.damage;
               alienBloodBurst(enemy.x, enemy.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 18 : 10, 1);
             }
           });
           burst(bomb.x, bomb.y, "#ffcf8a", 24);
+          bomb.life = 0;
         }
       });
       state.bombs = state.bombs.filter((bomb) => bomb.life > 0);
@@ -2442,6 +2475,9 @@ function PeppleSurvivor({ user }) {
     });
 
     state.bombs.forEach((bomb) => {
+      if (![bomb.x, bomb.y, bomb.life, bomb.ttl, bomb.radius].every(Number.isFinite) || bomb.ttl <= 0 || bomb.radius <= 0) return;
+      const blastProgress = clamp(1 - bomb.life / Math.max(1, bomb.ttl), 0, 1);
+      const blastRadius = Math.max(1, bomb.radius * blastProgress);
       ctx.save();
       ctx.translate(bomb.x, bomb.y);
       ctx.rotate(frame / 24);
@@ -2456,7 +2492,7 @@ function PeppleSurvivor({ user }) {
       ctx.strokeStyle = "rgba(255,207,138,.5)";
       ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.arc(0, 0, bomb.radius * (1 - bomb.life / bomb.ttl), 0, Math.PI * 2);
+      ctx.arc(0, 0, blastRadius, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     });
