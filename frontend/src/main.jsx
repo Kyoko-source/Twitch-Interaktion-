@@ -1134,6 +1134,28 @@ function PeppleSurvivor({ user }) {
     if (["bomb", "nova", "thunder"].includes(type)) noise(type === "bomb" ? 0.22 : 0.11, type === "bomb" ? 0.04 : 0.022);
   }
 
+  function levelUpFanfare() {
+    const ctxAudio = audio();
+    if (!ctxAudio) return;
+    const now = ctxAudio.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((note, index) => {
+      const startAt = now + index * 0.075;
+      const osc = ctxAudio.createOscillator();
+      const gain = ctxAudio.createGain();
+      osc.type = index === notes.length - 1 ? "sawtooth" : "triangle";
+      osc.frequency.setValueAtTime(note, startAt);
+      osc.frequency.exponentialRampToValueAtTime(note * 1.12, startAt + 0.16);
+      gain.gain.setValueAtTime(0.001, startAt);
+      gain.gain.linearRampToValueAtTime((index === notes.length - 1 ? 0.09 : 0.06) * volume, startAt + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.32);
+      osc.connect(gain).connect(ctxAudio.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.36);
+    });
+    noise(0.16, 0.018);
+  }
+
   function criticalAlarm() {
     const ctxAudio = audio();
     if (!ctxAudio) return;
@@ -1350,7 +1372,7 @@ function PeppleSurvivor({ user }) {
     setChoices(nextChoices);
     setMessage("Level Up. Waehle dein naechstes Upgrade.");
     setGameStatus("levelup");
-    sfx("level");
+    levelUpFanfare();
     syncSnapshot(state);
   }
 
@@ -1517,6 +1539,107 @@ function PeppleSurvivor({ user }) {
     ctx.drawImage(sheet, rect.x, rect.y, rect.w, rect.h, -width / 2, -height / 2, width, height);
     ctx.restore();
     return true;
+  }
+
+  function roundedRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawCanvasMeter(ctx, x, y, width, height, pct, label, value, colors, frame, danger = false) {
+    const safePct = clamp(Number.isFinite(pct) ? pct : 0, 0, 1);
+    const fillWidth = Math.max(0, (width - 8) * safePct);
+    ctx.save();
+    ctx.shadowBlur = danger ? 24 + Math.sin(frame / 5) * 8 : 18;
+    ctx.shadowColor = danger ? "rgba(255, 44, 73, 0.75)" : colors.glow;
+    roundedRect(ctx, x, y, width, height, 8);
+    const back = ctx.createLinearGradient(x, y, x, y + height);
+    back.addColorStop(0, "rgba(255,255,255,0.13)");
+    back.addColorStop(0.48, "rgba(12,12,22,0.82)");
+    back.addColorStop(1, "rgba(0,0,0,0.74)");
+    ctx.fillStyle = back;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    roundedRect(ctx, x + 4, y + 4, width - 8, height - 8, 6);
+    ctx.fillStyle = "rgba(0,0,0,0.48)";
+    ctx.fill();
+
+    if (fillWidth > 0) {
+      ctx.save();
+      roundedRect(ctx, x + 4, y + 4, width - 8, height - 8, 6);
+      ctx.clip();
+      const fill = ctx.createLinearGradient(x + 4, y, x + width - 4, y);
+      fill.addColorStop(0, colors.start);
+      fill.addColorStop(0.56, colors.mid);
+      fill.addColorStop(1, colors.end);
+      ctx.fillStyle = fill;
+      ctx.fillRect(x + 4, y + 4, fillWidth, height - 8);
+      ctx.globalAlpha = 0.22;
+      for (let sx = x + 4 - ((frame * 1.4) % 32); sx < x + 4 + fillWidth + 32; sx += 32) {
+        ctx.fillStyle = "#fff4e9";
+        ctx.beginPath();
+        ctx.moveTo(sx, y + 4);
+        ctx.lineTo(sx + 12, y + 4);
+        ctx.lineTo(sx - 2, y + height - 4);
+        ctx.lineTo(sx - 14, y + height - 4);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = danger ? "rgba(255,255,255,0.58)" : "rgba(255,218,184,0.34)";
+    ctx.lineWidth = 1.4;
+    roundedRect(ctx, x, y, width, height, 8);
+    ctx.stroke();
+    ctx.fillStyle = "#fff4e9";
+    ctx.font = "900 11px Inter, system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = colors.glow;
+    ctx.fillText(label, x + 12, y + height / 2);
+    ctx.textAlign = "right";
+    ctx.fillText(value, x + width - 12, y + height / 2);
+    ctx.restore();
+  }
+
+  function drawSurvivorHudBars(ctx, canvas, state, frame) {
+    const player = state.player;
+    const x = 22;
+    const y = canvas.height - 96;
+    const width = Math.min(330, canvas.width - 44);
+    const hpPct = clamp(player.hp / Math.max(1, player.maxHp), 0, 1);
+    const xpPct = clamp(state.xp / Math.max(1, state.nextXp), 0, 1);
+    ctx.save();
+    ctx.fillStyle = "rgba(4, 4, 12, 0.48)";
+    roundedRect(ctx, x - 8, y - 10, width + 16, 82, 8);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 218, 184, 0.16)";
+    ctx.stroke();
+    drawCanvasMeter(ctx, x, y, width, 28, hpPct, "HP", `${Math.ceil(Math.max(0, player.hp))}/${player.maxHp}`, {
+      start: hpPct <= 0.22 ? "#ff163f" : "#ff3d71",
+      mid: hpPct <= 0.22 ? "#fff4e9" : "#ff7f7f",
+      end: hpPct <= 0.22 ? "#ffb000" : "#ffcf8a",
+      glow: hpPct <= 0.22 ? "rgba(255, 30, 68, 0.82)" : "rgba(255, 95, 124, 0.56)",
+    }, frame, hpPct <= 0.22);
+    drawCanvasMeter(ctx, x, y + 40, width, 22, xpPct, `LVL ${state.level}`, `${state.xp}/${state.nextXp} XP`, {
+      start: "#7af4dc",
+      mid: "#b46cff",
+      end: "#ffcf8a",
+      glow: "rgba(122, 244, 220, 0.58)",
+    }, frame);
+    ctx.restore();
   }
 
   function drawUpgradeIcon(ctx, icon, x, y, size, color, frame = 0) {
@@ -2700,18 +2823,7 @@ function PeppleSurvivor({ user }) {
 
     ctx.restore();
 
-    const barX = 24;
-    ctx.fillStyle = "rgba(5,7,14,.66)";
-    ctx.fillRect(barX, canvas.height - 62, 210, 16);
-    ctx.fillStyle = "#ff6f7f";
-    ctx.fillRect(barX, canvas.height - 62, 210 * Math.max(0, player.hp) / player.maxHp, 16);
-    ctx.fillStyle = "rgba(5,7,14,.66)";
-    ctx.fillRect(barX, canvas.height - 38, 210, 12);
-    ctx.fillStyle = "#b46cff";
-    ctx.fillRect(barX, canvas.height - 38, 210 * Math.max(0, state.xp) / Math.max(1, state.nextXp), 12);
-    ctx.strokeStyle = "rgba(255,218,184,.25)";
-    ctx.strokeRect(barX, canvas.height - 62, 210, 16);
-    ctx.strokeRect(barX, canvas.height - 38, 210, 12);
+    drawSurvivorHudBars(ctx, canvas, state, frame);
 
     if (["menu", "options"].includes(statusRef.current)) {
       const titleImage = titleRef.current;
