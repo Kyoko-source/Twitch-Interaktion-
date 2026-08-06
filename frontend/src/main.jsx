@@ -964,6 +964,7 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-4.mp3",
   ];
   const worldConfig = { width: 6200, height: 4200, spawnX: 3100, spawnY: 2100 };
+  const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, beams: 48, bombs: 22, wells: 8 };
 
   function makeObstacles() {
     const specs = [
@@ -1248,7 +1249,8 @@ function PeppleSurvivor({ user }) {
   function burst(x, y, color, amount = 10) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const state = stateRef.current;
-    const count = clamp(Math.floor(Number(amount) || 0), 0, 60);
+    const pressure = state.particles.length > 180 ? 0.45 : state.particles.length > 120 ? 0.7 : 1;
+    const count = clamp(Math.floor((Number(amount) || 0) * pressure), 0, 38);
     for (let i = 0; i < count; i += 1) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 0.8 + Math.random() * 3.2;
@@ -1266,7 +1268,8 @@ function PeppleSurvivor({ user }) {
   function alienBloodBurst(x, y, color = "#9cff4a", amount = 12, force = 1) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     const state = stateRef.current;
-    const count = clamp(Math.floor(Number(amount) || 0), 0, 70);
+    const pressure = state.particles.length > 180 ? 0.38 : state.particles.length > 120 ? 0.65 : 1;
+    const count = clamp(Math.floor((Number(amount) || 0) * pressure), 0, 42);
     const safeForce = Number.isFinite(force) ? clamp(force, 0.1, 2.4) : 1;
     for (let i = 0; i < count; i += 1) {
       const angle = Math.random() * Math.PI * 2;
@@ -1397,12 +1400,36 @@ function PeppleSurvivor({ user }) {
     return entity && Number.isFinite(entity.x) && Number.isFinite(entity.y);
   }
 
+  function distanceSq(ax, ay, bx, by) {
+    const dx = ax - bx;
+    const dy = ay - by;
+    return dx * dx + dy * dy;
+  }
+
+  function compactSurvivorCollections(state, canvas) {
+    const viewLimit = Math.max(canvas.width, canvas.height);
+    const keepSq = viewLimit * viewLimit * (state.bossActive ? 1.35 : 1.18);
+    const player = state.player;
+    const keepBoss = (enemy) => enemy.boss || distanceSq(enemy.x, enemy.y, player.x, player.y) < keepSq;
+    const maxEnemies = state.bossActive ? perfCaps.bossEnemies : perfCaps.enemies;
+    state.enemies = state.enemies.filter((enemy) => finitePoint(enemy) && keepBoss(enemy)).slice(-maxEnemies);
+    state.shots = state.shots.filter((shot) => Number.isFinite(shot.x) && Number.isFinite(shot.y) && shot.life > 0).slice(-perfCaps.shots);
+    state.hazards = state.hazards.filter((hazard) => hazard.life > 0).slice(-perfCaps.hazards);
+    state.gems = state.gems.filter((gem) => finitePoint(gem) && distanceSq(gem.x, gem.y, player.x, player.y) < keepSq * 1.25).slice(-perfCaps.gems);
+    state.beams = state.beams.filter((beam) => beam.life > 0).slice(-perfCaps.beams);
+    state.bombs = state.bombs.filter((bomb) => bomb.life > 0).slice(-perfCaps.bombs);
+    state.wells = state.wells.filter((well) => well.life > 0).slice(-perfCaps.wells);
+  }
+
   function obstacleHitRadius(obstacle) {
     return (obstacle.collisionRadius || obstacle.radius) * (obstacle.scale || 1);
   }
 
   function collidesObstacle(state, x, y, radius = 16) {
-    return (state.obstacles || []).some((obstacle) => Math.hypot(x - obstacle.x, y - obstacle.y) < obstacleHitRadius(obstacle) + radius);
+    return (state.obstacles || []).some((obstacle) => {
+      const hitRadius = obstacleHitRadius(obstacle) + radius;
+      return distanceSq(x, y, obstacle.x, obstacle.y) < hitRadius * hitRadius;
+    });
   }
 
   function segmentHitsObstacle(state, x1, y1, x2, y2, padding = 0) {
@@ -2456,21 +2483,24 @@ function PeppleSurvivor({ user }) {
       movePlayer(state, (mx / len) * speed * (dt / 16), (my / len) * speed * (dt / 16));
       updateCamera(state, canvas);
       state.player.invuln = Math.max(0, state.player.invuln - dt);
-      if (mx || my) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 260, ttl: 260, color: "#ffcf8a" });
+      if ((mx || my) && frame % (state.particles.length > 170 ? 4 : 2) === 0) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 220, ttl: 220, color: "#ffcf8a" });
 
       if (!state.bossActive && state.seconds >= state.nextBossAt) spawnBoss(state, canvas);
 
       state.spawn -= dt;
       if (!state.bossActive && state.spawn <= 0) {
-        const count = 1 + Math.floor(Math.min(5, Math.max(0, state.wave - 1) / 3));
+        const crowdPressure = Math.max(0, state.enemies.length - 58);
+        const count = crowdPressure > 18 ? 1 : 1 + Math.floor(Math.min(4, Math.max(0, state.wave - 1) / 3));
         for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
-        state.spawn = Math.max(115, 780 - state.seconds * 6.2);
+        state.spawn = Math.max(135, 780 - state.seconds * 5.4 + crowdPressure * 8);
       }
+      compactSurvivorCollections(state, canvas);
 
       state.timers.bolt -= dt;
       if (state.weapons.bolt && state.timers.bolt <= 0 && state.enemies.length) {
-        const targets = visibleTargets(state, [...state.enemies], state.player.x, state.player.y, 12)
-          .sort((a, b) => Math.hypot(a.x - state.player.x, a.y - state.player.y) - Math.hypot(b.x - state.player.x, b.y - state.player.y));
+        const targetPool = state.enemies.filter((enemy) => distanceSq(enemy.x, enemy.y, state.player.x, state.player.y) < 900 * 900).slice(0, 56);
+        const targets = visibleTargets(state, targetPool, state.player.x, state.player.y, 12)
+          .sort((a, b) => distanceSq(a.x, a.y, state.player.x, state.player.y) - distanceSq(b.x, b.y, state.player.x, state.player.y));
         const bolts = Math.min(targets.length, 1 + Math.floor((state.weapons.bolt - 1) / 2));
         for (let i = 0; i < bolts; i += 1) {
           const target = targets[i];
@@ -2485,7 +2515,7 @@ function PeppleSurvivor({ user }) {
 
       state.timers.egg -= dt;
       if (state.weapons.egg && state.timers.egg <= 0 && state.enemies.length) {
-        const targets = visibleTargets(state, state.enemies, state.player.x, state.player.y, 16);
+        const targets = visibleTargets(state, state.enemies.slice(0, 54), state.player.x, state.player.y, 16);
         const pool = targets.length ? targets : state.enemies.filter(finitePoint);
         const target = pool[Math.floor(Math.random() * pool.length)];
         const radius = 54 + state.weapons.egg * 8;
@@ -2510,8 +2540,8 @@ function PeppleSurvivor({ user }) {
       state.timers.drone -= dt;
       if (state.weapons.drone && state.timers.drone <= 0 && state.enemies.length) {
         const count = Math.min(6, state.weapons.drone);
-        const targets = visibleTargets(state, [...state.enemies], state.player.x, state.player.y, 12)
-          .sort((a, b) => Math.hypot(a.x - state.player.x, a.y - state.player.y) - Math.hypot(b.x - state.player.x, b.y - state.player.y));
+        const targets = visibleTargets(state, state.enemies.slice(0, 56), state.player.x, state.player.y, 12)
+          .sort((a, b) => distanceSq(a.x, a.y, state.player.x, state.player.y) - distanceSq(b.x, b.y, state.player.x, state.player.y));
         const shots = targets.length ? count : 0;
         for (let i = 0; i < shots; i += 1) {
           const target = targets[i % targets.length];
@@ -2534,7 +2564,7 @@ function PeppleSurvivor({ user }) {
         const chain = [];
         const pool = [...state.enemies];
         for (let step = 0; step < 2 + state.weapons.thunder && pool.length; step += 1) {
-          const visible = visibleTargets(state, pool, ox, oy, 16).sort((a, b) => Math.hypot(a.x - ox, a.y - oy) - Math.hypot(b.x - ox, b.y - oy));
+          const visible = visibleTargets(state, pool.slice(0, 58), ox, oy, 16).sort((a, b) => distanceSq(a.x, a.y, ox, oy) - distanceSq(b.x, b.y, ox, oy));
           const next = visible[0];
           if (!next) break;
           chain.push(next);
@@ -2585,7 +2615,7 @@ function PeppleSurvivor({ user }) {
 
       state.timers.laser -= dt;
       if (state.weapons.laser && state.timers.laser <= 0 && state.enemies.length) {
-        const target = visibleTargets(state, [...state.enemies], state.player.x, state.player.y, 18).sort((a, b) => b.hp - a.hp)[0];
+        const target = visibleTargets(state, state.enemies.slice(0, 64), state.player.x, state.player.y, 18).sort((a, b) => b.hp - a.hp)[0];
         if (target) {
           state.beams.push({ x1: state.player.x, y1: state.player.y, x2: target.x, y2: target.y, life: 220, ttl: 220, color: "#7af4dc", width: 7 });
           target.hp -= (40 + state.weapons.laser * 18) * damageMult(state);
@@ -2690,10 +2720,13 @@ function PeppleSurvivor({ user }) {
         }
         shot.life -= dt;
       });
-      state.shots = state.shots.filter((shot) => shot.life > 0 && Math.hypot(shot.x - state.player.x, shot.y - state.player.y) < Math.max(canvas.width, canvas.height) * 0.95);
+      const shotKeep = Math.max(canvas.width, canvas.height) * 0.95;
+      state.shots = state.shots.filter((shot) => shot.life > 0 && distanceSq(shot.x, shot.y, state.player.x, state.player.y) < shotKeep * shotKeep);
       state.shots.forEach((shot) => {
-        state.enemies.forEach((enemy) => {
-          if (Math.hypot(shot.x - enemy.x, shot.y - enemy.y) < enemy.radius + 7 && shot.life > 0) {
+        const possibleTargets = state.enemies.filter((enemy) => distanceSq(shot.x, shot.y, enemy.x, enemy.y) < 96 * 96);
+        possibleTargets.forEach((enemy) => {
+          const hitRadius = enemy.radius + 7;
+          if (distanceSq(shot.x, shot.y, enemy.x, enemy.y) < hitRadius * hitRadius && shot.life > 0) {
             enemy.hp -= shot.damage;
             alienBloodBurst(shot.x, shot.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 8 : 5, enemy.boss ? 0.75 : 0.55);
             if (state.weapons.frost) {
@@ -2810,8 +2843,9 @@ function PeppleSurvivor({ user }) {
           const angle = frame / 24 + i / count * Math.PI * 2;
           const ox = state.player.x + Math.cos(angle) * radius;
           const oy = state.player.y + Math.sin(angle) * radius;
-          state.enemies.forEach((enemy) => {
-            if (Math.hypot(enemy.x - ox, enemy.y - oy) < enemy.radius + 12) enemy.hp -= (0.2 + state.weapons.orbit * 0.09) * dt * damageMult(state);
+          state.enemies.slice(0, 72).forEach((enemy) => {
+            const hitRadius = enemy.radius + 12;
+            if (distanceSq(enemy.x, enemy.y, ox, oy) < hitRadius * hitRadius) enemy.hp -= (0.2 + state.weapons.orbit * 0.09) * dt * damageMult(state);
           });
         }
       }
@@ -2891,8 +2925,12 @@ function PeppleSurvivor({ user }) {
       particle.life -= dt;
     });
     state.particles = state.particles
-      .filter((particle) => Number.isFinite(particle.x) && Number.isFinite(particle.y) && Number.isFinite(particle.life) && Number.isFinite(particle.ttl) && particle.ttl > 0 && particle.life > 0 && (!particle.ring || Number.isFinite(particle.max)) && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4)
-      .slice(-360);
+      .filter((particle) => {
+        if (!Number.isFinite(particle.x) || !Number.isFinite(particle.y) || !Number.isFinite(particle.life) || !Number.isFinite(particle.ttl) || particle.ttl <= 0 || particle.life <= 0 || (particle.ring && !Number.isFinite(particle.max))) return false;
+        const keep = Math.max(canvas.width, canvas.height) * 1.25;
+        return distanceSq(particle.x, particle.y, state.player.x, state.player.y) < keep * keep;
+      })
+      .slice(-perfCaps.particles);
 
     const cameraX = statusRef.current === "menu" ? 0 : (state.camera?.x || 0);
     const cameraY = statusRef.current === "menu" ? 0 : (state.camera?.y || 0);
