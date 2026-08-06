@@ -932,6 +932,7 @@ function PeppleSurvivor({ user }) {
     { id: "might", name: "Pepple-Fokus", kind: "passive", icon: "might", desc: "Alle Waffen verursachen mehr Schaden.", color: "#ff6fb7" },
     { id: "cooldown", name: "Taktgeber", kind: "passive", icon: "cooldown", desc: "Waffen laden schneller wieder auf.", color: "#dfb8ff" },
   ];
+  const worldConfig = { width: 6200, height: 4200, spawnX: 3100, spawnY: 2100 };
   const initialSettingsRef = useRef(readSurvivorSettings());
   const [status, setStatus] = useState("menu");
   const [audioOn, setAudioOn] = useState(() => initialSettingsRef.current.audioOn);
@@ -974,7 +975,6 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-3.mp3",
     "/assets/braincell-survivor-theme-4.mp3",
   ];
-  const worldConfig = { width: 6200, height: 4200, spawnX: 3100, spawnY: 2100 };
   const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, potions: 8, beams: 48, bombs: 22, wells: 8 };
 
   function makeObstacles() {
