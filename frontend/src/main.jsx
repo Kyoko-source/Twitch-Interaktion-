@@ -923,6 +923,7 @@ function PeppleSurvivor({ user }) {
   const bgRef = useRef(null);
   const spriteRef = useRef(null);
   const titleRef = useRef(null);
+  const playerFaceRef = useRef(null);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
   const musicPlaylist = [
@@ -1044,6 +1045,9 @@ function PeppleSurvivor({ user }) {
     const title = new Image();
     title.src = "/assets/pepple-survivor-title.png";
     titleRef.current = title;
+    const playerFace = new Image();
+    playerFace.src = "/assets/player-face.jpeg";
+    playerFaceRef.current = playerFace;
   }, []);
 
   useEffect(() => {
@@ -1574,89 +1578,35 @@ function PeppleSurvivor({ user }) {
     ctx.restore();
   }
 
-  function drawPlayerFace(ctx, x, y, scale = 1, frame = 0) {
+  function drawPlayerFace(ctx, x, y, scale = 1) {
+    const face = playerFaceRef.current;
+    if (!face?.complete || !face.naturalWidth) return false;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(255,207,138,.45)";
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "rgba(255,207,138,.55)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 25, 0, 0, Math.PI * 2);
+    ctx.clip();
+    const size = Math.min(face.naturalWidth, face.naturalHeight);
+    const sx = (face.naturalWidth - size) / 2;
+    const sy = Math.max(0, (face.naturalHeight - size) * 0.18);
+    ctx.drawImage(face, sx, sy, size, size, -24, -27, 48, 54);
+    ctx.restore();
 
-    const skin = ctx.createLinearGradient(-16, -18, 16, 18);
-    skin.addColorStop(0, "#ffd4b8");
-    skin.addColorStop(0.52, "#f2a77c");
-    skin.addColorStop(1, "#b76658");
-    ctx.fillStyle = skin;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = "rgba(122,244,220,.78)";
+    ctx.lineWidth = 2.2;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#7af4dc";
     ctx.beginPath();
-    ctx.ellipse(0, 2, 18, 21, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const hair = ctx.createLinearGradient(-18, -26, 18, 2);
-    hair.addColorStop(0, "#fff2a8");
-    hair.addColorStop(0.45, "#d89d48");
-    hair.addColorStop(1, "#f8d675");
-    ctx.fillStyle = hair;
-    ctx.beginPath();
-    ctx.ellipse(-8, -16, 13, 10, -0.32, 0, Math.PI * 2);
-    ctx.ellipse(8, -16, 13, 10, 0.32, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(95,55,22,.45)";
-    ctx.lineWidth = 1.2;
-    for (let i = -3; i <= 3; i += 1) {
-      ctx.beginPath();
-      ctx.moveTo(i * 3, -25);
-      ctx.quadraticCurveTo(i * 3.2, -16 + Math.sin(frame / 14 + i) * 1.2, i * 5.2, -8);
-      ctx.stroke();
-    }
-
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "rgba(75,38,28,.7)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-13, -8);
-    ctx.quadraticCurveTo(-8, -12, -3, -9);
-    ctx.moveTo(4, -9);
-    ctx.quadraticCurveTo(10, -12, 15, -7);
-    ctx.stroke();
-
-    ctx.fillStyle = "#fff4e9";
-    ctx.beginPath();
-    ctx.ellipse(-7, -2, 5.4, 4.5, 0, 0, Math.PI * 2);
-    ctx.ellipse(9, -2, 5.4, 4.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#182235";
-    ctx.beginPath();
-    ctx.arc(-6, -2, 2.3, 0, Math.PI * 2);
-    ctx.arc(8, -2, 2.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#fff4e9";
-    ctx.beginPath();
-    ctx.arc(-6.7, -3.1, 0.9, 0, Math.PI * 2);
-    ctx.arc(7.3, -3.1, 0.9, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(118,58,48,.7)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(-1.8, 6, 2.4, 7);
-    ctx.stroke();
-
-    ctx.strokeStyle = "#511624";
-    ctx.lineWidth = 2.6;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(-8, 12);
-    ctx.quadraticCurveTo(1, 18 + Math.sin(frame / 18) * 1.2, 11, 12);
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,244,233,.86)";
-    ctx.fillRect(-5, 10.6, 11, 2.2);
-
-    ctx.strokeStyle = "rgba(122,244,220,.72)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 1, 24, Math.PI * 0.78, Math.PI * 2.23);
+    ctx.ellipse(0, 0, 24, 27, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
+    return true;
   }
 
   function drawAstronautChicken(ctx, player, frame) {
