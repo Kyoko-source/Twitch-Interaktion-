@@ -318,6 +318,17 @@ def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
 @app.get("/api/dashboard")
 def dashboard() -> dict[str, Any]:
     users = rows("users?select=*&order=braincells.desc")
+    cutoff = (datetime.now() - timedelta(seconds=45)).isoformat()
+    try:
+        presence_rows = rows(f"user_presence?select=username,last_seen&last_seen=gte.{quote(cutoff)}&order=last_seen.desc&limit=8")
+    except HTTPException:
+        presence_rows = []
+    users_by_name = {str(user.get("username") or ""): public_user(user) for user in users}
+    active_members = [
+        {**users_by_name.get(str(row.get("username") or ""), {"username": row.get("username")}), "last_seen": row.get("last_seen"), "status": "Online"}
+        for row in presence_rows
+        if row.get("username")
+    ]
     news = rows("news_posts?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=5")
     events = rows("events?select=*&order=id.desc&limit=5")
     gallery = rows("creative_gallery?select=*&order=created_at.desc&limit=6")
@@ -329,10 +340,28 @@ def dashboard() -> dict[str, Any]:
             "braincells": sum(int(user.get("braincells") or 0) for user in users),
         },
         "leaderboard": leaderboard[:10],
+        "active_members": active_members,
         "news": news,
         "events": events,
         "gallery": gallery,
     }
+
+
+@app.post("/api/presence")
+def touch_presence(user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    username = str(user["username"])
+    supabase().upsert(
+        "user_presence?on_conflict=username",
+        {"username": username, "last_seen": datetime.now().isoformat()},
+        returning=False,
+    )
+    return {"status": "online"}
+
+
+@app.delete("/api/presence")
+def clear_presence(user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    supabase().delete(f"user_presence?username=eq.{quote(str(user['username']))}")
+    return {"status": "offline"}
 
 
 @app.get("/api/users")

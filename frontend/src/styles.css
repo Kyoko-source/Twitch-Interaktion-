@@ -1083,7 +1083,7 @@ h3 {
 }
 
 .leaderMiniRows div,
-.activeList div {
+.activeList .activeRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1094,8 +1094,16 @@ h3 {
   border: 1px solid rgba(255, 218, 184, 0.10);
 }
 
-.activeList div {
+.activeList .activeRow {
   justify-content: flex-start;
+}
+
+.activeEmpty {
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px dashed rgba(255, 218, 184, 0.18);
 }
 
 .activeList .viewerAvatar {
@@ -3005,7 +3013,7 @@ textarea {
 }
 
 .leaderMiniRows div,
-.activeList div {
+.activeList .activeRow {
   padding: 8px 10px;
   font-size: 14px;
 }

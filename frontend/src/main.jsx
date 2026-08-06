@@ -207,10 +207,11 @@ function CageMark() {
 }
 
 function HomePage({ user, setPage }) {
-  const { data, loading, error } = useApi("/api/dashboard", { stats: {}, leaderboard: [], news: [], events: [], gallery: [] });
+  const { data, loading, error } = useApi("/api/dashboard", { stats: {}, leaderboard: [], active_members: [], news: [], events: [], gallery: [] });
   const topViewer = data.leaderboard[0];
   const podium = data.leaderboard.slice(0, 3);
   const nextNews = data.news[0];
+  const activeMembers = data.active_members || [];
 
   return (
     <section className="homePage">
@@ -284,13 +285,13 @@ function HomePage({ user, setPage }) {
           <div className="activePanel">
             <PanelTitle icon={Users} title="Aktive Mitglieder" action="Alle Mitglieder" onClick={() => setPage("members")} />
             <div className="activeList">
-              {data.leaderboard.slice(0, 5).map((item, index) => (
-                <div key={item.username}>
+              {activeMembers.length ? activeMembers.slice(0, 5).map((item) => (
+                <div className="activeRow" key={item.username}>
                   <Avatar user={item} />
-                  <span><strong>{item.username}</strong><small>{index % 3 === 0 ? "Im Spiel" : "Online"}</small></span>
+                  <span><strong>{item.username}</strong><small>{item.status || "Online"}</small></span>
                   <b>{Math.max(1, Math.floor(Number(item.braincells || 0) / 120))}</b>
                 </div>
-              ))}
+              )) : <div className="activeEmpty">Gerade niemand online</div>}
             </div>
           </div>
           <div className="adminControlTeaser">
@@ -4287,6 +4288,20 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!user) return undefined;
+    let alive = true;
+    const touch = () => api("/api/presence", { method: "POST", body: "{}" }).catch(() => {});
+    touch();
+    const interval = window.setInterval(() => {
+      if (alive) touch();
+    }, 15000);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+    };
+  }, [user?.username]);
+
+  useEffect(() => {
     function syncPage() { setPageState(pageFromRoute()); }
     window.addEventListener("hashchange", syncPage);
     window.addEventListener("popstate", syncPage);
@@ -4313,7 +4328,7 @@ function App() {
   }, [page, user]);
 
   return (
-    <Shell page={page} setPage={setPage} user={user} onLogout={() => { setToken(""); setUser(null); setPage("home"); }}>
+    <Shell page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
       {content}
       <button className="supportFab" onClick={() => setPage("support")} type="button">Support</button>
     </Shell>

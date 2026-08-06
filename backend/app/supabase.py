@@ -41,6 +41,11 @@ class SupabaseClient:
         headers = {"Prefer": "return=representation" if returning else "return=minimal"}
         return self.request("POST", table, json=payload, headers=headers)
 
+    def upsert(self, table: str, payload: dict[str, Any], *, returning: bool = True) -> Any:
+        prefer = "resolution=merge-duplicates"
+        prefer += ",return=representation" if returning else ",return=minimal"
+        return self.request("POST", table, json=payload, headers={"Prefer": prefer})
+
     def patch(self, path: str, payload: dict[str, Any]) -> Any:
         return self.request("PATCH", path, json=payload, headers={"Prefer": "return=representation"})
 
