@@ -1000,6 +1000,7 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-4.mp3",
   ];
   const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, potions: 8, beams: 48, bombs: 22, wells: 8 };
+  const bossCooldownSeconds = 180;
 
   function makeObstacles() {
     const specs = [
@@ -1069,7 +1070,7 @@ function PeppleSurvivor({ user }) {
       level: 1,
       wave: 1,
       spawn: 0,
-      nextBossAt: 120,
+      nextBossAt: bossCooldownSeconds,
       bossActive: false,
       timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000, comfortRegen: 1000, potion: 4200 },
       weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
@@ -2832,9 +2833,9 @@ function PeppleSurvivor({ user }) {
         state.score += points;
         if (enemy.boss) {
           state.bossActive = false;
-          state.nextBossAt += Math.max(82, 116 - state.wave * 2);
+          state.nextBossAt = state.seconds + bossCooldownSeconds;
           state.hazards = [];
-          setMessage("Boss zerlegt. Der Schwarm kommt zurueck.");
+          setMessage("Boss zerlegt. Naechster Boss in 3 Minuten.");
           scorePopup(state, enemy.x, enemy.y, points, "#ffcf8a");
           alienBloodBurst(enemy.x, enemy.y, "#ff5f7c", 70, 1.25);
           burst(enemy.x, enemy.y, "#ff6fb7", 34);
