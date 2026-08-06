@@ -53,6 +53,13 @@ const gameMeta = {
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
 
+function routeParts() {
+  if (typeof window === "undefined") return [];
+  const hashParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (hashParts.length) return hashParts;
+  return window.location.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+}
+
 function useApi(path, fallback, reloadKey = 0) {
   const [data, setData] = useState(fallback);
   const [error, setError] = useState("");
@@ -3523,19 +3530,23 @@ function GameFrame({ meta, canvasRef, message, score, level, onStart, onSave, re
 }
 
 function GamesPage({ user }) {
-  const gameFromHash = () => {
-    const [, nextGame] = window.location.hash.replace("#", "").split("/");
+  const gameFromRoute = () => {
+    const [, nextGame] = routeParts();
     return gameMeta[nextGame] && nextGame !== "dnd" ? nextGame : "chicken-jump";
   };
-  const [game, setGameState] = useState(gameFromHash);
+  const [game, setGameState] = useState(gameFromRoute);
   function setGame(nextGame) {
     setGameState(nextGame);
-    window.history.replaceState(null, "", `#games/${nextGame}`);
+    window.history.replaceState(null, "", `/#games/${nextGame}`);
   }
   useEffect(() => {
-    function syncGame() { setGameState(gameFromHash()); }
+    function syncGame() { setGameState(gameFromRoute()); }
     window.addEventListener("hashchange", syncGame);
-    return () => window.removeEventListener("hashchange", syncGame);
+    window.addEventListener("popstate", syncGame);
+    return () => {
+      window.removeEventListener("hashchange", syncGame);
+      window.removeEventListener("popstate", syncGame);
+    };
   }, []);
   const current = {
     "chicken-jump": <ChickenJump user={user} />,
@@ -4208,16 +4219,16 @@ function EmptyLogin({ setPage }) {
 }
 
 function App() {
-  const pageFromHash = () => {
-    const next = window.location.hash.replace("#", "").split("/")[0];
+  const pageFromRoute = () => {
+    const [next] = routeParts();
     return nav.some((item) => item.id === next) || ["login", "support"].includes(next) ? next : "home";
   };
-  const [page, setPageState] = useState(pageFromHash);
+  const [page, setPageState] = useState(pageFromRoute);
   const [user, setUser] = useState(null);
 
   function setPage(next) {
     setPageState(next);
-    if (window.location.hash !== `#${next}`) window.history.replaceState(null, "", `#${next}`);
+    if (window.location.hash !== `#${next}`) window.history.replaceState(null, "", `/#${next}`);
   }
 
   useEffect(() => {
@@ -4225,9 +4236,13 @@ function App() {
   }, []);
 
   useEffect(() => {
-    function syncPage() { setPageState(pageFromHash()); }
+    function syncPage() { setPageState(pageFromRoute()); }
     window.addEventListener("hashchange", syncPage);
-    return () => window.removeEventListener("hashchange", syncPage);
+    window.addEventListener("popstate", syncPage);
+    return () => {
+      window.removeEventListener("hashchange", syncPage);
+      window.removeEventListener("popstate", syncPage);
+    };
   }, []);
 
   const content = useMemo(() => {
