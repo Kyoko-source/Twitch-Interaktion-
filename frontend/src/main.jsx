@@ -1596,29 +1596,72 @@ function PeppleSurvivor({ user }) {
   function drawPlayerFace(ctx, x, y, scale = 1) {
     const face = playerFaceRef.current;
     if (!face?.complete || !face.naturalWidth) return false;
+
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.shadowBlur = 16;
-    ctx.shadowColor = "rgba(255,207,138,.55)";
+
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "rgba(255,207,138,.48)";
+    const featherBase = ctx.createRadialGradient(0, 18, 6, 0, 13, 36);
+    featherBase.addColorStop(0, "#fff7dc");
+    featherBase.addColorStop(0.48, "#ffcf8a");
+    featherBase.addColorStop(1, "#8f573f");
+    ctx.fillStyle = featherBase;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 22, 25, 0, 0, Math.PI * 2);
-    ctx.clip();
-    const size = Math.min(face.naturalWidth, face.naturalHeight);
-    const sx = (face.naturalWidth - size) / 2;
-    const sy = Math.max(0, (face.naturalHeight - size) * 0.18);
-    ctx.drawImage(face, sx, sy, size, size, -24, -27, 48, 54);
+    ctx.ellipse(0, 17, 30, 19, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff4e9";
+    for (let i = -2; i <= 2; i += 1) {
+      ctx.beginPath();
+      ctx.ellipse(i * 10, 18 + Math.abs(i) * 2, 8, 18, i * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
 
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = "rgba(122,244,220,.78)";
-    ctx.lineWidth = 2.2;
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = "#7af4dc";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "rgba(255,207,138,.62)";
     ctx.beginPath();
-    ctx.ellipse(0, 0, 24, 27, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -2, 26, 30, 0, 0, Math.PI * 2);
+    ctx.clip();
+    const size = Math.min(face.naturalWidth, face.naturalHeight);
+    const sx = (face.naturalWidth - size) / 2;
+    const sy = Math.max(0, (face.naturalHeight - size) * 0.16);
+    ctx.drawImage(face, sx, sy, size, size, -30, -36, 60, 66);
+    ctx.globalCompositeOperation = "source-atop";
+    const shade = ctx.createLinearGradient(-24, -34, 24, 30);
+    shade.addColorStop(0, "rgba(255,244,233,.16)");
+    shade.addColorStop(0.45, "rgba(255,207,138,.04)");
+    shade.addColorStop(1, "rgba(40,8,18,.24)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(-31, -37, 62, 68);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "#7af4dc";
+    const glass = ctx.createRadialGradient(-11, -18, 3, 0, -3, 35);
+    glass.addColorStop(0, "rgba(255,255,255,.5)");
+    glass.addColorStop(0.28, "rgba(122,244,220,.16)");
+    glass.addColorStop(1, "rgba(122,244,220,.02)");
+    ctx.fillStyle = glass;
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 31, 34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(222,248,255,.88)";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 31, 34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.56)";
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.arc(-9, -16, 13, Math.PI * 1.05, Math.PI * 1.55);
     ctx.stroke();
     ctx.restore();
     return true;
@@ -1627,14 +1670,14 @@ function PeppleSurvivor({ user }) {
   function drawAstronautChicken(ctx, player, frame) {
     const bob = Math.sin(frame / 18) * 2;
     if (drawSprite(ctx, "chicken", player.x, player.y + bob, 72, 90, { shadowBlur: 34, shadowColor: player.invuln > 0 ? "#fff4e9" : "#ffcf8a" })) {
-      drawPlayerFace(ctx, player.x + 3, player.y + bob - 21, 0.66, frame);
+      drawPlayerFace(ctx, player.x + 4, player.y + bob - 22, 0.84, frame);
       ctx.save();
       ctx.strokeStyle = player.invuln > 0 ? "rgba(255,244,233,.9)" : "rgba(122,244,220,.48)";
       ctx.lineWidth = player.invuln > 0 ? 3.2 : 1.8;
       ctx.shadowBlur = 22;
       ctx.shadowColor = player.invuln > 0 ? "#fff4e9" : "#7af4dc";
       ctx.beginPath();
-      ctx.ellipse(player.x, player.y + bob - 9, 31 + Math.sin(frame / 11) * 1.6, 35, 0, 0, Math.PI * 2);
+      ctx.ellipse(player.x + 3, player.y + bob - 18, 31 + Math.sin(frame / 11) * 1.6, 36, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
       return;
