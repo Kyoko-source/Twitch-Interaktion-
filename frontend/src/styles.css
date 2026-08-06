@@ -2007,6 +2007,7 @@ textarea {
 .survivorStage {
   position: relative;
   padding: 12px;
+  isolation: isolate;
   border-radius: 8px;
   border: 1px solid rgba(223, 184, 255, 0.2);
   background:
@@ -2034,6 +2035,9 @@ textarea {
 }
 
 .survivorCanvas {
+  position: relative;
+  z-index: 1;
+  display: block;
   aspect-ratio: 16 / 9;
   min-height: clamp(540px, 58vh, 720px);
   border-color: rgba(255, 207, 138, 0.26);
@@ -2047,6 +2051,7 @@ textarea {
 .bloodEdge {
   pointer-events: none;
   position: absolute;
+  z-index: 2;
   inset: 12px;
   border-radius: 8px;
   opacity: var(--blood, 0);
@@ -2165,6 +2170,7 @@ textarea {
 
 .survivorMainMenu {
   position: absolute;
+  z-index: 5;
   inset: 12px;
   display: grid;
   place-content: center;
@@ -2184,6 +2190,7 @@ textarea {
 
 .levelUpOverlay {
   position: absolute;
+  z-index: 6;
   inset: 10px;
   display: grid;
   place-items: center;

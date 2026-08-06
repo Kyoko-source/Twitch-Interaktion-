@@ -57,7 +57,9 @@ function routeParts() {
   if (typeof window === "undefined") return [];
   const hashParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   if (hashParts.length) return hashParts;
-  return window.location.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+  const pathParts = window.location.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+  if (pathParts.length) window.history.replaceState(null, "", `/#${pathParts.join("/")}`);
+  return pathParts;
 }
 
 function useApi(path, fallback, reloadKey = 0) {
