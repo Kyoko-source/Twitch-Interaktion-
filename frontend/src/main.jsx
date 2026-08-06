@@ -964,7 +964,7 @@ function PeppleSurvivor({ user }) {
     "/assets/braincell-survivor-theme-4.mp3",
   ];
   const worldConfig = { width: 6200, height: 4200, spawnX: 3100, spawnY: 2100 };
-  const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, beams: 48, bombs: 22, wells: 8 };
+  const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, potions: 8, beams: 48, bombs: 22, wells: 8 };
 
   function makeObstacles() {
     const specs = [
@@ -1018,6 +1018,7 @@ function PeppleSurvivor({ user }) {
       camera: { x: worldConfig.spawnX - 640, y: worldConfig.spawnY - 360 },
       obstacles: makeObstacles(),
       gems: [],
+      potions: [],
       enemies: [],
       shots: [],
       bombs: [],
@@ -1035,7 +1036,7 @@ function PeppleSurvivor({ user }) {
       spawn: 0,
       nextBossAt: 120,
       bossActive: false,
-      timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000, comfortRegen: 1000 },
+      timers: { bolt: 0, nova: 2600, laser: 1600, egg: 900, drone: 640, thunder: 2100, gravity: 3200, regen: 1000, comfortRegen: 1000, potion: 4200 },
       weapons: { bolt: 1, orbit: 0, nova: 0, laser: 0, egg: 0, aura: 0, drone: 0, thunder: 0, frost: 0, gravity: 0, speed: 0, magnet: 0, shield: 0, regen: 0, might: 0, cooldown: 0 },
       over: false,
     };
@@ -1143,15 +1144,15 @@ function PeppleSurvivor({ user }) {
     const osc = ctxAudio.createOscillator();
     const gain = ctxAudio.createGain();
     const now = ctxAudio.currentTime;
-    const notes = { start: 196, pepple: 740, hit: 96, shot: 520, level: 980, laser: 1320, bomb: 86, thunder: 180, nova: 160, freeze: 1180, kill: 460 };
-    osc.type = ["hit", "bomb", "thunder"].includes(type) ? "sawtooth" : type === "shot" ? "square" : "triangle";
+    const notes = { start: 196, pepple: 740, hit: 96, shot: 520, level: 980, laser: 1320, bomb: 86, thunder: 180, nova: 160, freeze: 1180, kill: 460, heal: 880 };
+    osc.type = ["hit", "bomb", "thunder"].includes(type) ? "sawtooth" : type === "shot" ? "square" : type === "heal" ? "sine" : "triangle";
     osc.frequency.setValueAtTime(notes[type] || 360, now);
-    osc.frequency.exponentialRampToValueAtTime(["hit", "bomb", "thunder"].includes(type) ? 44 : (notes[type] || 360) * 1.48, now + 0.16);
-    gain.gain.setValueAtTime((type === "hit" ? 0.095 : type === "bomb" ? 0.075 : 0.045) * volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + (type === "bomb" ? 0.26 : 0.18));
+    osc.frequency.exponentialRampToValueAtTime(["hit", "bomb", "thunder"].includes(type) ? 44 : type === "heal" ? 1320 : (notes[type] || 360) * 1.48, now + 0.16);
+    gain.gain.setValueAtTime((type === "hit" ? 0.095 : type === "bomb" ? 0.075 : type === "heal" ? 0.065 : 0.045) * volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + (type === "bomb" ? 0.26 : type === "heal" ? 0.24 : 0.18));
     osc.connect(gain).connect(ctxAudio.destination);
     osc.start(now);
-    osc.stop(now + (type === "bomb" ? 0.28 : 0.2));
+    osc.stop(now + (type === "bomb" ? 0.28 : type === "heal" ? 0.26 : 0.2));
     if (["bomb", "nova", "thunder"].includes(type)) noise(type === "bomb" ? 0.22 : 0.11, type === "bomb" ? 0.04 : 0.022);
   }
 
@@ -1378,6 +1379,7 @@ function PeppleSurvivor({ user }) {
     state.shots = state.shots.filter((shot) => Number.isFinite(shot.x) && Number.isFinite(shot.y) && shot.life > 0).slice(-perfCaps.shots);
     state.hazards = state.hazards.filter((hazard) => hazard.life > 0).slice(-perfCaps.hazards);
     state.gems = state.gems.filter((gem) => finitePoint(gem) && distanceSq(gem.x, gem.y, player.x, player.y) < keepSq * 1.25).slice(-perfCaps.gems);
+    state.potions = state.potions.filter((potion) => finitePoint(potion) && potion.life > 0 && distanceSq(potion.x, potion.y, player.x, player.y) < keepSq * 1.45).slice(-perfCaps.potions);
     state.beams = state.beams.filter((beam) => beam.life > 0).slice(-perfCaps.beams);
     state.bombs = state.bombs.filter((bomb) => bomb.life > 0).slice(-perfCaps.bombs);
     state.wells = state.wells.filter((well) => well.life > 0).slice(-perfCaps.wells);
@@ -1427,6 +1429,19 @@ function PeppleSurvivor({ user }) {
     entity.y = clamp(entity.y, radius, world.height - radius);
   }
 
+  function roundedCanvasRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+  }
+
   function movePlayer(state, dx, dy) {
     const player = state.player;
     const radius = 24;
@@ -1437,6 +1452,29 @@ function PeppleSurvivor({ user }) {
     if (dy) {
       player.y += dy;
       pushOutOfObstacles(state, player, radius);
+    }
+  }
+
+  function spawnPotion(state, canvas) {
+    if (!state || state.potions.length >= perfCaps.potions) return;
+    const world = state.world || worldConfig;
+    const viewLeft = state.camera?.x ?? state.player.x - canvas.width / 2;
+    const viewTop = state.camera?.y ?? state.player.y - canvas.height / 2;
+    const margin = 90;
+    for (let attempt = 0; attempt < 22; attempt += 1) {
+      const nearView = attempt < 14;
+      const x = nearView
+        ? clamp(viewLeft + margin + Math.random() * Math.max(1, canvas.width - margin * 2), 42, world.width - 42)
+        : 42 + Math.random() * Math.max(1, world.width - 84);
+      const y = nearView
+        ? clamp(viewTop + margin + Math.random() * Math.max(1, canvas.height - margin * 2), 42, world.height - 42)
+        : 42 + Math.random() * Math.max(1, world.height - 84);
+      const tooClose = distanceSq(x, y, state.player.x, state.player.y) < 150 * 150;
+      const overlapsPotion = state.potions.some((potion) => distanceSq(x, y, potion.x, potion.y) < 95 * 95);
+      if (!tooClose && !overlapsPotion && !collidesObstacle(state, x, y, 26)) {
+        state.potions.push({ x, y, heal: 36, radius: 19, life: 36000, ttl: 36000, spin: Math.random() * Math.PI * 2 });
+        return;
+      }
     }
   }
 
@@ -2419,6 +2457,13 @@ function PeppleSurvivor({ user }) {
         for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
         state.spawn = Math.max(135, 780 - state.seconds * 5.4 + crowdPressure * 8);
       }
+
+      state.timers.potion -= dt;
+      if (state.timers.potion <= 0) {
+        spawnPotion(state, canvas);
+        const lowHealthBoost = state.player.hp < state.player.maxHp * 0.42 ? 0.52 : 1;
+        state.timers.potion = (12500 + Math.random() * 6500) * lowHealthBoost;
+      }
       compactSurvivorCollections(state, canvas);
 
       state.timers.bolt -= dt;
@@ -2778,6 +2823,22 @@ function PeppleSurvivor({ user }) {
         return true;
       });
 
+      state.potions = state.potions.filter((potion) => {
+        potion.life -= dt;
+        if (potion.life <= 0) return false;
+        const pickupRadius = (potion.radius || 19) + 23;
+        if (distanceSq(potion.x, potion.y, state.player.x, state.player.y) < pickupRadius * pickupRadius && state.player.hp < state.player.maxHp) {
+          const healed = Math.min(potion.heal || 36, state.player.maxHp - state.player.hp);
+          state.player.hp += healed;
+          scorePopup(state, potion.x, potion.y, Math.ceil(healed), "#5dff9a");
+          burst(potion.x, potion.y, "#5dff9a", 16);
+          pushRing(state, potion.x, potion.y, 76, 460, "#5dff9a");
+          sfx("heal");
+          return false;
+        }
+        return true;
+      });
+
       if (frame % 10 === 0) syncSnapshot(state);
     }
 
@@ -2806,6 +2867,53 @@ function PeppleSurvivor({ user }) {
     if (statusRef.current !== "menu") {
       (state.obstacles || []).forEach((obstacle) => drawObstacle(ctx, obstacle, frame));
     }
+
+    state.potions.forEach((potion) => {
+      const age = clamp(potion.life / Math.max(1, potion.ttl), 0, 1);
+      const pulse = Math.sin(frame / 10 + potion.spin) * 0.08 + 1;
+      ctx.save();
+      ctx.translate(potion.x, potion.y);
+      ctx.scale(pulse, pulse);
+      ctx.shadowBlur = 26;
+      ctx.shadowColor = "#5dff9a";
+      ctx.fillStyle = `rgba(93,255,154,${0.12 + age * 0.12})`;
+      ctx.beginPath();
+      ctx.arc(0, 4, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      const glass = ctx.createLinearGradient(-15, -24, 15, 24);
+      glass.addColorStop(0, "rgba(255,255,255,.95)");
+      glass.addColorStop(0.36, "rgba(172,255,216,.82)");
+      glass.addColorStop(1, "rgba(35,82,73,.78)");
+      ctx.fillStyle = glass;
+      ctx.strokeStyle = "rgba(239,255,248,.82)";
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      roundedCanvasRect(ctx, -13, -17, 26, 34, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      const liquid = ctx.createLinearGradient(0, 1, 0, 17);
+      liquid.addColorStop(0, "#ff547d");
+      liquid.addColorStop(0.55, "#ff1f55");
+      liquid.addColorStop(1, "#771640");
+      ctx.fillStyle = liquid;
+      ctx.beginPath();
+      roundedCanvasRect(ctx, -9, -2, 18, 17, 6);
+      ctx.fill();
+
+      ctx.fillStyle = "#fff7df";
+      ctx.fillRect(-7, -25, 14, 8);
+      ctx.fillStyle = "#ffcf8a";
+      ctx.fillRect(-9, -29, 18, 5);
+      ctx.strokeStyle = "rgba(255,255,255,.92)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-5, -11);
+      ctx.lineTo(3, -17);
+      ctx.stroke();
+      ctx.restore();
+    });
 
     state.gems.forEach((gem) => {
       const spin = frame / 18 + gem.spin;
