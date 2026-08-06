@@ -2651,6 +2651,7 @@ function PeppleSurvivor({ user }) {
         ctx.fillStyle = "rgba(3,5,12,.52)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawSprite(ctx, "chicken", canvas.width / 2 - 300, canvas.height * 0.56, 128, 162, { shadowBlur: 36, shadowColor: "#ffcf8a" });
+        drawPlayerFace(ctx, canvas.width / 2 - 293, canvas.height * 0.56 - 42, 1.16);
         drawSprite(ctx, "alienPink", canvas.width / 2 + 300, canvas.height * 0.54, 94, 106, { rotate: Math.sin(frame / 20) * 0.08, shadowBlur: 24, shadowColor: "#ff6fb7" });
         drawSprite(ctx, "alienGreen", canvas.width / 2 + 410, canvas.height * 0.61, 82, 88, { rotate: -0.14, shadowBlur: 20, shadowColor: "#7af4dc" });
         drawSprite(ctx, "alienGold", canvas.width / 2 + 178, canvas.height * 0.62, 88, 86, { rotate: 0.18, shadowBlur: 24, shadowColor: "#ffcf8a" });
