@@ -950,6 +950,7 @@ function PeppleSurvivor({ user }) {
   const stageRef = useRef(null);
   const bgRef = useRef(null);
   const spriteRef = useRef(null);
+  const obstacleArtRef = useRef(null);
   const titleRef = useRef(null);
   const playerArtRef = useRef(null);
   const playerFaceRef = useRef(null);
@@ -966,18 +967,34 @@ function PeppleSurvivor({ user }) {
 
   function makeObstacles() {
     const specs = [
-      [2420, 1810, 96, 58, "star", -0.4, 1.2, "#ffcf8a"],
-      [3760, 2320, 128, 78, "star", 0.2, 1.55, "#b46cff"],
-      [3090, 1320, 82, 50, "star", 1.1, 0.95, "#7af4dc"],
-      [1980, 2520, 154, 86, "wreck", -0.18, 1.4, "#826b62"],
-      [4420, 1680, 168, 94, "wreck", 0.42, 1.55, "#617387"],
-      [1220, 940, 116, 68, "star", 0.74, 1.25, "#ffe66d"],
-      [5060, 3180, 136, 80, "star", -0.9, 1.35, "#9bf6ff"],
-      [920, 3060, 112, 62, "ship", 0.16, 1.05, "#66798b"],
-      [5350, 760, 128, 72, "ship", -0.36, 1.2, "#8a6d75"],
-      [3340, 3380, 142, 82, "wreck", -0.72, 1.28, "#6b7486"],
-      [1580, 1580, 74, 44, "star", 0.55, 0.88, "#ff9f6e"],
-      [4640, 2640, 92, 54, "star", 1.35, 1.02, "#dfb8ff"],
+      [940, 760, 122, 55, "starAmber", -0.35, 1.04, "#ffcf8a"],
+      [1510, 1220, 92, 42, "mine", 0.14, 0.84, "#ff6fb7"],
+      [2190, 880, 132, 62, "shipScout", -0.2, 1.05, "#7af4dc"],
+      [2850, 1320, 108, 48, "starBlue", 0.82, 0.9, "#7af4dc"],
+      [3790, 920, 142, 65, "satellite", -0.5, 1.02, "#9bf6ff"],
+      [4940, 760, 128, 58, "mine", 0.52, 1.03, "#ff6fb7"],
+      [5450, 1310, 174, 76, "shipWreck", -0.38, 1.12, "#ff9f6e"],
+      [1220, 1940, 146, 66, "starAmber", 0.74, 1.18, "#ffe66d"],
+      [1980, 2520, 188, 82, "shipWreck", -0.18, 1.3, "#826b62"],
+      [2470, 1810, 108, 50, "starAmber", -0.4, 1.0, "#ffcf8a"],
+      [3650, 1610, 132, 58, "shipScout", 0.32, 1.03, "#7af4dc"],
+      [4150, 2160, 112, 51, "starBlue", 0.2, 0.96, "#b46cff"],
+      [4760, 2600, 100, 45, "mine", 1.2, 0.92, "#dfb8ff"],
+      [5360, 2190, 136, 62, "satellite", -0.86, 0.98, "#9bf6ff"],
+      [780, 3100, 154, 70, "shipScout", 0.16, 1.05, "#66798b"],
+      [1400, 3440, 104, 47, "starBlue", 0.62, 0.9, "#9bf6ff"],
+      [2120, 3320, 126, 57, "mine", -0.78, 0.96, "#ff6fb7"],
+      [2920, 3480, 162, 72, "satellite", 0.6, 1.1, "#7af4dc"],
+      [3640, 3220, 174, 78, "shipWreck", -0.72, 1.12, "#6b7486"],
+      [4380, 3440, 112, 50, "starAmber", 1.35, 0.94, "#dfb8ff"],
+      [5120, 3300, 150, 68, "starBlue", -0.9, 1.08, "#9bf6ff"],
+      [5700, 2860, 164, 72, "shipScout", 0.4, 1.05, "#7af4dc"],
+      [900, 2520, 112, 50, "mine", -0.2, 0.88, "#ff6fb7"],
+      [1700, 1680, 92, 42, "starAmber", 0.55, 0.78, "#ff9f6e"],
+      [3350, 2620, 126, 56, "starBlue", 1.1, 1.0, "#7af4dc"],
+      [4520, 1540, 186, 82, "shipWreck", 0.42, 1.22, "#617387"],
+      [5700, 1840, 110, 50, "starAmber", -0.65, 0.9, "#ffcf8a"],
+      [760, 1420, 146, 66, "satellite", 0.38, 1.0, "#9bf6ff"],
     ];
     return specs.map(([x, y, visualRadius, collisionRadius, type, rotation, scale, color], index) => ({
       id: `obstacle-${index}`,
@@ -1083,6 +1100,9 @@ function PeppleSurvivor({ user }) {
     const sprites = new Image();
     sprites.src = "/assets/pepple-survivor-sprites.png";
     spriteRef.current = sprites;
+    const obstacleArt = new Image();
+    obstacleArt.src = "/assets/survivor-obstacles-ai-v1.png?v=1";
+    obstacleArtRef.current = obstacleArt;
     const title = new Image();
     title.src = "/assets/pepple-survivor-title-flori-v2.png?v=2";
     titleRef.current = title;
@@ -1263,6 +1283,22 @@ function PeppleSurvivor({ user }) {
         color,
       });
     }
+  }
+
+  function scorePopup(state, x, y, points, color = "#ffcf8a") {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(points)) return;
+    state.particles.push({
+      type: "score",
+      text: `+${points}`,
+      x,
+      y: y - 18,
+      vx: (Math.random() - 0.5) * 0.9,
+      vy: -1.45 - Math.random() * 0.65,
+      life: 940,
+      ttl: 940,
+      size: points >= 100 ? 28 : points >= 30 ? 22 : 18,
+      color,
+    });
   }
 
   function damageMult(state) {
@@ -1516,6 +1552,15 @@ function PeppleSurvivor({ user }) {
     nova: { x: 1378, y: 760, w: 144, h: 160 },
   };
 
+  const obstacleSpriteMap = {
+    starAmber: { x: 0, y: 110, w: 418, h: 470, aspect: 1.0, glow: "#ffcf8a" },
+    starBlue: { x: 418, y: 122, w: 418, h: 452, aspect: 1.0, glow: "#7af4dc" },
+    shipScout: { x: 836, y: 158, w: 418, h: 326, aspect: 1.48, glow: "#7af4dc" },
+    shipWreck: { x: 0, y: 660, w: 418, h: 404, aspect: 1.42, glow: "#ff6fb7" },
+    satellite: { x: 418, y: 642, w: 418, h: 438, aspect: 1.1, glow: "#9bf6ff" },
+    mine: { x: 836, y: 650, w: 418, h: 438, aspect: 1.0, glow: "#ff6fb7" },
+  };
+
   function getSprite(name) {
     const sheet = spriteRef.current;
     if (!sheet?.complete || !sheet.naturalWidth) return null;
@@ -1537,6 +1582,28 @@ function PeppleSurvivor({ user }) {
     ctx.shadowBlur = options.shadowBlur ?? 0;
     ctx.shadowColor = options.shadowColor || "transparent";
     ctx.drawImage(sheet, rect.x, rect.y, rect.w, rect.h, -width / 2, -height / 2, width, height);
+    ctx.restore();
+    return true;
+  }
+
+  function drawObstacleSprite(ctx, obstacle, visualRadius, frame) {
+    const sheet = obstacleArtRef.current;
+    const rect = obstacleSpriteMap[obstacle.type];
+    if (!sheet?.complete || !sheet.naturalWidth || !rect) return false;
+    const pulse = 1 + Math.sin(frame / 45 + obstacle.x * 0.01) * 0.025;
+    const width = visualRadius * 2 * (rect.aspect || 1) * pulse;
+    const height = visualRadius * 2 * pulse;
+    if (![width, height].every(Number.isFinite) || width <= 0 || height <= 0) return false;
+    ctx.save();
+    ctx.shadowBlur = obstacle.type.includes("star") ? 42 : 30;
+    ctx.shadowColor = rect.glow || obstacle.color;
+    ctx.drawImage(sheet, rect.x, rect.y, rect.w, rect.h, -width / 2, -height / 2, width, height);
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = rect.glow || obstacle.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, obstacle.collisionRadius || obstacle.radius || 40, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
     return true;
   }
@@ -2029,9 +2096,13 @@ function PeppleSurvivor({ user }) {
     ctx.translate(obstacle.x, obstacle.y);
     ctx.rotate(obstacle.rotation + Math.sin(frame / 160 + obstacle.x) * 0.015);
     ctx.scale(obstacle.scale || 1, obstacle.scale || 1);
+    if (drawObstacleSprite(ctx, obstacle, visualRadius, frame)) {
+      ctx.restore();
+      return;
+    }
     ctx.shadowBlur = obstacle.type === "star" ? 46 : 32;
     ctx.shadowColor = obstacle.type === "ship" ? "#7af4dc" : obstacle.type === "wreck" ? "#ff6fb7" : obstacle.color;
-    if (obstacle.type === "ship" || obstacle.type === "wreck") {
+    if (obstacle.type.includes("ship") || obstacle.type.includes("Wreck") || obstacle.type === "satellite") {
       const length = visualRadius * 1.6;
       const height = visualRadius * 0.7;
       const hull = ctx.createLinearGradient(-length * 0.75, -height * 0.45, length * 0.7, height * 0.38);
@@ -2564,8 +2635,9 @@ function PeppleSurvivor({ user }) {
 
       state.enemies = state.enemies.filter((enemy) => {
         if (enemy.hp > 0) return true;
+        const points = enemy.boss ? 900 : enemy.elite ? 32 : 12;
         state.kills += 1;
-        state.score += enemy.boss ? 900 : enemy.elite ? 32 : 12;
+        state.score += points;
         if (enemy.boss) {
           state.bossActive = false;
           state.nextBossAt += 120;
@@ -2573,6 +2645,7 @@ function PeppleSurvivor({ user }) {
           setMessage("Boss zerlegt. Der Schwarm kommt zurueck.");
         }
         state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.boss ? 150 : enemy.elite ? 18 : 8, spin: Math.random() * 7 });
+        scorePopup(state, enemy.x, enemy.y, points, enemy.boss ? "#ffcf8a" : enemy.elite ? "#b46cff" : "#7af4dc");
         alienBloodBurst(enemy.x, enemy.y, enemy.boss ? "#ff5f7c" : enemy.tint || "#9cff4a", enemy.boss ? 70 : enemy.elite ? 24 : 14, enemy.boss ? 1.25 : 0.9);
         burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.boss ? 34 : enemy.elite ? 18 : 10);
         return false;
@@ -2611,7 +2684,7 @@ function PeppleSurvivor({ user }) {
     });
     state.particles = state.particles
       .filter((particle) => Number.isFinite(particle.x) && Number.isFinite(particle.y) && Number.isFinite(particle.life) && Number.isFinite(particle.ttl) && particle.ttl > 0 && particle.life > 0 && (!particle.ring || Number.isFinite(particle.max)) && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4)
-      .slice(-260);
+      .slice(-360);
 
     const cameraX = statusRef.current === "menu" ? 0 : (state.camera?.x || 0);
     const cameraY = statusRef.current === "menu" ? 0 : (state.camera?.y || 0);
@@ -2803,6 +2876,25 @@ function PeppleSurvivor({ user }) {
         ctx.arc(particle.x, particle.y, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
+      } else if (particle.type === "score") {
+        const alpha = clamp(particle.life / particle.ttl, 0, 1);
+        const lift = 1 - alpha;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = `950 ${particle.size || 18}px Inter, Arial, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(6, 4, 16, 0.78)";
+        ctx.shadowBlur = 24;
+        ctx.shadowColor = particle.color;
+        ctx.strokeText(particle.text || "+0", particle.x, particle.y - lift * 16);
+        ctx.fillStyle = particle.color;
+        ctx.fillText(particle.text || "+0", particle.x, particle.y - lift * 16);
+        ctx.fillStyle = "rgba(255,244,233,0.88)";
+        ctx.font = `850 ${Math.max(10, (particle.size || 18) * 0.48)}px Inter, Arial, sans-serif`;
+        ctx.fillText("PTS", particle.x, particle.y + (particle.size || 18) * 0.68 - lift * 16);
+        ctx.restore();
       } else {
         ctx.fillStyle = particle.color;
         ctx.shadowBlur = particle.type === "slime" ? 12 : 0;
