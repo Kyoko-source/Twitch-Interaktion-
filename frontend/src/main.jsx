@@ -1301,6 +1301,86 @@ function PeppleSurvivor({ user }) {
     });
   }
 
+  function fireEnemyOrb(state, enemy, speed = 4.2, color = "#ff6fb7", spread = 0) {
+    const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x) + spread;
+    state.hazards.push({
+      type: "orb",
+      x: enemy.x,
+      y: enemy.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: enemy.boss ? 18 : enemy.elite ? 13 : 10,
+      life: enemy.boss ? 2400 : 1800,
+      ttl: enemy.boss ? 2400 : 1800,
+      damage: enemy.boss ? 16 : enemy.elite ? 10 : 7,
+      color,
+    });
+  }
+
+  function spawnBossMinions(state, canvas, boss, amount = 4) {
+    const world = state.world || worldConfig;
+    for (let i = 0; i < amount; i += 1) {
+      const angle = i / amount * Math.PI * 2 + state.seconds;
+      const x = clamp(boss.x + Math.cos(angle) * (120 + Math.random() * 90), 24, world.width - 24);
+      const y = clamp(boss.y + Math.sin(angle) * (120 + Math.random() * 90), 24, world.height - 24);
+      if (collidesObstacle(state, x, y, 18)) continue;
+      state.enemies.push({
+        x,
+        y,
+        hp: 30 * (1 + state.wave * 0.18),
+        maxHp: 30 * (1 + state.wave * 0.18),
+        speed: 1.42 + state.wave * 0.04,
+        radius: 14,
+        elite: false,
+        boss: false,
+        variant: ["pink", "blue", "gold"][i % 3],
+        wobble: Math.random() * 8,
+        tint: i % 2 ? "#ffcf8a" : "#ff6fb7",
+        archetype: i % 2 ? "charger" : "shooter",
+        ability: 520 + i * 160,
+        charge: 0,
+      });
+    }
+    burst(boss.x, boss.y, "#b46cff", 22);
+    pushRing(state, boss.x, boss.y, 190, 520, "#b46cff");
+  }
+
+  function bossAttack(state, canvas, boss) {
+    const pattern = Math.floor(state.seconds * 1.35 + state.wave) % 5;
+    if (pattern === 0) {
+      state.hazards.push({ type: "ring", x: boss.x, y: boss.y, radius: 28, max: 340, life: 1280, ttl: 1280, damage: 22, hit: false, color: "#ff6fb7" });
+      state.hazards.push({ type: "ring", x: state.player.x, y: state.player.y, radius: 18, max: 190, life: 920, ttl: 920, damage: 16, hit: false, color: "#ffcf8a" });
+      boss.phase = 1.4;
+      pushRing(state, boss.x, boss.y, 260, 520, "#ff6fb7");
+    } else if (pattern === 1) {
+      for (let i = 0; i < 12; i += 1) {
+        const angle = i / 12 * Math.PI * 2 + state.seconds;
+        state.hazards.push({ type: "orb", x: boss.x, y: boss.y, vx: Math.cos(angle) * 3.5, vy: Math.sin(angle) * 3.5, radius: 15, life: 2300, ttl: 2300, damage: 13, color: i % 2 ? "#ffcf8a" : "#b46cff" });
+      }
+      burst(boss.x, boss.y, "#ffcf8a", 28);
+    } else if (pattern === 2) {
+      const base = Math.atan2(state.player.y - boss.y, state.player.x - boss.x);
+      for (let i = -1; i <= 1; i += 1) {
+        const angle = base + i * 0.34;
+        const length = Math.max(canvas.width, canvas.height) * 1.08;
+        state.hazards.push({ type: "beam", x1: boss.x, y1: boss.y, x2: boss.x + Math.cos(angle) * length, y2: boss.y + Math.sin(angle) * length, life: 840, ttl: 840, damage: 18, width: 24, color: i === 0 ? "#ffcf8a" : "#7af4dc", hit: false });
+      }
+      pushRing(state, boss.x, boss.y, 150, 360, "#7af4dc");
+    } else if (pattern === 3) {
+      for (let i = 0; i < 7; i += 1) {
+        const ox = (Math.random() - 0.5) * canvas.width * 0.85;
+        const oy = (Math.random() - 0.5) * canvas.height * 0.65;
+        state.hazards.push({ type: "meteor", x: state.player.x + ox, y: state.player.y + oy, radius: 34 + Math.random() * 18, life: 1150 + i * 70, ttl: 1150 + i * 70, damage: 15, color: i % 2 ? "#ff6fb7" : "#ffcf8a", hit: false, exploded: false });
+      }
+      sfx("bomb");
+    } else {
+      spawnBossMinions(state, canvas, boss, 5 + Math.min(3, Math.floor(state.wave / 4)));
+    }
+    boss.rage = 520;
+    boss.ability = Math.max(860, 1700 - Math.min(620, state.wave * 34));
+    sfx(pattern === 3 ? "bomb" : "thunder");
+  }
+
   function damageMult(state) {
     return 1 + state.weapons.might * 0.18;
   }
@@ -1471,28 +1551,30 @@ function PeppleSurvivor({ user }) {
     state.hazards = [];
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.min(canvas.width, canvas.height) * 0.58;
-    const waveScale = 1 + state.wave * 0.26;
+    const waveScale = 1 + state.wave * 0.34;
     const world = state.world || worldConfig;
     const bossX = clamp(state.player.x + Math.cos(angle) * distance, 70, world.width - 70);
     const bossY = clamp(state.player.y + Math.sin(angle) * distance, 70, world.height - 70);
     state.enemies.push({
       x: bossX,
       y: bossY,
-      hp: 520 * waveScale,
-      maxHp: 520 * waveScale,
-      speed: 0.62 + state.wave * 0.035,
-      radius: 62,
+      hp: 780 * waveScale,
+      maxHp: 780 * waveScale,
+      speed: 0.76 + state.wave * 0.045,
+      radius: 68,
       elite: true,
       boss: true,
       variant: "boss",
       wobble: Math.random() * 8,
       tint: "#ffcf8a",
-      ability: 2600,
+      ability: 900,
       phase: 0,
+      rage: 0,
     });
     state.bossActive = true;
-    setMessage("BOSSALARM. Alle kleinen Aliens sind weg. Nur du gegen das Vieh.");
-    pushRing(state, state.player.x, state.player.y, 460, 760, "#ffcf8a");
+    setMessage("BOSSALARM. Das Vieh geht jetzt komplett steil.");
+    pushRing(state, state.player.x, state.player.y, 560, 980, "#ffcf8a");
+    pushRing(state, bossX, bossY, 340, 820, "#ff6fb7");
     sfx("nova");
   }
 
@@ -1517,20 +1599,36 @@ function PeppleSurvivor({ user }) {
       }
     }
     if (!edge) edge = { x: clamp(state.player.x + 420, 24, world.width - 24), y: clamp(state.player.y, 24, world.height - 24) };
-    const elite = Math.random() < Math.min(0.26, state.seconds / 190);
-    const waveScale = 1 + state.wave * 0.16;
+    const elite = Math.random() < Math.min(0.34, 0.04 + state.seconds / 155);
+    const waveScale = 1 + state.wave * 0.21;
     const variants = ["green", "pink", "blue", "gold"];
+    const roll = Math.random();
+    const archetype = elite
+      ? (roll < 0.28 ? "tank" : roll < 0.56 ? "shooter" : roll < 0.78 ? "charger" : "leech")
+      : (roll < 0.2 ? "shooter" : roll < 0.42 ? "charger" : roll < 0.58 ? "splitter" : roll < 0.72 ? "leech" : "hunter");
+    const tuning = {
+      hunter: { hp: 20, speed: 1.45, radius: 12, tint: "#ff6fb7", ability: 0 },
+      charger: { hp: 24, speed: 1.55, radius: 13, tint: "#ffcf8a", ability: 950 },
+      shooter: { hp: 26, speed: 0.92, radius: 14, tint: "#7af4dc", ability: 1250 },
+      splitter: { hp: 22, speed: 1.25, radius: 13, tint: "#b46cff", ability: 0 },
+      leech: { hp: 28, speed: 1.18, radius: 14, tint: "#9cff4a", ability: 0 },
+      tank: { hp: 68, speed: 0.74, radius: 22, tint: "#b46cff", ability: 1450 },
+    }[archetype];
+    const eliteBoost = elite ? 1.42 : 1;
     state.enemies.push({
       ...edge,
-      hp: elite ? 44 * waveScale : 18 * waveScale,
-      maxHp: elite ? 44 * waveScale : 18 * waveScale,
-      speed: (elite ? 0.88 : 1.36) + state.wave * 0.055,
-      radius: elite ? 19 : 12,
+      hp: tuning.hp * waveScale * eliteBoost,
+      maxHp: tuning.hp * waveScale * eliteBoost,
+      speed: tuning.speed + state.wave * 0.065,
+      radius: elite ? Math.max(19, tuning.radius + 4) : tuning.radius,
       elite,
       boss: false,
       variant: elite ? "elite" : variants[Math.floor(Math.random() * variants.length)],
       wobble: Math.random() * 8,
-      tint: elite ? "#b46cff" : "#ff6fb7",
+      tint: elite ? tuning.tint : tuning.tint,
+      archetype,
+      ability: tuning.ability + Math.random() * 550,
+      charge: 0,
     });
   }
 
@@ -1777,6 +1875,39 @@ function PeppleSurvivor({ user }) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y + bob);
     ctx.rotate(Math.sin(frame / 22 + enemy.wobble) * 0.08);
+    if (enemy.boss) {
+      const rageAlpha = enemy.rage > 0 ? 0.6 : 0.34;
+      ctx.save();
+      ctx.globalAlpha = rageAlpha;
+      ctx.strokeStyle = enemy.rage > 0 ? "#ffcf8a" : "#ff6fb7";
+      ctx.lineWidth = enemy.rage > 0 ? 5 : 3;
+      ctx.shadowBlur = 38;
+      ctx.shadowColor = enemy.rage > 0 ? "#ffcf8a" : "#ff6fb7";
+      for (let i = 0; i < 3; i += 1) {
+        ctx.rotate(frame / (140 + i * 45));
+        ctx.beginPath();
+        ctx.ellipse(0, 0, enemy.radius * (1.25 + i * 0.22), enemy.radius * (0.58 + i * 0.1), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (enemy.archetype && enemy.archetype !== "hunter") {
+      ctx.save();
+      ctx.globalAlpha = enemy.charge > 0 ? 0.68 : 0.38;
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = enemy.elite ? 3 : 2;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.radius * (enemy.archetype === "tank" ? 1.55 : 1.28), 0, Math.PI * 2);
+      ctx.stroke();
+      if (enemy.archetype === "shooter") {
+        ctx.beginPath();
+        ctx.moveTo(-enemy.radius * 0.7, -enemy.radius * 1.45);
+        ctx.lineTo(enemy.radius * 0.7, -enemy.radius * 1.45);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     if (enemy.slow > 0) {
       ctx.globalAlpha = 0.34;
       ctx.fillStyle = "#9bf6ff";
@@ -1798,6 +1929,17 @@ function PeppleSurvivor({ user }) {
         ctx.fillRect(enemy.x - enemy.radius * 1.35, enemy.y - spriteH * 0.58, enemy.radius * 2.7, 4);
         ctx.fillStyle = glow;
         ctx.fillRect(enemy.x - enemy.radius * 1.35, enemy.y - spriteH * 0.58, enemy.radius * 2.7 * pct, 4);
+        ctx.restore();
+      }
+      if (enemy.boss) {
+        ctx.save();
+        ctx.globalAlpha = 0.74;
+        ctx.fillStyle = "#ffcf8a";
+        ctx.font = "950 12px Inter, Arial";
+        ctx.textAlign = "center";
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = "#ff6fb7";
+        ctx.fillText("BOSS", enemy.x, enemy.y - spriteH * 0.66);
         ctx.restore();
       }
       return;
@@ -2320,9 +2462,9 @@ function PeppleSurvivor({ user }) {
 
       state.spawn -= dt;
       if (!state.bossActive && state.spawn <= 0) {
-        const count = 1 + Math.floor(Math.min(3, Math.max(0, state.wave - 2) / 4));
+        const count = 1 + Math.floor(Math.min(5, Math.max(0, state.wave - 1) / 3));
         for (let i = 0; i < count; i += 1) spawnEnemy(state, canvas);
-        state.spawn = Math.max(170, 900 - state.seconds * 5.4);
+        state.spawn = Math.max(115, 780 - state.seconds * 6.2);
       }
 
       state.timers.bolt -= dt;
@@ -2468,33 +2610,62 @@ function PeppleSurvivor({ user }) {
         const dy = state.player.y - enemy.y;
         const dist = Math.max(1, Math.hypot(dx, dy));
         enemy.slow = Math.max(0, (enemy.slow || 0) - dt);
+        enemy.ability = Math.max(0, (enemy.ability || 0) - dt);
+        enemy.charge = Math.max(0, (enemy.charge || 0) - dt);
+        enemy.rage = Math.max(0, (enemy.rage || 0) - dt);
         const enemySpeed = enemy.speed * (enemy.slow > 0 ? 0.48 : 1);
-        const bossRush = enemy.boss && enemy.phase === 1 ? 2.1 : 1;
-        enemy.x += (dx / dist * enemySpeed * bossRush + Math.sin(state.seconds * 3 + enemy.wobble) * (enemy.boss ? 0.5 : 0.22)) * (dt / 16);
-        enemy.y += (dy / dist * enemySpeed * bossRush + Math.cos(state.seconds * 2 + enemy.wobble) * (enemy.boss ? 0.4 : 0.16)) * (dt / 16);
+        const bossRush = enemy.boss && enemy.phase > 0 ? 2.35 : 1;
+        let moveX = dx / dist * enemySpeed * bossRush;
+        let moveY = dy / dist * enemySpeed * bossRush;
+        if (enemy.archetype === "shooter" && dist < 260) {
+          moveX *= -0.46;
+          moveY *= -0.46;
+        }
+        if (enemy.archetype === "tank" && enemy.ability <= 0) {
+          enemy.hp = Math.min(enemy.maxHp, enemy.hp + 8);
+          enemy.ability = 1550;
+          pushRing(state, enemy.x, enemy.y, 74, 360, "#b46cff");
+        }
+        if (enemy.archetype === "shooter" && enemy.ability <= 0) {
+          fireEnemyOrb(state, enemy, enemy.elite ? 4.8 : 4.1, enemy.elite ? "#7af4dc" : "#ff6fb7");
+          if (enemy.elite) {
+            fireEnemyOrb(state, enemy, 4.5, "#b46cff", -0.2);
+            fireEnemyOrb(state, enemy, 4.5, "#b46cff", 0.2);
+          }
+          enemy.ability = Math.max(820, 1700 - state.wave * 45);
+          sfx("laser");
+        }
+        if (enemy.archetype === "charger" && enemy.ability <= 0 && dist < 420) {
+          enemy.charge = 460;
+          enemy.chargeX = dx / dist;
+          enemy.chargeY = dy / dist;
+          enemy.ability = Math.max(900, 2300 - state.wave * 55);
+          pushRing(state, enemy.x, enemy.y, 86, 360, "#ffcf8a");
+        }
+        if (enemy.charge > 0 && Number.isFinite(enemy.chargeX) && Number.isFinite(enemy.chargeY)) {
+          moveX = enemy.chargeX * enemySpeed * 2.8;
+          moveY = enemy.chargeY * enemySpeed * 2.8;
+          if (frame % 3 === 0) burst(enemy.x, enemy.y, "#ffcf8a", 2);
+        }
+        enemy.x += (moveX + Math.sin(state.seconds * 3 + enemy.wobble) * (enemy.boss ? 0.72 : 0.24)) * (dt / 16);
+        enemy.y += (moveY + Math.cos(state.seconds * 2 + enemy.wobble) * (enemy.boss ? 0.58 : 0.18)) * (dt / 16);
         pushOutOfObstacles(state, enemy, enemy.radius);
         if (enemy.boss) {
-          enemy.ability -= dt;
-          enemy.phase = Math.max(0, enemy.phase - dt / 900);
+          enemy.phase = Math.max(0, enemy.phase - dt / 620);
+          if (frame % 8 === 0) {
+            burst(enemy.x + Math.sin(frame / 9) * 54, enemy.y + Math.cos(frame / 11) * 38, enemy.rage > 0 ? "#ffcf8a" : "#ff6fb7", 3);
+          }
           if (enemy.ability <= 0) {
-            const pattern = Math.floor(state.seconds / 2) % 3;
-            if (pattern === 0) {
-              state.hazards.push({ type: "ring", x: enemy.x, y: enemy.y, radius: 28, max: 240, life: 1350, ttl: 1350, damage: 16, hit: false, color: "#ff6fb7" });
-              enemy.phase = 1;
-            } else if (pattern === 1) {
-              for (let i = 0; i < 3; i += 1) {
-                const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x) + (i - 1) * 0.28;
-                state.hazards.push({ type: "orb", x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 4.4, vy: Math.sin(angle) * 4.4, radius: 16, life: 2100, ttl: 2100, damage: 12, color: i === 1 ? "#ffcf8a" : "#b46cff" });
-              }
-            } else {
-              state.hazards.push({ type: "beam", x1: enemy.x, y1: enemy.y, x2: state.player.x, y2: state.player.y, life: 760, ttl: 760, damage: 15, width: 20, color: "#ffcf8a", hit: false });
-            }
-            enemy.ability = 2600 - Math.min(700, state.wave * 28);
-            sfx("thunder");
+            bossAttack(state, canvas, enemy);
           }
         }
         if (dist < enemy.radius + 18 && state.player.invuln <= 0) {
-          state.player.hp -= Math.max(3, (enemy.boss ? 18 : enemy.elite ? 12 : 8) - state.weapons.shield * 2.2);
+          const contactDamage = enemy.boss ? 24 : enemy.archetype === "tank" ? 15 : enemy.archetype === "leech" ? 11 : enemy.elite ? 13 : 9;
+          state.player.hp -= Math.max(3, contactDamage - state.weapons.shield * 2.2);
+          if (enemy.archetype === "leech") {
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + 8);
+            burst(enemy.x, enemy.y, "#9cff4a", 8);
+          }
           state.player.invuln = enemy.boss ? 980 : 820;
           burst(state.player.x, state.player.y, "#ff6fb7", 14);
           sfx("hit");
@@ -2610,6 +2781,18 @@ function PeppleSurvivor({ user }) {
             hazard.hit = true;
             burst(state.player.x, state.player.y, "#ffcf8a", 16);
           }
+        } else if (hazard.type === "meteor") {
+          const progress = 1 - hazard.life / hazard.ttl;
+          if (!hazard.exploded && progress > 0.64) {
+            hazard.exploded = true;
+            pushRing(state, hazard.x, hazard.y, hazard.radius * 2.8, 520, hazard.color);
+            burst(hazard.x, hazard.y, hazard.color, 24);
+            if (Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y) < hazard.radius * 1.55 && state.player.invuln <= 0) {
+              state.player.hp -= Math.max(5, hazard.damage - state.weapons.shield * 2);
+              state.player.invuln = 820;
+              burst(state.player.x, state.player.y, "#ffcf8a", 18);
+            }
+          }
         }
       });
       state.hazards = state.hazards.filter((hazard) => hazard.life > 0);
@@ -2633,6 +2816,7 @@ function PeppleSurvivor({ user }) {
         }
       }
 
+      const spawnedOnDeath = [];
       state.enemies = state.enemies.filter((enemy) => {
         if (enemy.hp > 0) return true;
         const points = enemy.boss ? 900 : enemy.elite ? 32 : 12;
@@ -2640,9 +2824,32 @@ function PeppleSurvivor({ user }) {
         state.score += points;
         if (enemy.boss) {
           state.bossActive = false;
-          state.nextBossAt += 120;
+          state.nextBossAt += Math.max(82, 116 - state.wave * 2);
           state.hazards = [];
           setMessage("Boss zerlegt. Der Schwarm kommt zurueck.");
+        }
+        if (enemy.archetype === "splitter" && !enemy.splitChild) {
+          for (let i = 0; i < 2; i += 1) {
+            const angle = enemy.wobble + i * Math.PI;
+            spawnedOnDeath.push({
+              x: enemy.x + Math.cos(angle) * 28,
+              y: enemy.y + Math.sin(angle) * 28,
+              hp: 11 * (1 + state.wave * 0.12),
+              maxHp: 11 * (1 + state.wave * 0.12),
+              speed: 1.72 + state.wave * 0.04,
+              radius: 9,
+              elite: false,
+              boss: false,
+              variant: "pink",
+              wobble: Math.random() * 8,
+              tint: "#b46cff",
+              archetype: "hunter",
+              splitChild: true,
+              ability: 0,
+              charge: 0,
+            });
+          }
+          pushRing(state, enemy.x, enemy.y, 92, 380, "#b46cff");
         }
         state.gems.push({ x: enemy.x, y: enemy.y, value: enemy.boss ? 150 : enemy.elite ? 18 : 8, spin: Math.random() * 7 });
         scorePopup(state, enemy.x, enemy.y, points, enemy.boss ? "#ffcf8a" : enemy.elite ? "#b46cff" : "#7af4dc");
@@ -2650,6 +2857,7 @@ function PeppleSurvivor({ user }) {
         burst(enemy.x, enemy.y, enemy.elite ? "#b46cff" : "#ff6fb7", enemy.boss ? 34 : enemy.elite ? 18 : 10);
         return false;
       });
+      if (spawnedOnDeath.length) state.enemies.push(...spawnedOnDeath);
 
       state.enemies = state.enemies.filter((enemy) => enemy.boss || Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.15);
 
@@ -2833,6 +3041,30 @@ function PeppleSurvivor({ user }) {
         ctx.moveTo(hazard.x1, hazard.y1);
         ctx.lineTo(hazard.x2, hazard.y2);
         ctx.stroke();
+      } else if (hazard.type === "meteor") {
+        const progress = 1 - alpha;
+        const warnRadius = hazard.radius * (1.8 - progress * 0.5);
+        ctx.strokeStyle = `rgba(255,244,233,${0.22 + progress * 0.45})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(hazard.x, hazard.y, warnRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = hazard.color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(hazard.x, hazard.y, hazard.radius * (0.7 + progress * 0.5), 0, Math.PI * 2);
+        ctx.stroke();
+        if (!hazard.exploded) {
+          ctx.fillStyle = hazard.color;
+          ctx.globalAlpha = Math.min(1, 0.22 + progress * 0.55);
+          ctx.beginPath();
+          ctx.moveTo(hazard.x - 10, hazard.y - 90 + progress * 62);
+          ctx.lineTo(hazard.x + 10, hazard.y - 90 + progress * 62);
+          ctx.lineTo(hazard.x + 4, hazard.y - 8);
+          ctx.lineTo(hazard.x - 4, hazard.y - 8);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
       ctx.restore();
     });
