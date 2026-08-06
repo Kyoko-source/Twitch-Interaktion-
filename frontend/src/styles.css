@@ -2045,6 +2045,57 @@ textarea {
   transition: opacity 0.22s ease;
 }
 
+.criticalHealthWarning {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  width: min(760px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  padding: 18px 24px;
+  border: 4px solid #fff4e9;
+  border-radius: 8px;
+  background: rgba(180, 0, 28, 0.88);
+  color: #fff4e9;
+  font-size: clamp(34px, 6vw, 78px);
+  font-weight: 1000;
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow:
+    0 4px 0 rgba(40, 0, 6, 0.85),
+    0 0 26px rgba(255, 255, 255, 0.7),
+    0 0 48px rgba(255, 0, 42, 0.95);
+  box-shadow:
+    0 0 0 9999px rgba(170, 0, 30, 0.2),
+    0 0 48px rgba(255, 0, 50, 0.95),
+    inset 0 0 24px rgba(255, 255, 255, 0.34);
+  animation: criticalHealthFlash 0.46s steps(2, end) infinite;
+}
+
+@keyframes criticalHealthFlash {
+  0% {
+    background: rgba(190, 0, 32, 0.96);
+    color: #fff4e9;
+    border-color: #fff4e9;
+    filter: saturate(1.4);
+  }
+  50% {
+    background: rgba(255, 244, 233, 0.96);
+    color: #b00022;
+    border-color: #ff173e;
+    filter: saturate(1.8) brightness(1.14);
+  }
+  100% {
+    background: rgba(190, 0, 32, 0.96);
+    color: #fff4e9;
+    border-color: #fff4e9;
+    filter: saturate(1.4);
+  }
+}
+
 .survivorMainMenu {
   position: absolute;
   inset: 12px;

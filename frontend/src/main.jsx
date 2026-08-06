@@ -953,6 +953,7 @@ function PeppleSurvivor({ user }) {
   const titleRef = useRef(null);
   const playerArtRef = useRef(null);
   const playerFaceRef = useRef(null);
+  const criticalAlarmRef = useRef(0);
   const audioRef = useRef({ ctx: null, nextBeat: 0 });
   const statusRef = useRef("menu");
   const musicPlaylist = [
@@ -1131,6 +1132,26 @@ function PeppleSurvivor({ user }) {
     osc.start(now);
     osc.stop(now + (type === "bomb" ? 0.28 : 0.2));
     if (["bomb", "nova", "thunder"].includes(type)) noise(type === "bomb" ? 0.22 : 0.11, type === "bomb" ? 0.04 : 0.022);
+  }
+
+  function criticalAlarm() {
+    const ctxAudio = audio();
+    if (!ctxAudio) return;
+    const now = ctxAudio.currentTime;
+    for (let i = 0; i < 4; i += 1) {
+      const osc = ctxAudio.createOscillator();
+      const gain = ctxAudio.createGain();
+      const startAt = now + i * 0.18;
+      osc.type = "square";
+      osc.frequency.setValueAtTime(i % 2 ? 590 : 920, startAt);
+      osc.frequency.exponentialRampToValueAtTime(i % 2 ? 720 : 520, startAt + 0.12);
+      gain.gain.setValueAtTime(0.001, startAt);
+      gain.gain.linearRampToValueAtTime(0.11 * volume, startAt + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.145);
+      osc.connect(gain).connect(ctxAudio.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.16);
+    }
   }
 
   function noise(duration = 0.1, level = 0.02) {
@@ -2806,6 +2827,18 @@ function PeppleSurvivor({ user }) {
   const healthPct = Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100));
   const xpPct = Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100));
   const bloodIntensity = status === "play" || status === "paused" || status === "levelup" ? Math.max(0, Math.min(1, (55 - healthPct) / 55)) : 0;
+  const criticalHealth = status === "play" && healthPct > 0 && healthPct <= 20;
+
+  useEffect(() => {
+    if (!criticalHealth) {
+      if (status !== "play" || healthPct > 28) criticalAlarmRef.current = 0;
+      return;
+    }
+    const now = performance.now();
+    if (now - criticalAlarmRef.current < 4200) return;
+    criticalAlarmRef.current = now;
+    criticalAlarm();
+  }, [criticalHealth, healthPct, status, audioOn, volume]);
 
   return (
     <section className="survivorFrame survivorComplete" style={{ "--game-accent": gameMeta["braincell-survivor"].accent }}>
@@ -2862,6 +2895,7 @@ function PeppleSurvivor({ user }) {
         />
         <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="1280" height="720" />
         <div className="bloodEdge" aria-hidden="true" />
+        {criticalHealth && <div className="criticalHealthWarning" aria-live="assertive">Leben Kritisch!</div>}
         {status === "menu" && (
           <div className="survivorMainMenu">
             <button onClick={start} type="button"><Gamepad2 size={19} /> Spiel starten</button>
