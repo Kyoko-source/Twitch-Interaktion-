@@ -1325,7 +1325,7 @@ function PeppleSurvivor({ user }) {
       for (let i = -1; i <= 1; i += 1) {
         const angle = base + i * 0.34;
         const length = Math.max(canvas.width, canvas.height) * 1.08;
-        state.hazards.push({ type: "beam", x1: boss.x, y1: boss.y, x2: boss.x + Math.cos(angle) * length, y2: boss.y + Math.sin(angle) * length, life: 840, ttl: 840, damage: 18, width: 24, color: i === 0 ? "#ffcf8a" : "#7af4dc", hit: false });
+        state.hazards.push({ type: "beam", x1: boss.x, y1: boss.y, x2: boss.x + Math.cos(angle) * length, y2: boss.y + Math.sin(angle) * length, life: 980, ttl: 980, warmup: 430, damage: 16, width: 18, hitWidth: 10, color: i === 0 ? "#ffcf8a" : "#7af4dc", hit: false });
       }
       pushRing(state, boss.x, boss.y, 150, 360, "#7af4dc");
     } else if (pattern === 3) {
@@ -1336,10 +1336,10 @@ function PeppleSurvivor({ user }) {
       }
       sfx("bomb");
     } else {
-      for (let i = 0; i < 8; i += 1) {
-        const angle = i / 8 * Math.PI * 2 + state.seconds * 0.8;
+      for (let i = 0; i < 6; i += 1) {
+        const angle = i / 6 * Math.PI * 2 + state.seconds * 0.8;
         const length = Math.max(canvas.width, canvas.height) * 0.86;
-        state.hazards.push({ type: "beam", x1: boss.x, y1: boss.y, x2: boss.x + Math.cos(angle) * length, y2: boss.y + Math.sin(angle) * length, life: 520, ttl: 520, damage: 13, width: 16, color: i % 2 ? "#b46cff" : "#ff6fb7", hit: false });
+        state.hazards.push({ type: "beam", x1: boss.x, y1: boss.y, x2: boss.x + Math.cos(angle) * length, y2: boss.y + Math.sin(angle) * length, life: 820, ttl: 820, warmup: 360, damage: 12, width: 14, hitWidth: 8, color: i % 2 ? "#b46cff" : "#ff6fb7", hit: false });
       }
       pushRing(state, boss.x, boss.y, 420, 720, "#b46cff");
       burst(boss.x, boss.y, "#b46cff", 30);
@@ -2741,13 +2741,16 @@ function PeppleSurvivor({ user }) {
             burst(state.player.x, state.player.y, hazard.color, 12);
           }
         } else if (hazard.type === "beam") {
+          const elapsed = hazard.ttl - hazard.life;
+          const beamArmed = elapsed >= (hazard.warmup || 0);
           const vx = hazard.x2 - hazard.x1;
           const vy = hazard.y2 - hazard.y1;
           const lenBeam = Math.max(1, Math.hypot(vx, vy));
           const t = Math.max(0, Math.min(1, ((state.player.x - hazard.x1) * vx + (state.player.y - hazard.y1) * vy) / (lenBeam * lenBeam)));
           const px = hazard.x1 + vx * t;
           const py = hazard.y1 + vy * t;
-          if (!hazard.hit && Math.hypot(state.player.x - px, state.player.y - py) < hazard.width && state.player.invuln <= 0) {
+          const hitWidth = hazard.hitWidth || Math.max(7, (hazard.width || 12) * 0.55);
+          if (beamArmed && !hazard.hit && Math.hypot(state.player.x - px, state.player.y - py) < hitWidth && state.player.invuln <= 0) {
             state.player.hp -= Math.max(4, hazard.damage - state.weapons.shield * 2);
             state.player.invuln = 820;
             hazard.hit = true;
@@ -3044,19 +3047,39 @@ function PeppleSurvivor({ user }) {
         ctx.arc(hazard.x, hazard.y, hazard.radius, 0, Math.PI * 2);
         ctx.fill();
       } else if (hazard.type === "beam") {
+        const elapsed = hazard.ttl - hazard.life;
+        const warmup = hazard.warmup || 0;
+        const armed = elapsed >= warmup;
+        const charge = warmup ? clamp(elapsed / warmup, 0, 1) : 1;
         ctx.lineCap = "round";
-        ctx.strokeStyle = `rgba(255,207,138,${alpha * 0.32})`;
-        ctx.lineWidth = hazard.width * 2.4;
+        ctx.strokeStyle = armed ? `rgba(255,207,138,${alpha * 0.26})` : `rgba(244,220,255,${0.12 + charge * 0.32})`;
+        ctx.lineWidth = armed ? hazard.width * 1.55 : Math.max(3, hazard.width * 0.62 + charge * 5);
         ctx.beginPath();
         ctx.moveTo(hazard.x1, hazard.y1);
         ctx.lineTo(hazard.x2, hazard.y2);
         ctx.stroke();
-        ctx.strokeStyle = `rgba(255,244,233,${alpha * 0.88})`;
-        ctx.lineWidth = 5;
+        ctx.strokeStyle = armed ? `rgba(255,244,233,${alpha * 0.86})` : `rgba(180,108,255,${0.42 + charge * 0.34})`;
+        ctx.lineWidth = armed ? Math.max(3, hazard.hitWidth || 5) : 2.4;
         ctx.beginPath();
         ctx.moveTo(hazard.x1, hazard.y1);
         ctx.lineTo(hazard.x2, hazard.y2);
         ctx.stroke();
+        if (!armed) {
+          const cueGap = 34;
+          const dx = hazard.x2 - hazard.x1;
+          const dy = hazard.y2 - hazard.y1;
+          const len = Math.max(1, Math.hypot(dx, dy));
+          const nx = dx / len;
+          const ny = dy / len;
+          ctx.strokeStyle = `rgba(255,255,255,${0.24 + charge * 0.36})`;
+          ctx.lineWidth = 1.6;
+          ctx.setLineDash([12, 18]);
+          ctx.beginPath();
+          ctx.moveTo(hazard.x1 + nx * cueGap, hazard.y1 + ny * cueGap);
+          ctx.lineTo(hazard.x2 - nx * cueGap, hazard.y2 - ny * cueGap);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       } else if (hazard.type === "meteor") {
         const progress = 1 - alpha;
         const warnRadius = hazard.radius * (1.8 - progress * 0.5);
