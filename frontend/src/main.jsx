@@ -936,20 +936,31 @@ function PeppleSurvivor({ user }) {
 
   function makeObstacles() {
     const specs = [
-      [2420, 1810, 92, "asteroid", -0.4, 1.2, "#9d7466"],
-      [3760, 2320, 118, "asteroid", 0.2, 1.55, "#746078"],
-      [3090, 1320, 78, "asteroid", 1.1, 0.95, "#6c7a8d"],
-      [1980, 2520, 138, "wreck", -0.18, 1.4, "#826b62"],
-      [4420, 1680, 152, "wreck", 0.42, 1.55, "#617387"],
-      [1220, 940, 110, "asteroid", 0.74, 1.25, "#82645f"],
-      [5060, 3180, 130, "asteroid", -0.9, 1.35, "#5d6e82"],
-      [920, 3060, 96, "ship", 0.16, 1.05, "#66798b"],
-      [5350, 760, 112, "ship", -0.36, 1.2, "#8a6d75"],
-      [3340, 3380, 122, "wreck", -0.72, 1.28, "#6b7486"],
-      [1580, 1580, 72, "asteroid", 0.55, 0.88, "#a07864"],
-      [4640, 2640, 84, "asteroid", 1.35, 1.02, "#765f7c"],
+      [2420, 1810, 96, 58, "star", -0.4, 1.2, "#ffcf8a"],
+      [3760, 2320, 128, 78, "star", 0.2, 1.55, "#b46cff"],
+      [3090, 1320, 82, 50, "star", 1.1, 0.95, "#7af4dc"],
+      [1980, 2520, 154, 86, "wreck", -0.18, 1.4, "#826b62"],
+      [4420, 1680, 168, 94, "wreck", 0.42, 1.55, "#617387"],
+      [1220, 940, 116, 68, "star", 0.74, 1.25, "#ffe66d"],
+      [5060, 3180, 136, 80, "star", -0.9, 1.35, "#9bf6ff"],
+      [920, 3060, 112, 62, "ship", 0.16, 1.05, "#66798b"],
+      [5350, 760, 128, 72, "ship", -0.36, 1.2, "#8a6d75"],
+      [3340, 3380, 142, 82, "wreck", -0.72, 1.28, "#6b7486"],
+      [1580, 1580, 74, 44, "star", 0.55, 0.88, "#ff9f6e"],
+      [4640, 2640, 92, 54, "star", 1.35, 1.02, "#dfb8ff"],
     ];
-    return specs.map(([x, y, radius, type, rotation, scale, color], index) => ({ id: `obstacle-${index}`, x, y, radius, type, rotation, scale, color }));
+    return specs.map(([x, y, visualRadius, collisionRadius, type, rotation, scale, color], index) => ({
+      id: `obstacle-${index}`,
+      x,
+      y,
+      visualRadius,
+      collisionRadius,
+      radius: collisionRadius,
+      type,
+      rotation,
+      scale,
+      color,
+    }));
   }
 
   function makeSurvivorState() {
@@ -1178,8 +1189,12 @@ function PeppleSurvivor({ user }) {
     return Math.min(max, Math.max(min, value));
   }
 
+  function obstacleHitRadius(obstacle) {
+    return (obstacle.collisionRadius || obstacle.radius) * (obstacle.scale || 1);
+  }
+
   function collidesObstacle(state, x, y, radius = 16) {
-    return (state.obstacles || []).some((obstacle) => Math.hypot(x - obstacle.x, y - obstacle.y) < obstacle.radius + radius);
+    return (state.obstacles || []).some((obstacle) => Math.hypot(x - obstacle.x, y - obstacle.y) < obstacleHitRadius(obstacle) + radius);
   }
 
   function segmentHitsObstacle(state, x1, y1, x2, y2, padding = 0) {
@@ -1190,7 +1205,7 @@ function PeppleSurvivor({ user }) {
       const t = clamp(((obstacle.x - x1) * vx + (obstacle.y - y1) * vy) / lenSq, 0, 1);
       const px = x1 + vx * t;
       const py = y1 + vy * t;
-      return Math.hypot(obstacle.x - px, obstacle.y - py) < obstacle.radius + padding;
+      return Math.hypot(obstacle.x - px, obstacle.y - py) < obstacleHitRadius(obstacle) + padding;
     });
   }
 
@@ -1203,7 +1218,7 @@ function PeppleSurvivor({ user }) {
       const dx = entity.x - obstacle.x;
       const dy = entity.y - obstacle.y;
       const dist = Math.max(0.001, Math.hypot(dx, dy));
-      const minDist = obstacle.radius + radius;
+      const minDist = obstacleHitRadius(obstacle) + radius;
       if (dist < minDist) {
         entity.x = obstacle.x + (dx / dist) * minDist;
         entity.y = obstacle.y + (dy / dist) * minDist;
@@ -1752,46 +1767,92 @@ function PeppleSurvivor({ user }) {
   }
 
   function drawObstacle(ctx, obstacle, frame) {
+    const visualRadius = obstacle.visualRadius || obstacle.radius;
+    const collisionRadius = obstacle.collisionRadius || obstacle.radius;
     ctx.save();
     ctx.translate(obstacle.x, obstacle.y);
     ctx.rotate(obstacle.rotation + Math.sin(frame / 160 + obstacle.x) * 0.015);
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = obstacle.type === "ship" ? "#7af4dc" : "rgba(255,207,138,.45)";
+    ctx.scale(obstacle.scale || 1, obstacle.scale || 1);
+    ctx.shadowBlur = obstacle.type === "star" ? 46 : 32;
+    ctx.shadowColor = obstacle.type === "ship" ? "#7af4dc" : obstacle.type === "wreck" ? "#ff6fb7" : obstacle.color;
     if (obstacle.type === "ship" || obstacle.type === "wreck") {
-      const length = obstacle.radius * 1.55;
-      const height = obstacle.radius * 0.72;
-      ctx.fillStyle = obstacle.color;
+      const length = visualRadius * 1.6;
+      const height = visualRadius * 0.7;
+      const hull = ctx.createLinearGradient(-length * 0.75, -height * 0.45, length * 0.7, height * 0.38);
+      hull.addColorStop(0, "#d7e8ff");
+      hull.addColorStop(0.18, obstacle.color);
+      hull.addColorStop(0.6, "#243141");
+      hull.addColorStop(1, obstacle.type === "wreck" ? "#3d1825" : "#132b35");
+      ctx.fillStyle = hull;
       ctx.beginPath();
       ctx.moveTo(length * 0.7, 0);
       ctx.lineTo(length * 0.18, -height * 0.48);
       ctx.lineTo(-length * 0.58, -height * 0.32);
-      ctx.lineTo(-length * 0.75, height * 0.1);
+      ctx.lineTo(-length * 0.82, height * 0.08);
       ctx.lineTo(-length * 0.34, height * 0.46);
       ctx.lineTo(length * 0.46, height * 0.32);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(255,244,233,.42)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,244,233,.58)";
+      ctx.lineWidth = 3.2;
       ctx.stroke();
-      ctx.fillStyle = "rgba(122,244,220,.34)";
-      ctx.fillRect(-length * 0.16, -height * 0.14, length * 0.34, height * 0.18);
-      ctx.strokeStyle = "rgba(255,111,183,.36)";
-      ctx.lineWidth = 5;
+
+      const cockpit = ctx.createRadialGradient(length * 0.16, -height * 0.06, 2, length * 0.16, -height * 0.06, height * 0.34);
+      cockpit.addColorStop(0, "#effff8");
+      cockpit.addColorStop(0.4, "#7af4dc");
+      cockpit.addColorStop(1, "rgba(122,244,220,.08)");
+      ctx.fillStyle = cockpit;
       ctx.beginPath();
-      ctx.moveTo(-length * 0.62, height * 0.1);
-      ctx.lineTo(-length * 0.92, height * 0.22);
+      ctx.ellipse(length * 0.1, -height * 0.08, length * 0.18, height * 0.18, 0.12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = obstacle.type === "wreck" ? "rgba(255,111,183,.55)" : "rgba(122,244,220,.52)";
+      ctx.lineWidth = 4;
+      for (let i = 0; i < 3; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(-length * 0.5 + i * length * 0.22, -height * 0.22);
+        ctx.lineTo(-length * 0.36 + i * length * 0.2, height * 0.28);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = obstacle.type === "wreck" ? "rgba(255,111,183,.48)" : "rgba(255,207,138,.72)";
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.78, -height * 0.14);
+      ctx.lineTo(-length * 1.02, 0);
+      ctx.lineTo(-length * 0.78, height * 0.14);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = obstacle.type === "wreck" ? "rgba(255,111,183,.28)" : "rgba(122,244,220,.26)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, collisionRadius, collisionRadius * 0.52, 0, 0, Math.PI * 2);
       ctx.stroke();
     } else {
-      const points = 11;
-      const grd = ctx.createRadialGradient(-obstacle.radius * 0.25, -obstacle.radius * 0.32, 8, 0, 0, obstacle.radius * 1.25);
-      grd.addColorStop(0, "#d3a786");
-      grd.addColorStop(0.46, obstacle.color);
-      grd.addColorStop(1, "#24131b");
-      ctx.fillStyle = grd;
+      const points = 10;
+      const pulse = 1 + Math.sin(frame / 36 + obstacle.x) * 0.04;
+      const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, visualRadius * 1.35);
+      glow.addColorStop(0, "rgba(255,244,233,.92)");
+      glow.addColorStop(0.24, obstacle.color);
+      glow.addColorStop(0.58, "rgba(180,108,255,.3)");
+      glow.addColorStop(1, "rgba(122,244,220,0)");
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      for (let i = 0; i < points; i += 1) {
-        const a = i / points * Math.PI * 2;
-        const r = obstacle.radius * (0.78 + ((i * 37) % 29) / 100);
+      ctx.arc(0, 0, visualRadius * 1.12 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      const crystal = ctx.createLinearGradient(-visualRadius, -visualRadius, visualRadius, visualRadius);
+      crystal.addColorStop(0, "#fff4e9");
+      crystal.addColorStop(0.32, obstacle.color);
+      crystal.addColorStop(0.72, "#7af4dc");
+      crystal.addColorStop(1, "#2a102d");
+      ctx.fillStyle = crystal;
+      ctx.beginPath();
+      for (let i = 0; i < points * 2; i += 1) {
+        const a = i / (points * 2) * Math.PI * 2;
+        const r = i % 2 === 0 ? visualRadius * 0.82 : visualRadius * 0.34;
         const x = Math.cos(a) * r;
         const y = Math.sin(a) * r;
         if (i === 0) ctx.moveTo(x, y);
@@ -1799,14 +1860,32 @@ function PeppleSurvivor({ user }) {
       }
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(255,244,233,.32)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,244,233,.78)";
+      ctx.lineWidth = 2.8;
       ctx.stroke();
-      ctx.fillStyle = "rgba(255,244,233,.16)";
+
+      ctx.strokeStyle = "rgba(255,244,233,.32)";
+      ctx.lineWidth = 1.4;
+      for (let i = 0; i < 4; i += 1) {
+        ctx.rotate(Math.PI / 4);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, visualRadius * 0.96, visualRadius * 0.18, frame / 180, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#fff4e9";
       ctx.beginPath();
-      ctx.arc(-obstacle.radius * 0.25, -obstacle.radius * 0.18, obstacle.radius * 0.16, 0, Math.PI * 2);
-      ctx.arc(obstacle.radius * 0.22, obstacle.radius * 0.12, obstacle.radius * 0.12, 0, Math.PI * 2);
+      ctx.arc(-visualRadius * 0.16, -visualRadius * 0.18, visualRadius * 0.08, 0, Math.PI * 2);
+      ctx.arc(visualRadius * 0.18, visualRadius * 0.1, visualRadius * 0.06, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,244,233,.28)";
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = obstacle.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, collisionRadius, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.restore();
   }
