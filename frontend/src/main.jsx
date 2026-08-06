@@ -1216,7 +1216,9 @@ function PeppleSurvivor({ user }) {
 
   function pushRing(state, x, y, radius, life, color) {
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || !Number.isFinite(life)) return;
-    state.particles.push({ ring: true, x, y, vx: 0, vy: 0, max: radius, life, ttl: life, color });
+    const safeRadius = clamp(radius, 1, 760);
+    const safeLife = clamp(life, 60, 2200);
+    state.particles.push({ ring: true, x, y, vx: 0, vy: 0, max: safeRadius, life: safeLife, ttl: safeLife, color });
   }
 
   function alienBloodBurst(x, y, color = "#9cff4a", amount = 12, force = 1) {
@@ -2226,15 +2228,18 @@ function PeppleSurvivor({ user }) {
 
       state.timers.nova -= dt;
       if (state.weapons.nova && state.timers.nova <= 0) {
-        const radius = 150 + state.weapons.nova * 26;
+        const radius = clamp(150 + state.weapons.nova * 26, 80, 420);
+        const damage = (22 + state.weapons.nova * 8) * damageMult(state);
         state.enemies.forEach((enemy) => {
+          if (!finitePoint(enemy) || !Number.isFinite(enemy.hp)) return;
           const dist = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
           if (dist < radius) {
-            enemy.hp -= (22 + state.weapons.nova * 8) * damageMult(state);
+            enemy.hp -= damage;
             const dx = (enemy.x - state.player.x) / Math.max(1, dist);
             const dy = (enemy.y - state.player.y) / Math.max(1, dist);
             enemy.x += dx * 22;
             enemy.y += dy * 22;
+            pushOutOfObstacles(state, enemy, enemy.radius || 14);
           }
         });
         pushRing(state, state.player.x, state.player.y, radius, 420, "#ff6fb7");
@@ -2475,12 +2480,14 @@ function PeppleSurvivor({ user }) {
     state.particles.forEach((particle) => {
       particle.vx = Number.isFinite(particle.vx) ? particle.vx : 0;
       particle.vy = Number.isFinite(particle.vy) ? particle.vy : 0;
+      particle.ttl = Number.isFinite(particle.ttl) && particle.ttl > 0 ? particle.ttl : 1;
+      if (particle.ring) particle.max = Number.isFinite(particle.max) && particle.max > 0 ? clamp(particle.max, 1, 760) : 1;
       particle.x += particle.vx * (dt / 16);
       particle.y += particle.vy * (dt / 16);
       particle.life -= dt;
     });
     state.particles = state.particles
-      .filter((particle) => Number.isFinite(particle.x) && Number.isFinite(particle.y) && Number.isFinite(particle.life) && particle.life > 0 && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4)
+      .filter((particle) => Number.isFinite(particle.x) && Number.isFinite(particle.y) && Number.isFinite(particle.life) && Number.isFinite(particle.ttl) && particle.ttl > 0 && particle.life > 0 && (!particle.ring || Number.isFinite(particle.max)) && Math.hypot(particle.x - state.player.x, particle.y - state.player.y) < Math.max(canvas.width, canvas.height) * 1.4)
       .slice(-260);
 
     const cameraX = statusRef.current === "menu" ? 0 : (state.camera?.x || 0);
@@ -2660,14 +2667,17 @@ function PeppleSurvivor({ user }) {
     }
 
     state.particles.forEach((particle) => {
-      ctx.globalAlpha = Math.max(0, particle.life / particle.ttl);
+      if (!Number.isFinite(particle.x) || !Number.isFinite(particle.y) || !Number.isFinite(particle.life) || !Number.isFinite(particle.ttl) || particle.ttl <= 0) return;
+      ctx.globalAlpha = clamp(particle.life / particle.ttl, 0, 1);
       if (particle.ring) {
+        if (!Number.isFinite(particle.max) || particle.max <= 0) return;
+        const ringRadius = clamp(particle.max * (1 - particle.life / particle.ttl), 1, 780);
         ctx.strokeStyle = particle.color;
         ctx.lineWidth = 3;
         ctx.shadowBlur = 22;
         ctx.shadowColor = particle.color;
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.max * (1 - particle.life / particle.ttl), 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
       } else {
