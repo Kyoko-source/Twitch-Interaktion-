@@ -94,6 +94,16 @@ class ScoreCreate(BaseModel):
     build: str = ""
 
 
+class GalleryCreate(BaseModel):
+    title: str = Field(default="Ohne Titel", max_length=120)
+    image_data: str = Field(max_length=1600000)
+
+
+class GalleryReaction(BaseModel):
+    art_id: str
+    emoji: str = Field(max_length=8)
+
+
 class NewsCreate(BaseModel):
     title: str = Field(max_length=140)
     body: str = Field(max_length=2500)
@@ -472,7 +482,63 @@ def signup(payload: EventSignup, user: dict[str, Any] = Depends(current_user)) -
 
 @app.get("/api/gallery")
 def gallery() -> list[dict[str, Any]]:
-    return rows("creative_gallery?select=*&order=created_at.desc&limit=60")
+    items = rows("creative_gallery?select=*&order=created_at.desc&limit=60")
+    reactions = rows("creative_gallery_reactions?select=art_id,username,emoji,created_at&order=created_at.desc&limit=1000")
+    by_art: dict[str, dict[str, int]] = {}
+    user_reactions: dict[str, dict[str, str]] = {}
+    for reaction in reactions:
+        art_id = str(reaction.get("art_id") or "")
+        emoji = str(reaction.get("emoji") or "")
+        username = str(reaction.get("username") or "")
+        if not art_id or not emoji:
+            continue
+        by_art.setdefault(art_id, {})
+        by_art[art_id][emoji] = by_art[art_id].get(emoji, 0) + 1
+        if username:
+            user_reactions.setdefault(art_id, {})[username] = emoji
+    return [
+        {
+            **item,
+            "reactions": by_art.get(str(item.get("id") or ""), {}),
+            "user_reactions": user_reactions.get(str(item.get("id") or ""), {}),
+        }
+        for item in items
+    ]
+
+
+@app.post("/api/gallery")
+def save_gallery_art(payload: GalleryCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    image_data = payload.image_data.strip()
+    if not image_data.startswith("data:image/png;base64,"):
+        raise HTTPException(status_code=400, detail="Bitte ein gemaltes PNG-Bild speichern")
+    title = payload.title.strip() or "Ohne Titel"
+    supabase().upsert(
+        "creative_gallery?on_conflict=username",
+        {
+            "username": str(user["username"]),
+            "title": title,
+            "image_data": image_data,
+            "created_at": datetime.now().isoformat(),
+        },
+        returning=False,
+    )
+    return {"message": "Dein Bild ist jetzt in der Hall of Fame."}
+
+
+@app.post("/api/gallery/reactions")
+def react_gallery_art(payload: GalleryReaction, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    emoji = payload.emoji.strip()
+    if emoji not in {"😍", "😂", "🔥", "💜", "👏"}:
+        raise HTTPException(status_code=400, detail="Diese Reaktion gibt es nicht")
+    art_id = quote(payload.art_id.strip())
+    if not rows(f"creative_gallery?id=eq.{art_id}&limit=1"):
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden")
+    supabase().upsert(
+        "creative_gallery_reactions?on_conflict=art_id,username",
+        {"art_id": payload.art_id, "username": str(user["username"]), "emoji": emoji},
+        returning=False,
+    )
+    return {"message": "Reaktion gespeichert."}
 
 
 @app.get("/api/systematics")
