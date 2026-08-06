@@ -16,7 +16,9 @@ from .supabase import supabase
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
+USER_ROLES = {"admin", "moderator", "vip", "member"}
 SYSTEMATICS_FILE = Path("/data/systematics.json")
+USER_ROLES_FILE = Path("/data/user_roles.json")
 
 app = FastAPI(title="Aviary API")
 settings = get_settings()
@@ -75,6 +77,11 @@ class PointsUpdate(BaseModel):
     username: str
     chickens_delta: int = 0
     braincells_delta: int = 0
+
+
+class RoleUpdate(BaseModel):
+    username: str
+    role: str
 
 
 class ScoreCreate(BaseModel):
@@ -186,7 +193,36 @@ def single_user(username: str) -> dict[str, Any] | None:
 
 def public_user(user: dict[str, Any]) -> dict[str, Any]:
     hidden = {"password_hash", "approval_code_hash"}
-    return {key: value for key, value in user.items() if key not in hidden}
+    public = {key: value for key, value in user.items() if key not in hidden}
+    public["role"] = user_role(str(public.get("username") or ""), public.get("role"))
+    return public
+
+
+def normalize_role(role: Any) -> str:
+    value = str(role or "member").strip().lower()
+    return value if value in USER_ROLES else "member"
+
+
+def load_user_roles() -> dict[str, str]:
+    try:
+        if not USER_ROLES_FILE.exists():
+            return {}
+        data = json.loads(USER_ROLES_FILE.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        return {str(username): normalize_role(role) for username, role in data.items()}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_user_roles(roles: dict[str, str]) -> None:
+    USER_ROLES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    USER_ROLES_FILE.write_text(json.dumps(roles, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def user_role(username: str, fallback: Any = None) -> str:
+    stored = load_user_roles().get(username)
+    return stored or normalize_role(fallback)
 
 
 def rank_name(points: int) -> str:
@@ -511,6 +547,23 @@ def admin_points(payload: PointsUpdate) -> dict[str, str]:
         },
     )
     return {"message": "Punkte aktualisiert."}
+
+
+@app.post("/api/admin/role", dependencies=[Depends(require_admin)])
+def admin_role(payload: RoleUpdate) -> dict[str, str]:
+    username = clean_username(payload.username)
+    role = normalize_role(payload.role)
+    user = single_user(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User nicht gefunden")
+    roles = load_user_roles()
+    roles[username] = role
+    save_user_roles(roles)
+    try:
+        supabase().patch(f"users?username=eq.{quote(username)}", {"role": role})
+    except HTTPException:
+        pass
+    return {"message": "Rolle aktualisiert."}
 
 
 @app.post("/api/admin/registration/{request_id}/approve", dependencies=[Depends(require_admin)])

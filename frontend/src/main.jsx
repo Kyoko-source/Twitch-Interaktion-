@@ -53,6 +53,24 @@ const gameMeta = {
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
 
+const roleMeta = {
+  admin: { label: "Admin", color: "#ff3048" },
+  moderator: { label: "Moderator", color: "#ff4fc3" },
+  vip: { label: "VIP", color: "#a855ff" },
+  member: { label: "Mitglied", color: "#4ade80" },
+};
+
+function userRole(user) {
+  const role = String(user?.role || "member").toLowerCase();
+  return roleMeta[role] ? role : "member";
+}
+
+function RoleBadge({ user, role }) {
+  const key = roleMeta[role] ? role : userRole(user);
+  const meta = roleMeta[key];
+  return <span className="roleBadge" style={{ "--role": meta.color }}>{meta.label}</span>;
+}
+
 function routeParts() {
   if (typeof window === "undefined") return [];
   const hashParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
@@ -111,6 +129,7 @@ function Shell({ page, setPage, user, onLogout, children }) {
         </div>
         <div className="account">
           <span>{user ? `Eingeloggt als ${user.username}` : "Nicht eingeloggt"}</span>
+          {user && <RoleBadge user={user} />}
           {user ? (
             <button className="iconButton" onClick={onLogout} title="Logout" type="button">
               <LogOut size={18} />
@@ -199,6 +218,7 @@ function HomePage({ user, setPage }) {
         <div className="heroCopy">
           <p className="kicker">Willkommen zurueck</p>
           <h1>{user?.username || "magical_kyoko_"}</h1>
+          {user && <RoleBadge user={user} />}
           <p>Gemeinsam wachsen, gemeinsam glaenzen. Dein Aviary-Dashboard fuer Games, Rewards und Community-Energie.</p>
           <div className="levelStrip">
             <div><span>Level</span><strong>{user ? Math.max(1, Math.floor(Number(user.braincells || 0) / 140) + 1) : 27}</strong></div>
@@ -383,6 +403,7 @@ function ProfilePage({ user, setUser, setPage }) {
         <div>
           <p className="kicker">Profilzentrum</p>
           <h1>{user.username}</h1>
+          <RoleBadge user={user} />
           <p>{user.bio || "Noch keine Bio eingetragen."}</p>
         </div>
         <div className="heroPanel compact">
@@ -453,6 +474,7 @@ function MembersPage() {
           <div>
             <span className="rank">#1 im Schwarm</span>
             <h2>{top.username}</h2>
+            <RoleBadge user={top} />
             <p>{top.favorite_game ? `Lieblingsspiel: ${top.favorite_game}` : "Lieblingsspiel noch geheim."}</p>
           </div>
           <strong>{top.braincells || 0} Pepples</strong>
@@ -467,6 +489,7 @@ function MembersPage() {
             <span className="rank">#{data.findIndex((entry) => entry.username === member.username) + 1 || index + 1}</span>
             <Avatar user={member} />
             <h3>{member.username}</h3>
+            <RoleBadge user={member} />
             <p>{member.favorite_game || "Kein Lieblingsspiel gesetzt"}</p>
             <div className="miniStats">
               <span>{member.braincells || 0} Pepples</span>
@@ -504,6 +527,7 @@ function LeaderboardPage() {
               <span>#{rank}</span>
               <Avatar user={item} />
               <strong>{item.username}</strong>
+              <RoleBadge user={item} />
               <small>{item.rank_name} · {item.braincells || 0} Pepples</small>
             </article>
           );
@@ -516,7 +540,7 @@ function LeaderboardPage() {
             <Avatar user={item} />
             <div className="leaderName">
               <strong>{item.username}</strong>
-              <small>{item.rank_name}</small>
+              <small><RoleBadge user={item} /> {item.rank_name}</small>
             </div>
             <div className="progressTrack"><span style={{ width: `${Math.max(4, (Number(item.braincells || 0) / maxScore) * 100)}%` }} /></div>
             <b>{item.braincells || 0}</b>
@@ -4020,6 +4044,7 @@ function AdminPage() {
   const [tab, setTab] = useState("registrations");
   const [reloadKey, setReloadKey] = useState(0);
   const [points, setPoints] = useState({ username: "", chickens_delta: 0, braincells_delta: 0 });
+  const [roleForm, setRoleForm] = useState({ username: "", role: "member" });
   const [news, setNews] = useState({ title: "", body: "", image_url: "" });
   const [shop, setShop] = useState({ name: "", description: "", price: 0, category: "Rewards" });
   const [eventForm, setEventForm] = useState({ title: "", description: "", event_date: "" });
@@ -4070,6 +4095,7 @@ function AdminPage() {
   const tabs = [
     ["registrations", "Registrierungen"],
     ["points", "Punkte"],
+    ["roles", "Rollen"],
     ["news", "News"],
     ["shop", "Shop"],
     ["events", "Events"],
@@ -4110,6 +4136,28 @@ function AdminPage() {
               <label>Pepples Delta<input type="number" value={points.braincells_delta} onChange={(event) => setPoints({ ...points, braincells_delta: event.target.value })} /></label>
               <button type="submit"><Plus size={16} /> Punkte buchen</button>
             </form>
+          )}
+          {tab === "roles" && (
+            <section className="twoCol">
+              <form className="panel form" onSubmit={(event) => { event.preventDefault(); mutate("/api/admin/role", { method: "POST", body: JSON.stringify(roleForm) }); }}>
+                <h2>Rolle setzen</h2>
+                <label>User<input value={roleForm.username} onChange={(event) => setRoleForm({ ...roleForm, username: event.target.value })} /></label>
+                <label>Rolle
+                  <select value={roleForm.role} onChange={(event) => setRoleForm({ ...roleForm, role: event.target.value })}>
+                    {Object.entries(roleMeta).map(([id, meta]) => <option key={id} value={id}>{meta.label}</option>)}
+                  </select>
+                </label>
+                <button type="submit"><Shield size={16} /> Rolle speichern</button>
+              </form>
+              <div className="list">
+                {overview.users.map((item) => (
+                  <article className="miniCard roleAdminRow" key={item.username}>
+                    <span><strong>{item.username}</strong><RoleBadge user={item} /></span>
+                    <button className="ghost" type="button" onClick={() => setRoleForm({ username: item.username, role: userRole(item) })}>Auswaehlen</button>
+                  </article>
+                ))}
+              </div>
+            </section>
           )}
           {tab === "news" && (
             <AdminListForm title="News erstellen" form={news} setForm={setNews} fields={["title", "body", "image_url"]} onSubmit={() => mutate("/api/admin/news", { method: "POST", body: JSON.stringify(news) })}>

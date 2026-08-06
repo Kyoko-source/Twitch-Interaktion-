@@ -158,6 +158,27 @@ button.ghost,
   font-size: 14px;
 }
 
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--role) 72%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--role) 24%, transparent), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.045);
+  color: color-mix(in srgb, var(--role) 82%, #ffffff);
+  font-size: 11px;
+  font-weight: 1000;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--role) 34%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+}
+
 .mainnav {
   position: sticky;
   top: 70px;
@@ -2429,7 +2450,21 @@ textarea {
 }
 
 .adminTabs {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.roleAdminRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.roleAdminRow > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .dangerButton {
