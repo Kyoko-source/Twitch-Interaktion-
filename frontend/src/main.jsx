@@ -1361,6 +1361,8 @@ function PeppleSurvivor({ user }) {
     kills: 0,
     hp: 150,
     maxHp: 150,
+    energy: 100,
+    bleeding: false,
     playerX: worldConfig.spawnX,
     playerY: worldConfig.spawnY,
     xp: 0,
@@ -1439,6 +1441,10 @@ function PeppleSurvivor({ user }) {
     return {
       world: worldConfig,
       player: { x: worldConfig.spawnX, y: worldConfig.spawnY, hp: 150, maxHp: 150, invuln: 0 },
+      energy: 100,
+      bleeding: false,
+      bleedStartedAt: 0,
+      bleedHpStart: 150,
       camera: { x: worldConfig.spawnX - 640, y: worldConfig.spawnY - 360 },
       obstacles: makeObstacles(),
       gems: [],
@@ -1619,6 +1625,37 @@ function PeppleSurvivor({ user }) {
       osc.connect(gain).connect(ctxAudio.destination);
       osc.start(startAt);
       osc.stop(startAt + 0.16);
+    }
+  }
+
+  function bleedingAlarm() {
+    const ctxAudio = audio();
+    if (ctxAudio) {
+      const now = ctxAudio.currentTime;
+      for (let i = 0; i < 6; i += 1) {
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+        const startAt = now + i * 0.15;
+        osc.type = i % 2 ? "sawtooth" : "square";
+        osc.frequency.setValueAtTime(i % 2 ? 122 : 880, startAt);
+        osc.frequency.exponentialRampToValueAtTime(i % 2 ? 66 : 520, startAt + 0.12);
+        gain.gain.setValueAtTime(0.001, startAt);
+        gain.gain.linearRampToValueAtTime(0.13 * volume, startAt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.14);
+        osc.connect(gain).connect(ctxAudio.destination);
+        osc.start(startAt);
+        osc.stop(startAt + 0.16);
+      }
+      noise(0.5, 0.05);
+    }
+    if (audioOn && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const voice = new SpeechSynthesisUtterance("Unstillbare Blutung entdeckt");
+      voice.lang = "de-DE";
+      voice.rate = 0.9;
+      voice.pitch = 0.65;
+      voice.volume = Math.max(0.2, Math.min(1, volume));
+      window.speechSynthesis.speak(voice);
     }
   }
 
@@ -1921,6 +1958,8 @@ function PeppleSurvivor({ user }) {
       kills: state.kills,
       hp: Math.max(0, Math.ceil(state.player.hp)),
       maxHp: state.player.maxHp,
+      energy: Math.max(0, Math.min(100, Math.ceil(state.energy))),
+      bleeding: Boolean(state.bleeding),
       playerX: state.player.x,
       playerY: state.player.y,
       xp: Math.floor(state.xp),
@@ -1928,6 +1967,14 @@ function PeppleSurvivor({ user }) {
       wave: state.wave,
       weapons,
     });
+  }
+
+  function enforceBleeding(state) {
+    if (!state.bleeding) return;
+    const elapsed = Math.max(0, state.seconds - state.bleedStartedAt);
+    const startHp = Math.max(1, state.bleedHpStart || state.player.maxHp);
+    const bleedCap = Math.max(0, startHp * (1 - elapsed / 20));
+    state.player.hp = Math.min(state.player.hp, bleedCap);
   }
 
   function enterLevelUp(state) {
@@ -2869,10 +2916,24 @@ function PeppleSurvivor({ user }) {
       const mx = (useWasd ? keysRef.current.d : keysRef.current.arrowright ? 1 : 0) - (useWasd ? keysRef.current.a : keysRef.current.arrowleft ? 1 : 0);
       const my = (useWasd ? keysRef.current.s : keysRef.current.arrowdown ? 1 : 0) - (useWasd ? keysRef.current.w : keysRef.current.arrowup ? 1 : 0);
       const len = Math.max(1, Math.hypot(mx, my));
+      const moving = Math.hypot(mx, my) > 0.05;
       movePlayer(state, (mx / len) * speed * (dt / 16), (my / len) * speed * (dt / 16));
       updateCamera(state, canvas);
       state.player.invuln = Math.max(0, state.player.invuln - dt);
       if ((mx || my) && frame % (state.particles.length > 170 ? 4 : 2) === 0) state.particles.push({ x: state.player.x - mx * 13, y: state.player.y - my * 13, vx: -mx * 0.5 + (Math.random() - 0.5), vy: -my * 0.5 + (Math.random() - 0.5), life: 220, ttl: 220, color: "#ffcf8a" });
+      if (!state.bleeding) {
+        state.energy = moving ? Math.min(100, state.energy + dt * 0.065) : Math.max(0, state.energy - dt * 0.026);
+        if (state.energy <= 0) {
+          state.energy = 0;
+          state.bleeding = true;
+          state.bleedStartedAt = state.seconds;
+          state.bleedHpStart = Math.max(1, state.player.hp);
+          setMessage("Unstillbare Blutung entdeckt. Bewegung kam zu spaet.");
+          pushRing(state, state.player.x, state.player.y, 150, 760, "#ff163f");
+          burst(state.player.x, state.player.y, "#ff163f", 32);
+          bleedingAlarm();
+        }
+      }
 
       if (!state.bossActive && state.seconds >= state.nextBossAt) spawnBoss(state, canvas);
 
@@ -3193,6 +3254,7 @@ function PeppleSurvivor({ user }) {
         }
       });
       state.hazards = state.hazards.filter((hazard) => hazard.life > 0);
+      enforceBleeding(state);
       if (state.player.hp <= 0 && !state.over) {
         state.over = true;
         setLastRun({ score: state.score, level: state.level, seconds: Math.floor(state.seconds), kills: state.kills });
@@ -3267,6 +3329,13 @@ function PeppleSurvivor({ user }) {
         }
         return true;
       });
+      enforceBleeding(state);
+      if (state.player.hp <= 0 && !state.over) {
+        state.over = true;
+        setLastRun({ score: state.score, level: state.level, seconds: Math.floor(state.seconds), kills: state.kills });
+        setGameStatus("gameover");
+        setMessage(`Run beendet: ${state.score} Punkte, ${state.kills} Aliens zerlegt.`);
+      }
 
       if (frame % 10 === 0) syncSnapshot(state);
     }
@@ -3672,7 +3741,8 @@ function PeppleSurvivor({ user }) {
     stateRef.current = makeSurvivorState();
     setChoices([]);
     setLastRun(null);
-    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, playerX: worldConfig.spawnX, playerY: worldConfig.spawnY, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSnapshot({ score: 0, level: 1, seconds: 0, kills: 0, hp: 150, maxHp: 150, energy: 100, bleeding: false, playerX: worldConfig.spawnX, playerY: worldConfig.spawnY, xp: 0, nextXp: 45, wave: 1, weapons: [{ id: "bolt", name: "Federblitz", level: 1, color: "#c88cff", icon: "feather" }] });
     setMessage("Sammle XP-Kristalle. Beim Level-Up waehlt ihr den Build.");
     setGameStatus("play");
     requestAnimationFrame(() => stageRef.current?.focus?.());
@@ -3732,6 +3802,8 @@ function PeppleSurvivor({ user }) {
   }
 
   const healthPct = Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100));
+  const energyPct = Math.max(0, Math.min(100, Number(snapshot.energy ?? 100)));
+  const bleeding = Boolean(snapshot.bleeding);
   const xpPct = Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100));
   const bloodIntensity = status === "play" || status === "paused" || status === "levelup" ? Math.max(0, Math.min(1, (55 - healthPct) / 55)) : 0;
   const criticalHealth = status === "play" && healthPct > 0 && healthPct <= 20;
@@ -3767,6 +3839,15 @@ function PeppleSurvivor({ user }) {
         </div>
       </div>
       <div className="survivorBars">
+        <div className={`survivorMeter energyMeter ${bleeding ? "bleeding" : ""}`} style={{ "--pct": `${energyPct}%` }}>
+          <div className="meterIcon"><Zap size={15} /></div>
+          <div className="meterCopy">
+            <span>{bleeding ? "Unstillbare Blutung" : "Bewegungsenergie"}</span>
+            <b>{Math.round(energyPct)}<small>%</small></b>
+          </div>
+          <i><em className="energyFill" style={{ width: `${energyPct}%` }} /></i>
+          <strong>{bleeding ? "ALARM" : "MOVE"}</strong>
+        </div>
         <div className="survivorMeter healthMeter" style={{ "--pct": `${healthPct}%` }}>
           <div className="meterIcon"><Shield size={17} /></div>
           <div className="meterCopy">
@@ -3806,6 +3887,7 @@ function PeppleSurvivor({ user }) {
         />
         <canvas className="gameCanvas survivorCanvas" ref={canvasRef} width="1280" height="720" />
         <div className="bloodEdge" aria-hidden="true" />
+        {bleeding && status === "play" && <div className="bleedingWarning" aria-live="assertive">Unstillbare Blutung entdeckt!</div>}
         {criticalHealth && <div className="criticalHealthWarning" aria-live="assertive">Leben Kritisch!</div>}
         {simulationEdge && <div className="simulationEdgeWarning" aria-live="polite">Rande der Simulation</div>}
         {status === "menu" && (

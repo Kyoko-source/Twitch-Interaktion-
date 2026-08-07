@@ -1917,6 +1917,7 @@ textarea {
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(260px, 0.95fr) minmax(320px, 1.25fr);
+  grid-template-rows: auto auto;
   gap: 16px;
 }
 
@@ -1973,11 +1974,68 @@ textarea {
 .healthMeter {
   --meter: #ff5f7c;
   --meter-hot: #ffcf8a;
+  grid-column: 1;
+  grid-row: 2;
 }
 
 .xpMeter {
   --meter: #7af4dc;
   --meter-hot: #b46cff;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.energyMeter {
+  --meter: #ffe66d;
+  --meter-hot: #5dff9a;
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 58px;
+  padding: 10px 13px;
+}
+
+.energyMeter.bleeding {
+  --meter: #ff163f;
+  --meter-hot: #fff4e9;
+  animation: bleedingMeterPulse 0.42s steps(2, end) infinite;
+}
+
+.energyMeter .meterIcon {
+  width: 38px;
+  height: 38px;
+}
+
+.energyMeter b {
+  font-size: 17px;
+}
+
+.energyMeter > strong {
+  min-width: 62px;
+  color: #110511;
+  background: var(--meter-hot);
+  border-color: color-mix(in srgb, var(--meter) 48%, rgba(255, 244, 233, 0.2));
+}
+
+.energyMeter i {
+  height: 18px;
+}
+
+.survivorBars .energyFill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 44%),
+    linear-gradient(90deg, #ffcf8a, #ffe66d 45%, #5dff9a);
+  box-shadow:
+    0 0 24px rgba(255, 230, 109, 0.5),
+    inset 0 0 12px rgba(255, 244, 233, 0.24);
+}
+
+.energyMeter.bleeding .energyFill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 44%),
+    linear-gradient(90deg, #ff163f, #ff5f7c, #fff4e9);
+  box-shadow:
+    0 0 30px rgba(255, 22, 63, 0.82),
+    inset 0 0 12px rgba(255, 244, 233, 0.3);
 }
 
 .meterIcon,
@@ -2241,6 +2299,56 @@ textarea {
     0 0 48px rgba(255, 0, 50, 0.95),
     inset 0 0 24px rgba(255, 255, 255, 0.34);
   animation: criticalHealthFlash 0.46s steps(2, end) infinite;
+}
+
+.bleedingWarning {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  z-index: 9;
+  width: min(820px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  padding: 15px 22px;
+  border: 4px solid #fff4e9;
+  border-radius: 8px;
+  background: rgba(255, 22, 63, 0.92);
+  color: #fff4e9;
+  font-size: clamp(26px, 4.7vw, 62px);
+  font-weight: 1000;
+  line-height: 0.98;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow:
+    0 4px 0 rgba(38, 0, 8, 0.85),
+    0 0 24px rgba(255, 244, 233, 0.72),
+    0 0 46px rgba(255, 22, 63, 0.96);
+  box-shadow:
+    0 0 0 9999px rgba(120, 0, 30, 0.16),
+    0 0 52px rgba(255, 22, 63, 0.96),
+    inset 0 0 26px rgba(255, 255, 255, 0.32);
+  animation: bleedingWarningFlash 0.34s steps(2, end) infinite;
+}
+
+@keyframes bleedingMeterPulse {
+  0%, 100% {
+    filter: saturate(1.2) brightness(1);
+  }
+  50% {
+    filter: saturate(2.1) brightness(1.35);
+  }
+}
+
+@keyframes bleedingWarningFlash {
+  0%, 100% {
+    background: rgba(255, 22, 63, 0.94);
+    color: #fff4e9;
+  }
+  50% {
+    background: rgba(255, 244, 233, 0.96);
+    color: #ff163f;
+  }
 }
 
 .simulationEdgeWarning {
@@ -3230,6 +3338,13 @@ textarea {
   .systematicsLayout {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .energyMeter,
+  .healthMeter,
+  .xpMeter {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .upgradeGrid {
