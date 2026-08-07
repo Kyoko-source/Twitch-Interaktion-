@@ -530,6 +530,10 @@ function formatChatTime(value) {
   }
 }
 
+function chatStyleClass(style) {
+  return `chatStyle-${["sparkle", "cotton", "neon", "royal"].includes(style) ? style : "default"}`;
+}
+
 function ChatPage({ user, setPage }) {
   const initialTarget = useMemo(() => {
     try {
@@ -546,6 +550,7 @@ function ChatPage({ user, setPage }) {
   const [body, setBody] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [styleState, setStyleState] = useState({ selected: "default", styles: [] });
 
   useEffect(() => {
     try {
@@ -560,13 +565,15 @@ function ChatPage({ user, setPage }) {
     let alive = true;
     async function loadPeople() {
       try {
-        const [nextUsers, nextOnline] = await Promise.all([
+        const [nextUsers, nextOnline, nextStyles] = await Promise.all([
           api("/api/users"),
           api("/api/chat/online"),
+          api("/api/chat/styles"),
         ]);
         if (!alive) return;
         setUsers(nextUsers);
         setOnlineUsers(nextOnline);
+        setStyleState(nextStyles);
       } catch (err) {
         if (alive) setNotice(err.message);
       }
@@ -614,6 +621,21 @@ function ChatPage({ user, setPage }) {
   const onlineNames = new Set(onlineUsers.map((member) => member.username));
   const selectableUsers = users.filter((member) => member.username && member.username !== user.username);
   const currentTarget = selectableUsers.find((member) => member.username === selectedUser);
+
+  async function chooseStyle(style) {
+    const next = styleState.styles.find((entry) => entry.id === style);
+    if (!next?.owned) {
+      setPage("shop");
+      return;
+    }
+    try {
+      const result = await api("/api/chat/styles", { method: "POST", body: JSON.stringify({ style }) });
+      setStyleState((current) => ({ ...current, selected: result.style }));
+      setNotice(result.message);
+    } catch (err) {
+      setNotice(err.message);
+    }
+  }
 
   async function sendMessage(event) {
     event.preventDefault();
@@ -679,13 +701,27 @@ function ChatPage({ user, setPage }) {
             {mode === "private" && currentTarget && <RoleBadge user={currentTarget} />}
           </div>
           {notice && <div className="notice error">{notice}</div>}
+          <div className="chatStylePicker" aria-label="Chatbalken Animationen">
+            {styleState.styles.map((style) => (
+              <button
+                className={`${styleState.selected === style.id ? "active" : ""} ${chatStyleClass(style.id)}`}
+                key={style.id}
+                onClick={() => chooseStyle(style.id)}
+                type="button"
+                title={style.owned ? style.description : "Im Shop kaufen"}
+              >
+                <span>{style.name}</span>
+                {!style.owned && <small>{style.price} Chickens</small>}
+              </button>
+            ))}
+          </div>
           <div className="chatMessages" aria-live="polite">
             {loading && <div className="notice">Lade Chat...</div>}
             {!loading && !messages.length && <div className="notice">Noch keine Nachrichten. Schreib die erste.</div>}
             {messages.map((message) => {
               const mine = message.sender_username === user.username;
               return (
-                <article className={`chatBubble ${mine ? "mine" : ""}`} key={message.id || `${message.sender_username}-${message.created_at}`}>
+                <article className={`chatBubble ${mine ? "mine" : ""} ${chatStyleClass(message.chat_style)}`} key={message.id || `${message.sender_username}-${message.created_at}`}>
                   {!mine && <Avatar user={message.sender} />}
                   <div>
                     <header>
@@ -780,6 +816,7 @@ function ShopPage({ user, setPage }) {
   return (
     <section className="stack">
       <div className="sectionHero"><h1>Shop</h1><p>{user.chickens || 0} Chickens verfuegbar.</p></div>
+      <div className="notice">Chat-Animationen kaufst du hier und aktivierst sie danach im Reiter Chat.</div>
       {message && <div className="notice">{message}</div>}
       {loading && <div className="notice">Lade Shop...</div>}
       {error && <div className="notice error">{error}</div>}
@@ -789,6 +826,7 @@ function ShopPage({ user, setPage }) {
             <p className="kicker">{item.category || "Reward"}</p>
             <h3>{item.name}</h3>
             <p>{item.desc || item.description}</p>
+            {item.category === "Chat Animation" && <div className={`shopChatPreview ${chatStyleClass(item.style)}`}><span>So sieht dein Chatbalken aus</span></div>}
             <strong>{item.price} Chickens</strong>
             <button onClick={() => buy(item)} type="button">Kaufen</button>
           </article>

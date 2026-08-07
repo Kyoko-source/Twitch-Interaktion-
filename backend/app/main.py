@@ -20,6 +20,13 @@ USER_ROLES = {"admin", "moderator", "vip", "member"}
 SYSTEMATICS_FILE = Path("/data/systematics.json")
 USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
+CHAT_STYLES_FILE = Path("/data/chat_styles.json")
+CHAT_STYLE_SHOP_ITEMS = [
+    {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 650, "category": "Chat Animation", "style": "sparkle"},
+    {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 900, "category": "Chat Animation", "style": "cotton"},
+    {"id": "chat-style-neon", "name": "Chat Animation: Neon Pulse", "description": "Cooler Cyber-Look mit wandernder Neon-Kante.", "price": 1200, "category": "Chat Animation", "style": "neon"},
+    {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz fuer deine Nachrichten.", "price": 1500, "category": "Chat Animation", "style": "royal"},
+]
 
 app = FastAPI(title="Aviary API")
 settings = get_settings()
@@ -72,6 +79,10 @@ class EventSignup(BaseModel):
 
 class PurchaseRequest(BaseModel):
     item_id: str
+
+
+class ChatStyleUpdate(BaseModel):
+    style: str = Field(max_length=40)
 
 
 class PointsUpdate(BaseModel):
@@ -214,6 +225,49 @@ def public_user(user: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
+def chat_style_ids() -> set[str]:
+    return {"default", *(str(item["style"]) for item in CHAT_STYLE_SHOP_ITEMS)}
+
+
+def load_chat_styles() -> dict[str, str]:
+    try:
+        if not CHAT_STYLES_FILE.exists():
+            return {}
+        data = json.loads(CHAT_STYLES_FILE.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        valid = chat_style_ids()
+        return {str(username): str(style) for username, style in data.items() if str(style) in valid}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_chat_styles(styles: dict[str, str]) -> None:
+    CHAT_STYLES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CHAT_STYLES_FILE.write_text(json.dumps(styles, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def chat_style_for(username: str) -> str:
+    return load_chat_styles().get(username, "default")
+
+
+def purchased_item_names(username: str) -> set[str]:
+    try:
+        purchases = rows(f"purchases?username=eq.{quote(username)}&select=item_name")
+    except HTTPException:
+        purchases = []
+    return {str(purchase.get("item_name") or "") for purchase in purchases}
+
+
+def owned_chat_styles(username: str) -> set[str]:
+    names = purchased_item_names(username)
+    owned = {"default"}
+    for item in CHAT_STYLE_SHOP_ITEMS:
+        if item["name"] in names:
+            owned.add(str(item["style"]))
+    return owned
+
+
 def enrich_chat_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     usernames = {str(message.get("sender_username") or "") for message in messages}
     usernames.update(str(message.get("recipient_username") or "") for message in messages if message.get("recipient_username"))
@@ -223,6 +277,7 @@ def enrich_chat_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]
         for user in rows("users?select=*&username=in.(" + ",".join(quote(name) for name in valid_usernames) + ")")
     } if valid_usernames else {}
     enriched = []
+    styles = load_chat_styles()
     for message in messages:
         sender = str(message.get("sender_username") or "")
         recipient = str(message.get("recipient_username") or "")
@@ -230,6 +285,7 @@ def enrich_chat_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]
             **message,
             "sender": users_by_name.get(sender, {"username": sender, "role": "member"}),
             "recipient": users_by_name.get(recipient, {"username": recipient, "role": "member"}) if recipient else None,
+            "chat_style": styles.get(sender, "default"),
         })
     return enriched
 
@@ -511,6 +567,43 @@ def create_private_message(username: str, payload: ChatCreate, user: dict[str, A
     return {"message": enrich_chat_messages([created])[0]}
 
 
+@app.get("/api/chat/styles")
+def chat_styles(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    username = str(user["username"])
+    owned = owned_chat_styles(username)
+    return {
+        "selected": chat_style_for(username),
+        "styles": [
+            {"id": "default", "name": "Standard", "description": "Ruhiger Standard-Chatbalken.", "owned": True},
+            *[
+                {
+                    "id": item["style"],
+                    "name": item["name"].replace("Chat Animation: ", ""),
+                    "description": item["description"],
+                    "price": item["price"],
+                    "shop_id": item["id"],
+                    "owned": item["style"] in owned,
+                }
+                for item in CHAT_STYLE_SHOP_ITEMS
+            ],
+        ],
+    }
+
+
+@app.post("/api/chat/styles")
+def update_chat_style(payload: ChatStyleUpdate, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    style = payload.style.strip()
+    username = str(user["username"])
+    if style not in chat_style_ids():
+        raise HTTPException(status_code=400, detail="Diese Chat-Animation gibt es nicht")
+    if style not in owned_chat_styles(username):
+        raise HTTPException(status_code=403, detail="Diese Chat-Animation musst du erst im Shop kaufen")
+    styles = load_chat_styles()
+    styles[username] = style
+    save_chat_styles(styles)
+    return {"message": "Chat-Animation aktiviert.", "style": style}
+
+
 @app.get("/api/leaderboard")
 def leaderboard() -> list[dict[str, Any]]:
     return [
@@ -574,17 +667,23 @@ def patch_notes() -> list[dict[str, Any]]:
 
 @app.get("/api/shop")
 def shop() -> list[dict[str, Any]]:
-    return rows("shop_items?select=*&active=eq.true&order=category.asc,price.asc")
+    items = rows("shop_items?select=*&active=eq.true&order=category.asc,price.asc")
+    existing_names = {str(item.get("name") or "") for item in items}
+    builtins = [item for item in CHAT_STYLE_SHOP_ITEMS if item["name"] not in existing_names]
+    return [*items, *builtins]
 
 
 @app.post("/api/shop/purchase")
 def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
-    items = rows(f"shop_items?id=eq.{quote(payload.item_id)}&active=eq.true&limit=1")
+    builtin_item = next((item for item in CHAT_STYLE_SHOP_ITEMS if item["id"] == payload.item_id), None)
+    items = [builtin_item] if builtin_item else rows(f"shop_items?id=eq.{quote(payload.item_id)}&active=eq.true&limit=1")
     if not items:
         raise HTTPException(status_code=404, detail="Item nicht gefunden")
     item = items[0]
     price = int(item.get("price") or 0)
     current_chickens = int(user.get("chickens") or 0)
+    if builtin_item and item.get("name") in purchased_item_names(str(user["username"])):
+        return {"message": "Chat-Animation besitzt du bereits."}
     if current_chickens < price:
         raise HTTPException(status_code=400, detail="Nicht genug Chickens")
     supabase().post(
