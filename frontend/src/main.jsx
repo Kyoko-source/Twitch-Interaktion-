@@ -20,7 +20,6 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Search,
   Send,
   Shield,
   Sparkles,
@@ -4563,107 +4562,305 @@ function GamesPage({ user }) {
 }
 
 function SystematicsPage() {
-  const [query, setQuery] = useState("");
-  const [activeGroup, setActiveGroup] = useState("alle");
-  const [selectedId, setSelectedId] = useState(systematicsAtlas[0]?.id || "");
-  const normalizedQuery = normalizeSystematicsText(query);
-  const filtered = useMemo(() => systematicsAtlas.filter((item) => {
-    const groupMatch = activeGroup === "alle" || item.group === activeGroup;
-    const searchText = normalizeSystematicsText([
-      item.title,
-      item.scientific,
-      item.rank,
-      item.parent,
-      item.description,
-      ...(item.examples || []),
-      ...(item.tags || []),
-    ].join(" "));
-    return groupMatch && (!normalizedQuery || searchText.includes(normalizedQuery));
-  }), [activeGroup, normalizedQuery]);
-  const selected = systematicsAtlas.find((item) => item.id === selectedId) || filtered[0] || systematicsAtlas[0];
-  const visibleRanks = ["Reich", "Stamm", "Klasse", "Ordnung", "Familie", "Gattung", "Art", "Rasse"];
-  const rankBuckets = visibleRanks.map((rank) => ({ rank, items: filtered.filter((item) => item.rank === rank).slice(0, 18) })).filter((bucket) => bucket.items.length);
-  const totalBreeds = systematicsAtlas.filter((item) => item.rank === "Rasse").length;
-  const totalSpecies = systematicsAtlas.filter((item) => item.rank === "Art").length;
+  const boardRef = useRef(null);
+  const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });
+  const [selectedId, setSelectedId] = useState("");
+  const [newBox, setNewBox] = useState({ parentId: "", title: "Neue Box", subtitle: "Beschreibung", color: "#b46cff", template: "custom" });
+  const [adminPassword, setAdminPassword] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [connectFrom, setConnectFrom] = useState("");
+  const [message, setMessage] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const selected = doc.nodes.find((node) => node.id === selectedId) || doc.nodes[0];
+  const parentId = selected ? parentForNode(doc, selected.id) : "";
+  const nodeOptions = buildNodeOptions(doc);
+  const selectedPath = selected ? pathForNode(doc, selected.id) : "";
 
   useEffect(() => {
-    if (filtered.length && !filtered.some((item) => item.id === selectedId)) {
-      setSelectedId(filtered[0].id);
+    api("/api/systematics")
+      .then((result) => {
+        setDoc(autoLayoutSystematics({ ...result, links: primaryTreeLinks(result) }));
+        setSelectedId(result.nodes?.[0]?.id || "");
+        setNewBox((current) => ({ ...current, parentId: result.nodes?.[0]?.id || "" }));
+      })
+      .catch((err) => setMessage(err.message));
+  }, [reloadKey]);
+
+  function updateDoc(patch) {
+    setDoc((current) => ({ ...current, ...patch }));
+  }
+
+  function updateNode(id, patch) {
+    setDoc((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
+    }));
+  }
+
+  function selectNode(nodeId) {
+    setSelectedId(nodeId);
+    setNewBox((current) => ({ ...current, parentId: nodeId }));
+  }
+
+  function addNode(overrides = {}) {
+    const parent = doc.nodes.find((node) => node.id === (overrides.parentId || newBox.parentId || selected?.id)) || doc.nodes[0];
+    const id = `node-${Date.now()}`;
+    const node = {
+      id,
+      title: overrides.title || newBox.title || "Neue Box",
+      subtitle: overrides.subtitle || newBox.subtitle || "Beschreibung",
+      color: overrides.color || newBox.color || "#b46cff",
+      image_url: "",
+      x: 0,
+      y: 0,
+    };
+    setDoc((current) => autoLayoutSystematics({
+      ...current,
+      nodes: [...current.nodes, node],
+      links: parent ? [...current.links.filter((link) => link.target !== id), { source: parent.id, target: id }] : current.links,
+    }));
+    setSelectedId(id);
+    setNewBox((current) => ({ ...current, title: "Neue Box", subtitle: "Beschreibung", template: "custom", parentId: parent?.id || "" }));
+  }
+
+  function deleteNode() {
+    if (!selected || doc.nodes.length <= 1) return;
+    setDoc((current) => autoLayoutSystematics({
+      ...current,
+      nodes: current.nodes.filter((node) => node.id !== selected.id),
+      links: current.links.filter((link) => link.source !== selected.id && link.target !== selected.id),
+    }));
+    setSelectedId(doc.nodes.find((node) => node.id !== selected.id)?.id || "");
+  }
+
+  function handleConnect(nodeId) {
+    if (!editing) return;
+    if (!connectFrom) {
+      setConnectFrom(nodeId);
+      setMessage("Zielbox anklicken, um automatisch zu verbinden.");
+      return;
     }
-  }, [filtered, selectedId]);
+    if (connectFrom !== nodeId) {
+      if (descendantsForNode(doc, nodeId).has(connectFrom)) {
+        setMessage("Diese Verbindung wuerde eine Schleife bauen. Bitte anders einsortieren.");
+        setConnectFrom("");
+        return;
+      }
+      setDoc((current) => {
+        const exists = current.links.some((link) => link.source === connectFrom && link.target === nodeId);
+        return exists ? current : autoLayoutSystematics({ ...current, links: [...current.links, { source: connectFrom, target: nodeId }] });
+      });
+    }
+    setConnectFrom("");
+  }
+
+  function removeLink(source, target) {
+    setDoc((current) => autoLayoutSystematics({ ...current, links: current.links.filter((link) => link.source !== source || link.target !== target) }));
+  }
+
+  function changeParent(nodeId, nextParentId) {
+    if (!nodeId || nodeId === nextParentId) return;
+    const descendantIds = descendantsForNode(doc, nodeId);
+    if (descendantIds.has(nextParentId)) {
+      setMessage("Diese Box kann nicht unter ihr eigenes Kind einsortiert werden.");
+      return;
+    }
+    setDoc((current) => autoLayoutSystematics({
+      ...current,
+      links: [
+        ...current.links.filter((link) => link.target !== nodeId),
+        ...(nextParentId ? [{ source: nextParentId, target: nodeId }] : []),
+      ],
+    }));
+  }
+
+  function applyTemplate(templateKey) {
+    const template = systematicsTemplates.find((item) => item.id === templateKey);
+    if (!template) return;
+    setNewBox((current) => ({ ...current, template: templateKey, title: template.title, subtitle: template.subtitle, color: template.color }));
+  }
+
+  function pointerDown(event, node) {
+    event.preventDefault();
+    if (connectFrom) {
+      handleConnect(node.id);
+      return;
+    }
+    selectNode(node.id);
+  }
+
+  function addSibling() {
+    addNode({ parentId, title: "Neue Box daneben" });
+  }
+
+  function repairStructure() {
+    setDoc((current) => autoLayoutSystematics({ ...current, links: primaryTreeLinks(current) }));
+    setMessage("Struktur bereinigt: jede Box hat nur noch eine Haupt-Elternbox.");
+  }
+
+  async function unlock() {
+    try {
+      await api("/api/admin/overview", { headers: { "X-Admin-Password": adminPassword } });
+      setEditing(true);
+      setMessage("Bearbeitungsmodus aktiv.");
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function save() {
+    try {
+      const arranged = autoLayoutSystematics({ ...doc, links: primaryTreeLinks(doc) });
+      const result = await api("/api/admin/systematics", {
+        method: "PUT",
+        headers: { "X-Admin-Password": adminPassword },
+        body: JSON.stringify(arranged),
+      });
+      setDoc(arranged);
+      setMessage(result.message);
+      setReloadKey((value) => value + 1);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  function imageUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file || !selected) return;
+    const reader = new FileReader();
+    reader.onload = () => updateNode(selected.id, { image_url: String(reader.result || "") });
+    reader.readAsDataURL(file);
+  }
+
+  const nodeById = new Map(doc.nodes.map((node) => [node.id, node]));
 
   return (
     <section className="systematicsShell">
       <div className="sectionHero systematicsHero">
         <div>
-          <p className="kicker">Atlas</p>
-          <h1>Systematik der Tiere</h1>
-          <p>Eine feste, durchsuchbare Veranschaulichung von Tiergruppen, Insekten, Haustieren und bekannten Rassen.</p>
+          <p className="kicker">Baukasten</p>
+          <h1>{doc.title}</h1>
+          <p>{doc.description}</p>
         </div>
         <GitBranch size={68} />
       </div>
-      <div className="systematicsStats">
-        <div><strong>{systematicsAtlas.length}</strong><span>Eintraege</span></div>
-        <div><strong>{systematicsGroups.length}</strong><span>Bereiche</span></div>
-        <div><strong>{totalSpecies}</strong><span>Arten</span></div>
-        <div><strong>{totalBreeds}</strong><span>Rassen</span></div>
-      </div>
-      <div className="systematicsSearchBar">
-        <label>
-          <Search size={18} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Suche nach Huhn, Wolf, Biene, Katze, Labrador, Spinne..." />
-        </label>
-        <div>
-          <button className={activeGroup === "alle" ? "active" : ""} onClick={() => setActiveGroup("alle")} type="button">Alle</button>
-          {systematicsGroups.map((group) => <button className={activeGroup === group.id ? "active" : ""} onClick={() => setActiveGroup(group.id)} type="button" key={group.id}>{group.label}</button>)}
-        </div>
-      </div>
       <div className="systematicsLayout">
         <div className="systematicsBoardWrap">
-          <div className="systematicsAtlasBoard">
-            {rankBuckets.map((bucket) => (
-              <div className="systematicsRankColumn" key={bucket.rank}>
-                <h2>{bucket.rank}</h2>
-                <div>
-                  {bucket.items.map((item) => (
-                    <button
-                      className={selected?.id === item.id ? "systematicsAtlasCard selected" : "systematicsAtlasCard"}
-                      key={item.id}
-                      onClick={() => setSelectedId(item.id)}
-                      style={{ "--node-color": item.color }}
-                      type="button"
-                    >
-                      <span>{item.badge}</span>
-                      <strong>{item.title}</strong>
-                      <small>{item.scientific}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="systematicsToolbar">
+            <div>
+              <span className={editing ? "editBadge active" : "editBadge"}>{editing ? "Admin Bearbeitung aktiv" : "Nur Ansicht"}</span>
+              {connectFrom && <span className="editBadge active">Zielbox anklicken: verbindet und sortiert automatisch</span>}
+            </div>
+            <div>
+              <button className="ghost" onClick={() => setConnectFrom(selected?.id || "")} disabled={!editing || !selected} type="button"><Link2 size={16} /> Spezial-Verbindung</button>
+              <button onClick={() => addNode({ parentId: selected?.id })} disabled={!editing || !selected} type="button"><Plus size={16} /> Kind zu Auswahl</button>
+              <button className="ghost" onClick={addSibling} disabled={!editing || !selected} type="button"><Plus size={16} /> Daneben</button>
+              <button className="ghost" onClick={() => setDoc((current) => autoLayoutSystematics(current))} disabled={!editing} type="button"><RefreshCw size={16} /> Auto sortieren</button>
+              <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
+            </div>
+          </div>
+          <div className="systematicsBoard" ref={boardRef}>
+            <svg className="systematicsLinks" viewBox="0 0 1080 650" preserveAspectRatio="none">
+              {doc.links.map((link) => {
+                const source = nodeById.get(link.source);
+                const target = nodeById.get(link.target);
+                if (!source || !target) return null;
+                const x1 = Number(source.x || 0) + 82;
+                const y1 = Number(source.y || 0) + 104;
+                const x2 = Number(target.x || 0) + 82;
+                const y2 = Number(target.y || 0);
+                const mid = (y1 + y2) / 2;
+                return <path key={`${link.source}-${link.target}`} d={`M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`} />;
+              })}
+            </svg>
+            {doc.nodes.map((node) => (
+              <button
+                className={`systemNode ${selected?.id === node.id ? "selected" : ""} ${connectFrom === node.id ? "connecting" : ""}`}
+                key={node.id}
+                onClick={() => selectNode(node.id)}
+                onDoubleClick={() => handleConnect(node.id)}
+                onPointerDown={(event) => pointerDown(event, node)}
+                style={{ left: node.x, top: node.y, "--node-color": node.color }}
+                type="button"
+              >
+                <span className="systemNodeImage">{node.image_url ? <img src={node.image_url} alt="" /> : <GitBranch size={28} />}</span>
+                <strong>{node.title}</strong>
+                <small>{node.subtitle}</small>
+              </button>
             ))}
-            {!filtered.length && <div className="emptyState">Nichts gefunden. Versuch zum Beispiel Katze, Biene, Spinne, Wolf, Labrador oder Huhn.</div>}
           </div>
         </div>
-        <aside className="systematicsDetail">
+        <aside className="systematicsEditor">
+          <div className="panel form">
+            <h2><Lock size={18} /> Admin</h2>
+            <label>Admin Passwort<input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} /></label>
+            <button onClick={unlock} type="button"><MousePointer2 size={16} /> Builder freischalten</button>
+            {message && <div className="notice">{message}</div>}
+          </div>
+          <div className="panel form systematicsQuickAdd">
+            <h2><Plus size={18} /> Neue Box</h2>
+            <div className="builderHint">
+              <strong>1. Ziel waehlen</strong>
+              <span>Beispiel: fuer Huhn erst `Voegel` oder `Huehnervoegel` auswaehlen, dann einfuegen.</span>
+            </div>
+            <label>Gehört zu
+              <select disabled={!editing} value={newBox.parentId || selected?.id || ""} onChange={(event) => setNewBox({ ...newBox, parentId: event.target.value })}>
+                {nodeOptions.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+            <label>Text<input disabled={!editing} value={newBox.title} onChange={(event) => setNewBox({ ...newBox, title: event.target.value, template: "custom" })} /></label>
+            <label>Untertext<input disabled={!editing} value={newBox.subtitle} onChange={(event) => setNewBox({ ...newBox, subtitle: event.target.value, template: "custom" })} /></label>
+            <label>Farbe<input disabled={!editing} type="color" value={newBox.color} onChange={(event) => setNewBox({ ...newBox, color: event.target.value, template: "custom" })} /></label>
+            <div className="newBoxPreview" style={{ "--node-color": newBox.color }}>
+              <span>{doc.nodes.find((node) => node.id === newBox.parentId)?.title || "Oberste Ebene"}</span>
+              <strong>{newBox.title}</strong>
+              <small>{newBox.subtitle}</small>
+            </div>
+            <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfuegen</button>
+          </div>
           {selected && (
-            <div className="panel">
-              <div className="systematicsDetailBadge" style={{ "--node-color": selected.color }}>{selected.badge}</div>
-              <p className="kicker">{selected.rank}</p>
-              <h2>{selected.title}</h2>
-              <h3>{selected.scientific}</h3>
-              <p>{selected.description}</p>
-              <div className="systematicsPath">{selected.parent || "Lebewesen"}{" > "}{selected.title}</div>
-              <div className="systematicsExamples">
-                {(selected.examples || []).map((example) => <span key={example}>{example}</span>)}
+            <div className="panel form selectedBoxEditor">
+              <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
+              {selectedPath && <div className="builderHint"><strong>Aktueller Pfad</strong><span>{selectedPath}</span></div>}
+              <div className="editorActions">
+                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufuegen</button>
+                <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
               </div>
+              <label>Diese Box gehört zu
+                <select disabled={!editing || doc.nodes.length <= 1} value={parentId} onChange={(event) => changeParent(selected.id, event.target.value)}>
+                  <option value="">Oberste Ebene</option>
+                  {nodeOptions.filter((option) => option.id !== selected.id && !descendantsForNode(doc, selected.id).has(option.id)).map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
+                </select>
+              </label>
+              <label>Text<input disabled={!editing} value={selected.title} onChange={(event) => updateNode(selected.id, { title: event.target.value })} /></label>
+              <label>Untertext<input disabled={!editing} value={selected.subtitle} onChange={(event) => updateNode(selected.id, { subtitle: event.target.value })} /></label>
+              <label>Farbe<input disabled={!editing} type="color" value={selected.color} onChange={(event) => updateNode(selected.id, { color: event.target.value })} /></label>
+              <label>Bild-URL<input disabled={!editing} value={selected.image_url?.startsWith("data:") ? "" : selected.image_url} onChange={(event) => updateNode(selected.id, { image_url: event.target.value })} /></label>
+              <label className="fileInput"><ImageIcon size={16} /> Bild hochladen<input disabled={!editing} type="file" accept="image/*" onChange={imageUpload} /></label>
             </div>
           )}
+          <details className="panel systematicsAdvanced">
+            <summary>Erweitert</summary>
+            <div className="form">
+              <label>Systematik Titel<input disabled={!editing} value={doc.title} onChange={(event) => updateDoc({ title: event.target.value })} /></label>
+              <label>Beschreibung<textarea disabled={!editing} value={doc.description} onChange={(event) => updateDoc({ description: event.target.value })} /></label>
+              <label>Vorlage
+                <select disabled={!editing} value={newBox.template} onChange={(event) => applyTemplate(event.target.value)}>
+                  {systematicsTemplates.map((template) => <option value={template.id} key={template.id}>{template.label}</option>)}
+                </select>
+              </label>
+              <div className="templateChips">
+                {systematicsTemplates.slice(2).map((template) => (
+                  <button disabled={!editing} onClick={() => applyTemplate(template.id)} type="button" key={template.id} style={{ "--node-color": template.color }}>{template.label}</button>
+                ))}
+              </div>
+            </div>
+          </details>
           <div className="panel">
-            <h2><Search size={18} /> Schnellsuche</h2>
-            <div className="systematicsHotlist">
-              {["Huhn", "Hund", "Katze", "Biene", "Schmetterling", "Spinne", "Pferd", "Wolf", "Labrador", "Maine Coon"].map((term) => (
-                <button key={term} onClick={() => setQuery(term)} type="button">{term}</button>
-              ))}
+            <h2><Link2 size={18} /> Verbindungen</h2>
+            <button className="ghost repairButton" disabled={!editing} onClick={repairStructure} type="button"><RefreshCw size={16} /> Hauptstruktur bereinigen</button>
+            <div className="linkList">
+              {doc.links.map((link) => <button disabled={!editing} onClick={() => removeLink(link.source, link.target)} type="button" key={`${link.source}-${link.target}`}>{nodeById.get(link.source)?.title}{" -> "}{nodeById.get(link.target)?.title}</button>)}
             </div>
           </div>
         </aside>
@@ -4671,135 +4868,6 @@ function SystematicsPage() {
     </section>
   );
 }
-
-function normalizeSystematicsText(value) {
-  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-const systematicsGroups = [
-  { id: "grundlagen", label: "Grundlagen" },
-  { id: "wirbeltiere", label: "Wirbeltiere" },
-  { id: "insekten", label: "Insekten" },
-  { id: "wirbellose", label: "Wirbellose" },
-  { id: "haustiere", label: "Haustiere" },
-  { id: "rassen", label: "Rassen" },
-];
-
-const systematicsAtlas = [
-  { id: "animalia", group: "grundlagen", rank: "Reich", title: "Tiere", scientific: "Animalia", parent: "Eukaryoten", badge: "T", color: "#ffcf8a", description: "Mehrzellige Lebewesen, die Energie ueber Nahrung aufnehmen und sich meist aktiv bewegen koennen.", examples: ["Wirbeltiere", "Insekten", "Weichtiere", "Spinnentiere"], tags: ["tierreich", "alle tiere"] },
-  { id: "chordata", group: "wirbeltiere", rank: "Stamm", title: "Chordatiere", scientific: "Chordata", parent: "Tiere", badge: "R", color: "#7af4dc", description: "Tierstamm mit Rueckensaite; darin liegen die Wirbeltiere.", examples: ["Fische", "Amphibien", "Reptilien", "Voegel", "Saeugetiere"], tags: ["wirbeltiere"] },
-  { id: "arthropoda", group: "wirbellose", rank: "Stamm", title: "Gliederfuesser", scientific: "Arthropoda", parent: "Tiere", badge: "G", color: "#ff6fb7", description: "Riesige Tiergruppe mit Aussenskelett, gegliedertem Koerper und Beinen mit Gelenken.", examples: ["Insekten", "Spinnentiere", "Krebstiere", "Tausendfuesser"], tags: ["insekten", "spinnen", "krebse"] },
-  { id: "mollusca", group: "wirbellose", rank: "Stamm", title: "Weichtiere", scientific: "Mollusca", parent: "Tiere", badge: "W", color: "#b46cff", description: "Vielfaeltige Wirbellose mit weichem Koerper; viele bilden Schalen.", examples: ["Schnecken", "Muscheln", "Tintenfische", "Kalmare"], tags: ["schnecke", "muschel", "oktopus"] },
-  { id: "cnidaria", group: "wirbellose", rank: "Stamm", title: "Nesseltiere", scientific: "Cnidaria", parent: "Tiere", badge: "N", color: "#7aa7ff", description: "Meerestiere mit Nesselzellen zum Beutefang.", examples: ["Quallen", "Korallen", "Seeanemonen"], tags: ["qualle", "koralle"] },
-  { id: "annelida", group: "wirbellose", rank: "Stamm", title: "Ringelwuermer", scientific: "Annelida", parent: "Tiere", badge: "A", color: "#c88956", description: "Segmentierte Wuermer mit vielen wichtigen Boden- und Wasserarten.", examples: ["Regenwurm", "Blutegel", "Borstenwuermer"], tags: ["wurm"] },
-
-  { id: "mammalia", group: "wirbeltiere", rank: "Klasse", title: "Saeugetiere", scientific: "Mammalia", parent: "Chordatiere", badge: "M", color: "#ffcf8a", description: "Warmbluetige Wirbeltiere mit Haaren und Milchdruesen.", examples: ["Primaten", "Raubtiere", "Wale", "Pferde", "Nagetiere"], tags: ["mammal", "saeugetier"] },
-  { id: "aves", group: "wirbeltiere", rank: "Klasse", title: "Voegel", scientific: "Aves", parent: "Chordatiere", badge: "V", color: "#7af4dc", description: "Gefiederte Dinosaurier-Nachfahren mit Schnabel; viele Arten fliegen.", examples: ["Huehnervoegel", "Greifvoegel", "Singvoegel", "Pinguine"], tags: ["vogel", "huhn"] },
-  { id: "reptilia", group: "wirbeltiere", rank: "Klasse", title: "Reptilien", scientific: "Reptilia", parent: "Chordatiere", badge: "S", color: "#8edb75", description: "Schuppenhaut, Lungenatmung und meist Eier mit widerstandsfaehiger Huellenstruktur.", examples: ["Echsen", "Schlangen", "Schildkroeten", "Krokodile"], tags: ["reptil", "schlange"] },
-  { id: "amphibia", group: "wirbeltiere", rank: "Klasse", title: "Amphibien", scientific: "Amphibia", parent: "Chordatiere", badge: "F", color: "#7af4dc", description: "Wirbeltiere zwischen Wasser und Land, oft mit Larvenstadium.", examples: ["Froesche", "Kroeten", "Salamander", "Molche"], tags: ["frosch", "kroete"] },
-  { id: "actinopterygii", group: "wirbeltiere", rank: "Klasse", title: "Strahlenflosser", scientific: "Actinopterygii", parent: "Chordatiere", badge: "F", color: "#5dd7ff", description: "Die groesste Gruppe der Knochenfische.", examples: ["Karpfen", "Lachs", "Thunfisch", "Barsch", "Goldfisch"], tags: ["fisch"] },
-  { id: "chondrichthyes", group: "wirbeltiere", rank: "Klasse", title: "Knorpelfische", scientific: "Chondrichthyes", parent: "Chordatiere", badge: "H", color: "#8aa8ff", description: "Fische mit Knorpelskelett.", examples: ["Haie", "Rochen", "Seekatzen"], tags: ["hai", "rochen"] },
-  { id: "insecta", group: "insekten", rank: "Klasse", title: "Insekten", scientific: "Insecta", parent: "Gliederfuesser", badge: "I", color: "#ff6fb7", description: "Sechs Beine, meist drei Koerperabschnitte und oft Fluegel: die artenreichste Tierklasse.", examples: ["Kaefer", "Bienen", "Schmetterlinge", "Fliegen", "Heuschrecken"], tags: ["insekt"] },
-  { id: "arachnida", group: "wirbellose", rank: "Klasse", title: "Spinnentiere", scientific: "Arachnida", parent: "Gliederfuesser", badge: "P", color: "#b46cff", description: "Achtbeinige Gliederfuesser ohne Antennen.", examples: ["Spinnen", "Skorpione", "Milben", "Zecken"], tags: ["spinne", "skorpion", "zecke"] },
-  { id: "crustacea", group: "wirbellose", rank: "Klasse", title: "Krebstiere", scientific: "Crustacea", parent: "Gliederfuesser", badge: "K", color: "#7aa7ff", description: "Meist wasserlebende Gliederfuesser mit vielfaeltigen Koerperformen.", examples: ["Krabben", "Hummer", "Garnelen", "Asseln"], tags: ["krebs", "krabbe"] },
-
-  { id: "primates", group: "wirbeltiere", rank: "Ordnung", title: "Primaten", scientific: "Primates", parent: "Saeugetiere", badge: "P", color: "#ffcf8a", description: "Saeugetiere mit Greifhaenden, gutem Sehen und komplexem Sozialverhalten.", examples: ["Menschenaffen", "Affen", "Lemuren"], tags: ["mensch", "affe"] },
-  { id: "carnivora", group: "wirbeltiere", rank: "Ordnung", title: "Raubtiere", scientific: "Carnivora", parent: "Saeugetiere", badge: "R", color: "#ff6f7d", description: "Saeugetiere mit spezialisierten Zaehnen; umfasst Katzen, Hunde, Baeren und Robben.", examples: ["Hundeartige", "Katzenartige", "Baeren", "Marder"], tags: ["wolf", "hund", "katze"] },
-  { id: "artiodactyla", group: "wirbeltiere", rank: "Ordnung", title: "Paarhufer", scientific: "Artiodactyla", parent: "Saeugetiere", badge: "P", color: "#c88956", description: "Huftiere mit gerader Zehenzahl, inklusive Wiederkaeuer und Schweine.", examples: ["Rinder", "Schafe", "Ziegen", "Schweine", "Hirsche"], tags: ["rind", "schaf", "ziege"] },
-  { id: "perissodactyla", group: "wirbeltiere", rank: "Ordnung", title: "Unpaarhufer", scientific: "Perissodactyla", parent: "Saeugetiere", badge: "U", color: "#c88956", description: "Huftiere mit ungerader Zehenzahl.", examples: ["Pferde", "Esel", "Zebras", "Nashoerner", "Tapire"], tags: ["pferd", "esel"] },
-  { id: "rodentia", group: "wirbeltiere", rank: "Ordnung", title: "Nagetiere", scientific: "Rodentia", parent: "Saeugetiere", badge: "N", color: "#ffcf8a", description: "Saeugetiere mit staendig nachwachsenden Schneidezaehnen.", examples: ["Maeuse", "Ratten", "Eichhoernchen", "Biber", "Meerschweinchen"], tags: ["maus", "ratte"] },
-  { id: "lagomorpha", group: "haustiere", rank: "Ordnung", title: "Hasenartige", scientific: "Lagomorpha", parent: "Saeugetiere", badge: "H", color: "#ffcf8a", description: "Pflanzenfresser mit zusaetzlichem kleinen Schneidezahnpaar.", examples: ["Kaninchen", "Hasen", "Pfeifhasen"], tags: ["kaninchen", "hase"] },
-  { id: "cetacea", group: "wirbeltiere", rank: "Ordnung", title: "Wale", scientific: "Cetacea", parent: "Saeugetiere", badge: "W", color: "#5dd7ff", description: "Vollstaendig wasserlebende Saeugetiere.", examples: ["Delfine", "Pottwale", "Blauwale", "Schweinswale"], tags: ["wal", "delfin"] },
-  { id: "chiroptera", group: "wirbeltiere", rank: "Ordnung", title: "Fledertiere", scientific: "Chiroptera", parent: "Saeugetiere", badge: "F", color: "#b46cff", description: "Die einzigen aktiv fliegenden Saeugetiere.", examples: ["Fledermaeuse", "Flughunde"], tags: ["fledermaus"] },
-  { id: "galliformes", group: "haustiere", rank: "Ordnung", title: "Huehnervoegel", scientific: "Galliformes", parent: "Voegel", badge: "H", color: "#ff6fb7", description: "Bodenbewohnende Voegel mit kraeftigen Beinen.", examples: ["Haushuhn", "Truthuhn", "Fasan", "Wachtel", "Pfau"], tags: ["huhn", "truthahn"] },
-  { id: "anseriformes", group: "haustiere", rank: "Ordnung", title: "Gaensevoegel", scientific: "Anseriformes", parent: "Voegel", badge: "G", color: "#7af4dc", description: "Wasservoegel mit Schwimmhaeuten und breitem Schnabel.", examples: ["Enten", "Gaense", "Schwaene"], tags: ["ente", "gans"] },
-  { id: "passeriformes", group: "wirbeltiere", rank: "Ordnung", title: "Sperlingsvoegel", scientific: "Passeriformes", parent: "Voegel", badge: "S", color: "#7af4dc", description: "Groesste Vogelordnung, oft mit ausgepraegtem Gesang.", examples: ["Kraehen", "Meisen", "Finken", "Sperlinge", "Stare"], tags: ["singvogel"] },
-  { id: "accipitriformes", group: "wirbeltiere", rank: "Ordnung", title: "Greifvoegel", scientific: "Accipitriformes", parent: "Voegel", badge: "G", color: "#ffcf8a", description: "Tagaktive Jaeger mit scharfen Krallen und Hakenschnabel.", examples: ["Adler", "Bussarde", "Milane", "Geier"], tags: ["adler"] },
-  { id: "squamata", group: "wirbeltiere", rank: "Ordnung", title: "Schuppenkriechtiere", scientific: "Squamata", parent: "Reptilien", badge: "S", color: "#8edb75", description: "Umfasst Echsen, Schlangen und Doppelschleichen.", examples: ["Geckos", "Leguane", "Vipern", "Pythons"], tags: ["schlange", "echse"] },
-  { id: "testudines", group: "wirbeltiere", rank: "Ordnung", title: "Schildkroeten", scientific: "Testudines", parent: "Reptilien", badge: "S", color: "#8edb75", description: "Reptilien mit charakteristischem Panzer.", examples: ["Landschildkroeten", "Meeresschildkroeten", "Sumpfschildkroeten"], tags: ["schildkroete"] },
-  { id: "anura", group: "wirbeltiere", rank: "Ordnung", title: "Froschlurche", scientific: "Anura", parent: "Amphibien", badge: "F", color: "#7af4dc", description: "Schwanzlose Amphibien mit Sprungbeinen.", examples: ["Froesche", "Kroeten", "Laubfroesche"], tags: ["frosch", "kroete"] },
-  { id: "coleoptera", group: "insekten", rank: "Ordnung", title: "Kaefer", scientific: "Coleoptera", parent: "Insekten", badge: "K", color: "#ff6fb7", description: "Insekten mit harten Deckfluegeln; extrem artenreich.", examples: ["Marienkaefer", "Hirschkaefer", "Borkenkaefer", "Laufkaefer"], tags: ["kaefer"] },
-  { id: "lepidoptera", group: "insekten", rank: "Ordnung", title: "Schmetterlinge", scientific: "Lepidoptera", parent: "Insekten", badge: "S", color: "#b46cff", description: "Insekten mit beschuppten Fluegeln und Raupenstadium.", examples: ["Tagpfauenauge", "Monarchfalter", "Kohlweissling", "Nachtfalter"], tags: ["falter", "raupe"] },
-  { id: "hymenoptera", group: "insekten", rank: "Ordnung", title: "Hautfluegler", scientific: "Hymenoptera", parent: "Insekten", badge: "B", color: "#ffcf8a", description: "Umfasst viele staatenbildende und bestaeubende Insekten.", examples: ["Bienen", "Wespen", "Ameisen", "Hummeln"], tags: ["biene", "wespe", "ameise"] },
-  { id: "diptera", group: "insekten", rank: "Ordnung", title: "Zweifluegler", scientific: "Diptera", parent: "Insekten", badge: "F", color: "#7af4dc", description: "Insekten mit einem Fluegelpaar und Schwingkoelbchen.", examples: ["Fliegen", "Muecken", "Bremsen", "Schwebfliegen"], tags: ["fliege", "muecke"] },
-  { id: "odonata", group: "insekten", rank: "Ordnung", title: "Libellen", scientific: "Odonata", parent: "Insekten", badge: "L", color: "#5dd7ff", description: "Raeuberische Fluginsekten mit grossen Augen.", examples: ["Grosslibellen", "Kleinlibellen"], tags: ["libelle"] },
-  { id: "orthoptera", group: "insekten", rank: "Ordnung", title: "Heuschrecken", scientific: "Orthoptera", parent: "Insekten", badge: "H", color: "#8edb75", description: "Springende Insekten mit kraeftigen Hinterbeinen.", examples: ["Grashuepfer", "Grillen", "Wanderheuschrecken"], tags: ["grille"] },
-  { id: "hemiptera", group: "insekten", rank: "Ordnung", title: "Schnabelkerfe", scientific: "Hemiptera", parent: "Insekten", badge: "W", color: "#ff6fb7", description: "Insekten mit stechend-saugenden Mundwerkzeugen.", examples: ["Wanzen", "Zikaden", "Blattlaeuse"], tags: ["wanze", "zikade"] },
-
-  { id: "canidae", group: "haustiere", rank: "Familie", title: "Hundeartige", scientific: "Canidae", parent: "Raubtiere", badge: "H", color: "#ffcf8a", description: "Laufstarke Raubtiere mit sozialem Verhalten.", examples: ["Wolf", "Haushund", "Fuchs", "Schakal"], tags: ["hund", "wolf"] },
-  { id: "felidae", group: "haustiere", rank: "Familie", title: "Katzenartige", scientific: "Felidae", parent: "Raubtiere", badge: "K", color: "#ff6fb7", description: "Schleichjaeger mit einziehbaren Krallen und starkem Beutefangverhalten.", examples: ["Hauskatze", "Loewe", "Tiger", "Luchs", "Leopard"], tags: ["katze", "loewe", "tiger"] },
-  { id: "equidae", group: "haustiere", rank: "Familie", title: "Pferde", scientific: "Equidae", parent: "Unpaarhufer", badge: "P", color: "#c88956", description: "Schnelle Pflanzenfresser mit Hufen.", examples: ["Hauspferd", "Esel", "Zebra"], tags: ["pferd", "esel"] },
-  { id: "bovidae", group: "haustiere", rank: "Familie", title: "Horntraeger", scientific: "Bovidae", parent: "Paarhufer", badge: "R", color: "#c88956", description: "Wiederkaeuer mit Hoernern oder hornartigen Strukturen.", examples: ["Rinder", "Schafe", "Ziegen", "Antilopen"], tags: ["rind", "schaf", "ziege"] },
-  { id: "suidae", group: "haustiere", rank: "Familie", title: "Schweine", scientific: "Suidae", parent: "Paarhufer", badge: "S", color: "#ff9cc9", description: "Allesfressende Paarhufer mit beweglicher Ruesselscheibe.", examples: ["Hausschwein", "Wildschwein", "Warzenschwein"], tags: ["schwein"] },
-  { id: "phasianidae", group: "haustiere", rank: "Familie", title: "Fasanenartige", scientific: "Phasianidae", parent: "Huehnervoegel", badge: "F", color: "#ff6fb7", description: "Familie vieler Huehner-, Fasanen- und Wachtelarten.", examples: ["Haushuhn", "Fasan", "Pfau", "Wachtel"], tags: ["huhn", "fasan"] },
-  { id: "anatidae", group: "haustiere", rank: "Familie", title: "Entenvoegel", scientific: "Anatidae", parent: "Gaensevoegel", badge: "E", color: "#7af4dc", description: "Enten, Gaense und Schwaene mit wasserangepasstem Koerperbau.", examples: ["Hausente", "Hausgans", "Schwan"], tags: ["ente", "gans"] },
-  { id: "apidae", group: "insekten", rank: "Familie", title: "Echte Bienen", scientific: "Apidae", parent: "Hautfluegler", badge: "B", color: "#ffcf8a", description: "Wichtige Bestaeuber, darunter Honigbienen und Hummeln.", examples: ["Honigbiene", "Hummel", "Holzbiene"], tags: ["biene", "hummel"] },
-  { id: "formicidae", group: "insekten", rank: "Familie", title: "Ameisen", scientific: "Formicidae", parent: "Hautfluegler", badge: "A", color: "#ff6f7d", description: "Staatenbildende Insekten mit komplexer Arbeitsteilung.", examples: ["Waldameise", "Blattschneiderameise", "Pharaoameise"], tags: ["ameise"] },
-  { id: "araneidae", group: "wirbellose", rank: "Familie", title: "Radnetzspinnen", scientific: "Araneidae", parent: "Spinnentiere", badge: "S", color: "#b46cff", description: "Spinnenfamilie mit typischen kreisfoermigen Fangnetzen.", examples: ["Gartenkreuzspinne", "Wespenspinne"], tags: ["spinne"] },
-
-  { id: "gallus", group: "haustiere", rank: "Gattung", title: "Kammhuehner", scientific: "Gallus", parent: "Fasanenartige", badge: "G", color: "#ff6fb7", description: "Gattung asiatischer Huehnervoegel, aus der das Haushuhn hervorging.", examples: ["Bankivahuhn", "Haushuhn"], tags: ["huhn"] },
-  { id: "canis", group: "haustiere", rank: "Gattung", title: "Wolfs- und Schakalartige", scientific: "Canis", parent: "Hundeartige", badge: "C", color: "#ffcf8a", description: "Gattung mit Wolf, Kojote, Schakalen und Haushund.", examples: ["Wolf", "Haushund", "Kojote"], tags: ["hund", "wolf"] },
-  { id: "felis", group: "haustiere", rank: "Gattung", title: "Echte Katzen", scientific: "Felis", parent: "Katzenartige", badge: "F", color: "#ff6fb7", description: "Kleine Katzenarten inklusive der Hauskatze.", examples: ["Hauskatze", "Wildkatze", "Sandkatze"], tags: ["katze"] },
-  { id: "equus", group: "haustiere", rank: "Gattung", title: "Pferdeartige", scientific: "Equus", parent: "Pferde", badge: "E", color: "#c88956", description: "Gattung der Pferde, Esel und Zebras.", examples: ["Hauspferd", "Esel", "Zebra"], tags: ["pferd", "esel"] },
-  { id: "bos", group: "haustiere", rank: "Gattung", title: "Eigentliche Rinder", scientific: "Bos", parent: "Horntraeger", badge: "B", color: "#c88956", description: "Gattung grosser Rinder inklusive Hausrind und Yak.", examples: ["Hausrind", "Yak", "Gaur"], tags: ["rind", "kuh"] },
-  { id: "apis", group: "insekten", rank: "Gattung", title: "Honigbienen", scientific: "Apis", parent: "Echte Bienen", badge: "A", color: "#ffcf8a", description: "Staatenbildende Bienen mit Honigproduktion.", examples: ["Westliche Honigbiene", "Oestliche Honigbiene"], tags: ["biene"] },
-
-  { id: "human", group: "wirbeltiere", rank: "Art", title: "Mensch", scientific: "Homo sapiens", parent: "Primaten", badge: "M", color: "#ffcf8a", description: "Primatenart mit Sprache, Kultur und extrem komplexer Werkzeugnutzung.", examples: ["Homo sapiens"], tags: ["mensch"] },
-  { id: "dog", group: "haustiere", rank: "Art", title: "Haushund", scientific: "Canis lupus familiaris", parent: "Hundeartige", badge: "H", color: "#ffcf8a", description: "Domestizierte Form des Wolfs und eines der vielseitigsten Haustiere.", examples: ["Begleithund", "Herdenschutzhund", "Jagdhund"], tags: ["hund"] },
-  { id: "wolf", group: "wirbeltiere", rank: "Art", title: "Wolf", scientific: "Canis lupus", parent: "Hundeartige", badge: "W", color: "#ffcf8a", description: "Sozialer Spitzenpraedator und Stammform des Haushundes.", examples: ["Eurasischer Wolf", "Arktischer Wolf"], tags: ["wolf"] },
-  { id: "cat", group: "haustiere", rank: "Art", title: "Hauskatze", scientific: "Felis catus", parent: "Katzenartige", badge: "K", color: "#ff6fb7", description: "Domestizierte Katze, haeufig als Haustier gehalten.", examples: ["Kurzhaar", "Langhaar", "Wohnungskatze"], tags: ["katze"] },
-  { id: "lion", group: "wirbeltiere", rank: "Art", title: "Loewe", scientific: "Panthera leo", parent: "Katzenartige", badge: "L", color: "#ffcf8a", description: "Grosse soziale Katze afrikanischer und asiatischer Lebensraeume.", examples: ["Afrikanischer Loewe", "Asiatischer Loewe"], tags: ["loewe"] },
-  { id: "tiger", group: "wirbeltiere", rank: "Art", title: "Tiger", scientific: "Panthera tigris", parent: "Katzenartige", badge: "T", color: "#ff8a4c", description: "Groesste lebende Katzenart, einzelgaengerischer Jaeger.", examples: ["Bengaltiger", "Sibirischer Tiger"], tags: ["tiger"] },
-  { id: "horse", group: "haustiere", rank: "Art", title: "Hauspferd", scientific: "Equus caballus", parent: "Pferde", badge: "P", color: "#c88956", description: "Domestiziertes Lauf- und Reittier mit vielen spezialisierten Rassen.", examples: ["Reitpferd", "Kaltblut", "Pony"], tags: ["pferd"] },
-  { id: "donkey", group: "haustiere", rank: "Art", title: "Hausesel", scientific: "Equus asinus", parent: "Pferde", badge: "E", color: "#c88956", description: "Robustes domestiziertes Lasttier.", examples: ["Zwergesel", "Poitevin-Esel"], tags: ["esel"] },
-  { id: "cattle", group: "haustiere", rank: "Art", title: "Hausrind", scientific: "Bos taurus", parent: "Horntraeger", badge: "R", color: "#c88956", description: "Wichtiges Nutztier fuer Milch, Fleisch und Arbeit.", examples: ["Milchrind", "Fleischrind", "Zebu-Formen"], tags: ["rind", "kuh"] },
-  { id: "sheep", group: "haustiere", rank: "Art", title: "Hausschaf", scientific: "Ovis aries", parent: "Horntraeger", badge: "S", color: "#fff4e9", description: "Domestiziertes Wiederkaeuer-Nutztier fuer Wolle, Milch und Fleisch.", examples: ["Merino", "Heidschnucke", "Suffolk"], tags: ["schaf"] },
-  { id: "goat", group: "haustiere", rank: "Art", title: "Hausziege", scientific: "Capra hircus", parent: "Horntraeger", badge: "Z", color: "#fff4e9", description: "Anpassungsfaehiges Nutztier fuer Milch, Fleisch und Landschaftspflege.", examples: ["Saanenziege", "Burenziege", "Zwergziege"], tags: ["ziege"] },
-  { id: "pig", group: "haustiere", rank: "Art", title: "Hausschwein", scientific: "Sus domesticus", parent: "Schweine", badge: "S", color: "#ff9cc9", description: "Domestizierte Schweineform mit hoher Intelligenz.", examples: ["Duroc", "Landrasse", "Pietrain"], tags: ["schwein"] },
-  { id: "rabbit", group: "haustiere", rank: "Art", title: "Hauskaninchen", scientific: "Oryctolagus cuniculus domesticus", parent: "Hasenartige", badge: "K", color: "#ffcf8a", description: "Domestizierte Form des Wildkaninchens.", examples: ["Zwergwidder", "Rex", "Deutscher Riese"], tags: ["kaninchen"] },
-  { id: "chicken-species", group: "haustiere", rank: "Art", title: "Haushuhn", scientific: "Gallus gallus domesticus", parent: "Kammhuehner", badge: "H", color: "#ff6fb7", description: "Domestizierte Huehnerform, wichtig fuer Eier, Fleisch und Zucht.", examples: ["Leghorn", "Brahma", "Seidenhuhn", "Orpington"], tags: ["huhn", "chicken"] },
-  { id: "duck", group: "haustiere", rank: "Art", title: "Hausente", scientific: "Anas platyrhynchos domesticus", parent: "Entenvoegel", badge: "E", color: "#7af4dc", description: "Domestizierte Form der Stockente.", examples: ["Laufente", "Pekingente", "Warzenente"], tags: ["ente"] },
-  { id: "goose", group: "haustiere", rank: "Art", title: "Hausgans", scientific: "Anser anser domesticus", parent: "Entenvoegel", badge: "G", color: "#7af4dc", description: "Domestizierte Gaenseform, meist aus der Grauganslinie.", examples: ["Emdener Gans", "Pommerngans", "Toulouser Gans"], tags: ["gans"] },
-  { id: "turkey", group: "haustiere", rank: "Art", title: "Truthuhn", scientific: "Meleagris gallopavo", parent: "Huehnervoegel", badge: "T", color: "#ff6fb7", description: "Grosser Huehnervogel Nordamerikas, auch domestiziert.", examples: ["Bronzepute", "Weisse Pute"], tags: ["truthahn", "pute"] },
-  { id: "honeybee", group: "insekten", rank: "Art", title: "Westliche Honigbiene", scientific: "Apis mellifera", parent: "Honigbienen", badge: "B", color: "#ffcf8a", description: "Eine der wichtigsten bestaeubenden Insektenarten.", examples: ["Arbeiterin", "Koenigin", "Drohne"], tags: ["biene", "honigbiene"] },
-  { id: "bumblebee", group: "insekten", rank: "Art", title: "Dunkle Erdhummel", scientific: "Bombus terrestris", parent: "Echte Bienen", badge: "H", color: "#ffcf8a", description: "Kraeftige Hummelart, wichtig fuer Bestaeubung.", examples: ["Hummelstaat", "Bestaeuber"], tags: ["hummel"] },
-  { id: "ladybird", group: "insekten", rank: "Art", title: "Siebenpunkt-Marienkaefer", scientific: "Coccinella septempunctata", parent: "Kaefer", badge: "K", color: "#ff3048", description: "Bekannter Kaefer und Blattlausraeuber.", examples: ["Larve", "Imago"], tags: ["marienkaefer", "kaefer"] },
-  { id: "monarch", group: "insekten", rank: "Art", title: "Monarchfalter", scientific: "Danaus plexippus", parent: "Schmetterlinge", badge: "M", color: "#ff8a4c", description: "Wandernder Schmetterling mit auffaelliger Warnfaerbung.", examples: ["Raupe", "Falter"], tags: ["schmetterling", "falter"] },
-  { id: "mosquito", group: "insekten", rank: "Art", title: "Gemeine Stechmuecke", scientific: "Culex pipiens", parent: "Zweifluegler", badge: "M", color: "#7af4dc", description: "Kleine Mueckenart mit wasserlebenden Larven.", examples: ["Larve", "Puppe", "Imago"], tags: ["muecke"] },
-  { id: "garden-spider", group: "wirbellose", rank: "Art", title: "Gartenkreuzspinne", scientific: "Araneus diadematus", parent: "Radnetzspinnen", badge: "S", color: "#b46cff", description: "Bekannte Radnetzspinne mit Kreuzzeichnung.", examples: ["Radnetz", "Spinnenkokon"], tags: ["spinne"] },
-  { id: "octopus", group: "wirbellose", rank: "Art", title: "Gemeiner Krake", scientific: "Octopus vulgaris", parent: "Weichtiere", badge: "O", color: "#b46cff", description: "Intelligenter Kopffuesser mit acht Armen.", examples: ["Tarnung", "Werkzeugnutzung"], tags: ["oktopus", "krake"] },
-  { id: "earthworm", group: "wirbellose", rank: "Art", title: "Tauwurm", scientific: "Lumbricus terrestris", parent: "Ringelwuermer", badge: "W", color: "#c88956", description: "Bodenbildender Regenwurm mit grosser Bedeutung fuer Erde und Pflanzen.", examples: ["Bodenlockerung", "Humusbildung"], tags: ["regenwurm", "wurm"] },
-
-  { id: "breed-labrador", group: "rassen", rank: "Rasse", title: "Labrador Retriever", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Freundliche, wasserfreudige Retriever-Rasse.", examples: ["Familienhund", "Assistenzhund", "Apportierhund"], tags: ["hund", "labrador"] },
-  { id: "breed-golden", group: "rassen", rank: "Rasse", title: "Golden Retriever", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Ausgeglichene Retriever-Rasse mit starkem Menschenbezug.", examples: ["Familienhund", "Therapiehund"], tags: ["hund", "golden"] },
-  { id: "breed-shepherd", group: "rassen", rank: "Rasse", title: "Deutscher Schaeferhund", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Arbeitsfreudige und vielseitige Gebrauchshunderasse.", examples: ["Diensthund", "Sporthund", "Huetehund"], tags: ["hund", "schaeferhund"] },
-  { id: "breed-border-collie", group: "rassen", rank: "Rasse", title: "Border Collie", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Sehr lernstarker Huetehund mit hoher Arbeitsmotivation.", examples: ["Hueten", "Agility"], tags: ["hund", "collie"] },
-  { id: "breed-dachshund", group: "rassen", rank: "Rasse", title: "Dackel", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Kurzbeinige Jagdhunderasse mit starkem Charakter.", examples: ["Kurzhaar", "Rauhaar", "Langhaar"], tags: ["hund", "dackel"] },
-  { id: "breed-poodle", group: "rassen", rank: "Rasse", title: "Pudel", scientific: "Hunderasse", parent: "Haushund", badge: "D", color: "#ffcf8a", description: "Intelligente Hunderasse mit lockigem Fell.", examples: ["Toypudel", "Zwergpudel", "Koenigspudel"], tags: ["hund", "pudel"] },
-  { id: "breed-maine-coon", group: "rassen", rank: "Rasse", title: "Maine Coon", scientific: "Katzenrasse", parent: "Hauskatze", badge: "C", color: "#ff6fb7", description: "Grosse, langhaarige Katzenrasse mit ruhigem Wesen.", examples: ["Langhaar", "Robuster Koerperbau"], tags: ["katze", "maine coon"] },
-  { id: "breed-british-shorthair", group: "rassen", rank: "Rasse", title: "British Shorthair", scientific: "Katzenrasse", parent: "Hauskatze", badge: "C", color: "#ff6fb7", description: "Ruhige Katzenrasse mit dichtem kurzem Fell.", examples: ["Blau", "Kurzhaar"], tags: ["katze", "bkh"] },
-  { id: "breed-siamese", group: "rassen", rank: "Rasse", title: "Siamkatze", scientific: "Katzenrasse", parent: "Hauskatze", badge: "C", color: "#ff6fb7", description: "Schlanke, sehr kommunikative Katzenrasse mit Point-Faerbung.", examples: ["Seal Point", "Blue Point"], tags: ["katze", "siam"] },
-  { id: "breed-persian", group: "rassen", rank: "Rasse", title: "Perserkatze", scientific: "Katzenrasse", parent: "Hauskatze", badge: "C", color: "#ff6fb7", description: "Langhaarige Katzenrasse mit ruhigem Erscheinungsbild.", examples: ["Langhaar", "Wohnungskatze"], tags: ["katze", "perser"] },
-  { id: "breed-friesian", group: "rassen", rank: "Rasse", title: "Friese", scientific: "Pferderasse", parent: "Hauspferd", badge: "P", color: "#c88956", description: "Schwarze Pferderasse mit barocker Ausstrahlung.", examples: ["Dressur", "Kutsche"], tags: ["pferd", "friese"] },
-  { id: "breed-arabian", group: "rassen", rank: "Rasse", title: "Arabisches Vollblut", scientific: "Pferderasse", parent: "Hauspferd", badge: "P", color: "#c88956", description: "Ausdauernde, elegante Pferderasse.", examples: ["Distanzreiten", "Zucht"], tags: ["pferd", "araber"] },
-  { id: "breed-shetland", group: "rassen", rank: "Rasse", title: "Shetlandpony", scientific: "Pferderasse", parent: "Hauspferd", badge: "P", color: "#c88956", description: "Kleines, kraeftiges Pony von den Shetlandinseln.", examples: ["Pony", "Kinderreiten"], tags: ["pferd", "pony"] },
-  { id: "breed-holstein", group: "rassen", rank: "Rasse", title: "Holstein-Friesian", scientific: "Rinderrasse", parent: "Hausrind", badge: "R", color: "#c88956", description: "Weltweit verbreitete Milchviehrasse.", examples: ["Milchrind", "Schwarzbunt"], tags: ["rind", "kuh"] },
-  { id: "breed-angus", group: "rassen", rank: "Rasse", title: "Aberdeen Angus", scientific: "Rinderrasse", parent: "Hausrind", badge: "R", color: "#c88956", description: "Hornlose Fleischrinderrasse.", examples: ["Fleischrind", "Robust"], tags: ["rind", "angus"] },
-  { id: "breed-highland", group: "rassen", rank: "Rasse", title: "Schottisches Hochlandrind", scientific: "Rinderrasse", parent: "Hausrind", badge: "R", color: "#c88956", description: "Robuste Rinderrasse mit langem Fell und Hoernern.", examples: ["Extensivhaltung", "Landschaftspflege"], tags: ["rind", "highland"] },
-  { id: "breed-merino", group: "rassen", rank: "Rasse", title: "Merinoschaf", scientific: "Schafrasse", parent: "Hausschaf", badge: "S", color: "#fff4e9", description: "Schafrasse mit feiner Wolle.", examples: ["Wolle", "Herde"], tags: ["schaf", "merino"] },
-  { id: "breed-suffolk", group: "rassen", rank: "Rasse", title: "Suffolk", scientific: "Schafrasse", parent: "Hausschaf", badge: "S", color: "#fff4e9", description: "Fleischschafrasse mit schwarzem Kopf und Beinen.", examples: ["Fleischschaf"], tags: ["schaf"] },
-  { id: "breed-saanen", group: "rassen", rank: "Rasse", title: "Saanenziege", scientific: "Ziegenrasse", parent: "Hausziege", badge: "Z", color: "#fff4e9", description: "Milchziegenrasse mit hoher Leistung.", examples: ["Milchziege"], tags: ["ziege"] },
-  { id: "breed-boer-goat", group: "rassen", rank: "Rasse", title: "Burenziege", scientific: "Ziegenrasse", parent: "Hausziege", badge: "Z", color: "#fff4e9", description: "Kraeftige Fleischziegenrasse.", examples: ["Fleischziege"], tags: ["ziege"] },
-  { id: "breed-duroc", group: "rassen", rank: "Rasse", title: "Duroc", scientific: "Schweinerasse", parent: "Hausschwein", badge: "S", color: "#ff9cc9", description: "Rotbraune Schweinerasse, haeufig in Fleischzucht.", examples: ["Fleischschwein"], tags: ["schwein"] },
-  { id: "breed-leghorn", group: "rassen", rank: "Rasse", title: "Leghorn", scientific: "Huehnerrasse", parent: "Haushuhn", badge: "H", color: "#ff6fb7", description: "Leichte Legerasse mit hoher Eierleistung.", examples: ["Weisses Leghorn", "Legehuhn"], tags: ["huhn"] },
-  { id: "breed-brahma", group: "rassen", rank: "Rasse", title: "Brahma", scientific: "Huehnerrasse", parent: "Haushuhn", badge: "H", color: "#ff6fb7", description: "Grosse, ruhige Huehnerrasse mit befiederten Laeufen.", examples: ["Riesenhuhn", "Zierhuhn"], tags: ["huhn"] },
-  { id: "breed-silkie", group: "rassen", rank: "Rasse", title: "Seidenhuhn", scientific: "Huehnerrasse", parent: "Haushuhn", badge: "H", color: "#ff6fb7", description: "Huehnerrasse mit seidig wirkendem Gefieder.", examples: ["Zierhuhn", "Bruttrieb"], tags: ["huhn", "seidenhuhn"] },
-  { id: "breed-orpington", group: "rassen", rank: "Rasse", title: "Orpington", scientific: "Huehnerrasse", parent: "Haushuhn", badge: "H", color: "#ff6fb7", description: "Ruhige Zweinutzungsrasse mit rundem Erscheinungsbild.", examples: ["Zweinutzung", "Zierhuhn"], tags: ["huhn"] },
-  { id: "breed-runner-duck", group: "rassen", rank: "Rasse", title: "Laufente", scientific: "Entenrasse", parent: "Hausente", badge: "E", color: "#7af4dc", description: "Aufrecht laufende Entenrasse, bekannt fuer Schneckenjagd.", examples: ["Gartenente", "Laufhaltung"], tags: ["ente", "laufente"] },
-  { id: "breed-peking-duck", group: "rassen", rank: "Rasse", title: "Pekingente", scientific: "Entenrasse", parent: "Hausente", badge: "E", color: "#7af4dc", description: "Schwere Hausentenrasse mit weissem Gefieder.", examples: ["Nutzente"], tags: ["ente"] },
-  { id: "breed-netherland-dwarf", group: "rassen", rank: "Rasse", title: "Farbenzwerg", scientific: "Kaninchenrasse", parent: "Hauskaninchen", badge: "K", color: "#ffcf8a", description: "Sehr kleine Kaninchenrasse mit vielen Farbvarianten.", examples: ["Zwergkaninchen"], tags: ["kaninchen"] },
-  { id: "breed-german-giant", group: "rassen", rank: "Rasse", title: "Deutscher Riese", scientific: "Kaninchenrasse", parent: "Hauskaninchen", badge: "K", color: "#ffcf8a", description: "Sehr grosse Kaninchenrasse.", examples: ["Riesenkaninchen"], tags: ["kaninchen"] },
-];
 
 function TypeIcon() {
   return <span className="typeIcon">T</span>;
