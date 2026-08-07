@@ -21,6 +21,7 @@ SYSTEMATICS_FILE = Path("/data/systematics.json")
 USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
 CHAT_STYLES_FILE = Path("/data/chat_styles.json")
+CHAT_STYLE_PURCHASES_FILE = Path("/data/chat_style_purchases.json")
 CHAT_STYLE_SHOP_ITEMS = [
     {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 650, "category": "Chat Animation", "style": "sparkle"},
     {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 900, "category": "Chat Animation", "style": "cotton"},
@@ -253,15 +254,40 @@ def chat_style_for(username: str) -> str:
 
 def purchased_item_names(username: str) -> set[str]:
     try:
-        purchases = rows(f"purchases?username=eq.{quote(username)}&select=item_name")
+        purchases = rows(f"purchases?username=eq.{quote(username)}&select=reward_name")
     except HTTPException:
         purchases = []
-    return {str(purchase.get("item_name") or "") for purchase in purchases}
+    return {str(purchase.get("reward_name") or "") for purchase in purchases}
+
+
+def load_chat_style_purchases() -> dict[str, list[str]]:
+    try:
+        if not CHAT_STYLE_PURCHASES_FILE.exists():
+            return {}
+        data = json.loads(CHAT_STYLE_PURCHASES_FILE.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        return {str(username): [str(style) for style in styles if str(style) in chat_style_ids()] for username, styles in data.items() if isinstance(styles, list)}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_chat_style_purchases(purchases: dict[str, list[str]]) -> None:
+    CHAT_STYLE_PURCHASES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CHAT_STYLE_PURCHASES_FILE.write_text(json.dumps(purchases, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def remember_chat_style_purchase(username: str, style: str) -> None:
+    purchases = load_chat_style_purchases()
+    owned = set(purchases.get(username, []))
+    owned.add(style)
+    purchases[username] = sorted(owned)
+    save_chat_style_purchases(purchases)
 
 
 def owned_chat_styles(username: str) -> set[str]:
     names = purchased_item_names(username)
-    owned = {"default"}
+    owned = {"default", *load_chat_style_purchases().get(username, [])}
     for item in CHAT_STYLE_SHOP_ITEMS:
         if item["name"] in names:
             owned.add(str(item["style"]))
@@ -688,9 +714,11 @@ def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_us
         raise HTTPException(status_code=400, detail="Nicht genug Chickens")
     supabase().post(
         "purchases",
-        {"username": user["username"], "item_name": item.get("name"), "price": price, "status": "open"},
+        {"username": user["username"], "reward_name": item.get("name"), "reward_category": item.get("category") or "Rewards", "price": price, "status": "open"},
         returning=False,
     )
+    if builtin_item:
+        remember_chat_style_purchase(str(user["username"]), str(item["style"]))
     supabase().patch(f"users?username=eq.{quote(str(user['username']))}", {"chickens": current_chickens - price})
     return {"message": "Item gekauft."}
 
