@@ -644,16 +644,18 @@ def save_gallery_art(payload: GalleryCreate, user: dict[str, Any] = Depends(curr
     if not image_data.startswith("data:image/png;base64,"):
         raise HTTPException(status_code=400, detail="Bitte ein gemaltes PNG-Bild speichern")
     title = payload.title.strip() or "Ohne Titel"
-    supabase().upsert(
-        "creative_gallery?on_conflict=username",
-        {
-            "username": str(user["username"]),
-            "title": title,
-            "image_data": image_data,
-            "created_at": datetime.now().isoformat(),
-        },
-        returning=False,
-    )
+    username = str(user["username"])
+    payload_data = {
+        "username": username,
+        "title": title,
+        "image_data": image_data,
+        "created_at": datetime.now().isoformat(),
+    }
+    existing = rows(f"creative_gallery?username=eq.{quote(username)}&order=created_at.desc&limit=1")
+    if existing:
+        supabase().patch(f"creative_gallery?id=eq.{quote(str(existing[0].get('id')))}", payload_data)
+    else:
+        supabase().post("creative_gallery", payload_data, returning=False)
     return {"message": "Dein Bild ist jetzt in der Hall of Fame."}
 
 
@@ -665,11 +667,12 @@ def react_gallery_art(payload: GalleryReaction, user: dict[str, Any] = Depends(c
     art_id = quote(payload.art_id.strip())
     if not rows(f"creative_gallery?id=eq.{art_id}&limit=1"):
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
-    supabase().upsert(
-        "creative_gallery_reactions?on_conflict=art_id,username",
-        {"art_id": payload.art_id, "username": str(user["username"]), "emoji": emoji},
-        returning=False,
-    )
+    username = str(user["username"])
+    existing = rows(f"creative_gallery_reactions?art_id=eq.{art_id}&username=eq.{quote(username)}&limit=1")
+    if existing:
+        supabase().patch(f"creative_gallery_reactions?id=eq.{quote(str(existing[0].get('id')))}", {"emoji": emoji, "created_at": datetime.now().isoformat()})
+    else:
+        supabase().post("creative_gallery_reactions", {"art_id": payload.art_id, "username": username, "emoji": emoji}, returning=False)
     return {"message": "Reaktion gespeichert."}
 
 
