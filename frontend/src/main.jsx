@@ -12,12 +12,15 @@ import {
   LogIn,
   LogOut,
   Lock,
+  Mail,
+  MessageCircle,
   MousePointer2,
   Newspaper,
   Palette,
   Plus,
   RefreshCw,
   Save,
+  Send,
   Shield,
   Sparkles,
   ShoppingBasket,
@@ -35,6 +38,7 @@ const nav = [
   { id: "home", label: "Home", icon: Home },
   { id: "news", label: "News", icon: Newspaper },
   { id: "members", label: "Mitglieder", icon: Users },
+  { id: "chat", label: "Chat", icon: MessageCircle },
   { id: "profile", label: "Profil", icon: User },
   { id: "shop", label: "Shop", icon: ShoppingBasket },
   { id: "leaderboard", label: "Rangliste", icon: Trophy },
@@ -149,11 +153,11 @@ function Shell({ page, setPage, user, onLogout, children }) {
           </div>
           <div className="sideGroup">
             <span>Community</span>
-            {nav.slice(1, 9).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+            {nav.slice(1, 10).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
           </div>
           <div className="sideGroup">
             <span>Account</span>
-            {nav.slice(9, 11).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
+            {nav.slice(10, 12).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
           </div>
           <div className="dailyBox">
             <Star size={20} />
@@ -445,7 +449,7 @@ function CardGrid({ title, items, render }) {
   );
 }
 
-function MembersPage() {
+function MembersPage({ user, setPage }) {
   const { data, loading, error } = useApi("/api/users", []);
   const [query, setQuery] = useState("");
   const filtered = data.filter((member) => String(member.username || "").toLowerCase().includes(query.toLowerCase()));
@@ -454,6 +458,15 @@ function MembersPage() {
     chickens: acc.chickens + Number(member.chickens || 0),
     braincells: acc.braincells + Number(member.braincells || 0),
   }), { chickens: 0, braincells: 0 });
+
+  function openPrivate(member) {
+    try {
+      localStorage.setItem("aviary_chat_target", member.username);
+    } catch {
+      // Private mode can still be opened without persisted handoff.
+    }
+    setPage("chat");
+  }
 
   return (
     <section className="stack">
@@ -496,8 +509,207 @@ function MembersPage() {
               <span>{member.braincells || 0} Pepples</span>
               <span>{member.chickens || 0} Chickens</span>
             </div>
+            {user && member.username !== user.username && (
+              <button className="miniAction" onClick={() => openPrivate(member)} type="button">
+                <Mail size={15} /> Privat schreiben
+              </button>
+            )}
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function formatChatTime(value) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+function ChatPage({ user, setPage }) {
+  const initialTarget = useMemo(() => {
+    try {
+      return localStorage.getItem("aviary_chat_target") || "";
+    } catch {
+      return "";
+    }
+  }, []);
+  const [mode, setMode] = useState(initialTarget ? "private" : "global");
+  const [selectedUser, setSelectedUser] = useState(initialTarget);
+  const [users, setUsers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [body, setBody] = useState("");
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem("aviary_chat_target");
+    } catch {
+      // Optional handoff only.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let alive = true;
+    async function loadPeople() {
+      try {
+        const [nextUsers, nextOnline] = await Promise.all([
+          api("/api/users"),
+          api("/api/chat/online"),
+        ]);
+        if (!alive) return;
+        setUsers(nextUsers);
+        setOnlineUsers(nextOnline);
+      } catch (err) {
+        if (alive) setNotice(err.message);
+      }
+    }
+    loadPeople();
+    const interval = window.setInterval(loadPeople, 10000);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+    };
+  }, [user?.username]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let alive = true;
+    async function loadMessages() {
+      const path = mode === "global" ? "/api/chat/global" : selectedUser ? `/api/chat/private/${encodeURIComponent(selectedUser)}` : "";
+      if (!path) {
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
+      try {
+        const next = await api(path);
+        if (!alive) return;
+        setMessages(next);
+        setNotice("");
+      } catch (err) {
+        if (alive) setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausfuehren." : err.message);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+    setLoading(true);
+    loadMessages();
+    const interval = window.setInterval(loadMessages, 3500);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+    };
+  }, [mode, selectedUser, user?.username]);
+
+  if (!user) return <EmptyLogin setPage={setPage} />;
+
+  const onlineNames = new Set(onlineUsers.map((member) => member.username));
+  const selectableUsers = users.filter((member) => member.username && member.username !== user.username);
+  const currentTarget = selectableUsers.find((member) => member.username === selectedUser);
+
+  async function sendMessage(event) {
+    event.preventDefault();
+    const text = body.trim();
+    if (!text) return;
+    if (mode === "private" && !selectedUser) {
+      setNotice("Waehle zuerst ein Mitglied fuer den privaten Chat.");
+      return;
+    }
+    const path = mode === "global" ? "/api/chat/global" : `/api/chat/private/${encodeURIComponent(selectedUser)}`;
+    try {
+      const result = await api(path, { method: "POST", body: JSON.stringify({ body: text }) });
+      setMessages((current) => [...current, result.message].filter(Boolean));
+      setBody("");
+      setNotice("");
+    } catch (err) {
+      setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausfuehren." : err.message);
+    }
+  }
+
+  return (
+    <section className="stack chatPage">
+      <div className="chatHero">
+        <div>
+          <p className="kicker">Live Schwarmfunk</p>
+          <h1>Chat</h1>
+          <p>Global mit allen Online-Mitgliedern schreiben oder direkt private Nachrichten senden.</p>
+        </div>
+        <div className="chatModeTabs" role="tablist" aria-label="Chatmodus">
+          <button className={mode === "global" ? "active" : ""} onClick={() => setMode("global")} type="button"><MessageCircle size={17} /> Global</button>
+          <button className={mode === "private" ? "active" : ""} onClick={() => setMode("private")} type="button"><Mail size={17} /> Privat</button>
+        </div>
+      </div>
+      <div className="chatLayout">
+        <aside className="chatSidebar panel">
+          <PanelTitle icon={Users} title="Online" action={`${onlineUsers.length}`} />
+          <div className="chatPeopleList">
+            {onlineUsers.length ? onlineUsers.map((member) => (
+              <button key={member.username} onClick={() => { setSelectedUser(member.username); setMode("private"); }} type="button">
+                <Avatar user={member} />
+                <span><b>{member.username}</b><small>Online</small></span>
+                <i />
+              </button>
+            )) : <div className="notice">Gerade niemand online.</div>}
+          </div>
+          <PanelTitle icon={Mail} title="Privat schreiben" action={`${selectableUsers.length}`} />
+          <div className="chatPeopleList compact">
+            {selectableUsers.map((member) => (
+              <button className={selectedUser === member.username && mode === "private" ? "active" : ""} key={member.username} onClick={() => { setSelectedUser(member.username); setMode("private"); }} type="button">
+                <Avatar user={member} />
+                <span><b>{member.username}</b><small>{onlineNames.has(member.username) ? "Online" : "Offline"}</small></span>
+                {onlineNames.has(member.username) && <i />}
+              </button>
+            ))}
+          </div>
+        </aside>
+        <div className="chatWindow panel">
+          <div className="chatWindowHead">
+            <div>
+              <span>{mode === "global" ? "Globalchat" : "Privater Chat"}</span>
+              <strong>{mode === "global" ? "Alle online im Aviary" : currentTarget?.username || "Mitglied waehlen"}</strong>
+            </div>
+            {mode === "private" && currentTarget && <RoleBadge user={currentTarget} />}
+          </div>
+          {notice && <div className="notice error">{notice}</div>}
+          <div className="chatMessages" aria-live="polite">
+            {loading && <div className="notice">Lade Chat...</div>}
+            {!loading && !messages.length && <div className="notice">Noch keine Nachrichten. Schreib die erste.</div>}
+            {messages.map((message) => {
+              const mine = message.sender_username === user.username;
+              return (
+                <article className={`chatBubble ${mine ? "mine" : ""}`} key={message.id || `${message.sender_username}-${message.created_at}`}>
+                  {!mine && <Avatar user={message.sender} />}
+                  <div>
+                    <header>
+                      <b>{message.sender?.username || message.sender_username}</b>
+                      <RoleBadge user={message.sender} />
+                      <time>{formatChatTime(message.created_at)}</time>
+                    </header>
+                    <p>{message.body}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <form className="chatComposer" onSubmit={sendMessage}>
+            <input
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder={mode === "global" ? "Nachricht an alle Online-Mitglieder..." : selectedUser ? `Nachricht an ${selectedUser}...` : "Erst Mitglied links waehlen..."}
+              maxLength={1200}
+              disabled={mode === "private" && !selectedUser}
+            />
+            <button type="submit" disabled={!body.trim() || (mode === "private" && !selectedUser)}><Send size={17} /> Senden</button>
+          </form>
+        </div>
       </div>
     </section>
   );
@@ -5162,7 +5374,8 @@ function App() {
     if (page === "home") return <HomePage user={user} setPage={setPage} />;
     if (page === "login") return <LoginPage onLogin={(nextUser) => { setUser(nextUser); setPage("home"); }} />;
     if (page === "news") return <ListPage title="News" path="/api/news" render={(item) => <article className="card" key={item.id}><h3>{item.title}</h3><p>{item.body}</p></article>} />;
-    if (page === "members") return <MembersPage />;
+    if (page === "members") return <MembersPage user={user} setPage={setPage} />;
+    if (page === "chat") return <ChatPage user={user} setPage={setPage} />;
     if (page === "profile") return <ProfilePage user={user} setUser={setUser} setPage={setPage} />;
     if (page === "shop") return <ShopPage user={user} setPage={setPage} />;
     if (page === "leaderboard") return <LeaderboardPage />;

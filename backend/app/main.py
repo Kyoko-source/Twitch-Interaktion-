@@ -19,6 +19,7 @@ USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
 USER_ROLES = {"admin", "moderator", "vip", "member"}
 SYSTEMATICS_FILE = Path("/data/systematics.json")
 USER_ROLES_FILE = Path("/data/user_roles.json")
+CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
 
 app = FastAPI(title="Aviary API")
 settings = get_settings()
@@ -102,6 +103,11 @@ class GalleryCreate(BaseModel):
 class GalleryReaction(BaseModel):
     art_id: str
     emoji: str = Field(max_length=8)
+
+
+class ChatCreate(BaseModel):
+    body: str = Field(max_length=1200)
+    recipient_username: str | None = Field(default=None, max_length=32)
 
 
 class NewsCreate(BaseModel):
@@ -208,6 +214,26 @@ def public_user(user: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
+def enrich_chat_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    usernames = {str(message.get("sender_username") or "") for message in messages}
+    usernames.update(str(message.get("recipient_username") or "") for message in messages if message.get("recipient_username"))
+    valid_usernames = sorted(name for name in usernames if name)
+    users_by_name = {
+        str(user.get("username") or ""): public_user(user)
+        for user in rows("users?select=*&username=in.(" + ",".join(quote(name) for name in valid_usernames) + ")")
+    } if valid_usernames else {}
+    enriched = []
+    for message in messages:
+        sender = str(message.get("sender_username") or "")
+        recipient = str(message.get("recipient_username") or "")
+        enriched.append({
+            **message,
+            "sender": users_by_name.get(sender, {"username": sender, "role": "member"}),
+            "recipient": users_by_name.get(recipient, {"username": recipient, "role": "member"}) if recipient else None,
+        })
+    return enriched
+
+
 def normalize_role(role: Any) -> str:
     value = str(role or "member").strip().lower()
     return value if value in USER_ROLES else "member"
@@ -233,6 +259,52 @@ def save_user_roles(roles: dict[str, str]) -> None:
 def user_role(username: str, fallback: Any = None) -> str:
     stored = load_user_roles().get(username)
     return stored or normalize_role(fallback)
+
+
+def load_chat_messages() -> list[dict[str, Any]]:
+    try:
+        if not CHAT_MESSAGES_FILE.exists():
+            return []
+        data = json.loads(CHAT_MESSAGES_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def save_chat_messages(messages: list[dict[str, Any]]) -> None:
+    CHAT_MESSAGES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CHAT_MESSAGES_FILE.write_text(json.dumps(messages[-600:], ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def store_chat_message(channel: str, sender: str, body: str, recipient: str | None = None) -> dict[str, Any]:
+    messages = load_chat_messages()
+    message = {
+        "id": secrets.token_hex(12),
+        "channel": channel,
+        "sender_username": sender,
+        "recipient_username": recipient,
+        "body": body,
+        "created_at": datetime.now().isoformat(),
+    }
+    messages.append(message)
+    save_chat_messages(messages)
+    return message
+
+
+def global_chat_rows() -> list[dict[str, Any]]:
+    return [message for message in load_chat_messages() if message.get("channel") == "global"][-120:]
+
+
+def private_chat_rows(me: str, other: str) -> list[dict[str, Any]]:
+    messages = []
+    for message in load_chat_messages():
+        if message.get("channel") != "private":
+            continue
+        sender = str(message.get("sender_username") or "")
+        recipient = str(message.get("recipient_username") or "")
+        if {sender, recipient} == {me, other}:
+            messages.append(message)
+    return messages[-120:]
 
 
 def rank_name(points: int) -> str:
@@ -377,6 +449,66 @@ def clear_presence(user: dict[str, Any] = Depends(current_user)) -> dict[str, st
 @app.get("/api/users")
 def users() -> list[dict[str, Any]]:
     return [public_user(user) for user in rows("users?select=*&order=braincells.desc")]
+
+
+@app.get("/api/chat/online")
+def chat_online(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+    cutoff = (datetime.now() - timedelta(seconds=55)).isoformat()
+    try:
+        presence_rows = rows(f"user_presence?select=username,last_seen&last_seen=gte.{quote(cutoff)}&order=last_seen.desc&limit=50")
+    except HTTPException:
+        presence_rows = []
+    usernames = [str(row.get("username") or "") for row in presence_rows if row.get("username")]
+    users_by_name = {
+        str(member.get("username") or ""): public_user(member)
+        for member in rows("users?select=*&username=in.(" + ",".join(quote(name) for name in usernames) + ")")
+    } if usernames else {}
+    return [
+        {**users_by_name.get(username, {"username": username, "role": "member"}), "last_seen": row.get("last_seen"), "status": "Online"}
+        for row in presence_rows
+        for username in [str(row.get("username") or "")]
+        if username
+    ]
+
+
+@app.get("/api/chat/global")
+def chat_global(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+    return enrich_chat_messages(global_chat_rows())
+
+
+@app.post("/api/chat/global")
+def create_global_message(payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    body = payload.body.strip()
+    if not body:
+        raise HTTPException(status_code=400, detail="Nachricht ist leer")
+    created = store_chat_message("global", str(user["username"]), body)
+    return {"message": enrich_chat_messages([created])[0]}
+
+
+@app.get("/api/chat/private/{username}")
+def chat_private(username: str, user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+    other = clean_username(username)
+    me = str(user["username"])
+    if other == me:
+        raise HTTPException(status_code=400, detail="Du kannst dir nicht selbst schreiben")
+    if not single_user(other):
+        raise HTTPException(status_code=404, detail="Mitglied nicht gefunden")
+    return enrich_chat_messages(private_chat_rows(me, other))
+
+
+@app.post("/api/chat/private/{username}")
+def create_private_message(username: str, payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    recipient = clean_username(username)
+    sender = str(user["username"])
+    if recipient == sender:
+        raise HTTPException(status_code=400, detail="Du kannst dir nicht selbst schreiben")
+    if not single_user(recipient):
+        raise HTTPException(status_code=404, detail="Mitglied nicht gefunden")
+    body = payload.body.strip()
+    if not body:
+        raise HTTPException(status_code=400, detail="Nachricht ist leer")
+    created = store_chat_message("private", sender, body, recipient)
+    return {"message": enrich_chat_messages([created])[0]}
 
 
 @app.get("/api/leaderboard")
