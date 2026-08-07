@@ -2694,23 +2694,30 @@ function PeppleSurvivor({ user }) {
   function drawSurvivorHudBars(ctx, canvas, state, frame) {
     const player = state.player;
     const x = 22;
-    const y = canvas.height - 96;
+    const y = canvas.height - 128;
     const width = Math.min(330, canvas.width - 44);
+    const energyPct = clamp((state.energy ?? 100) / 100, 0, 1);
     const hpPct = clamp(player.hp / Math.max(1, player.maxHp), 0, 1);
     const xpPct = clamp(state.xp / Math.max(1, state.nextXp), 0, 1);
     ctx.save();
     ctx.fillStyle = "rgba(4, 4, 12, 0.48)";
-    roundedRect(ctx, x - 8, y - 10, width + 16, 82, 8);
+    roundedRect(ctx, x - 8, y - 10, width + 16, 116, 8);
     ctx.fill();
     ctx.strokeStyle = "rgba(255, 218, 184, 0.16)";
     ctx.stroke();
-    drawCanvasMeter(ctx, x, y, width, 28, hpPct, "HP", `${Math.ceil(Math.max(0, player.hp))}/${player.maxHp}`, {
+    drawCanvasMeter(ctx, x, y, width, 22, energyPct, state.bleeding ? "BLEED" : "MOVE", state.bleeding ? "ALARM" : `${Math.round(energyPct * 100)}%`, {
+      start: state.bleeding ? "#ff163f" : "#ffcf33",
+      mid: state.bleeding ? "#fff4e9" : "#ffe66d",
+      end: state.bleeding ? "#ff5f7c" : "#5dff9a",
+      glow: state.bleeding ? "rgba(255, 22, 63, 0.82)" : "rgba(255, 230, 109, 0.62)",
+    }, frame, state.bleeding);
+    drawCanvasMeter(ctx, x, y + 34, width, 28, hpPct, "HP", `${Math.ceil(Math.max(0, player.hp))}/${player.maxHp}`, {
       start: hpPct <= 0.22 ? "#ff163f" : "#ff3d71",
       mid: hpPct <= 0.22 ? "#fff4e9" : "#ff7f7f",
       end: hpPct <= 0.22 ? "#ffb000" : "#ffcf8a",
       glow: hpPct <= 0.22 ? "rgba(255, 30, 68, 0.82)" : "rgba(255, 95, 124, 0.56)",
     }, frame, hpPct <= 0.22);
-    drawCanvasMeter(ctx, x, y + 40, width, 22, xpPct, `LVL ${state.level}`, `${state.xp}/${state.nextXp} XP`, {
+    drawCanvasMeter(ctx, x, y + 74, width, 22, xpPct, `LVL ${state.level}`, `${state.xp}/${state.nextXp} XP`, {
       start: "#7af4dc",
       mid: "#b46cff",
       end: "#ffcf8a",
@@ -4234,7 +4241,6 @@ function PeppleSurvivor({ user }) {
   }
 
   const healthPct = Math.max(0, Math.min(100, snapshot.hp / Math.max(1, snapshot.maxHp || 150) * 100));
-  const energyPct = Math.max(0, Math.min(100, Number(snapshot.energy ?? 100)));
   const bleeding = Boolean(snapshot.bleeding);
   const xpPct = Math.max(0, Math.min(100, snapshot.xp / Math.max(1, snapshot.nextXp) * 100));
   const bloodIntensity = status === "play" || status === "paused" || status === "levelup" ? Math.max(0, Math.min(1, (55 - healthPct) / 55)) : 0;
@@ -4271,15 +4277,6 @@ function PeppleSurvivor({ user }) {
         </div>
       </div>
       <div className="survivorBars">
-        <div className={`survivorMeter energyMeter ${bleeding ? "bleeding" : ""}`} style={{ "--pct": `${energyPct}%` }}>
-          <div className="meterIcon"><Zap size={15} /></div>
-          <div className="meterCopy">
-            <span>{bleeding ? "Unstillbare Blutung" : "Bewegungsenergie"}</span>
-            <b>{Math.round(energyPct)}<small>%</small></b>
-          </div>
-          <i><em className="energyFill" style={{ width: `${energyPct}%` }} /></i>
-          <strong>{bleeding ? "ALARM" : "MOVE"}</strong>
-        </div>
         <div className="survivorMeter healthMeter" style={{ "--pct": `${healthPct}%` }}>
           <div className="meterIcon"><Shield size={17} /></div>
           <div className="meterCopy">

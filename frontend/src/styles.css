@@ -2149,7 +2149,6 @@ textarea {
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(260px, 0.95fr) minmax(320px, 1.25fr);
-  grid-template-rows: auto auto;
   gap: 16px;
 }
 
@@ -2207,14 +2206,12 @@ textarea {
   --meter: #ff5f7c;
   --meter-hot: #ffcf8a;
   grid-column: 1;
-  grid-row: 2;
 }
 
 .xpMeter {
   --meter: #7af4dc;
   --meter-hot: #b46cff;
   grid-column: 2;
-  grid-row: 1 / span 2;
 }
 
 .energyMeter {
@@ -3597,7 +3594,6 @@ textarea {
     max-height: 520px;
   }
 
-  .energyMeter,
   .healthMeter,
   .xpMeter {
     grid-column: 1;
