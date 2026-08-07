@@ -22,7 +22,7 @@ USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
 CHAT_STYLES_FILE = Path("/data/chat_styles.json")
 CHAT_STYLE_PURCHASES_FILE = Path("/data/chat_style_purchases.json")
-PURCHASE_CATEGORY_FALLBACK = "Out of Stream Rewards"
+PURCHASE_CATEGORY_FALLBACK = "In Stream Rewards"
 PURCHASE_CATEGORIES = {
     "In Stream Rewards",
     "Bestrafungs Ideen",
