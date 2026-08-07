@@ -216,19 +216,26 @@ function HomePage({ user, setPage }) {
   const podium = data.leaderboard.slice(0, 3);
   const nextNews = data.news[0];
   const activeMembers = data.active_members || [];
+  const heroName = user?.username || "Aviary";
+  const heroKicker = user ? "Willkommen zurueck" : "Willkommen";
+  const heroText = user
+    ? "Gemeinsam wachsen, gemeinsam glaenzen. Dein Aviary-Dashboard fuer Games, Rewards und Community-Energie."
+    : "Logg dich ein, sammle Chickens, spiel Minispiele und werde Teil der Aviary-Community.";
+  const heroLevel = user ? Math.max(1, Math.floor(Number(user.braincells || 0) / 140) + 1) : 1;
+  const heroProgress = user ? Math.min(98, Number(user.braincells || 0) % 140) : 8;
 
   return (
     <section className="homePage">
       <div className="dashboardHero">
         <div className="heroCopy">
-          <p className="kicker">Willkommen zurueck</p>
-          <h1>{user?.username || "magical_kyoko_"}</h1>
+          <p className="kicker">{heroKicker}</p>
+          <h1>{heroName}</h1>
           {user && <RoleBadge user={user} />}
-          <p>Gemeinsam wachsen, gemeinsam glaenzen. Dein Aviary-Dashboard fuer Games, Rewards und Community-Energie.</p>
+          <p>{heroText}</p>
           <div className="levelStrip">
-            <div><span>Level</span><strong>{user ? Math.max(1, Math.floor(Number(user.braincells || 0) / 140) + 1) : 27}</strong></div>
-            <div className="levelBar"><span style={{ width: `${user ? Math.min(98, Number(user.braincells || 0) % 140) : 72}%` }} /></div>
-            <small>Naechster Rang wartet im Kaefiglicht.</small>
+            <div><span>{user ? "Level" : "Start"}</span><strong>{heroLevel}</strong></div>
+            <div className="levelBar"><span style={{ width: `${heroProgress}%` }} /></div>
+            <small>{user ? "Naechster Rang wartet im Kaefiglicht." : "Einloggen schaltet deinen echten Fortschritt frei."}</small>
           </div>
           <div className="actions">
             <button onClick={() => setPage(user ? "profile" : "login")} type="button">{user ? "Profil oeffnen" : "Einloggen"}</button>
@@ -5397,7 +5404,12 @@ function App() {
   }
 
   useEffect(() => {
-    api("/api/auth/me").then((result) => setUser(result.user)).catch(() => {});
+    api("/api/auth/me")
+      .then((result) => setUser(result.user))
+      .catch(() => {
+        setToken("");
+        setUser(null);
+      });
   }, []);
 
   useEffect(() => {
