@@ -1906,13 +1906,40 @@ textarea {
 
 .chatBubble.chatStyle-cotton > div::before,
 .chatStylePicker .chatStyle-cotton::before {
-  content: "♡";
+  content: "♡  ♥  ♡  ♥  ♡";
   position: absolute;
-  right: 14px;
-  top: 8px;
+  right: 10px;
+  top: 7px;
   color: rgba(255, 244, 233, 0.65);
-  font-size: 18px;
+  font-size: 17px;
+  letter-spacing: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    -150px 22px 0 rgba(255, 170, 218, 0.32),
+    -94px 6px 0 rgba(255, 244, 233, 0.36),
+    -42px 26px 0 rgba(255, 111, 183, 0.34),
+    52px 21px 0 rgba(255, 188, 222, 0.34);
   animation: chatHeartFloat 2.4s ease-in-out infinite;
+}
+
+.chatBubble.chatStyle-cotton > div::after,
+.chatStylePicker .chatStyle-cotton::after,
+.shopChatPreview.chatStyle-cotton::after {
+  content: "♥  ♡  ♥  ♡  ♥  ♡";
+  position: absolute;
+  left: -38px;
+  bottom: 8px;
+  color: rgba(255, 111, 183, 0.38);
+  font-size: 14px;
+  letter-spacing: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    72px -24px 0 rgba(255, 244, 233, 0.24),
+    164px -6px 0 rgba(255, 188, 222, 0.26),
+    236px -28px 0 rgba(255, 111, 183, 0.30);
+  animation: chatHeartDrift 4.2s linear infinite;
 }
 
 .chatBubble.chatStyle-neon > div,
@@ -2013,6 +2040,20 @@ textarea {
   50% {
     transform: translateY(-7px) scale(1.12);
     opacity: 0.85;
+  }
+}
+
+@keyframes chatHeartDrift {
+  0% {
+    transform: translateX(-14px) translateY(0);
+    opacity: 0.25;
+  }
+  45% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: translateX(72px) translateY(-5px);
+    opacity: 0.25;
   }
 }
 
