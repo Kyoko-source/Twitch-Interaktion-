@@ -22,6 +22,16 @@ USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
 CHAT_STYLES_FILE = Path("/data/chat_styles.json")
 CHAT_STYLE_PURCHASES_FILE = Path("/data/chat_style_purchases.json")
+PURCHASE_CATEGORY_FALLBACK = "Out of Stream Rewards"
+PURCHASE_CATEGORIES = {
+    "In Stream Rewards",
+    "Bestrafungs Ideen",
+    "Idee Bestrafungsrad",
+    "Aufgaben",
+    "Aufgaben Ideen",
+    "Idee Aufgabenrad",
+    "Out of Stream Rewards",
+}
 CHAT_STYLE_SHOP_ITEMS = [
     {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 650, "category": "Chat Animation", "style": "sparkle"},
     {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 900, "category": "Chat Animation", "style": "cotton"},
@@ -712,9 +722,12 @@ def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_us
         return {"message": "Chat-Animation besitzt du bereits."}
     if current_chickens < price:
         raise HTTPException(status_code=400, detail="Nicht genug Chickens")
+    purchase_category = str(item.get("category") or "").strip()
+    if purchase_category not in PURCHASE_CATEGORIES:
+        purchase_category = PURCHASE_CATEGORY_FALLBACK
     supabase().post(
         "purchases",
-        {"username": user["username"], "reward_name": item.get("name"), "reward_category": item.get("category") or "Rewards", "price": price, "status": "open"},
+        {"username": user["username"], "reward_name": item.get("name"), "reward_category": purchase_category, "price": price, "status": "open"},
         returning=False,
     )
     if builtin_item:
