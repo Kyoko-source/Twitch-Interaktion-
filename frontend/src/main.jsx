@@ -804,13 +804,27 @@ function LeaderboardPage() {
 function ShopPage({ user, setPage }) {
   const { data, error, loading } = useApi("/api/shop", []);
   const [message, setMessage] = useState("");
+  const [cardMessages, setCardMessages] = useState({});
+  const [buying, setBuying] = useState("");
   if (!user) return <EmptyLogin setPage={setPage} />;
   async function buy(item) {
+    const key = item.id || item.name;
+    setBuying(key);
+    setCardMessages((current) => ({ ...current, [key]: "Kauf wird verarbeitet..." }));
     try {
       const result = await api("/api/shop/purchase", { method: "POST", body: JSON.stringify({ item_id: item.id }) });
-      setMessage(result.message);
+      let nextMessage = result.message;
+      if (item.category === "Chat Animation" && item.style) {
+        await api("/api/chat/styles", { method: "POST", body: JSON.stringify({ style: item.style }) });
+        nextMessage = "Gekauft und direkt im Chat aktiviert.";
+      }
+      setMessage(nextMessage);
+      setCardMessages((current) => ({ ...current, [key]: nextMessage }));
     } catch (err) {
       setMessage(err.message);
+      setCardMessages((current) => ({ ...current, [key]: err.message }));
+    } finally {
+      setBuying("");
     }
   }
   return (
@@ -821,16 +835,21 @@ function ShopPage({ user, setPage }) {
       {loading && <div className="notice">Lade Shop...</div>}
       {error && <div className="notice error">{error}</div>}
       <div className="grid">
-        {data.map((item) => (
-          <article className="card shopCard" key={item.id || item.name}>
-            <p className="kicker">{item.category || "Reward"}</p>
-            <h3>{item.name}</h3>
-            <p>{item.desc || item.description}</p>
-            {item.category === "Chat Animation" && <div className={`shopChatPreview ${chatStyleClass(item.style)}`}><span>So sieht dein Chatbalken aus</span></div>}
-            <strong>{item.price} Chickens</strong>
-            <button onClick={() => buy(item)} type="button">Kaufen</button>
-          </article>
-        ))}
+        {data.map((item) => {
+          const key = item.id || item.name;
+          const busy = buying === key;
+          return (
+            <article className="card shopCard" key={key}>
+              <p className="kicker">{item.category || "Reward"}</p>
+              <h3>{item.name}</h3>
+              <p>{item.desc || item.description}</p>
+              {item.category === "Chat Animation" && <div className={`shopChatPreview ${chatStyleClass(item.style)}`}><span>So sieht dein Chatbalken aus</span></div>}
+              <strong>{item.price} Chickens</strong>
+              <button onClick={() => buy(item)} disabled={busy} type="button">{busy ? "Kaufe..." : "Kaufen"}</button>
+              {cardMessages[key] && <div className={`shopCardMessage ${cardMessages[key].includes("Nicht genug") || cardMessages[key].includes("fehlgeschlagen") ? "error" : ""}`}>{cardMessages[key]}</div>}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
