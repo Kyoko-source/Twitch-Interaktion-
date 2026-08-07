@@ -700,8 +700,9 @@ function ChickenJump({ user }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const keysRef = useRef({});
   const audioRef = useRef(null);
+  const jumpArtRef = useRef(null);
   const stateRef = useRef({
-    player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0 },
+    player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0, run: 0, lean: 0 },
     obstacles: [],
     gems: [],
     particles: [],
@@ -738,6 +739,12 @@ function ChickenJump({ user }) {
     }
   }
 
+  useEffect(() => {
+    const art = new Image();
+    art.src = "/assets/chicken-jump-ai-v1.png?v=1";
+    jumpArtRef.current = art;
+  }, []);
+
   function jump(state) {
     const player = state.player;
     if (player.y >= 316) {
@@ -759,67 +766,143 @@ function ChickenJump({ user }) {
 
   function drawCuteChicken(ctx, player, frame) {
     const ducking = player.duck && player.y >= 312;
-    const wing = Math.sin(frame / 5) * 4;
+    const airborne = player.y < 312;
+    const run = player.run || frame / 6;
+    const wing = Math.sin(run * 1.6) * (ducking ? 1.8 : 4.8);
+    const legA = Math.sin(run) * 9;
+    const legB = Math.sin(run + Math.PI) * 9;
+    const lean = ducking ? -0.18 : airborne ? 0.12 : Math.max(-0.12, Math.min(0.12, player.lean || 0));
     ctx.save();
     ctx.translate(player.x, player.y);
+    ctx.rotate(lean);
     ctx.scale(1 + player.squash * 0.12, ducking ? 0.74 - player.squash * 0.05 : 1 - player.squash * 0.08);
-    ctx.shadowColor = "#ffcf8a";
-    ctx.shadowBlur = 22;
 
-    ctx.fillStyle = "#ffcf8a";
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#08040b";
     ctx.beginPath();
-    ctx.ellipse(-6, -34, 38, 32, -0.05, 0, Math.PI * 2);
+    ctx.ellipse(0, 17, ducking ? 48 : 38, 8, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#fff6df";
+    ctx.restore();
+
+    const art = jumpArtRef.current;
+    if (art?.complete && art.naturalWidth) {
+      const crop = ducking
+        ? [705, 18, 365, 276]
+        : airborne
+          ? [388, 18, 345, 304]
+          : [10, 16, 350, 304];
+      const drawW = ducking ? 128 : 118;
+      const drawH = ducking ? 96 : 116;
+      ctx.shadowColor = "rgba(255,207,138,.78)";
+      ctx.shadowBlur = 22;
+      ctx.drawImage(art, crop[0], crop[1], crop[2], crop[3], -drawW / 2, ducking ? -87 : -116, drawW, drawH);
+      ctx.restore();
+      return;
+    }
+
+    const body = ctx.createRadialGradient(4, -48, 8, -7, -32, 52);
+    body.addColorStop(0, "#fff7dc");
+    body.addColorStop(0.42, "#ffd178");
+    body.addColorStop(0.78, "#e49a42");
+    body.addColorStop(1, "#a95f2c");
+    ctx.shadowColor = "rgba(255,207,138,.86)";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.ellipse(5, -31, 23, 21, 0.12, 0, Math.PI * 2);
+    ctx.ellipse(ducking ? -2 : -8, ducking ? -30 : -36, ducking ? 47 : 39, ducking ? 25 : 34, ducking ? -0.06 : -0.02, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#ffe7a6";
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.55)";
     ctx.beginPath();
-    ctx.arc(21, -67, 24, 0, Math.PI * 2);
+    ctx.ellipse(ducking ? 10 : 5, ducking ? -31 : -33, ducking ? 27 : 24, ducking ? 16 : 21, 0.08, 0, Math.PI * 2);
     ctx.fill();
+
+    const wingGradient = ctx.createLinearGradient(-32, -55, -3, -13);
+    wingGradient.addColorStop(0, "#fff1bc");
+    wingGradient.addColorStop(1, "#d98332");
+    ctx.fillStyle = wingGradient;
+    ctx.beginPath();
+    ctx.ellipse(-25, -31 + wing, ducking ? 17 : 15, ducking ? 15 : 23, 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(128,72,36,.35)";
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < 4; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(-31 + i * 6, -42 + wing);
+      ctx.quadraticCurveTo(-23 + i * 4, -29 + wing, -19 + i * 3, -14 + wing);
+      ctx.stroke();
+    }
+
+    const head = ctx.createRadialGradient(24, -72, 4, 21, -67, 30);
+    head.addColorStop(0, "#fff8df");
+    head.addColorStop(0.6, "#ffe1a0");
+    head.addColorStop(1, "#d9913b");
+    ctx.fillStyle = head;
+    ctx.beginPath();
+    ctx.arc(ducking ? 29 : 21, ducking ? -55 : -68, ducking ? 22 : 25, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.fillStyle = "#ff5b7c";
     ctx.beginPath();
-    ctx.arc(12, -91, 6, 0, Math.PI * 2);
-    ctx.arc(22, -96, 7, 0, Math.PI * 2);
-    ctx.arc(32, -91, 6, 0, Math.PI * 2);
+    ctx.arc(ducking ? 20 : 12, ducking ? -77 : -93, 6, 0, Math.PI * 2);
+    ctx.arc(ducking ? 29 : 22, ducking ? -82 : -98, 7, 0, Math.PI * 2);
+    ctx.arc(ducking ? 38 : 32, ducking ? -77 : -93, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(109,61,34,.38)";
+    ctx.beginPath();
+    ctx.ellipse(ducking ? 4 : -12, ducking ? -51 : -63, 8, 4, -0.55, 0, Math.PI * 2);
+    ctx.ellipse(ducking ? 13 : -3, ducking ? -57 : -70, 7, 3, -0.35, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = "#1b1020";
     ctx.beginPath();
-    ctx.arc(15, -70, 3.6, 0, Math.PI * 2);
-    ctx.arc(30, -70, 3.6, 0, Math.PI * 2);
+    ctx.arc(ducking ? 23 : 15, ducking ? -58 : -71, 3.8, 0, Math.PI * 2);
+    ctx.arc(ducking ? 37 : 31, ducking ? -58 : -71, 3.8, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(16, -71, 1.2, 0, Math.PI * 2);
-    ctx.arc(31, -71, 1.2, 0, Math.PI * 2);
+    ctx.arc(ducking ? 24 : 16, ducking ? -59 : -72, 1.3, 0, Math.PI * 2);
+    ctx.arc(ducking ? 38 : 32, ducking ? -59 : -72, 1.3, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#ff9f1c";
+    const beak = ctx.createLinearGradient(39, -65, 61, -54);
+    beak.addColorStop(0, "#ffe66d");
+    beak.addColorStop(1, "#ff8b1f");
+    ctx.fillStyle = beak;
     ctx.beginPath();
-    ctx.moveTo(40, -63);
-    ctx.lineTo(58, -57);
-    ctx.lineTo(40, -51);
+    ctx.moveTo(ducking ? 47 : 40, ducking ? -54 : -63);
+    ctx.lineTo(ducking ? 65 : 60, ducking ? -49 : -57);
+    ctx.lineTo(ducking ? 47 : 40, ducking ? -43 : -51);
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = "#f6b04f";
-    ctx.beginPath();
-    ctx.ellipse(-20, -31 + wing, 14, 22, 0.35, 0, Math.PI * 2);
-    ctx.fill();
     ctx.strokeStyle = "#ff9f1c";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-13, -3);
-    ctx.lineTo(-17, 12);
-    ctx.moveTo(17, -3);
-    ctx.lineTo(23, 12);
-    ctx.stroke();
-    ctx.fillStyle = "#ff9f1c";
-    ctx.fillRect(-25, 10, 22, 5);
-    ctx.fillRect(10, 10, 24, 5);
+    ctx.lineWidth = 4.4;
+    const legY = ducking ? -6 : -3;
+    [
+      [-13, legA],
+      [17, legB],
+    ].forEach(([baseX, stride], index) => {
+      ctx.beginPath();
+      ctx.moveTo(baseX, legY);
+      ctx.lineTo(baseX + stride * 0.25, 10);
+      ctx.lineTo(baseX + stride * 0.48, 16);
+      ctx.stroke();
+      ctx.fillStyle = "#ff9f1c";
+      ctx.beginPath();
+      ctx.ellipse(baseX + stride * 0.48 + (index ? 5 : -5), 16, 13, 3.5, index ? 0.08 : -0.08, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = "rgba(255,244,233,.36)";
+    for (let i = 0; i < 10; i += 1) {
+      ctx.beginPath();
+      ctx.ellipse(-23 + i * 6, -42 + Math.sin(i + frame / 18) * 2, 2.1, 4.5, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -827,28 +910,67 @@ function ChickenJump({ user }) {
     const top = ground - ob.h;
     const railY = top + ob.h * 0.42;
     ctx.save();
-    ctx.shadowColor = "#ffcf8a";
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = "#c88956";
-    ctx.strokeStyle = "#ffcf8a";
-    ctx.lineWidth = 2;
+    const art = jumpArtRef.current;
+    if (art?.complete && art.naturalWidth) {
+      const crops = [
+        [36, 344, 288, 216],
+        [378, 326, 322, 240],
+        [704, 342, 310, 238],
+        [1038, 318, 248, 264],
+      ];
+      const crop = crops[ob.variant || 0] || crops[0];
+      ctx.shadowColor = "rgba(255,207,138,.58)";
+      ctx.shadowBlur = 18;
+      ctx.drawImage(art, crop[0], crop[1], crop[2], crop[3], ob.x - 14, top - 20, ob.w + 28, ob.h + 42);
+      ctx.restore();
+      return;
+    }
+    ctx.shadowColor = "rgba(255,207,138,.72)";
+    ctx.shadowBlur = 16;
+    const wood = ctx.createLinearGradient(ob.x, top, ob.x + ob.w, ground);
+    wood.addColorStop(0, "#f0b36a");
+    wood.addColorStop(0.42, "#a96435");
+    wood.addColorStop(1, "#5a2f20");
+    ctx.strokeStyle = "rgba(255,231,166,.74)";
+    ctx.lineWidth = 1.6;
     for (let x = ob.x; x < ob.x + ob.w; x += 18) {
+      ctx.fillStyle = wood;
       ctx.beginPath();
       ctx.roundRect(x, top, 10, ob.h, 3);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#ffcf8a";
+      ctx.fillStyle = "#f5c17a";
       ctx.beginPath();
       ctx.moveTo(x - 1, top);
       ctx.lineTo(x + 5, top - 10);
       ctx.lineTo(x + 11, top);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#c88956";
+      ctx.strokeStyle = "rgba(53,25,17,.36)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 3, top + 9);
+      ctx.lineTo(x + 4 + Math.sin(x) * 2, ground - 5);
+      ctx.moveTo(x + 7, top + 17);
+      ctx.lineTo(x + 6 + Math.cos(x) * 2, ground - 10);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,231,166,.74)";
+      ctx.lineWidth = 1.6;
     }
-    ctx.fillStyle = "#9f6b3c";
-    ctx.fillRect(ob.x - 8, railY, ob.w + 16, 10);
-    ctx.fillRect(ob.x - 8, railY + 26, ob.w + 16, 9);
+    ctx.fillStyle = "rgba(25,10,8,.22)";
+    ctx.beginPath();
+    ctx.ellipse(ob.x + ob.w / 2, ground + 8, ob.w * 0.62, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#8d512c";
+    [railY, railY + 27].forEach((y) => {
+      ctx.beginPath();
+      ctx.roundRect(ob.x - 10, y, ob.w + 20, 11, 3);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,231,166,.18)";
+      ctx.fillRect(ob.x - 7, y + 2, ob.w + 14, 2);
+      ctx.fillStyle = "#8d512c";
+    });
     ctx.restore();
   }
 
@@ -857,15 +979,35 @@ function ChickenJump({ user }) {
     const y = ob.y + pulse;
     ctx.save();
     ctx.translate(ob.x + ob.w / 2, y + ob.h / 2);
-    ctx.shadowColor = "#7af4dc";
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = "#7af4dc";
+    ctx.rotate(Math.sin(frame / 15 + ob.x) * 0.06);
+    const art = jumpArtRef.current;
+    if (art?.complete && art.naturalWidth) {
+      const crops = [
+        [38, 700, 260, 118],
+        [330, 680, 288, 132],
+        [642, 670, 282, 140],
+        [930, 688, 282, 132],
+      ];
+      const crop = crops[ob.variant || 0] || crops[0];
+      ctx.shadowColor = "rgba(122,244,220,.56)";
+      ctx.shadowBlur = 18;
+      ctx.drawImage(art, crop[0], crop[1], crop[2], crop[3], -ob.w / 2 - 18, -ob.h / 2 - 24, ob.w + 42, ob.h + 46);
+      ctx.restore();
+      return;
+    }
+    ctx.shadowColor = "rgba(122,244,220,.75)";
+    ctx.shadowBlur = 20;
+    const body = ctx.createLinearGradient(-22, -12, 28, 16);
+    body.addColorStop(0, "#d8fff7");
+    body.addColorStop(0.48, "#65d8c8");
+    body.addColorStop(1, "#28536a");
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 28, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 30, 16, -0.04, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#c8fff5";
+    ctx.fillStyle = "#d8fff7";
     ctx.beginPath();
-    ctx.arc(23, -4, 13, 0, Math.PI * 2);
+    ctx.arc(25, -5, 13, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#ffcf8a";
     ctx.beginPath();
@@ -879,13 +1021,27 @@ function ChickenJump({ user }) {
     ctx.arc(25, -7, 2.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = "#ff6fb7";
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 5.5;
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(-6, 2);
-    ctx.quadraticCurveTo(-26, -28 - pulse, -45, -3);
-    ctx.moveTo(-3, 4);
-    ctx.quadraticCurveTo(-20, 32 + pulse, -39, 7);
+    ctx.moveTo(-3, 1);
+    ctx.quadraticCurveTo(-27, -31 - pulse, -49, -3);
+    ctx.moveTo(-6, 4);
+    ctx.quadraticCurveTo(-24, 34 + pulse, -43, 8);
     ctx.stroke();
+    ctx.strokeStyle = "rgba(255,244,233,.54)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-7, -3);
+    ctx.quadraticCurveTo(-29, -21 - pulse, -42, -4);
+    ctx.stroke();
+    ctx.fillStyle = "#28536a";
+    ctx.beginPath();
+    ctx.moveTo(-27, -2);
+    ctx.lineTo(-47, -12);
+    ctx.lineTo(-41, 8);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 
@@ -917,10 +1073,11 @@ function ChickenJump({ user }) {
     const ground = 354;
     const playing = status === "play" && !state.over;
     const scale = dt / 16;
-    const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    bg.addColorStop(0, "#201126");
-    bg.addColorStop(0.42, "#382033");
-    bg.addColorStop(1, "#14251d");
+    const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bg.addColorStop(0, "#21112c");
+    bg.addColorStop(0.45, "#53314a");
+    bg.addColorStop(0.74, "#2f4635");
+    bg.addColorStop(1, "#132016");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const shake = state.shake > 0 ? Math.sin(frame * 1.7) * state.shake : 0;
@@ -930,7 +1087,17 @@ function ChickenJump({ user }) {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.globalAlpha = 0.82;
+    const jumpArt = jumpArtRef.current;
+    if (jumpArt?.complete && jumpArt.naturalWidth) {
+      const bgScroll = (state.distance * 0.18) % canvas.width;
+      ctx.save();
+      ctx.globalAlpha = 0.72;
+      ctx.drawImage(jumpArt, 42, 880, 1248, 254, -bgScroll, 126, canvas.width, 190);
+      ctx.drawImage(jumpArt, 42, 880, 1248, 254, canvas.width - bgScroll, 126, canvas.width, 190);
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = 0.72;
     for (let i = 0; i < 80; i += 1) {
       const x = (i * 127 - state.distance * (0.18 + (i % 5) * 0.04)) % (canvas.width + 120);
       const y = 28 + ((i * 73) % 250);
@@ -939,10 +1106,39 @@ function ChickenJump({ user }) {
     }
     ctx.globalAlpha = 1;
 
-    ctx.fillStyle = "rgba(255,207,138,.12)";
+    ctx.save();
+    for (let layer = 0; layer < 3; layer += 1) {
+      const offset = (state.distance * (0.12 + layer * 0.08)) % 360;
+      ctx.fillStyle = layer === 0 ? "rgba(25,18,38,.42)" : layer === 1 ? "rgba(62,41,54,.34)" : "rgba(22,45,37,.44)";
+      ctx.beginPath();
+      ctx.moveTo(-80 - offset, ground - 108 + layer * 26);
+      for (let x = -80 - offset; x < canvas.width + 460; x += 180) {
+        const peak = ground - (138 - layer * 24) - ((x / 180 + layer) % 2) * 34;
+        ctx.lineTo(x + 90, peak);
+        ctx.lineTo(x + 180, ground - 110 + layer * 28);
+      }
+      ctx.lineTo(canvas.width + 80, ground + 4);
+      ctx.lineTo(-80, ground + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = "rgba(255,207,138,.16)";
     ctx.beginPath();
-    ctx.arc(780, 72, 44, 0, Math.PI * 2);
+    ctx.arc(770, 78, 48, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = "rgba(255,244,233,.09)";
+    for (let i = 0; i < 7; i += 1) {
+      const cloudX = (i * 190 - state.distance * 0.23) % (canvas.width + 220) - 110;
+      const cloudY = 74 + (i % 4) * 27;
+      ctx.beginPath();
+      ctx.ellipse(cloudX, cloudY, 42, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(cloudX + 32, cloudY + 3, 38, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(cloudX - 31, cloudY + 5, 30, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.strokeStyle = "rgba(255,207,138,.16)";
     ctx.lineWidth = 2;
     for (let x = -80 + (state.distance * 0.55) % 80; x < canvas.width + 120; x += 80) {
@@ -959,13 +1155,27 @@ function ChickenJump({ user }) {
       ctx.stroke();
     }
 
-    ctx.fillStyle = "rgba(122,244,220,.18)";
-    ctx.fillRect(0, ground - 4, canvas.width, 4);
-    ctx.fillStyle = "rgba(74,222,128,.16)";
-    ctx.fillRect(0, ground + 4, canvas.width, 52);
-    ctx.fillStyle = "rgba(255,207,138,.28)";
-    for (let x = -40 + (state.distance * 0.9) % 42; x < canvas.width; x += 42) {
-      ctx.fillRect(x, ground + 20, 18, 3);
+    const soil = ctx.createLinearGradient(0, ground - 18, 0, canvas.height);
+    soil.addColorStop(0, "#6da95e");
+    soil.addColorStop(0.18, "#426638");
+    soil.addColorStop(0.36, "#725138");
+    soil.addColorStop(1, "#2a1712");
+    ctx.fillStyle = soil;
+    ctx.fillRect(0, ground - 8, canvas.width, canvas.height - ground + 8);
+    ctx.fillStyle = "rgba(122,244,220,.24)";
+    ctx.fillRect(0, ground - 7, canvas.width, 3);
+    ctx.fillStyle = "rgba(255,207,138,.26)";
+    for (let x = -40 + (state.distance * 1.35) % 42; x < canvas.width; x += 42) {
+      ctx.fillRect(x, ground + 22, 18, 3);
+    }
+    ctx.strokeStyle = "rgba(255,244,233,.20)";
+    ctx.lineWidth = 1;
+    for (let x = -20 + (state.distance * 1.9) % 24; x < canvas.width; x += 24) {
+      const blade = 7 + (x % 5);
+      ctx.beginPath();
+      ctx.moveTo(x, ground - 3);
+      ctx.quadraticCurveTo(x + 3, ground - blade, x + 8, ground - 2);
+      ctx.stroke();
     }
 
     if (playing) {
@@ -973,6 +1183,8 @@ function ChickenJump({ user }) {
       state.speed = Math.min(12.5, 6.2 + state.distance / 1450);
       state.level = 1 + Math.floor(state.distance / 650);
       player.duck = Boolean(keysRef.current.arrowdown || keysRef.current.s);
+      player.run += player.y >= 316 ? state.speed * 0.075 * scale : 0.055 * scale;
+      player.lean += ((player.duck ? -0.18 : player.vy < -1 ? -0.08 : player.vy > 3 ? 0.12 : Math.sin(player.run) * 0.045) - player.lean) * 0.16;
       player.vy += 0.78 * scale;
       player.y = Math.min(318, player.y + player.vy * scale);
       if (player.y >= 318) player.vy = Math.min(0, player.vy);
@@ -984,10 +1196,18 @@ function ChickenJump({ user }) {
         const roll = Math.random();
         const type = roll > 0.70 && state.level > 1 ? "bird" : roll > 0.50 && state.level > 3 ? "double" : "fence";
         if (type === "double") {
-          state.obstacles.push({ type: "fence", x: canvas.width + 40, w: 56, h: 58 + Math.random() * 20, scored: false });
-          state.obstacles.push({ type: "bird", x: canvas.width + 180, w: 74, h: 42, y: 224 + Math.random() * 14, scored: false });
+          state.obstacles.push({ type: "fence", x: canvas.width + 40, w: 66, h: 62 + Math.random() * 22, variant: Math.floor(Math.random() * 4), scored: false });
+          state.obstacles.push({ type: "bird", x: canvas.width + 205, w: 82, h: 44, y: 217 + Math.random() * 17, variant: Math.floor(Math.random() * 4), scored: false });
         } else {
-          state.obstacles.push({ type, x: canvas.width + 44, w: type === "bird" ? 76 : 52 + Math.random() * 28, h: type === "bird" ? 42 : 54 + Math.random() * 34, y: type === "bird" ? 224 + Math.random() * 18 : 0, scored: false });
+          state.obstacles.push({
+            type,
+            x: canvas.width + 44,
+            w: type === "bird" ? 80 : 62 + Math.random() * 34,
+            h: type === "bird" ? 44 : 58 + Math.random() * 36,
+            y: type === "bird" ? 216 + Math.random() * 22 : 0,
+            variant: type === "bird" ? Math.floor(Math.random() * 4) : Math.floor(Math.random() * 4),
+            scored: false,
+          });
         }
         state.spawn = Math.max(660, 1380 - state.level * 34 - Math.random() * 170);
       }
@@ -1008,8 +1228,8 @@ function ChickenJump({ user }) {
       });
 
       const hitBox = player.duck && player.y >= 312
-        ? { x: player.x - 28, y: player.y - 31, w: 58, h: 31 }
-        : { x: player.x - 27, y: player.y - 80, w: 54, h: 75 };
+        ? { x: player.x - 36, y: player.y - 45, w: 76, h: 43 }
+        : { x: player.x - 30, y: player.y - 88, w: 62, h: 82 };
 
       state.gems.forEach((gem) => {
         if (!gem.taken && Math.hypot(gem.x - player.x, gem.y - (player.y - 42)) < 42) {
@@ -1036,8 +1256,8 @@ function ChickenJump({ user }) {
 
       const hit = state.obstacles.some((ob) => {
         const obBox = ob.type === "bird"
-          ? { x: ob.x, y: ob.y, w: ob.w, h: ob.h }
-          : { x: ob.x, y: ground - ob.h, w: ob.w, h: ob.h };
+          ? { x: ob.x + 10, y: ob.y + 8, w: ob.w - 18, h: ob.h - 12 }
+          : { x: ob.x + 3, y: ground - ob.h - 7, w: ob.w - 2, h: ob.h + 7 };
         return hitBox.x < obBox.x + obBox.w && hitBox.x + hitBox.w > obBox.x && hitBox.y < obBox.y + obBox.h && hitBox.y + hitBox.h > obBox.y;
       });
       if (hit && player.inv <= 0) {
@@ -1126,7 +1346,7 @@ function ChickenJump({ user }) {
 
   function start() {
     stateRef.current = {
-      player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0 },
+      player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0, run: 0, lean: 0 },
       obstacles: [],
       gems: [],
       particles: [],
