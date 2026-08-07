@@ -694,85 +694,366 @@ function writeSurvivorSettings(settings) {
 }
 
 function ChickenJump({ user }) {
-  const [running, setRunning] = useState(false);
-  const [message, setMessage] = useState("Bereit fuer den Sprung.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1 });
+  const [status, setStatus] = useState("menu");
+  const [message, setMessage] = useState("Springe ueber Laser-Zaeune, ducke dich unter Drohnen und sammle Pepples.");
+  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, combo: 1, pepples: 0 });
   const [refreshKey, setRefreshKey] = useState(0);
-  const stateRef = useRef({ y: 310, vy: 0, obstacles: [], score: 0, level: 1, over: false, spawn: 0 });
+  const keysRef = useRef({});
+  const playerArtRef = useRef(null);
+  const audioRef = useRef(null);
+  const stateRef = useRef({
+    player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0 },
+    obstacles: [],
+    gems: [],
+    particles: [],
+    score: 0,
+    level: 1,
+    combo: 1,
+    pepples: 0,
+    distance: 0,
+    speed: 6.2,
+    spawn: 640,
+    gemSpawn: 900,
+    shake: 0,
+    over: false,
+  });
 
   useEffect(() => {
-    function key(event) {
-      if (event.code === "Space" || event.key === "ArrowUp") {
+    const image = new Image();
+    image.src = "/assets/player-chicken-ai-v1.png?v=1";
+    playerArtRef.current = image;
+  }, []);
+
+  function tone(freq, duration = 0.08, type = "sine", gain = 0.035) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioRef.current) audioRef.current = new AudioCtx();
+      const ctx = audioRef.current;
+      const osc = ctx.createOscillator();
+      const amp = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = type;
+      amp.gain.setValueAtTime(gain, ctx.currentTime);
+      amp.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(amp);
+      amp.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch {
+      // Audio is optional.
+    }
+  }
+
+  function jump(state) {
+    const player = state.player;
+    if (player.y >= 316) {
+      player.vy = -15.8;
+      player.squash = 1;
+      state.particles.push(...Array.from({ length: 8 }, () => ({
+        x: player.x - 24,
+        y: 352,
+        vx: -2 - Math.random() * 2,
+        vy: -1.5 + Math.random() * 2.2,
+        life: 360,
+        ttl: 360,
+        color: Math.random() > 0.5 ? "#ffcf8a" : "#ff6fb7",
+      })));
+      tone(620, 0.055, "triangle", 0.035);
+      tone(920, 0.045, "sine", 0.022);
+    }
+  }
+
+  useEffect(() => {
+    function down(event) {
+      const key = event.key.toLowerCase();
+      if ([" ", "arrowup", "w", "arrowdown", "s"].includes(key) || event.code === "Space") event.preventDefault();
+      keysRef.current[key] = true;
+      if (event.code === "Space" || key === "arrowup" || key === "w") {
         event.preventDefault();
-        const state = stateRef.current;
-        if (!running) return;
-        if (state.y >= 308) state.vy = -14.5;
+        if (status === "menu" || status === "gameover") start();
+        else if (status === "play") jump(stateRef.current);
       }
     }
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, [running]);
+    function up(event) {
+      keysRef.current[event.key.toLowerCase()] = false;
+    }
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, [status]);
 
   const canvasRef = useCanvasGame((ctx, canvas, dt, frame) => {
     const state = stateRef.current;
+    const player = state.player;
+    const ground = 354;
+    const playing = status === "play" && !state.over;
+    const scale = dt / 16;
+    const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    bg.addColorStop(0, "#10091a");
+    bg.addColorStop(0.46, "#27102d");
+    bg.addColorStop(1, "#0b1720");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const grd = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    grd.addColorStop(0, "#201126");
-    grd.addColorStop(1, "#100915");
-    ctx.fillStyle = grd;
+
+    const shake = state.shake > 0 ? Math.sin(frame * 1.7) * state.shake : 0;
+    state.shake = Math.max(0, state.shake - dt * 0.025);
+    ctx.save();
+    ctx.translate(shake, 0);
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "rgba(255,207,138,.24)";
-    for (let x = (frame % 40) - 40; x < canvas.width; x += 40) {
-      ctx.beginPath(); ctx.moveTo(x, 340); ctx.lineTo(x + 20, 420); ctx.stroke();
+
+    ctx.globalAlpha = 0.82;
+    for (let i = 0; i < 80; i += 1) {
+      const x = (i * 127 - state.distance * (0.18 + (i % 5) * 0.04)) % (canvas.width + 120);
+      const y = 28 + ((i * 73) % 250);
+      ctx.fillStyle = i % 9 === 0 ? "#ffcf8a" : i % 4 === 0 ? "#ff6fb7" : "#7af4dc";
+      ctx.fillRect(x < -20 ? x + canvas.width + 120 : x, y, i % 6 === 0 ? 3 : 2, i % 6 === 0 ? 3 : 2);
     }
-    ctx.fillStyle = "#c88956";
-    ctx.fillRect(0, 340, canvas.width, 8);
-    if (running && !state.over) {
-      state.vy += 0.75;
-      state.y = Math.min(310, state.y + state.vy);
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = "rgba(180,108,255,.18)";
+    ctx.lineWidth = 2;
+    for (let x = -80 + (state.distance * 0.55) % 80; x < canvas.width + 120; x += 80) {
+      ctx.beginPath();
+      ctx.moveTo(x, 95);
+      ctx.lineTo(x + 65, ground + 54);
+      ctx.stroke();
+    }
+    for (let x = -120 + (state.distance * 1.2) % 120; x < canvas.width + 160; x += 120) {
+      ctx.strokeStyle = "rgba(255,207,138,.24)";
+      ctx.beginPath();
+      ctx.moveTo(x, ground);
+      ctx.lineTo(x + 60, canvas.height);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = "rgba(255,207,138,.20)";
+    ctx.fillRect(0, ground, canvas.width, 3);
+    ctx.fillStyle = "rgba(122,244,220,.10)";
+    ctx.fillRect(0, ground + 4, canvas.width, 52);
+
+    if (playing) {
+      state.distance += state.speed * scale;
+      state.speed = Math.min(12.5, 6.2 + state.distance / 1450);
+      state.level = 1 + Math.floor(state.distance / 650);
+      player.duck = Boolean(keysRef.current.arrowdown || keysRef.current.s);
+      player.vy += 0.78 * scale;
+      player.y = Math.min(318, player.y + player.vy * scale);
+      if (player.y >= 318) player.vy = Math.min(0, player.vy);
+      player.inv = Math.max(0, player.inv - dt);
+      player.squash = Math.max(0, player.squash - dt * 0.006);
+
       state.spawn -= dt;
       if (state.spawn <= 0) {
-        state.obstacles.push({ x: canvas.width + 20, w: 24 + Math.random() * 24, h: 42 + Math.random() * 38 });
-        state.spawn = Math.max(620, 1320 - state.score * 18);
-      }
-      state.obstacles.forEach((ob) => { ob.x -= 5.5 + state.level * 0.38; });
-      state.obstacles = state.obstacles.filter((ob) => {
-        if (!ob.passed && ob.x + ob.w < 96) {
-          ob.passed = true;
-          state.score += 1;
-          state.level = 1 + Math.floor(state.score / 6);
-          setSnapshot({ score: state.score, level: state.level });
+        const roll = Math.random();
+        const type = roll > 0.72 && state.level > 1 ? "drone" : roll > 0.48 && state.level > 2 ? "double" : "fence";
+        if (type === "double") {
+          state.obstacles.push({ type: "fence", x: canvas.width + 30, w: 34, h: 64 + Math.random() * 28, scored: false });
+          state.obstacles.push({ type: "drone", x: canvas.width + 116, w: 64, h: 34, y: 222 + Math.random() * 42, scored: false });
+        } else {
+          state.obstacles.push({ type, x: canvas.width + 35, w: type === "drone" ? 68 : 34 + Math.random() * 18, h: type === "drone" ? 36 : 58 + Math.random() * 48, y: type === "drone" ? 214 + Math.random() * 58 : 0, scored: false });
         }
-        return ob.x > -80;
-      });
-      const hit = state.obstacles.some((ob) => ob.x < 126 && ob.x + ob.w > 78 && state.y + 30 > 340 - ob.h);
-      if (hit) {
-        state.over = true;
-        setRunning(false);
-        setMessage(`Game Over: ${state.score} Punkte, Level ${state.level}`);
+        state.spawn = Math.max(460, 1180 - state.level * 42 - Math.random() * 160);
       }
+      state.gemSpawn -= dt;
+      if (state.gemSpawn <= 0) {
+        const baseY = 184 + Math.random() * 90;
+        for (let i = 0; i < 5; i += 1) state.gems.push({ x: canvas.width + 60 + i * 38, y: baseY + Math.sin(i) * 28, spin: Math.random() * 8, taken: false });
+        state.gemSpawn = 1350 + Math.random() * 900;
+      }
+
+      state.obstacles.forEach((ob) => { ob.x -= state.speed * scale; });
+      state.gems.forEach((gem) => { gem.x -= state.speed * scale; gem.spin += 0.1 * scale; });
+      state.particles.forEach((particle) => {
+        particle.x += particle.vx * scale;
+        particle.y += particle.vy * scale;
+        particle.vy += 0.05 * scale;
+        particle.life -= dt;
+      });
+
+      const hitBox = player.duck && player.y >= 312
+        ? { x: player.x - 31, y: player.y - 32, w: 68, h: 34 }
+        : { x: player.x - 34, y: player.y - 72, w: 70, h: 72 };
+
+      state.gems.forEach((gem) => {
+        if (!gem.taken && Math.hypot(gem.x - player.x, gem.y - (player.y - 42)) < 42) {
+          gem.taken = true;
+          state.pepples += 1;
+          state.score += 2 * state.combo;
+          state.combo = Math.min(9, state.combo + 0.25);
+          tone(1040 + state.combo * 45, 0.045, "triangle", 0.018);
+          state.particles.push(...Array.from({ length: 7 }, () => ({ x: gem.x, y: gem.y, vx: (Math.random() - 0.5) * 3.2, vy: (Math.random() - 0.5) * 3.2, life: 340, ttl: 340, color: "#7af4dc" })));
+        }
+      });
+
+      state.obstacles = state.obstacles.filter((ob) => {
+        if (!ob.scored && ob.x + ob.w < player.x - 34) {
+          ob.scored = true;
+          state.score += Math.round(8 * state.combo);
+          state.combo = Math.min(9, state.combo + 0.15);
+          tone(720, 0.035, "square", 0.018);
+        }
+        return ob.x > -120;
+      });
+      state.gems = state.gems.filter((gem) => gem.x > -50 && !gem.taken);
+      state.particles = state.particles.filter((particle) => particle.life > 0).slice(-160);
+
+      const hit = state.obstacles.some((ob) => {
+        const obBox = ob.type === "drone"
+          ? { x: ob.x, y: ob.y, w: ob.w, h: ob.h }
+          : { x: ob.x, y: ground - ob.h, w: ob.w, h: ob.h };
+        return hitBox.x < obBox.x + obBox.w && hitBox.x + hitBox.w > obBox.x && hitBox.y < obBox.y + obBox.h && hitBox.y + hitBox.h > obBox.y;
+      });
+      if (hit && player.inv <= 0) {
+        state.over = true;
+        state.shake = 14;
+        setStatus("gameover");
+        setSnapshot({ score: state.score, level: state.level, combo: state.combo.toFixed(1), pepples: state.pepples });
+        setMessage(`Run beendet: ${state.score} Punkte, ${state.pepples} Pepples, Level ${state.level}`);
+        tone(130, 0.2, "sawtooth", 0.055);
+        tone(82, 0.26, "square", 0.035);
+      }
+      if (frame % 6 === 0) setSnapshot({ score: state.score, level: state.level, combo: state.combo.toFixed(1), pepples: state.pepples });
+    } else {
+      state.particles.forEach((particle) => {
+        particle.x += particle.vx * scale;
+        particle.y += particle.vy * scale;
+        particle.life -= dt;
+      });
+      state.particles = state.particles.filter((particle) => particle.life > 0).slice(-160);
     }
-    ctx.fillStyle = "#ffcf8a";
-    ctx.shadowColor = "#b46cff"; ctx.shadowBlur = 18;
-    ctx.beginPath(); ctx.ellipse(96, state.y, 33, 24, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#ff6fb7"; ctx.fillRect(61, state.y + 6, 22, 10);
-    state.obstacles.forEach((ob) => {
+
+    state.gems.forEach((gem) => {
+      const r = 9 + Math.sin(gem.spin) * 2;
+      ctx.save();
+      ctx.translate(gem.x, gem.y);
+      ctx.rotate(gem.spin);
       ctx.fillStyle = "#7af4dc";
-      ctx.fillRect(ob.x, 340 - ob.h, ob.w, ob.h);
-      ctx.fillStyle = "rgba(122,244,220,.3)";
-      ctx.fillRect(ob.x - 4, 340 - ob.h - 6, ob.w + 8, 6);
+      ctx.shadowColor = "#7af4dc";
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r, 0);
+      ctx.lineTo(0, r);
+      ctx.lineTo(-r, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     });
+
+    state.obstacles.forEach((ob) => {
+      if (ob.type === "drone") {
+        const pulse = Math.sin(frame / 7 + ob.x * 0.02) * 4;
+        ctx.fillStyle = "#120817";
+        ctx.strokeStyle = "#ff6fb7";
+        ctx.lineWidth = 3;
+        ctx.shadowColor = "#ff6fb7";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.roundRect(ob.x, ob.y + pulse, ob.w, ob.h, 13);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#7af4dc";
+        ctx.beginPath();
+        ctx.arc(ob.x + ob.w * 0.5, ob.y + ob.h * 0.5 + pulse, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else {
+        const top = ground - ob.h;
+        const grad = ctx.createLinearGradient(ob.x, top, ob.x, ground);
+        grad.addColorStop(0, "#ffcf8a");
+        grad.addColorStop(0.5, "#ff6fb7");
+        grad.addColorStop(1, "#7af4dc");
+        ctx.fillStyle = grad;
+        ctx.shadowColor = "#ff6fb7";
+        ctx.shadowBlur = 18;
+        ctx.fillRect(ob.x, top, ob.w, ob.h);
+        ctx.fillStyle = "rgba(255,255,255,.55)";
+        ctx.fillRect(ob.x - 6, top - 8, ob.w + 12, 8);
+        ctx.shadowBlur = 0;
+      }
+    });
+
+    state.particles.forEach((particle) => {
+      ctx.globalAlpha = Math.max(0, particle.life / particle.ttl);
+      ctx.fillStyle = particle.color;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    const duckScale = player.duck && player.y >= 312 ? 0.72 : 1;
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.scale(1 + player.squash * 0.12, duckScale - player.squash * 0.08);
+    ctx.shadowColor = "#ffcf8a";
+    ctx.shadowBlur = 22;
+    const art = playerArtRef.current;
+    if (art && art.complete && art.naturalWidth) {
+      ctx.drawImage(art, -44, -92, 88, 105);
+    } else {
+      ctx.fillStyle = "#ffcf8a";
+      ctx.beginPath();
+      ctx.ellipse(0, -34, 35, 27, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ff6fb7";
+      ctx.fillRect(-38, -25, 22, 10);
+    }
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(10,6,14,.72)";
+    ctx.fillRect(18, 16, 338, 86);
+    ctx.strokeStyle = "rgba(255,207,138,.22)";
+    ctx.strokeRect(18, 16, 338, 86);
     ctx.fillStyle = "#fff4e9";
-    ctx.font = "800 24px Inter, Arial";
-    ctx.fillText(`Score ${state.score}`, 24, 38);
-  }, [running]);
+    ctx.font = "900 24px Inter, Arial";
+    ctx.fillText(`Score ${state.score}`, 34, 48);
+    ctx.fillStyle = "#ffcf8a";
+    ctx.font = "800 15px Inter, Arial";
+    ctx.fillText(`Level ${state.level}   Combo x${Number(state.combo).toFixed(1)}   Pepples ${state.pepples}`, 34, 78);
+
+    if (status === "menu" || status === "gameover") {
+      ctx.fillStyle = "rgba(10,6,14,.72)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff4e9";
+      ctx.font = "950 54px Inter, Arial";
+      ctx.fillText(status === "gameover" ? "Run beendet" : "Chicken Jump", 300, 174);
+      ctx.fillStyle = "#ffcf8a";
+      ctx.font = "900 18px Inter, Arial";
+      ctx.fillText(status === "gameover" ? "Leertaste fuer Revanche" : "Leertaste / Klick zum Starten", 332, 216);
+      ctx.fillStyle = "#d8deed";
+      ctx.font = "700 15px Inter, Arial";
+      ctx.fillText("Springen: Space / W / Pfeil hoch    Ducken: S / Pfeil runter", 250, 250);
+    }
+    ctx.restore();
+  }, [status]);
 
   function start() {
-    stateRef.current = { y: 310, vy: 0, obstacles: [], score: 0, level: 1, over: false, spawn: 400 };
-    setSnapshot({ score: 0, level: 1 });
-    setMessage("Leertaste oder Pfeil hoch zum Springen.");
-    setRunning(true);
+    stateRef.current = {
+      player: { x: 132, y: 318, vy: 0, duck: false, inv: 0, squash: 0 },
+      obstacles: [],
+      gems: [],
+      particles: [],
+      score: 0,
+      level: 1,
+      combo: 1,
+      pepples: 0,
+      distance: 0,
+      speed: 6.2,
+      spawn: 520,
+      gemSpawn: 760,
+      shake: 0,
+      over: false,
+    };
+    setSnapshot({ score: 0, level: 1, combo: 1, pepples: 0 });
+    setMessage("Space/W/Pfeil hoch springt. S/Pfeil runter duckt unter Drohnen.");
+    setStatus("play");
+    tone(420, 0.07, "triangle", 0.04);
   }
 
   async function save() {
@@ -785,7 +1066,22 @@ function ChickenJump({ user }) {
     }
   }
 
-  return <GameFrame meta={gameMeta["chicken-jump"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onSave={user && snapshot.score > 0 ? save : null} refreshKey={refreshKey} game="chicken-jump" />;
+  return (
+    <section className="gameFrame jumpFrame" style={{ "--game-accent": gameMeta["chicken-jump"].accent }}>
+      <GameHeader meta={gameMeta["chicken-jump"]} message={message} score={snapshot.score} level={snapshot.level} />
+      <div className="jumpHud">
+        <span>Combo <b>x{snapshot.combo}</b></span>
+        <span>Pepples <b>{snapshot.pepples}</b></span>
+        <span>Tempo <b>{stateRef.current.speed.toFixed(1)}</b></span>
+      </div>
+      <canvas className="gameCanvas jumpCanvas" ref={canvasRef} width="920" height="420" onPointerDown={() => (status === "play" ? jump(stateRef.current) : start())} />
+      <div className="gameActions">
+        <button onClick={start} type="button"><RefreshCw size={16} /> {status === "play" ? "Neu starten" : "Spiel starten"}</button>
+        {user && snapshot.score > 0 && status === "gameover" && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+      </div>
+      <Scoreboard game="chicken-jump" refreshKey={refreshKey} />
+    </section>
+  );
 }
 
 function ChickenSnake({ user }) {
