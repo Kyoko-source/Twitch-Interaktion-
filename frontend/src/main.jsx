@@ -2045,8 +2045,8 @@ function collideWalls(ball, canvas) {
     ball.vy = Math.abs(ball.vy) * 0.54;
     ball.vx = -8.8;
   }
-  collideLine(ball, 92, 746, 286, 638, 0.72);
-  collideLine(ball, 608, 746, 416, 638, 0.72);
+  collideLine(ball, 98, 676, 278, 582, 0.72);
+  collideLine(ball, 602, 676, 422, 582, 0.72);
   collideLine(ball, 118, 154, 200, 98, 0.86);
   collideLine(ball, 496, 100, 600, 154, 0.86);
   if (ball.x > canvas.width - 30) ball.vx = -Math.abs(ball.vx);
@@ -2096,26 +2096,43 @@ function collideTargets(ball, state, sound) {
 }
 
 function collideFlippers(ball, keys, state, sound) {
-  const flippers = [
-    flipperGeometry(260, 724, -1, keys.left),
-    flipperGeometry(438, 724, 1, keys.right),
-  ];
+  const flippers = flipperSet(keys);
   flippers.forEach((flipper) => {
     if (collideLine(ball, flipper.ax, flipper.ay, flipper.bx, flipper.by, flipper.on ? 1.18 : 0.78)) {
       const dx = flipper.bx - flipper.ax;
-      const len = Math.hypot(dx, flipper.by - flipper.ay) || 1;
-      const sideBoost = (ball.x - flipper.ax) / len;
-      ball.vy -= flipper.on ? 9.8 + sideBoost * 5.4 : 4.2;
-      ball.vx += flipper.dir * (flipper.on ? -5.8 - sideBoost * 3.2 : -1.8);
+      const dy = flipper.by - flipper.ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const contact = Math.max(0.08, Math.min(1, ((ball.x - flipper.ax) * dx + (ball.y - flipper.ay) * dy) / (len * len)));
+      if (flipper.on) {
+        const upKick = 13.8 + contact * 7.6;
+        const centerKick = flipper.dir < 0 ? 5.8 + contact * 3.2 : -5.8 - contact * 3.2;
+        ball.vy = Math.min(ball.vy, -upKick);
+        ball.vx += centerKick;
+        ball.y -= 3;
+      } else {
+        ball.vy = Math.min(ball.vy, -4.4);
+        ball.vx += flipper.dir < 0 ? 1.8 : -1.8;
+      }
       flipperScore(state, flipper.on ? 240 : 90, flipper.on ? "FLIP" : "SAVE");
       sound("hit");
     }
   });
 }
 
+function flipperSet(keys) {
+  return [
+    flipperGeometry(214, 730, -1, keys.left),
+    flipperGeometry(486, 730, 1, keys.right),
+  ];
+}
+
 function flipperGeometry(x, y, dir, on) {
-  const angle = (dir < 0 ? -0.18 : Math.PI + 0.18) + (on ? dir * -0.48 : 0);
-  const length = 112;
+  const rest = 0.28;
+  const raised = -0.48;
+  const angle = dir < 0
+    ? (on ? raised : rest)
+    : Math.PI - (on ? raised : rest);
+  const length = 136;
   return {
     x,
     y,
@@ -2239,8 +2256,7 @@ function drawFlipperTable(ctx, canvas, state, keys) {
     roundRect(ctx, target.x, target.y, target.w, target.h, 6);
   });
   ctx.shadowBlur = 0;
-  drawFlipper(ctx, 260, 724, -1, keys.left);
-  drawFlipper(ctx, 438, 724, 1, keys.right);
+  flipperSet(keys).forEach((flipper) => drawFlipper(ctx, flipper));
   drawGlass(ctx, w, h);
   if (state.flash > 0) {
     ctx.fillStyle = `rgba(255,244,233,${Math.min(0.18, state.flash / 2600)})`;
@@ -2248,29 +2264,48 @@ function drawFlipperTable(ctx, canvas, state, keys) {
   }
 }
 
-function drawFlipper(ctx, x, y, dir, on) {
-  const geom = flipperGeometry(x, y, dir, on);
+function drawFlipper(ctx, geom) {
+  const dir = geom.dir;
+  const angle = Math.atan2(geom.by - geom.ay, geom.bx - geom.ax);
   ctx.save();
+  ctx.translate(geom.ax, geom.ay);
+  ctx.rotate(angle);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowColor = on ? "#ffcf8a" : "#d64878";
-  ctx.shadowBlur = on ? 30 : 16;
-  ctx.strokeStyle = on ? "#ffe1a6" : "#ec476f";
-  ctx.lineWidth = 25;
+  ctx.shadowColor = geom.on ? "#ffcf8a" : "#d64878";
+  ctx.shadowBlur = geom.on ? 30 : 16;
+  const body = ctx.createLinearGradient(0, -16, 126, 18);
+  body.addColorStop(0, "#fff0be");
+  body.addColorStop(0.18, "#ffb351");
+  body.addColorStop(0.58, "#f04d83");
+  body.addColorStop(1, "#7af4dc");
+  ctx.strokeStyle = body;
+  ctx.lineWidth = 28;
   ctx.beginPath();
-  ctx.moveTo(geom.ax, geom.ay);
-  ctx.lineTo(geom.bx, geom.by);
+  ctx.moveTo(0, 0);
+  ctx.lineTo(126, 0);
   ctx.stroke();
   ctx.strokeStyle = "rgba(255,255,255,.72)";
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(geom.ax + dir * 8, geom.ay - 5);
-  ctx.lineTo(geom.bx - dir * 20, geom.by - 5);
+  ctx.moveTo(12, -7);
+  ctx.lineTo(102, -6);
   ctx.stroke();
+  ctx.strokeStyle = "rgba(60,12,30,.58)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(18, 8);
+  ctx.lineTo(118, 7);
+  ctx.stroke();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#f6d39a";
   ctx.shadowBlur = 18;
   ctx.beginPath();
-  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.arc(geom.ax, geom.ay, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(44,18,22,.72)";
+  ctx.beginPath();
+  ctx.arc(geom.ax, geom.ay, 7, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -2320,11 +2355,11 @@ function drawSlingshots(ctx) {
   ctx.save();
   ctx.strokeStyle = "rgba(255,207,138,.86)";
   ctx.lineWidth = 7;
-  ctx.beginPath(); ctx.moveTo(92, 746); ctx.lineTo(286, 638); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(608, 746); ctx.lineTo(416, 638); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(98, 676); ctx.lineTo(278, 582); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(602, 676); ctx.lineTo(422, 582); ctx.stroke();
   ctx.fillStyle = "rgba(255,111,183,.20)";
-  ctx.beginPath(); ctx.moveTo(112, 732); ctx.lineTo(286, 638); ctx.lineTo(210, 610); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(588, 732); ctx.lineTo(416, 638); ctx.lineTo(492, 610); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(112, 668); ctx.lineTo(278, 582); ctx.lineTo(210, 558); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(588, 668); ctx.lineTo(422, 582); ctx.lineTo(490, 558); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 
