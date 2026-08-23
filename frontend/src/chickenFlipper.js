@@ -178,6 +178,7 @@ function integrate(state, keys, dt, sound) {
     collideStatic(ball, state, sound);
     collideFlippers(ball, state, keys, sound);
     collideTableToys(ball, state, sound);
+    releaseStuckBall(ball);
     if (isDrain(ball)) {
       if (state.time < state.ballSaveUntil) {
         ball.x = 380;
@@ -225,7 +226,7 @@ export function getPeppleSnapshot(state) {
 }
 
 function makeBall(x = 654, y = 770, vx = 0, vy = 0, launchBall = true) {
-  return { x, y, z: 0, vx, vy, r: 10.8, spin: Math.random() * 6, launchBall, lastHit: "" };
+  return { x, y, z: 0, vx, vy, r: 10.8, spin: Math.random() * 6, launchBall, lastHit: "", stuckT: 0 };
 }
 
 function applyBallMotion(ball, s) {
@@ -251,12 +252,7 @@ function collideStatic(ball, state, sound) {
     if (ball.x < f.left + ball.r) reflect(ball, f.left + ball.r, ball.y, 1, 0, 0.72);
     if (ball.x > f.right - ball.r) reflect(ball, f.right - ball.r, ball.y, -1, 0, 0.72);
   }
-  if (ball.x > lane.left && ball.y < lane.top + 46 && ball.vy < 0) {
-    ball.x = 612;
-    ball.y = 142;
-    ball.vx = -7.2 - Math.abs(ball.vy) * 0.12;
-    ball.vy = 4.8;
-  }
+  releaseShooterExit(ball);
   if (ball.y < f.top + ball.r) {
     reflect(ball, ball.x, f.top + ball.r, 0, 1, 0.74);
     ball.vx -= 3.8;
@@ -281,6 +277,35 @@ function collideStatic(ball, state, sound) {
       sound("target");
     }
   });
+}
+
+function releaseShooterExit(ball) {
+  const lane = TABLE.lane;
+  const nearShooterExit = ball.x > lane.left - 34 && ball.x < lane.right + ball.r && ball.y > TABLE.field.top + ball.r && ball.y < lane.top + 82;
+  if (!nearShooterExit) return;
+  const speed = Math.hypot(ball.vx, ball.vy);
+  if (ball.x > lane.left - 8 || speed < 5 || ball.vy < 1.6) {
+    ball.x = lane.left - 42;
+    ball.y = lane.top + 62;
+    ball.vx = -Math.max(4.8, Math.abs(ball.vx) + 1.2);
+    ball.vy = Math.max(5.8, Math.abs(ball.vy) * 0.35 + 4.8);
+    ball.lastHit = "shooter-exit";
+    ball.stuckT = 0;
+  }
+}
+
+function releaseStuckBall(ball) {
+  const lane = TABLE.lane;
+  const pinchedAtShooterExit = ball.x > lane.left - 42 && ball.x < lane.right + 10 && ball.y > 86 && ball.y < 204;
+  const slow = Math.hypot(ball.vx, ball.vy) < 2.2;
+  ball.stuckT = pinchedAtShooterExit && slow ? (ball.stuckT || 0) + 1 : 0;
+  if (ball.stuckT < 18) return;
+  ball.x = lane.left - 46;
+  ball.y = lane.top + 70;
+  ball.vx = -6.2;
+  ball.vy = 6.4;
+  ball.stuckT = 0;
+  ball.lastHit = "unstuck";
 }
 
 function collideTableToys(ball, state, sound) {
