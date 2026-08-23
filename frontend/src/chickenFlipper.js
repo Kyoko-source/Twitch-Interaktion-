@@ -203,8 +203,8 @@ export function launchPeppleBall(state, sound) {
   const ball = state.balls[0] || makeBall();
   const power = Math.max(0.18, state.plunger);
   ball.launchBall = false;
-  ball.vy = -13.5 - power * 20;
-  ball.vx = -0.45 - power * 1.3;
+  ball.vy = -17 - power * 24;
+  ball.vx = -0.2 - power * 0.8;
   state.status = "play";
   state.plunger = 0;
   state.notice = power > 0.78 ? "SKILLSHOT READY" : "SOFT PLUNGE";
@@ -245,14 +245,17 @@ function applyBallMotion(ball, s) {
 function collideStatic(ball, state, sound) {
   const f = TABLE.field;
   const lane = TABLE.lane;
-  if (ball.x > lane.left && ball.y > lane.top && ball.y < lane.bottom) {
+  const inShooterLane = ball.x > lane.left && ball.x < lane.right + ball.r && ball.y > lane.top && ball.y < lane.bottom;
+  if (inShooterLane) {
     if (ball.x < lane.left + ball.r) reflect(ball, lane.left + ball.r, ball.y, 1, 0, 0.68);
     if (ball.x > lane.right - ball.r) reflect(ball, lane.right - ball.r, ball.y, -1, 0, 0.68);
+    releaseShooterExit(ball);
+    if (ball.x > lane.left - 6 && ball.y > lane.top && ball.y < lane.bottom) return;
   } else {
     if (ball.x < f.left + ball.r) reflect(ball, f.left + ball.r, ball.y, 1, 0, 0.72);
     if (ball.x > f.right - ball.r) reflect(ball, f.right - ball.r, ball.y, -1, 0, 0.72);
+    releaseShooterExit(ball);
   }
-  releaseShooterExit(ball);
   if (ball.y < f.top + ball.r) {
     reflect(ball, ball.x, f.top + ball.r, 0, 1, 0.74);
     ball.vx -= 3.8;
@@ -281,10 +284,20 @@ function collideStatic(ball, state, sound) {
 
 function releaseShooterExit(ball) {
   const lane = TABLE.lane;
-  const nearShooterExit = ball.x > lane.left - 34 && ball.x < lane.right + ball.r && ball.y > TABLE.field.top + ball.r && ball.y < lane.top + 82;
-  if (!nearShooterExit) return;
+  const risingInShooter = ball.x > lane.left - 4 && ball.x < lane.right + ball.r && ball.y > TABLE.field.top + ball.r && ball.y < lane.top + 70 && ball.vy < -2.4;
+  if (risingInShooter) {
+    ball.x = lane.left - 18;
+    ball.y = lane.top + 18;
+    ball.vx = -Math.max(8.2, Math.abs(ball.vy) * 0.22);
+    ball.vy = 3.6;
+    ball.lastHit = "skillshot-lane";
+    ball.stuckT = 0;
+    return;
+  }
+  const nearShooterExit = ball.x > lane.left - 42 && ball.x < lane.right + ball.r && ball.y > 82 && ball.y < lane.top + 92;
+  if (!nearShooterExit || ball.vy < -1.2) return;
   const speed = Math.hypot(ball.vx, ball.vy);
-  if (ball.x > lane.left - 8 || speed < 5 || ball.vy < 1.6) {
+  if (ball.x > lane.left - 8 || speed < 6.4) {
     ball.x = lane.left - 42;
     ball.y = lane.top + 62;
     ball.vx = -Math.max(4.8, Math.abs(ball.vx) + 1.2);
