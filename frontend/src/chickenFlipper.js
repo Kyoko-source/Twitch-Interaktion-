@@ -607,10 +607,10 @@ function drawCabinet(ctx) {
 
 function drawPlayfield(ctx) {
   const field = ctx.createLinearGradient(0, 58, 0, 872);
-  field.addColorStop(0, "#11192a");
-  field.addColorStop(0.28, "#271629");
-  field.addColorStop(0.58, "#111827");
-  field.addColorStop(1, "#080509");
+  field.addColorStop(0, "#141725");
+  field.addColorStop(0.26, "#221322");
+  field.addColorStop(0.58, "#101521");
+  field.addColorStop(1, "#060406");
   ctx.fillStyle = field;
   round(ctx, 56, 34, 648, 858, 42);
   ctx.fill();
@@ -625,6 +625,17 @@ function drawPlayfield(ctx) {
   ctx.lineWidth = 2;
   round(ctx, 82, 62, 596, 800, 28);
   ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  const sideShade = ctx.createLinearGradient(56, 0, 704, 0);
+  sideShade.addColorStop(0, "rgba(0,0,0,.42)");
+  sideShade.addColorStop(0.12, "rgba(255,220,166,.06)");
+  sideShade.addColorStop(0.5, "rgba(255,255,255,0)");
+  sideShade.addColorStop(0.88, "rgba(255,220,166,.06)");
+  sideShade.addColorStop(1, "rgba(0,0,0,.42)");
+  ctx.fillStyle = sideShade;
+  round(ctx, 64, 42, 632, 842, 38);
+  ctx.fill();
   ctx.restore();
   ctx.save();
   ctx.globalAlpha = 0.16;
@@ -677,24 +688,31 @@ function drawMetalGuides(ctx) {
 function drawRamps(ctx, t) {
   ctx.save();
   ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(125,244,222,.55)";
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = "rgba(125,244,222,.32)";
-  ctx.lineWidth = 34;
+  ctx.shadowColor = "rgba(125,244,222,.38)";
+  ctx.shadowBlur = 12;
+  ctx.strokeStyle = "rgba(118,221,207,.18)";
+  ctx.lineWidth = 20;
   ctx.beginPath();
   ctx.moveTo(206, 620);
   ctx.bezierCurveTo(212, 478, 328, 418, 504, 378);
   ctx.bezierCurveTo(586, 358, 626, 272, 610, 176);
   ctx.stroke();
-  ctx.strokeStyle = "rgba(230,255,250,.58)";
-  ctx.lineWidth = 4;
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(235,255,250,.78)";
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(198, 602);
-  ctx.bezierCurveTo(226, 482, 344, 430, 506, 396);
+  ctx.moveTo(190, 610);
+  ctx.bezierCurveTo(218, 480, 342, 422, 506, 386);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(224, 638);
-  ctx.bezierCurveTo(238, 506, 354, 448, 528, 404);
+  ctx.moveTo(224, 632);
+  ctx.bezierCurveTo(238, 506, 356, 444, 530, 402);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(0,0,0,.28)";
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  ctx.moveTo(218, 644);
+  ctx.bezierCurveTo(238, 536, 356, 472, 538, 432);
   ctx.stroke();
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(255,210,125,.75)";
@@ -814,9 +832,9 @@ function drawSlings(ctx) {
 function drawDrain(ctx) {
   ctx.save();
   const apron = ctx.createLinearGradient(0, 730, 0, 890);
-  apron.addColorStop(0, "rgba(255,94,168,.06)");
-  apron.addColorStop(0.54, "rgba(0,0,0,.18)");
-  apron.addColorStop(1, "rgba(0,0,0,.64)");
+  apron.addColorStop(0, "rgba(255,94,168,.03)");
+  apron.addColorStop(0.5, "rgba(0,0,0,.34)");
+  apron.addColorStop(1, "rgba(0,0,0,.82)");
   ctx.fillStyle = apron;
   ctx.beginPath();
   ctx.moveTo(84, 854);
@@ -829,7 +847,7 @@ function drawDrain(ctx) {
   ctx.fill();
   ctx.shadowColor = "#000";
   ctx.shadowBlur = 32;
-  ctx.fillStyle = "rgba(0,0,0,.84)";
+  ctx.fillStyle = "rgba(0,0,0,.92)";
   ctx.beginPath();
   ctx.ellipse(380, 828, 78, 34, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -837,6 +855,12 @@ function drawDrain(ctx) {
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.arc(380, 804, 72, 0.14, Math.PI - 0.14);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,94,168,.28)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(306, 778);
+  ctx.quadraticCurveTo(380, 826, 454, 778);
   ctx.stroke();
   ctx.restore();
 }
@@ -848,7 +872,13 @@ function drawFlipper(ctx, f) {
   ctx.rotate(angle);
   ctx.lineCap = "round";
   ctx.shadowColor = f.on ? "#ffd27d" : "#ff5ea8";
-  ctx.shadowBlur = f.on ? 26 : 14;
+  ctx.shadowBlur = f.on ? 24 : 10;
+  ctx.strokeStyle = "rgba(0,0,0,.72)";
+  ctx.lineWidth = 34;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(126, 0);
+  ctx.stroke();
   const grad = ctx.createLinearGradient(0, -14, 126, 14);
   grad.addColorStop(0, "#ffe6b1");
   grad.addColorStop(0.42, "#ff704c");
@@ -884,15 +914,15 @@ function drawFlipper(ctx, f) {
 function drawShooterLane(ctx, state) {
   const lane = TABLE.lane;
   ctx.save();
-  ctx.fillStyle = "rgba(1,5,10,.7)";
+  ctx.fillStyle = "rgba(1,4,8,.86)";
   round(ctx, lane.left, lane.top, lane.right - lane.left, lane.bottom - lane.top, 22);
   ctx.fill();
-  ctx.strokeStyle = "rgba(230,222,198,.62)";
-  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(230,222,198,.76)";
+  ctx.lineWidth = 4;
   round(ctx, lane.left + 4, lane.top + 6, lane.right - lane.left - 8, lane.bottom - lane.top - 12, 18);
   ctx.stroke();
   for (let i = 0; i < 10; i += 1) {
-    ctx.strokeStyle = "rgba(255,210,125,.6)";
+    ctx.strokeStyle = "rgba(255,210,125,.72)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(642, 744 - i * 20);
@@ -933,11 +963,11 @@ function drawBalls(ctx, state) {
 
 function drawGlass(ctx) {
   const g = ctx.createLinearGradient(70, 40, 690, 890);
-  g.addColorStop(0, "rgba(255,255,255,.16)");
+  g.addColorStop(0, "rgba(255,255,255,.10)");
   g.addColorStop(0.22, "rgba(255,255,255,.02)");
-  g.addColorStop(0.54, "rgba(255,255,255,.10)");
+  g.addColorStop(0.54, "rgba(255,255,255,.055)");
   g.addColorStop(0.64, "rgba(255,255,255,.02)");
-  g.addColorStop(1, "rgba(255,255,255,.09)");
+  g.addColorStop(1, "rgba(255,255,255,.06)");
   ctx.fillStyle = g;
   ctx.fillRect(56, 34, 648, 858);
   if (ctx.globalAlpha !== undefined) {

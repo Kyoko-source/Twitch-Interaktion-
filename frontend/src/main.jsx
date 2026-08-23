@@ -53,7 +53,7 @@ const nav = [
 const gameMeta = {
   "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring ueber Zaeune, ducke dich unter Voegel und sammle Pepples." },
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Fuehre die Neon-Spur durch den Kaefig und friss Energiekerne." },
-  "chicken-flipper": { title: "Chicken Flipper", accent: "#ff6fb7", text: "Neon-Flipper mit Jackpot, Multiball, Streaks und viel zu viel Arcade-Energie." },
+  "chicken-flipper": { title: "PEPPLE Pinball", accent: "#ff6fb7", text: "Arcade-Flipper mit Locks, Orbits, Rampen, Skillshots, Jackpot und Multiball." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Pepples." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };

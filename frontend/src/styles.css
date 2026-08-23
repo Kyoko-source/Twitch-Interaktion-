@@ -3176,7 +3176,8 @@ textarea {
   width: min(100%, 760px);
   max-width: 100%;
   min-width: 0;
-  height: min(78vh, 860px);
+  height: auto;
+  aspect-ratio: 760 / 920;
   min-height: 520px;
   margin: 0 auto;
   background: #100915;
@@ -3288,7 +3289,7 @@ textarea {
   }
 
   .flipperCanvas {
-    height: 72vh;
+    height: auto;
   }
 }
 
@@ -3307,7 +3308,7 @@ textarea {
   .flipperCanvas {
     width: 100%;
     max-width: calc(100vw - 20px);
-    height: 560px;
+    height: auto;
     min-height: 430px;
   }
 
