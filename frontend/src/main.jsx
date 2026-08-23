@@ -1820,18 +1820,23 @@ function ChickenFlipper({ user }) {
         ball.vy += 0.25 * scale;
         ball.vx *= 0.998;
         ball.vy *= 0.998;
+        preventLowerPocketStall(ball, dt);
         ball.x += ball.vx * scale;
         ball.y += ball.vy * scale;
         collideWalls(ball, canvas, state);
-        collideBumpers(ball, state, chord);
-        collideTargets(ball, state, chord);
-        collideFlippers(ball, keys, state, chord);
-        if (ball.y > canvas.height + 30) {
+        if (isDrain(ball)) ball.dead = true;
+        if (!ball.dead) {
+          collideBumpers(ball, state, chord);
+          collideTargets(ball, state, chord);
+          collideFlippers(ball, keys, state, chord);
+        }
+        if (ball.dead || ball.y > canvas.height + 30) {
           if (state.time < state.ballSaveUntil) {
             ball.x = 350;
-            ball.y = 646;
+            ball.y = 612;
             ball.vx = (Math.random() - 0.5) * 3;
-            ball.vy = -10.5;
+            ball.vy = -11.8;
+            ball.dead = false;
             state.notice = "BALL SAVE";
             state.noticeT = 780;
             state.flash = 260;
@@ -2045,12 +2050,46 @@ function collideWalls(ball, canvas) {
     ball.vy = Math.abs(ball.vy) * 0.54;
     ball.vx = -8.8;
   }
-  collideLine(ball, 98, 676, 278, 582, 0.72);
-  collideLine(ball, 602, 676, 422, 582, 0.72);
+  collideLine(ball, 92, 678, 246, 594, 0.78);
+  collideLine(ball, 608, 678, 454, 594, 0.78);
   collideLine(ball, 118, 154, 200, 98, 0.86);
   collideLine(ball, 496, 100, 600, 154, 0.86);
+  if (ball.y > 660 && ball.y < 792) {
+    if (ball.x < 142) {
+      ball.vx += 0.16;
+      ball.vy += 0.18;
+    }
+    if (ball.x > 558 && ball.x < 618) {
+      ball.vx -= 0.16;
+      ball.vy += 0.18;
+    }
+  }
   if (ball.x > canvas.width - 30) ball.vx = -Math.abs(ball.vx);
   if (ball.x < 28) ball.vx = Math.abs(ball.vx);
+}
+
+function isDrain(ball) {
+  const centerGap = ball.y > 746 && ball.x > 304 && ball.x < 396;
+  const leftOutlane = ball.y > 714 && ball.x < 132;
+  const rightOutlane = ball.y > 714 && ball.x > 568 && ball.x < 620;
+  const bottomApron = ball.y > 830;
+  return centerGap || leftOutlane || rightOutlane || bottomApron;
+}
+
+function preventLowerPocketStall(ball, dt) {
+  const speed = Math.hypot(ball.vx, ball.vy);
+  const inLowerTrap = ball.y > 612 && ((ball.x > 92 && ball.x < 172) || (ball.x > 528 && ball.x < 612) || (ball.x > 292 && ball.x < 408 && ball.y > 704));
+  if (inLowerTrap && speed < 1.2) {
+    ball.stuckT = (ball.stuckT || 0) + dt;
+  } else {
+    ball.stuckT = 0;
+  }
+  if (ball.stuckT > 420) {
+    ball.vy += 1.9;
+    if (ball.x < 350) ball.vx += 1.2;
+    else ball.vx -= 1.2;
+    ball.stuckT = 0;
+  }
 }
 
 function collideBumpers(ball, state, sound) {
@@ -2098,6 +2137,7 @@ function collideTargets(ball, state, sound) {
 function collideFlippers(ball, keys, state, sound) {
   const flippers = flipperSet(keys);
   flippers.forEach((flipper) => {
+    if (ball.y > flipper.ay + 24) return;
     if (collideLine(ball, flipper.ax, flipper.ay, flipper.bx, flipper.by, flipper.on ? 1.18 : 0.78)) {
       const dx = flipper.bx - flipper.ax;
       const dy = flipper.by - flipper.ay;
@@ -2121,18 +2161,18 @@ function collideFlippers(ball, keys, state, sound) {
 
 function flipperSet(keys) {
   return [
-    flipperGeometry(214, 730, -1, keys.left),
-    flipperGeometry(486, 730, 1, keys.right),
+    flipperGeometry(198, 738, -1, keys.left),
+    flipperGeometry(502, 738, 1, keys.right),
   ];
 }
 
 function flipperGeometry(x, y, dir, on) {
-  const rest = 0.28;
-  const raised = -0.48;
+  const rest = 0.2;
+  const raised = -0.58;
   const angle = dir < 0
     ? (on ? raised : rest)
     : Math.PI - (on ? raised : rest);
-  const length = 136;
+  const length = 132;
   return {
     x,
     y,
@@ -2225,6 +2265,7 @@ function drawFlipperTable(ctx, canvas, state, keys) {
   drawLane(ctx, 622, 126, 58, 650, state.plunger);
   drawWireRamp(ctx);
   drawSlingshots(ctx);
+  drawDrainApron(ctx);
 
   state.bumpers.forEach((bumper) => {
     const pulse = 1 + (bumper.pulse || 0) / 520;
@@ -2265,8 +2306,8 @@ function drawFlipperTable(ctx, canvas, state, keys) {
 }
 
 function drawFlipper(ctx, geom) {
-  const dir = geom.dir;
   const angle = Math.atan2(geom.by - geom.ay, geom.bx - geom.ax);
+  const length = Math.hypot(geom.bx - geom.ax, geom.by - geom.ay);
   ctx.save();
   ctx.translate(geom.ax, geom.ay);
   ctx.rotate(angle);
@@ -2274,7 +2315,7 @@ function drawFlipper(ctx, geom) {
   ctx.lineJoin = "round";
   ctx.shadowColor = geom.on ? "#ffcf8a" : "#d64878";
   ctx.shadowBlur = geom.on ? 30 : 16;
-  const body = ctx.createLinearGradient(0, -16, 126, 18);
+  const body = ctx.createLinearGradient(0, -16, length, 18);
   body.addColorStop(0, "#fff0be");
   body.addColorStop(0.18, "#ffb351");
   body.addColorStop(0.58, "#f04d83");
@@ -2283,19 +2324,19 @@ function drawFlipper(ctx, geom) {
   ctx.lineWidth = 28;
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.lineTo(126, 0);
+  ctx.lineTo(length - 7, 0);
   ctx.stroke();
   ctx.strokeStyle = "rgba(255,255,255,.72)";
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.moveTo(12, -7);
-  ctx.lineTo(102, -6);
+  ctx.lineTo(length - 30, -6);
   ctx.stroke();
   ctx.strokeStyle = "rgba(60,12,30,.58)";
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(18, 8);
-  ctx.lineTo(118, 7);
+  ctx.lineTo(length - 16, 7);
   ctx.stroke();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#f6d39a";
@@ -2353,13 +2394,58 @@ function drawWireRamp(ctx) {
 
 function drawSlingshots(ctx) {
   ctx.save();
-  ctx.strokeStyle = "rgba(255,207,138,.86)";
-  ctx.lineWidth = 7;
-  ctx.beginPath(); ctx.moveTo(98, 676); ctx.lineTo(278, 582); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(602, 676); ctx.lineTo(422, 582); ctx.stroke();
-  ctx.fillStyle = "rgba(255,111,183,.20)";
-  ctx.beginPath(); ctx.moveTo(112, 668); ctx.lineTo(278, 582); ctx.lineTo(210, 558); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(588, 668); ctx.lineTo(422, 582); ctx.lineTo(490, 558); ctx.closePath(); ctx.fill();
+  ctx.shadowColor = "#ffcf8a";
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = "rgba(255,207,138,.92)";
+  ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(92, 678); ctx.lineTo(246, 594); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(608, 678); ctx.lineTo(454, 594); ctx.stroke();
+  ctx.fillStyle = "rgba(255,111,183,.24)";
+  ctx.beginPath(); ctx.moveTo(112, 668); ctx.lineTo(246, 594); ctx.lineTo(192, 560); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(588, 668); ctx.lineTo(454, 594); ctx.lineTo(508, 560); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.38)";
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(124, 644); ctx.lineTo(226, 592); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(576, 644); ctx.lineTo(474, 592); ctx.stroke();
+  ctx.restore();
+}
+
+function drawDrainApron(ctx) {
+  ctx.save();
+  const apron = ctx.createLinearGradient(0, 690, 0, 826);
+  apron.addColorStop(0, "rgba(255,111,183,.05)");
+  apron.addColorStop(0.42, "rgba(22,9,15,.12)");
+  apron.addColorStop(1, "rgba(0,0,0,.52)");
+  ctx.fillStyle = apron;
+  ctx.beginPath();
+  ctx.moveTo(88, 810);
+  ctx.lineTo(180, 690);
+  ctx.lineTo(302, 752);
+  ctx.quadraticCurveTo(350, 786, 398, 752);
+  ctx.lineTo(520, 690);
+  ctx.lineTo(612, 810);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.shadowColor = "#000";
+  ctx.shadowBlur = 28;
+  ctx.fillStyle = "rgba(0,0,0,.76)";
+  ctx.beginPath();
+  ctx.ellipse(350, 777, 64, 26, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,207,138,.42)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(350, 759, 56, 0.12, Math.PI - 0.12);
+  ctx.stroke();
+
+  ctx.shadowBlur = 18;
+  ctx.strokeStyle = "rgba(122,244,220,.28)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(302, 752);
+  ctx.quadraticCurveTo(350, 782, 398, 752);
+  ctx.stroke();
   ctx.restore();
 }
 
