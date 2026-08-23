@@ -32,6 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import { api, setToken } from "./api";
+import { createPepplePinball, getPeppleSnapshot, launchPeppleBall, makePeppleAudio, renderPepplePinball, stepPepplePinball } from "./chickenFlipper";
 import "./styles.css";
 
 const nav = [
@@ -1756,133 +1757,46 @@ function ChickenSnake({ user }) {
 function ChickenFlipper({ user }) {
   const [status, setStatus] = useState("menu");
   const [audioOn, setAudioOn] = useState(true);
-  const [message, setMessage] = useState("Space zieht den Plunger. A/D oder Pfeile feuern die Flipper.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, balls: 3, streak: 0, mult: 1, jackpot: 2500 });
+  const [message, setMessage] = useState("Space spannt den echten Plunger. A/D oder Pfeile feuern die Flipper.");
+  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, balls: 3, streak: 0, mult: 1, jackpot: 2500, locked: 0, bonus: 0 });
   const [refreshKey, setRefreshKey] = useState(0);
-  const keysRef = useRef({ left: false, right: false, launch: false });
-  const audioRef = useRef(null);
-  const stateRef = useRef(makeFlipperState());
+  const keysRef = useRef({ left: false, right: false, launch: false, nudgeL: false, nudgeR: false });
+  const audioEnabledRef = useRef(audioOn);
+  const soundRef = useRef(null);
+  const stateRef = useRef(createPepplePinball());
+  if (!soundRef.current && typeof window !== "undefined") soundRef.current = makePeppleAudio(audioEnabledRef);
 
-  function audio() {
-    if (!audioOn) return null;
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    if (!audioRef.current) audioRef.current = new AudioCtx();
-    if (audioRef.current.state === "suspended") audioRef.current.resume();
-    return audioRef.current;
-  }
-
-  function blip(freq = 440, dur = 0.055, type = "triangle", vol = 0.035) {
-    const ac = audio();
-    if (!ac) return;
-    const now = ac.currentTime;
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(vol, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    osc.connect(gain).connect(ac.destination);
-    osc.start(now);
-    osc.stop(now + dur + 0.03);
-  }
-
-  function chord(kind) {
-    if (kind === "jackpot") [520, 780, 1040, 1560].forEach((f, i) => setTimeout(() => blip(f, 0.08, "square", 0.04), i * 45));
-    else if (kind === "drain") [220, 146, 98].forEach((f, i) => setTimeout(() => blip(f, 0.12, "sawtooth", 0.035), i * 55));
-    else if (kind === "launch") [220, 440, 880].forEach((f, i) => setTimeout(() => blip(f, 0.05, "triangle", 0.032), i * 34));
-    else blip(680, 0.045, "triangle", 0.026);
-  }
+  useEffect(() => {
+    audioEnabledRef.current = audioOn;
+  }, [audioOn]);
 
   const canvasRef = useCanvasGame((ctx, canvas, dt) => {
     const state = stateRef.current;
     const keys = keysRef.current;
-    const scale = dt / 16.67;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawFlipperTable(ctx, canvas, state, keys);
-
     if (status === "play") {
-      state.time += dt;
-      state.flash = Math.max(0, state.flash - dt);
-      state.noticeT = Math.max(0, state.noticeT - dt);
-      if (state.ready && state.balls[0]) {
-        state.balls[0].x = 652;
-        state.balls[0].y = 710 - state.plunger * 18;
-        state.balls[0].vx = 0;
-        state.balls[0].vy = 0;
-      }
-      if (keys.launch && state.ready) state.plunger = Math.min(1, state.plunger + 0.015 * scale);
-
-      state.balls.forEach((ball) => {
-        if (ball.dead) return;
-        if (state.ready && ball.launchBall) return;
-        ball.vy += 0.25 * scale;
-        ball.vx *= 0.998;
-        ball.vy *= 0.998;
-        preventLowerPocketStall(ball, dt);
-        ball.x += ball.vx * scale;
-        ball.y += ball.vy * scale;
-        collideWalls(ball, canvas, state);
-        if (isDrain(ball)) ball.dead = true;
-        if (!ball.dead) {
-          collideBumpers(ball, state, chord);
-          collideTargets(ball, state, chord);
-          collideFlippers(ball, keys, state, chord);
-        }
-        if (ball.dead || ball.y > canvas.height + 30) {
-          if (state.time < state.ballSaveUntil) {
-            ball.x = 350;
-            ball.y = 612;
-            ball.vx = (Math.random() - 0.5) * 3;
-            ball.vy = -11.8;
-            ball.dead = false;
-            state.notice = "BALL SAVE";
-            state.noticeT = 780;
-            state.flash = 260;
-          } else {
-            ball.dead = true;
-          }
-        }
-      });
-      state.balls = state.balls.filter((ball) => !ball.dead);
-      if (!state.balls.length) {
-        state.ballsLeft -= 1;
-        state.streak = 0;
-        state.mult = 1;
-        if (state.ballsLeft <= 0) {
-          setStatus("gameover");
-          setMessage(`Run beendet: ${state.score.toLocaleString("de-DE")} Punkte. Jackpot war bei ${state.jackpot}.`);
-          chord("drain");
-        } else {
-          state.ready = true;
-          state.plunger = 0;
-          state.balls = [makeBall()];
-          setMessage(`${state.ballsLeft} Kugeln uebrig. Space halten, loslassen, weiter eskalieren.`);
-          chord("drain");
-        }
-      }
-      if (state.streak >= 12 && !state.multiball) {
-        state.multiball = true;
-        state.balls.push(makeBall(486, 102, -4, 2.5, false), makeBall(398, 118, 4, 2, false));
-        state.notice = "MULTIBALL";
-        state.noticeT = 950;
-        state.flash = 520;
-        chord("jackpot");
+      stepPepplePinball(state, keys, dt, soundRef.current || (() => {}));
+      if (state.status === "gameover") {
+        setStatus("gameover");
+        setMessage(`Run beendet: ${state.score.toLocaleString("de-DE")} Punkte. Bonus und Jackpot sind abgerechnet.`);
+      } else if (state.status === "ready") {
+        setMessage("Kugel bereit: Space halten, Feder spannen, fuer Skillshot loslassen.");
+      } else if (state.noticeT > 0) {
+        setMessage(`${state.notice} | Locked ${state.lockedBalls}/2 | Bonus ${state.bonus.toLocaleString("de-DE")}`);
       }
       if (state.time - state.lastSnapshot > 120) {
         state.lastSnapshot = state.time;
-        setSnapshot({ score: state.score, level: state.level, balls: state.ballsLeft, streak: state.streak, mult: state.mult, jackpot: state.jackpot });
+        setSnapshot(getPeppleSnapshot(state));
       }
     }
-    drawFlipperBalls(ctx, state);
-    drawFlipperHud(ctx, canvas, state, status);
+    renderPepplePinball(ctx, canvas, state, keys, status);
   }, [status, audioOn]);
 
   useEffect(() => {
     function down(event) {
       if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") keysRef.current.left = true;
       if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") keysRef.current.right = true;
+      if (event.key === "q" || event.key === "Q") keysRef.current.nudgeL = true;
+      if (event.key === "e" || event.key === "E") keysRef.current.nudgeR = true;
       if (event.code === "Space" || event.key === "ArrowDown") {
         keysRef.current.launch = true;
         event.preventDefault();
@@ -1893,19 +1807,11 @@ function ChickenFlipper({ user }) {
       const state = stateRef.current;
       if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") keysRef.current.left = false;
       if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") keysRef.current.right = false;
+      if (event.key === "q" || event.key === "Q") keysRef.current.nudgeL = false;
+      if (event.key === "e" || event.key === "E") keysRef.current.nudgeR = false;
       if (event.code === "Space" || event.key === "ArrowDown") {
         keysRef.current.launch = false;
-        if (status === "play" && state.ready) {
-          const power = Math.max(0.32, state.plunger);
-          state.ready = false;
-          state.balls[0].launchBall = false;
-          state.balls[0].vy = -14 - power * 12;
-          state.balls[0].vx = -0.2 - power * 0.7;
-          state.plunger = 0;
-          state.notice = "LAUNCH";
-          state.noticeT = 520;
-          chord("launch");
-        }
+        if (status === "play") launchPeppleBall(state, soundRef.current || (() => {}));
         event.preventDefault();
       }
     }
@@ -1918,12 +1824,12 @@ function ChickenFlipper({ user }) {
   }, [status, audioOn]);
 
   function start() {
-    stateRef.current = makeFlipperState();
-    keysRef.current = { left: false, right: false, launch: false };
-    setSnapshot({ score: 0, level: 1, balls: 3, streak: 0, mult: 1, jackpot: 2500 });
-    setMessage("Space halten und loslassen. A/D oder Pfeile ballern die Flipper.");
+    stateRef.current = createPepplePinball();
+    keysRef.current = { left: false, right: false, launch: false, nudgeL: false, nudgeR: false };
+    setSnapshot(getPeppleSnapshot(stateRef.current));
+    setMessage("Space halten und loslassen. A/D oder Pfeile feuern echte Flipperfinger.");
     setStatus("play");
-    chord("launch");
+    if (soundRef.current) soundRef.current("launch");
   }
 
   async function save() {
@@ -1945,20 +1851,21 @@ function ChickenFlipper({ user }) {
       </div>
       <div className="flipperLayout">
         <div className="flipperStage">
-          <canvas className="flipperCanvas" ref={canvasRef} width="760" height="860" />
+          <canvas className="flipperCanvas" ref={canvasRef} width="760" height="920" />
           {status !== "play" && (
             <div className="flipperOverlay">
-              <h3>{status === "gameover" ? "Run beendet" : "Chicken Flipper"}</h3>
-              <p>Jackpot-Bumper, Skillshot-Lanes, Multiball ab 12er Streak und ein sehr ungesundes Soundboard.</p>
+              <h3>{status === "gameover" ? "Run beendet" : "PEPPLE Pinball"}</h3>
+              <p>Dichter Arcade-Tisch mit Locks, Orbits, Rampen, Inserts, Skillshot, Bonus und Multiball.</p>
               <button onClick={start} type="button"><Zap size={16} /> Start</button>
             </div>
           )}
         </div>
         <aside className="flipperSide">
           <div className="flipperMetric"><span>Kugeln</span><strong>{snapshot.balls}</strong><small>Drain kostet eine Kugel</small></div>
-          <div className="flipperMetric hot"><span>Streak</span><strong>{snapshot.streak}</strong><small>12 startet Multiball</small></div>
+          <div className="flipperMetric hot"><span>Locks</span><strong>{snapshot.locked}/2</strong><small>dritter Lock startet Multiball</small></div>
           <div className="flipperMetric"><span>Multiplier</span><strong>x{snapshot.mult}</strong><small>steigt mit jedem Treffer</small></div>
           <div className="flipperMetric jackpot"><span>Jackpot</span><strong>{snapshot.jackpot}</strong><small>Center-Ring kassiert alles</small></div>
+          <div className="flipperMetric"><span>Bonus</span><strong>{snapshot.bonus}</strong><small>zaehlt am Ball-Ende</small></div>
           <div className="flipperControls">
             <button onClick={start} type="button"><RefreshCw size={16} /> Start</button>
             <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Sound {audioOn ? "an" : "aus"}</button>
@@ -1968,6 +1875,7 @@ function ChickenFlipper({ user }) {
             <b>Controls</b>
             <span>A/D oder Pfeile fuer Flipper</span>
             <span>Space halten und loslassen fuer Plunger</span>
+            <span>Q/E nudgen links oder rechts</span>
             <span>Enter startet neu</span>
           </div>
           <div className="flipperScorePanel">
