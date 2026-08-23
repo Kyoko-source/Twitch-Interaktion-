@@ -6,6 +6,9 @@ const TABLE = {
   drain: { x1: 312, x2: 448, y: 812 },
 };
 
+const PLAYFIELD_ART = "/assets/pepple-pinball-playfield-ai.png";
+let playfieldImage = null;
+
 const INSERTS = [
   { id: "skill", x: 646, y: 244, text: "SKILL", mode: "blink", color: "#ffd27d" },
   { id: "lock", x: 522, y: 286, text: "LOCK", mode: "off", color: "#7bf4de" },
@@ -32,7 +35,6 @@ export function createPepplePinball() {
     ballsLeft: 3,
     lockedBalls: 0,
     plunger: 0,
-    plungerDir: 1,
     score: 0,
     level: 1,
     streak: 0,
@@ -123,7 +125,8 @@ export function makePeppleAudio(enabledRef) {
     else if (kind === "lock") [260, 520, 1040].forEach((f, i) => setTimeout(() => tone(f, 0.08, "square", 0.035), i * 50));
     else if (kind === "jackpot") [520, 780, 1040, 1560].forEach((f, i) => setTimeout(() => tone(f, 0.08, "square", 0.04), i * 45));
     else if (kind === "drain") [220, 146, 98].forEach((f, i) => setTimeout(() => tone(f, 0.11, "sawtooth", 0.032), i * 52));
-    else if (kind === "launch") [190, 380, 760].forEach((f, i) => setTimeout(() => tone(f, 0.05, "triangle", 0.03), i * 36));
+    else if (kind === "launch") [150, 310, 620, 960].forEach((f, i) => setTimeout(() => tone(f, 0.055, "triangle", 0.034), i * 34));
+    else if (kind === "spark") [980, 1320].forEach((f, i) => setTimeout(() => tone(f, 0.035, "triangle", 0.022), i * 18));
   };
 }
 
@@ -149,6 +152,7 @@ function integrate(state, keys, dt, sound) {
   state.spinner.spin *= 0.975;
   state.rampGate = Math.max(0, state.rampGate - dt);
   state.nudgeCooldown = Math.max(0, state.nudgeCooldown - dt);
+  updateEffects(state, s);
   if (state.nudgeCooldown <= 0 && (keys.nudgeL || keys.nudgeR)) {
     const dir = keys.nudgeL ? -1 : 1;
     state.balls.forEach((ball) => {
@@ -161,14 +165,12 @@ function integrate(state, keys, dt, sound) {
     const ball = state.balls[0] || makeBall();
     state.balls[0] = ball;
     ball.x = 654;
-    ball.y = 770 - state.plunger * 92;
+    ball.y = 724;
     ball.vx = 0;
     ball.vy = 0;
     ball.launchBall = true;
     if (keys.launch) {
-      state.plunger += 0.018 * state.plungerDir * s;
-      if (state.plunger >= 1) { state.plunger = 1; state.plungerDir = -1; }
-      if (state.plunger <= 0.08) { state.plunger = 0.08; state.plungerDir = 1; }
+      state.plunger = Math.min(1, state.plunger + 0.014 * s);
     }
     return;
   }
@@ -179,6 +181,7 @@ function integrate(state, keys, dt, sound) {
     collideFlippers(ball, state, keys, sound);
     collideTableToys(ball, state, sound);
     releaseStuckBall(ball);
+    keepBallAlive(ball);
     if (isDrain(ball)) {
       if (state.time < state.ballSaveUntil) {
         ball.x = 380;
@@ -203,8 +206,12 @@ export function launchPeppleBall(state, sound) {
   const ball = state.balls[0] || makeBall();
   const power = Math.max(0.18, state.plunger);
   ball.launchBall = false;
-  ball.vy = -17 - power * 24;
-  ball.vx = -0.2 - power * 0.8;
+  ball.x = 654;
+  ball.y = 724;
+  ball.vy = -24 - power * 24;
+  ball.vx = -0.08 - power * 0.35;
+  ball.stuckT = 0;
+  spawnFeedback(state, 654, 684, "#ffd27d", power > 0.78 ? "FULL POWER" : "LAUNCH", 16);
   state.status = "play";
   state.plunger = 0;
   state.notice = power > 0.78 ? "SKILLSHOT READY" : "SOFT PLUNGE";
@@ -226,7 +233,7 @@ export function getPeppleSnapshot(state) {
 }
 
 function makeBall(x = 654, y = 770, vx = 0, vy = 0, launchBall = true) {
-  return { x, y, z: 0, vx, vy, r: 10.8, spin: Math.random() * 6, launchBall, lastHit: "", stuckT: 0 };
+  return { x, y, z: 0, vx, vy, r: 10.8, spin: Math.random() * 6, launchBall, lastHit: "", stuckT: 0, slowT: 0 };
 }
 
 function applyBallMotion(ball, s) {
@@ -288,7 +295,7 @@ function releaseShooterExit(ball) {
   if (risingInShooter) {
     ball.x = lane.left - 18;
     ball.y = lane.top + 18;
-    ball.vx = -Math.max(8.2, Math.abs(ball.vy) * 0.22);
+    ball.vx = -Math.max(9.4, Math.abs(ball.vy) * 0.25);
     ball.vy = 3.6;
     ball.lastHit = "skillshot-lane";
     ball.stuckT = 0;
@@ -321,6 +328,17 @@ function releaseStuckBall(ball) {
   ball.lastHit = "unstuck";
 }
 
+function keepBallAlive(ball) {
+  if (ball.y > TABLE.drain.y - 20 || ball.launchBall) return;
+  const speed = Math.hypot(ball.vx, ball.vy);
+  ball.slowT = speed < 0.7 ? (ball.slowT || 0) + 1 : 0;
+  if (ball.slowT < 36) return;
+  const toCenter = ball.x < TABLE.w / 2 ? 1 : -1;
+  ball.vx += toCenter * 1.2;
+  ball.vy += 2.2;
+  ball.slowT = 0;
+}
+
 function collideTableToys(ball, state, sound) {
   state.bumpers.forEach((bumper) => {
     if (collideCircle(ball, bumper, 1.2)) {
@@ -332,6 +350,8 @@ function collideTableToys(ball, state, sound) {
       ball.vy = (dy / dist) * speed - 2.4;
       bumper.pulse = 260;
       state.flash = 140;
+      state.shake = Math.max(state.shake, 80);
+      spawnFeedback(state, bumper.x, bumper.y, bumper.color, bumper.label, 22);
       score(state, bumper.value, bumper.label);
       sound("bumper");
     }
@@ -342,6 +362,7 @@ function collideTableToys(ball, state, sound) {
       target.lit = true;
       ball.vx += target.side === "left" ? 3.2 : target.side === "right" ? -3.2 : 0;
       ball.vy = -Math.abs(ball.vy) - 2;
+      spawnFeedback(state, target.x + target.w / 2, target.y + target.h / 2, target.label === "PLE" ? "#ff5ea8" : "#7bf4de", target.label, 14);
       score(state, target.value, target.label);
       sound("target");
     }
@@ -350,6 +371,7 @@ function collideTableToys(ball, state, sound) {
     if (!drop.down && rectHit(ball, drop)) {
       drop.down = true;
       ball.vy = -Math.abs(ball.vy) - 2.8;
+      spawnFeedback(state, drop.x + drop.w / 2, drop.y + drop.h / 2, "#ffd27d", drop.label, 12);
       score(state, 900, `DROP ${drop.label}`);
       sound("target");
     }
@@ -359,6 +381,7 @@ function collideTableToys(ball, state, sound) {
   }
   if (collideCircle(ball, state.spinner, 0.85)) {
     state.spinner.spin += 0.6 + Math.abs(ball.vx) * 0.08;
+    spawnFeedback(state, state.spinner.x, state.spinner.y, "#7bf4de", "SPIN", 12);
     score(state, 360, "SPINNER");
     sound("target");
   }
@@ -368,6 +391,7 @@ function collideTableToys(ball, state, sound) {
     ball.y = 370;
     ball.vx = -7.5;
     ball.vy = -8.4;
+    spawnFeedback(state, state.scoop.x, state.scoop.y, "#ffd27d", state.superJackpot ? "SUPER" : "SCOOP", 24);
     score(state, state.superJackpot ? state.jackpot * 2 : 1600, state.superJackpot ? "SUPER JACKPOT" : "SCOOP");
     state.superJackpot = false;
     sound("jackpot");
@@ -381,6 +405,7 @@ function collideTableToys(ball, state, sound) {
       state.drops.forEach((drop) => { drop.down = false; });
       state.notice = `BALL ${state.lockedBalls} LOCKED`;
       state.noticeT = 1200;
+      spawnFeedback(state, state.lockHole.x, state.lockHole.y, "#7bf4de", "LOCK", 28);
       score(state, 2500, "BALL LOCKED");
       state.balls.push(makeBall(654, 770, 0, 0, true));
       state.status = "ready";
@@ -389,9 +414,11 @@ function collideTableToys(ball, state, sound) {
       startMultiball(state, sound);
       ball.vx = -8;
       ball.vy = -7.5;
+      spawnFeedback(state, state.lockHole.x, state.lockHole.y, "#ff5ea8", "MULTI", 34);
     } else {
       ball.vx = -7.2;
       ball.vy = -8.2;
+      spawnFeedback(state, state.lockHole.x, state.lockHole.y, "#ffd27d", "KICK", 18);
       score(state, 1200, "KICKOUT");
       sound("lock");
     }
@@ -408,6 +435,7 @@ function rampShot(ball, state, sound) {
     ball.y = 176;
     ball.vx = 5.6;
     ball.vy = 4.4;
+    spawnFeedback(state, 486, 176, "#ff5ea8", "RAMP", 20);
     score(state, 1800, "JACKPOT RAMP");
     state.inserts.find((insert) => insert.id === "jackpot").mode = "blink";
     sound("ramp");
@@ -417,6 +445,7 @@ function rampShot(ball, state, sound) {
     ball.y = 184;
     ball.vx = -3.5;
     ball.vy = 6.2;
+    spawnFeedback(state, 154, 184, "#7bf4de", "ORBIT", 18);
     score(state, 1400, "RIGHT ORBIT");
     sound("ramp");
   }
@@ -433,6 +462,7 @@ function collideFlippers(ball, state, keys, sound) {
         ball.vy = Math.min(ball.vy, -13.2 - contact * 8.6);
         ball.y -= 4;
         state.combo += 1;
+        spawnFeedback(state, ball.x, ball.y, flipper.side === "left" ? "#ff5ea8" : "#7bf4de", "FLIP", 8);
         score(state, 180 + contact * 140, "FLIP");
         sound("flip");
       }
@@ -514,7 +544,6 @@ function nextBall(state, sound) {
   }
   state.status = "ready";
   state.plunger = 0;
-  state.plungerDir = 1;
   state.balls = [makeBall()];
   state.ballSaveUntil = state.time + 7000;
   state.notice = `${state.ballsLeft} BALLS LEFT`;
@@ -531,6 +560,36 @@ function score(state, points, label) {
   state.jackpot += Math.round(gained * 0.18);
   state.notice = label;
   state.noticeT = 720;
+}
+
+function spawnFeedback(state, x, y, color, label, count = 10) {
+  state.events.push({ kind: "label", x, y, vx: 0, vy: -0.7, life: 44, maxLife: 44, color, label });
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.1 + Math.random() * 4.4;
+    state.events.push({
+      kind: "spark",
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 0.7,
+      life: 24 + Math.random() * 22,
+      maxLife: 46,
+      size: 2 + Math.random() * 4.6,
+      color,
+    });
+  }
+  if (state.events.length > 180) state.events.splice(0, state.events.length - 180);
+}
+
+function updateEffects(state, s) {
+  state.events.forEach((event) => {
+    event.x += event.vx * s;
+    event.y += event.vy * s;
+    event.vy += (event.kind === "spark" ? 0.05 : -0.01) * s;
+    event.life -= s;
+  });
+  state.events = state.events.filter((event) => event.life > 0);
 }
 
 function isDrain(ball) {
@@ -624,10 +683,29 @@ export function renderPepplePinball(ctx, canvas, state, keys, status) {
   drawDrain(ctx);
   flippers(keys).forEach((f) => drawFlipper(ctx, f));
   drawShooterLane(ctx, state);
+  drawEffects(ctx, state);
   drawBalls(ctx, state);
   drawGlass(ctx);
   drawDmd(ctx, state, status, t);
   ctx.restore();
+}
+
+function getPlayfieldImage() {
+  if (typeof window === "undefined") return null;
+  if (!playfieldImage) {
+    playfieldImage = new Image();
+    playfieldImage.src = PLAYFIELD_ART;
+  }
+  return playfieldImage;
+}
+
+function drawImageCover(ctx, img, x, y, w, h) {
+  const ratio = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const sw = w / ratio;
+  const sh = h / ratio;
+  const sx = (img.naturalWidth - sw) / 2;
+  const sy = (img.naturalHeight - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
 function drawCabinet(ctx) {
@@ -652,6 +730,16 @@ function drawPlayfield(ctx) {
   ctx.fillStyle = field;
   round(ctx, 56, 34, 648, 858, 42);
   ctx.fill();
+  const art = getPlayfieldImage();
+  if (art && art.complete && art.naturalWidth) {
+    ctx.save();
+    round(ctx, 34, 4, 692, 908, 34);
+    ctx.clip();
+    drawImageCover(ctx, art, 34, 4, 692, 908);
+    ctx.fillStyle = "rgba(3,4,8,.18)";
+    ctx.fillRect(34, 4, 692, 908);
+    ctx.restore();
+  }
   ctx.save();
   ctx.strokeStyle = "rgba(244,220,174,.86)";
   ctx.lineWidth = 8;
@@ -690,6 +778,7 @@ function drawPlayfield(ctx) {
 
 function drawArtwork(ctx, state, t) {
   ctx.save();
+  ctx.globalAlpha = 0.82;
   ctx.textAlign = "center";
   ctx.font = "950 42px Inter, Arial";
   ctx.fillStyle = "rgba(255,244,228,.92)";
@@ -968,16 +1057,43 @@ function drawShooterLane(ctx, state) {
     ctx.stroke();
   }
   ctx.fillStyle = "#2e180f";
-  round(ctx, 646, 704 + state.plunger * 80, 24, 124 - state.plunger * 78, 12);
+  round(ctx, 646, 704 + state.plunger * 72, 24, 124 - state.plunger * 68, 12);
   ctx.fill();
   ctx.fillStyle = "#f1bf75";
-  round(ctx, 638, 688 + state.plunger * 90, 40, 28, 10);
+  round(ctx, 638, 690 + state.plunger * 76, 40, 28, 10);
   ctx.fill();
+  if (state.status === "ready" && state.plunger > 0) {
+    ctx.fillStyle = `rgba(255,210,125,${0.22 + state.plunger * 0.32})`;
+    round(ctx, 632, 682 - state.plunger * 120, 44, 8 + state.plunger * 20, 6);
+    ctx.fill();
+  }
   ctx.font = "950 12px Inter, Arial";
   ctx.fillStyle = "#fff7e7";
   ctx.textAlign = "center";
   ctx.fillText("SPACE", 654, 842);
   ctx.restore();
+}
+
+function drawEffects(ctx, state) {
+  state.events.forEach((event) => {
+    const alpha = Math.max(0, Math.min(1, event.life / event.maxLife));
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = event.color;
+    ctx.shadowBlur = event.kind === "label" ? 18 : 12;
+    if (event.kind === "label") {
+      ctx.fillStyle = event.color;
+      ctx.font = "950 15px Inter, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(event.label, event.x, event.y);
+    } else {
+      ctx.fillStyle = event.color;
+      ctx.beginPath();
+      ctx.arc(event.x, event.y, event.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
 }
 
 function drawBalls(ctx, state) {
