@@ -1806,11 +1806,18 @@ function ChickenFlipper({ user }) {
       state.time += dt;
       state.flash = Math.max(0, state.flash - dt);
       state.noticeT = Math.max(0, state.noticeT - dt);
-      if (keys.launch && state.ready) state.plunger = Math.min(1, state.plunger + 0.018 * scale);
+      if (state.ready && state.balls[0]) {
+        state.balls[0].x = 652;
+        state.balls[0].y = 710 - state.plunger * 18;
+        state.balls[0].vx = 0;
+        state.balls[0].vy = 0;
+      }
+      if (keys.launch && state.ready) state.plunger = Math.min(1, state.plunger + 0.015 * scale);
 
       state.balls.forEach((ball) => {
         if (ball.dead) return;
-        ball.vy += 0.34 * scale;
+        if (state.ready && ball.launchBall) return;
+        ball.vy += 0.25 * scale;
         ball.vx *= 0.998;
         ball.vy *= 0.998;
         ball.x += ball.vx * scale;
@@ -1819,7 +1826,19 @@ function ChickenFlipper({ user }) {
         collideBumpers(ball, state, chord);
         collideTargets(ball, state, chord);
         collideFlippers(ball, keys, state, chord);
-        if (ball.y > canvas.height + 30) ball.dead = true;
+        if (ball.y > canvas.height + 30) {
+          if (state.time < state.ballSaveUntil) {
+            ball.x = 350;
+            ball.y = 646;
+            ball.vx = (Math.random() - 0.5) * 3;
+            ball.vy = -10.5;
+            state.notice = "BALL SAVE";
+            state.noticeT = 780;
+            state.flash = 260;
+          } else {
+            ball.dead = true;
+          }
+        }
       });
       state.balls = state.balls.filter((ball) => !ball.dead);
       if (!state.balls.length) {
@@ -1840,7 +1859,7 @@ function ChickenFlipper({ user }) {
       }
       if (state.streak >= 12 && !state.multiball) {
         state.multiball = true;
-        state.balls.push(makeBall(486, 102, -4, 2.5), makeBall(398, 118, 4, 2));
+        state.balls.push(makeBall(486, 102, -4, 2.5, false), makeBall(398, 118, 4, 2, false));
         state.notice = "MULTIBALL";
         state.noticeT = 950;
         state.flash = 520;
@@ -1874,8 +1893,9 @@ function ChickenFlipper({ user }) {
         if (status === "play" && state.ready) {
           const power = Math.max(0.32, state.plunger);
           state.ready = false;
-          state.balls[0].vy = -14 - power * 13;
-          state.balls[0].vx = -4.4 - power * 2.2;
+          state.balls[0].launchBall = false;
+          state.balls[0].vy = -14 - power * 12;
+          state.balls[0].vx = -0.2 - power * 0.7;
           state.plunger = 0;
           state.notice = "LAUNCH";
           state.noticeT = 520;
@@ -1955,8 +1975,8 @@ function ChickenFlipper({ user }) {
   );
 }
 
-function makeBall(x = 645, y = 724, vx = 0, vy = 0) {
-  return { x, y, vx, vy, r: 12, spin: Math.random() * 6 };
+function makeBall(x = 652, y = 710, vx = 0, vy = 0, launchBall = true) {
+  return { x, y, vx, vy, r: 11.5, spin: Math.random() * 6, launchBall };
 }
 
 function makeFlipperState() {
@@ -1971,23 +1991,24 @@ function makeFlipperState() {
     mult: 1,
     jackpot: 2500,
     multiball: false,
+    ballSaveUntil: 7000,
     flash: 0,
     notice: "CHICKEN FLIPPER",
     noticeT: 900,
     time: 0,
     lastSnapshot: 0,
     bumpers: [
-      { x: 260, y: 190, r: 42, color: "#ffcf8a", label: "PEP" },
-      { x: 420, y: 200, r: 42, color: "#ff6fb7", label: "PLE" },
-      { x: 340, y: 320, r: 52, color: "#7af4dc", label: "JACK" },
-      { x: 215, y: 445, r: 34, color: "#b46cff", label: "x" },
-      { x: 474, y: 445, r: 34, color: "#ffcf8a", label: "x" },
+      { x: 252, y: 214, r: 42, color: "#ffcf8a", label: "PEP" },
+      { x: 430, y: 222, r: 42, color: "#ff6fb7", label: "PLE" },
+      { x: 342, y: 334, r: 54, color: "#7af4dc", label: "JACK" },
+      { x: 206, y: 478, r: 32, color: "#b46cff", label: "x2" },
+      { x: 486, y: 478, r: 32, color: "#ffcf8a", label: "x2" },
     ],
     targets: [
-      { x: 140, y: 220, w: 20, h: 92, hit: 0, value: 650, color: "#7af4dc" },
-      { x: 542, y: 220, w: 20, h: 92, hit: 0, value: 650, color: "#ff6fb7" },
-      { x: 173, y: 555, w: 82, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
-      { x: 448, y: 555, w: 82, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
+      { x: 136, y: 246, w: 20, h: 98, hit: 0, value: 650, color: "#7af4dc" },
+      { x: 548, y: 246, w: 20, h: 98, hit: 0, value: 650, color: "#ff6fb7" },
+      { x: 172, y: 578, w: 92, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
+      { x: 440, y: 578, w: 92, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
     ],
   };
 }
@@ -2003,27 +2024,31 @@ function flipperScore(state, points, label) {
   state.noticeT = 520;
 }
 
-function collideWalls(ball, canvas, state) {
+function collideWalls(ball, canvas) {
   const left = 86;
-  const right = 614;
-  if (ball.x < left + ball.r) { ball.x = left + ball.r; ball.vx = Math.abs(ball.vx) * 0.92; }
-  if (ball.x > 674 && ball.y > 116) { ball.x = 674; ball.vx = -Math.abs(ball.vx) * 0.92; }
-  if (ball.x > right + ball.r && ball.y < 690) { ball.x = right + ball.r; ball.vx = Math.abs(ball.vx) * 0.82; }
-  if (ball.y < 74 + ball.r) { ball.y = 74 + ball.r; ball.vy = Math.abs(ball.vy) * 0.92; }
-  if (ball.x > 612 && ball.y > 128 && ball.y < 775) {
-    if (ball.x < 632) ball.vx += 0.36;
-    if (ball.y < 154 && ball.vy < 0) { ball.vy *= -0.72; ball.vx -= 4.4; }
+  const fieldRight = 608;
+  const laneLeft = 622;
+  const laneRight = 680;
+  if (ball.x > laneLeft && ball.y > 126 && ball.y < 748) {
+    if (ball.x < laneLeft + ball.r) { ball.x = laneLeft + ball.r; ball.vx = Math.abs(ball.vx) * 0.72; }
+    if (ball.x > laneRight - ball.r) { ball.x = laneRight - ball.r; ball.vx = -Math.abs(ball.vx) * 0.72; }
+  } else {
+    if (ball.x < left + ball.r) { ball.x = left + ball.r; ball.vx = Math.abs(ball.vx) * 0.86; }
+    if (ball.x > fieldRight - ball.r && ball.y > 146) { ball.x = fieldRight - ball.r; ball.vx = -Math.abs(ball.vx) * 0.68; }
   }
-  const leftSlope = ball.y > 610 && ball.y < 745 && ball.x < 288 && ball.x > 82;
-  if (leftSlope) {
-    const railY = 754 - (ball.x - 82) * 0.54;
-    if (ball.y + ball.r > railY) { ball.y = railY - ball.r; ball.vy = -Math.abs(ball.vy) * 0.65; ball.vx += 1.6; }
+  if (ball.y < 82 + ball.r) {
+    ball.y = 82 + ball.r;
+    ball.vy = Math.abs(ball.vy) * 0.72;
+    ball.vx -= 5.8;
   }
-  const rightSlope = ball.y > 610 && ball.y < 745 && ball.x > 416 && ball.x < 620;
-  if (rightSlope) {
-    const railY = 754 - (620 - ball.x) * 0.54;
-    if (ball.y + ball.r > railY) { ball.y = railY - ball.r; ball.vy = -Math.abs(ball.vy) * 0.65; ball.vx -= 1.6; }
+  if (ball.x > 606 && ball.y < 160 && ball.vy < 0) {
+    ball.vy = Math.abs(ball.vy) * 0.54;
+    ball.vx = -8.8;
   }
+  collideLine(ball, 92, 746, 286, 638, 0.72);
+  collideLine(ball, 608, 746, 416, 638, 0.72);
+  collideLine(ball, 118, 154, 200, 98, 0.86);
+  collideLine(ball, 496, 100, 600, 154, 0.86);
   if (ball.x > canvas.width - 30) ball.vx = -Math.abs(ball.vx);
   if (ball.x < 28) ball.vx = Math.abs(ball.vx);
 }
@@ -2072,67 +2097,137 @@ function collideTargets(ball, state, sound) {
 
 function collideFlippers(ball, keys, state, sound) {
   const flippers = [
-    { x: 262, y: 728, dir: -1, on: keys.left },
-    { x: 438, y: 728, dir: 1, on: keys.right },
+    flipperGeometry(260, 724, -1, keys.left),
+    flipperGeometry(438, 724, 1, keys.right),
   ];
   flippers.forEach((flipper) => {
-    const dx = ball.x - flipper.x;
-    const dy = ball.y - flipper.y;
-    const near = Math.abs(dx) < 94 && Math.abs(dy) < 34 && ball.y > 682;
-    if (near) {
-      const lift = flipper.on ? 16.5 : 8.2;
-      ball.vy = -lift - Math.random() * 1.4;
-      ball.vx += flipper.dir * (flipper.on ? -5.8 : -2.4);
+    if (collideLine(ball, flipper.ax, flipper.ay, flipper.bx, flipper.by, flipper.on ? 1.18 : 0.78)) {
+      const dx = flipper.bx - flipper.ax;
+      const len = Math.hypot(dx, flipper.by - flipper.ay) || 1;
+      const sideBoost = (ball.x - flipper.ax) / len;
+      ball.vy -= flipper.on ? 9.8 + sideBoost * 5.4 : 4.2;
+      ball.vx += flipper.dir * (flipper.on ? -5.8 - sideBoost * 3.2 : -1.8);
       flipperScore(state, flipper.on ? 240 : 90, flipper.on ? "FLIP" : "SAVE");
       sound("hit");
     }
   });
 }
 
+function flipperGeometry(x, y, dir, on) {
+  const angle = (dir < 0 ? -0.18 : Math.PI + 0.18) + (on ? dir * -0.48 : 0);
+  const length = 112;
+  return {
+    x,
+    y,
+    dir,
+    on,
+    ax: x,
+    ay: y,
+    bx: x + Math.cos(angle) * length,
+    by: y + Math.sin(angle) * length,
+  };
+}
+
+function collideLine(ball, x1, y1, x2, y2, bounce = 0.9) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((ball.x - x1) * dx + (ball.y - y1) * dy) / len2));
+  const px = x1 + dx * t;
+  const py = y1 + dy * t;
+  const nx0 = ball.x - px;
+  const ny0 = ball.y - py;
+  const dist = Math.hypot(nx0, ny0) || 1;
+  if (dist > ball.r + 4) return false;
+  const nx = nx0 / dist;
+  const ny = ny0 / dist;
+  ball.x = px + nx * (ball.r + 4.5);
+  ball.y = py + ny * (ball.r + 4.5);
+  const dot = ball.vx * nx + ball.vy * ny;
+  if (dot < 0) {
+    ball.vx = (ball.vx - 2 * dot * nx) * bounce;
+    ball.vy = (ball.vy - 2 * dot * ny) * bounce;
+  }
+  return true;
+}
+
 function drawFlipperTable(ctx, canvas, state, keys) {
   const w = canvas.width;
   const h = canvas.height;
-  const grd = ctx.createLinearGradient(0, 0, 0, h);
-  grd.addColorStop(0, "#18091f");
-  grd.addColorStop(0.5, "#08111d");
-  grd.addColorStop(1, "#160812");
-  ctx.fillStyle = grd;
+  const frame = ctx.createLinearGradient(0, 0, 0, h);
+  frame.addColorStop(0, "#5b2b21");
+  frame.addColorStop(0.28, "#2a1615");
+  frame.addColorStop(1, "#110708");
+  ctx.fillStyle = frame;
   ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = "#12080b";
+  roundRect(ctx, 48, 24, 672, 812, 42);
+  const playfield = ctx.createLinearGradient(0, 48, 0, 812);
+  playfield.addColorStop(0, "#221223");
+  playfield.addColorStop(0.35, "#111d2d");
+  playfield.addColorStop(0.7, "#19101e");
+  playfield.addColorStop(1, "#0a0508");
+  ctx.fillStyle = playfield;
+  roundRect(ctx, 74, 48, 620, 780, 36);
+
   ctx.save();
-  ctx.shadowBlur = 28;
-  ctx.shadowColor = "#ff6fb7";
-  ctx.strokeStyle = "#ff6fb7";
-  ctx.lineWidth = 6;
-  roundRect(ctx, 70, 46, 628, 780, 34, true);
-  ctx.shadowColor = "#7af4dc";
-  ctx.strokeStyle = "rgba(122,244,220,.42)";
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 9; i += 1) {
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = "#ffd89c";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 18; i += 1) {
     ctx.beginPath();
-    ctx.arc(350, 420, 130 + i * 34, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.moveTo(94 + i * 31, 62);
+    ctx.lineTo(34 + i * 29, 820);
     ctx.stroke();
   }
   ctx.restore();
-  ctx.fillStyle = "rgba(255,255,255,.045)";
-  ctx.fillRect(622, 126, 56, 650);
-  ctx.fillStyle = "#ffcf8a";
-  ctx.fillRect(642, 728 - state.plunger * 150, 16, 104 + state.plunger * 150);
-  ctx.strokeStyle = "rgba(255,207,138,.82)";
-  ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.moveTo(92, 744); ctx.lineTo(286, 640); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(610, 744); ctx.lineTo(416, 640); ctx.stroke();
+
+  ctx.save();
+  ctx.shadowBlur = 22;
+  ctx.shadowColor = "#ffcf8a";
+  ctx.strokeStyle = "rgba(255, 222, 172, .72)";
+  ctx.lineWidth = 7;
+  roundRect(ctx, 74, 48, 620, 780, 36, true);
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, 88, 62, 592, 752, 28, true);
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(122,244,220,.30)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i += 1) {
+    ctx.beginPath();
+    ctx.arc(350, 430, 120 + i * 34, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  drawNeonSign(ctx, 226, 96, 258, 64, "PEPPLE", "#ffcf8a");
+  drawLane(ctx, 622, 126, 58, 650, state.plunger);
+  drawWireRamp(ctx);
+  drawSlingshots(ctx);
+
   state.bumpers.forEach((bumper) => {
     const pulse = 1 + (bumper.pulse || 0) / 520;
     ctx.save();
     ctx.translate(bumper.x, bumper.y);
     ctx.shadowColor = bumper.color;
-    ctx.shadowBlur = 24 + pulse * 18;
-    ctx.fillStyle = bumper.color;
+    ctx.shadowBlur = 26 + pulse * 24;
+    const rg = ctx.createRadialGradient(-11, -14, 4, 0, 0, bumper.r * pulse);
+    rg.addColorStop(0, "#fff8e9");
+    rg.addColorStop(0.34, bumper.color);
+    rg.addColorStop(1, "#3b1624");
+    ctx.fillStyle = rg;
     ctx.beginPath();
     ctx.arc(0, 0, bumper.r * pulse, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#140915";
-    ctx.font = "950 14px Inter, Arial";
+    ctx.strokeStyle = "rgba(255,255,255,.78)";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = "#160b10";
+    ctx.font = "950 13px Inter, Arial";
     ctx.textAlign = "center";
     ctx.fillText(bumper.label, 0, 5);
     ctx.restore();
@@ -2140,12 +2235,13 @@ function drawFlipperTable(ctx, canvas, state, keys) {
   state.targets.forEach((target) => {
     ctx.fillStyle = target.hit ? "#fff4e9" : target.color;
     ctx.shadowColor = target.color;
-    ctx.shadowBlur = target.hit ? 26 : 12;
-    ctx.fillRect(target.x, target.y, target.w, target.h);
+    ctx.shadowBlur = target.hit ? 30 : 16;
+    roundRect(ctx, target.x, target.y, target.w, target.h, 6);
   });
   ctx.shadowBlur = 0;
-  drawFlipper(ctx, 262, 728, -1, keys.left);
-  drawFlipper(ctx, 438, 728, 1, keys.right);
+  drawFlipper(ctx, 260, 724, -1, keys.left);
+  drawFlipper(ctx, 438, 724, 1, keys.right);
+  drawGlass(ctx, w, h);
   if (state.flash > 0) {
     ctx.fillStyle = `rgba(255,244,233,${Math.min(0.18, state.flash / 2600)})`;
     ctx.fillRect(0, 0, w, h);
@@ -2153,14 +2249,110 @@ function drawFlipperTable(ctx, canvas, state, keys) {
 }
 
 function drawFlipper(ctx, x, y, dir, on) {
+  const geom = flipperGeometry(x, y, dir, on);
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate((dir < 0 ? -0.18 : 0.18) + (on ? dir * -0.42 : 0));
-  ctx.shadowColor = on ? "#ffcf8a" : "#b46cff";
-  ctx.shadowBlur = on ? 26 : 12;
-  ctx.fillStyle = on ? "#ffcf8a" : "#b46cff";
-  roundRect(ctx, dir < 0 ? -86 : 0, -12, 86, 24, 12);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = on ? "#ffcf8a" : "#d64878";
+  ctx.shadowBlur = on ? 30 : 16;
+  ctx.strokeStyle = on ? "#ffe1a6" : "#ec476f";
+  ctx.lineWidth = 25;
+  ctx.beginPath();
+  ctx.moveTo(geom.ax, geom.ay);
+  ctx.lineTo(geom.bx, geom.by);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,.72)";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(geom.ax + dir * 8, geom.ay - 5);
+  ctx.lineTo(geom.bx - dir * 20, geom.by - 5);
+  ctx.stroke();
+  ctx.fillStyle = "#f6d39a";
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
+}
+
+function drawLane(ctx, x, y, w, h, plunger) {
+  ctx.save();
+  ctx.fillStyle = "rgba(4, 7, 12, .62)";
+  roundRect(ctx, x, y, w, h, 22);
+  ctx.strokeStyle = "rgba(230, 215, 190, .58)";
+  ctx.lineWidth = 4;
+  roundRect(ctx, x + 4, y + 6, w - 8, h - 12, 18, true);
+  ctx.strokeStyle = "rgba(255,207,138,.55)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 9; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(x + 14, y + h - 54 - i * 16);
+    ctx.lineTo(x + w - 14, y + h - 64 - i * 16);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#2b1711";
+  roundRect(ctx, x + 17, y + h - 98 - plunger * 154, 24, 112 + plunger * 154, 12);
+  ctx.fillStyle = "#f2c277";
+  roundRect(ctx, x + 13, y + h - 114 - plunger * 154, 32, 26, 10);
+  ctx.fillStyle = "#fff4e9";
+  ctx.font = "900 12px Inter, Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("SPACE", x + w / 2, y + h - 24);
+  ctx.restore();
+}
+
+function drawWireRamp(ctx) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(230, 215, 190, .64)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(352, 250, 218, Math.PI * 1.04, Math.PI * 1.82);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(122,244,220,.36)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(352, 250, 236, Math.PI * 1.04, Math.PI * 1.82);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSlingshots(ctx) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,207,138,.86)";
+  ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(92, 746); ctx.lineTo(286, 638); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(608, 746); ctx.lineTo(416, 638); ctx.stroke();
+  ctx.fillStyle = "rgba(255,111,183,.20)";
+  ctx.beginPath(); ctx.moveTo(112, 732); ctx.lineTo(286, 638); ctx.lineTo(210, 610); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(588, 732); ctx.lineTo(416, 638); ctx.lineTo(492, 610); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawNeonSign(ctx, x, y, w, h, text, color) {
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 24;
+  ctx.fillStyle = "rgba(5,5,12,.76)";
+  roundRect(ctx, x, y, w, h, 12);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, w, h, 12, true);
+  ctx.fillStyle = "#fff4e9";
+  ctx.font = "950 24px Inter, Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(text, x + w / 2, y + 40);
+  ctx.restore();
+}
+
+function drawGlass(ctx, w, h) {
+  const glass = ctx.createLinearGradient(0, 0, w, h);
+  glass.addColorStop(0, "rgba(255,255,255,.12)");
+  glass.addColorStop(0.18, "rgba(255,255,255,.025)");
+  glass.addColorStop(0.52, "rgba(255,255,255,.09)");
+  glass.addColorStop(0.62, "rgba(255,255,255,.015)");
+  glass.addColorStop(1, "rgba(255,255,255,.08)");
+  ctx.fillStyle = glass;
+  ctx.fillRect(74, 48, 620, 780);
 }
 
 function drawFlipperBalls(ctx, state) {
@@ -2169,17 +2361,26 @@ function drawFlipperBalls(ctx, state) {
     ctx.save();
     ctx.translate(ball.x, ball.y);
     ctx.rotate(ball.spin);
-    ctx.shadowColor = "#fff4e9";
-    ctx.shadowBlur = 24;
-    ctx.fillStyle = "#fff4e9";
+    ctx.shadowColor = "#d8efff";
+    ctx.shadowBlur = 20;
+    const metal = ctx.createRadialGradient(-5, -7, 2, 2, 3, ball.r + 5);
+    metal.addColorStop(0, "#ffffff");
+    metal.addColorStop(0.28, "#dce9f6");
+    metal.addColorStop(0.58, "#8fa0af");
+    metal.addColorStop(1, "#29313a");
+    ctx.fillStyle = metal;
     ctx.beginPath();
     ctx.arc(0, 0, ball.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#ff6fb7";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,255,255,.72)";
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(0, 0, ball.r - 4, -0.5, 2.4);
+    ctx.arc(0, 0, ball.r - 2, -0.7, 1.6);
     ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.beginPath();
+    ctx.arc(-4, -6, 2.8, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   });
 }

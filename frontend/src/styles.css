@@ -3163,8 +3163,8 @@ textarea {
   overflow: hidden;
   border: 1px solid rgba(255, 111, 183, 0.34);
   background:
-    radial-gradient(circle at 50% 18%, rgba(255, 111, 183, 0.18), transparent 36%),
-    linear-gradient(145deg, rgba(14, 5, 21, 0.96), rgba(7, 14, 25, 0.96));
+    radial-gradient(circle at 50% 18%, rgba(255, 111, 183, 0.20), transparent 36%),
+    linear-gradient(145deg, rgba(67, 34, 24, 0.96), rgba(8, 7, 13, 0.96));
   box-shadow:
     0 28px 90px rgba(0, 0, 0, 0.48),
     0 0 58px rgba(255, 111, 183, 0.16),
@@ -3173,11 +3173,12 @@ textarea {
 
 .flipperCanvas {
   display: block;
-  width: 100%;
+  width: min(100%, 760px);
   max-width: 100%;
   min-width: 0;
   height: min(78vh, 860px);
   min-height: 520px;
+  margin: 0 auto;
   background: #100915;
 }
 
@@ -3191,9 +3192,8 @@ textarea {
   padding: 24px;
   text-align: center;
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 207, 138, 0.15), transparent 34%),
-    rgba(5, 5, 12, 0.58);
-  backdrop-filter: blur(4px);
+    radial-gradient(circle at 50% 48%, rgba(255, 207, 138, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(4, 4, 10, 0.06), rgba(4, 4, 10, 0.30));
 }
 
 .flipperOverlay h3 {
@@ -3201,7 +3201,7 @@ textarea {
   color: #fff4e9;
   font-size: clamp(42px, 6vw, 76px);
   line-height: 0.95;
-  text-shadow: 0 0 32px rgba(255, 111, 183, 0.42);
+  text-shadow: 0 0 28px rgba(255, 111, 183, 0.72), 0 4px 20px rgba(0, 0, 0, .8);
 }
 
 .flipperOverlay p {
@@ -3210,6 +3210,7 @@ textarea {
   color: #f0dbe6;
   font-weight: 800;
   line-height: 1.45;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .86);
 }
 
 .flipperSide {
