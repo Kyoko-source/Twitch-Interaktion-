@@ -219,7 +219,7 @@ def score_table(game: str) -> str | None:
     return {
         "chicken-jump": "chicken_scores",
         "chicken-snake": "chicken_snake_scores",
-        "chicken-racer": "chicken_racer_scores",
+        "chicken-flipper": "chicken_racer_scores",
         "braincell-survivor": "braincell_survivor_scores",
     }.get(game)
 
@@ -878,7 +878,7 @@ def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user
         "score": max(0, int(payload.score)),
         "level": max(1, int(payload.level)),
     }
-    if payload.game == "chicken-racer":
+    if payload.game == "chicken-flipper":
         data["round"] = max(1, int(payload.round))
     if payload.game == "braincell-survivor":
         data.update(

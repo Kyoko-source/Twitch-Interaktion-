@@ -2171,9 +2171,25 @@ textarea {
   min-height: 170px;
 }
 
+.gamesShell,
+.flipperShell .gameHeader,
+.flipperShell .gameHeader > div {
+  min-width: 0;
+}
+
+.gamesShell {
+  overflow-x: hidden;
+}
+
+.flipperShell .gameHeader p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .gameTabs {
   display: flex;
   gap: 10px;
+  max-width: 100%;
   overflow-x: auto;
   padding-bottom: 2px;
 }
@@ -3118,21 +3134,207 @@ textarea {
   background: rgba(255, 255, 255, 0.055);
 }
 
-.racePicker {
-  display: flex;
-  gap: 8px;
+.flipperShell {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.flipperLayout {
+  display: grid;
+  grid-template-columns: minmax(360px, 760px) minmax(260px, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.flipperQuickActions {
+  display: none;
+  gap: 9px;
   flex-wrap: wrap;
 }
 
-.racePicker button {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid color-mix(in srgb, var(--pick) 55%, transparent);
+.flipperStage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 520px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 111, 183, 0.34);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 111, 183, 0.18), transparent 36%),
+    linear-gradient(145deg, rgba(14, 5, 21, 0.96), rgba(7, 14, 25, 0.96));
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.48),
+    0 0 58px rgba(255, 111, 183, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.racePicker button.active {
-  color: #150d17;
-  background: linear-gradient(135deg, var(--pick), var(--amber));
+.flipperCanvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: min(78vh, 860px);
+  min-height: 520px;
+  background: #100915;
+}
+
+.flipperOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 207, 138, 0.15), transparent 34%),
+    rgba(5, 5, 12, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.flipperOverlay h3 {
+  margin: 0;
+  color: #fff4e9;
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: 0.95;
+  text-shadow: 0 0 32px rgba(255, 111, 183, 0.42);
+}
+
+.flipperOverlay p {
+  max-width: 560px;
+  margin: 0;
+  color: #f0dbe6;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.flipperSide {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.flipperMetric,
+.flipperHelp,
+.flipperScorePanel {
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 218, 184, 0.14);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+    rgba(15, 7, 18, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.flipperMetric span,
+.flipperHelp b,
+.flipperScorePanel h3 {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.flipperMetric strong {
+  color: #fff4e9;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1;
+}
+
+.flipperMetric small,
+.flipperHelp span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.flipperMetric.hot {
+  border-color: rgba(255, 111, 183, 0.35);
+  box-shadow: 0 0 34px rgba(255, 111, 183, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.flipperMetric.jackpot {
+  border-color: rgba(255, 207, 138, 0.38);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 207, 138, 0.16), transparent 48%),
+    rgba(15, 7, 18, 0.78);
+}
+
+.flipperControls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+.flipperControls button {
+  justify-content: center;
+}
+
+.flipperScorePanel h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+@media (max-width: 980px) {
+  .flipperLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .flipperCanvas {
+    height: 72vh;
+  }
+}
+
+@media (max-width: 520px) {
+  .flipperLayout {
+    display: block;
+  }
+
+  .flipperStage {
+    width: 100%;
+    max-width: calc(100vw - 20px);
+    min-height: 430px;
+    margin-bottom: 12px;
+  }
+
+  .flipperCanvas {
+    width: 100%;
+    max-width: calc(100vw - 20px);
+    height: 560px;
+    min-height: 430px;
+  }
+
+  .flipperOverlay h3 {
+    font-size: 42px;
+  }
+
+  .flipperOverlay p {
+    font-size: 14px;
+  }
+
+  .flipperOverlay {
+    place-content: center start;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .flipperQuickActions {
+    display: flex;
+  }
+
+  .flipperOverlay button {
+    display: none;
+  }
+
+  .flipperShell .gameHeader p {
+    max-width: 320px;
+  }
 }
 
 .adminHero {

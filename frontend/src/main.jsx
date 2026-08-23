@@ -52,7 +52,7 @@ const nav = [
 const gameMeta = {
   "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring ueber Zaeune, ducke dich unter Voegel und sammle Pepples." },
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Fuehre die Neon-Spur durch den Kaefig und friss Energiekerne." },
-  "chicken-racer": { title: "Chicken Racer", accent: "#b46cff", text: "Setze auf dein Chicken und ueberlebe schnelle Rennrunden." },
+  "chicken-flipper": { title: "Chicken Flipper", accent: "#ff6fb7", text: "Neon-Flipper mit Jackpot, Multiball, Streaks und viel zu viel Arcade-Energie." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Pepples." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
@@ -1753,56 +1753,157 @@ function ChickenSnake({ user }) {
   return <GameFrame meta={gameMeta["chicken-snake"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onSave={user && snapshot.score > 0 ? save : null} refreshKey={refreshKey} game="chicken-snake" />;
 }
 
-function ChickenRacer({ user }) {
-  const [running, setRunning] = useState(false);
-  const [pick, setPick] = useState(0);
-  const [message, setMessage] = useState("Waehle ein Chicken und starte das Rennen.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1 });
+function ChickenFlipper({ user }) {
+  const [status, setStatus] = useState("menu");
+  const [audioOn, setAudioOn] = useState(true);
+  const [message, setMessage] = useState("Space zieht den Plunger. A/D oder Pfeile feuern die Flipper.");
+  const [snapshot, setSnapshot] = useState({ score: 0, level: 1, balls: 3, streak: 0, mult: 1, jackpot: 2500 });
   const [refreshKey, setRefreshKey] = useState(0);
-  const stateRef = useRef({ racers: [], done: false, score: 0, round: 1 });
-  const colors = ["#ffcf8a", "#b46cff", "#7af4dc", "#ff6fb7"];
+  const keysRef = useRef({ left: false, right: false, launch: false });
+  const audioRef = useRef(null);
+  const stateRef = useRef(makeFlipperState());
+
+  function audio() {
+    if (!audioOn) return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!audioRef.current) audioRef.current = new AudioCtx();
+    if (audioRef.current.state === "suspended") audioRef.current.resume();
+    return audioRef.current;
+  }
+
+  function blip(freq = 440, dur = 0.055, type = "triangle", vol = 0.035) {
+    const ac = audio();
+    if (!ac) return;
+    const now = ac.currentTime;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(gain).connect(ac.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.03);
+  }
+
+  function chord(kind) {
+    if (kind === "jackpot") [520, 780, 1040, 1560].forEach((f, i) => setTimeout(() => blip(f, 0.08, "square", 0.04), i * 45));
+    else if (kind === "drain") [220, 146, 98].forEach((f, i) => setTimeout(() => blip(f, 0.12, "sawtooth", 0.035), i * 55));
+    else if (kind === "launch") [220, 440, 880].forEach((f, i) => setTimeout(() => blip(f, 0.05, "triangle", 0.032), i * 34));
+    else blip(680, 0.045, "triangle", 0.026);
+  }
 
   const canvasRef = useCanvasGame((ctx, canvas, dt) => {
     const state = stateRef.current;
+    const keys = keysRef.current;
+    const scale = dt / 16.67;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#110914"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "rgba(255,207,138,.18)";
-    for (let y = 70; y < 350; y += 70) { ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(canvas.width - 30, y); ctx.stroke(); }
-    ctx.fillStyle = "rgba(255,207,138,.75)"; ctx.fillRect(canvas.width - 70, 26, 6, 318);
-    if (running && !state.done) {
-      state.racers.forEach((racer) => {
-        racer.x += (racer.speed + Math.random() * 1.8) * dt / 16;
-        if (racer.x > canvas.width - 86 && !state.done) {
-          state.done = true;
-          setRunning(false);
-          const won = racer.id === pick;
-          state.score = won ? state.round * 25 : Math.max(0, state.score - 5);
-          setSnapshot({ score: state.score, level: state.round });
-          setMessage(won ? `Gewonnen. Score ${state.score}` : `${racer.name} gewinnt. Nochmal setzen?`);
-        }
+    drawFlipperTable(ctx, canvas, state, keys);
+
+    if (status === "play") {
+      state.time += dt;
+      state.flash = Math.max(0, state.flash - dt);
+      state.noticeT = Math.max(0, state.noticeT - dt);
+      if (keys.launch && state.ready) state.plunger = Math.min(1, state.plunger + 0.018 * scale);
+
+      state.balls.forEach((ball) => {
+        if (ball.dead) return;
+        ball.vy += 0.34 * scale;
+        ball.vx *= 0.998;
+        ball.vy *= 0.998;
+        ball.x += ball.vx * scale;
+        ball.y += ball.vy * scale;
+        collideWalls(ball, canvas, state);
+        collideBumpers(ball, state, chord);
+        collideTargets(ball, state, chord);
+        collideFlippers(ball, keys, state, chord);
+        if (ball.y > canvas.height + 30) ball.dead = true;
       });
+      state.balls = state.balls.filter((ball) => !ball.dead);
+      if (!state.balls.length) {
+        state.ballsLeft -= 1;
+        state.streak = 0;
+        state.mult = 1;
+        if (state.ballsLeft <= 0) {
+          setStatus("gameover");
+          setMessage(`Run beendet: ${state.score.toLocaleString("de-DE")} Punkte. Jackpot war bei ${state.jackpot}.`);
+          chord("drain");
+        } else {
+          state.ready = true;
+          state.plunger = 0;
+          state.balls = [makeBall()];
+          setMessage(`${state.ballsLeft} Kugeln uebrig. Space halten, loslassen, weiter eskalieren.`);
+          chord("drain");
+        }
+      }
+      if (state.streak >= 12 && !state.multiball) {
+        state.multiball = true;
+        state.balls.push(makeBall(486, 102, -4, 2.5), makeBall(398, 118, 4, 2));
+        state.notice = "MULTIBALL";
+        state.noticeT = 950;
+        state.flash = 520;
+        chord("jackpot");
+      }
+      if (state.time - state.lastSnapshot > 120) {
+        state.lastSnapshot = state.time;
+        setSnapshot({ score: state.score, level: state.level, balls: state.ballsLeft, streak: state.streak, mult: state.mult, jackpot: state.jackpot });
+      }
     }
-    state.racers.forEach((racer) => {
-      ctx.fillStyle = racer.color;
-      ctx.beginPath(); ctx.ellipse(racer.x, racer.y, 28, 18, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#fff4e9"; ctx.font = "800 15px Inter, Arial"; ctx.fillText(racer.name, 30, racer.y + 5);
-    });
-  }, [running, pick]);
+    drawFlipperBalls(ctx, state);
+    drawFlipperHud(ctx, canvas, state, status);
+  }, [status, audioOn]);
+
+  useEffect(() => {
+    function down(event) {
+      if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") keysRef.current.left = true;
+      if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") keysRef.current.right = true;
+      if (event.code === "Space" || event.key === "ArrowDown") {
+        keysRef.current.launch = true;
+        event.preventDefault();
+      }
+      if (event.key === "Enter" && status !== "play") start();
+    }
+    function up(event) {
+      const state = stateRef.current;
+      if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") keysRef.current.left = false;
+      if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") keysRef.current.right = false;
+      if (event.code === "Space" || event.key === "ArrowDown") {
+        keysRef.current.launch = false;
+        if (status === "play" && state.ready) {
+          const power = Math.max(0.32, state.plunger);
+          state.ready = false;
+          state.balls[0].vy = -14 - power * 13;
+          state.balls[0].vx = -4.4 - power * 2.2;
+          state.plunger = 0;
+          state.notice = "LAUNCH";
+          state.noticeT = 520;
+          chord("launch");
+        }
+        event.preventDefault();
+      }
+    }
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, [status, audioOn]);
 
   function start() {
-    stateRef.current = {
-      racers: colors.map((color, index) => ({ id: index, name: `Chicken ${index + 1}`, x: 110, y: 80 + index * 70, speed: 2.4 + Math.random() * 2.2, color })),
-      done: false,
-      score: snapshot.score,
-      round: snapshot.level + 1,
-    };
-    setMessage(`Runde ${snapshot.level + 1}: du setzt auf Chicken ${pick + 1}.`);
-    setRunning(true);
+    stateRef.current = makeFlipperState();
+    keysRef.current = { left: false, right: false, launch: false };
+    setSnapshot({ score: 0, level: 1, balls: 3, streak: 0, mult: 1, jackpot: 2500 });
+    setMessage("Space halten und loslassen. A/D oder Pfeile ballern die Flipper.");
+    setStatus("play");
+    chord("launch");
   }
 
   async function save() {
     try {
-      await api("/api/scores", { method: "POST", body: JSON.stringify({ game: "chicken-racer", score: snapshot.score, round: snapshot.level }) });
+      await api("/api/scores", { method: "POST", body: JSON.stringify({ game: "chicken-flipper", score: snapshot.score, level: snapshot.level, round: snapshot.streak }) });
       setMessage("Score gespeichert.");
       setRefreshKey((value) => value + 1);
     } catch (err) {
@@ -1811,14 +1912,314 @@ function ChickenRacer({ user }) {
   }
 
   return (
-    <section className="gameFrame">
-      <GameHeader meta={gameMeta["chicken-racer"]} message={message} score={snapshot.score} level={snapshot.level} />
-      <div className="racePicker">{colors.map((color, index) => <button style={{ "--pick": color }} className={pick === index ? "active" : ""} onClick={() => setPick(index)} type="button" key={color}>#{index + 1}</button>)}</div>
-      <canvas className="gameCanvas" ref={canvasRef} width="920" height="390" />
-      <div className="gameActions"><button onClick={start} type="button"><RefreshCw size={16} /> Rennen starten</button>{user && snapshot.score > 0 && <button className="ghost" onClick={save} type="button">Score speichern</button>}</div>
-      <Scoreboard game="chicken-racer" refreshKey={refreshKey} />
+    <section className="flipperShell" style={{ "--game-accent": gameMeta["chicken-flipper"].accent }}>
+      <GameHeader meta={gameMeta["chicken-flipper"]} message={message} score={snapshot.score} level={snapshot.level} />
+      <div className="flipperQuickActions">
+        <button onClick={start} type="button"><Zap size={16} /> Start</button>
+        <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Sound {audioOn ? "an" : "aus"}</button>
+      </div>
+      <div className="flipperLayout">
+        <div className="flipperStage">
+          <canvas className="flipperCanvas" ref={canvasRef} width="760" height="860" />
+          {status !== "play" && (
+            <div className="flipperOverlay">
+              <h3>{status === "gameover" ? "Run beendet" : "Chicken Flipper"}</h3>
+              <p>Jackpot-Bumper, Skillshot-Lanes, Multiball ab 12er Streak und ein sehr ungesundes Soundboard.</p>
+              <button onClick={start} type="button"><Zap size={16} /> Start</button>
+            </div>
+          )}
+        </div>
+        <aside className="flipperSide">
+          <div className="flipperMetric"><span>Kugeln</span><strong>{snapshot.balls}</strong><small>Drain kostet eine Kugel</small></div>
+          <div className="flipperMetric hot"><span>Streak</span><strong>{snapshot.streak}</strong><small>12 startet Multiball</small></div>
+          <div className="flipperMetric"><span>Multiplier</span><strong>x{snapshot.mult}</strong><small>steigt mit jedem Treffer</small></div>
+          <div className="flipperMetric jackpot"><span>Jackpot</span><strong>{snapshot.jackpot}</strong><small>Center-Ring kassiert alles</small></div>
+          <div className="flipperControls">
+            <button onClick={start} type="button"><RefreshCw size={16} /> Start</button>
+            <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Sound {audioOn ? "an" : "aus"}</button>
+            {user && snapshot.score > 0 && status === "gameover" && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+          </div>
+          <div className="flipperHelp">
+            <b>Controls</b>
+            <span>A/D oder Pfeile fuer Flipper</span>
+            <span>Space halten und loslassen fuer Plunger</span>
+            <span>Enter startet neu</span>
+          </div>
+          <div className="flipperScorePanel">
+            <h3>Top Scores</h3>
+            <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />
+          </div>
+        </aside>
+      </div>
     </section>
   );
+}
+
+function makeBall(x = 645, y = 724, vx = 0, vy = 0) {
+  return { x, y, vx, vy, r: 12, spin: Math.random() * 6 };
+}
+
+function makeFlipperState() {
+  return {
+    balls: [makeBall()],
+    ballsLeft: 3,
+    ready: true,
+    plunger: 0,
+    score: 0,
+    level: 1,
+    streak: 0,
+    mult: 1,
+    jackpot: 2500,
+    multiball: false,
+    flash: 0,
+    notice: "CHICKEN FLIPPER",
+    noticeT: 900,
+    time: 0,
+    lastSnapshot: 0,
+    bumpers: [
+      { x: 260, y: 190, r: 42, color: "#ffcf8a", label: "PEP" },
+      { x: 420, y: 200, r: 42, color: "#ff6fb7", label: "PLE" },
+      { x: 340, y: 320, r: 52, color: "#7af4dc", label: "JACK" },
+      { x: 215, y: 445, r: 34, color: "#b46cff", label: "x" },
+      { x: 474, y: 445, r: 34, color: "#ffcf8a", label: "x" },
+    ],
+    targets: [
+      { x: 140, y: 220, w: 20, h: 92, hit: 0, value: 650, color: "#7af4dc" },
+      { x: 542, y: 220, w: 20, h: 92, hit: 0, value: 650, color: "#ff6fb7" },
+      { x: 173, y: 555, w: 82, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
+      { x: 448, y: 555, w: 82, h: 18, hit: 0, value: 900, color: "#ffcf8a" },
+    ],
+  };
+}
+
+function flipperScore(state, points, label) {
+  state.streak += 1;
+  state.mult = Math.min(9, 1 + Math.floor(state.streak / 4));
+  const gained = Math.round(points * state.mult);
+  state.score += gained;
+  state.level = Math.max(state.level, Math.floor(state.score / 12000) + 1);
+  state.jackpot += Math.round(gained * 0.22);
+  state.notice = label || `+${gained}`;
+  state.noticeT = 520;
+}
+
+function collideWalls(ball, canvas, state) {
+  const left = 86;
+  const right = 614;
+  if (ball.x < left + ball.r) { ball.x = left + ball.r; ball.vx = Math.abs(ball.vx) * 0.92; }
+  if (ball.x > 674 && ball.y > 116) { ball.x = 674; ball.vx = -Math.abs(ball.vx) * 0.92; }
+  if (ball.x > right + ball.r && ball.y < 690) { ball.x = right + ball.r; ball.vx = Math.abs(ball.vx) * 0.82; }
+  if (ball.y < 74 + ball.r) { ball.y = 74 + ball.r; ball.vy = Math.abs(ball.vy) * 0.92; }
+  if (ball.x > 612 && ball.y > 128 && ball.y < 775) {
+    if (ball.x < 632) ball.vx += 0.36;
+    if (ball.y < 154 && ball.vy < 0) { ball.vy *= -0.72; ball.vx -= 4.4; }
+  }
+  const leftSlope = ball.y > 610 && ball.y < 745 && ball.x < 288 && ball.x > 82;
+  if (leftSlope) {
+    const railY = 754 - (ball.x - 82) * 0.54;
+    if (ball.y + ball.r > railY) { ball.y = railY - ball.r; ball.vy = -Math.abs(ball.vy) * 0.65; ball.vx += 1.6; }
+  }
+  const rightSlope = ball.y > 610 && ball.y < 745 && ball.x > 416 && ball.x < 620;
+  if (rightSlope) {
+    const railY = 754 - (620 - ball.x) * 0.54;
+    if (ball.y + ball.r > railY) { ball.y = railY - ball.r; ball.vy = -Math.abs(ball.vy) * 0.65; ball.vx -= 1.6; }
+  }
+  if (ball.x > canvas.width - 30) ball.vx = -Math.abs(ball.vx);
+  if (ball.x < 28) ball.vx = Math.abs(ball.vx);
+}
+
+function collideBumpers(ball, state, sound) {
+  state.bumpers.forEach((bumper) => {
+    const dx = ball.x - bumper.x;
+    const dy = ball.y - bumper.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    if (dist < ball.r + bumper.r) {
+      const nx = dx / dist;
+      const ny = dy / dist;
+      ball.x = bumper.x + nx * (ball.r + bumper.r + 0.5);
+      ball.y = bumper.y + ny * (ball.r + bumper.r + 0.5);
+      const speed = Math.max(9, Math.hypot(ball.vx, ball.vy) + 3.8);
+      ball.vx = nx * speed;
+      ball.vy = ny * speed - 1.8;
+      bumper.pulse = 180;
+      state.flash = 120;
+      if (bumper.label === "JACK" && state.streak >= 5) {
+        flipperScore(state, state.jackpot, "JACKPOT");
+        state.jackpot = 2500 + state.level * 700;
+        sound("jackpot");
+      } else {
+        flipperScore(state, bumper.label === "JACK" ? 1400 : 760, "BUMPER");
+        sound("hit");
+      }
+    }
+    bumper.pulse = Math.max(0, (bumper.pulse || 0) - 16);
+  });
+}
+
+function collideTargets(ball, state, sound) {
+  state.targets.forEach((target) => {
+    const hit = ball.x + ball.r > target.x && ball.x - ball.r < target.x + target.w && ball.y + ball.r > target.y && ball.y - ball.r < target.y + target.h;
+    if (hit && !target.hit) {
+      target.hit = 220;
+      ball.vx *= -0.85;
+      ball.vy = -Math.abs(ball.vy) - 2.2;
+      flipperScore(state, target.value, "SKILLSHOT");
+      sound("hit");
+    }
+    target.hit = Math.max(0, (target.hit || 0) - 16);
+  });
+}
+
+function collideFlippers(ball, keys, state, sound) {
+  const flippers = [
+    { x: 262, y: 728, dir: -1, on: keys.left },
+    { x: 438, y: 728, dir: 1, on: keys.right },
+  ];
+  flippers.forEach((flipper) => {
+    const dx = ball.x - flipper.x;
+    const dy = ball.y - flipper.y;
+    const near = Math.abs(dx) < 94 && Math.abs(dy) < 34 && ball.y > 682;
+    if (near) {
+      const lift = flipper.on ? 16.5 : 8.2;
+      ball.vy = -lift - Math.random() * 1.4;
+      ball.vx += flipper.dir * (flipper.on ? -5.8 : -2.4);
+      flipperScore(state, flipper.on ? 240 : 90, flipper.on ? "FLIP" : "SAVE");
+      sound("hit");
+    }
+  });
+}
+
+function drawFlipperTable(ctx, canvas, state, keys) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const grd = ctx.createLinearGradient(0, 0, 0, h);
+  grd.addColorStop(0, "#18091f");
+  grd.addColorStop(0.5, "#08111d");
+  grd.addColorStop(1, "#160812");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.shadowBlur = 28;
+  ctx.shadowColor = "#ff6fb7";
+  ctx.strokeStyle = "#ff6fb7";
+  ctx.lineWidth = 6;
+  roundRect(ctx, 70, 46, 628, 780, 34, true);
+  ctx.shadowColor = "#7af4dc";
+  ctx.strokeStyle = "rgba(122,244,220,.42)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 9; i += 1) {
+    ctx.beginPath();
+    ctx.arc(350, 420, 130 + i * 34, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = "rgba(255,255,255,.045)";
+  ctx.fillRect(622, 126, 56, 650);
+  ctx.fillStyle = "#ffcf8a";
+  ctx.fillRect(642, 728 - state.plunger * 150, 16, 104 + state.plunger * 150);
+  ctx.strokeStyle = "rgba(255,207,138,.82)";
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(92, 744); ctx.lineTo(286, 640); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(610, 744); ctx.lineTo(416, 640); ctx.stroke();
+  state.bumpers.forEach((bumper) => {
+    const pulse = 1 + (bumper.pulse || 0) / 520;
+    ctx.save();
+    ctx.translate(bumper.x, bumper.y);
+    ctx.shadowColor = bumper.color;
+    ctx.shadowBlur = 24 + pulse * 18;
+    ctx.fillStyle = bumper.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, bumper.r * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#140915";
+    ctx.font = "950 14px Inter, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(bumper.label, 0, 5);
+    ctx.restore();
+  });
+  state.targets.forEach((target) => {
+    ctx.fillStyle = target.hit ? "#fff4e9" : target.color;
+    ctx.shadowColor = target.color;
+    ctx.shadowBlur = target.hit ? 26 : 12;
+    ctx.fillRect(target.x, target.y, target.w, target.h);
+  });
+  ctx.shadowBlur = 0;
+  drawFlipper(ctx, 262, 728, -1, keys.left);
+  drawFlipper(ctx, 438, 728, 1, keys.right);
+  if (state.flash > 0) {
+    ctx.fillStyle = `rgba(255,244,233,${Math.min(0.18, state.flash / 2600)})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+function drawFlipper(ctx, x, y, dir, on) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((dir < 0 ? -0.18 : 0.18) + (on ? dir * -0.42 : 0));
+  ctx.shadowColor = on ? "#ffcf8a" : "#b46cff";
+  ctx.shadowBlur = on ? 26 : 12;
+  ctx.fillStyle = on ? "#ffcf8a" : "#b46cff";
+  roundRect(ctx, dir < 0 ? -86 : 0, -12, 86, 24, 12);
+  ctx.restore();
+}
+
+function drawFlipperBalls(ctx, state) {
+  state.balls.forEach((ball) => {
+    ball.spin += 0.08;
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(ball.spin);
+    ctx.shadowColor = "#fff4e9";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#fff4e9";
+    ctx.beginPath();
+    ctx.arc(0, 0, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ff6fb7";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, ball.r - 4, -0.5, 2.4);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawFlipperHud(ctx, canvas, state, status) {
+  ctx.save();
+  ctx.fillStyle = "rgba(8,5,13,.78)";
+  ctx.fillRect(92, 70, 492, 54);
+  ctx.strokeStyle = "rgba(255,207,138,.22)";
+  ctx.strokeRect(92, 70, 492, 54);
+  ctx.fillStyle = "#fff4e9";
+  ctx.font = "950 23px Inter, Arial";
+  ctx.fillText(`Score ${state.score.toLocaleString("de-DE")}`, 112, 104);
+  ctx.fillStyle = "#7af4dc";
+  ctx.font = "900 14px Inter, Arial";
+  ctx.fillText(`Streak ${state.streak}   x${state.mult}   Jackpot ${state.jackpot}`, 332, 103);
+  if (state.noticeT > 0 || status !== "play") {
+    ctx.textAlign = "center";
+    ctx.fillStyle = status === "play" ? "#ffcf8a" : "#fff4e9";
+    ctx.font = "950 46px Inter, Arial";
+    ctx.shadowColor = "#ff6fb7";
+    ctx.shadowBlur = 24;
+    ctx.fillText(status === "play" ? state.notice : "CHICKEN FLIPPER", canvas.width / 2, 410);
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r = 8, strokeOnly = false) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  if (strokeOnly) ctx.stroke();
+  else ctx.fill();
 }
 
 function PeppleSurvivor({ user }) {
@@ -4522,6 +4923,7 @@ function GameFrame({ meta, canvasRef, message, score, level, onStart, onSave, re
 function GamesPage({ user }) {
   const gameFromRoute = () => {
     const [, nextGame] = routeParts();
+    if (nextGame === "chicken-racer") return "chicken-flipper";
     return gameMeta[nextGame] && nextGame !== "dnd" ? nextGame : "chicken-jump";
   };
   const [game, setGameState] = useState(gameFromRoute);
@@ -4541,7 +4943,7 @@ function GamesPage({ user }) {
   const current = {
     "chicken-jump": <ChickenJump user={user} />,
     "chicken-snake": <ChickenSnake user={user} />,
-    "chicken-racer": <ChickenRacer user={user} />,
+    "chicken-flipper": <ChickenFlipper user={user} />,
     "braincell-survivor": <PeppleSurvivor user={user} />,
   }[game];
 

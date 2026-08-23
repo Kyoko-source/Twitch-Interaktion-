@@ -9603,10 +9603,6 @@ elif menu.endswith("Minispiele"):
             <span>Öffne Lobbys, würfle Proben und spiele Abenteuer mit der Party.</span>
         </div>
         <div class="arcade-card">
-            <strong>Chicken Racer</strong>
-            <span>Wette auf farbige Bot-Hühner und überlebe immer vollere Rennrunden.</span>
-        </div>
-        <div class="arcade-card">
             <strong>Chicken Football</strong>
             <span>Blau gegen Gruen: 10 Chaos-Huehner, ein Ball und Pepples-Wetten.</span>
         </div>
@@ -9617,11 +9613,10 @@ elif menu.endswith("Minispiele"):
     </div>
     """, unsafe_allow_html=True)
 
-    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Racer", "Chicken Football", "Pepple Survivor", "Dungeons and Dragons"]
+    minigame_labels = ["Chicken Jump", "Chicken Snake", "Chicken Football", "Pepple Survivor", "Dungeons and Dragons"]
     minigame_keys = {
         "Chicken Jump": "jump",
         "Chicken Snake": "snake",
-        "Chicken Racer": "race",
         "Chicken Football": "football",
         "Pepple Survivor": "survivor",
         "Dungeons and Dragons": "dnd",
@@ -9656,10 +9651,7 @@ elif menu.endswith("Minispiele"):
         or mp3_data_uri(assets_dir / "chicken_snake_theme.mp3")
         or chicken_theme_data_uri
     )
-    chicken_racer_theme_data_uri = (
-        mp3_data_uri(assets_dir / "chicken-racer-theme.mp3")
-        or mp3_data_uri(assets_dir / "chicken_racer_theme.mp3")
-    )
+    legacy_game_theme_data_uri = chicken_theme_data_uri
     chicken_football_theme_data_uri = (
         mp3_data_uri(assets_dir / "chicken-football-theme.mp3")
         or mp3_data_uri(assets_dir / "chicken_football_theme.mp3")
@@ -12528,7 +12520,7 @@ elif menu.endswith("Minispiele"):
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=820, scrolling=True)
 
     elif selected_minigame == "race":
-        st.markdown("## Chicken Racer")
+        st.markdown("## Legacy Minigame")
         components.html("""
     <html>
     <head>
@@ -12794,7 +12786,7 @@ elif menu.endswith("Minispiele"):
                 <div id="raceOverlay" class="race-overlay">
                     <div class="race-panel">
                         <div class="race-kicker" id="raceKicker">Wette vor dem Start</div>
-                        <h1 id="raceTitle">Chicken Racer</h1>
+                        <h1 id="raceTitle">Legacy Minigame</h1>
                         <p id="raceText">Wähle ein Huhn. Gewinnt es, bekommst du +1 Punkt und die nächste Runde hat ein Huhn mehr.</p>
                         <div id="betGrid" class="bet-grid"></div>
                         <div class="race-actions">
@@ -13086,7 +13078,7 @@ elif menu.endswith("Minispiele"):
         savedScore = false;
         startBtn.textContent = "Rennen starten";
         startBtn.onclick = startRace;
-        showBetting("Chicken Racer");
+        showBetting("Legacy Minigame");
     }
 
     function drawBackground() {
@@ -13364,7 +13356,7 @@ elif menu.endswith("Minispiele"):
     </script>
     </body>
     </html>
-    """.replace("__RACER_THEME_SRC__", chicken_racer_theme_data_uri)
+    """.replace("__RACER_THEME_SRC__", legacy_game_theme_data_uri)
        .replace("__SUPABASE_URL__", SUPABASE_URL)
        .replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY), height=790, scrolling=True)
 
@@ -13466,9 +13458,9 @@ elif menu.endswith("Minispiele"):
         this.bg=this.add.tileSprite(WORLD_W/2,WORLD_H/2,WORLD_W,WORLD_H,"ground").setDepth(-20);
         this.drawDecor();this.obstacles=this.physics.add.staticGroup();this.makeObstacles();
         this.enemies=this.physics.add.group();this.bullets=this.physics.add.group();this.gems=this.physics.add.group();this.drops=this.physics.add.group();
-        this.player=this.physics.add.sprite(WORLD_W/2,WORLD_H/2,"core").setDepth(20).setCollideWorldBounds(true);this.player.body.setCircle(19,9,9);
+        this.player=this.physics.add.sprite(WORLD_W/2,WORLD_H/2,"playerChicken0").setDepth(20).setCollideWorldBounds(true);this.player.body.setCircle(18,11,10);this.player.setMaxVelocity(430,430);this.player.lastDir=1;this.player.step=0;
         this.playerGlow=this.add.sprite(this.player.x,this.player.y,"coreGlow").setDepth(19).setBlendMode(Phaser.BlendModes.ADD);
-        this.cameras.main.startFollow(this.player,true,.12,.12);this.cursors=this.input.keyboard.createCursorKeys();this.keys=this.input.keyboard.addKeys("W,A,S,D,SPACE");
+        this.cameras.main.startFollow(this.player,true,.08,.08);this.cameras.main.setDeadzone(210,130);this.cameras.main.setFollowOffset(0,20);this.cursors=this.input.keyboard.createCursorKeys();this.keys=this.input.keyboard.addKeys("W,A,S,D,SPACE");
         this.physics.add.collider(this.player,this.obstacles);this.physics.add.collider(this.enemies,this.obstacles);this.physics.add.collider(this.bullets,this.obstacles,(b)=>this.popBullet(b));
         this.physics.add.overlap(this.player,this.enemies,(pl,e)=>{if(state==="play"&&p.inv<=0)this.playerDamage(e,Phaser.Math.Angle.Between(e.x,e.y,pl.x,pl.y))});
         this.physics.add.overlap(this.bullets,this.enemies,(b,e)=>this.bulletHit(b,e));this.physics.add.overlap(this.player,this.gems,(pl,g)=>this.pickGem(g));this.physics.add.overlap(this.player,this.drops,(pl,d)=>this.pickDrop(d));
@@ -13485,6 +13477,8 @@ elif menu.endswith("Minispiele"):
         g.fillStyle(0x101827,1);g.lineStyle(4,0x7cffb2,1);g.beginPath();for(let i=0;i<8;i++){const a=-Math.PI/2+i*Math.PI*2/8,r=i%2?24:18;g.lineTo(28+Math.cos(a)*r,28+Math.sin(a)*r)}g.closePath().fillPath().strokePath();g.fillStyle(0x46f0ff,1).fillCircle(28,28,8);g.generateTexture("core",56,56);g.clear();
         g.fillStyle(0x7cffb2,.28).fillCircle(36,36,34);g.generateTexture("coreGlow",72,72);g.clear();
         g.fillStyle(0x46f0ff,.25).fillCircle(22,22,21);g.fillStyle(0x46f0ff,1);g.beginPath();g.moveTo(22,2);g.lineTo(42,22);g.lineTo(22,42);g.lineTo(2,22);g.closePath().fillPath();g.lineStyle(3,0xffffff,.9).strokePath();g.generateTexture("gem",44,44);g.clear();
+        const drawChickenFrame=(key,step)=>{const lift=Math.sin(step*Math.PI/2)*3,wing=Math.cos(step*Math.PI/2)*4;g.fillStyle(0x000000,.22).fillEllipse(25,42,42,10);g.fillStyle(0xffd43b,1).fillEllipse(21,22+lift*.22,31,24);g.fillStyle(0xffb703,1).fillEllipse(14,25+wing*.12,15,13);g.fillStyle(0xfff3bf,1).fillCircle(34,12+lift*.18,11);g.fillStyle(0xff922b,1).fillTriangle(43,11+lift*.18,55,17+lift*.18,43,22+lift*.18);g.fillStyle(0x111111,1).fillCircle(37,10+lift*.18,2);g.fillStyle(0xfff3bf,.72).fillCircle(30,9+lift*.18,3);g.lineStyle(3,0xffb703,1).lineBetween(14,32,11,42-lift).lineBetween(28,32,31,42+lift);g.lineStyle(2,0xff922b,1).lineBetween(7,18,0,14+wing*.2).lineBetween(7,24,0,27-wing*.2);g.generateTexture(key,60,50);g.clear()};
+        for(let i=0;i<4;i++)drawChickenFrame("playerChicken"+i,i);
         g.fillStyle(0xffd43b,1).fillEllipse(18,20,30,24);g.fillStyle(0xfff3bf,1).fillCircle(30,10,11);g.fillStyle(0xff922b,1).fillTriangle(40,9,52,15,40,20);g.fillStyle(0x111111,1).fillCircle(33,8,2);g.lineStyle(3,0xffb703,1).lineBetween(11,30,8,40).lineBetween(25,30,28,40);g.generateTexture("chicken",56,48);g.clear();
         g.fillStyle(0xff4d6d,1).fillCircle(18,18,14);g.generateTexture("heart",36,36);g.clear();g.fillStyle(0xffe66d,1).fillCircle(18,18,14);g.lineStyle(4,0xffffff,.8).strokeCircle(18,18,12);g.generateTexture("magnetDrop",36,36);g.clear();
         g.fillStyle(0x7cffb2,1).fillCircle(8,8,8);g.generateTexture("bolt",16,16);g.clear();g.fillStyle(0xffe66d,1).fillCircle(12,12,12);g.generateTexture("bomb",24,24);g.clear();
@@ -13497,11 +13491,11 @@ elif menu.endswith("Minispiele"):
       }
       drawDecor(){this.add.rectangle(WORLD_W/2,WORLD_H/2,WORLD_W,WORLD_H,0x05070a,.18).setDepth(-19);for(let i=0;i<135;i++){const x=(i*389)%WORLD_W,y=(i*211)%WORLD_H,s=.55+(i%6)*.12;this.add.image(x,y,"crater").setScale(s).setRotation((i%9)*.2).setAlpha(.55).setDepth(-12)}for(let i=0;i<220;i++){const x=(i*337)%WORLD_W,y=(i*193)%WORLD_H,k=i%8;if(k<3)this.add.rectangle(x,y,28+(i%44),4,0xb2b6bd,.10).setRotation((i%13)*.31).setDepth(-8);else if(k<5)this.add.circle(x,y,2+(i%5),0xff8a3d,.16).setBlendMode(Phaser.BlendModes.ADD).setDepth(-7);else this.add.image(x,y,"spark").setTint(0x8a918f).setScale(.7+(i%4)*.22).setAlpha(.22).setDepth(-6)}for(let i=0;i<26;i++){this.add.rectangle((i*197)%WORLD_W,(i*331)%WORLD_H,260,22,0xe8edf1,.055).setRotation((i%2?.72:-.72)).setDepth(-11)}for(let i=0;i<18;i++){this.add.circle((i*421)%WORLD_W,(i*271)%WORLD_H,180+(i%5)*38,0x8d9aa3,.035).setDepth(-4)}}
       makeObstacles(){const data=[[360,260,"ruin"],[900,520,"rock"],[1280,320,"lab"],[1960,280,"ruin"],[2750,420,"crystal"],[3460,360,"lab"],[640,760,"rock"],[1680,980,"rock"],[2320,930,"ruin"],[3220,1060,"crystal"],[1040,1180,"lab"],[2180,1260,"ruin"],[520,1340,"rock"],[1430,1460,"rock"],[2740,1600,"lab"],[3650,1550,"ruin"],[310,2050,"crystal"],[920,2210,"lab"],[1660,2360,"rock"],[2440,2260,"ruin"],[3330,2380,"crystal"],[380,2780,"lab"],[1280,2820,"ruin"],[2110,2760,"rock"],[3020,2820,"lab"]];data.forEach(o=>{this.add.ellipse(o[0]+14,o[1]+34,130,30,0x000000,.28).setDepth(4);const img=this.obstacles.create(o[0],o[1],o[2]).setDepth(5);img.setScale(o[2]==="crystal"?.95:1);img.refreshBody()})}
-      resetRun(){if(this.enemies)this.enemies.getChildren().forEach(e=>this.destroyEnemyBar(e));const mhp=104+meta.hp*10;p={hp:mhp,max:mhp,xp:0,need:34,level:1,speed:245+meta.spd*9,inv:0,healLock:0,up:{bolt:1},tim:{bolt:0,bomb:0,laser:0,drone:0,thunder:0,nova:3.8}};score=0;kills=0;seconds=0;saved=false;lastBoss=0;currentBoss=null;pauseStartedAt=0;this.nextTextAt=0;state="play";this.player.setPosition(WORLD_W/2,WORLD_H/2);this.player.body.enable=true;this.enemies.clear(true,true);this.bullets.clear(true,true);this.gems.clear(true,true);this.drops.clear(true,true);this.timeStart=this.time.now;pauseBtn.textContent="Pause";this.drawBossHud();hud()}
+      resetRun(){if(this.enemies)this.enemies.getChildren().forEach(e=>this.destroyEnemyBar(e));const mhp=104+meta.hp*10;p={hp:mhp,max:mhp,xp:0,need:34,level:1,speed:245+meta.spd*9,inv:0,healLock:0,up:{bolt:1},tim:{bolt:0,bomb:0,laser:0,drone:0,thunder:0,nova:3.8}};score=0;kills=0;seconds=0;saved=false;lastBoss=0;currentBoss=null;pauseStartedAt=0;this.nextTextAt=0;state="play";this.player.setTexture("playerChicken0").setFlipX(false).setAngle(0).setPosition(WORLD_W/2,WORLD_H/2);this.player.body.enable=true;this.player.setVelocity(0,0);this.player.lastDir=1;this.player.step=0;this.enemies.clear(true,true);this.bullets.clear(true,true);this.gems.clear(true,true);this.drops.clear(true,true);this.timeStart=this.time.now;pauseBtn.textContent="Pause";this.drawBossHud();hud()}
       lv(id){return p.up[id]||0}
       evolved(id){return this.lv(id)>=(evo[id]||999)}
       update(t,dt){if(state!=="play")return;seconds=(t-this.timeStart)/1000;this.move(dt);this.wave(t);this.fire(dt);this.mobs(dt);this.separateEnemies();this.effects(t);this.drawMiniMap();this.drawRunHud();this.drawBossHud();if(t%1000<17){score+=Math.floor(2+seconds/40);p.healLock=Math.max(0,p.healLock-60);if(p.healLock<=0)p.hp=Math.min(p.max,p.hp+.04+Math.min(1.05,this.lv("regen")*.16));hud()}}
-      move(dt){let x=0,y=0;if(this.cursors.left.isDown||this.keys.A.isDown||moveKeys.arrowleft||moveKeys.a)x--;if(this.cursors.right.isDown||this.keys.D.isDown||moveKeys.arrowright||moveKeys.d)x++;if(this.cursors.up.isDown||this.keys.W.isDown||moveKeys.arrowup||moveKeys.w)y--;if(this.cursors.down.isDown||this.keys.S.isDown||moveKeys.arrowdown||moveKeys.s)y++;const l=Math.hypot(x,y)||1;this.player.setVelocity(x/l*p.speed,y/l*p.speed);p.inv=Math.max(0,p.inv-dt/16.6);this.playerGlow.setPosition(this.player.x,this.player.y).setScale(1+Math.sin(this.time.now*.008)*.08);this.player.setAngle(this.player.angle+dt*.05)}
+      move(dt){let x=0,y=0;if(this.cursors.left.isDown||this.keys.A.isDown||moveKeys.arrowleft||moveKeys.a)x--;if(this.cursors.right.isDown||this.keys.D.isDown||moveKeys.arrowright||moveKeys.d)x++;if(this.cursors.up.isDown||this.keys.W.isDown||moveKeys.arrowup||moveKeys.w)y--;if(this.cursors.down.isDown||this.keys.S.isDown||moveKeys.arrowdown||moveKeys.s)y++;const l=Math.hypot(x,y),moving=l>0,dtS=Math.min(.05,dt/1000),targetX=moving?x/l*p.speed:0,targetY=moving?y/l*p.speed:0,rate=moving?14:18;this.player.body.velocity.x=Phaser.Math.Linear(this.player.body.velocity.x,targetX,Math.min(1,rate*dtS));this.player.body.velocity.y=Phaser.Math.Linear(this.player.body.velocity.y,targetY,Math.min(1,rate*dtS));if(moving&&Math.abs(x)>.05)this.player.lastDir=x>0?1:-1;this.player.setFlipX(this.player.lastDir<0);this.player.step=(this.player.step||0)+(moving?dtS*(8+p.speed/80):dtS*2.5);const frame=moving?Math.floor(this.player.step*4)%4:0;this.player.setTexture("playerChicken"+frame);const lean=Phaser.Math.Clamp(this.player.body.velocity.x/this.player.body.maxVelocity.x,-1,1)*-7,bob=moving?Math.sin(this.player.step*Math.PI*2):Math.sin(this.time.now*.004)*.35;this.player.setAngle(Phaser.Math.Linear(this.player.angle,lean,.22));this.player.setScale(1+Math.abs(bob)*.025,1-Math.abs(bob)*.018);p.inv=Math.max(0,p.inv-dt/16.6);this.playerGlow.setPosition(this.player.x,this.player.y+3).setScale(1.05+Math.sin(this.time.now*.008)*.08).setAlpha(.75+(moving?.18:0))}
       wave(t){if(!currentBoss&&(!this.nextWave||t>this.nextWave)){this.nextWave=t+(seconds<30?980:seconds<70?780:Math.max(390,780-Math.floor(seconds)*1.25));const cap=100+Math.min(48,Math.floor(seconds/9)),active=this.enemies.countActive();if(active<cap){const n=Math.min(cap-active,seconds<25?1:seconds<55?2:Math.min(6,2+Math.floor((seconds-55)/30)));for(let i=0;i<n;i++)this.spawnEnemy()}}const bm=Math.floor(seconds/180);if(!currentBoss&&bm>0&&bm!==lastBoss){lastBoss=bm;sfx("boss");this.spawnEnemy("boss")}}
       spawnEnemy(kind){const r=Math.random();if(!kind)kind=seconds>150&&r<.07?"healer":seconds>120&&r<.14?"shield":seconds>95&&r<.22?"exploder":seconds>130&&r<.30?"spitter":seconds>90&&r<.42?"tank":seconds>65&&r<.52?"elite":seconds>38&&r<.68?"runner":"grunt";const cam=this.cameras.main.worldView,s=Phaser.Math.Between(0,3),x=s===0?cam.left-100:s===1?cam.right+100:Phaser.Math.Between(cam.left,cam.right),y=s===2?cam.top-100:s===3?cam.bottom+100:Phaser.Math.Between(cam.top,cam.bottom),m=seconds/60,stats={grunt:[40+m*16,92+m*4,15,7,12,0xf8f7ff],runner:[30+m*13,150+m*5,12,8,16,0xffe66d],tank:[135+m*40,68+m*3,23,18,36,0xff9f1c],spitter:[70+m*22,86+m*3,16,14,28,0x46f0ff],exploder:[74+m*24,116+m*4,17,16,40,0xff4d6d],shield:[155+m*34,74+m*3,20,22,46,0x9bf6ff],healer:[95+m*26,82+m*3,18,20,52,0x7cffb2],elite:[285+m*78,96+m*3,28,42,110,0xff54a0],boss:[1220+m*340,72,45,145,500,0xc77dff]}[kind];const e=this.enemies.create(Phaser.Math.Clamp(x,30,WORLD_W-30),Phaser.Math.Clamp(y,30,WORLD_H-30),"chicken").setDepth(15).setTint(stats[5]).setScale(stats[2]/16);Object.assign(e,{kind,hp:stats[0],max:stats[0],speed:stats[1],base:stats[1],r:stats[2],xp:stats[3],score:stats[4],slow:0,nextSpecial:this.time.now+1800,bossAttack:0});e.body.setCircle(Math.max(9,stats[2]*.72),18-stats[2]*.45,18-stats[2]*.35);e.hpBg=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x000000,.58).setDepth(24);e.hpBar=this.add.rectangle(e.x,e.y-e.r-18,e.r*2.4,5,0x7cffb2,.95).setDepth(25);if(kind==="boss")this.beginBossFight(e)}
       fire(dt){const cd=Math.max(.44,1-this.lv("cooldown")*.07),might=1+this.lv("might")*.16+meta.dmg*.04;p.tim.bolt-=dt/1000;if(p.tim.bolt<=0){const aim=this.aimPoint(),amt=this.lv("bolt");sfx("shoot",amt);for(let i=0;i<amt;i++)this.shootAtPoint(this.player.x,this.player.y,aim.x,aim.y,"bolt",(i-(amt-1)/2)*.15,(14+this.lv("frost")*2)*might,0xffffff,this.evolved("bolt"));p.tim.bolt=Math.max(.11,(.50-this.lv("bolt")*.03)*cd)}if(this.lv("bomb")){p.tim.bomb-=dt/1000;if(p.tim.bomb<=0&&this.enemies.countActive()){sfx("bomb");this.shootAt(this.player.x,this.player.y,this.nearest(),"bomb",0,(44+this.lv("bomb")*19)*might,0xffffff,this.evolved("bomb"));p.tim.bomb=Math.max(.32,(1.30-this.lv("bomb")*.12)*cd)}}if(this.lv("laser")){p.tim.laser-=dt/1000;if(p.tim.laser<=0&&this.enemies.countActive()){const e=this.enemies.getChildren().sort((a,b)=>b.hp-a.hp)[0];sfx("laser");this.laser(e,(62+this.lv("laser")*31)*might);if(this.evolved("laser"))this.enemies.getChildren().slice(0,3).forEach(o=>{if(o!==e)this.laser(o,(42+this.lv("laser")*18)*might)});p.tim.laser=Math.max(.62,(2.16-this.lv("laser")*.18)*cd)}}if(this.lv("drone")){p.tim.drone-=dt/1000;if(p.tim.drone<=0&&this.enemies.countActive()){sfx("drone");for(let i=0;i<this.lv("drone");i++){const a=tRadians(this.time.now/280+i*360/this.lv("drone"));this.shootAt(this.player.x+Math.cos(a)*48,this.player.y+Math.sin(a)*48,this.nearest(),"bolt",0,(12+this.lv("drone")*4)*might,0xc77dff,this.evolved("drone"))}p.tim.drone=Math.max(.16,(.86-this.lv("drone")*.08)*cd)}}if(this.lv("thunder")){p.tim.thunder-=dt/1000;if(p.tim.thunder<=0&&this.enemies.countActive()){sfx("thunder");let ox=this.player.x,oy=this.player.y;this.enemies.getChildren().sort((a,b)=>Phaser.Math.Distance.Between(a.x,a.y,this.player.x,this.player.y)-Phaser.Math.Distance.Between(b.x,b.y,this.player.x,this.player.y)).slice(0,(this.evolved("thunder")?5:2)+this.lv("thunder")).forEach(e=>{this.line(ox,oy,e.x,e.y,0xf8f7ff);this.hit(e,(24+this.lv("thunder")*9)*might);ox=e.x;oy=e.y});p.tim.thunder=Math.max(.42,(1.68-this.lv("thunder")*.13)*cd)}}if(this.lv("nova")){p.tim.nova-=dt/1000;if(p.tim.nova<=0){const r=(this.evolved("nova")?170:120)+this.lv("nova")*28;sfx("nova");this.ring(this.player.x,this.player.y,r,0xff54a0);this.enemies.getChildren().forEach(e=>{if(Phaser.Math.Distance.Between(e.x,e.y,this.player.x,this.player.y)<r)this.hit(e,(28+this.lv("nova")*15)*might)});this.cameras.main.shake(110,.004);p.tim.nova=Math.max(.70,(2.60-this.lv("nova")*.22)*cd)}}}
