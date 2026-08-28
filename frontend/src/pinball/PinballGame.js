@@ -6,6 +6,7 @@ const FIXED_STEP = 1 / 120;
 const BALL_RADIUS = 0.115;
 const MAX_BALL_SPEED = 35;
 const DRAIN_GAP_HALF_WIDTH = 0.34;
+const SHOOTER_SPAWN = { x: 1.82, y: 0.35, z: 3.34 };
 const FLIPPER = {
   pivotX: 1.18,
   pivotZ: 3.08,
@@ -171,10 +172,11 @@ export class PinballGame {
     this.addBox("right-wall", new THREE.Vector3(TABLE.right + 0.14, 0.3, 0), new THREE.Vector3(0.28, 0.68, TABLE.length), "wood");
     this.addBox("top-wall", new THREE.Vector3(0, 0.3, TABLE.top - 0.14), new THREE.Vector3(TABLE.width, 0.68, 0.28), "wood");
     this.addBox("left-outlane", new THREE.Vector3(-1.85, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
-    this.addBox("right-outlane", new THREE.Vector3(1.85, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
-    this.addBox("shooter-left", new THREE.Vector3(TABLE.laneX - 0.18, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.6), "rail");
-    this.addBox("shooter-right", new THREE.Vector3(TABLE.right - 0.12, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.7), "rail");
-    this.addBox("plunger-rail", new THREE.Vector3(2.0, 0.09, 3.25), new THREE.Vector3(0.42, 0.18, 0.08), "rail");
+    this.addBox("right-outlane", new THREE.Vector3(1.34, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
+    this.addBox("shooter-left", new THREE.Vector3(1.52, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.6), "rail");
+    this.addBox("shooter-right", new THREE.Vector3(2.11, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.7), "rail");
+    const plungerStop = this.addBox("plunger-rail", new THREE.Vector3(SHOOTER_SPAWN.x, 0.09, 3.63), new THREE.Vector3(0.32, 0.18, 0.08), "rail");
+    plungerStop.collider.setRestitution(1.05);
     this.addBox("left-apron", new THREE.Vector3(-0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
     this.addBox("right-apron", new THREE.Vector3(0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
     this.drainSensor = this.addBox("drain-sensor", new THREE.Vector3(0, 0.02, 3.42), new THREE.Vector3(DRAIN_GAP_HALF_WIDTH * 2, 0.08, 0.42), "rubber", true, true);
@@ -360,15 +362,15 @@ export class PinballGame {
     this.scene.add(dmd);
   }
 
-  spawnBall(ready = false, x = 1.97, z = 3.2) {
+  spawnBall(ready = false, x = SHOOTER_SPAWN.x, z = SHOOTER_SPAWN.z) {
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_RADIUS, 36, 24), new THREE.MeshStandardMaterial({ color: 0xdfe7ef, roughness: 0.18, metalness: 1 }));
     mesh.castShadow = true;
     this.scene.add(mesh);
-    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, 0.35, z).setCanSleep(false).setCcdEnabled(true));
+    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, SHOOTER_SPAWN.y, z).setCanSleep(false).setCcdEnabled(true));
     body.setLinearDamping(0.08);
     body.setAngularDamping(0.05);
     const collider = this.world.createCollider(RAPIER.ColliderDesc.ball(BALL_RADIUS).setDensity(7.8).setRestitution(0.52).setFriction(0.14), body);
-    const ball = { mesh, body, collider, ready, locked: false, lastSafe: new THREE.Vector3(x, 0.35, z) };
+    const ball = { mesh, body, collider, ready, locked: false, lastSafe: new THREE.Vector3(x, SHOOTER_SPAWN.y, z) };
     this.balls.push(ball);
     this.status = ready ? "ready" : "play";
     this.notice = ready ? "HOLD SPACE" : "SHOOT AGAIN";
@@ -380,9 +382,9 @@ export class PinballGame {
     const ball = this.balls[0];
     const power = Math.max(0.25, this.plunger);
     ball.ready = false;
-    ball.body.setTranslation({ x: 1.97, y: 0.35, z: 3.2 }, true);
-    ball.body.setLinvel({ x: -0.25 - power * 0.6, y: 0.35, z: -13.5 - power * 9.5 }, true);
-    ball.body.setAngvel({ x: -30 * power, y: 0, z: 0 }, true);
+    ball.body.setTranslation(SHOOTER_SPAWN, true);
+    ball.body.setLinvel({ x: 0, y: 0.16, z: -8.5 - power * 6.5 }, true);
+    ball.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     this.status = "play";
     this.notice = power > 0.8 ? "SKILLSHOT" : "LAUNCH";
     this.addScore(0, this.notice);
@@ -393,7 +395,8 @@ export class PinballGame {
 
   bind() {
     this.onKeyDown = (event) => {
-      if (event.code === "Space") { this.keys.launch = true; event.preventDefault(); }
+      if (event.code === "Space" || event.key === " ") { this.keys.launch = true; event.preventDefault(); }
+      if (event.key === "Enter") { this.launch(); event.preventDefault(); }
       if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") this.keys.left = true;
       if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") this.keys.right = true;
       if (event.key === "q" || event.key === "Q") this.nudge(-1);
@@ -405,7 +408,7 @@ export class PinballGame {
       this.audio.ensure();
     };
     this.onKeyUp = (event) => {
-      if (event.code === "Space") { this.keys.launch = false; this.launch(); event.preventDefault(); }
+      if (event.code === "Space" || event.key === " ") { this.keys.launch = false; this.launch(); event.preventDefault(); }
       if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") { this.keys.left = false; this.audio.play("flipperDown"); }
       if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") { this.keys.right = false; this.audio.play("flipperDown"); }
     };
@@ -440,7 +443,7 @@ export class PinballGame {
       if (this.keys.launch) this.plunger = Math.min(1, this.plunger + dt * 0.95);
       this.balls.forEach((ball) => {
         if (!ball.ready) return;
-        ball.body.setTranslation({ x: 1.97, y: 0.35, z: 3.2 }, true);
+        ball.body.setTranslation(SHOOTER_SPAWN, true);
         ball.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       });
     }
