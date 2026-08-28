@@ -7,6 +7,7 @@ const BALL_RADIUS = 0.115;
 const MAX_BALL_SPEED = 35;
 const DRAIN_GAP_HALF_WIDTH = 0.34;
 const SHOOTER_SPAWN = { x: 1.82, y: 0.35, z: 3.34 };
+const SHOOTER_EXIT = { xMin: 1.48, z: -2.42, kickX: -4.2, kickZ: 3.4 };
 const FLIPPER = {
   pivotX: 1.18,
   pivotZ: 3.08,
@@ -380,10 +381,10 @@ export class PinballGame {
   launch() {
     if (this.status !== "ready" || !this.balls[0]) return;
     const ball = this.balls[0];
-    const power = Math.max(0.25, this.plunger);
+    const power = Math.min(0.82, Math.max(0.25, this.plunger));
     ball.ready = false;
     ball.body.setTranslation(SHOOTER_SPAWN, true);
-    ball.body.setLinvel({ x: 0, y: 0.16, z: -8.5 - power * 6.5 }, true);
+    ball.body.setLinvel({ x: 0, y: 0.14, z: -7.8 - power * 4.8 }, true);
     ball.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     this.status = "play";
     this.notice = power > 0.8 ? "SKILLSHOT" : "LAUNCH";
@@ -449,6 +450,7 @@ export class PinballGame {
     }
     this.updateFlippers(dt);
     this.world.step();
+    this.updateShooterExit();
     this.handleContacts();
     this.updateBalls();
     this.updateEffects(dt);
@@ -465,6 +467,23 @@ export class PinballGame {
       f.angle += Math.sign(f.target - f.angle) * Math.min(Math.abs(f.target - f.angle), speed * dt);
       this.syncFlipper(f);
       if (pressed && !was && Math.abs(f.angle - f.active) < 0.2) this.audio.play("flipper");
+    });
+  }
+
+  updateShooterExit() {
+    this.balls.forEach((ball) => {
+      if (ball.ready || ball.launchExited) return;
+      const p = ball.body.translation();
+      const v = ball.body.linvel();
+      if (p.x < SHOOTER_EXIT.xMin || p.z > SHOOTER_EXIT.z || v.z >= 0) return;
+      ball.launchExited = true;
+      ball.body.setLinvel({
+        x: SHOOTER_EXIT.kickX,
+        y: Math.max(0.08, v.y),
+        z: SHOOTER_EXIT.kickZ,
+      }, true);
+      this.spark(p.x - 0.12, p.z + 0.08, 0x62f4df);
+      this.notice = "LANE EXIT";
     });
   }
 
