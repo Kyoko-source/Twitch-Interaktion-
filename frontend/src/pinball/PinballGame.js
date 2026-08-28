@@ -4,6 +4,16 @@ import { AudioManager } from "./AudioManager";
 
 const FIXED_STEP = 1 / 120;
 const BALL_RADIUS = 0.115;
+const MAX_BALL_SPEED = 35;
+const DRAIN_GAP_HALF_WIDTH = 0.34;
+const FLIPPER = {
+  pivotX: 1.18,
+  pivotZ: 3.08,
+  length: 0.82,
+  width: 0.18,
+  restAngle: 0.28,
+  hitAngle: 0.78,
+};
 const TABLE = { width: 4.8, length: 8.2, top: -3.75, bottom: 3.75, left: -2.15, right: 2.15, laneX: 1.82 };
 
 const MATERIALS = {
@@ -43,12 +53,16 @@ export class PinballGame {
     this.scoops = [];
     this.flippers = [];
     this.debug = false;
+    this.debugMesh = null;
+    this.debugHud = null;
+    this.drainSensor = null;
     this.tilt = { heat: 0, warning: 0, active: false };
     this.snapshotT = 0;
   }
 
   async start() {
     await RAPIER.init();
+    this.container.__pinballGame = this;
     this.initThree();
     this.initPhysics();
     this.buildTable();
@@ -90,6 +104,9 @@ export class PinballGame {
   initPhysics() {
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 3.7 });
     this.world.integrationParameters.dt = FIXED_STEP;
+    this.world.integrationParameters.numSolverIterations = Math.max(this.world.integrationParameters.numSolverIterations || 4, 8);
+    this.world.integrationParameters.numAdditionalFrictionIterations = Math.max(this.world.integrationParameters.numAdditionalFrictionIterations || 4, 4);
+    if ("maxCcdSubsteps" in this.world.integrationParameters) this.world.integrationParameters.maxCcdSubsteps = 4;
   }
 
   mat(kind) {
@@ -150,15 +167,18 @@ export class PinballGame {
     this.scene.add(floor);
     this.world.createCollider(RAPIER.ColliderDesc.cuboid(TABLE.width / 2, 0.06, TABLE.length / 2).setFriction(0.24).setRestitution(0.34), this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.06, 0)));
 
-    this.addBox("left-wall", new THREE.Vector3(TABLE.left - 0.08, 0.2, 0), new THREE.Vector3(0.16, 0.42, TABLE.length), "wood");
-    this.addBox("right-wall", new THREE.Vector3(TABLE.right + 0.08, 0.2, 0), new THREE.Vector3(0.16, 0.42, TABLE.length), "wood");
-    this.addBox("top-wall", new THREE.Vector3(0, 0.2, TABLE.top - 0.08), new THREE.Vector3(TABLE.width, 0.42, 0.16), "wood");
+    this.addBox("left-wall", new THREE.Vector3(TABLE.left - 0.14, 0.3, 0), new THREE.Vector3(0.28, 0.68, TABLE.length), "wood");
+    this.addBox("right-wall", new THREE.Vector3(TABLE.right + 0.14, 0.3, 0), new THREE.Vector3(0.28, 0.68, TABLE.length), "wood");
+    this.addBox("top-wall", new THREE.Vector3(0, 0.3, TABLE.top - 0.14), new THREE.Vector3(TABLE.width, 0.68, 0.28), "wood");
     this.addBox("left-outlane", new THREE.Vector3(-1.85, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
     this.addBox("right-outlane", new THREE.Vector3(1.85, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
     this.addBox("shooter-left", new THREE.Vector3(TABLE.laneX - 0.18, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.6), "rail");
     this.addBox("shooter-right", new THREE.Vector3(TABLE.right - 0.12, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.7), "rail");
     this.addBox("plunger-rail", new THREE.Vector3(2.0, 0.09, 3.25), new THREE.Vector3(0.42, 0.18, 0.08), "rail");
-    this.addBox("apron", new THREE.Vector3(0, 0.08, 3.54), new THREE.Vector3(2.15, 0.16, 0.24), "gold");
+    this.addBox("left-apron", new THREE.Vector3(-0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
+    this.addBox("right-apron", new THREE.Vector3(0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
+    this.drainSensor = this.addBox("drain-sensor", new THREE.Vector3(0, 0.02, 3.42), new THREE.Vector3(DRAIN_GAP_HALF_WIDTH * 2, 0.08, 0.42), "rubber", true, true);
+    this.drainSensor.mesh.visible = false;
 
     this.buildCabinet();
     this.buildFlippers();
@@ -226,18 +246,22 @@ export class PinballGame {
     }));
     glass.position.set(0, 0.48, 0);
     this.scene.add(glass);
+    this.world.createCollider(
+      RAPIER.ColliderDesc.cuboid(4.85 / 2, 0.025 / 2, 8.15 / 2).setFriction(0.02).setRestitution(0.18),
+      this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0.48, 0))
+    );
   }
 
   buildFlippers() {
     this.flippers = [
-      this.createFlipper("left", -0.82, 3.06, -0.16, -0.88),
-      this.createFlipper("right", 0.82, 3.06, Math.PI + 0.16, Math.PI + 0.88),
+      this.createFlipper("left", -FLIPPER.pivotX, FLIPPER.pivotZ, FLIPPER.restAngle, -FLIPPER.hitAngle),
+      this.createFlipper("right", FLIPPER.pivotX, FLIPPER.pivotZ, Math.PI - FLIPPER.restAngle, Math.PI + FLIPPER.hitAngle),
     ];
   }
 
   createFlipper(side, pivotX, pivotZ, rest, active) {
-    const len = 0.98;
-    const width = 0.22;
+    const len = FLIPPER.length;
+    const width = FLIPPER.width;
     const mat = new THREE.MeshStandardMaterial({ color: side === "left" ? 0xff4f9b : 0x60f5dd, emissive: side === "left" ? 0x50122d : 0x0d5d57, roughness: 0.3, metalness: 0.25 });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, 0.16, width), mat);
     mesh.castShadow = true;
@@ -377,6 +401,7 @@ export class PinballGame {
       if (event.key === "w" || event.key === "W") this.nudge(0);
       if (event.key === "c" || event.key === "C") this.switchCamera();
       if (event.key === "F3") { this.debug = !this.debug; event.preventDefault(); }
+      if (this.debug && (event.key === "t" || event.key === "T")) this.runWallTunnelTest();
       this.audio.ensure();
     };
     this.onKeyUp = (event) => {
@@ -524,9 +549,14 @@ export class PinballGame {
       ball.mesh.position.set(p.x, p.y, p.z);
       ball.mesh.quaternion.set(r.x, r.y, r.z, r.w);
       const v = ball.body.linvel();
+      const speed3 = Math.hypot(v.x, v.y, v.z);
+      if (speed3 > MAX_BALL_SPEED) {
+        const scale = MAX_BALL_SPEED / speed3;
+        ball.body.setLinvel({ x: v.x * scale, y: v.y * scale, z: v.z * scale }, true);
+      }
       rolling = Math.max(rolling, Math.hypot(v.x, v.z));
       if (p.z < 2.8 && p.y > -0.2) ball.lastSafe.set(p.x, p.y, p.z);
-      if (p.y < -1 || p.z > TABLE.bottom + 0.55) ball.drained = true;
+      if (p.y < -1 || (p.z > 3.2 && Math.abs(p.x) < DRAIN_GAP_HALF_WIDTH)) ball.drained = true;
       const stuckNearTopRight = p.x > 1.15 && p.z < -2.35 && Math.hypot(v.x, v.z) < 0.45;
       if (stuckNearTopRight) {
         ball.stuck = (ball.stuck || 0) + 1;
@@ -542,6 +572,7 @@ export class PinballGame {
 
   removeDrained(drained) {
     drained.forEach((ball) => {
+      this.spark(ball.mesh.position.x, Math.min(TABLE.bottom, ball.mesh.position.z), 0xffcc72);
       this.scene.remove(ball.mesh);
       this.world.removeCollider(ball.collider, true);
       this.world.removeRigidBody(ball.body);
@@ -623,6 +654,7 @@ export class PinballGame {
     if (this.disposed) return;
     const now = t / 1000;
     const dt = Math.min(0.05, now - (this.last || now));
+    this.lastFrameDt = dt;
     this.last = now;
     this.acc += dt;
     while (this.acc >= FIXED_STEP) {
@@ -630,6 +662,7 @@ export class PinballGame {
       this.acc -= FIXED_STEP;
     }
     this.drawDisplay();
+    this.drawDebug();
     this.renderer.render(this.scene, this.camera);
     this.snapshotT += dt;
     if (this.snapshotT > 0.16) {
@@ -637,6 +670,91 @@ export class PinballGame {
       this.emitSnapshot();
     }
     this.frame = requestAnimationFrame((nt) => this.loop(nt));
+  }
+
+  runWallTunnelTest() {
+    const ball = this.spawnBall(false, 1.5, -0.35);
+    ball.body.setTranslation({ x: 1.5, y: 0.35, z: -0.35 }, true);
+    ball.body.setLinvel({ x: 35, y: 0, z: 0 }, true);
+    this.notice = "DEBUG WALL TEST 35";
+  }
+
+  debugColorsToRgb(colors) {
+    if (!colors || colors.length === 0) return new Float32Array();
+    if (colors.length % 4 !== 0) return colors;
+    const rgb = new Float32Array((colors.length / 4) * 3);
+    for (let i = 0, j = 0; i < colors.length; i += 4, j += 3) {
+      rgb[j] = colors[i];
+      rgb[j + 1] = colors[i + 1];
+      rgb[j + 2] = colors[i + 2];
+    }
+    return rgb;
+  }
+
+  drawDebug() {
+    if (!this.debug) {
+      if (this.debugMesh) this.debugMesh.visible = false;
+      if (this.debugHud) this.debugHud.style.display = "none";
+      return;
+    }
+    const dbg = this.world.debugRender();
+    if (!this.debugMesh) {
+      this.debugMesh = new THREE.LineSegments(
+        new THREE.BufferGeometry(),
+        new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false })
+      );
+      this.debugMesh.frustumCulled = false;
+      this.debugMesh.renderOrder = 999;
+      this.scene.add(this.debugMesh);
+    }
+    this.debugMesh.visible = true;
+    this.debugMesh.geometry.setAttribute("position", new THREE.BufferAttribute(dbg.vertices, 3));
+    this.debugMesh.geometry.setAttribute("color", new THREE.BufferAttribute(this.debugColorsToRgb(dbg.colors), 3));
+    this.debugMesh.geometry.computeBoundingSphere();
+    if (!this.debugHud) {
+      this.debugHud = document.createElement("div");
+      this.debugHud.className = "pinballDebugHud";
+      this.container.appendChild(this.debugHud);
+    }
+    const b = this.balls[0]?.body;
+    const p = b?.translation();
+    const v = b?.linvel();
+    const speed = v ? Math.hypot(v.x, v.y, v.z) : 0;
+    this.debugHud.style.display = "block";
+    this.debugHud.textContent = `FPS ${Math.round(1 / Math.max(0.001, this.lastFrameDt || FIXED_STEP))} | Physics 120 Hz | Ball ${p ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}` : "-"} | Speed ${speed.toFixed(2)} | CCD ON | Drain gap ${(DRAIN_GAP_HALF_WIDTH * 2).toFixed(2)} | Tip gap ${this.flipperTipGap().toFixed(2)}`;
+  }
+
+  flipperTipGap() {
+    if (this.flippers.length < 2) return 0;
+    const [left, right] = this.flippers;
+    const leftTip = left.pivotX + Math.cos(left.rest) * left.len;
+    const rightTip = right.pivotX + Math.cos(right.rest) * right.len;
+    return Math.max(0, rightTip - leftTip);
+  }
+
+  getPhysicsDiagnostics() {
+    return {
+      fixedStep: FIXED_STEP,
+      physicsHz: Math.round(1 / FIXED_STEP),
+      ballRadius: BALL_RADIUS,
+      maxBallSpeed: MAX_BALL_SPEED,
+      drainGap: DRAIN_GAP_HALF_WIDTH * 2,
+      flipperTipGap: this.flipperTipGap(),
+      flippers: this.flippers.map((f) => ({
+        side: f.side,
+        pivotX: f.pivotX,
+        pivotZ: f.pivotZ,
+        rest: f.rest,
+        active: f.active,
+        length: f.len,
+        width: FLIPPER.width,
+      })),
+      liveBalls: this.balls.map((ball) => ({
+        ccd: ball.body.isCcdEnabled?.() ?? true,
+        position: ball.body.translation(),
+        velocity: ball.body.linvel(),
+      })),
+    };
   }
 
   emitSnapshot(force = false) {
@@ -671,6 +789,7 @@ export class PinballGame {
     window.removeEventListener("resize", this.onResize);
     this.audio.dispose();
     this.renderer.dispose();
+    if (this.container.__pinballGame === this) delete this.container.__pinballGame;
     this.container.replaceChildren();
   }
 }
