@@ -37,6 +37,17 @@ async function openAdmin(page) {
   await expect(page.getByLabel("Nachricht", { exact: true })).toBeEnabled();
 }
 
+async function observeAudioAttempts(page) {
+  await page.addInitScript(() => {
+    window.__newsAudio = [];
+    const NativeAudio = window.Audio;
+    window.Audio = class extends NativeAudio {
+      constructor(src) { super(src); this.attempts = 0; window.__newsAudio.push(this); }
+      play() { this.attempts++; return super.play(); }
+    };
+  });
+}
+
 test("admin: isolated preview, publish, visibility, source URL and all message types", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -229,7 +240,7 @@ test("OBS: duration stops during network failure and expired publications stay h
   await expect(page.locator("#ticker")).toBeHidden();
 });
 
-test("OBS: actual type-specific audio plays once, stops on hide, respects mute and skips stale reloads", async ({ page }) => {
+test("OBS: actual type-specific audio plays once, stops on hide, respects mute and plays delayed news", async ({ page }) => {
   const { setState } = await setup(page);
   await page.addInitScript(() => {
     window.__newsAudio = [];
@@ -273,10 +284,93 @@ test("OBS: actual type-specific audio plays once, stops on hide, respects mute a
   await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "disabled");
   expect(await page.evaluate(() => window.__newsAudio.length)).toBe(0);
   setState({ sound_enabled: true, volume: 45, revision: ++revision, updated_at: new Date(Date.now() - 8000).toISOString() });
-  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "stale");
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "playing");
+  expect(await page.evaluate(() => window.__newsAudio.length)).toBe(1);
+  await page.reload();
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "already-played");
   expect(await page.evaluate(() => window.__newsAudio.length)).toBe(0);
   setState({ enabled: false });
   await expect(page.locator("#ticker")).toBeHidden();
+});
+
+test("OBS audio: delayed active news plays with a skewed browser clock and still expires correctly", async ({ page }) => {
+  await setup(page);
+  await observeAudioAttempts(page);
+  const serverTime = Date.now() - 60000;
+  await page.route("**/api/live-news", (route) => route.fulfill({
+    headers: { Date: new Date(serverTime).toUTCString() },
+    json: { message: "Verzoegerte Nachricht", kind: "normal", enabled: true, sound_enabled: true, volume: 35,
+      playback_mode: "duration", duration_seconds: 10, cycle_seconds: 30, revision: 1,
+      updated_at: new Date(serverTime - 8000).toISOString(), ends_at: new Date(serverTime + 2000).toISOString() },
+  }));
+  await page.goto("/overlays/live-news.html");
+  await expect(page.locator("#ticker")).toBeVisible();
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "playing");
+  const delay = await page.locator("#news-track").evaluate((node) => parseFloat(getComputedStyle(node).animationDelay));
+  expect(delay).toBeLessThan(-7);
+  expect(delay).toBeGreaterThan(-10);
+  await expect.poll(() => page.evaluate(() => window.__newsAudio.at(-1)?.currentTime ?? 0)).toBeGreaterThan(.03);
+  await expect(page.locator("#ticker")).toBeHidden({ timeout: 4000 });
+  expect(await page.evaluate(() => window.__newsAudio[0].paused)).toBe(true);
+});
+
+test("OBS audio: a failed WAV request retries and actually plays without duplicate polling sounds", async ({ page }) => {
+  const { setState } = await setup(page);
+  await observeAudioAttempts(page);
+  let requests = 0;
+  await page.route("**/overlays/sounds/normal.wav", (route) => ++requests === 1 ? route.abort() : route.continue());
+  setState({ message: "Sound nach Ladefehler", kind: "normal", enabled: true, sound_enabled: true, volume: 35,
+    playback_mode: "duration", duration_seconds: 30, revision: 1,
+    updated_at: new Date(Date.now() - 8000).toISOString(), ends_at: new Date(Date.now() + 22000).toISOString() });
+  await page.goto("/overlays/live-news.html");
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "playing", { timeout: 6000 });
+  await expect.poll(() => page.evaluate(() => window.__newsAudio[0]?.currentTime ?? 0)).toBeGreaterThan(.05);
+  expect(await page.evaluate(() => ({ count: window.__newsAudio.length, attempts: window.__newsAudio[0].attempts })))
+    .toEqual({ count: 1, attempts: 2 });
+  await page.waitForTimeout(1100);
+  expect(await page.evaluate(() => window.__newsAudio[0].attempts)).toBe(2);
+  await page.reload();
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "already-played");
+});
+
+test("OBS audio: retries are bounded and a new publication recovers after permanent media failure", async ({ page }) => {
+  const { setState } = await setup(page);
+  await observeAudioAttempts(page);
+  await page.route("**/overlays/sounds/breaking.wav", (route) => route.abort());
+  setState({ message: "Datei nicht erreichbar", kind: "breaking", enabled: true, sound_enabled: true, volume: 40,
+    playback_mode: "duration", duration_seconds: 30, revision: 1,
+    updated_at: new Date().toISOString(), ends_at: new Date(Date.now() + 30000).toISOString() });
+  await page.goto("/overlays/live-news.html");
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "failed", { timeout: 6500 });
+  expect(await page.evaluate(() => window.__newsAudio[0].attempts)).toBe(3);
+  await page.waitForTimeout(1100);
+  expect(await page.evaluate(() => window.__newsAudio[0].attempts)).toBe(3);
+  setState({ message: "Neue Nachricht", kind: "normal", revision: 2, updated_at: new Date().toISOString() });
+  await expect.poll(() => page.evaluate(() => window.__newsAudio.length)).toBe(2);
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "playing");
+  await page.locator("#news-track").dispatchEvent("animationend");
+  await expect(page.locator("#ticker")).toBeVisible();
+  expect(await page.evaluate(() => window.__newsAudio[1].paused)).toBe(false);
+  setState({ enabled: false });
+  await expect(page.locator("#ticker")).toBeHidden();
+  expect(await page.evaluate(() => window.__newsAudio.every((audio) => audio.paused))).toBe(true);
+});
+
+test("OBS audio: replacing a publication cancels its pending retry", async ({ page }) => {
+  const { setState } = await setup(page);
+  await observeAudioAttempts(page);
+  await page.route("**/overlays/sounds/breaking.wav", (route) => route.abort());
+  setState({ message: "Wird ersetzt", kind: "breaking", enabled: true, sound_enabled: true, volume: 40,
+    playback_mode: "duration", duration_seconds: 30, revision: 1,
+    updated_at: new Date().toISOString(), ends_at: new Date(Date.now() + 30000).toISOString() });
+  await page.goto("/overlays/live-news.html");
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "retrying");
+  setState({ message: "Ersatzmeldung", kind: "community", revision: 2, updated_at: new Date().toISOString() });
+  await expect.poll(() => page.evaluate(() => window.__newsAudio.length)).toBe(2);
+  await expect(page.locator("#ticker")).toHaveAttribute("data-sound-state", "playing");
+  await page.waitForTimeout(1700);
+  expect(await page.evaluate(() => window.__newsAudio[0].attempts)).toBeLessThan(3);
+  expect(await page.evaluate(() => window.__newsAudio[0].paused)).toBe(true);
 });
 
 test("compact overlay: consistent stream height at full HD, 720p, default OBS and mobile widths", async ({ page }) => {
