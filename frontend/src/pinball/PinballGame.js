@@ -1,817 +1,1238 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { AudioManager } from "./AudioManager";
 
-const FIXED_STEP = 1 / 120;
-const BALL_RADIUS = 0.115;
-const MAX_BALL_SPEED = 35;
-const DRAIN_GAP_HALF_WIDTH = 0.34;
-const SHOOTER_SPAWN = { x: 1.82, y: 0.35, z: 3.34 };
-const SHOOTER_EXIT = { xMin: 1.48, z: -2.42, kickX: -4.2, kickZ: 3.4 };
-const FLIPPER = {
-  pivotX: 1.18,
-  pivotZ: 3.08,
-  length: 0.82,
-  width: 0.18,
-  restAngle: 0.28,
-  hitAngle: 0.78,
-};
-const TABLE = { width: 4.8, length: 8.2, top: -3.75, bottom: 3.75, left: -2.15, right: 2.15, laneX: 1.82 };
-
-const MATERIALS = {
-  wood: { color: 0x3a160c, roughness: 0.45, metalness: 0.1 },
-  rail: { color: 0xd8c6a0, roughness: 0.18, metalness: 0.9 },
-  rubber: { color: 0x111018, roughness: 0.72, metalness: 0.02 },
-  plastic: { color: 0xff4fa2, roughness: 0.28, metalness: 0.08, emissive: 0x39112a },
-  cyan: { color: 0x62f4df, roughness: 0.22, metalness: 0.1, emissive: 0x0d766c },
-  gold: { color: 0xffcc72, roughness: 0.22, metalness: 0.55, emissive: 0x4a2508 },
-};
+const STEP = 1 / 120;
+const R = 0.12;
+const SPAWN = { x: 2.07, y: 0.15, z: 3.48 };
+const MINT = 0x7affd3,
+  CORAL = 0xff5777,
+  GOLD = 0xffda78;
+const AXIS = new THREE.Vector3(0, 1, 0);
 
 export class PinballGame {
-  constructor(container, { audioEnabledRef, onSnapshot, onMessage } = {}) {
+  constructor(container, { audioEnabledRef, onSnapshot } = {}) {
     this.container = container;
     this.onSnapshot = onSnapshot || (() => {});
-    this.onMessage = onMessage || (() => {});
     this.audio = new AudioManager(audioEnabledRef || { current: true });
-    this.keys = { left: false, right: false, launch: false, nudgeL: false, nudgeR: false, nudgeF: false };
+    this.balls = [];
+    this.flippers = [];
+    this.lamps = [];
+    this.effects = [];
+    this.specks = [];
+    this.contacts = new Map();
+    this.keys = { left: false, right: false, launch: false };
+    this.status = "menu";
     this.score = 0;
     this.ball = 3;
+    this.combo = 0;
     this.mult = 1;
-    this.locks = 0;
+    this.bank = 0;
     this.jackpot = 25000;
-    this.comboT = 0;
-    this.status = "ready";
-    this.notice = "PEPPLE 3D PINBALL";
+    this.time = 0;
+    this.comboUntil = 0;
     this.plunger = 0;
     this.acc = 0;
     this.last = 0;
-    this.disposed = false;
-    this.balls = [];
-    this.effects = [];
-    this.targets = [];
-    this.bumpers = [];
-    this.rollovers = [];
-    this.ramps = [];
-    this.scoops = [];
-    this.flippers = [];
-    this.debug = false;
-    this.debugMesh = null;
-    this.debugHud = null;
-    this.drainSensor = null;
-    this.tilt = { heat: 0, warning: 0, active: false };
-    this.snapshotT = 0;
+    this.hits = 0;
+    this.drains = 0;
+    this.bestCombo = 0;
+    this.notice = "AFTER HOURS";
   }
 
   async start() {
     await RAPIER.init();
-    this.container.__pinballGame = this;
-    this.initThree();
-    this.initPhysics();
+    if (this.disposed) return;
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 3.25 });
+    this.world.timestep = STEP;
+    this.world.integrationParameters.numSolverIterations = 8;
+    this.world.integrationParameters.maxCcdSubsteps = 4;
+    this.events = new RAPIER.EventQueue(true);
+    this.initRenderer();
     this.buildTable();
+    this.initParticles();
     this.bind();
-    this.spawnBall(true);
+    this.container.__pinballGame = this;
     this.resize();
+    this.publish();
     this.frame = requestAnimationFrame((t) => this.loop(t));
-    this.emitSnapshot();
   }
 
-  initThree() {
+  initRenderer() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x09050b);
-    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
-    this.camera.position.set(0, 6.0, 6.35);
-    this.camera.lookAt(0, 0, -0.35);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.container.replaceChildren(this.renderer.domElement);
+    this.scene.background = new THREE.Color(0x0c1515);
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.9;
     this.renderer.domElement.className = "pinball3dCanvas";
-    this.scene.add(new THREE.HemisphereLight(0xffd8ad, 0x14102a, 1.25));
-    const key = new THREE.SpotLight(0xffc47a, 3.4, 20, 0.78, 0.6, 1.1);
-    key.position.set(-1.6, 7.4, 4.6);
-    key.castShadow = true;
-    this.scene.add(key);
-    const neon = new THREE.PointLight(0xff4fa2, 2.3, 8);
-    neon.position.set(0, 1.7, -0.8);
-    this.scene.add(neon);
-    this.cameraModes = [
-      { p: new THREE.Vector3(0, 6.0, 6.35), l: new THREE.Vector3(0, 0, -0.35) },
-      { p: new THREE.Vector3(0, 9.6, 0.25), l: new THREE.Vector3(0, 0, 0) },
-      { p: new THREE.Vector3(-2.8, 4.3, 5.6), l: new THREE.Vector3(0, 0, -0.5) },
-    ];
-    this.cameraMode = 0;
-  }
-
-  initPhysics() {
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 3.7 });
-    this.world.integrationParameters.dt = FIXED_STEP;
-    this.world.integrationParameters.numSolverIterations = Math.max(this.world.integrationParameters.numSolverIterations || 4, 8);
-    this.world.integrationParameters.numAdditionalFrictionIterations = Math.max(this.world.integrationParameters.numAdditionalFrictionIterations || 4, 4);
-    if ("maxCcdSubsteps" in this.world.integrationParameters) this.world.integrationParameters.maxCcdSubsteps = 4;
-  }
-
-  mat(kind) {
-    return new THREE.MeshStandardMaterial(MATERIALS[kind] || MATERIALS.rubber);
-  }
-
-  addBox(name, pos, size, mat = "rubber", fixed = true, sensor = false) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), this.mat(mat));
-    mesh.position.copy(pos);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
-    const desc = fixed ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic();
-    desc.setTranslation(pos.x, pos.y, pos.z);
-    const body = this.world.createRigidBody(desc);
-    const col = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2).setRestitution(0.55).setFriction(0.32);
-    if (sensor) col.setSensor(true);
-    const collider = this.world.createCollider(col, body);
-    return { name, mesh, body, collider, size };
-  }
-
-  addCylinder(name, pos, radius, height, mat = "rubber", sensor = false) {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 40), this.mat(mat));
-    mesh.position.copy(pos);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
-    const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(pos.x, pos.y, pos.z);
-    const body = this.world.createRigidBody(bodyDesc);
-    const col = RAPIER.ColliderDesc.cylinder(height / 2, radius).setRestitution(0.72).setFriction(0.22);
-    if (sensor) col.setSensor(true);
-    const collider = this.world.createCollider(col, body);
-    return { name, mesh, body, collider, radius };
-  }
-
-  addLightInsert(x, z, color, label) {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.025, 28), new THREE.MeshStandardMaterial({
-      color,
-      emissive: color,
-      emissiveIntensity: 1.2,
-      roughness: 0.22,
-      metalness: 0.1,
-    }));
-    mesh.position.set(x, 0.065, z);
-    this.scene.add(mesh);
-    const light = new THREE.PointLight(color, 0.8, 1.25);
-    light.position.set(x, 0.22, z);
+    this.container.replaceChildren(this.renderer.domElement);
+    this.camera = new THREE.OrthographicCamera(-3.5, 3.5, 5.4, -5.4, 0.1, 50);
+    this.camera.position.set(0, 15, 5.9);
+    this.camera.lookAt(0, 0, 0.15);
+    const room = new RoomEnvironment(),
+      pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.environment = pmrem.fromScene(room, 0.03);
+    this.scene.environment = this.environment.texture;
+    this.scene.environmentIntensity = 0.45;
+    room.dispose();
+    pmrem.dispose();
+    this.scene.add(new THREE.HemisphereLight(0xd2fff0, 0x354745, 0.7));
+    const light = new THREE.DirectionalLight(0xffedcb, 1.4);
+    light.position.set(-3, 8, 3);
     this.scene.add(light);
-    return { mesh, light, label };
+    this.impactLight = new THREE.PointLight(MINT, 0, 9);
+    this.scene.add(this.impactLight);
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.bloom = new UnrealBloomPass(
+      new THREE.Vector2(500, 800),
+      0.42,
+      0.3,
+      1.05,
+    );
+    this.composer.addPass(this.bloom);
+    this.composer.addPass(new OutputPass());
+    this.fx = document.createElement("div");
+    this.fx.className = "pinballFX";
+    this.container.appendChild(this.fx);
+    this.banner = document.createElement("div");
+    this.banner.className = "pinballBigCombo";
+    this.fx.appendChild(this.banner);
+  }
+
+  mat(color, metal = 0.3, glow = 0) {
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness: metal > 0.7 ? 0.22 : 0.4,
+      metalness: metal,
+      emissive: color,
+      emissiveIntensity: glow,
+    });
+  }
+  mesh(geometry, material, x, y, z) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    this.scene.add(mesh);
+    return mesh;
+  }
+  box(x, z, w, d, color = 0x8aaba0, h = 0.38, y = h / 2) {
+    const mesh = this.mesh(
+      new THREE.BoxGeometry(w, h, d),
+      this.mat(color, 0.7),
+      x,
+      y,
+      z,
+    );
+    const body = this.world.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z),
+    );
+    const collider = this.world.createCollider(
+      RAPIER.ColliderDesc.cuboid(w / 2, h / 2, d / 2)
+        .setRestitution(0.45)
+        .setFriction(0.05),
+      body,
+    );
+    return { mesh, body, collider };
+  }
+  rail(a, b, color = 0xbacfc7, width = 0.14) {
+    const angle = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    const rail = this.box(
+      (a[0] + b[0]) / 2,
+      (a[1] + b[1]) / 2,
+      Math.hypot(b[0] - a[0], b[1] - a[1]),
+      width,
+      color,
+    );
+    const q = new THREE.Quaternion().setFromAxisAngle(AXIS, -angle);
+    rail.mesh.quaternion.copy(q);
+    rail.body.setRotation(q, true);
+    for (const [x, z] of [a, b]) {
+      this.mesh(
+        new THREE.CylinderGeometry(width / 2, width / 2, 0.38, 12),
+        rail.mesh.material,
+        x,
+        0.19,
+        z,
+      );
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cylinder(0.19, width / 2)
+          .setTranslation(x, 0.19, z)
+          .setRestitution(0.45)
+          .setFriction(0.05),
+      );
+    }
+    return rail;
+  }
+  lamp(x, z, color, radius = 0.08) {
+    const material = this.mat(color, 0.15, 0.45);
+    const mesh = this.mesh(
+      new THREE.CylinderGeometry(radius, radius, 0.018, 24),
+      material,
+      x,
+      0.025,
+      z,
+    );
+    const lamp = { mesh, material, pulse: 0, offset: this.lamps.length * 0.53 };
+    this.lamps.push(lamp);
+    return lamp;
+  }
+  label(text, x, y, z, w, h, color) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "900 68px Arial";
+    ctx.fillText(text, 256, 64, 500);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const mesh = this.mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+      }),
+      x,
+      y,
+      z,
+    );
+    mesh.rotation.x = -Math.PI / 2;
+  }
+  track(item) {
+    item.lastHit = -1;
+    item.collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    this.contacts.set(item.collider.handle, item);
+    return item;
   }
 
   buildTable() {
-    this.playfield = new THREE.Group();
-    this.scene.add(this.playfield);
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(TABLE.width, 0.12, TABLE.length), this.makePlayfieldMaterial());
-    floor.position.set(0, -0.06, 0);
-    floor.receiveShadow = true;
-    this.scene.add(floor);
-    this.world.createCollider(RAPIER.ColliderDesc.cuboid(TABLE.width / 2, 0.06, TABLE.length / 2).setFriction(0.24).setRestitution(0.34), this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.06, 0)));
-
-    this.addBox("left-wall", new THREE.Vector3(TABLE.left - 0.14, 0.3, 0), new THREE.Vector3(0.28, 0.68, TABLE.length), "wood");
-    this.addBox("right-wall", new THREE.Vector3(TABLE.right + 0.14, 0.3, 0), new THREE.Vector3(0.28, 0.68, TABLE.length), "wood");
-    this.addBox("top-wall", new THREE.Vector3(0, 0.3, TABLE.top - 0.14), new THREE.Vector3(TABLE.width, 0.68, 0.28), "wood");
-    this.addBox("left-outlane", new THREE.Vector3(-1.85, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
-    this.addBox("right-outlane", new THREE.Vector3(1.34, 0.16, 2.25), new THREE.Vector3(0.16, 0.32, 1.9), "rubber");
-    this.addBox("shooter-left", new THREE.Vector3(1.52, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.6), "rail");
-    this.addBox("shooter-right", new THREE.Vector3(2.11, 0.16, 0.8), new THREE.Vector3(0.08, 0.32, 5.7), "rail");
-    const plungerStop = this.addBox("plunger-rail", new THREE.Vector3(SHOOTER_SPAWN.x, 0.09, 3.63), new THREE.Vector3(0.32, 0.18, 0.08), "rail");
-    plungerStop.collider.setRestitution(1.05);
-    this.addBox("left-apron", new THREE.Vector3(-0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
-    this.addBox("right-apron", new THREE.Vector3(0.98, 0.08, 3.55), new THREE.Vector3(1.05, 0.16, 0.24), "gold");
-    this.drainSensor = this.addBox("drain-sensor", new THREE.Vector3(0, 0.02, 3.42), new THREE.Vector3(DRAIN_GAP_HALF_WIDTH * 2, 0.08, 0.42), "rubber", true, true);
-    this.drainSensor.mesh.visible = false;
-
-    this.buildCabinet();
-    this.buildFlippers();
-    this.buildToys();
-    this.buildDisplay();
-  }
-
-  makePlayfieldMaterial() {
+    this.mesh(
+      new THREE.BoxGeometry(5.25, 0.32, 9.5),
+      this.mat(0x233832, 0.65),
+      0,
+      -0.4,
+      0,
+    );
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
-    canvas.height = 1748;
+    canvas.height = 1792;
     const ctx = canvas.getContext("2d");
-    const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grd.addColorStop(0, "#140d20");
-    grd.addColorStop(0.42, "#2b1028");
-    grd.addColorStop(0.78, "#160d18");
-    grd.addColorStop(1, "#080608");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "rgba(255,205,112,.26)";
-    ctx.lineWidth = 3;
-    for (let i = -8; i <= 8; i += 1) {
+    ctx.fillStyle = "#142b25";
+    ctx.fillRect(0, 0, 1024, 1792);
+    ctx.strokeStyle = "#27483a";
+    ctx.lineWidth = 2;
+    for (let z = 0; z < 1800; z += 74)
+      for (let x = 0; x < 1024; x += 74) {
+        ctx.beginPath();
+        ctx.arc(x + (z % 148 ? 37 : 0), z, 23, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    ctx.strokeStyle = "#5a9d77";
+    ctx.lineWidth = 8;
+    for (const x of [100, 180, 260]) {
       ctx.beginPath();
-      ctx.moveTo(canvas.width / 2 + i * 70, canvas.height - 70);
-      ctx.quadraticCurveTo(canvas.width / 2 + i * 28, canvas.height * 0.55, canvas.width / 2 + i * 96, 120);
+      ctx.moveTo(x, 1450);
+      ctx.bezierCurveTo(x + 60, 650, 700, 1200, 770, 420);
       ctx.stroke();
     }
-    ctx.strokeStyle = "rgba(98,244,223,.45)";
-    ctx.lineWidth = 18;
+    ctx.strokeStyle = "#aa5161";
+    ctx.lineWidth = 16;
     ctx.beginPath();
-    ctx.moveTo(210, 1200);
-    ctx.bezierCurveTo(280, 880, 520, 720, 770, 580);
+    ctx.arc(440, 410, 310, Math.PI, Math.PI * 1.9);
     ctx.stroke();
-    ctx.strokeStyle = "rgba(255,79,162,.46)";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(790, 260);
-    ctx.bezierCurveTo(650, 120, 360, 100, 205, 280);
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,236,194,.92)";
-    ctx.font = "900 105px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("PEPPLE", canvas.width / 2, 1170);
-    ctx.font = "800 42px Arial";
-    ctx.fillStyle = "rgba(255,202,112,.92)";
-    ctx.fillText("LOCK  RAMP  JACKPOT", canvas.width / 2, 1240);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.34, metalness: 0.04 });
-  }
-
-  buildCabinet() {
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.35, 8.9), new THREE.MeshStandardMaterial({ color: 0x39180d, roughness: 0.44, metalness: 0.08 }));
-    frame.position.set(0, -0.24, 0.08);
-    frame.receiveShadow = true;
-    this.scene.add(frame);
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(4.85, 0.025, 8.15), new THREE.MeshPhysicalMaterial({
-      color: 0xdaf7ff,
-      roughness: 0.03,
-      metalness: 0,
-      transparent: true,
-      opacity: 0.12,
-      transmission: 0.45,
-    }));
-    glass.position.set(0, 0.48, 0);
-    this.scene.add(glass);
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    this.mesh(
+      new THREE.BoxGeometry(4.8, 0.14, 8.25),
+      new THREE.MeshStandardMaterial({ map, roughness: 0.7, metalness: 0.05 }),
+      0,
+      -0.07,
+      -0.425,
+    );
     this.world.createCollider(
-      RAPIER.ColliderDesc.cuboid(4.85 / 2, 0.025 / 2, 8.15 / 2).setFriction(0.02).setRestitution(0.18),
-      this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0.48, 0))
+      RAPIER.ColliderDesc.cuboid(2.4, 0.07, 4.125)
+        .setTranslation(0, -0.07, -0.425)
+        .setFriction(0.03),
+    );
+    this.rail([-2.4, 3.95], [-2.4, -3.48], 0x8aaba0, 0.2);
+    this.rail([2.4, 3.95], [2.4, -3.48], 0x8aaba0, 0.2);
+    this.rail([-2.4, -3.48], [-1.5, -4.4], 0x8aaba0, 0.2);
+    this.rail([-1.5, -4.4], [1.48, -4.4], 0x8aaba0, 0.2);
+    this.rail([1.48, -4.4], [2.4, -3.48], 0x8aaba0, 0.2);
+    this.rail([1.76, 3.85], [1.76, -3.35], 0xa9cbbd, 0.12);
+    this.box(2.07, 3.85, 0.52, 0.18, 0x596e64);
+    this.gate = this.box(2.03, -3.35, 0.54, 0.08, 0xb6d4c1, 0.3);
+    this.openGate();
+    // The guides end at the outside pivots; the center is an open drain.
+    this.rail([-2.32, 2.35], [-1.12, 3.0], 0x8aaba0, 0.16);
+    this.rail([1.68, 2.45], [1.12, 3.0], 0x8aaba0, 0.16);
+    this.sling([-2.23, 0.88], [-1.15, 1.9], [-2.14, 2.2], CORAL);
+    this.sling([1.64, 0.88], [0.95, 1.9], [1.64, 2.2], MINT);
+    this.mesh(
+      new THREE.BoxGeometry(1.1, 0.1, 0.85),
+      this.mat(0x020505),
+      0,
+      -0.32,
+      4,
+    );
+    this.mesh(
+      new THREE.BoxGeometry(5.2, 0.36, 0.38),
+      this.mat(0x34564a, 0.8),
+      0,
+      -0.2,
+      4.62,
+    );
+    this.flippers = [
+      this.flipper("left", -1.12, 0.28, -0.57, CORAL),
+      this.flipper("right", 1.12, Math.PI - 0.28, Math.PI + 0.57, MINT),
+    ];
+    this.bumpers = [
+      this.bumper(-0.92, -2.1, GOLD, "PEP"),
+      this.bumper(0.02, -1.55, MINT, "JACK"),
+      this.bumper(0.94, -2.1, CORAL, "PLE"),
+    ];
+    this.targets = [
+      [-2.12, -0.85],
+      [-2.12, 0.02],
+      [-0.8, -3.45],
+      [0.05, -3.45],
+      [0.9, -3.45],
+    ].map(([x, z], i) => {
+      const target = this.box(
+        x,
+        z,
+        i < 2 ? 0.12 : 0.36,
+        i < 2 ? 0.42 : 0.12,
+        GOLD,
+        0.28,
+      );
+      Object.assign(target, {
+        kind: "target",
+        index: i,
+        lamp: this.lamp(x + (i < 2 ? 0.21 : 0), z + (i < 2 ? 0 : 0.3), GOLD),
+      });
+      return this.track(target);
+    });
+    for (let i = 0; i < 18; i++) {
+      this.lamp(-2.28, -3.1 + i * 0.37, i % 2 ? CORAL : GOLD, 0.035);
+      this.lamp(1.6, -3.1 + i * 0.32, i % 2 ? MINT : GOLD, 0.035);
+    }
+    for (let i = 0; i < 5; i++) this.lamp(-0.7 + i * 0.34, 0.35, MINT);
+    this.label("PEPPLE", 0, 0.032, 0.95, 2.8, 0.57, "#e1fff0");
+    this.label("AFTER HOURS", 0, 0.034, 1.37, 2, 0.24, "#7affd3");
+    this.label("JACKPOT", 0, 0.034, -0.45, 1.7, 0.3, "#ffda78");
+    this.plungerMesh = this.mesh(
+      new THREE.CylinderGeometry(0.105, 0.105, 0.48, 20),
+      this.mat(0xc5d8ce, 0.95),
+      SPAWN.x,
+      0.15,
+      3.9,
+    );
+    this.plungerMesh.rotation.x = Math.PI / 2;
+    this.plungerLamp = this.lamp(SPAWN.x, 3.14, GOLD);
+    this.drainSensor = this.world.createCollider(
+      RAPIER.ColliderDesc.cuboid(2.3, 0.5, 0.8)
+        .setTranslation(-0.1, -0.55, 4.1)
+        .setSensor(true),
     );
   }
-
-  buildFlippers() {
-    this.flippers = [
-      this.createFlipper("left", -FLIPPER.pivotX, FLIPPER.pivotZ, FLIPPER.restAngle, -FLIPPER.hitAngle),
-      this.createFlipper("right", FLIPPER.pivotX, FLIPPER.pivotZ, Math.PI - FLIPPER.restAngle, Math.PI + FLIPPER.hitAngle),
-    ];
+  sling(a, b, c, color) {
+    const shape = new THREE.Shape();
+    shape.moveTo(a[0], -a[1]);
+    shape.lineTo(b[0], -b[1]);
+    shape.lineTo(c[0], -c[1]);
+    shape.closePath();
+    const mesh = this.mesh(
+      new THREE.ExtrudeGeometry(shape, {
+        depth: 0.18,
+        bevelEnabled: true,
+        bevelSegments: 2,
+        bevelSize: 0.025,
+        bevelThickness: 0.025,
+      }),
+      this.mat(color, 0.35, 0.2),
+      0,
+      0.08,
+      0,
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    const vertices = new Float32Array([
+      a[0],
+      0.07,
+      a[1],
+      b[0],
+      0.07,
+      b[1],
+      c[0],
+      0.07,
+      c[1],
+      a[0],
+      0.28,
+      a[1],
+      b[0],
+      0.28,
+      b[1],
+      c[0],
+      0.28,
+      c[1],
+    ]);
+    const collider = this.world.createCollider(
+      RAPIER.ColliderDesc.convexHull(vertices)
+        .setRestitution(0.75)
+        .setFriction(0.05),
+    );
+    return this.track({ mesh, collider, kind: "sling", color });
   }
-
-  createFlipper(side, pivotX, pivotZ, rest, active) {
-    const len = FLIPPER.length;
-    const width = FLIPPER.width;
-    const mat = new THREE.MeshStandardMaterial({ color: side === "left" ? 0xff4f9b : 0x60f5dd, emissive: side === "left" ? 0x50122d : 0x0d5d57, roughness: 0.3, metalness: 0.25 });
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, 0.16, width), mat);
-    mesh.castShadow = true;
+  bumper(x, z, color, name) {
+    const body = this.world.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed().setTranslation(x, 0.17, z),
+    );
+    const collider = this.world.createCollider(
+      RAPIER.ColliderDesc.cylinder(0.17, 0.33)
+        .setRestitution(0.85)
+        .setFriction(0),
+      body,
+    );
+    this.mesh(
+      new THREE.CylinderGeometry(0.35, 0.4, 0.13, 48),
+      this.mat(0xc1d6ca, 0.95),
+      x,
+      0.08,
+      z,
+    );
+    const mesh = this.mesh(
+      new THREE.CylinderGeometry(0.3, 0.32, 0.19, 48),
+      this.mat(color, 0.4, 0.25),
+      x,
+      0.25,
+      z,
+    );
+    const ring = this.mesh(
+      new THREE.TorusGeometry(0.31, 0.045, 10, 48),
+      this.mat(color, 0.2, 2.4),
+      x,
+      0.36,
+      z,
+    );
+    ring.rotation.x = -Math.PI / 2;
+    this.label(name, x, 0.36, z, 0.48, 0.15, "#10271f");
+    return this.track({
+      body,
+      collider,
+      mesh,
+      ring,
+      x,
+      z,
+      color,
+      kind: "bumper",
+      name,
+      pulse: 0,
+    });
+  }
+  flipper(side, x, rest, active, color) {
+    const len = 0.97,
+      body = this.world.createRigidBody(
+        RAPIER.RigidBodyDesc.kinematicPositionBased(),
+      );
+    const collider = this.world.createCollider(
+      RAPIER.ColliderDesc.roundCuboid(len / 2 - 0.055, 0.025, 0.035, 0.055)
+        .setRestitution(0.32)
+        .setFriction(0.12),
+      body,
+    );
+    const mesh = new THREE.Group();
     this.scene.add(mesh);
-    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased());
-    const collider = this.world.createCollider(RAPIER.ColliderDesc.cuboid(len / 2, 0.08, width / 2).setRestitution(0.2).setFriction(0.65), body);
-    const joint = this.addCylinder(`${side}-pivot`, new THREE.Vector3(pivotX, 0.16, pivotZ), 0.15, 0.22, "gold");
-    const f = { side, pivotX, pivotZ, rest, active, angle: rest, target: rest, len, mesh, body, collider, joint };
+    const core = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.09, len - 0.18, 6, 12),
+      this.mat(0xd8e7da, 0.9),
+    );
+    core.rotation.z = Math.PI / 2;
+    mesh.add(core);
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(len * 0.76, 0.025, 0.07),
+      this.mat(color, 0.2, 2),
+    );
+    stripe.position.y = 0.09;
+    mesh.add(stripe);
+    this.mesh(
+      new THREE.CylinderGeometry(0.14, 0.14, 0.25, 24),
+      this.mat(0xcbded1, 0.9),
+      x,
+      0.14,
+      3,
+    );
+    const f = {
+      side,
+      pivotX: x,
+      pivotZ: 3,
+      len,
+      rest,
+      active,
+      angle: rest,
+      mesh,
+      body,
+      collider,
+    };
+    this.track({ collider, kind: "flipper", flipper: f });
     this.syncFlipper(f, true);
     return f;
   }
-
   syncFlipper(f, instant = false) {
-    const centerX = f.pivotX + Math.cos(f.angle) * f.len * 0.5;
-    const centerZ = f.pivotZ + Math.sin(f.angle) * f.len * 0.5;
-    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -f.angle);
-    f.mesh.position.set(centerX, 0.17, centerZ);
-    f.mesh.quaternion.copy(q);
-    const rot = { x: q.x, y: q.y, z: q.z, w: q.w };
-    const pos = { x: centerX, y: 0.17, z: centerZ };
+    const pos = {
+        x: f.pivotX + (Math.cos(f.angle) * f.len) / 2,
+        y: 0.16,
+        z: 3 + (Math.sin(f.angle) * f.len) / 2,
+      },
+      q = new THREE.Quaternion().setFromAxisAngle(AXIS, -f.angle);
     if (instant) {
       f.body.setTranslation(pos, true);
-      f.body.setRotation(rot, true);
+      f.body.setRotation(q, true);
     } else {
       f.body.setNextKinematicTranslation(pos);
-      f.body.setNextKinematicRotation(rot);
+      f.body.setNextKinematicRotation(q);
     }
+    f.mesh.position.copy(pos);
+    f.mesh.quaternion.copy(q);
   }
-
-  buildToys() {
-    this.bumpers = [
-      this.createBumper(-0.82, -2.05, 0xffc66d, "PEP"),
-      this.createBumper(0, -1.82, 0x62f4df, "JACK"),
-      this.createBumper(0.82, -2.05, 0xff4fa2, "PLE"),
-    ];
-    [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].forEach((x, i) => {
-      const sensor = this.addBox(`rollover-${i}`, new THREE.Vector3(x, 0.06, -3.18), new THREE.Vector3(0.28, 0.08, 0.12), "gold", true, true);
-      const light = this.addLightInsert(x, -3.04, 0xffcc72, "rollover");
-      this.rollovers.push({ ...sensor, light, hit: false, score: 100 });
-    });
-    [
-      [-1.38, -0.85], [-1.34, 0.22], [-1.08, 1.4],
-      [1.38, -0.85], [1.34, 0.22], [1.08, 1.4],
-      [-0.42, 0.52], [0, 0.52], [0.42, 0.52],
-    ].forEach(([x, z], i) => {
-      const post = this.addCylinder(`post-${i}`, new THREE.Vector3(x, 0.14, z), 0.095, 0.28, i % 2 ? "cyan" : "gold");
-      this.targets.push({ ...post, score: 250, label: "TARGET" });
-    });
-    this.addBox("left-sling", new THREE.Vector3(-1.18, 0.18, 1.72), new THREE.Vector3(1.05, 0.28, 0.16), "plastic");
-    this.addBox("right-sling", new THREE.Vector3(1.18, 0.18, 1.72), new THREE.Vector3(1.05, 0.28, 0.16), "plastic");
-    this.scoops.push(this.addCylinder("scoop", new THREE.Vector3(1.05, 0.05, -0.55), 0.22, 0.08, "rubber", true));
-    this.scoops.push(this.addCylinder("lock", new THREE.Vector3(1.28, 0.05, 0.68), 0.22, 0.08, "rubber", true));
-    this.buildRamp();
-  }
-
-  createBumper(x, z, color, label) {
-    const base = this.addCylinder(`bumper-${label}`, new THREE.Vector3(x, 0.18, z), 0.32, 0.32, "gold");
-    base.mesh.material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, roughness: 0.25, metalness: 0.35 });
-    const light = new THREE.PointLight(color, 1.4, 1.6);
-    light.position.set(x, 0.72, z);
-    this.scene.add(light);
-    return { ...base, label, light, pulse: 0, score: 500 };
-  }
-
-  buildRamp() {
-    const rampMat = new THREE.MeshPhysicalMaterial({ color: 0x8ff7e8, roughness: 0.08, transparent: true, opacity: 0.38, transmission: 0.45, metalness: 0.05 });
-    const points = [
-      new THREE.Vector3(-1.42, 0.18, 1.0),
-      new THREE.Vector3(-1.0, 0.42, 0.0),
-      new THREE.Vector3(-0.15, 0.72, -0.78),
-      new THREE.Vector3(0.85, 0.58, -1.28),
-      new THREE.Vector3(1.44, 0.22, -2.22),
-    ];
-    const curve = new THREE.CatmullRomCurve3(points);
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.07, 10, false), rampMat);
-    tube.castShadow = true;
-    this.scene.add(tube);
-    points.forEach((p, i) => {
-      const seg = this.addBox(`ramp-col-${i}`, p, new THREE.Vector3(0.34, 0.08, 0.34), "cyan");
-      seg.collider.setSensor(true);
-      this.ramps.push({ ...seg, score: 1500 });
-    });
-  }
-
-  buildDisplay() {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.18, 0.55), new THREE.MeshStandardMaterial({ color: 0x090406, emissive: 0x1a0900, roughness: 0.4 }));
-    panel.position.set(0, 0.55, -3.78);
-    this.scene.add(panel);
-    this.displayCanvas = document.createElement("canvas");
-    this.displayCanvas.width = 1024;
-    this.displayCanvas.height = 160;
-    this.displayTexture = new THREE.CanvasTexture(this.displayCanvas);
-    const dmd = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.42), new THREE.MeshBasicMaterial({ map: this.displayTexture, transparent: true }));
-    dmd.position.set(0, 0.66, -3.48);
-    dmd.rotation.x = -0.22;
-    this.scene.add(dmd);
-  }
-
-  spawnBall(ready = false, x = SHOOTER_SPAWN.x, z = SHOOTER_SPAWN.z) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_RADIUS, 36, 24), new THREE.MeshStandardMaterial({ color: 0xdfe7ef, roughness: 0.18, metalness: 1 }));
-    mesh.castShadow = true;
-    this.scene.add(mesh);
-    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, SHOOTER_SPAWN.y, z).setCanSleep(false).setCcdEnabled(true));
-    body.setLinearDamping(0.08);
-    body.setAngularDamping(0.05);
-    const collider = this.world.createCollider(RAPIER.ColliderDesc.ball(BALL_RADIUS).setDensity(7.8).setRestitution(0.52).setFriction(0.14), body);
-    const ball = { mesh, body, collider, ready, locked: false, lastSafe: new THREE.Vector3(x, SHOOTER_SPAWN.y, z) };
+  spawnBall(ready = true, x = SPAWN.x, z = SPAWN.z) {
+    if (ready) this.openGate();
+    const desc = (
+      ready
+        ? RAPIER.RigidBodyDesc.kinematicPositionBased()
+        : RAPIER.RigidBodyDesc.dynamic()
+    )
+      .setTranslation(x, 0.15, z)
+      .setCcdEnabled(true)
+      .setCanSleep(false)
+      .enabledTranslations(true, false, true)
+      .setLinearDamping(0.045);
+    const body = this.world.createRigidBody(desc);
+    const collider = this.world.createCollider(
+      RAPIER.ColliderDesc.ball(R)
+        .setMass(1)
+        .setRestitution(0.48)
+        .setFriction(0.05)
+        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
+      body,
+    );
+    const mesh = this.mesh(
+      new THREE.SphereGeometry(R, 28, 20),
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 0.94,
+        roughness: 0.13,
+        envMapIntensity: 2.8,
+      }),
+      x,
+      0.15,
+      z,
+    );
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(72), 3),
+    );
+    const trail = new THREE.Line(
+      geometry,
+      new THREE.LineBasicMaterial({
+        color: MINT,
+        transparent: true,
+        opacity: 0.38,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    trail.frustumCulled = false;
+    this.scene.add(trail);
+    const ball = {
+      body,
+      collider,
+      mesh,
+      trail,
+      ready,
+      falling: false,
+      entered: false,
+      history: [],
+    };
     this.balls.push(ball);
-    this.status = ready ? "ready" : "play";
-    this.notice = ready ? "HOLD SPACE" : "SHOOT AGAIN";
     return ball;
   }
-
-  launch() {
-    if (this.status !== "ready" || !this.balls[0]) return;
-    const ball = this.balls[0];
-    const power = Math.min(0.82, Math.max(0.25, this.plunger));
-    ball.ready = false;
-    ball.body.setTranslation(SHOOTER_SPAWN, true);
-    ball.body.setLinvel({ x: 0, y: 0.14, z: -7.8 - power * 4.8 }, true);
-    ball.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-    this.status = "play";
-    this.notice = power > 0.8 ? "SKILLSHOT" : "LAUNCH";
-    this.addScore(0, this.notice);
-    this.flash(1.2, 0xffcc72, 1.4);
-    this.audio.play("plunger", 0.9 + power);
+  reset() {
+    this.bestCombo = 0;
+    this.balls.slice().forEach((b) => this.deleteBall(b));
+    this.score = 0;
+    this.ball = 3;
+    this.combo = 0;
+    this.mult = 1;
+    this.bank = 0;
+    this.jackpot = 25000;
+    this.comboUntil = 0;
     this.plunger = 0;
+    this.hits = 0;
+    this.drains = 0;
+    this.respawnAt = 0;
+    this.multiballAt = 0;
+    this.paused = false;
+    this.saveUntil = 0;
+    this.keys = { left: false, right: false, launch: false };
+    this.status = "ready";
+    this.notice = "SHOOT YOUR SHOT";
+    this.flippers.forEach((f) => {
+      f.angle = f.rest;
+      this.syncFlipper(f, true);
+    });
+    this.spawnBall();
+    this.audio.ensure();
+    this.announce("BALL 1", "AFTER HOURS", MINT);
+    this.publish();
   }
-
+  charge(down) {
+    this.audio.ensure();
+    if (this.status !== "ready" || this.paused) return;
+    if (!down && !this.keys.launch) return;
+    this.keys.launch = down;
+    if (!down) this.launch();
+  }
+  launch() {
+    const b = this.balls.find((b) => b.ready);
+    if (!b || this.paused || this.status !== "ready") return;
+    b.ready = false;
+    b.launchedAt = this.time;
+    b.body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+    b.body.setEnabledTranslations(true, false, true, true);
+    b.body.enableCcd(true);
+    b.body.setLinvel(
+      { x: 0, y: 0, z: -(12.5 + Math.min(1, this.plunger) * 2.5) },
+      true,
+    );
+    this.status = "play";
+    this.notice = "BALL SAVE";
+    this.saveUntil = this.time + 7;
+    this.plunger = 0;
+    this.keys.launch = false;
+    this.audio.play("plunger");
+    this.publish();
+  }
+  setFlipper(side, pressed) {
+    if (this.paused) return;
+    if (pressed && !this.keys[side]) this.audio.play("flipper");
+    this.keys[side] = pressed;
+  }
+  togglePause() {
+    if (["menu", "gameover"].includes(this.status)) return;
+    this.paused = !this.paused;
+    this.keys = { left: false, right: false, launch: false };
+    this.last = 0;
+    this.acc = 0;
+    this.audio.setRolling(0);
+    this.publish();
+  }
+  openGate() {
+    this.gate.collider.setEnabled(false);
+    this.gate.mesh.position.set(1.76, 0.15, -3.62);
+    this.gate.mesh.rotation.y = Math.PI / 2;
+  }
+  closeGate() {
+    this.gate.mesh.position.set(2.03, 0.15, -3.35);
+    this.gate.mesh.rotation.y = 0;
+    this.gate.collider.setEnabled(true);
+  }
+  nudge(direction) {
+    if (
+      this.status !== "play" ||
+      this.paused ||
+      this.time < (this.nextNudge || 0)
+    )
+      return;
+    this.nextNudge = this.time + 1.2;
+    this.balls
+      .filter((b) => !b.ready && !b.falling)
+      .forEach((b) =>
+        b.body.applyImpulse({ x: direction * 0.9, y: 0, z: -0.6 }, true),
+      );
+    this.shake = 0.04;
+  }
   bind() {
-    this.onKeyDown = (event) => {
-      if (event.code === "Space" || event.key === " ") { this.keys.launch = true; event.preventDefault(); }
-      if (event.key === "Enter") { this.launch(); event.preventDefault(); }
-      if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") this.keys.left = true;
-      if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") this.keys.right = true;
-      if (event.key === "q" || event.key === "Q") this.nudge(-1);
-      if (event.key === "e" || event.key === "E") this.nudge(1);
-      if (event.key === "w" || event.key === "W") this.nudge(0);
-      if (event.key === "c" || event.key === "C") this.switchCamera();
-      if (event.key === "F3") { this.debug = !this.debug; event.preventDefault(); }
-      if (this.debug && (event.key === "t" || event.key === "T")) this.runWallTunnelTest();
+    this.onKeyDown = (e) => {
+      if (
+        /^(INPUT|TEXTAREA|SELECT)$/.test(
+          document.activeElement?.tagName || "",
+        ) ||
+        document.activeElement?.isContentEditable
+      )
+        return;
+      if (["Space", "ArrowLeft", "ArrowRight"].includes(e.code))
+        e.preventDefault();
+      if (e.repeat) return;
+      if (["KeyA", "ArrowLeft"].includes(e.code)) this.setFlipper("left", true);
+      if (["KeyD", "ArrowRight"].includes(e.code))
+        this.setFlipper("right", true);
+      if (e.code === "Space") this.charge(true);
+      if (["KeyP", "Escape"].includes(e.code)) this.togglePause();
+      if (["KeyQ", "KeyE"].includes(e.code))
+        this.nudge(e.code === "KeyQ" ? -1 : 1);
+      if (e.code === "F3") {
+        this.debug = !this.debug;
+        e.preventDefault();
+      }
       this.audio.ensure();
     };
-    this.onKeyUp = (event) => {
-      if (event.code === "Space" || event.key === " ") { this.keys.launch = false; this.launch(); event.preventDefault(); }
-      if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") { this.keys.left = false; this.audio.play("flipperDown"); }
-      if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") { this.keys.right = false; this.audio.play("flipperDown"); }
+    this.onKeyUp = (e) => {
+      if (["KeyA", "ArrowLeft"].includes(e.code))
+        this.setFlipper("left", false);
+      if (["KeyD", "ArrowRight"].includes(e.code))
+        this.setFlipper("right", false);
+      if (e.code === "Space") {
+        e.preventDefault();
+        this.charge(false);
+      }
     };
-    this.onResize = () => this.resize();
+    this.onBlur = () => {
+      if (!this.paused && ["ready", "play", "drain"].includes(this.status))
+        this.togglePause();
+    };
+    this.onVisibility = () => {
+      if (document.hidden) this.onBlur();
+    };
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
-    window.addEventListener("resize", this.onResize);
+    window.addEventListener("blur", this.onBlur);
+    document.addEventListener("visibilitychange", this.onVisibility);
+    this.observer = new ResizeObserver(() => this.resize());
+    this.observer.observe(this.container);
   }
 
-  nudge(dir) {
-    if (this.tilt.active) return;
-    this.tilt.heat += 1;
-    if (this.tilt.heat > 5) {
-      this.tilt.active = true;
-      this.notice = "TILT";
-      this.audio.play("tilt");
+  step() {
+    this.time += STEP;
+    if (this.status === "ready" && this.keys.launch)
+      this.plunger = Math.min(1, this.plunger + STEP * 0.9);
+    this.flippers.forEach((f) => {
+      const target = this.keys[f.side] ? f.active : f.rest;
+      const before = f.angle;
+      f.angle +=
+        Math.sign(target - f.angle) *
+        Math.min(
+          Math.abs(target - f.angle),
+          STEP * (this.keys[f.side] ? 17 : 8),
+        );
+      f.moving = this.keys[f.side] && Math.abs(f.angle - before) > 0.001;
+      this.syncFlipper(f);
+    });
+    this.world.step(this.events);
+    this.events.drainCollisionEvents((a, b, started) => {
+      if (!started) return;
+      const ball = this.balls.find(
+        (ball) => ball.collider.handle === a || ball.collider.handle === b,
+      );
+      if (!ball || ball.ready || ball.falling) return;
+      const item = this.contacts.get(ball.collider.handle === a ? b : a);
+      if (item) this.contact(ball, item);
+    });
+    for (const ball of this.balls.slice()) {
+      if (ball.ready) continue;
+      const p = ball.body.translation(),
+        v = ball.body.linvel(),
+        speed = Math.hypot(v.x, v.y, v.z);
+      if (speed > 16)
+        ball.body.setLinvel(
+          {
+            x: (v.x * 16) / speed,
+            y: (v.y * 16) / speed,
+            z: (v.z * 16) / speed,
+          },
+          true,
+        );
+      if (!ball.entered && p.x < 1.5 && p.z < -2.8) {
+        ball.entered = true;
+        this.closeGate();
+        this.addScore(750, "SKILLSHOT", p, GOLD);
+      }
+      if (
+        !ball.entered &&
+        p.x > 1.8 &&
+        p.z > 3.2 &&
+        speed < 0.15 &&
+        this.time - ball.launchedAt > 1
+      ) {
+        ball.ready = true;
+        ball.body.setBodyType(
+          RAPIER.RigidBodyType.KinematicPositionBased,
+          true,
+        );
+        this.status = "ready";
+        this.notice = "SHOOT AGAIN";
+      }
+      // The ball physically leaves the floor before descending into the drain sensor.
+      if (!ball.falling && p.z > 3.77 && p.x < 1.72) {
+        ball.falling = true;
+        ball.body.setEnabledTranslations(true, true, true, true);
+      }
+      if (
+        (ball.falling &&
+          this.world.intersectionPair(ball.collider, this.drainSensor)) ||
+        p.y < -0.9 ||
+        p.z > 4.95
+      )
+        this.drain(ball);
+    }
+    if (this.time > this.comboUntil) {
+      this.combo = 0;
+      this.mult = 1;
+    }
+    if (this.respawnAt && this.time >= this.respawnAt) {
+      this.respawnAt = 0;
+      this.spawnBall();
+      this.status = "ready";
+      this.notice = "SHOOT YOUR SHOT";
+      this.publish();
+    }
+    if (this.multiballAt && this.time >= this.multiballAt) {
+      this.multiballAt = 0;
+      const b = this.spawnBall(false, -0.8, -3.2);
+      b.entered = true;
+      b.body.setLinvel({ x: 1.8, y: 0, z: 3.4 }, true);
+      this.announce("MULTIBALL", "DOUBLE TROUBLE", CORAL);
+      this.audio.play("jackpot");
+    }
+  }
+  contact(ball, item) {
+    if (this.time - item.lastHit < 0.13) return;
+    item.lastHit = this.time;
+    const p = ball.body.translation();
+    if (item.kind === "flipper") {
+      const f = item.flipper;
+      if (!this.keys[f.side]) return;
+      const t = Math.max(
+          0.15,
+          Math.min(1, Math.hypot(p.x - f.pivotX, p.z - 3) / f.len),
+        ),
+        v = ball.body.linvel();
+      if (v.z > -6 || f.moving) {
+        ball.body.setLinvel(
+          {
+            x: (f.side === "left" ? 1 : -1) * (1.3 + t * 2.9),
+            y: 0,
+            z: -(8.2 + t * 4.4),
+          },
+          true,
+        );
+        this.burst(p, 0xffffff, 8);
+      }
       return;
     }
-    if (this.tilt.heat > 3) this.notice = "WARNING";
-    this.balls.forEach((ball) => ball.body.applyImpulse({ x: dir * 1.6, y: 0, z: dir === 0 ? -1.2 : 0.5 }, true));
-  }
-
-  switchCamera() {
-    this.cameraMode = (this.cameraMode + 1) % this.cameraModes.length;
-    const mode = this.cameraModes[this.cameraMode];
-    this.camera.position.copy(mode.p);
-    this.camera.lookAt(mode.l);
-  }
-
-  step(dt) {
-    if (this.status === "ready") {
-      if (this.keys.launch) this.plunger = Math.min(1, this.plunger + dt * 0.95);
-      this.balls.forEach((ball) => {
-        if (!ball.ready) return;
-        ball.body.setTranslation(SHOOTER_SPAWN, true);
-        ball.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      });
-    }
-    this.updateFlippers(dt);
-    this.world.step();
-    this.updateShooterExit();
-    this.handleContacts();
-    this.updateBalls();
-    this.updateEffects(dt);
-    this.comboT = Math.max(0, this.comboT - dt);
-    this.tilt.heat = Math.max(0, this.tilt.heat - dt * 0.35);
-  }
-
-  updateFlippers(dt) {
-    this.flippers.forEach((f) => {
-      const was = Math.abs(f.angle - f.active) < 0.04;
-      const pressed = f.side === "left" ? this.keys.left : this.keys.right;
-      f.target = this.tilt.active ? f.rest : (pressed ? f.active : f.rest);
-      const speed = pressed ? 18 : 10;
-      f.angle += Math.sign(f.target - f.angle) * Math.min(Math.abs(f.target - f.angle), speed * dt);
-      this.syncFlipper(f);
-      if (pressed && !was && Math.abs(f.angle - f.active) < 0.2) this.audio.play("flipper");
-    });
-  }
-
-  updateShooterExit() {
-    this.balls.forEach((ball) => {
-      if (ball.ready || ball.launchExited) return;
-      const p = ball.body.translation();
-      const v = ball.body.linvel();
-      if (p.x < SHOOTER_EXIT.xMin || p.z > SHOOTER_EXIT.z || v.z >= 0) return;
-      ball.launchExited = true;
-      ball.body.setLinvel({
-        x: SHOOTER_EXIT.kickX,
-        y: Math.max(0.08, v.y),
-        z: SHOOTER_EXIT.kickZ,
-      }, true);
-      this.spark(p.x - 0.12, p.z + 0.08, 0x62f4df);
-      this.notice = "LANE EXIT";
-    });
-  }
-
-  handleContacts() {
-    this.balls.forEach((ball) => {
-      const p = ball.body.translation();
-      this.bumpers.forEach((bumper) => {
-        const d = Math.hypot(p.x - bumper.body.translation().x, p.z - bumper.body.translation().z);
-        if (d < bumper.radius + BALL_RADIUS + 0.04 && (bumper.cooldown || 0) <= 0) {
-          const dx = p.x - bumper.body.translation().x;
-          const dz = p.z - bumper.body.translation().z;
-          const len = Math.hypot(dx, dz) || 1;
-          ball.body.applyImpulse({ x: (dx / len) * 3.2, y: 0.1, z: (dz / len) * 3.2 }, true);
-          bumper.cooldown = 0.16;
-          bumper.pulse = 1;
-          this.addScore(500, bumper.label);
-          this.flash(0.65, bumper.mesh.material.color.getHex(), 1.8);
-          this.audio.play("bumper", 1.1);
-        }
-        bumper.cooldown = Math.max(0, (bumper.cooldown || 0) - FIXED_STEP);
-      });
-      [...this.targets, ...this.rollovers].forEach((target) => {
-        const t = target.body.translation();
-        if (Math.abs(p.x - t.x) < 0.22 && Math.abs(p.z - t.z) < 0.22 && (target.cooldown || 0) <= 0) {
-          target.cooldown = 0.28;
-          this.addScore(target.score || 250, target.label || "TARGET");
-          this.audio.play(target.label === "rollover" ? "target" : "sling");
-          this.spark(p.x, p.z, 0xffcc72);
-        }
-        target.cooldown = Math.max(0, (target.cooldown || 0) - FIXED_STEP);
-      });
-      this.ramps.forEach((ramp) => {
-        const t = ramp.body.translation();
-        if (Math.abs(p.x - t.x) < 0.26 && Math.abs(p.z - t.z) < 0.26 && (ramp.cooldown || 0) <= 0) {
-          ramp.cooldown = 1.2;
-          this.addScore(1500, "RAMP");
-          this.audio.play("ramp");
-          this.flash(0.8, 0x62f4df, 1.2);
-        }
-        ramp.cooldown = Math.max(0, (ramp.cooldown || 0) - FIXED_STEP);
-      });
-      this.scoops.forEach((scoop) => {
-        const t = scoop.body.translation();
-        if (Math.hypot(p.x - t.x, p.z - t.z) < 0.28 && (scoop.cooldown || 0) <= 0) {
-          scoop.cooldown = 1.5;
-          if (scoop.name === "lock") this.lockBall(ball);
-          else this.kickFromScoop(ball);
-        }
-        scoop.cooldown = Math.max(0, (scoop.cooldown || 0) - FIXED_STEP);
-      });
-    });
-  }
-
-  lockBall(ball) {
-    this.locks += 1;
-    this.addScore(5000, `LOCK ${this.locks}`);
-    this.audio.play("lock");
-    if (this.locks >= 3) {
-      this.multiball();
-    } else {
-      this.kickFromScoop(ball);
-    }
-  }
-
-  kickFromScoop(ball) {
-    ball.body.setTranslation({ x: 1.0, y: 0.36, z: -0.9 }, true);
-    ball.body.setLinvel({ x: -4.2, y: 0.35, z: -5.8 }, true);
-    this.addScore(2500, "SCOOP");
-  }
-
-  multiball() {
-    this.notice = "MULTIBALL";
-    this.locks = 0;
-    this.flash(1.4, 0xff4fa2, 3.4);
-    this.audio.play("jackpot");
-    this.spawnBall(false, -0.9, -1.0).body.setLinvel({ x: 3.6, y: 0.2, z: -4.5 }, true);
-    this.spawnBall(false, 0.6, -2.2).body.setLinvel({ x: -3.2, y: 0.2, z: 4.5 }, true);
-  }
-
-  updateBalls() {
-    let rolling = 0;
-    this.balls.forEach((ball) => {
-      const p = ball.body.translation();
-      const r = ball.body.rotation();
-      ball.mesh.position.set(p.x, p.y, p.z);
-      ball.mesh.quaternion.set(r.x, r.y, r.z, r.w);
-      const v = ball.body.linvel();
-      const speed3 = Math.hypot(v.x, v.y, v.z);
-      if (speed3 > MAX_BALL_SPEED) {
-        const scale = MAX_BALL_SPEED / speed3;
-        ball.body.setLinvel({ x: v.x * scale, y: v.y * scale, z: v.z * scale }, true);
-      }
-      rolling = Math.max(rolling, Math.hypot(v.x, v.z));
-      if (p.z < 2.8 && p.y > -0.2) ball.lastSafe.set(p.x, p.y, p.z);
-      if (p.y < -1 || (p.z > 3.2 && Math.abs(p.x) < DRAIN_GAP_HALF_WIDTH)) ball.drained = true;
-      const stuckNearTopRight = p.x > 1.15 && p.z < -2.35 && Math.hypot(v.x, v.z) < 0.45;
-      if (stuckNearTopRight) {
-        ball.stuck = (ball.stuck || 0) + 1;
-        if (ball.stuck > 30) ball.body.applyImpulse({ x: -2.4, y: 0.1, z: 1.4 }, true);
+    if (item.kind === "bumper") {
+      const dx = p.x - item.x,
+        dz = p.z - item.z,
+        len = Math.hypot(dx, dz) || 1,
+        v = ball.body.linvel(),
+        kick = Math.max(0, 7.2 - ((v.x * dx) / len + (v.z * dz) / len));
+      ball.body.applyImpulse(
+        { x: (dx / len) * kick, y: 0, z: (dz / len) * kick },
+        true,
+      );
+      item.pulse = 1;
+      if (item.name === "JACK" && this.bank === 31) {
+        const prize = this.jackpot;
+        const awarded = this.addScore(prize, "JACKPOT", p, GOLD);
+        this.announce("JACKPOT", "+" + awarded.toLocaleString("de-DE"), GOLD);
+        this.bank = 0;
+        this.jackpot = 25000;
+        this.audio.play("jackpot");
+        if (this.balls.length === 1 && !this.multiballAt)
+          this.multiballAt = this.time + 0.8;
       } else {
-        ball.stuck = 0;
+        this.addScore(500, item.name, p, item.color);
+        this.audio.play("bumper");
       }
-    });
-    this.audio.setRolling(rolling);
-    const drained = this.balls.filter((ball) => ball.drained);
-    if (drained.length) this.removeDrained(drained);
+    } else if (item.kind === "target") {
+      const previousBank = this.bank;
+      this.bank |= 1 << item.index;
+      item.lamp.pulse = 1.2;
+      this.addScore(1000, "TARGET", p, GOLD);
+      this.audio.play("target");
+      if (this.bank === 31 && previousBank !== 31)
+        this.announce("JACKPOT LIT", "HIT JACK", GOLD);
+    } else if (item.kind === "sling") {
+      const v = ball.body.linvel();
+      ball.body.setLinvel(
+        { x: (p.x < 0 ? 1 : -1) * 4.8, y: 0, z: Math.min(v.z, -2.6) },
+        true,
+      );
+      this.addScore(250, "SLING", p, item.color);
+      this.audio.play("sling");
+    }
   }
-
-  removeDrained(drained) {
-    drained.forEach((ball) => {
-      this.spark(ball.mesh.position.x, Math.min(TABLE.bottom, ball.mesh.position.z), 0xffcc72);
-      this.scene.remove(ball.mesh);
-      this.world.removeCollider(ball.collider, true);
-      this.world.removeRigidBody(ball.body);
-    });
-    this.balls = this.balls.filter((ball) => !ball.drained);
+  addScore(points, label, p, color = MINT) {
+    if (this.status !== "play") return;
+    this.combo = this.time < this.comboUntil ? this.combo + 1 : 1;
+    this.bestCombo = Math.max(this.bestCombo, this.combo);
+    this.comboUntil = this.time + 3.2;
+    this.mult = Math.min(8, 1 + Math.floor(this.combo / 3));
+    const awarded = points * this.mult;
+    this.score += awarded;
+    this.jackpot += Math.round(points * 0.2);
+    this.hits++;
+    this.burst(p, color, this.mult > 2 ? 24 : 14);
+    this.popup(awarded, label, p, color);
+    this.flash = 1;
+    this.shake = 0.02;
+    this.impactLight.color.setHex(color);
+    this.impactLight.position.set(p.x, 1.5, p.z);
+    if (this.combo >= 3)
+      this.announce(
+        this.combo + " HIT COMBO",
+        "x" + this.mult + "  +" + awarded.toLocaleString("de-DE"),
+        color,
+      );
+    if (this.combo >= 3 && this.combo % 3 === 0)
+      this.audio.play("combo", this.mult);
+    this.notice = label;
+    this.publish();
+    return awarded;
+  }
+  drain(ball) {
+    this.deleteBall(ball);
+    this.drains++;
+    if (this.balls.length) return;
+    const saved = this.time < (this.saveUntil || 0);
+    if (!saved) this.ball--;
+    this.combo = 0;
+    this.mult = 1;
+    this.comboUntil = 0;
+    this.plunger = 0;
     this.audio.play("drain");
-    if (this.balls.length > 0) return;
-    this.ball -= 1;
     if (this.ball <= 0) {
       this.status = "gameover";
       this.notice = "GAME OVER";
-      this.onMessage(`Game Over: ${this.score.toLocaleString("de-DE")} Punkte`);
-      this.emitSnapshot(true);
-      return;
+      this.announce("GAME OVER", this.score.toLocaleString("de-DE"), CORAL);
+    } else {
+      this.status = "drain";
+      this.respawnAt = this.time + 1;
+      this.announce(
+        saved ? "BALL SAVED" : "DRAIN",
+        saved ? "SHOOT AGAIN" : this.ball + " BALLS LEFT",
+        saved ? MINT : CORAL,
+      );
     }
-    this.spawnBall(true);
-    this.notice = `BALL ${this.ball}`;
+    this.publish();
+  }
+  deleteBall(ball) {
+    this.scene.remove(ball.mesh, ball.trail);
+    ball.mesh.geometry.dispose();
+    ball.mesh.material.dispose();
+    ball.trail.geometry.dispose();
+    ball.trail.material.dispose();
+    this.world.removeRigidBody(ball.body);
+    this.balls = this.balls.filter((b) => b !== ball);
   }
 
-  addScore(points, label) {
-    if (points) {
-      if (this.comboT > 0) this.mult = Math.min(5, this.mult + 1);
-      else this.mult = 1;
-      this.comboT = 2.8;
-      this.score += points * this.mult;
-      this.jackpot += Math.round(points * 0.25);
+  initParticles() {
+    this.positions = new Float32Array(1152);
+    this.colors = new Float32Array(1152);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
+    g.setAttribute("color", new THREE.BufferAttribute(this.colors, 3));
+    g.setDrawRange(0, 0);
+    this.particles = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({
+        size: 0.055,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    this.particles.frustumCulled = false;
+    this.scene.add(this.particles);
+  }
+  burst(p, hex, count) {
+    const color = new THREE.Color(hex);
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.specks.push({
+        x: p.x,
+        y: 0.3,
+        z: p.z,
+        vx: Math.cos(a) * (1 + Math.random() * 2),
+        vy: 1 + Math.random() * 2,
+        vz: Math.sin(a) * (1 + Math.random() * 2),
+        life: 0.6,
+        color,
+      });
     }
-    this.notice = label;
-    this.spark(0, -0.4, label === "JACKPOT" ? 0xffcc72 : 0x62f4df);
+    this.specks = this.specks.slice(-384);
+    const ring = this.mesh(
+      new THREE.TorusGeometry(0.16, 0.012, 5, 32),
+      new THREE.MeshBasicMaterial({
+        color: hex,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+      p.x,
+      0.06,
+      p.z,
+    );
+    ring.rotation.x = -Math.PI / 2;
+    this.effects.push({ mesh: ring, life: 0.5 });
   }
-
-  flash(life, color, intensity = 1) {
-    this.effects.push({ type: "flash", life, max: life, color, intensity });
+  popup(points, label, p, color) {
+    const pos = new THREE.Vector3(p.x, 0.45, p.z).project(this.camera),
+      e = document.createElement("div");
+    e.className = "pinballFloat";
+    e.style.left = (pos.x + 1) * 50 + "%";
+    e.style.top = (1 - pos.y) * 50 + "%";
+    e.style.color = "#" + color.toString(16).padStart(6, "0");
+    const name = document.createElement("span"),
+      amount = document.createElement("strong");
+    name.textContent = label;
+    amount.textContent = "+" + points.toLocaleString("de-DE");
+    e.append(name, amount);
+    this.fx.appendChild(e);
+    this.effects.push({ element: e, life: 0.95 });
   }
-
-  spark(x, z, color) {
-    for (let i = 0; i < 18; i += 1) {
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.025 + Math.random() * 0.025, 8, 6), new THREE.MeshBasicMaterial({ color, transparent: true }));
-      mesh.position.set(x + (Math.random() - 0.5) * 0.25, 0.42, z + (Math.random() - 0.5) * 0.25);
-      this.scene.add(mesh);
-      this.effects.push({ type: "spark", mesh, life: 0.45, max: 0.45, vx: (Math.random() - 0.5) * 2.4, vy: 0.5 + Math.random() * 1.4, vz: (Math.random() - 0.5) * 2.4 });
-    }
+  announce(title, subtitle, color) {
+    const main = document.createElement("strong"),
+      sub = document.createElement("span");
+    main.textContent = title;
+    sub.textContent = subtitle;
+    this.banner.replaceChildren(main, sub);
+    this.banner.style.color = "#" + color.toString(16).padStart(6, "0");
+    this.bannerAnimation?.cancel();
+    this.bannerAnimation = this.banner.animate(
+      [
+        { opacity: 0, transform: "translate(-50%,-50%) scale(.72)" },
+        {
+          opacity: 1,
+          transform: "translate(-50%,-50%) scale(1.08)",
+          offset: 0.15,
+        },
+        {
+          opacity: 1,
+          transform: "translate(-50%,-50%) scale(1)",
+          offset: 0.65,
+        },
+        { opacity: 0, transform: "translate(-50%,-60%) scale(1.03)" },
+      ],
+      { duration: 1300, fill: "forwards", easing: "ease-out" },
+    );
   }
-
-  updateEffects(dt) {
-    this.effects.forEach((e) => {
+  visuals(dt) {
+    this.balls.forEach((b) => {
+      const p = b.body.translation();
+      b.mesh.position.copy(p);
+      b.mesh.quaternion.copy(b.body.rotation());
+      if (!b.ready) {
+        b.history.unshift(new THREE.Vector3(p.x, p.y, p.z));
+        b.history = b.history.slice(0, 24);
+      }
+      const a = b.trail.geometry.attributes.position.array;
+      for (let i = 0; i < 24; i++) {
+        const q = b.history[i] || b.mesh.position;
+        a.set([q.x, q.y, q.z], i * 3);
+      }
+      b.trail.visible = !b.ready && !b.falling;
+      b.trail.geometry.attributes.position.needsUpdate = true;
+    });
+    this.lamps.forEach((l) => {
+      l.pulse = Math.max(0, l.pulse - dt * 2.5);
+      l.material.emissiveIntensity =
+        0.4 +
+        Math.max(0, Math.sin(this.time * 3 + l.offset)) * 0.7 +
+        l.pulse * 3;
+    });
+    this.targets.forEach((t) => {
+      if (this.bank & (1 << t.index)) t.lamp.material.emissiveIntensity = 2.8;
+    });
+    this.bumpers.forEach((b) => {
+      b.pulse = Math.max(0, b.pulse - dt * 3);
+      b.mesh.position.y = 0.25 - b.pulse * 0.05;
+      b.ring.material.emissiveIntensity = 1.3 + b.pulse * 5;
+      b.ring.scale.setScalar(1 + b.pulse * 0.15);
+    });
+    this.plungerMesh.position.z = 3.9 + this.plunger * 0.25;
+    this.plungerLamp.material.emissiveIntensity = 0.4 + this.plunger * 4;
+    this.flash = Math.max(0, (this.flash || 0) - dt * 4);
+    this.impactLight.intensity = this.flash * 1.6;
+    this.bloom.strength = 0.42 + this.flash * 0.1;
+    this.shake = Math.max(0, (this.shake || 0) - dt * 0.2);
+    this.camera.position.x = Math.sin(this.time * 80) * this.shake;
+    this.specks = this.specks.filter((p) => p.life > 0);
+    this.specks.forEach((p, i) => {
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      p.vy -= dt * 6;
+      this.positions.set([p.x, p.y, p.z], i * 3);
+      this.colors.set(
+        [p.color.r * p.life, p.color.g * p.life, p.color.b * p.life],
+        i * 3,
+      );
+    });
+    this.particles.geometry.setDrawRange(0, this.specks.length);
+    this.particles.geometry.attributes.position.needsUpdate = true;
+    this.particles.geometry.attributes.color.needsUpdate = true;
+    this.effects = this.effects.filter((e) => {
       e.life -= dt;
       if (e.mesh) {
-        e.mesh.position.x += e.vx * dt;
-        e.mesh.position.y += e.vy * dt;
-        e.mesh.position.z += e.vz * dt;
-        e.vy -= 3.2 * dt;
-        e.mesh.material.opacity = Math.max(0, e.life / e.max);
+        e.mesh.scale.addScalar(dt * 4);
+        e.mesh.material.opacity = Math.max(0, e.life * 1.8);
       }
-    });
-    this.effects = this.effects.filter((e) => {
       if (e.life > 0) return true;
-      if (e.mesh) this.scene.remove(e.mesh);
+      e.element?.remove();
+      if (e.mesh) {
+        this.scene.remove(e.mesh);
+        e.mesh.geometry.dispose();
+        e.mesh.material.dispose();
+      }
       return false;
     });
+    this.audio.setRolling(
+      Math.max(
+        0,
+        ...this.balls
+          .filter((b) => !b.ready)
+          .map((b) => {
+            const v = b.body.linvel();
+            return Math.hypot(v.x, v.z);
+          }),
+      ),
+    );
   }
-
-  drawDisplay() {
-    const ctx = this.displayCanvas.getContext("2d");
-    ctx.clearRect(0, 0, 1024, 160);
-    ctx.fillStyle = "#090300";
-    ctx.fillRect(0, 0, 1024, 160);
-    ctx.fillStyle = "#ffb33c";
-    ctx.font = "900 34px monospace";
-    ctx.fillText(`SCORE ${this.score.toLocaleString("de-DE")}`, 36, 58);
-    ctx.font = "900 26px monospace";
-    ctx.fillText(`BALL ${this.ball}   x${this.mult}   LOCK ${this.locks}/3   JACKPOT ${this.jackpot.toLocaleString("de-DE")}`, 36, 106);
-    ctx.fillStyle = "#ffe0a0";
-    ctx.fillText(this.notice, 36, 142);
-    this.displayTexture.needsUpdate = true;
-  }
-
-  loop(t) {
-    if (this.disposed) return;
-    const now = t / 1000;
-    const dt = Math.min(0.05, now - (this.last || now));
-    this.lastFrameDt = dt;
-    this.last = now;
-    this.acc += dt;
-    while (this.acc >= FIXED_STEP) {
-      this.step(FIXED_STEP);
-      this.acc -= FIXED_STEP;
-    }
-    this.drawDisplay();
-    this.drawDebug();
-    this.renderer.render(this.scene, this.camera);
-    this.snapshotT += dt;
-    if (this.snapshotT > 0.16) {
-      this.snapshotT = 0;
-      this.emitSnapshot();
-    }
-    this.frame = requestAnimationFrame((nt) => this.loop(nt));
-  }
-
-  runWallTunnelTest() {
-    const ball = this.spawnBall(false, 1.5, -0.35);
-    ball.body.setTranslation({ x: 1.5, y: 0.35, z: -0.35 }, true);
-    ball.body.setLinvel({ x: 35, y: 0, z: 0 }, true);
-    this.notice = "DEBUG WALL TEST 35";
-  }
-
-  debugColorsToRgb(colors) {
-    if (!colors || colors.length === 0) return new Float32Array();
-    if (colors.length % 4 !== 0) return colors;
-    const rgb = new Float32Array((colors.length / 4) * 3);
-    for (let i = 0, j = 0; i < colors.length; i += 4, j += 3) {
-      rgb[j] = colors[i];
-      rgb[j + 1] = colors[i + 1];
-      rgb[j + 2] = colors[i + 2];
-    }
-    return rgb;
-  }
-
   drawDebug() {
     if (!this.debug) {
       if (this.debugMesh) this.debugMesh.visible = false;
-      if (this.debugHud) this.debugHud.style.display = "none";
       return;
     }
-    const dbg = this.world.debugRender();
+    const data = this.world.debugRender();
     if (!this.debugMesh) {
       this.debugMesh = new THREE.LineSegments(
         new THREE.BufferGeometry(),
-        new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false })
+        new THREE.LineBasicMaterial({ color: 0xeaff7c, depthTest: false }),
       );
-      this.debugMesh.frustumCulled = false;
-      this.debugMesh.renderOrder = 999;
+      this.debugMesh.renderOrder = 99;
       this.scene.add(this.debugMesh);
     }
     this.debugMesh.visible = true;
-    this.debugMesh.geometry.setAttribute("position", new THREE.BufferAttribute(dbg.vertices, 3));
-    this.debugMesh.geometry.setAttribute("color", new THREE.BufferAttribute(this.debugColorsToRgb(dbg.colors), 3));
+    this.debugMesh.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(data.vertices, 3),
+    );
     this.debugMesh.geometry.computeBoundingSphere();
-    if (!this.debugHud) {
-      this.debugHud = document.createElement("div");
-      this.debugHud.className = "pinballDebugHud";
-      this.container.appendChild(this.debugHud);
+  }
+  loop(t) {
+    if (this.disposed) return;
+    const dt = Math.min(0.05, Math.max(0, (t - (this.last || t)) / 1000));
+    this.last = t;
+    if (!this.paused) {
+      this.acc += dt;
+      while (this.acc >= STEP) {
+        this.step();
+        this.acc -= STEP;
+      }
+      this.visuals(dt);
     }
-    const b = this.balls[0]?.body;
-    const p = b?.translation();
-    const v = b?.linvel();
-    const speed = v ? Math.hypot(v.x, v.y, v.z) : 0;
-    this.debugHud.style.display = "block";
-    this.debugHud.textContent = `FPS ${Math.round(1 / Math.max(0.001, this.lastFrameDt || FIXED_STEP))} | Physics 120 Hz | Ball ${p ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}` : "-"} | Speed ${speed.toFixed(2)} | CCD ON | Drain gap ${(DRAIN_GAP_HALF_WIDTH * 2).toFixed(2)} | Tip gap ${this.flipperTipGap().toFixed(2)}`;
+    this.drawDebug();
+    this.composer.render();
+    if (t - (this.lastSnapshot || 0) > 100) {
+      this.publish();
+      this.lastSnapshot = t;
+    }
+    this.frame = requestAnimationFrame((t) => this.loop(t));
   }
-
-  flipperTipGap() {
-    if (this.flippers.length < 2) return 0;
-    const [left, right] = this.flippers;
-    const leftTip = left.pivotX + Math.cos(left.rest) * left.len;
-    const rightTip = right.pivotX + Math.cos(right.rest) * right.len;
-    return Math.max(0, rightTip - leftTip);
+  publish() {
+    this.onSnapshot({
+      status: this.paused ? "paused" : this.status,
+      score: this.score,
+      balls: this.ball,
+      combo: this.combo,
+      mult: this.mult,
+      jackpot: this.jackpot,
+      bank: this.bank,
+      plunger: this.plunger,
+      comboRemaining: Math.max(0, (this.comboUntil - this.time) / 3.2),
+      ballSave: this.time < (this.saveUntil || 0) && this.status === "play",
+      notice: this.notice,
+      level: 1 + Math.floor(this.score / 25000),
+      streak: this.bestCombo,
+    });
   }
-
   getPhysicsDiagnostics() {
     return {
-      fixedStep: FIXED_STEP,
-      physicsHz: Math.round(1 / FIXED_STEP),
-      ballRadius: BALL_RADIUS,
-      maxBallSpeed: MAX_BALL_SPEED,
-      drainGap: DRAIN_GAP_HALF_WIDTH * 2,
-      flipperTipGap: this.flipperTipGap(),
-      flippers: this.flippers.map((f) => ({
-        side: f.side,
-        pivotX: f.pivotX,
-        pivotZ: f.pivotZ,
-        rest: f.rest,
-        active: f.active,
-        length: f.len,
-        width: FLIPPER.width,
-      })),
-      liveBalls: this.balls.map((ball) => ({
-        ccd: ball.body.isCcdEnabled?.() ?? true,
-        position: ball.body.translation(),
-        velocity: ball.body.linvel(),
+      physicsHz: 120,
+      ballRadius: R,
+      maxSpeed: 16,
+      hits: this.hits,
+      drains: this.drains,
+      drainGap: 0.3,
+      liveBalls: this.balls.map((b) => ({
+        ready: b.ready,
+        entered: b.entered,
+        falling: b.falling,
+        ccd: b.body.isCcdEnabled(),
+        position: b.body.translation(),
+        velocity: b.body.linvel(),
       })),
     };
   }
-
-  emitSnapshot(force = false) {
-    if (!force && !this.onSnapshot) return;
-    this.onSnapshot({
-      score: this.score,
-      level: Math.max(1, Math.floor(this.score / 25000) + 1),
-      balls: this.ball,
-      streak: this.comboT > 0 ? this.mult : 0,
-      mult: this.mult,
-      jackpot: this.jackpot,
-      locked: this.locks,
-      bonus: 0,
-      status: this.status,
-    });
-  }
-
   resize() {
-    const rect = this.container.getBoundingClientRect();
-    const width = Math.max(320, rect.width);
-    const height = Math.max(520, rect.height);
-    this.renderer.setSize(width, height, false);
-    this.camera.aspect = width / height;
+    if (!this.renderer || this.disposed) return;
+    const r = this.container.getBoundingClientRect(),
+      w = Math.max(1, r.width),
+      h = Math.max(1, r.height),
+      view = Math.max(9.8, 5.7 / (w / h));
+    this.camera.left = (-view * w) / h / 2;
+    this.camera.right = -this.camera.left;
+    this.camera.top = view / 2;
+    this.camera.bottom = -view / 2;
     this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h, false);
+    this.composer.setSize(w, h);
   }
-
   dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.frame);
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
-    window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("blur", this.onBlur);
+    document.removeEventListener("visibilitychange", this.onVisibility);
+    this.observer?.disconnect();
+    this.bannerAnimation?.cancel();
     this.audio.dispose();
-    this.renderer.dispose();
-    if (this.container.__pinballGame === this) delete this.container.__pinballGame;
+    this.scene?.traverse((o) => {
+      o.geometry?.dispose();
+      if (o.material)
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+          m.map?.dispose();
+          m.dispose();
+        }
+    });
+    this.environment?.dispose();
+    this.bloom?.dispose();
+    this.composer?.dispose();
+    this.renderer?.dispose();
+    this.events?.free();
+    this.world?.free();
+    if (this.container.__pinballGame === this)
+      delete this.container.__pinballGame;
     this.container.replaceChildren();
   }
 }
