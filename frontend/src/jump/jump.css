@@ -1,0 +1,51 @@
+.jumpRunner { position: relative; z-index: 1; min-width: 0; color: #f4fff9; scroll-margin-top: 82px; }
+body:has(.jumpRunner[data-status="play"]) .supportFab { visibility: hidden; }
+.jumpRunnerHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 0 18px; }
+.jumpEdition { color: #8ce0c1; font-size: 11px; font-weight: 800; }
+.jumpRunnerHeader h2 { margin: 4px 0 0; font-size: 28px; line-height: 1.1; }
+.jumpRunnerTools { display: flex; align-items: center; gap: 7px; }
+.jumpBest { display: inline-flex; align-items: center; gap: 7px; margin-right: 9px; color: #f6d776; font-size: 13px; font-weight: 800; }
+.jumpRunnerTools button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid #ffffff26; border-radius: 6px; background: #ffffff09; color: #e5f7ec; }
+.jumpRunnerTools button:hover { background: #ffffff16; }
+.jumpRunnerStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #ffffff1c; padding: 16px 0; }
+.jumpRunnerStats > div { min-width: 0; }
+.jumpRunnerStats span { display: flex; align-items: center; gap: 5px; color: #b4c9bc; font-size: 10px; font-weight: 800; }
+.jumpRunnerStats strong { display: block; margin-top: 4px; font-size: 23px; line-height: 1.15; }
+.jumpRunnerStats small { font-size: 13px; color: #b4c9bc; }
+.jumpComboActive { color: #80efd1; }
+.jumpRunnerStage { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: #c5e9dc; isolation: isolate; }
+.jumpRunnerCanvas { position: absolute; inset: 0; touch-action: none; }
+.jumpRunnerCanvas canvas { display: block; }
+.jumpRunnerOverlay { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; padding: 16px; text-align: center; color: #1c453b; background: #dff7e52b; }
+.jumpRunnerOverlay.ended { background: #e9f7e9df; }
+.jumpOverlayTag { font-size: 11px; font-weight: 900; }
+.jumpRunnerOverlay h3 { margin: 0; font-size: 46px; line-height: 1.05; text-shadow: 0 2px 0 #ffffff6b; }
+.jumpRunnerOverlay p { margin: 0; font-size: 14px; font-weight: 700; }
+.jumpRunnerOverlay p span { padding: 0 7px; opacity: .4; }
+.jumpRunnerOverlay .jumpPrimary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 12px 22px; border: 0; border-radius: 6px; background: #1a5445; color: #fffbea; font-size: 15px; box-shadow: 0 4px 0 #10372d; }
+.jumpRunnerOverlay .jumpPrimary:hover { background: #236e58; transform: translateY(-1px); }
+.jumpRunnerOverlay .jumpSave { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; min-height: 34px; border: 0; background: transparent; color: #1c453b; font-size: 12px; }
+.jumpRunnerFooter { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; }
+.jumpRunState { color: #8ce0c1; font-size: 10px; font-weight: 800; }
+.jumpTouchControls { display: flex; gap: 9px; }
+.jumpTouchControls button { display: grid; place-items: center; width: 60px; height: 44px; padding: 0; border: 1px solid #ffffff2a; border-radius: 6px; background: #dff7e510; color: #e3ffe8; touch-action: none; user-select: none; }
+.jumpTouchControls button:active { background: #378f6a; }
+.jumpRunnerMessage { margin: 0; font-size: 13px; color: #c8e5d2; }
+.jumpRunnerScores { padding-top: 12px; border-top: 1px solid #ffffff1c; }
+.jumpRunnerScores h3 { margin: 0 0 10px; color: #c8e5d2; font-size: 13px; }
+@media (max-width: 540px) {
+  .jumpRunnerHeader { padding-top: 16px; gap: 8px; }
+  .jumpRunnerHeader h2 { font-size: 23px; }
+  .jumpBest { margin-right: 2px; font-size: 11px; gap: 4px; }
+  .jumpRunnerTools { gap: 4px; }
+  .jumpRunnerTools button { width: 32px; height: 34px; }
+  .jumpRunnerStats { gap: 5px; padding: 12px 0; }
+  .jumpRunnerStats strong { font-size: 20px; }
+  .jumpRunnerStats span { font-size: 8px; }
+  .jumpRunnerOverlay { gap: 10px; padding: 10px; }
+  .jumpRunnerOverlay h3 { font-size: 30px; }
+  .jumpRunnerOverlay .jumpPrimary { min-height: 38px; padding: 8px 16px; font-size: 13px; }
+  .jumpRunnerOverlay p { font-size: 11px; }
+  .jumpOverlayTag { font-size: 9px; }
+  .jumpTouchControls button { width: 76px; height: 48px; }
+}
