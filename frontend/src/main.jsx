@@ -34,6 +34,7 @@ import {
 import { api, setToken } from "./api";
 import { PepplePinball } from "./pinball/PepplePinball";
 import { ChickenJump } from "./jump/ChickenJump";
+import { LiveNewsAdmin } from "./live-news/LiveNewsAdmin";
 import "./styles.css";
 
 const nav = [
@@ -4312,6 +4313,7 @@ function AdminPage() {
     ["points", "Punkte"],
     ["roles", "Rollen"],
     ["news", "News"],
+    ["live-news", "Live News"],
     ["shop", "Shop"],
     ["events", "Events"],
     ["support", "Support"],
@@ -4379,6 +4381,7 @@ function AdminPage() {
               {overview.news_posts.map((item) => <AdminRow key={item.id} title={item.title} text={item.body} onDelete={() => mutate(`/api/admin/news/${item.id}`, { method: "DELETE" })} />)}
             </AdminListForm>
           )}
+          {tab === "live-news" && <LiveNewsAdmin password={password} />}
           {tab === "shop" && (
             <AdminListForm title="Shop Item erstellen" form={shop} setForm={setShop} fields={["name", "description", "price", "category"]} onSubmit={() => mutate("/api/admin/shop", { method: "POST", body: JSON.stringify({ ...shop, price: Number(shop.price) }) })}>
               {overview.shop_items.map((item) => <AdminRow key={item.id} title={`${item.name} · ${item.price} Chickens`} text={item.description || item.desc} onDelete={() => mutate(`/api/admin/shop/${item.id}`, { method: "DELETE" })} />)}

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from .auth import create_access_token, current_user, hash_password, require_admin, verify_password
 from .config import get_settings
 from .supabase import supabase
+from .live_news import router as live_news_router
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
@@ -40,6 +41,7 @@ CHAT_STYLE_SHOP_ITEMS = [
 ]
 
 app = FastAPI(title="Aviary API")
+app.include_router(live_news_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
