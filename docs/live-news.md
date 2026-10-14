@@ -2,7 +2,7 @@
 
 ## Stream setup
 
-Add an OBS Browser Source using `/overlays/live-news.html` on the same host as the website. Set its dimensions to **1920 x 1080** and place it above gameplay/webcam sources. The page is transparent except for the bottom 102-pixel ticker. No Twitch API connection or admin credentials are needed in OBS.
+Add an OBS Browser Source using `/overlays/live-news.html` on the same host as the website. Set its dimensions to **1920 x 1080** and place it above gameplay/webcam sources. The page is transparent except for the compact bottom **52-pixel ticker** (36-pixel news bar and 16-pixel footer at 1920px width). The fixed-resolution artwork scales as a whole to the browser viewport width, so smaller sources such as OBS's 800px default do not inflate the ticker when fitted to a full-width stream. No Twitch API connection or admin credentials are needed in OBS.
 
 In **Admin > Live News**, enter a message and choose its type, speed and playback limit: **Durchlaeufe** (1-20 complete right-to-left passes) or **Zeitdauer** (5-3600 seconds). The default is three passes. **Vorschau** checks the draft locally; **Live schalten** starts a new publication, including when the text is unchanged. **Im Stream sichtbar** hides or restarts the last publication without publishing unsaved edits. The browser source normally receives changes within about one second. It keeps its existing deadline during network failures and never restarts an expired publication after reloading.
 

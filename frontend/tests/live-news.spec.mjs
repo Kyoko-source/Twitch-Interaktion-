@@ -101,7 +101,7 @@ test("OBS: transparent, live updates, actual movement, no restart on polling, ne
   await page.screenshot({ path: join(tmpdir(), "live-news-overlay.png"), omitBackground: true });
   const box = await page.locator("#ticker").boundingBox();
   expect(box.y + box.height).toBe(1080);
-  expect(box.height).toBe(102);
+  expect(box.height).toBe(52);
   expect(await page.locator("#news-label").evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   setState({ enabled: false, revision: 3 });
   await expect(page.locator("#ticker")).toBeHidden();
@@ -277,6 +277,41 @@ test("OBS: actual type-specific audio plays once, stops on hide, respects mute a
   expect(await page.evaluate(() => window.__newsAudio.length)).toBe(0);
   setState({ enabled: false });
   await expect(page.locator("#ticker")).toBeHidden();
+});
+
+test("compact overlay: consistent stream height at full HD, 720p, default OBS and mobile widths", async ({ page }) => {
+  const { setState } = await setup(page);
+  const start = Date.now() - 12000;
+  setState({ message: "Community News: Schoen, dass ihr dabei seid!", enabled: true, kind: "breaking",
+    sound_enabled: false, cycle_seconds: 30, repeat_count: 3,
+    updated_at: new Date(start).toISOString(), ends_at: new Date(start + 90000).toISOString() });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/overlays/live-news.html");
+  await expect(page.locator("#ticker")).toBeVisible();
+  for (const kind of ["breaking", "normal", "community"]) {
+    setState({ kind });
+    await expect(page.locator("#ticker")).toHaveAttribute("data-kind", kind);
+    const sizes = await page.evaluate(() => {
+      const label = document.getElementById("news-label").getBoundingClientRect();
+      const bar = document.querySelector(".news-bar").getBoundingClientRect();
+      const text = document.querySelector(".news-copy").getBoundingClientRect();
+      return { labelFits: label.top >= bar.top && label.bottom <= bar.bottom,
+        textFits: text.height <= bar.height, height: document.getElementById("ticker").getBoundingClientRect().height };
+    });
+    expect(sizes).toEqual({ labelFits: true, textFits: true, height: 52 });
+  }
+  await page.screenshot({ path: join(tmpdir(), "live-news-compact-1080p.png"), omitBackground: true });
+  for (const [width, height] of [[1280, 720], [800, 600], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await expect.poll(async () => Math.round((await page.locator("#ticker").boundingBox()).width)).toBe(width);
+    const box = await page.locator("#ticker").boundingBox();
+    expect(box.x).toBeCloseTo(0, 3);
+    expect(box.y + box.height).toBeCloseTo(height, 3);
+    expect(box.height).toBeCloseTo(52 * width / 1920, 2);
+    expect(box.height * 1920 / width).toBeCloseTo(52, 2);
+    expect(await page.locator(".news-copy").evaluate((node) => getComputedStyle(node).fontSize)).toBe("22px");
+    if (width === 800) await page.screenshot({ path: join(tmpdir(), "live-news-compact-obs-default.png"), omitBackground: true });
+  }
 });
 
 test("generated audio assets: valid non-silent PCM without clipping", () => {

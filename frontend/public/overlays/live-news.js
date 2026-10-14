@@ -9,6 +9,12 @@
   let hideTimer;
   let sound;
 
+  function fitSource() {
+    ticker.style.setProperty("--overlay-scale", String(innerWidth / 1920));
+  }
+  fitSource();
+  new ResizeObserver(fitSource).observe(document.body);
+
   function normalizedMessage(message) {
     return `+++ ${message.slice(0, 1000).replace(/\s+/g, " ").trim()} +++`;
   }
@@ -16,8 +22,11 @@
   // The admin's 1920px preview provides the exact cycle length before publishing.
   window.liveNewsCycleSeconds = (state) => {
     const context = document.createElement("canvas").getContext("2d");
-    context.font = getComputedStyle(label).font;
-    const windowWidth = Math.max(1, innerWidth - context.measureText(labels[state.kind]).width - 72);
+    const labelStyle = getComputedStyle(label);
+    context.font = labelStyle.font;
+    const spacing = ["marginLeft", "marginRight", "paddingLeft", "paddingRight"]
+      .reduce((total, property) => total + parseFloat(labelStyle[property]), 0);
+    const windowWidth = Math.max(1, 1920 - context.measureText(labels[state.kind]).width - spacing);
     context.font = getComputedStyle(firstCopy).font;
     const textWidth = context.measureText(normalizedMessage(state.message)).width;
     return Math.max(1, (windowWidth + textWidth) / state.speed);
@@ -83,7 +92,7 @@
     label.textContent = labels[state.kind];
     firstCopy.textContent = normalizedMessage(state.message);
     track.style.setProperty("--start", `${document.querySelector(".news-window").clientWidth}px`);
-    track.style.setProperty("--distance", `${firstCopy.getBoundingClientRect().width}px`);
+    track.style.setProperty("--distance", getComputedStyle(firstCopy).width);
     track.style.setProperty("--duration", `${cycle}s`);
     void track.offsetWidth;
     track.style.animation = "";
