@@ -101,7 +101,7 @@ test("OBS: transparent, live updates, actual movement, no restart on polling, ne
   await page.screenshot({ path: join(tmpdir(), "live-news-overlay.png"), omitBackground: true });
   const box = await page.locator("#ticker").boundingBox();
   expect(box.y + box.height).toBe(1080);
-  expect(box.height).toBe(32);
+  expect(box.height).toBe(44);
   expect(await page.locator("#news-label").evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   setState({ enabled: false, revision: 3 });
   await expect(page.locator("#ticker")).toBeHidden();
@@ -298,7 +298,7 @@ test("compact overlay: consistent stream height at full HD, 720p, default OBS an
       return { labelFits: label.top >= bar.top && label.bottom <= bar.bottom,
         textFits: text.height <= bar.height, height: document.getElementById("ticker").getBoundingClientRect().height };
     });
-    expect(sizes).toEqual({ labelFits: true, textFits: true, height: 32 });
+    expect(sizes).toEqual({ labelFits: true, textFits: true, height: 44 });
   }
   await page.screenshot({ path: join(tmpdir(), "live-news-compact-1080p.png"), omitBackground: true });
   for (const [width, height] of [[1280, 720], [800, 600], [390, 844]]) {
@@ -307,9 +307,9 @@ test("compact overlay: consistent stream height at full HD, 720p, default OBS an
     const box = await page.locator("#ticker").boundingBox();
     expect(box.x).toBeCloseTo(0, 3);
     expect(box.y + box.height).toBeCloseTo(height, 3);
-    expect(box.height).toBeCloseTo(32 * width / 1920, 2);
-    expect(box.height * 1920 / width).toBeCloseTo(32, 2);
-    expect(await page.locator(".news-copy").evaluate((node) => getComputedStyle(node).fontSize)).toBe("20px");
+    expect(box.height).toBeCloseTo(44 * width / 1920, 2);
+    expect(box.height * 1920 / width).toBeCloseTo(44, 2);
+    expect(await page.locator(".news-copy").evaluate((node) => getComputedStyle(node).fontSize)).toBe("24px");
     if (width === 800) await page.screenshot({ path: join(tmpdir(), "live-news-compact-obs-default.png"), omitBackground: true });
   }
 });

@@ -5,9 +5,9 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 #ticker[hidden] { display: none; }
 #ticker[data-kind="normal"] { --news-color: #174fab; }
 #ticker[data-kind="community"] { --news-color: #7937ad; }
-.news-bar { display: flex; align-items: center; height: 32px; background: var(--news-color); border-top: 1px solid rgba(255,255,255,.22); }
-#news-label { flex: 0 0 auto; margin: 0 12px; padding: 4px 8px; background: #fff; color: var(--news-color); font-size: 13px; line-height: 1; white-space: nowrap; }
+.news-bar { display: flex; align-items: center; height: 44px; background: var(--news-color); border-top: 1px solid rgba(255,255,255,.22); }
+#news-label { flex: 0 0 auto; margin: 0 12px; padding: 6px 10px; background: #fff; color: var(--news-color); font-size: 16px; line-height: 1; white-space: nowrap; }
 .news-window { flex: 1; min-width: 0; overflow: hidden; }
 #news-track { display: flex; width: max-content; will-change: transform; animation: news-scroll var(--duration, 20s) linear infinite; }
-.news-copy { flex: 0 0 auto; display: block; white-space: pre; font-size: 20px; font-weight: 700; line-height: 1.2; }
+.news-copy { flex: 0 0 auto; display: block; white-space: pre; font-size: 24px; font-weight: 700; line-height: 1.2; }
 @keyframes news-scroll { from { transform: translateX(var(--start, 1000px)); } to { transform: translateX(calc(-1 * var(--distance, 1000px))); } }
