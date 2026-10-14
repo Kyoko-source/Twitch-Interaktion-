@@ -20,6 +20,14 @@ body:has(.liveNewsAdmin) .supportFab { display: none; }
 .liveNewsSpeed > span { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
 .liveNewsSpeed output { font-weight: 400; color: var(--muted); white-space: nowrap; }
 .liveNewsSpeed input { padding: 0; height: 24px; accent-color: #f6b56c; }
+.liveNewsPlayback { border: 0; padding: 0; margin: 4px 0; display: grid; gap: 12px; min-width: 0; }
+.liveNewsPlayback legend { padding: 0 0 10px; font-weight: 750; }
+.liveNewsModes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.liveNewsModes button { min-height: 40px; padding: 8px; justify-content: center; border-radius: 6px; font-size: 13px; background: rgba(255,255,255,.06); color: #e7dfe9; }
+.liveNewsModes button[aria-pressed="true"] { background: #f5bc7e; color: #201324; }
+.liveNewsPlayback label { font-size: 14px; }
+.liveNewsSound { display: grid; gap: 8px; padding: 14px 0; border-block: 1px solid rgba(255,255,255,.12); }
+.liveNewsSound > button { justify-self: start; border-radius: 6px; min-height: 40px; gap: 8px; }
 .liveNewsActions { display: flex; flex-wrap: wrap; gap: 10px; }
 .liveNewsActions button { flex: 1; justify-content: center; border-radius: 6px; min-height: 42px; white-space: nowrap; }
 .form .liveNewsVisibility { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-top: 6px; }

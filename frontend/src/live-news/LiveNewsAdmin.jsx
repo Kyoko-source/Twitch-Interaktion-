@@ -1,14 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, Eye, Radio, Send, Video } from "lucide-react";
+import { Check, Copy, ExternalLink, Eye, Radio, Send, Square, Video, Volume2 } from "lucide-react";
 import { api } from "../api";
 import "./live-news.css";
 
-const empty = { message: "", kind: "breaking", speed: 90, enabled: false };
+const empty = {
+  message: "", kind: "breaking", speed: 90, enabled: false,
+  playback_mode: "loops", repeat_count: 3, duration_seconds: 30, cycle_seconds: 30,
+  sound_enabled: true, volume: 70,
+};
 const types = [
   { id: "breaking", label: "Breaking News", color: "#fa5366" },
   { id: "normal", label: "Normale News", color: "#69aaff" },
   { id: "community", label: "Community News", color: "#cf90fb" },
 ];
+
+function inRange(value, min, max) {
+  return Number.isInteger(value) && value >= min && value <= max;
+}
 
 export function LiveNewsAdmin({ password }) {
   const [draft, setDraft] = useState(empty);
@@ -19,7 +27,11 @@ export function LiveNewsAdmin({ password }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [frameReady, setFrameReady] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
   const frame = useRef(null);
+  const previewRun = useRef(0);
+  const previewAudio = useRef(null);
   const copyTimer = useRef(null);
   const sourceUrl = `${window.location.origin}/overlays/live-news.html`;
 
@@ -30,12 +42,34 @@ export function LiveNewsAdmin({ password }) {
     api("/api/admin/live-news", { headers: { "X-Admin-Password": password }, signal: controller.signal })
       .then((state) => {
         setPublished(state);
-        setDraft({ message: state.message, kind: state.kind, speed: state.speed, enabled: state.enabled });
+        const { revision, updated_at, ends_at, ...settings } = state;
+        setDraft({ ...empty, ...settings });
         setPreview(state);
       })
       .catch((err) => { if (!controller.signal.aborted) setError(err.message); });
     return () => { controller.abort(); clearTimeout(copyTimer.current); };
   }, [password]);
+
+  useEffect(() => {
+    if (busy) return;
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      api("/api/admin/live-news", { headers: { "X-Admin-Password": password }, signal: controller.signal })
+        .then(setPublished).catch(() => {});
+    }, 2000);
+    return () => { controller.abort(); clearInterval(timer); };
+  }, [password, busy]);
+
+  useEffect(() => {
+    previewAudio.current?.pause();
+    previewAudio.current = null;
+    setAudioPlaying(false);
+    return () => {
+      const audio = previewAudio.current;
+      previewAudio.current = null;
+      audio?.pause();
+    };
+  }, [draft.kind, draft.volume, draft.sound_enabled]);
 
   function sendPreview() {
     frame.current?.contentWindow?.postMessage({ type: "live-news-preview", state: preview }, window.location.origin);
@@ -51,7 +85,7 @@ export function LiveNewsAdmin({ password }) {
         ...options, headers: { "X-Admin-Password": password },
       });
       setPublished(state);
-      if (options.method === "PUT") setPreview(state);
+      if (options.method === "PUT") setPreview({ ...state, preview_id: ++previewRun.current });
       setStatus(success);
     } catch (err) {
       setError(err.message);
@@ -59,6 +93,47 @@ export function LiveNewsAdmin({ password }) {
       setBusy(false);
       setVisibilityPending(null);
     }
+  }
+
+  function publish() {
+    try {
+      const cycle_seconds = frame.current.contentWindow.liveNewsCycleSeconds(draft);
+      previewAudio.current?.pause();
+      previewAudio.current = null;
+      setAudioPlaying(false);
+      save({ method: "PUT", body: JSON.stringify({
+        ...draft, cycle_seconds, enabled: true,
+        repeat_count: inRange(draft.repeat_count, 1, 20) ? draft.repeat_count : empty.repeat_count,
+        duration_seconds: inRange(draft.duration_seconds, 5, 3600) ? draft.duration_seconds : empty.duration_seconds,
+      }) }, "Nachricht ist live.");
+    } catch {
+      setError("Vorschau wird noch geladen. Bitte erneut versuchen.");
+    }
+  }
+
+  function testSound() {
+    if (previewAudio.current) {
+      previewAudio.current.pause();
+      previewAudio.current = null;
+      setAudioPlaying(false);
+      return;
+    }
+    const audio = new Audio(`/overlays/sounds/${draft.kind}.wav`);
+    previewAudio.current = audio;
+    audio.volume = draft.volume / 100;
+    audio.onended = () => {
+      if (previewAudio.current === audio) { previewAudio.current = null; setAudioPlaying(false); }
+    };
+    setError("");
+    audio.play().then(() => {
+      if (previewAudio.current === audio) setAudioPlaying(true);
+    }).catch(() => {
+      if (previewAudio.current === audio) {
+        previewAudio.current = null;
+        setAudioPlaying(false);
+        setError("Sound konnte nicht abgespielt werden.");
+      }
+    });
   }
 
   async function copyUrl() {
@@ -75,8 +150,10 @@ export function LiveNewsAdmin({ password }) {
     } catch (err) { setError(err.message); }
   }
 
-  const ready = published !== null && !busy;
-  const valid = Boolean(draft.message.trim());
+  const ready = published !== null && frameReady && !busy;
+  const limit = draft.playback_mode === "duration" ? draft.duration_seconds : draft.repeat_count;
+  const valid = Boolean(draft.message.trim()) && inRange(limit,
+    draft.playback_mode === "duration" ? 5 : 1, draft.playback_mode === "duration" ? 3600 : 20);
   return (
     <section className="liveNewsAdmin">
       <header className="liveNewsHeading">
@@ -88,7 +165,7 @@ export function LiveNewsAdmin({ password }) {
       <div className="liveNewsWorkspace">
         <form className="liveNewsEditor form" onSubmit={(event) => {
           event.preventDefault();
-          if (ready && valid) save({ method: "PUT", body: JSON.stringify({ ...draft, enabled: true }) }, "Nachricht ist live.");
+          if (ready && valid) publish();
         }}>
           <label htmlFor="live-news-message">Nachricht</label>
           <textarea id="live-news-message" maxLength={1000} rows={5} value={draft.message}
@@ -109,9 +186,40 @@ export function LiveNewsAdmin({ password }) {
             <input id="live-news-speed" type="range" min="40" max="220" step="5" value={draft.speed}
               disabled={!ready} onChange={(event) => setDraft({ ...draft, speed: Number(event.target.value) })} />
           </label>
+          <fieldset className="liveNewsPlayback" disabled={!ready}>
+            <legend>Automatisch beenden</legend>
+            <div className="liveNewsModes" role="group" aria-label="Laufzeitsteuerung">
+              <button type="button" aria-pressed={draft.playback_mode === "loops"}
+                onClick={() => setDraft({ ...draft, playback_mode: "loops" })}>Durchlaeufe</button>
+              <button type="button" aria-pressed={draft.playback_mode === "duration"}
+                onClick={() => setDraft({ ...draft, playback_mode: "duration" })}>Zeitdauer</button>
+            </div>
+            {draft.playback_mode === "loops" ? (
+              <label>Anzahl Durchlaeufe<input type="number" min="1" max="20" step="1" required value={draft.repeat_count}
+                onChange={(event) => setDraft({ ...draft, repeat_count: event.target.value === "" ? "" : Number(event.target.value) })} /></label>
+            ) : (
+              <label>Dauer in Sekunden<input type="number" min="5" max="3600" step="1" required value={draft.duration_seconds}
+                onChange={(event) => setDraft({ ...draft, duration_seconds: event.target.value === "" ? "" : Number(event.target.value) })} /></label>
+            )}
+          </fieldset>
+          <div className="liveNewsSound">
+            <label className="liveNewsVisibility">
+              <input type="checkbox" checked={draft.sound_enabled} disabled={!ready}
+                onChange={(event) => setDraft({ ...draft, sound_enabled: event.target.checked })} />
+              Sound beim Start
+            </label>
+            <label className="liveNewsSpeed" htmlFor="live-news-volume">
+              <span>Lautstaerke <output>{draft.volume} %</output></span>
+              <input id="live-news-volume" type="range" min="0" max="100" step="5" value={draft.volume}
+                disabled={!ready || !draft.sound_enabled} onChange={(event) => setDraft({ ...draft, volume: Number(event.target.value) })} />
+            </label>
+            <button type="button" className="ghost" disabled={!ready || !draft.sound_enabled || !draft.volume} onClick={testSound}>
+              {audioPlaying ? <Square size={17} /> : <Volume2 size={17} />}{audioPlaying ? "Sound stoppen" : "Sound testen"}
+            </button>
+          </div>
           <div className="liveNewsActions">
             <button type="button" className="ghost" disabled={!ready || !valid}
-              onClick={() => { setPreview({ ...draft, enabled: true }); setStatus("Vorschau aktualisiert."); }}><Eye size={17} /> Vorschau</button>
+              onClick={() => { setPreview({ ...draft, enabled: true, preview_id: ++previewRun.current }); setStatus("Vorschau aktualisiert."); }}><Eye size={17} /> Vorschau</button>
             <button type="submit" disabled={!ready || !valid}><Send size={17} /> Live schalten</button>
           </div>
           <label className="liveNewsVisibility">
@@ -131,13 +239,14 @@ export function LiveNewsAdmin({ password }) {
           <div className="liveNewsScreen">
             <Video className="liveNewsCamera" size={34} aria-hidden="true" />
             <div className="liveNewsFrameViewport">
-              <iframe ref={frame} src="/overlays/live-news.html?preview=1" title="Live News Vorschau" onLoad={sendPreview} />
+              <iframe ref={frame} src="/overlays/live-news.html?preview=1" title="Live News Vorschau" onLoad={() => { setFrameReady(true); sendPreview(); }} />
             </div>
           </div>
           <div className="liveNewsPublished">
             <strong>Zuletzt veroeffentlicht</strong>
             <p>{published?.message || "Noch keine Nachricht"}</p>
             {published?.updated_at && <time dateTime={published.updated_at}>{new Date(published.updated_at).toLocaleString("de-DE")}</time>}
+            {published?.enabled && published.ends_at && <p>Endet um {new Date(published.ends_at).toLocaleTimeString("de-DE")}</p>}
           </div>
         </section>
       </div>
