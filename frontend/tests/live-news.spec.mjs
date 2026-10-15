@@ -209,10 +209,12 @@ test("admin: expiration updates live status without overwriting draft; identical
 
 test("OBS: exact finite loops stop, identical polling cannot restart, identical republish can", async ({ page }) => {
   const { setState } = await setup(page);
+  // Publish after browser-source loading, so its real two-second window is not
+  // already expired by navigation on a cold/slow browser startup.
+  await page.goto("/overlays/live-news.html");
   const start = Date.now();
   setState({ message: "Zweimal", enabled: true, repeat_count: 2, cycle_seconds: 1, sound_enabled: false,
     updated_at: new Date(start).toISOString(), ends_at: new Date(start + 2000).toISOString(), revision: 1 });
-  await page.goto("/overlays/live-news.html");
   await expect(page.locator("#ticker")).toBeVisible();
   expect(await page.locator("#news-track").evaluate((node) => getComputedStyle(node).animationIterationCount)).toBe("2");
   await expect(page.locator("#ticker")).toBeHidden({ timeout: 3500 });
@@ -227,10 +229,10 @@ test("OBS: exact finite loops stop, identical polling cannot restart, identical 
 
 test("OBS: duration stops during network failure and expired publications stay hidden on reload", async ({ page }) => {
   const { setState } = await setup(page);
+  await page.goto("/overlays/live-news.html");
   const start = Date.now();
   setState({ message: "Nur fuenf Sekunden", enabled: true, playback_mode: "duration", duration_seconds: 5,
     cycle_seconds: 1, sound_enabled: false, updated_at: new Date(start).toISOString(), ends_at: new Date(start + 5000).toISOString() });
-  await page.goto("/overlays/live-news.html");
   await expect(page.locator("#ticker")).toBeVisible();
   expect(await page.locator("#news-track").evaluate((node) => getComputedStyle(node).animationIterationCount)).toBe("infinite");
   await page.route("**/api/live-news", (route) => route.abort());

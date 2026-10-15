@@ -44,6 +44,7 @@ import "./styles.css";
 import "./ui/community-theme.css";
 
 const PeppleSurvivor = lazy(() => import("./survivor/PeppleSurvivor").then((module) => ({ default: module.PeppleSurvivor })));
+const Quatschfarm = lazy(() => import("./farm/Quatschfarm").then((module) => ({ default: module.Quatschfarm })));
 
 const nav = [
   { id: "home", label: "Home", icon: Home },
@@ -65,6 +66,7 @@ const gameMeta = {
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Sammle goldene Eier und jage mit deiner Jade-Schlange den nächsten Rekord." },
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Chickens." },
+  "quatschfarm": { title: "Quatschfarm", accent: "#f4c76c", text: "Deine Tiere. Deine Stimmen. Dein Chaos." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
 
@@ -671,6 +673,7 @@ function GamesPage({ user }) {
     "chicken-snake": <ChickenSnake user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-snake" refreshKey={refreshKey} />} />,
     "chicken-flipper": <PepplePinball user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />} />,
     "braincell-survivor": <Suspense fallback={<div className="notice">Lade Pepple Survivor …</div>}><PeppleSurvivor user={user} renderScoreboard={(refreshKey) => <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />} /></Suspense>,
+    "quatschfarm": <Suspense fallback={<div className="notice">Dein Bauernhof lädt …</div>}><Quatschfarm key={user?.username || "guest"} user={user} /></Suspense>,
   }[game];
 
   return (
@@ -679,11 +682,11 @@ function GamesPage({ user }) {
         <div>
           <p className="kicker">Minispiele</p>
           <h1>Dein nächster Highscore wartet.</h1>
-          <p>Vier Spiele, neue Bestleistungen und jede Menge Chickens. Such dir dein Spiel aus.</p>
+          <p>Fünf Spiele, neue Bestleistungen und deine eigene Quatschfarm. Such dir dein Spiel aus.</p>
         </div>
         <Zap size={64} />
       </div>
-      <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>
+      {game !== "quatschfarm" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => id !== "dnd" && setGame(id)} disabled={id === "dnd"} type="button">

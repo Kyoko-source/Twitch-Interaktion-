@@ -12,13 +12,14 @@ export function setToken(value) {
   else localStorage.removeItem("aviary_token");
 }
 
-export async function api(path, options = {}) {
+export async function api(path, options = {}, responseType = "json") {
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (response.ok && responseType === "blob") return response.blob();
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) {

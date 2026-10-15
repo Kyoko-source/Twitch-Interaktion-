@@ -48,7 +48,7 @@ export class PinballGame {
   async start() {
     await RAPIER.init();
     if (this.disposed) return;
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 3.25 });
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 4.2 });
     this.world.timestep = STEP;
     this.world.integrationParameters.numSolverIterations = 8;
     this.world.integrationParameters.maxCcdSubsteps = 4;
@@ -443,7 +443,7 @@ export class PinballGame {
     });
   }
   flipper(side, x, rest, active, color) {
-    const len = 0.97,
+    const len = 0.9,
       body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.kinematicPositionBased(),
       );
@@ -620,7 +620,7 @@ export class PinballGame {
     );
     this.status = "play";
     this.notice = "BALL SAVE";
-    this.saveUntil = this.time + 7;
+    this.saveUntil = this.time + 2.5;
     this.plunger = 0;
     this.keys.launch = false;
     this.audio.play("plunger");
@@ -814,7 +814,8 @@ export class PinballGame {
     const p = ball.body.translation();
     if (item.kind === "flipper") {
       const f = item.flipper;
-      if (!this.keys[f.side]) return;
+      // Holding a flipper no longer provides an automatic powered rescue.
+      if (!this.keys[f.side] || !f.moving) return;
       const t = Math.max(
           0.15,
           Math.min(1, Math.hypot(p.x - f.pivotX, p.z - 3) / f.len),
@@ -879,8 +880,8 @@ export class PinballGame {
     if (this.status !== "play") return;
     this.combo = this.time < this.comboUntil ? this.combo + 1 : 1;
     this.bestCombo = Math.max(this.bestCombo, this.combo);
-    this.comboUntil = this.time + 3.2;
-    this.mult = Math.min(8, 1 + Math.floor(this.combo / 3));
+    this.comboUntil = this.time + 2.2;
+    this.mult = Math.min(6, 1 + Math.floor(this.combo / 4));
     const awarded = points * this.mult;
     this.score += awarded;
     this.jackpot += Math.round(points * 0.2);

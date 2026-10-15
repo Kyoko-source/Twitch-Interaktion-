@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Clock, Flag, Gamepad2, Heart, Maximize, Minimize, Pause, Play, RefreshCw, Shield, Skull, Sparkles, Target, Volume2, VolumeX, Zap } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { SPECIAL_WEAPONS, WEAPON_ART, evolutionTier, evolutionMultiplier, updateSpecialWeapons, steerComet, explodeComet } from "./SurvivorWeapons.mjs";
-import { survivorSound, survivorNoise } from "./SurvivorAudio";
+import { survivorSound, survivorStop, survivorVolume } from "./SurvivorAudio";
 import { ArcadeButton } from "../ui/ArcadeButton";
 import "./survivor.css";
+import { drawBeamVfx, drawProjectileTrail } from "./SurvivorVfx";
 
 function Stat({label,value}) { return <div className="stat"><strong>{value ?? 0}</strong><span>{label}</span></div>; }
 function useCanvasGame(draw, deps, onError) {
@@ -132,7 +133,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const keysRef = useRef({});
-  const musicRef = useRef(null);
+
   const stageRef = useRef(null);
   const bgRef = useRef(null);
   const weaponArtRef = useRef(null);
@@ -144,14 +145,9 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
   const playerArtRef = useRef(null);
   const playerFaceRef = useRef(null);
   const criticalAlarmRef = useRef(0);
-  const audioRef = useRef({ ctx: null, nextBeat: 0 });
+  const audioRef = useRef({ ctx: null });
   const statusRef = useRef("menu");
-  const musicPlaylist = [
-    "/assets/braincell-survivor-theme.mp3",
-    "/assets/braincell-survivor-theme-2.mp3",
-    "/assets/braincell-survivor-theme-3.mp3",
-    "/assets/braincell-survivor-theme-4.mp3",
-  ];
+
   const perfCaps = { enemies: 92, bossEnemies: 64, shots: 88, hazards: 72, particles: 230, gems: 120, potions: 8, beams: 48, bombs: 22, wells: 8 };
   const bossCooldownSeconds = 180;
 
@@ -242,8 +238,8 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
     if (next !== "play") { keysRef.current = {}; touchRef.current = { x: 0, y: 0, active: false }; }
     if (next === "gameover") syncSnapshot(stateRef.current);
     setStatus(next);
-    if (next === "play") setTimeout(startMusic, 0);
-    if (next === "gameover" || next === "menu" || next === "options" || next === "paused" || next === "crashed") stopMusic();
+
+    if (next === "gameover" || next === "menu" || next === "options" || next === "paused" || next === "crashed") survivorStop(audioRef.current.ctx);
   }
 
   useEffect(() => {
@@ -293,10 +289,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
   }, []);
 
   useEffect(() => () => {
-    if (musicRef.current) {
-      musicRef.current.pause();
-      musicRef.current.src = "";
-    }
+
     audioRef.current.ctx?.close?.();
     audioRef.current.ctx = null;
   }, []);
@@ -315,16 +308,10 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
 
   useEffect(() => {
     writeSurvivorSettings({ audioOn, volume, controlMode });
-    if (musicRef.current) musicRef.current.volume = 0.18 * volume;
+
   }, [audioOn, volume, controlMode]);
 
-  useEffect(() => {
-    if (!audioOn) {
-      musicRef.current?.pause();
-      return;
-    }
-    if (statusRef.current === "play") startMusic();
-  }, [audioOn, volume]);
+  useEffect(() => { survivorVolume(audioRef.current.ctx, audioOn ? volume : 0); if (!audioOn) survivorStop(audioRef.current.ctx); }, [audioOn, volume]);
 
   function audio() {
     if (!audioOn) return null;
@@ -339,111 +326,9 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
 
   function sfx(type) { survivorSound(audio(), type, volume); }
 
-  function levelUpFanfare() {
-    const ctxAudio = audio();
-    if (!ctxAudio) return;
-    const now = ctxAudio.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((note, index) => {
-      const startAt = now + index * 0.075;
-      const osc = ctxAudio.createOscillator();
-      const gain = ctxAudio.createGain();
-      osc.type = index === notes.length - 1 ? "sawtooth" : "triangle";
-      osc.frequency.setValueAtTime(note, startAt);
-      osc.frequency.exponentialRampToValueAtTime(note * 1.12, startAt + 0.16);
-      gain.gain.setValueAtTime(0.001, startAt);
-      gain.gain.linearRampToValueAtTime((index === notes.length - 1 ? 0.09 : 0.06) * volume, startAt + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.32);
-      osc.connect(gain).connect(ctxAudio.destination);
-      osc.start(startAt);
-      osc.stop(startAt + 0.36);
-    });
-    noise(0.16, 0.018);
-  }
-
-  function criticalAlarm() {
-    const ctxAudio = audio();
-    if (!ctxAudio) return;
-    const now = ctxAudio.currentTime;
-    for (let i = 0; i < 4; i += 1) {
-      const osc = ctxAudio.createOscillator();
-      const gain = ctxAudio.createGain();
-      const startAt = now + i * 0.18;
-      osc.type = "square";
-      osc.frequency.setValueAtTime(i % 2 ? 590 : 920, startAt);
-      osc.frequency.exponentialRampToValueAtTime(i % 2 ? 720 : 520, startAt + 0.12);
-      gain.gain.setValueAtTime(0.001, startAt);
-      gain.gain.linearRampToValueAtTime(0.11 * volume, startAt + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.145);
-      osc.connect(gain).connect(ctxAudio.destination);
-      osc.start(startAt);
-      osc.stop(startAt + 0.16);
-    }
-  }
-
-  function bleedingAlarm() {
-    const ctxAudio = audio();
-    if (ctxAudio) {
-      const now = ctxAudio.currentTime;
-      for (let i = 0; i < 6; i += 1) {
-        const osc = ctxAudio.createOscillator();
-        const gain = ctxAudio.createGain();
-        const startAt = now + i * 0.15;
-        osc.type = i % 2 ? "sawtooth" : "square";
-        osc.frequency.setValueAtTime(i % 2 ? 122 : 880, startAt);
-        osc.frequency.exponentialRampToValueAtTime(i % 2 ? 66 : 520, startAt + 0.12);
-        gain.gain.setValueAtTime(0.001, startAt);
-        gain.gain.linearRampToValueAtTime(0.13 * volume, startAt + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.14);
-        osc.connect(gain).connect(ctxAudio.destination);
-        osc.start(startAt);
-        osc.stop(startAt + 0.16);
-      }
-      noise(0.5, 0.05);
-    }
-    if (audioOn && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const voice = new SpeechSynthesisUtterance("Unstillbare Blutung entdeckt");
-      voice.lang = "de-DE";
-      voice.rate = 0.9;
-      voice.pitch = 0.65;
-      voice.volume = Math.max(0.2, Math.min(1, volume));
-      window.speechSynthesis.speak(voice);
-    }
-  }
-
-  function noise(duration = 0.1, level = 0.02) { survivorNoise(audio(), duration, level * volume); }
-
-  function startMusic() {
-    const el = musicRef.current;
-    if (!el || !audioOn) return;
-    if (!el.src) el.src = musicPlaylist[Math.floor(Math.random() * musicPlaylist.length)];
-    el.volume = 0.18 * volume;
-    el.play().catch(() => {});
-  }
-
-  function stopMusic() {
-    musicRef.current?.pause();
-  }
-
-  function musicTick() {
-    const ctxAudio = audioOn ? audioRef.current.ctx : null;
-    if (!ctxAudio || statusRef.current !== "play") return;
-    const now = ctxAudio.currentTime;
-    if (now < audioRef.current.nextBeat) return;
-    const osc = ctxAudio.createOscillator();
-    const gain = ctxAudio.createGain();
-    const notes = [98, 130.81, 146.83, 196, 220, 261.63, 293.66, 220];
-    const note = notes[Math.floor(now * 2.35) % notes.length];
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(note, now);
-    gain.gain.setValueAtTime(0.022 * volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
-    osc.connect(gain).connect(ctxAudio.destination);
-    osc.start(now);
-    osc.stop(now + 0.46);
-    audioRef.current.nextBeat = now + 0.36;
-  }
+  function levelUpFanfare() { sfx('level'); }
+  function criticalAlarm() { sfx('hit'); }
+  function bleedingAlarm() { sfx('nova'); }
 
   function burst(x, y, color, amount = 10) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
@@ -1377,16 +1262,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
     const angle = Math.atan2(shot.vy, shot.vx) + Math.PI / 2;
     const spriteName = shot.type === "comet" ? "comet" : shot.type === "drone" ? "laser" : stateRef.current.weapons.frost ? "frost" : "feather";
     const color = shot.type === "comet" ? "#ffad74" : shot.type === "drone" ? "#8f7bff" : stateRef.current.weapons.frost ? "#9bf6ff" : "#c88cff";
-    ctx.save();
-    ctx.strokeStyle = shot.type === "drone" ? "rgba(143,123,255,.36)" : "rgba(255,207,138,.34)";
-    ctx.lineWidth = shot.type === "drone" ? 9 : 7;
-    ctx.shadowBlur = 24;
-    ctx.shadowColor = color;
-    ctx.beginPath();
-    ctx.moveTo(shot.x - shot.vx * 3.2, shot.y - shot.vy * 3.2);
-    ctx.lineTo(shot.x, shot.y);
-    ctx.stroke();
-    ctx.restore();
+    drawProjectileTrail(ctx, shot, frame, reducedMotion.current);
     if (drawSprite(ctx, spriteName, shot.x, shot.y, shot.type === "drone" ? 42 : 34, shot.type === "drone" ? 28 : 48, { rotate: angle, shadowBlur: 18, shadowColor: color })) return;
     ctx.strokeStyle = color;
     ctx.lineWidth = shot.type === "drone" ? 3 : 4;
@@ -1568,7 +1444,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
   const canvasRef = useCanvasGame((ctx, canvas, dt, frame) => {
     const state = stateRef.current;
     const isPlaying = statusRef.current === "play";
-    musicTick();
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawWorldBackdrop(ctx, canvas, state, frame);
@@ -1677,7 +1553,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
           state.shots.push({ type: "drone", x, y, vx: dx / dist * 11.4, vy: dy / dist * 11.4, life: 720, damage: (11 + state.weapons.drone * 3.8) * damageMult(state) * evolutionMultiplier(state.weapons.drone), pierce: 0 });
         }
         state.timers.drone = Math.max(120, (660 - state.weapons.drone * 54) * cooldownMult(state));
-        if (shots > 0) sfx("shot");
+        if (shots > 0) sfx("drone");
       }
 
       state.timers.thunder -= dt;
@@ -2107,37 +1983,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
 
     state.enemies.forEach((enemy) => drawAlien(ctx, enemy, frame));
 
-    state.beams.forEach((beam) => {
-      const alpha = Math.max(0, beam.life / beam.ttl);
-      const isThunder = beam.color === "#ffe66d";
-      ctx.save();
-      ctx.strokeStyle = isThunder ? `rgba(255,230,109,${alpha * 0.26})` : `rgba(122,244,220,${alpha * 0.24})`;
-      ctx.lineWidth = (beam.width || 6) * 4.2;
-      ctx.lineCap = "round";
-      ctx.shadowBlur = 34;
-      ctx.shadowColor = beam.color;
-      ctx.beginPath();
-      ctx.moveTo(beam.x1, beam.y1);
-      ctx.lineTo(beam.x2, beam.y2);
-      ctx.stroke();
-      ctx.strokeStyle = isThunder ? `rgba(255,252,205,${alpha * 0.92})` : `rgba(228,255,251,${alpha * 0.88})`;
-      ctx.lineWidth = Math.max(2, (beam.width || 6) * 0.42);
-      ctx.beginPath();
-      ctx.moveTo(beam.x1, beam.y1);
-      if (isThunder) {
-        const steps = 9;
-        for (let i = 1; i < steps; i += 1) {
-          const t = i / steps;
-          const nx = beam.x1 + (beam.x2 - beam.x1) * t + Math.sin(frame + i * 9) * 8;
-          const ny = beam.y1 + (beam.y2 - beam.y1) * t + Math.cos(frame + i * 7) * 8;
-          ctx.lineTo(nx, ny);
-        }
-      }
-      ctx.lineTo(beam.x2, beam.y2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    });
+    state.beams.forEach(beam => drawBeamVfx(ctx, beam, frame, reducedMotion.current));
 
     state.bombs.forEach((bomb) => {
       if (![bomb.x, bomb.y, bomb.life, bomb.ttl, bomb.radius].every(Number.isFinite) || bomb.ttl <= 0 || bomb.radius <= 0) return;
@@ -2508,7 +2354,7 @@ export function PeppleSurvivor({ user, renderScoreboard }) {
       <div className="survivorBattleGrid" ref={stageRef} tabIndex={-1}>
         <div className="survivorBattleMain">
           <div className="survivorStage" style={{ "--blood": bloodIntensity }}>
-            <audio ref={musicRef} preload="none" onEnded={() => { if (musicRef.current) { musicRef.current.src = musicPlaylist[Math.floor(Math.random() * musicPlaylist.length)]; startMusic(); } }} />
+
             <canvas className="gameCanvas survivorCanvas" ref={canvasRef} tabIndex={0} width="1280" height="720" aria-label="Pepple Survivor Spielfeld. WASD oder Pfeiltasten bewegen, Waffen feuern automatisch." />
             <div className="survivorCombatHud" aria-live="off">
               <div className="survivorCombatMeter survivorHealth"><Heart size={18} fill="currentColor" /><span><i style={{ width: `${healthPct}%` }} /><b>{snapshot.hp} / {snapshot.maxHp}</b></span></div>

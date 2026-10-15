@@ -145,7 +145,9 @@ test("one minute of real physics with flipper input stays bounded and keeps scor
   expect(result.outside, JSON.stringify(result)).toBe(false);
   expect(result.peakSpeed).toBeLessThanOrEqual(16.01);
   expect(result.elapsed).toBeGreaterThan(15);
-  expect(result.hits).toBeGreaterThan(8);
+  // The harder table intentionally yields fewer automatic hits; it must still
+  // sustain real contacts and score without breaking containment or physics.
+  expect(result.hits).toBeGreaterThan(4);
   expect(result.score).toBeGreaterThan(3000);
 });
 

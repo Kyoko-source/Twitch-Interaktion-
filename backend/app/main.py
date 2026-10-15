@@ -15,6 +15,7 @@ from .config import get_settings
 from .supabase import supabase
 from .live_news import router as live_news_router
 from .purchase_alerts import router as purchase_alerts_router
+from .farm import router as farm_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
@@ -45,6 +46,7 @@ CHAT_STYLE_SHOP_ITEMS = [
 app = FastAPI(title="Aviary API")
 app.include_router(live_news_router)
 app.include_router(purchase_alerts_router)
+app.include_router(farm_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
