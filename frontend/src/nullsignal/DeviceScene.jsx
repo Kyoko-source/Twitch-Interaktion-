@@ -7,7 +7,6 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {createDevice} from './DeviceGeometry';
-import {RoomVisitor} from './RoomVisitor';
 
 function disposeTree(root,{materials=true}={}){
   const geometries=new Set(),mats=new Set(),maps=new Set();
@@ -41,7 +40,6 @@ class DeviceRenderer {
     this.emergency=new T.PointLight('#f35c3e',0,16,1);this.emergency.position.set(-3,1,-1);this.scene.add(this.emergency);
     const pmrem=new T.PMREMGenerator(this.renderer),roomEnvironment=new RoomEnvironment();this.environment=pmrem.fromScene(roomEnvironment,.06);this.scene.environment=this.environment.texture;this.scene.environmentIntensity=.4;roomEnvironment.dispose();pmrem.dispose();
     this.table=new T.Mesh(new T.BoxGeometry(13,.18,8),new T.MeshStandardMaterial({color:'#594331',metalness:.35,roughness:.8}));this.table.position.y=-2.2;this.table.receiveShadow=true;this.scene.add(this.table);
-    this.visitor=new RoomVisitor(this.scene);
     this.composer=new EffectComposer(this.renderer);this.composer.addPass(new RenderPass(this.scene,this.camera));this.bloom=new UnrealBloomPass(new T.Vector2(800,600),.1,.35,2.5);this.composer.addPass(this.bloom);this.outputPass=new OutputPass();this.composer.addPass(this.outputPass);
     const count=80,positions=new Float32Array(count*3);this.particleDirections=[];
     for(let i=0;i<count;i++){const v=new T.Vector3(Math.sin(i*2.4),Math.cos(i*7.1)*.8+.6,Math.cos(i*3.3)).normalize();this.particleDirections.push(v);}
@@ -51,7 +49,7 @@ class DeviceRenderer {
     this.down=event=>{
       if(event.button!==0)return;this.activePointers.add(event.pointerId);
       if(this.activePointers.size!==1){this.downPoint=null;return;}
-      this.downPoint={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,time:performance.now(),dragged:false,lightOnly:event.pointerType==='touch'&&(this.lookingRoom||Boolean(this.getProps().atmosphere?.().blackout))};
+      this.downPoint={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,time:performance.now(),dragged:false,lightOnly:event.pointerType==='touch'&&Boolean(this.getProps().atmosphere?.().blackout)};
       if(this.downPoint.lightOnly){const rect=this.renderer.domElement.getBoundingClientRect();this.lampPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);}
       this.renderer.domElement.setPointerCapture(event.pointerId);
     };
@@ -70,7 +68,7 @@ class DeviceRenderer {
     this.contextLost=event=>{event.preventDefault();if(this.alive)this.onError('Die 3D-Verbindung wurde unterbrochen. Lade die 3D-Ansicht erneut; eure Runde bleibt gespeichert.');};
     this.renderer.domElement.addEventListener('pointerdown',this.down);this.renderer.domElement.addEventListener('pointerup',this.up);this.renderer.domElement.addEventListener('pointercancel',this.cancel);this.renderer.domElement.addEventListener('pointermove',this.move);this.renderer.domElement.addEventListener('webglcontextlost',this.contextLost);
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
-    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms(),visitor:()=>this.visitor.inspect(this.camera,this.container.clientWidth,this.container.clientHeight),lighting:()=>({blackout:this.blackout,flashlight:this.flashlight.intensity,aim:this.flashlight.target.position.toArray(),background:this.scene.backgroundIntensity})};
+    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms(),lighting:()=>({blackout:this.blackout,flashlight:this.flashlight.intensity,aim:this.flashlight.target.position.toArray(),background:this.scene.backgroundIntensity})};
     this.resize();this.view('front',true);
     const loader=new T.TextureLoader();Promise.all([loader.loadAsync('/assets/nullsignal/steel.png'),loader.loadAsync('/assets/nullsignal/workshop.png')]).then(([texture,background])=>{
       if(!this.alive){texture.dispose();background.dispose();return;}
@@ -159,12 +157,9 @@ class DeviceRenderer {
     else this.tweenTo(new T.Vector3(2.2,1,9.2).multiplyScalar(fit).add(new T.Vector3(0,.05*(1-fit),0)),new T.Vector3(0,.05,0),instant);
   }
   view(side='front',instant=false){
-    if(!this.camera)return;this.focused=false;this.lookingRoom=side==='room'&&!this.closed;
-    if(this.lookingRoom){const target=new T.Vector3(0,.05,-1.5),direction=new T.Vector3(2.2,.95,9.2).normalize(),distance=13.8*Math.max(1,1/this.camera.aspect);this.tweenTo(target.clone().addScaledVector(direction,distance),target,instant);return;}
-    this.orient(!this.closed&&side==='back'?Math.PI:0,0,instant);this.frameDevice(instant);
+    if(!this.camera)return;this.focused=false;this.orient(!this.closed&&side==='back'?Math.PI:0,0,instant);this.frameDevice(instant);
   }
   focus(id){
-    this.lookingRoom=false;
     this.lampPointer.set(0,0);
     const item=this.device?.modules.get(id);if(!item)return;this.device.root.updateMatrixWorld(true);
     const yaw=item.panel.parent.position.z<0?Math.PI:0,quaternion=this.rotation(yaw,0);
@@ -183,19 +178,18 @@ class DeviceRenderer {
   }
   animate(now){
     if(!this.alive)return;const props=this.getProps();
-    const atmosphere=props.atmosphere?.(),blackout=!this.closed&&Boolean(atmosphere?.blackout),delta=Math.min(.08,Math.max(0,(now-(this.lastFrame??now))/1000));this.lastFrame=now;
+    const blackout=!this.closed&&Boolean(props.atmosphere?.().blackout);
     if(blackout!==this.blackout){
       this.blackout=blackout;this.container.dataset.blackout=String(blackout);this.lampPointer.set(0,0);
       this.workLights.forEach((light,i)=>{light.intensity=this.workIntensities[i]*(blackout ? .025 : 1);});
       this.scene.environmentIntensity=blackout ? .015 : .4;this.scene.backgroundIntensity=blackout ? .018 : 1;
       this.emergency.intensity=blackout ? .7 : 0;this.renderer.shadowMap.needsUpdate=true;
     }
-    this.flashlight.intensity=!this.closed&&props.status==='running'&&props.flashlight?(blackout?65:8):0;
+    this.flashlight.intensity=blackout&&props.flashlight?65:0;
     if(this.rotationTween){const tween=this.rotationTween,t=Math.min(1,(now-tween.start)/420),ease=1-Math.pow(1-t,3);this.yaw=T.MathUtils.lerp(tween.yaw,tween.toYaw,ease);this.pitch=T.MathUtils.lerp(tween.pitch,tween.toPitch,ease);this.applyRotation();if(t===1)this.rotationTween=null;}
     if(this.tween){const t=Math.min(1,(now-this.tween.start)/420),ease=1-Math.pow(1-t,3);this.camera.position.lerpVectors(this.tween.position,this.tween.to,ease);this.controls.target.lerpVectors(this.tween.target,this.tween.toTarget,ease);if(t===1)this.tween=null;}
     this.controls.update();
     this.flashlight.target.position.set(this.lampPointer.x,this.lampPointer.y,.99).unproject(this.camera);
-    this.visitor.update({roundId:props.roundId,visit:atmosphere?.visitor,enabled:!this.closed&&props.horrorEnabled&&props.status==='running',camera:this.camera,flashlight:this.flashlight,occluders:[this.table,...(this.device?[this.device.root]:[])],delta:document.hidden?0:delta,onSeen:()=>props.onVisitor?.()});
     if(this.device&&!this.closed){
       const remaining=props.remaining(),sec=Math.max(0,Math.ceil(remaining)),text=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
       if(text!==this.lastTimer){this.device.timer.paint(text);this.lastTimer=text;}
@@ -218,7 +212,7 @@ class DeviceRenderer {
   dispose(){
     this.alive=false;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();
     const canvas=this.renderer.domElement;canvas.removeEventListener('pointerdown',this.down);canvas.removeEventListener('pointerup',this.up);canvas.removeEventListener('pointercancel',this.cancel);canvas.removeEventListener('pointermove',this.move);canvas.removeEventListener('webglcontextlost',this.contextLost);
-    this.visitor.dispose();disposeTree(this.scene);this.steel?.dispose();this.background?.dispose();this.environment.dispose();this.composer.dispose();this.bloom.dispose();this.outputPass.dispose();this.renderer.dispose();this.renderer.forceContextLoss();canvas.remove();
+    disposeTree(this.scene);this.steel?.dispose();this.background?.dispose();this.environment.dispose();this.composer.dispose();this.bloom.dispose();this.outputPass.dispose();this.renderer.dispose();this.renderer.forceContextLoss();canvas.remove();
   }
 }
 

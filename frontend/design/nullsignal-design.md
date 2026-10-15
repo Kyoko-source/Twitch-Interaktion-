@@ -138,7 +138,12 @@ Viewed `nullsignal-jumpscare-desktop.png` and `nullsignal-jumpscare-mobile.png`
 in the system temporary directory. Playwright / Edge fallback because Browser
 plugin is not available; Firefox, Safari and physical phones remain untested.
 
-## Visitor in the workshop
+## Visitor in the workshop — removed
+
+Removed at the user's request: the world-space figure, approach schedule,
+flashlight-banishment logic, room-view button/shortcut and public full-body
+asset are no longer part of the game. The notes below describe the retired
+implementation. The existing close-up jumpscare, outage and pills remain.
 
 The user selected a presence that appears in the workshop, approaches across
 sightings and disappears in the flashlight beam. The existing workshop and

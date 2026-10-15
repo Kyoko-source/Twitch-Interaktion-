@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Eye,Flashlight,LightbulbOff} from 'lucide-react';
+import {Flashlight,LightbulbOff} from 'lucide-react';
 
 const PHANTOM_SRC='/assets/nullsignal/apparition-v2.png';
 
@@ -8,7 +8,7 @@ function Phantom(){
   return <img src={PHANTOM_SRC} alt="" width="1024" height="1536" draggable="false" decoding="async"/>;
 }
 
-export function Atmosphere({read,sound,flashlight,onFlashlight,horrorEnabled,lookingRoom,onLookRoom}){
+export function Atmosphere({read,sound,flashlight,onFlashlight,horrorEnabled}){
   const [state,setState]=useState(()=>read()),seen=useRef(new Set()),lastOutage=useRef(null);
   useEffect(()=>{
     // Decode early in the round so the brief scare never waits for its image.
@@ -34,9 +34,8 @@ export function Atmosphere({read,sound,flashlight,onFlashlight,horrorEnabled,loo
       {horrorEnabled&&state.scare&&<div className="nsJumpscare" key={state.scareId}><Phantom/><span>REISS DICH ZUSAMMEN</span></div>}
     </div>
     <div className={`nsPowerPanel ${state.blackout?'isBlackout':''}`}>
-      <span>{state.blackout?<LightbulbOff size={17}/>:<Flashlight size={17}/>}<strong>{state.blackout?'NOTSTROM':'Taschenlampe'}</strong>{(state.blackout||lookingRoom)&&<small>{lookingRoom?'Gestalt kurz anleuchten':'Licht mit Maus / Finger führen'}</small>}</span>
+      <span>{state.blackout?<LightbulbOff size={17}/>:<Flashlight size={17}/>}<strong>{state.blackout?'NOTSTROM':'Taschenlampe'}</strong>{state.blackout&&<small>Licht mit Maus / Finger führen</small>}</span>
       <button className="nsSecondary" type="button" aria-label="Taschenlampe" aria-pressed={flashlight} onClick={onFlashlight}><Flashlight size={17}/>{flashlight?'An':'Aus'}<kbd>F</kbd></button>
-      <button className="nsSecondary nsRoomLook" type="button" aria-label="Raum ansehen" aria-pressed={lookingRoom} onClick={onLookRoom}><Eye size={17}/><span>{lookingRoom?'Zur Bombe':'Raum ansehen'}</span><kbd>R</kbd></button>
     </div>
   </>;
 }

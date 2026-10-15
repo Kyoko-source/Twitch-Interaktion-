@@ -26,6 +26,9 @@ Production material texture for a realistic original industrial 3D game: seamles
 
 ## Workshop visitor — 2026-10-15
 
+Retired at the user's request. The public full-body asset and room encounter
+were removed; this prompt is retained as generation history.
+
 Built-in image generation edit using `apparition-v2.png` as the character
 identity reference, `transparent_background: true`. Output copied unchanged
 from `C:/Users/Flori/.codex/generated_images/01a13ead-15b6-78f1-bc15-d0fb38b4edf7/exec-5399ab4c-ae37-4dea-aa9a-6bcb471db38b.png`
