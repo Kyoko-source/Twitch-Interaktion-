@@ -3,14 +3,11 @@ import { createRoot } from "react-dom/client";
 import {
   CalendarDays,
   Check,
-  Crown,
   Gamepad2,
   GitBranch,
   Home,
   Image as ImageIcon,
   Link2,
-  LogIn,
-  LogOut,
   Lock,
   Mail,
   MessageCircle,
@@ -35,7 +32,9 @@ import { api, setToken } from "./api";
 import { PepplePinball } from "./pinball/PepplePinball";
 import { ChickenJump } from "./jump/ChickenJump";
 import { LiveNewsAdmin } from "./live-news/LiveNewsAdmin";
+import { AppShell, Dashboard } from "./ui/CommunityLayout";
 import "./styles.css";
+import "./ui/community-theme.css";
 
 const nav = [
   { id: "home", label: "Home", icon: Home },
@@ -122,218 +121,15 @@ function Avatar({ user, className = "viewerAvatar" }) {
   return <div className={className}>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : initials}</div>;
 }
 
-function Shell({ page, setPage, user, onLogout, children }) {
-  return (
-    <>
-      <header className="topbar">
-        <button className="brand" onClick={() => setPage("home")} type="button">
-          <Crown size={22} />
-          <span>Aviary</span>
-        </button>
-        <div className="topCounters">
-          <div><ShoppingBasket size={17} /><strong>{user?.chickens ?? "4.374"}</strong><span>Chickens</span></div>
-          <div><Sparkles size={17} /><strong>{user?.braincells ?? "3.612"}</strong><span>Pepples</span></div>
-        </div>
-        <div className="account">
-          <span>{user ? `Eingeloggt als ${user.username}` : "Nicht eingeloggt"}</span>
-          {user && <RoleBadge user={user} />}
-          {user ? (
-            <button className="iconButton" onClick={onLogout} title="Logout" type="button">
-              <LogOut size={18} />
-            </button>
-          ) : (
-            <button className="iconButton" onClick={() => setPage("login")} title="Login" type="button">
-              <LogIn size={18} />
-            </button>
-          )}
-        </div>
-      </header>
-      <div className="appFrame">
-        <aside className="sideRail">
-          <div className="sideGroup">
-            <span>Uebersicht</span>
-            <SideButton item={nav[0]} page={page} setPage={setPage} />
-          </div>
-          <div className="sideGroup">
-            <span>Community</span>
-            {nav.slice(1, 10).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
-          </div>
-          <div className="sideGroup">
-            <span>Account</span>
-            {nav.slice(10, 12).map((item) => <SideButton item={item} page={page} setPage={setPage} key={item.id} />)}
-          </div>
-          <div className="dailyBox">
-            <Star size={20} />
-            <strong>Taegliche Belohnung</strong>
-            <span>Hol dir deinen Schub im Profil.</span>
-            <button onClick={() => setPage("profile")} type="button">Oeffnen</button>
-          </div>
-        </aside>
-        <main>{children}</main>
-      </div>
-    </>
-  );
-}
-
-function SideButton({ item, page, setPage }) {
-  const Icon = item.icon;
-  return (
-    <button className={page === item.id ? "active" : ""} onClick={() => setPage(item.id)} type="button">
-      <Icon size={17} />
-      <span>{item.label}</span>
-    </button>
-  );
-}
-
-function CageMark() {
-  return (
-    <div className="birdcageScene" aria-hidden="true">
-      <div className="cageHalo" />
-      <div className="birdcage">
-        <span className="cageHook" />
-        <span className="cageDome" />
-        <span className="cageBase" />
-        <span className="cageBar bar1" />
-        <span className="cageBar bar2" />
-        <span className="cageBar bar3" />
-        <span className="cageBar bar4" />
-        <span className="cageBar bar5" />
-        <span className="cagePerch" />
-        <span className="neonBird">
-          <span className="birdBody" />
-          <span className="birdWing" />
-          <span className="birdTail" />
-        </span>
-        <span className="cageSpark spark1" />
-        <span className="cageSpark spark2" />
-        <span className="cageSpark spark3" />
-      </div>
-      <Sparkles className="sceneSparkle" size={30} />
-    </div>
-  );
-}
+const emptyDashboard = { stats: {}, leaderboard: [], active_members: [], news: [], events: [], gallery: [] };
 
 function HomePage({ user, setPage }) {
-  const { data, loading, error } = useApi("/api/dashboard", { stats: {}, leaderboard: [], active_members: [], news: [], events: [], gallery: [] });
-  const topViewer = data.leaderboard[0];
-  const podium = data.leaderboard.slice(0, 3);
-  const nextNews = data.news[0];
-  const activeMembers = data.active_members || [];
-  const heroName = user?.username || "Aviary";
-  const heroKicker = user ? "Willkommen zurueck" : "Willkommen";
-  const heroText = user
-    ? "Gemeinsam wachsen, gemeinsam glaenzen. Dein Aviary-Dashboard fuer Games, Rewards und Community-Energie."
-    : "Logg dich ein, sammle Chickens, spiel Minispiele und werde Teil der Aviary-Community.";
-  const heroLevel = user ? Math.max(1, Math.floor(Number(user.braincells || 0) / 140) + 1) : 1;
-  const heroProgress = user ? Math.min(98, Number(user.braincells || 0) % 140) : 8;
-
-  return (
-    <section className="homePage">
-      <div className="dashboardHero">
-        <div className="heroCopy">
-          <p className="kicker">{heroKicker}</p>
-          <h1>{heroName}</h1>
-          {user && <RoleBadge user={user} />}
-          <p>{heroText}</p>
-          <div className="levelStrip">
-            <div><span>{user ? "Level" : "Start"}</span><strong>{heroLevel}</strong></div>
-            <div className="levelBar"><span style={{ width: `${heroProgress}%` }} /></div>
-            <small>{user ? "Naechster Rang wartet im Kaefiglicht." : "Einloggen schaltet deinen echten Fortschritt frei."}</small>
-          </div>
-          <div className="actions">
-            <button onClick={() => setPage(user ? "profile" : "login")} type="button">{user ? "Profil oeffnen" : "Einloggen"}</button>
-            <button className="ghost" onClick={() => setPage("games")} type="button">Minispiele</button>
-          </div>
-        </div>
-        <div className="overviewPanel">
-          <p className="kicker">Deine Uebersicht</p>
-          <div className="overviewStats">
-            <Stat label="Chickens" value={user?.chickens ?? data.stats.chickens} />
-            <Stat label="Pepples" value={user?.braincells ?? data.stats.braincells} />
-            <Stat label="Mitglieder" value={data.stats.users} />
-          </div>
-          {nextNews && (
-            <button className="newsTicker" onClick={() => setPage("news")} type="button">
-              <Newspaper size={16} />
-              <span>{nextNews.title}</span>
-            </button>
-          )}
-        </div>
-        <CageMark />
-      </div>
-      {error && <div className="notice error">{error}</div>}
-      {loading && <div className="notice">Lade Aviary-Daten...</div>}
-      <section className="cockpitGrid">
-        <div className="miniGamesPanel">
-          <PanelTitle icon={Gamepad2} title="Minispiele" action="Alle Spiele anzeigen" onClick={() => setPage("games")} />
-          <div className="homeGameDeck">
-            {Object.entries(gameMeta).slice(0, 4).map(([id, meta], index) => (
-              <button className="homeGameCard" onClick={() => setPage("games")} type="button" key={id} style={{ "--game-accent": meta.accent }}>
-                <span className={`gameArt gameArt${index + 1}`}>
-                  <span className="gameOrb" />
-                  <span className="gameAvatarMark" />
-                </span>
-                <strong>{meta.title}</strong>
-                <small>Highscore aktiv</small>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="rankPanel">
-          <PanelTitle icon={Trophy} title="Top Rangliste" action="Komplette Rangliste" onClick={() => setPage("leaderboard")} />
-          <div className="conceptPodium">
-            {podium.map((item, index) => (
-              <article className={`conceptPodiumItem place${index + 1}`} key={item.username}>
-                <Avatar user={item} />
-                <span>#{index + 1}</span>
-                <strong>{item.username}</strong>
-                <small>{item.braincells || 0} Pepples</small>
-              </article>
-            ))}
-          </div>
-          <div className="leaderMiniRows">
-            {data.leaderboard.slice(3, 8).map((item, index) => <div key={item.username}><span>#{index + 4} {item.username}</span><b>{item.braincells || 0}</b></div>)}
-          </div>
-        </div>
-        <div className="rightColumn">
-          <div className="activePanel">
-            <PanelTitle icon={Users} title="Aktive Mitglieder" action="Alle Mitglieder" onClick={() => setPage("members")} />
-            <div className="activeList">
-              {activeMembers.length ? activeMembers.slice(0, 5).map((item) => (
-                <div className="activeRow" key={item.username}>
-                  <Avatar user={item} />
-                  <span><strong>{item.username}</strong><small>{item.status || "Online"}</small></span>
-                  <b>{Math.max(1, Math.floor(Number(item.braincells || 0) / 120))}</b>
-                </div>
-              )) : <div className="activeEmpty">Gerade niemand online</div>}
-            </div>
-          </div>
-          <div className="adminControlTeaser">
-            <PanelTitle icon={Shield} title="Admin Kontrollzentrum" />
-            <div className="adminTeaserGrid">
-              <button onClick={() => setPage("admin")} type="button"><Users size={18} /> Benutzer</button>
-              <button onClick={() => setPage("admin")} type="button"><Newspaper size={18} /> News</button>
-              <button onClick={() => setPage("admin")} type="button"><CalendarDays size={18} /> Events</button>
-              <button onClick={() => setPage("admin")} type="button"><Shield size={18} /> Reports</button>
-            </div>
-          </div>
-        </div>
-        <div className="newsPanel">
-          <PanelTitle icon={Newspaper} title="Aktuelle Neuigkeiten" action="Alle News" onClick={() => setPage("news")} />
-          {nextNews ? <div className="newsFeature"><div /><span><strong>{nextNews.title}</strong><small>{nextNews.body}</small></span></div> : <p>Keine neuen News.</p>}
-        </div>
-      </section>
-    </section>
-  );
+  const { data, loading, error } = useApi("/api/dashboard", emptyDashboard);
+  return <Dashboard user={user} setPage={setPage} data={data} loading={loading} error={error} games={gameMeta} roleBadge={<RoleBadge user={user} />} />;
 }
 
-function PanelTitle({ icon: Icon, title, action, onClick }) {
-  return (
-    <div className="panelTitle">
-      <h2><Icon size={18} /> {title}</h2>
-      {action && <button className="textButton" onClick={onClick} type="button">{action}</button>}
-    </div>
-  );
+function PanelTitle({ title, action, onClick }) {
+  return <div className="communitySectionHeading"><h2>{title}</h2>{action && (onClick ? <button className="inlineLink" onClick={onClick} type="button">{action}</button> : <span className="inlineLink">{action}</span>)}</div>;
 }
 
 function LoginPage({ onLogin }) {
@@ -772,7 +568,7 @@ function LeaderboardPage() {
         <div>
           <p className="kicker">Rangliste</p>
           <h1>Pepple Circuit</h1>
-          <p>Podium, Fortschritt und Chicken-Power in einem ruhigeren, scanbaren Board.</p>
+          <p>Die besten Spieler unseres Schwarms. Sammle Pepples und klettere nach oben.</p>
         </div>
         <Trophy size={72} />
       </div>
@@ -3802,8 +3598,8 @@ function GamesPage({ user }) {
       <div className="sectionHero arcadeHero">
         <div>
           <p className="kicker">Minispiele</p>
-          <h1>Arcade Kaefig</h1>
-          <p>Vier Spiele sind wieder direkt spielbar. Scores speichern funktioniert, sobald du eingeloggt bist.</p>
+          <h1>Dein nächster Highscore wartet.</h1>
+          <p>Vier Spiele, neue Bestleistungen und jede Menge Pepples. Such dir dein Spiel aus.</p>
         </div>
         <Zap size={64} />
       </div>
@@ -3815,7 +3611,6 @@ function GamesPage({ user }) {
         ))}
       </div>
       {current}
-      <div className="notice">DnD war in Streamlit ein sehr grosses eigenes System. Ich habe es markiert, damit es sauber als naechstes Modul portiert werden kann.</div>
     </section>
   );
 }
@@ -4653,7 +4448,7 @@ function App() {
   const [user, setUser] = useState(null);
 
   function setPage(next) {
-    setPageState(next);
+    setPageState(next.split("/")[0]);
     if (window.location.hash !== `#${next}`) window.history.replaceState(null, "", `/#${next}`);
   }
 
@@ -4708,10 +4503,9 @@ function App() {
   }, [page, user]);
 
   return (
-    <Shell page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
+    <AppShell nav={nav} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
       {content}
-      <button className="supportFab" onClick={() => setPage("support")} type="button">Support</button>
-    </Shell>
+    </AppShell>
   );
 }
 
