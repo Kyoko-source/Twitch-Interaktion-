@@ -120,6 +120,18 @@ export function ChickenSnake({ user, renderScoreboard }) {
   }, []);
 
   useEffect(() => {
+    if (!["playing", "paused", "ended"].includes(run.status)) return;
+    // Wait until the touch-generated click finishes before focusing the new
+    // screen: the previous button may have disappeared or become disabled.
+    const frame = requestAnimationFrame(() => {
+      if (document.hidden || !document.hasFocus()) return;
+      const target = run.status === "playing" ? canvas.current : root.current?.querySelector(".snakeOverlayContent button:not(:disabled)");
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [run.status, rewards.saving, rewards.submitted]);
+
+  useEffect(() => {
     if (!fallbackFullscreen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";

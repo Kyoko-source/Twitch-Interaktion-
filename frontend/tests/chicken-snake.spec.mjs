@@ -112,6 +112,7 @@ test("mobile touch pad and swipes steer the real game; guest results do not regi
   expect(resultBox.x).toBeGreaterThanOrEqual(0);
   expect(resultBox.x + resultBox.width).toBeLessThanOrEqual(390);
   expect((await page.locator(".snakeStage").boundingBox()).width).toBeLessThan(390);
+  await expect(page.locator(".skipLink")).not.toBeInViewport();
   await page.locator(".snakeGame").screenshot({ path: join(tmpdir(), "aviary-snake-mobile-result.png") });
   expect(errors).toEqual([]);
   await context.close();
