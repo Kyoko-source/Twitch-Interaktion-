@@ -17,6 +17,7 @@ from .nullsignal_puzzles import MISSIONS, generate, apply_action
 
 GRACE = 15
 LIFETIME = 7200
+CALM_SECONDS = 30
 
 
 def digest(value):
@@ -43,7 +44,7 @@ class NullsignalStore:
                 "expert_seen": now if guest else 0, "remaining": MISSIONS[mission]["seconds"],
                 "deadline": None, "active_since": None, "played": 0, "strikes": 0,
                 "pause_reason": "", "event": None, "finalized": False, "reward": 0,
-                "bomb": generate(mission)}
+                "bomb": generate(mission), "pills_remaining": 2, "calm_until_played": 0}
 
     def load(self, db, room_id, now):
         row = db.execute("SELECT * FROM nullsignal_rooms WHERE id=?", (room_id,)).fetchone()
@@ -127,6 +128,9 @@ class NullsignalStore:
                       host_online=now-state["host_seen"] < GRACE, expert_online=bool(room["guest_hash"]) and now-state["expert_seen"] < GRACE,
                       expires=room["expires"], solved=sum(m["solved"] for m in state["bomb"]["modules"]))
         if role == "host":
+            played = state["played"] + (max(0, now-state["active_since"]) if state["active_since"] is not None else 0)
+            result["calm"] = {"pills_remaining": state.get("pills_remaining", 2),
+                              "seconds_remaining": max(0, state.get("calm_until_played", 0)-played)}
             result["invite_token"] = room["invite"]
             result["bomb"] = {key: state["bomb"][key] for key in ["serial", "voltage", "coolant"]}
             result["bomb"]["modules"] = [{key: module[key] for key in ["id", "kind", "name", "data", "solved", "progress"]} for module in state["bomb"]["modules"]]
@@ -317,6 +321,37 @@ class NullsignalStore:
             self.save(db, room)
             return self.project(db, room, "host", now)
 
+    def calm(self, room_id, username, request_id, round_id, now=None):
+        now = time.time() if now is None else now
+        signature = json.dumps([round_id, "calm"])
+        with self.ledger.connection(write=True) as db:
+            room = self.load(db, room_id, now)
+            self.authorize(room, "host", username)
+            self.advance(db, room, now)
+            state = room["state"]
+            previous = db.execute("SELECT signature FROM nullsignal_actions WHERE room_id=? AND request_id=?", (room_id, request_id)).fetchone()
+            if previous:
+                if previous[0] != signature:
+                    raise HTTPException(409, "Diese Anfrage wurde bereits anders verwendet.")
+                state["host_seen"] = now
+                self.save(db, room)
+                return self.project(db, room, "host", now)
+            if state["status"] != "running" or state["round_id"] != round_id:
+                raise HTTPException(409, "Eine Beruhigungspille ist nur in der laufenden Runde verfügbar.")
+            played = state["played"] + max(0, now-state["active_since"])
+            if state.get("pills_remaining", 2) <= 0:
+                raise HTTPException(409, "Du hast beide Beruhigungspillen dieser Runde verbraucht.")
+            if state.get("calm_until_played", 0) > played:
+                raise HTTPException(409, "Die Beruhigungspille wirkt noch.")
+            state["pills_remaining"] = state.get("pills_remaining", 2)-1
+            state["calm_until_played"] = played+CALM_SECONDS
+            state["host_seen"] = now
+            state["version"] += 1
+            state["event"] = {"id": request_id, "kind": "calm", "message": "Beruhigungspille genommen. 30 Sekunden klare Sicht."}
+            db.execute("INSERT INTO nullsignal_actions VALUES (?,?,?)", (room_id, request_id, signature))
+            self.save(db, room)
+            return self.project(db, room, "host", now)
+
     def records(self, mission):
         with self.ledger.connection() as db:
             return [dict(row) for row in db.execute("SELECT host,expert,score,remaining,strikes,created FROM nullsignal_records WHERE outcome='defused' AND mission=? ORDER BY score DESC,created ASC LIMIT 20", (mission,))]
@@ -342,6 +377,11 @@ class JoinRoom(BaseModel):
 
 class Ready(BaseModel):
     ready: bool
+
+
+class Calm(BaseModel):
+    request_id: str = Field(min_length=16, max_length=64, pattern="^[A-Za-z0-9_-]+$")
+    round_id: str = Field(min_length=32, max_length=32)
 
 
 class Control(BaseModel):
@@ -420,3 +460,9 @@ def control(room_id: str, payload: Control, response: Response, user=Depends(cur
 def action(room_id: str, payload: Action, response: Response, user=Depends(current_user)):
     private(response)
     return store().action(room_id, user["username"], payload.request_id, payload.round_id, payload.module_id, payload.operation, payload.value)
+
+
+@router.post("/rooms/{room_id}/calm")
+def calm(room_id: str, payload: Calm, response: Response, user=Depends(current_user)):
+    private(response)
+    return store().calm(room_id, user["username"], payload.request_id, payload.round_id)

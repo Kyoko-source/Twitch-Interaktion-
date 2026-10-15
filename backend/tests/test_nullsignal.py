@@ -314,6 +314,64 @@ class NullsignalTests(unittest.TestCase):
         self.assertEqual(current["strikes"],0)
         self.assertEqual(current["bomb"]["modules"][0]["data"]["cut"],[])
 
+    def test_two_pills_per_round_idempotent_consumption_and_rematch_refill(self):
+        self.start()
+        key = uuid4().hex
+        first = self.store.calm(self.id, "alice", key, self.host["round_id"], self.now+1)
+        self.assertEqual(first["calm"], {"pills_remaining": 1, "seconds_remaining": 30})
+        duplicate = self.store.calm(self.id, "alice", key, self.host["round_id"], self.now+2)
+        self.assertEqual(duplicate["calm"]["pills_remaining"], 1)
+        with self.assertRaises(HTTPException):
+            self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+3)
+        for offset in range(5, 65, 5):
+            self.touch(self.now+offset)
+            if offset == 35:
+                second = self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+offset)
+                self.assertEqual(second["calm"]["pills_remaining"], 0)
+        self.touch(self.now+66)
+        with self.assertRaises(HTTPException):
+            self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+66)
+        self.store.control(self.id, "alice", "pause", now=self.now+67)
+        new = self.store.control(self.id, "alice", "reset", now=self.now+68)
+        self.assertEqual(new["calm"], {"pills_remaining": 2, "seconds_remaining": 0})
+        self.assertEqual(self.ledger.balance("alice")["chickens"], 0)
+
+    def test_pill_duration_freezes_during_pause_and_survives_reload(self):
+        self.start()
+        self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+1)
+        paused = self.store.control(self.id, "alice", "pause", now=self.now+5)
+        self.assertEqual(paused["calm"]["seconds_remaining"], 26)
+        reopened = NullsignalStore(self.ledger)
+        restored = reopened.get(self.id, "host", "alice", self.now+500)
+        self.assertEqual(restored["calm"], paused["calm"])
+        reopened.get(self.id, "expert", self.token, self.now+500)
+        resumed = reopened.control(self.id, "alice", "start", now=self.now+500)
+        self.assertEqual(resumed["calm"]["seconds_remaining"], 26)
+        self.assertEqual(reopened.get(self.id, "host", "alice", self.now+501)["calm"]["seconds_remaining"], 25)
+
+    def test_pills_require_owner_running_current_round_and_support_existing_rooms(self):
+        with self.assertRaises(HTTPException):
+            self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now)
+        self.start()
+        for owner, round_id in [("bob", self.host["round_id"]), ("alice", uuid4().hex)]:
+            with self.assertRaises(HTTPException):
+                self.store.calm(self.id, owner, uuid4().hex, round_id, self.now+1)
+        with self.ledger.connection(write=True) as db:
+            state = json.loads(db.execute("SELECT state FROM nullsignal_rooms WHERE id=?", (self.id,)).fetchone()[0])
+            state.pop("pills_remaining")
+            state.pop("calm_until_played")
+            db.execute("UPDATE nullsignal_rooms SET state=? WHERE id=?", (json.dumps(state), self.id))
+        self.assertEqual(self.store.get(self.id, "host", "alice", self.now+1)["calm"]["pills_remaining"], 2)
+        self.assertEqual(self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+1)["calm"]["pills_remaining"], 1)
+        self.assertNotIn("calm", self.store.get(self.id, "expert", self.token, self.now+1))
+
+    def test_concurrent_retries_only_consume_one_pill(self):
+        self.start()
+        key = uuid4().hex
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(lambda _: self.store.calm(self.id, "alice", key, self.host["round_id"], self.now+1), range(2)))
+        self.assertEqual([response["calm"]["pills_remaining"] for response in responses], [1, 1])
+
     def request(self,method,path,payload=None,headers=None):
         async def run():
             messages=[];body=json.dumps(payload).encode() if payload is not None else b""
@@ -342,6 +400,12 @@ class NullsignalTests(unittest.TestCase):
             host={"Authorization":f"Bearer {auth.create_access_token('alice')}"}
             self.assertEqual(self.request("POST",base+"/ready",{"ready":True},guest)[0],200)
             self.assertEqual(self.request("POST",base+"/control",{"command":"start"},host)[0],200)
+            pill = {"round_id": expert["round_id"], "request_id": uuid4().hex}
+            self.assertEqual(self.request("POST",base+"/calm",pill,guest)[0],401)
+            status, calm, headers = self.request("POST",base+"/calm",pill,host)
+            self.assertEqual(status,200)
+            self.assertEqual(calm["calm"]["pills_remaining"],1)
+            self.assertEqual(headers[b"cache-control"],b"no-store")
             bob={"Authorization":f"Bearer {auth.create_access_token('bob')}"}
             self.assertEqual(self.request("GET",base+"/host",headers=bob)[0],404)
             self.assertEqual(self.request("POST",base+"/action",{"round_id":expert["round_id"],"request_id":uuid4().hex,"module_id":"wires","operation":"cut","value":0},guest)[0],401)

@@ -71,7 +71,7 @@ export class NullsignalAudio {
   }
   play(kind){
     if(!this.enabled||!this.audio||this.disposed)return;
-    const name=({neutral:'click',good:'good',bad:'bad',defused:'win',exploded:'explode'})[kind]||kind;
+    const name=({neutral:'click',good:'good',calm:'good',bad:'bad',defused:'win',exploded:'explode'})[kind]||kind;
     this.audio.play(name,{gain:name==='click'?.18:name==='explode'?.6:.35,gap:.04});
   }
   dispose(){

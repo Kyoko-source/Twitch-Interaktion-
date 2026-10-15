@@ -68,6 +68,29 @@ Lizenzen stehen in `frontend/public/audio/`. Eigene Musik ist optional, siehe un
 
 ## Countdown und eigene Musik
 
+### Zeitdruck und Beruhigungspillen
+
+Mit sinkender Restzeit wird der rote Bildschirmrand stärker und pulsiert schneller.
+Die Bombenansicht wird in den letzten zwei Minuten zunehmend leicht unscharf;
+Timer, Handbuch und Bedienknöpfe bleiben scharf. Der Rand blockiert keine Klicks.
+Bei Pause, Ergebnis oder Verlassen verschwinden die Effekte. Bei aktivierter
+Systemeinstellung „Bewegung reduzieren“ bleibt die Warnung statisch.
+
+Der Entschärfer hat zwei Beruhigungspillen pro Runde. `C` oder der gleichnamige
+Button entfernt die Unschärfe für 30 Sekunden aktiver Spielzeit. Der rote Rand
+warnt weiter. Während der Wirkung lässt sich keine weitere Pille verbrauchen.
+Pausen halten die Wirkzeit an, danach kehrt die Unschärfe weich zurück.
+Neuladen füllt den Vorrat nicht auf; erst eine neue Runde gibt wieder zwei Pillen.
+Tastendrücke in Eingabefeldern, mit Strg/Alt/Meta oder gehaltene Wiederholungen
+verbrauchen nichts. Der Gast sieht weiter ausschließlich das scharfe Handbuch.
+
+Der bestehende SQLite-Raumzustand speichert Verbrauch und Wirkzeit. Die neue
+Host-Route `/api/nullsignal/rooms/{id}/calm` prüft Eigentümer, Runden-ID,
+Spielstatus und eine idempotente Anfrage-ID. Bestehende Räume erhalten die
+Standardwerte ohne Datenbankmigration; Kontostände und Rätsel bleiben erhalten.
+
+### Piepton und Musikdateien
+
 Der Countdown piept ab Missionsbeginn einmal pro Sekunde. Ab 60 Sekunden gilt
 ein halber Sekundenabstand; ab 30 Sekunden sinkt der Abstand von 0,32 Sekunden
 kontinuierlich bis 0,08 Sekunden. Jeder Fehler multipliziert den Abstand zusätzlich
