@@ -71,7 +71,7 @@ test("games: Jump and Snake register real rounds, submit bound scores and credit
   await page.getByRole("button", { name: "Chicken Snake", exact: true }).click();
   await page.getByRole("button", { name: "Spiel starten", exact: true }).click();
   await expect.poll(() => starts.length).toBe(2);
-  await expect(page.locator(".gameHud .stat").first().locator("strong")).toHaveText("10");
+  await expect(page.getByTestId("snake-score")).toHaveText("10");
   await page.getByRole("button", { name: "Runde abschließen", exact: true }).click();
   await expect(page.getByRole("button", { name: "Score speichern", exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole("button", { name: "Score speichern", exact: true }).click();

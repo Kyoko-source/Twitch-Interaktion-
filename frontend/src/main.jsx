@@ -34,6 +34,7 @@ import { useGameRewards } from "./economy/useGameRewards";
 import { api, setToken } from "./api";
 import { PepplePinball } from "./pinball/PepplePinball";
 import { ChickenJump } from "./jump/ChickenJump";
+import { ChickenSnake } from "./snake/ChickenSnake";
 import { LiveNewsAdmin } from "./live-news/LiveNewsAdmin";
 import { AppShell, Dashboard } from "./ui/CommunityLayout";
 import "./styles.css";
@@ -56,7 +57,7 @@ const nav = [
 
 const gameMeta = {
   "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring über Zäune, sammle Federn und erspiele dir Chickens." },
-  "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Fuehre die Neon-Spur durch den Kaefig und friss Energiekerne." },
+  "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Sammle goldene Eier und jage mit deiner Jade-Schlange den nächsten Rekord." },
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Chickens." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
@@ -713,98 +714,6 @@ function writeSurvivorSettings(settings) {
     // Local storage can be blocked in private or hardened browsers.
   }
 }
-
-
-function ChickenSnake({ user }) {
-  const rewards = useGameRewards("chicken-snake", user);
-  const [running, setRunning] = useState(false);
-  const [message, setMessage] = useState("WASD oder Pfeiltasten.");
-  const [snapshot, setSnapshot] = useState({ score: 0, level: 1 });
-  const [refreshKey, setRefreshKey] = useState(0);
-  const dirRef = useRef({ x: 1, y: 0 });
-  const stateRef = useRef({ snake: [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }], food: { x: 16, y: 8 }, score: 0, acc: 0, over: false });
-
-  useEffect(() => {
-    function key(event) {
-      const next = { ArrowUp: { x: 0, y: -1 }, w: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, s: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, a: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, d: { x: 1, y: 0 } }[event.key];
-      if (next) {
-        event.preventDefault();
-        const old = dirRef.current;
-        if (old.x + next.x !== 0 || old.y + next.y !== 0) dirRef.current = next;
-      }
-    }
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, []);
-
-  const canvasRef = useCanvasGame((ctx, canvas, dt) => {
-    const state = stateRef.current;
-    const size = 24;
-    const cols = Math.floor(canvas.width / size);
-    const rows = Math.floor(canvas.height / size);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#120b18"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "rgba(180,108,255,.12)";
-    for (let x = 0; x < canvas.width; x += size) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-    for (let y = 0; y < canvas.height; y += size) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-    if (running && !state.over) {
-      state.acc += dt;
-      if (state.acc > Math.max(74, 132 - state.score * 2.2)) {
-        state.acc = 0;
-        const head = state.snake[0];
-        const next = { x: (head.x + dirRef.current.x + cols) % cols, y: (head.y + dirRef.current.y + rows) % rows };
-        if (state.snake.some((part) => part.x === next.x && part.y === next.y)) {
-          state.over = true;
-          setRunning(false);
-          setMessage(`Game Over: ${state.score} Punkte`);
-        } else {
-          state.snake.unshift(next);
-          if (next.x === state.food.x && next.y === state.food.y) {
-            state.score += 10;
-            state.food = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
-            setSnapshot({ score: state.score, level: state.snake.length });
-          } else {
-            state.snake.pop();
-          }
-        }
-      }
-    }
-    ctx.fillStyle = "#ffcf8a";
-    ctx.beginPath(); ctx.arc(state.food.x * size + 12, state.food.y * size + 12, 9, 0, Math.PI * 2); ctx.fill();
-    state.snake.forEach((part, index) => {
-      ctx.fillStyle = index === 0 ? "#7af4dc" : "#b46cff";
-      ctx.fillRect(part.x * size + 3, part.y * size + 3, size - 6, size - 6);
-    });
-  }, [running]);
-
-  function start() {
-    rewards.beginRound();
-    stateRef.current = { snake: [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }], food: { x: 16, y: 8 }, score: 0, acc: 0, over: false };
-    dirRef.current = { x: 1, y: 0 };
-    setSnapshot({ score: 0, level: 3 });
-    setMessage("Sammle Kerne, vermeide deine eigene Spur.");
-    setRunning(true);
-  }
-
-  async function save() {
-    try {
-      const result = await rewards.submitRound({ score: snapshot.score, level: snapshot.level });
-      setMessage(result.message);
-      setRefreshKey((value) => value + 1);
-    } catch (err) {
-      setMessage(err.message);
-    }
-  }
-
-  function finish() {
-    stateRef.current.over = true;
-    setRunning(false);
-    setMessage(`Runde beendet: ${snapshot.score} Punkte. Reiche deinen Score ein, um Chickens zu erhalten.`);
-  }
-
-  return <GameFrame meta={gameMeta["chicken-snake"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onFinish={running ? finish : null} onSave={user && snapshot.score > 0 && !running && !rewards.saving && !rewards.submitted ? save : null} refreshKey={refreshKey} game="chicken-snake" />;
-}
-
 
 
 function roundRect(ctx, x, y, w, h, r = 8, strokeOnly = false) {
@@ -3492,37 +3401,6 @@ function PeppleSurvivor({ user }) {
   );
 }
 
-function GameHeader({ meta, message, score, level }) {
-  return (
-    <div className="gameHeader" style={{ "--game-accent": meta.accent }}>
-      <div>
-        <p className="kicker">Arcade Lobby</p>
-        <h2>{meta.title}</h2>
-        <p>{message || meta.text}</p>
-      </div>
-      <div className="gameHud">
-        <Stat label="Score" value={score} />
-        <Stat label="Level" value={level} />
-      </div>
-    </div>
-  );
-}
-
-function GameFrame({ meta, canvasRef, message, score, level, onStart, onFinish, onSave, refreshKey, game }) {
-  return (
-    <section className="gameFrame" style={{ "--game-accent": meta.accent }}>
-      <GameHeader meta={meta} message={message} score={score} level={level} />
-      <canvas className="gameCanvas" ref={canvasRef} width="920" height="420" />
-      <div className="gameActions">
-        <button onClick={onStart} type="button"><RefreshCw size={16} /> Spiel starten</button>
-        {onFinish && <button className="ghost" onClick={onFinish} type="button">Runde abschließen</button>}
-        {onSave && <button className="ghost" onClick={onSave} type="button">Score speichern</button>}
-      </div>
-      <Scoreboard game={game} refreshKey={refreshKey} />
-    </section>
-  );
-}
-
 function GamesPage({ user }) {
   const gameFromRoute = () => {
     const [, nextGame] = routeParts();
@@ -3545,7 +3423,7 @@ function GamesPage({ user }) {
   }, []);
   const current = {
     "chicken-jump": <ChickenJump user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-jump" refreshKey={refreshKey} />} />,
-    "chicken-snake": <ChickenSnake user={user} />,
+    "chicken-snake": <ChickenSnake user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-snake" refreshKey={refreshKey} />} />,
     "chicken-flipper": <PepplePinball user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />} />,
     "braincell-survivor": <PeppleSurvivor user={user} />,
   }[game];

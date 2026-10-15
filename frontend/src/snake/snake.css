@@ -1,0 +1,146 @@
+.snakeGame {
+  --snake-mint: #81f4d3;
+  --snake-gold: #ffe1a1;
+  --snake-lavender: #bcb3df;
+  min-width: 0;
+  color: #edeaf6;
+}
+.snakeGame button { font: 500 13px/1.25 Inter, "Segoe UI", sans-serif; box-shadow: none; min-height: 44px; transition: background .18s, border-color .18s, opacity .18s; }
+.snakeGame button:hover { transform: none; filter: none; }
+.snakeGame button:disabled { opacity: .38; cursor: default; }
+.snakeGame button:focus-visible, .snakeCanvas:focus-visible, .snakeGame a:focus-visible { outline: 2px solid var(--snake-mint); outline-offset: 4px; }
+.snakeHeader { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 21px; padding: 0 4px; }
+.snakeHeader h2 { margin: 0 0 6px; font: 700 clamp(30px, 3.4vw, 52px)/1.1 Georgia, "Times New Roman", serif; letter-spacing: -.035em; color: var(--snake-gold); text-shadow: 0 2px 20px #d2ab4a1a; }
+.snakeHeader p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--snake-lavender); }
+.snakeHud { display: flex; align-items: center; margin: 0; flex-shrink: 0; }
+.snakeHud > div { min-width: 100px; text-align: center; padding: 0 24px; }
+.snakeHud > div + div { border-left: 1px solid #494555; }
+.snakeHud dt { font-size: 10px; line-height: 1.4; letter-spacing: .12em; text-transform: uppercase; color: var(--snake-lavender); }
+.snakeHud dd { font: 700 31px/1.25 Georgia, serif; margin: 5px 0 0; font-variant-numeric: tabular-nums; color: var(--snake-gold); }
+.snakeHud > div:nth-child(2) dd { color: var(--snake-mint); }
+.snakeHud > div:nth-child(3) dd { color: #c8abf4; }
+.snakeStage { position: relative; width: 100%; min-width: 0; overflow: hidden; isolation: isolate; aspect-ratio: 7 / 4; border: 2px solid #58bdc8; border-radius: 18px; background: #062229 url('/assets/snake/night-garden.png') center / cover; box-shadow: 0 0 0 5px #32617412, 0 8px 35px #0004, 0 0 24px #66d6dc12; }
+.snakeStage:has(.isEnded) { min-height: 460px; }
+.snakeCanvas { width: 100%; height: 100%; display: block; object-fit: contain; outline: none; }
+.snakeGame[data-status="ended"] .snakeCanvas { object-fit: cover; }
+.snakeGame[data-status="playing"] .snakeCanvas { touch-action: none; }
+.snakeWorld { position: absolute; top: 19px; left: 23px; display: flex; gap: 10px; align-items: center; color: #cdd5e9; text-shadow: 0 1px 8px #06131b; font-size: 10px; letter-spacing: .15em; font-weight: 600; text-transform: uppercase; pointer-events: none; }
+.snakeWorld svg { color: #d2ece9; }
+.snakeStageTools { position: absolute; top: 13px; right: 15px; display: flex; gap: 8px; z-index: 3; }
+.snakeStageTools button { width: 44px; padding: 0; display: grid; place-items: center; border: 1px solid #71818f; background: #0d1720d9; color: #e5e7f7; border-radius: 10px; }
+.snakeStageTools button:hover { background: #1b3440; border-color: #a1d8d5; }
+.snakeOverlay { position: absolute; inset: 0; display: grid; place-items: center; align-items: safe center; overflow-y: auto; pointer-events: none; padding: 24px; z-index: 2; }
+.snakeOverlayContent { pointer-events: auto; width: min(460px, 100%); padding: 29px 26px 23px; text-align: center; border: 1px solid #6d999c9c; border-radius: 18px; background: #091b24ed; box-shadow: 0 16px 50px #0005, inset 0 1px 0 #b0f9e810; backdrop-filter: blur(8px); }
+.snakeOverlay h3 { margin: 0 0 11px; font: 700 clamp(20px, 2vw, 27px)/1.2 Georgia, serif; letter-spacing: -.02em; color: var(--snake-gold); }
+.snakeOverlay p { margin: 0 0 23px; color: #c5c6e2; font-size: 14px; line-height: 1.6; }
+.snakeGame .snakePrimary { min-width: 235px; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 51px; padding: 13px 24px; background: linear-gradient(180deg, #a5ffdd, #53d7b6); color: #082d2e; border: 1px solid #c2ffe6; border-radius: 13px; font-size: 16px; font-weight: 700; box-shadow: 0 0 24px #76eec124, inset 0 1px 0 #fff6; }
+.snakeGame .snakePrimary:hover:not(:disabled) { background: linear-gradient(180deg, #bbffe8, #76efcb); }
+.snakeGame .snakeSecondary { display: flex; align-items: center; justify-content: center; margin: 9px auto 0; gap: 8px; padding: 8px 16px; background: none; color: #c3d9df; border-radius: 8px; }
+.snakeGame .snakeSecondary:hover { background: #29424c65; }
+.snakeOverlayKeys { border-top: 1px solid #4b666c; padding-top: 14px; margin: 19px 0 0; }
+.snakeKeyHint { display: inline-flex; align-items: center; gap: 9px; color: #c6c4db; font-size: 12px; line-height: 1.4; }
+.snakeKeyHint > span { display: inline-flex; align-items: center; gap: 4px; }
+.snakeKeyHint i, .snakeLiveInfo i { font-style: normal; opacity: .55; }
+.snakeKeyHint kbd { display: inline-grid; place-items: center; min-width: 22px; height: 25px; padding: 2px 5px; border: 1px solid #75818f; border-radius: 4px; background: linear-gradient(180deg, #27323e, #161c29); color: #e0e7f5; font: 500 11px/1 "Segoe UI", sans-serif; box-shadow: 0 2px 0 #050f19; }
+.snakeToolbar { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 11px 14px; margin-top: 15px; border: 1px solid #41444f; border-radius: 12px; background: #14161f; }
+.snakeToolbar > .snakeKeyHint { flex-wrap: wrap; }
+.snakeLiveInfo { color: #8ea5ac; font-size: 12px; white-space: nowrap; }
+.snakeLiveInfo i { padding: 0 5px; }
+.snakeActions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.snakeActions button { display: flex; align-items: center; gap: 8px; padding: 8px 13px; color: #d5d1e5; background: #1a1d29; border: 1px solid #4b4d61; border-radius: 8px; font-size: 12px; }
+.snakeActions button:hover:not(:disabled) { background: #28343e; border-color: #8098a1; }
+.snakeFeedback { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); padding: 9px 15px; color: #ffe1a1; background: #10272ee8; border-radius: 8px; font-weight: 650; font-size: 12px; white-space: nowrap; pointer-events: none; animation: snakeFeedbackIn .22s ease-out; }
+.snakeEndIcon { display: inline-flex; color: var(--snake-gold); margin-bottom: 9px; }
+.snakeFinalScore { display: grid; gap: 2px; color: var(--snake-gold); font: 700 48px/1 Georgia, serif; margin: -6px 0 22px; }
+.snakeFinalScore span { font: 400 10px/1.4 "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: .14em; color: #a7bac7; margin-top: 5px; }
+.snakeOverlay .snakeRecordNotice { color: var(--snake-mint); margin: -8px 0 15px; font-size: 11px; }
+.snakeOverlay .snakeSaveMessage { margin: 11px 0 0; font-size: 11px; color: #b8f5df; overflow-wrap: anywhere; }
+.snakeOverlay .snakeGuestHint { margin: -7px 0 16px; font-size: 11px; max-width: 290px; margin-inline: auto; }
+.snakeGuestHint a { color: var(--snake-mint); text-underline-offset: 3px; }
+.snakeBelow { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; margin-top: 22px; align-items: start; }
+.snakeRecordGuide { display: flex; align-items: center; gap: 12px; padding: 22px 12px 22px 0; min-height: 135px; }
+.snakeEggArt { width: 100px; height: 100px; flex: 0 0 auto; background: url('/assets/snake/jade-sprites.png') left bottom / 200% 200%; filter: drop-shadow(0 0 16px #c3a55338); }
+.snakeRecordGuide h3 { margin: 0 0 8px; font: 700 clamp(20px, 2.2vw, 28px)/1.2 Georgia, serif; letter-spacing: -.02em; color: var(--snake-gold); }
+.snakeRecordGuide p { margin: 0 0 11px; font-size: 13px; line-height: 1.6; color: var(--snake-lavender); }
+.snakeRecordGuide small { font-size: 11px; line-height: 1.8; color: #8c9ca9; display: block; }
+.snakeScores { min-width: 0; padding: 17px 0 0 22px; border-left: 1px solid #343240; }
+.snakeScores h3 { display: flex; align-items: center; gap: 9px; margin: 0 0 11px; font: 700 19px/1.3 Georgia, serif; color: #cbb5ed; }
+.snakeScores .gameScores { margin: 0; display: grid; gap: 6px; }
+.snakeScores .gameScores li { padding: 9px 12px; min-width: 0; min-height: 38px; background: #171721; border: 1px solid #343240; border-radius: 7px; color: #c6bfd8; font-size: 13px; }
+.snakeScores .gameScores li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snakeScores .gameScores li b { color: #c8b2eb; font-size: 12px; flex-shrink: 0; }
+.snakeScores .gameScores li:first-child b { color: var(--snake-gold); }
+.snakeMobileControls { display: none; }
+.snakeGame:fullscreen, .snakeGame.isExpanded { padding: 22px; background: #10141b; display: flex; flex-direction: column; gap: 16px; overflow: auto; }
+.snakeGame.isExpanded { position: fixed; inset: 0; z-index: 100; }
+.snakeGame:fullscreen .snakeHeader, .snakeGame.isExpanded .snakeHeader { margin: 0; flex-shrink: 0; }
+.snakeGame:fullscreen .snakeStage, .snakeGame.isExpanded .snakeStage { flex: 1; min-height: 240px; aspect-ratio: auto; width: 100%; background: #062229; }
+.snakeGame:fullscreen .snakeToolbar, .snakeGame.isExpanded .snakeToolbar { margin: 0; flex-shrink: 0; }
+.snakeGame:fullscreen .snakeBelow, .snakeGame.isExpanded .snakeBelow { display: none; }
+@keyframes snakeFeedbackIn { from { opacity: 0; margin-top: -8px; } to { opacity: 1; margin-top: 0; } }
+@media (max-width: 1250px) { .snakeHud > div { min-width: 80px; padding-inline: 17px; } .snakeLiveInfo { display: none; } .snakeToolbar { gap: 10px; } }
+@media (max-width: 800px) { .snakeHeader h2 { font-size: 34px; } .snakeHud > div { min-width: 70px; padding-inline: 12px; } .snakeHud dd { font-size: 26px; } .snakeOverlayContent { width: 380px; padding: 23px; } .snakeOverlay h3 { font-size: 24px; } .snakeToolbar > .snakeKeyHint { font-size: 10px; gap: 5px; } .snakeToolbar > .snakeKeyHint > span:last-child, .snakeToolbar > .snakeKeyHint > i { display: none; } .snakeKeyHint kbd { min-width: 19px; padding: 2px 4px; } .snakeActions button { padding-inline: 10px; } }
+@media (max-width: 680px), (pointer: coarse) {
+  .snakeMobileControls { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 9px 0; }
+  .snakeMobileControls > p { font-size: 11px; line-height: 1.7; color: #bdc9d5; margin: 0; }
+  .snakeMobileControls > p span { color: #8f9da9; }
+  .snakeDpad { display: grid; grid-template: repeat(2, 48px) / repeat(3, 48px); gap: 5px; }
+  .snakeGame .snakeDpad button { padding: 0; display: grid; place-items: center; background: #1c2c33; color: #c9f9e9; border: 1px solid #456d70; border-radius: 10px; touch-action: none; }
+  .snakeGame .snakeDpad button:hover:not(:disabled) { background: #29473f; }
+  .snakeDpad button:active:not(:disabled) { background: #345950; border-color: var(--snake-mint); }
+  .snakeDirection-up { grid-area: 1 / 2; } .snakeDirection-left { grid-area: 2 / 1; } .snakeDirection-down { grid-area: 2 / 2; } .snakeDirection-right { grid-area: 2 / 3; }
+}
+@media (max-width: 680px) {
+  .snakeHeader { flex-wrap: wrap; gap: 17px; margin-bottom: 16px; padding: 0; }
+  .snakeHeader h2 { font-size: 36px; } .snakeHeader p { font-size: 12px; }
+  .snakeHud { width: 100%; padding-block: 10px; border-top: 1px solid #343240; border-bottom: 1px solid #343240; }
+  .snakeHud > div { flex: 1; min-width: 0; padding: 0 10px; } .snakeHud dd { font-size: 26px; margin-top: 3px; }
+  .snakeHud dt { font-size: 9px; }
+  .snakeStage { border-radius: 12px; aspect-ratio: 7 / 4; }
+  .snakeWorld { top: 12px; left: 13px; gap: 6px; font-size: 8px; letter-spacing: .09em; }
+  .snakeWorld svg { width: 12px; height: 12px; }
+  .snakeStageTools { top: 7px; right: 7px; gap: 5px; }
+  .snakeStageTools button { width: 44px; min-height: 44px; border-radius: 8px; }
+  .snakeStageTools button svg { width: 17px; height: 17px; }
+  .snakeOverlay { padding: 55px 14px 10px; }
+  .snakeOverlayContent { padding: 13px 12px; border-radius: 12px; width: 100%; max-width: 300px; }
+  .snakeOverlay h3 { font-size: 19px; margin-bottom: 7px; }
+  .snakeOverlay p { font-size: 10px; margin-bottom: 11px; line-height: 1.5; }
+  .snakeGame .snakePrimary { min-width: 180px; min-height: 44px; padding: 10px 15px; font-size: 13px; border-radius: 10px; }
+  .snakeOverlayKeys { display: none; }
+  .snakeToolbar { margin-top: 10px; padding: 8px; gap: 7px; border-radius: 9px; }
+  .snakeToolbar > .snakeKeyHint { display: none; }
+  .snakeActions { width: 100%; gap: 7px; }
+  .snakeActions button { font-size: 11px; justify-content: center; }
+  .snakeActions button:first-child { flex: 1; } .snakeActions button:last-child { flex: 2; }
+  .snakeLiveInfo { display: none; }
+  .snakeFeedback { top: 49px; font-size: 10px; padding: 6px 10px; }
+  .snakeStage:has(.isEnded) { min-height: 400px; }
+  .snakeStage:has(.isError) { min-height: 300px; }
+  .snakeOverlay.isEnded { padding: 52px 16px 16px; }
+  .snakeOverlay.isEnded .snakeOverlayContent { padding: 18px; }
+  .snakeFinalScore { font-size: 40px; margin: 0 0 18px; }
+  .snakeEndIcon { margin-bottom: 6px; }
+  .snakeBelow { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 20px; }
+  .snakeRecordGuide { padding: 13px 0; gap: 10px; min-height: 0; }
+  .snakeEggArt { width: 76px; height: 76px; }
+  .snakeRecordGuide h3 { font-size: 23px; }
+  .snakeRecordGuide p { font-size: 11px; }
+  .snakeScores { border-left: 0; border-top: 1px solid #343240; padding: 17px 0 0; }
+  .snakeGame:fullscreen, .snakeGame.isExpanded { padding: 14px; gap: 10px; }
+  .snakeGame:fullscreen .snakeHeader, .snakeGame.isExpanded .snakeHeader { gap: 10px; }
+  .snakeGame:fullscreen .snakeHeader h2, .snakeGame.isExpanded .snakeHeader h2 { font-size: 26px; }
+  .snakeGame:fullscreen .snakeHeader p, .snakeGame.isExpanded .snakeHeader p { display: none; }
+  .snakeGame:fullscreen .snakeHud, .snakeGame.isExpanded .snakeHud { padding-block: 7px; }
+  .snakeGame:fullscreen .snakeMobileControls, .snakeGame.isExpanded .snakeMobileControls { padding-top: 0; }
+}
+@media (max-height: 580px) and (min-width: 681px) {
+  .snakeGame:fullscreen, .snakeGame.isExpanded { padding: 12px; gap: 8px; }
+  .snakeGame:fullscreen .snakeHeader h2, .snakeGame.isExpanded .snakeHeader h2 { font-size: 26px; }
+  .snakeGame:fullscreen .snakeHeader p, .snakeGame.isExpanded .snakeHeader p { display: none; }
+  .snakeGame:fullscreen .snakeHud dd, .snakeGame.isExpanded .snakeHud dd { font-size: 23px; }
+  .snakeGame:fullscreen .snakeMobileControls, .snakeGame.isExpanded .snakeMobileControls { position: absolute; bottom: 78px; right: 25px; z-index: 4; padding: 0; }
+  .snakeGame:fullscreen .snakeMobileControls p, .snakeGame.isExpanded .snakeMobileControls p { display: none; }
+  .snakeGame:fullscreen .snakeStage, .snakeGame.isExpanded .snakeStage { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .snakeGame *, .snakeGame *::before { animation: none !important; transition: none !important; } }
