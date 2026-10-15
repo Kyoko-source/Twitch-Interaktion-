@@ -385,16 +385,20 @@ class NullsignalTests(unittest.TestCase):
         restored = NullsignalStore(self.ledger).get(self.id, "host", "alice", self.now+1000)
         self.assertEqual(restored["atmosphere"], paused["atmosphere"])
 
-    def test_scare_is_once_per_round_does_not_replace_module_events_and_resets(self):
+    def test_no_scare_near_deadline_and_legacy_saved_scares_are_ignored(self):
         self.start()
         for offset in range(5, 310, 5):
             self.touch(self.now+offset)
         first = self.store.get(self.id, "host", "alice", self.now+310)
-        self.assertEqual(first["atmosphere"]["scare_id"], self.host["round_id"])
-        self.assertAlmostEqual(first["atmosphere"]["scare_remaining"], 1.2)
+        self.assertIsNone(first["atmosphere"]["scare_id"])
+        self.assertEqual(first["atmosphere"]["scare_remaining"], 0)
         self.assertEqual(first["event"], self.host["event"])
         self.assertEqual(first["strikes"], 0)
-        later = NullsignalStore(self.ledger).get(self.id, "host", "alice", self.now+312)
+        with self.ledger.connection(write=True) as db:
+            state = json.loads(db.execute("SELECT state FROM nullsignal_rooms WHERE id=?", (self.id,)).fetchone()[0])
+            state["scare_at_played"] = 310
+            db.execute("UPDATE nullsignal_rooms SET state=? WHERE id=?", (json.dumps(state), self.id))
+        later = NullsignalStore(self.ledger).get(self.id, "host", "alice", self.now+310.1)
         self.assertEqual(later["atmosphere"]["scare_remaining"], 0)
         self.assertEqual(later["atmosphere"]["scare_id"], first["atmosphere"]["scare_id"])
         self.store.control(self.id, "alice", "pause", now=self.now+313)
@@ -402,7 +406,7 @@ class NullsignalTests(unittest.TestCase):
         self.assertIsNone(reset["atmosphere"]["scare_id"])
         self.assertEqual(reset["atmosphere"]["played"], 0)
 
-    def test_pill_delays_untreated_stress_and_cancels_active_scare(self):
+    def test_pill_delays_untreated_stress_without_any_scare(self):
         self.start()
         for offset in range(5, 310, 5):
             self.touch(self.now+offset)
@@ -411,7 +415,7 @@ class NullsignalTests(unittest.TestCase):
         self.touch(self.now+310)
         self.assertIsNone(self.store.get(self.id, "host", "alice", self.now+310)["atmosphere"]["scare_id"])
         self.assertEqual(self.store.get(self.id, "host", "alice", self.now+310)["atmosphere"]["untreated"], 0)
-        # A different untreated round can be interrupted even during its close-up.
+        # The short mission stays free of scares at its former trigger point.
         self.store.control(self.id, "alice", "pause", now=self.now+311)
         self.host = self.store.control(self.id, "alice", "reset", "contact", self.now+312)
         self.now += 312

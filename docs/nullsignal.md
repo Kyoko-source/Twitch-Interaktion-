@@ -155,20 +155,18 @@ echten 3D-Lichtkegel aus. **F** oder der Schalter oben links schaltet sie um.
 Die LEDs und der Countdown bleiben sichtbar. Das Handbuch bleibt unbeeinflusst.
 
 Ohne Beruhigung entstehen bei weniger als zwei Minuten Restzeit und mehr als
-50 aktiven Sekunden ohne Pillenwirkung allmählich Bildstörungen. Bei höchstens
-50 Sekunden Restzeit und mindestens 85
-aktiven Sekunden ohne Beruhigung erscheint einmal pro Runde eine eigene
-verzerrte Gestalt für 1,2 Sekunden mit einem kurzen Sample-Stinger. Rätselwerte,
-Fehlerzahl und Antworten werden dadurch nicht verändert.
+50 aktiven Sekunden ohne Pillenwirkung allmählich Bildstörungen. Es gibt keine
+Gestalt und keinen Jumpscare oder zugehörigen Schrecksound. Auch ältere
+gespeicherte Schreckereignisse werden ignoriert. Rätselwerte, Fehlerzahl und
+Antworten werden durch die Bildstörungen nicht verändert.
 
 **C** nimmt weiterhin eine der zwei Pillen: 30 aktive Sekunden klare Sicht,
 keine Halluzinationen und anschließend ein neu beginnender Stressaufbau.
-Pausen frieren alle Zeitpläne ein; der Server speichert den einmaligen Schreck
-auch über Neuladen hinweg. Die Expertenprojektion enthält keine Stressdaten.
-Unter den Einstellungen können Halluzinationen und Jumpscare gemeinsam
+Pausen frieren alle Zeitpläne ein. Die Expertenprojektion enthält keine Stressdaten.
+Unter den Einstellungen können die Halluzinationen
 ausgeschaltet werden; die Wahl bleibt lokal gespeichert. Bei reduzierter
-Bewegung entfallen Zoom, Figuren-Close-up und dekorative Animationen.
-Ausfall, Erscheinung und Schreck verwenden endliche vorhandene CC0-Samples;
+Bewegung entfallen dekorative Animationen.
+Der Ausfall verwendet ein endliches vorhandenes CC0-Sample;
 Musik und Countdown folgen weiterhin ihren bisherigen Einstellungen.
 
 ## Prüfung

@@ -16,11 +16,11 @@ test('outages last twelve active seconds, repeat with quiet gaps and stop outsid
 });
 test('hallucinations need both sustained untreated stress and low remaining time; pills clear them',()=>{
   const base={running:true,remaining:50,played:130,untreated:130,scare_remaining:1,scare_id:'round'};
-  assert.equal(visual(base).hallucination,1);assert.equal(visual(base).scare,true);
-  for(const calm of [.01,30]){assert.equal(visual({...base,calm}).hallucination,0);assert.equal(visual({...base,calm}).scare,false);}
+  assert.equal(visual(base).hallucination,1);assert.equal(visual(base).scare,undefined);
+  for(const calm of [.01,30]){assert.equal(visual({...base,calm}).hallucination,0);assert.equal(visual({...base,calm}).scare,undefined);}
   assert.equal(visual({...base,untreated:50}).hallucination,0);
   assert.equal(visual({...base,remaining:120}).hallucination,0);
-  assert.equal(visual({...base,running:false}).scare,false);
+  assert.equal(visual({...base,running:false}).scare,undefined);
   assert.equal(visual({...base,remaining:0}).hallucination,0);
-  assert.equal(visual({...base,scare_remaining:0}).scare,false);
+  assert.equal(visual({...base,scare_remaining:0}).scare,undefined);
 });

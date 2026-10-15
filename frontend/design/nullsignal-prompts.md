@@ -33,8 +33,8 @@ Built-in image generation edit using `apparition-v2.png` as the character
 identity reference, `transparent_background: true`. Output copied unchanged
 from `C:/Users/Flori/.codex/generated_images/01a13ead-15b6-78f1-bc15-d0fb38b4edf7/exec-5399ab4c-ae37-4dea-aa9a-6bcb471db38b.png`
 to `frontend/public/assets/nullsignal/visitor-fullbody-v1.png`.
-This full-body cutout is used on a world-space Three.js sprite, with depth
-occlusion, perspective and flashlight detection; the close-up remains separate.
+The retired full-body cutout was used on a world-space Three.js sprite, with depth
+occlusion, perspective and flashlight detection.
 
 Final prompt:
 
@@ -42,11 +42,14 @@ Edit target: the attached original NULLSIGNAL horror character cutout. Create a 
 
 ## Apparition v2 — 2026-10-15
 
+Retired at the user's request. The public asset, jumpscare, image preload and
+associated stinger were removed; this prompt is retained as generation history.
+
 Built-in image generation, `transparent_background: true`. Original output:
 `C:/Users/Flori/.codex/generated_images/01a13ead-15b6-78f1-bc15-d0fb38b4edf7/exec-59343741-7915-4185-9ac6-8005a05a6af0.png`.
 Copied unchanged into `frontend/public/assets/nullsignal/apparition-v2.png`:
 1024 × 1536 RGBA, 2,873,378 bytes. Alpha inspected: transparent pixels present.
-This replaces the original code-native mask in both sightings and close-up.
+This previously replaced the original code-native mask in sightings and close-up.
 
 Final prompt:
 
