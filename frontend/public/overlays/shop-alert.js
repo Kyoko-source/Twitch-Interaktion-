@@ -20,9 +20,19 @@
     started = event.starts;
     deadline = event.ends;
     document.getElementById("buyer-name").textContent = String(event.username || "Community").slice(0, 64);
-    const title = String(event.item_name || "Bestrafung").slice(0, 100);
+    const highscore = event.kind === "highscore";
+    const gameTitle = String(event.item_name || "einem Spiel").slice(0, 100);
+    const title = highscore ? "HIGHSCORE gebrochen!" : String(event.item_name || "Bestrafung").slice(0, 100);
+    box.classList.toggle("is-highscore", highscore);
+    box.setAttribute("aria-label", highscore ? "Neuer Highscore" : "Neue Bestrafung");
+    document.getElementById("reward-brand").textContent = highscore ? "AVIARY · NEUER REKORD" : "AVIARY · STREAM REWARD";
+    document.getElementById("reward-description").textContent = highscore ? `hat in ${gameTitle} den` : "hat eine Bestrafung gekauft";
+    document.getElementById("reward-category").textContent = highscore ? "Mach das nach!" : "Bestrafungs Ideen";
+    document.getElementById("purchase-symbol").toggleAttribute("hidden", highscore);
+    document.getElementById("highscore-symbol").toggleAttribute("hidden", !highscore);
+    document.getElementById("purchase-price-symbol").toggleAttribute("hidden", highscore);
     document.getElementById("reward-name").textContent = title;
-    document.getElementById("reward-price").textContent = `${Number(event.price || 0).toLocaleString("de-DE")} Chickens`;
+    document.getElementById("reward-price").textContent = highscore ? `${Number(event.score || 0).toLocaleString("de-DE")} Punkte` : `${Number(event.price || 0).toLocaleString("de-DE")} Chickens`;
     box.classList.toggle("has-long-title", title.length > 26);
     box.classList.remove("is-entering");
     box.hidden = false;
@@ -51,7 +61,7 @@
   }
   async function poll() {
     try {
-      const response = await fetch("/api/purchase-alerts", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+      const response = await fetch("/api/purchase-alerts?include_highscores=true", { cache: "no-store", signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error("Unavailable");
       const state = await response.json();
       if (!Number.isFinite(state.server_time) || !Array.isArray(state.events)) return;
@@ -69,7 +79,8 @@
       performanceBase = performance.now();
       const time = now();
       const duration = Math.max(5, Math.min(20, Number(event.data.duration) || 10));
-      show({ id: "preview", username: event.data.username || "magical_kyoko_", item_name: event.data.item_name || "3 Squats", price: event.data.price ?? 450, starts: time, ends: time + duration });
+      const highscore = event.data.kind === "highscore";
+      show({ id: "preview", kind: highscore ? "highscore" : "purchase", username: event.data.username || "magical_kyoko_", item_name: event.data.item_name || (highscore ? "Chicken Jump" : "3 Squats"), score: event.data.score ?? 12500, price: event.data.price ?? 450, starts: time, ends: time + duration });
     });
   } else {
     poll();

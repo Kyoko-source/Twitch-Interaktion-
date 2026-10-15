@@ -10,6 +10,14 @@ In **Admin → Shop-Alerts**, copy the source URL, preview an example privately,
 
 The overlay uses text nodes, not HTML, for names and catalog text. Deadlines use server time and a monotonic browser clock. A currently visible notification expires even if the network fails. Initial updates poll once per second. No credentials belong in the source URL.
 
+### Highscores in the same browser source
+
+After saving a round, a strictly higher global score for that game also triggers this source: **“Name hat in Spiel den HIGHSCORE gebrochen! 12.500 Punkte · Mach das nach!”** A golden trophy distinguishes records from purchases. Both use the same persistent queue and display-duration setting. There is a private **Highscore-Vorschau** in Admin → Shop-Alerts. Refresh the existing OBS browser source once after installing this update; its URL and dimensions stay the same.
+
+The comparison includes the legacy Supabase leaderboard and completed rounds in the new ledger. Equal scores and personal bests below the global record do not trigger an announcement. The first positive score of an empty leaderboard establishes its record. Score persistence, Chicken credit and the alert are one transaction; retries cannot publish the same round twice, and simultaneous equal records create only one announcement. Announcements do not award bonus currency. If legacy history cannot be verified during a network outage, the round still saves and earns its normal reward but does not claim an unverified global record. Already-saved historical scores are not announced retroactively.
+
+Updated overlays request `/api/purchase-alerts?include_highscores=true`. The unqualified feed remains purchase-only so a still-open old OBS page cannot mistake a record for a punishment purchase. New `kind`, `game` and `score` alert fields and the round's `is_highscore` flag are added to existing SQLite tables without resetting funds or history.
+
 ## Game economy
 
 Start an authenticated round, play, then submit the score at the end. Snake also has **Runde abschließen**. A round must run at least 15 seconds and reach a game's score threshold before it can pay anything.

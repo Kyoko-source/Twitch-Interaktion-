@@ -13,9 +13,10 @@ class AlertSettings(BaseModel):
 
 
 @router.get("/api/purchase-alerts")
-def purchase_alerts(response: Response):
+def purchase_alerts(response: Response, include_highscores: bool = False):
     response.headers["Cache-Control"] = "no-store"
-    return economy().alerts()
+    # Older OBS pages must not mislabel a record as a punishment purchase.
+    return economy().alerts(include_highscores=include_highscores)
 
 
 @router.get("/api/admin/purchase-alerts", dependencies=[Depends(require_admin)])

@@ -3,21 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Aviary · Shop-Alerts</title>
-    <link rel="stylesheet" href="./shop-alert.css?v=chickens-1" />
-    <script src="./shop-alert.js?v=chickens-1" defer></script>
+    <title>Aviary · Stream-Alerts</title>
+    <link rel="stylesheet" href="./shop-alert.css?v=highscore-1" />
+    <script src="./shop-alert.js?v=highscore-1" defer></script>
   </head>
   <body>
     <div class="alert-stage">
       <section id="shop-alert" class="reward-alert" hidden aria-live="polite" aria-label="Neue Bestrafung">
-        <div class="reward-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 4 3 6-8 6 8 4-3-2 12H4L2 8Z"/><path d="M4 22h16"/></svg><span>AVIARY · STREAM REWARD</span></div>
-        <div class="reward-symbol"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><span></span></div>
+        <div class="reward-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 4 3 6-8 6 8 4-3-2 12H4L2 8Z"/><path d="M4 22h16"/></svg><span id="reward-brand">AVIARY · STREAM REWARD</span></div>
+        <div class="reward-symbol"><span></span><svg id="purchase-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><svg id="highscore-symbol" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8m-4-5v5M7 4h10v7a5 5 0 0 1-10 0V4ZM7 6H4v3a4 4 0 0 0 4 4m9-7h3v3a4 4 0 0 1-4 4"/></svg><span></span></div>
         <strong id="buyer-name" class="reward-buyer"></strong>
-        <p class="reward-description">hat eine Bestrafung gekauft</p>
+        <p id="reward-description" class="reward-description">hat eine Bestrafung gekauft</p>
         <h1 id="reward-name"></h1>
         <div class="reward-divider"></div>
-        <div class="reward-price"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20M20 7l2 .5-2 .5M10 18v3M14 17.75V21M7 18a6 6 0 0 0 3.84-10.61"/></svg><strong id="reward-price"></strong></div>
-        <p class="reward-category">Bestrafungs Ideen</p>
+        <div class="reward-price"><svg id="purchase-price-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20M20 7l2 .5-2 .5M10 18v3M14 17.75V21M7 18a6 6 0 0 0 3.84-10.61"/></svg><strong id="reward-price"></strong></div>
+        <p id="reward-category" class="reward-category">Bestrafungs Ideen</p>
         <div class="reward-countdown"><span id="reward-countdown"></span></div>
       </section>
     </div>

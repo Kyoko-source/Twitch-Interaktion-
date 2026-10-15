@@ -21,6 +21,7 @@ ROUND_CAP = 25
 MIN_RUN_SECONDS = 15
 LEVEL_SIZE = 250
 SCORE_DIVISORS = {"chicken-jump": 100, "chicken-snake": 10, "chicken-flipper": 2500, "braincell-survivor": 200}
+GAME_TITLES = {"chicken-jump": "Chicken Jump", "chicken-snake": "Chicken Snake", "chicken-flipper": "PEPPLE Pinball", "braincell-survivor": "Pepple Survivor"}
 PUNISHMENT_CATEGORIES = {"Bestrafungs Ideen", "Idee Bestrafungsrad"}
 
 
@@ -41,7 +42,7 @@ class EconomyStore:
                 CREATE TABLE IF NOT EXISTS runs (
                     id TEXT PRIMARY KEY, username TEXT NOT NULL, game TEXT NOT NULL, started REAL NOT NULL,
                     completed REAL, score INTEGER, payload TEXT, reward INTEGER NOT NULL DEFAULT 0,
-                    reward_day TEXT);
+                    reward_day TEXT, is_highscore INTEGER NOT NULL DEFAULT 0);
                 CREATE INDEX IF NOT EXISTS runs_user_day ON runs(username, reward_day);
                 CREATE INDEX IF NOT EXISTS runs_game_score ON runs(game, score DESC);
                 CREATE TABLE IF NOT EXISTS purchases (
@@ -52,12 +53,23 @@ class EconomyStore:
                 CREATE TABLE IF NOT EXISTS alerts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, purchase_id TEXT UNIQUE NOT NULL,
                     username TEXT NOT NULL, item_name TEXT NOT NULL, category TEXT NOT NULL,
-                    price INTEGER NOT NULL, starts REAL NOT NULL, ends REAL NOT NULL);
+                    price INTEGER NOT NULL, starts REAL NOT NULL, ends REAL NOT NULL,
+                    kind TEXT NOT NULL DEFAULT 'purchase', game TEXT, score INTEGER);
                 CREATE INDEX IF NOT EXISTS alerts_ends ON alerts(ends);
                 CREATE TABLE IF NOT EXISTS adjustments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, delta INTEGER NOT NULL,
                     created REAL NOT NULL);
             """)
+        # Additive upgrade of the live ledger; existing balances/events are retained.
+        with self.connection(write=True) as db:
+            for table, fields in {
+                "runs": {"is_highscore": "INTEGER NOT NULL DEFAULT 0"},
+                "alerts": {"kind": "TEXT NOT NULL DEFAULT 'purchase'", "game": "TEXT", "score": "INTEGER"},
+            }.items():
+                existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+                for field, definition in fields.items():
+                    if field not in existing:
+                        db.execute(f"ALTER TABLE {table} ADD COLUMN {field} {definition}")
 
     @contextmanager
     def connection(self, *, write=False):
@@ -119,7 +131,7 @@ class EconomyStore:
             db.execute("INSERT INTO runs(id, username, game, started) VALUES (?, ?, ?, ?)", (run_id, username, game, now))
             return {"run_id": run_id, "minimum_seconds": MIN_RUN_SECONDS, "daily_cap": DAILY_CAP, "round_cap": ROUND_CAP}
 
-    def complete_run(self, username, game, run_id, payload, now=None):
+    def complete_run(self, username, game, run_id, payload, now=None, legacy_best=None):
         now = time.time() if now is None else now
         with self.connection(write=True) as db:
             self.require_ready(db)
@@ -129,13 +141,17 @@ class EconomyStore:
             if run["completed"] is not None:
                 if json.loads(run["payload"]) != payload:
                     raise HTTPException(409, "Diese Runde wurde bereits mit einem anderen Ergebnis eingereicht.")
-                return self._score_result(db, username, run["reward"], duplicate=True)
+                return self._score_result(db, username, run["reward"], duplicate=True, is_highscore=bool(run["is_highscore"]))
             elapsed = now - run["started"]
             if not math.isfinite(elapsed) or elapsed < 0 or elapsed > 7200:
                 raise HTTPException(409, "Diese Runde ist abgelaufen. Bitte starte eine neue Runde.")
             day = datetime.fromtimestamp(now, timezone.utc).date().isoformat()
             earned_today = db.execute("SELECT COALESCE(SUM(reward),0) FROM runs WHERE username=? AND reward_day=?", (username, day)).fetchone()[0]
             score = payload["score"]
+            # The local comparison and announcement share the score transaction.
+            # Unknown legacy history must never produce a false record claim.
+            local_best = db.execute("SELECT COALESCE(MAX(score),0) FROM runs WHERE game=? AND completed IS NOT NULL", (game,)).fetchone()[0]
+            is_highscore = legacy_best is not None and score > max(0, legacy_best, local_best)
             skill_reward = score // SCORE_DIVISORS[game]
             time_reward = int(elapsed // 10)
             reward = min(ROUND_CAP, skill_reward, time_reward, max(0, DAILY_CAP - earned_today)) if elapsed >= MIN_RUN_SECONDS else 0
@@ -143,13 +159,18 @@ class EconomyStore:
                 raise HTTPException(400, "Die angegebene Spielzeit passt nicht zu dieser Runde.")
             db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
             db.execute("UPDATE wallets SET chickens=chickens+?, earned=earned+? WHERE username=?", (reward, reward, username))
-            db.execute("UPDATE runs SET completed=?, score=?, payload=?, reward=?, reward_day=? WHERE id=?", (now, score, json.dumps(payload, sort_keys=True), reward, day, run_id))
-            return self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward))
+            db.execute("UPDATE runs SET completed=?, score=?, payload=?, reward=?, reward_day=?, is_highscore=? WHERE id=?", (now, score, json.dumps(payload, sort_keys=True), reward, day, int(is_highscore), run_id))
+            if is_highscore:
+                self._queue_alert(db, f"highscore:{run_id}", username, GAME_TITLES[game], "Highscore", 0, now, kind="highscore", game=game, score=score)
+            return self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward), is_highscore=is_highscore)
 
-    def _score_result(self, db, username, reward, duplicate=False, daily_remaining=None):
+    def _score_result(self, db, username, reward, duplicate=False, daily_remaining=None, is_highscore=False):
         message = "Diese Runde wurde bereits gewertet." if duplicate else (f"Score gespeichert. +{reward} Chickens!" if reward else "Score gespeichert. Für Chickens: mindestens 15 Sekunden spielen und Punkte sammeln; Tageslimit 120.")
+        if is_highscore and not duplicate:
+            message = f"Neuer Highscore! Dein Rekord erscheint im Stream. +{reward} Chickens." if reward else "Neuer Highscore! Dein Rekord erscheint im Stream."
         return {"message": message, "chickens_awarded": 0 if duplicate else reward,
-                "daily_remaining": daily_remaining, "wallet": self.wallet(db, username), "duplicate": duplicate}
+                "daily_remaining": daily_remaining, "wallet": self.wallet(db, username), "duplicate": duplicate,
+                "is_highscore": is_highscore, "highscore_alert_queued": is_highscore and not duplicate}
 
     def scores(self, game):
         with self.connection() as db:
@@ -184,12 +205,16 @@ class EconomyStore:
             db.execute("INSERT INTO purchases VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (request_id, username, item_id, item["name"], category, price, item.get("style"), now, wallet["chickens"] - price))
             alert = category in PUNISHMENT_CATEGORIES
             if alert:
-                settings = self._settings(db)
-                last_end = db.execute("SELECT MAX(ends) FROM alerts WHERE ends>?", (now,)).fetchone()[0]
-                starts = max(now, last_end + 1 if last_end else now)
-                db.execute("INSERT INTO alerts(purchase_id, username, item_name, category, price, starts, ends) VALUES (?, ?, ?, ?, ?, ?, ?)", (request_id, username, item["name"], category, price, starts, starts + settings["duration_seconds"]))
+                self._queue_alert(db, request_id, username, item["name"], category, price, now)
             return {"message": "Gekauft! Deine Bestrafung erscheint im Stream." if alert else "Item gekauft.",
                     "purchase_id": request_id, "wallet": self.wallet(db, username), "stream_alert": alert, "duplicate": False}
+
+    def _queue_alert(self, db, event_key, username, title, category, price, now, kind="purchase", game=None, score=None):
+        settings = self._settings(db)
+        last_end = db.execute("SELECT MAX(ends) FROM alerts WHERE ends>?", (now,)).fetchone()[0]
+        starts = max(now, last_end + 1 if last_end else now)
+        db.execute("INSERT INTO alerts(purchase_id, username, item_name, category, price, starts, ends, kind, game, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (event_key, username, title, category, price, starts, starts + settings["duration_seconds"], kind, game, score))
 
     @staticmethod
     def _settings(db):
@@ -202,10 +227,10 @@ class EconomyStore:
                 db.execute("INSERT OR REPLACE INTO metadata VALUES ('alert-settings', ?)", (json.dumps(values),))
             return self._settings(db)
 
-    def alerts(self, now=None):
+    def alerts(self, now=None, include_highscores=True):
         now = time.time() if now is None else now
         with self.connection() as db:
-            events = db.execute("SELECT * FROM alerts WHERE ends>? ORDER BY starts, id LIMIT 50", (now,)).fetchall()
+            events = db.execute("SELECT * FROM alerts WHERE ends>? AND (? OR kind='purchase') ORDER BY starts, id LIMIT 50", (now, int(include_highscores))).fetchall()
             return {"server_time": now, "events": [dict(row) for row in events]}
 
     def recent_purchases(self):

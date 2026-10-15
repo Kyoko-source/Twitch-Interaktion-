@@ -21,6 +21,10 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .reward-price > svg { width: 61px; height: 61px; }
 .reward-price > strong { font-size: 46px; font-weight: 650; line-height: 1.2; }
 .reward-category { margin: 3px 0 0 76px; color: #91859f; font-size: 23px; line-height: 1.3; letter-spacing: 1px; }
+.reward-alert.is-highscore .reward-symbol > svg { color: #efc575; border-color: #d7b06c; background: #352919; }
+.reward-alert.is-highscore h1 { font-size: 60px; letter-spacing: -2px; margin-top: 17px; margin-bottom: 23px; }
+.reward-alert.is-highscore .reward-price { margin-top: 20px; }
+.reward-alert.is-highscore .reward-category { margin: 10px 0 0; color: #c6a2fa; font-size: 27px; font-weight: 600; }
 .reward-countdown { position: absolute; left: 13px; right: 13px; bottom: 9px; height: 8px; border-radius: 8px; overflow: hidden; background: #42394f; }
 .reward-countdown > span { display: block; width: 100%; height: 100%; background: #bd99f3; transform-origin: left; }
 @keyframes reward-in { from { opacity: 0; transform: translateY(20px) scale(.96); } to { opacity: 1; transform: none; } }

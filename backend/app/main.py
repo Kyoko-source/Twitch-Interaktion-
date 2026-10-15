@@ -866,10 +866,17 @@ def scores(game: str) -> list[dict[str, Any]]:
 
 @app.post("/api/scores")
 def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user)):
-    if not score_table(payload.game):
+    table = score_table(payload.game)
+    if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
+    try:
+        history = rows(f"{table}?select=score&order=score.desc&limit=1")
+        legacy_best = max(0, int(history[0].get("score") or 0)) if history else 0
+    except HTTPException:
+        # A history outage must neither lose the saved score nor claim a false record.
+        legacy_best = None
     data = payload.model_dump(exclude={"game", "run_id"})
-    return economy().complete_run(str(user["username"]), payload.game, payload.run_id, data)
+    return economy().complete_run(str(user["username"]), payload.game, payload.run_id, data, legacy_best=legacy_best)
 
 
 @app.get("/api/admin/overview", dependencies=[Depends(require_admin)])

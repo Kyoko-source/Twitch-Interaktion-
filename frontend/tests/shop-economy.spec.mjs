@@ -91,7 +91,7 @@ test("OBS: transparent center box, ordered purchases, literal text, expiry durin
   await page.setViewportSize({ width: 1536, height: 1024 });
   let events;
   let offline = false;
-  await page.route("**/api/purchase-alerts", (route) => {
+  await page.route("**/api/purchase-alerts*", (route) => {
     const start = Date.now() / 1000;
     events ||= [
       { id: 1, username: "alice", item_name: "3 Squats", price: 450, starts: start, ends: start + 3 },
@@ -121,7 +121,7 @@ test("OBS: transparent center box, ordered purchases, literal text, expiry durin
 test("admin: OBS source address, isolated preview, native-size design and duration validation", async ({ page }) => {
   await setup(page);
   const publicReads = [];
-  page.on("request", (request) => { if (request.url().endsWith("/api/purchase-alerts")) publicReads.push(request.url()); });
+  page.on("request", (request) => { if (new URL(request.url()).pathname === "/api/purchase-alerts") publicReads.push(request.url()); });
   await page.goto("/#admin");
   await page.getByLabel("Admin Passwort").fill("test-password");
   await page.getByRole("button", { name: "Dashboard laden" }).click();
@@ -129,6 +129,8 @@ test("admin: OBS source address, isolated preview, native-size design and durati
   await expect(page.getByLabel("Shop-Alert-URL")).toHaveValue("http://127.0.0.1:4186/overlays/shop-alert.html");
   await page.getByRole("button", { name: "Vorschau abspielen" }).click();
   await expect(page.frameLocator("iframe[title='Shop-Alert Vorschau']").locator("#reward-name")).toHaveText("3 Squats");
+  await page.getByRole("button", { name: "Highscore-Vorschau", exact: true }).click();
+  await expect(page.frameLocator("iframe[title='Shop-Alert Vorschau']").locator("#reward-name")).toHaveText("HIGHSCORE gebrochen!");
   expect(publicReads).toEqual([]);
   await page.getByLabel("Anzeigedauer in Sekunden").fill("0");
   await expect(page.getByRole("button", { name: "Anzeigedauer speichern" })).toBeDisabled();
@@ -140,4 +142,38 @@ test("admin: OBS source address, isolated preview, native-size design and durati
   await expect(page.locator("#shop-alert")).toBeVisible();
   await page.locator("#shop-alert").evaluate((node) => node.getAnimations().forEach((animation) => animation.finish()));
   await page.screenshot({ path: join(tmpdir(), "aviary-shop-alert.png"), omitBackground: true });
+});
+
+test("OBS: highscore uses player, game, points and challenge; following purchase restores its original labels", async ({ page }) => {
+  const errors = []; page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  let events;
+  await page.route("**/api/purchase-alerts*", (route) => {
+    expect(new URL(route.request().url()).searchParams.get("include_highscores")).toBe("true");
+    const now = Date.now() / 1000;
+    events ||= [
+      { id: 100, kind: "highscore", username: "magical_kyoko_", item_name: "Chicken Jump", game: "chicken-jump", score: 12500, price: 0, starts: now, ends: now + 4 },
+      { id: 101, kind: "purchase", username: "bob", item_name: "3 Squats", price: 450, starts: now + 4.2, ends: now + 8 },
+    ];
+    return route.fulfill({ json: { server_time: now, events } });
+  });
+  await page.goto("/overlays/shop-alert.html");
+  await expect(page.locator("#buyer-name")).toHaveText("magical_kyoko_");
+  await expect(page.locator("#reward-description")).toHaveText("hat in Chicken Jump den");
+  await expect(page.locator("#reward-name")).toHaveText("HIGHSCORE gebrochen!");
+  await expect(page.locator("#reward-price")).toHaveText("12.500 Punkte");
+  await expect(page.locator("#reward-category")).toHaveText("Mach das nach!");
+  await expect(page.locator("#highscore-symbol")).toBeVisible();
+  await expect(page.locator("#purchase-symbol")).toBeHidden();
+  await expect(page.locator("#purchase-price-symbol")).toBeHidden();
+  await page.locator("#shop-alert").evaluate((node) => Promise.all(node.getAnimations().map((animation) => animation.finished)));
+  await page.screenshot({ path: join(tmpdir(), "aviary-highscore-alert.png"), omitBackground: true });
+  await expect(page.locator("#buyer-name")).toHaveText("bob", { timeout: 7000 });
+  await expect(page.locator("#reward-description")).toHaveText("hat eine Bestrafung gekauft");
+  await expect(page.locator("#reward-name")).toHaveText("3 Squats");
+  await expect(page.locator("#reward-price")).toHaveText("450 Chickens");
+  await expect(page.locator("#reward-category")).toHaveText("Bestrafungs Ideen");
+  await expect(page.locator("#purchase-symbol")).toBeVisible();
+  await expect(page.locator("#highscore-symbol")).toBeHidden();
+  expect(errors).toEqual([]);
 });
