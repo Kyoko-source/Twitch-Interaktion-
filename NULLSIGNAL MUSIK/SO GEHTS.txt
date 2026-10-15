@@ -1,0 +1,10 @@
+Deine beiden Songs kommen direkt in diesen Ordner.
+
+1. Den Song fuer das Nullsignal-Hauptmenue menu.mp3 nennen.
+2. Den Song fuer die laufende Mission ingame.mp3 nennen.
+3. Beide Dateien hier ablegen.
+4. MUSIK HOCHLADEN.cmd doppelklicken.
+5. Nach dem erfolgreichen Upload die Spielseite neu laden.
+
+Du musst keine anderen Ordner suchen und keinen Code bearbeiten.
+Du kannst auch erst einen Song hochladen und den zweiten spaeter hinzufuegen.

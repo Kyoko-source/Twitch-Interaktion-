@@ -99,7 +99,9 @@ fehlende optionale Titel als 204 ohne SPA-Fallback und vorhandene Dateien mit
 MP3-MIME-Type, Range-Unterstützung und Revalidierung statt Langzeitcache aus.
 Die Songs sind in Git ignoriert und bleiben bei Deployments erhalten.
 
-Vom Windows-PC: Dateien in den lokalen Ordner legen und
+Vom Windows-PC am einfachsten: Dateien in den sichtbaren Projektordner
+`NULLSIGNAL MUSIK/` legen und dort `MUSIK HOCHLADEN.cmd` doppelklicken.
+Alternativ Dateien in den bisherigen lokalen Ordner legen und
 `deploy/upload-nullsignal-music.cmd` doppelklicken (oder das gleichnamige `.ps1`
 ausführen). Der vorhandene Hetzner-SSH-Schlüssel wird verwendet. Jeder vorhandene
 Song wird erst vollständig hochgeladen und danach atomar freigegeben, sodass ein

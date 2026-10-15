@@ -1,9 +1,10 @@
 param(
     [string]$Server = '62.238.49.219',
-    [string]$KeyPath = (Join-Path $env:USERPROFILE '.ssh/hetzner_twitch_interaktion')
+    [string]$KeyPath = (Join-Path $env:USERPROFILE '.ssh/hetzner_twitch_interaktion'),
+    [string]$SourceFolder = (Join-Path (Split-Path -Parent $PSScriptRoot) 'frontend/public/music/nullsignal')
 )
 $ErrorActionPreference = 'Stop'
-$musicFolder = Join-Path (Split-Path -Parent $PSScriptRoot) 'frontend/public/music/nullsignal'
+$musicFolder = $SourceFolder
 $remoteFolder = '/opt/twitch-interaktion/frontend/public/music/nullsignal'
 $songs = @('menu.mp3','ingame.mp3') | Where-Object { Test-Path -LiteralPath (Join-Path $musicFolder $_) }
 if (!$songs) { throw "Lege menu.mp3 und/oder ingame.mp3 in $musicFolder ab." }
