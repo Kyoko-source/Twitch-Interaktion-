@@ -14,7 +14,7 @@ export function FarmScene({animals,catalog,selected,onSelect,running,events}){
     meadow.onload=sprites.onload=loadedImage;meadow.onerror=sprites.onerror=fail;meadow.src='/assets/farm/meadow.png';sprites.src='/assets/farm/animals.png';
     const timeout=setTimeout(()=>{if(loaded<2)fail();},20000);
     function draw(now){
-      if(!alive)return;const node=canvas.current,ctx=node.getContext('2d'),state=data.current;
+      if(!alive||!canvas.current)return;const node=canvas.current,ctx=node.getContext('2d'),state=data.current;
       const crop=Math.max(1100/meadow.naturalWidth,700/meadow.naturalHeight),width=meadow.naturalWidth*crop,height=meadow.naturalHeight*crop;
       ctx.drawImage(meadow,(1100-width)/2,(700-height)/2,width,height);
       const size=Math.max(38,108-Math.sqrt(state.animals.length)*6.7);

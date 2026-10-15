@@ -19,6 +19,6 @@ Primary concept and actual browser screenshots opened with view_image. Browser p
 | Copy | Game name/tagline, studio, record/preview/save, shop, herd and exact species incomes/prices retained. Actual zero-coin/one-sheep state replaces mock values. No invented marketing sections. |
 | Required additional states | Actual empty recording library, input permissions, private saving/retry, audio upload fallback, individual name/voice editor, mute/volume/density and account sign-in. These extend page height beyond the static concept. |
 | Responsive composition | Stacked scene/studio on mobile, horizontal six-species shop, searchable 100-animal herd. Animals distributed by stable mixed ID hashes rather than a repeated row. |
-| Motion/audio | Mouth states and native coin popups follow server-confirmed calls. Reduced motion preserves calls and economy; density limits simultaneous voices rather than allowing clipping. |
+| Motion/audio | Mouth states and native coin popups follow server-confirmed calls. Reduced motion preserves calls and economy. Chaos mode can play all 100 animals, using normalization and a compressor; quiet mode limits simultaneous voices to six. |
 
 Allowed-copy audit: all primary labels match the concept; added operational copy explains privacy, separate farm coins, online income, microphone/HTTPS and voice assignment. No decorative eyebrow or fake metrics added. The implementation was checked for visual fidelity to the concept's layout, palette, type, art treatment and native control families, with functional/mobile adaptations above.

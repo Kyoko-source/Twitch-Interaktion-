@@ -1,7 +1,7 @@
 import { api } from '../api';
 
 export class FarmAudio {
-  constructor() { this.context=null;this.buffers=new Map();this.sources=new Set();this.generation=0;this.enabled=true;this.volume=.65;this.limit=24; }
+  constructor() { this.context=null;this.buffers=new Map();this.sources=new Set();this.generation=0;this.enabled=true;this.volume=.65;this.limit=100; }
   async unlock() {
     const AudioCtx=window.AudioContext||window.webkitAudioContext;
     if(!AudioCtx) throw new Error('Dein Browser unterstützt die Audiowiedergabe nicht.');
@@ -27,7 +27,7 @@ export class FarmAudio {
     source.connect(gain).connect(this.master);this.sources.add(source);this.updateVolume();
     source.onended=()=>{this.sources.delete(source);source.disconnect();gain.disconnect();this.updateVolume();};source.start();
   }
-  settings({enabled,volume,density}) { this.enabled=enabled;this.volume=volume;this.limit=density==='quiet'?6:24;if(!enabled)this.stop();this.updateVolume(); }
+  settings({enabled,volume,density}) { this.enabled=enabled;this.volume=volume;this.limit=density==='quiet'?6:100;if(!enabled)this.stop();this.updateVolume(); }
   updateVolume() { if(this.master&&this.context?.state!=='closed')this.master.gain.setTargetAtTime(this.volume/Math.sqrt(Math.max(1,this.sources.size*.4)),this.context.currentTime,.03); }
   stop() { this.generation++;this.sources.forEach(source=>{try{source.stop();}catch{}});this.sources.clear(); }
   dispose() { this.stop();this.buffers.clear();this.context?.close().catch(()=>{}); }

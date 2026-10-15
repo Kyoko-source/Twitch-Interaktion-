@@ -2,17 +2,20 @@ import {test,expect,chromium} from '@playwright/test';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 
-async function setup(page,{count=1,coins=0,guest=false}={}){
+function wavSample(){const wav=Buffer.alloc(44+16000),text=(offset,value)=>wav.write(value,offset,'ascii');text(0,'RIFF');wav.writeUInt32LE(wav.length-8,4);text(8,'WAVE');text(12,'fmt ');wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(16000,24);wav.writeUInt32LE(32000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);text(36,'data');wav.writeUInt32LE(16000,40);for(let i=0;i<8000;i++)wav.writeInt16LE(Math.round(Math.sin(i/16000*Math.PI*2*330)*10000),44+i*2);return wav;}
+
+async function setup(page,{count=1,coins=0,guest=false,voicesReady=false}={}){
   const catalog=[['sheep','Schaf','Schafe',1,8,40],['chicken','Huhn','Hühner',2,9,110],['duck','Ente','Enten',4,10,280],['pig','Schwein','Schweine',8,11,700],['cow','Kuh','Kühe',16,12,1800],['alpaca','Alpaka','Alpakas',32,13,4500]].map(([id,name,plural,income,interval,price],art)=>({id,name,plural,income,interval,price,art,owned:art===0?count:0}));
   const state={coins,earned:coins,running:false,capacity:100,catalog,voices:[],animals:Array.from({length:count},(_,i)=>({id:(i+1).toString(16).padStart(32,'0'),species:catalog[i%6].id,name:`${catalog[i%6].name} ${i+1}`,voice_id:null}))};
   const uploads=[],buys=[],updates=[];let started=0,called=false;const blobs=new Map();
+  if(voicesReady){state.voices=[{id:'voice-1',name:'Alle meine Tiere',duration:.5}];state.animals.forEach(animal=>animal.voice_id='voice-1');blobs.set('voice-1',wavSample());}
   await page.route('**/api/**',async route=>{
     const req=route.request(),url=new URL(req.url()),path=url.pathname;let json=[];
     if(path.endsWith('/auth/me'))json={user:guest?null:{username:'Kyoko',role:'member',chickens:100,chickens_earned:100}};
     else if(path==='/api/farm')json=state;
     else if(path.endsWith('/farm/start')){state.running=true;started=Date.now();called=false;json=state;}
     else if(path.endsWith('/farm/pause')){state.running=false;json=state;}
-    else if(path.endsWith('/farm/tick')){let events=[];if(state.running&&!called&&Date.now()-started>=8000){called=true;state.coins++;events=[{id:'call-1',animal_id:state.animals[0].id,voice_id:state.animals[0].voice_id,amount:1}];}json={...state,events};}
+    else if(path.endsWith('/farm/tick')){let events=[];if(state.running&&!called&&Date.now()-started>=(voicesReady?1000:8000)){called=true;events=(voicesReady?state.animals:[state.animals[0]]).map((animal,index)=>({id:`call-${index}`,animal_id:animal.id,voice_id:animal.voice_id,amount:state.catalog.find(item=>item.id===animal.species).income}));state.coins+=events.reduce((sum,event)=>sum+event.amount,0);}json={...state,events};}
     else if(path.endsWith('/farm/voices')&&req.method()==='POST'){
       uploads.push({params:Object.fromEntries(url.searchParams),bytes:req.postDataBuffer()});const id=`voice-${uploads.length}`;blobs.set(id,req.postDataBuffer());state.voices.push({id,name:url.searchParams.get('name'),duration:1});state.animals.find(a=>a.id===url.searchParams.get('animal_id')).voice_id=id;json={...state,saved_voice_id:id};
     }else if(path.includes('/farm/voices/')&&req.method()==='GET'){return route.fulfill({contentType:'audio/wav',body:blobs.get(path.split('/').pop())||Buffer.alloc(44)});}
@@ -75,6 +78,8 @@ test('mobile 100 animals: generated sprites render, full shop, individual herd s
   await page.locator('.farmHerdRow').tap();await expect(page.locator('.farmSelectedAnimal')).toContainText('Alpaka 96');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:join(tmpdir(),'aviary-farm-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'Pepple Survivor',exact:true}).tap();
+  await expect(page.getByRole('button',{name:'Spiel starten',exact:true})).toBeEnabled();
   expect(errors).toEqual([]);await context.close();
 });
 
@@ -90,11 +95,19 @@ test('microphone permission denial has upload fallback; failed art has working r
   await setup(page);await page.getByRole('button',{name:'Sound aufnehmen',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('Mikrofonfreigabe fehlt');
   await expect(page.getByRole('button',{name:'Audiodatei wählen (erste 4 Sekunden)',exact:true})).toBeEnabled();
-  const wav=Buffer.alloc(44+16000),text=(offset,value)=>wav.write(value,offset,'ascii');
-  text(0,'RIFF');wav.writeUInt32LE(wav.length-8,4);text(8,'WAVE');text(12,'fmt ');wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(16000,24);wav.writeUInt32LE(32000,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);text(36,'data');wav.writeUInt32LE(16000,40);
-  for(let i=0;i<8000;i++)wav.writeInt16LE(Math.round(Math.sin(i/16000*Math.PI*2*330)*10000),44+i*2);
+  const wav=wavSample();
   await page.locator('.farmRecorder input[type=file]').setInputFiles({name:'my-voice.wav',mimeType:'audio/wav',buffer:wav});
   await expect(page.getByRole('button',{name:'Stimme speichern',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Stimme speichern',exact:true}).click();
   await expect(page.getByRole('button',{name:'Farm starten',exact:true})).toBeEnabled();
+});
+
+test('chaos mode plays all 100 recorded calls through real decoded audio buffers',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(()=>{window.farmStarted=0;const context=window.AudioContext||window.webkitAudioContext,create=context.prototype.createBufferSource;context.prototype.createBufferSource=function(...args){const source=create.apply(this,args),start=source.start.bind(source);source.start=(...args)=>{if(source.buffer)window.farmStarted++;return start(...args);};return source;};});
+  await setup(page,{count:100,voicesReady:true});
+  await page.getByLabel('Sounddichte').selectOption('chaos');
+  await page.getByRole('button',{name:'Farm starten',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.farmStarted)).toBe(100);
+  await page.getByRole('button',{name:'Farm pausieren',exact:true}).click();expect(errors).toEqual([]);
 });
