@@ -14,20 +14,42 @@ export function ChickenJump({ user, renderScoreboard }) {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loadProgress, setLoadProgress] = useState(5);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     let game;
+    setRun(initial); setLoadError(""); setLoadProgress(5);
+    const deadline = setTimeout(() => {
+      if (cancelled || scene.current) return;
+      setLoadError("Das Laden dauert zu lange. Bitte prüfe deine Verbindung und versuche es erneut.");
+      setRun((current) => ({ ...current, status: "error" }));
+    }, 20000);
     import("./JumpScene").then(({ mountJumpGame }) => {
       if (cancelled) return;
-      game = mountJumpGame(host.current, setRun, (nextScene) => { scene.current = nextScene; nextScene.onRewardRunStart = rewards.beginRound; });
-    }).catch(() => setMessage("Das Spiel konnte nicht geladen werden. Bitte neu laden."));
+      setLoadProgress(30);
+      game = mountJumpGame(host.current, (next) => { if (!cancelled) setRun(next); }, (nextScene) => {
+        clearTimeout(deadline);
+        if (cancelled) return;
+        if (!nextScene.textures.exists("meadow-atlas")) {
+          setLoadError("Die Spielgrafik konnte nicht geladen werden. Bitte erneut versuchen.");
+          setRun((current) => ({ ...current, status: "error" })); return;
+        }
+        scene.current = nextScene; nextScene.onRewardRunStart = rewards.beginRound; setLoadError(""); setLoadProgress(100);
+      }, (value) => { if (!cancelled) setLoadProgress(value); });
+    }).catch(() => {
+      clearTimeout(deadline);
+      if (!cancelled) { setLoadError("Das Spiel konnte nicht geladen werden. Bitte erneut versuchen."); setRun((current) => ({ ...current, status: "error" })); }
+    });
     return () => {
       cancelled = true;
+      clearTimeout(deadline);
       scene.current = null;
       game?.destroy(true);
     };
-  }, []);
+  }, [loadAttempt]);
 
   function restart() {
     setMessage("");
@@ -76,9 +98,11 @@ export function ChickenJump({ user, renderScoreboard }) {
         <div ref={host} className="jumpRunnerCanvas" role="application" aria-label="Chicken Jump Spielfeld" />
         {!active && <div className={`jumpRunnerOverlay ${ended ? "ended" : ""}`}>
           <span className="jumpOverlayTag">{ended ? "RUN BEENDET" : run.status === "paused" ? "KURZE VERSCHNAUFPAUSE" : "MEADOW RUN"}</span>
-          <h3>{ended ? run.score.toLocaleString("de-DE") : run.status === "paused" ? "Pause" : "Chicken Jump"}</h3>
+          <h3>{loadError ? "Ein kurzer Boxenstopp." : ended ? run.score.toLocaleString("de-DE") : run.status === "paused" ? "Pause" : "Chicken Jump"}</h3>
+          {run.status === "loading" && <div className="jumpLoading"><progress max="100" value={loadProgress} aria-label="Spiel wird geladen" /><span>{loadProgress < 35 ? "Spiel-Engine wird geladen …" : "Grafik wird geladen …"} {loadProgress}%</span></div>}
+          {loadError && <p role="status">{loadError}</p>}
           {ended && <p>{Math.floor(run.distance)} m <span>/</span> {run.pepples} Federn <span>/</span> Best {run.best.toLocaleString("de-DE")}</p>}
-          <button type="button" className="jumpPrimary" disabled={run.status === "loading"} onClick={() => run.status === "paused" ? scene.current?.togglePause() : restart()}><Play size={20} fill="currentColor" /> {run.status === "loading" ? "Lade ..." : ended ? "Nochmal laufen" : run.status === "paused" ? "Weiterlaufen" : "Loslaufen"}</button>
+          <button type="button" className="jumpPrimary" disabled={run.status === "loading"} onClick={() => loadError ? setLoadAttempt((value) => value + 1) : run.status === "paused" ? scene.current?.togglePause() : restart()}><Play size={20} fill="currentColor" /> {loadError ? "Erneut laden" : run.status === "loading" ? "Lade ..." : ended ? "Nochmal laufen" : run.status === "paused" ? "Weiterlaufen" : "Loslaufen"}</button>
           {ended && user && <button type="button" className="jumpSave" disabled={saving || rewards.submitted} onClick={saveScore}><Save size={16} /> {saving ? "Speichert ..." : rewards.submitted ? "Runde gewertet" : "Score & Chickens einreichen"}</button>}
         </div>}
       </div>

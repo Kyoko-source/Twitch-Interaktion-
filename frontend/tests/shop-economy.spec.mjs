@@ -82,7 +82,7 @@ test("games: Jump and Snake register real rounds, submit bound scores and credit
   await expect.poll(() => starts.length).toBe(3);
   expect(starts[2].game).toBe("chicken-flipper");
   await page.getByRole("button", { name: "Pepple Survivor", exact: true }).click();
-  await page.getByRole("button", { name: "Start", exact: true }).first().click();
+  await page.getByRole("button", { name: "Spiel starten", exact: true }).click();
   await expect.poll(() => starts.length).toBe(4);
   expect(starts[3].game).toBe("braincell-survivor");
 });

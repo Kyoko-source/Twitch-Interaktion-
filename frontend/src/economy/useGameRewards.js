@@ -32,6 +32,7 @@ export function useGameRewards(game, user) {
       const round = await activeRound.current;
       if (!round?.run_id) throw new Error("Diese Runde konnte nicht registriert werden. Bitte starte eine neue Runde, während du angemeldet bist.");
       const result = await api("/api/scores", { method: "POST", body: JSON.stringify({ ...score, game, run_id: round.run_id }) });
+      window.dispatchEvent(new CustomEvent("aviary-score-saved", { detail: { ...score, game, username, created_at: new Date().toISOString() } }));
       publishWallet(username, result.wallet);
       setSubmitted(true);
       return result;

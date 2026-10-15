@@ -22,7 +22,13 @@ export async function api(path, options = {}) {
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) {
-    throw new Error(data?.detail || "Anfrage fehlgeschlagen");
+    const detail = data?.detail;
+    const message = typeof detail === "string" ? detail : detail?.message || "Anfrage fehlgeschlagen";
+    if (token && path !== "/api/auth/login" && (response.status === 401 || detail?.code === "account_banned")) {
+      setToken("");
+      window.dispatchEvent(new CustomEvent("aviary-session-ended", { detail: { message } }));
+    }
+    throw new Error(message);
   }
   return data;
 }

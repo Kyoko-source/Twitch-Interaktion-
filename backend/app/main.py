@@ -3,7 +3,7 @@ import secrets
 import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -109,11 +109,18 @@ class ChatStyleUpdate(BaseModel):
 class PointsUpdate(BaseModel):
     username: str
     chickens_delta: int = 0
+    request_id: str | None = Field(default=None, min_length=16, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
 
 
 class RoleUpdate(BaseModel):
     username: str
-    role: str
+    role: Literal["admin", "moderator", "vip", "member"]
+
+
+class MemberAction(BaseModel):
+    action: Literal["kick", "ban", "unban"]
+    reason: str = Field(default="", max_length=300)
+    request_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
 
 
 class ScoreCreate(BaseModel):
@@ -248,7 +255,8 @@ def public_user(user: dict[str, Any]) -> dict[str, Any]:
 
 
 def ranked_users(users):
-    return sorted([public_user(user) for user in users], key=lambda user: (-user["chickens_earned"], str(user["username"]).lower()))
+    banned = economy().banned_names()
+    return sorted([public_user(user) for user in users if str(user["username"]).casefold() not in banned], key=lambda user: (-user["chickens_earned"], str(user["username"]).lower()))
 
 
 def chat_style_ids() -> set[str]:
@@ -439,6 +447,8 @@ def login(payload: LoginRequest) -> dict[str, Any]:
     user = single_user(username)
     if not user or not verify_password(payload.password, user.get("password_hash")):
         raise HTTPException(status_code=401, detail="Login fehlgeschlagen")
+    if economy().access(str(user["username"]))["banned"]:
+        raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
     return {"token": create_access_token(username), "user": public_user(user)}
 
 
@@ -466,6 +476,8 @@ def request_registration(payload: RegistrationRequest) -> dict[str, str]:
 @app.post("/api/auth/complete-registration")
 def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
     username = clean_username(payload.username)
+    if economy().access(username)["banned"]:
+        raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
     requests_for_user = rows(
         "registration_requests?select=*&"
         f"username=eq.{quote(username)}&"
@@ -543,7 +555,7 @@ def touch_presence(user: dict[str, Any] = Depends(current_user)) -> dict[str, st
         {"username": username, "last_seen": datetime.now().isoformat()},
         returning=False,
     )
-    return {"status": "online"}
+    return {"status": "online", "role": user_role(username, user.get("role"))}
 
 
 @app.delete("/api/presence")
@@ -859,8 +871,16 @@ def scores(game: str) -> list[dict[str, Any]]:
     table = score_table(game)
     if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
-    legacy = rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
-    combined = [*legacy, *economy().scores(game)]
+    current = economy().scores(game)
+    try:
+        legacy = rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
+    except HTTPException as error:
+        # Missing retired tables (notably Pinball's racer table) must never hide
+        # scores committed to the authoritative local ledger.
+        if error.status_code != 404 and not current:
+            raise
+        legacy = []
+    combined = [*legacy, *current]
     return sorted(combined, key=lambda score: (-int(score.get("score") or 0), str(score.get("created_at") or "")))[:100]
 
 
@@ -872,9 +892,9 @@ def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user
     try:
         history = rows(f"{table}?select=score&order=score.desc&limit=1")
         legacy_best = max(0, int(history[0].get("score") or 0)) if history else 0
-    except HTTPException:
+    except HTTPException as error:
         # A history outage must neither lose the saved score nor claim a false record.
-        legacy_best = None
+        legacy_best = 0 if error.status_code == 404 else None
     data = payload.model_dump(exclude={"game", "run_id"})
     return economy().complete_run(str(user["username"]), payload.game, payload.run_id, data, legacy_best=legacy_best)
 
@@ -883,7 +903,7 @@ def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user
 def admin_overview() -> dict[str, Any]:
     users_data = rows("users?select=*&order=username.asc")
     return {
-        "users": [public_user(user) for user in users_data],
+        "users": [{**public_user(user), "banned": economy().access(str(user["username"]))["banned"], "ban_reason": economy().access(str(user["username"]))["reason"]} for user in users_data],
         "registration_requests": rows("registration_requests?select=*&status=eq.pending&order=created_at.asc"),
         "support_messages": rows("support_messages?select=*&order=created_at.desc&limit=100"),
         "wishes": rows("wish_posts?select=*&active=eq.true&order=created_at.desc&limit=100"),
@@ -895,8 +915,29 @@ def admin_points(payload: PointsUpdate):
     username = clean_username(payload.username)
     if not single_user(username):
         raise HTTPException(status_code=404, detail="User nicht gefunden")
-    wallet = economy().adjust(username, payload.chickens_delta)
+    wallet = economy().adjust(username, payload.chickens_delta, payload.request_id)
     return {"message": "Chickens aktualisiert.", "wallet": wallet}
+
+
+@app.get("/api/wallet/history")
+def wallet_history(user: dict[str, Any] = Depends(current_user)):
+    return economy().wallet_history(str(user["username"]))
+
+
+@app.post("/api/admin/members/{username}/action", dependencies=[Depends(require_admin)])
+def admin_member_action(username: str, payload: MemberAction):
+    username = clean_username(username)
+    if not single_user(username):
+        raise HTTPException(404, "Mitglied nicht gefunden")
+    economy().moderate(username, payload.action, payload.reason.strip(), payload.request_id)
+    if payload.action in {"kick", "ban"}:
+        try:
+            supabase().delete(f"user_presence?username=eq.{quote(username)}")
+        except HTTPException:
+            pass
+    messages = {"kick": "Alle Sitzungen des Mitglieds wurden beendet. Eine neue Anmeldung ist möglich.",
+                "ban": "Mitglied gesperrt und auf allen Geräten abgemeldet.", "unban": "Sperre aufgehoben. Das Mitglied kann sich neu anmelden."}
+    return {"message": messages[payload.action], **economy().access(username)}
 
 
 @app.post("/api/admin/role", dependencies=[Depends(require_admin)])

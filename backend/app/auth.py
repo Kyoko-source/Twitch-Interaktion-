@@ -8,6 +8,7 @@ from passlib.hash import pbkdf2_sha256
 
 from .config import get_settings
 from .supabase import supabase
+from .economy import economy
 
 
 TOKEN_ALGORITHM = "HS256"
@@ -22,6 +23,7 @@ def create_access_token(username: str) -> str:
         "sub": username,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(hours=TOKEN_TTL_HOURS)).timestamp()),
+        "ver": economy().access(username)["session_version"],
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=TOKEN_ALGORITHM)
 
@@ -60,6 +62,11 @@ def current_user(authorization: str | None = Header(default=None)) -> dict[str, 
     user = get_user(username)
     if not user:
         raise HTTPException(status_code=401, detail="User nicht gefunden")
+    access = economy().access(username)
+    if access["banned"]:
+        raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
+    if payload.get("ver", 0) != access["session_version"]:
+        raise HTTPException(401, {"code": "session_revoked", "message": "Deine Sitzung wurde beendet. Bitte melde dich erneut an."})
     return user
 
 

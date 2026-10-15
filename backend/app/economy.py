@@ -59,17 +59,25 @@ class EconomyStore:
                 CREATE TABLE IF NOT EXISTS adjustments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, delta INTEGER NOT NULL,
                     created REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS member_access (
+                    username TEXT PRIMARY KEY, session_version INTEGER NOT NULL DEFAULT 0,
+                    banned INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '');
+                CREATE TABLE IF NOT EXISTS moderation_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, action TEXT NOT NULL,
+                    reason TEXT NOT NULL, created REAL NOT NULL, request_id TEXT UNIQUE NOT NULL);
             """)
         # Additive upgrade of the live ledger; existing balances/events are retained.
         with self.connection(write=True) as db:
             for table, fields in {
                 "runs": {"is_highscore": "INTEGER NOT NULL DEFAULT 0"},
                 "alerts": {"kind": "TEXT NOT NULL DEFAULT 'purchase'", "game": "TEXT", "score": "INTEGER"},
+                "adjustments": {"request_id": "TEXT"},
             }.items():
                 existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
                 for field, definition in fields.items():
                     if field not in existing:
                         db.execute(f"ALTER TABLE {table} ADD COLUMN {field} {definition}")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS adjustments_request ON adjustments(request_id) WHERE request_id IS NOT NULL")
 
     @contextmanager
     def connection(self, *, write=False):
@@ -177,6 +185,49 @@ class EconomyStore:
             result = db.execute("SELECT username, score, payload, completed FROM runs WHERE game=? AND completed IS NOT NULL ORDER BY score DESC, completed ASC LIMIT 100", (game,)).fetchall()
             return [{**json.loads(row["payload"]), "username": row["username"], "created_at": utc_now(row["completed"])} for row in result]
 
+    def access(self, username):
+        with self.connection() as db:
+            row = db.execute("SELECT session_version, banned, reason FROM member_access WHERE username=?", (username.casefold(),)).fetchone()
+            return {"session_version": row["session_version"], "banned": bool(row["banned"]), "reason": row["reason"]} if row else {"session_version": 0, "banned": False, "reason": ""}
+
+    def banned_names(self):
+        with self.connection() as db:
+            return {row[0] for row in db.execute("SELECT username FROM member_access WHERE banned=1")}
+
+    def moderate(self, username, action, reason, request_id):
+        if action not in {"kick", "ban", "unban"}:
+            raise HTTPException(400, "Unbekannte Mitgliederaktion.")
+        key = username.casefold()
+        with self.connection(write=True) as db:
+            previous = db.execute("SELECT username, action, reason FROM moderation_events WHERE request_id=?", (request_id,)).fetchone()
+            if previous:
+                if (previous["username"], previous["action"], previous["reason"]) != (key, action, reason):
+                    raise HTTPException(409, "Diese Anfrage wurde bereits für eine andere Aktion verwendet.")
+                return
+            db.execute("INSERT OR IGNORE INTO member_access(username) VALUES (?)", (key,))
+            db.execute("UPDATE member_access SET session_version=session_version+1 WHERE username=?", (key,))
+            db.execute("DELETE FROM runs WHERE username=? AND completed IS NULL", (username,))
+            if action in {"ban", "unban"}:
+                db.execute("UPDATE member_access SET banned=?, reason=? WHERE username=?", (int(action == "ban"), reason if action == "ban" else "", key))
+            db.execute("INSERT INTO moderation_events(username,action,reason,created,request_id) VALUES (?,?,?,?,?)", (key, action, reason, time.time(), request_id))
+
+    def wallet_history(self, username):
+        with self.connection() as db:
+            db.execute("BEGIN")
+            wallet = self.wallet(db, username)
+            adjustments = db.execute("SELECT COALESCE(SUM(delta),0) FROM adjustments WHERE username=?", (username,)).fetchone()[0]
+            spent = db.execute("SELECT COALESCE(SUM(price),0) FROM purchases WHERE username=?", (username,)).fetchone()[0]
+            events = [
+                {"id": f"run:{row['id']}", "label": GAME_TITLES.get(row["game"], row["game"]), "kind": "game", "amount": row["reward"], "score": row["score"], "created": row["completed"]}
+                for row in db.execute("SELECT id,game,score,reward,completed FROM runs WHERE username=? AND completed IS NOT NULL ORDER BY completed DESC LIMIT 50", (username,))
+            ]
+            events += [{"id": f"purchase:{row['id']}", "label": row["item_name"], "kind": "purchase", "amount": -row["price"], "created": row["created"]}
+                       for row in db.execute("SELECT id,item_name,price,created FROM purchases WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
+            events += [{"id": f"adjustment:{row['id']}", "label": "Admin-Gutschrift" if row["delta"] >= 0 else "Admin-Abzug", "kind": "adjustment", "amount": row["delta"], "created": row["created"]}
+                       for row in db.execute("SELECT id,delta,created FROM adjustments WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
+            return {"wallet": wallet, "summary": {"earned": wallet["chickens_earned"], "adjustments": adjustments, "spent": spent},
+                    "transactions": sorted(events, key=lambda row: row["created"], reverse=True)[:50]}
+
     def owned_names(self, username):
         with self.connection() as db:
             return {row[0] for row in db.execute("SELECT item_name FROM purchases WHERE username=?", (username,))}
@@ -237,14 +288,20 @@ class EconomyStore:
         with self.connection() as db:
             return [dict(row) for row in db.execute("SELECT id, username, item_name, category, price, created FROM purchases ORDER BY created DESC LIMIT 30")]
 
-    def adjust(self, username, delta):
+    def adjust(self, username, delta, request_id=None):
         with self.connection(write=True) as db:
             self.require_ready(db)
+            if request_id:
+                previous = db.execute("SELECT username,delta FROM adjustments WHERE request_id=?", (request_id,)).fetchone()
+                if previous:
+                    if (previous["username"], previous["delta"]) != (username, delta):
+                        raise HTTPException(409, "Diese Buchungsanfrage wurde bereits für eine andere Buchung verwendet.")
+                    return self.wallet(db, username)
             db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
             if self.wallet(db, username)["chickens"] + delta < 0:
                 raise HTTPException(400, "Der Kontostand darf nicht negativ werden.")
             db.execute("UPDATE wallets SET chickens=chickens+? WHERE username=?", (delta, username))
-            db.execute("INSERT INTO adjustments(username, delta, created) VALUES (?, ?, ?)", (username, delta, time.time()))
+            db.execute("INSERT INTO adjustments(username, delta, created,request_id) VALUES (?, ?, ?,?)", (username, delta, time.time(), request_id))
             return self.wallet(db, username)
 
 

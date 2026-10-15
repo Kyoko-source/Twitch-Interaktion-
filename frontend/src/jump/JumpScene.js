@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
 
 const W = 960;
 const H = 540;
@@ -7,10 +7,11 @@ const PLAYER_X = 164;
 const BEST_KEY = "chicken-jump-best-v2";
 
 class JumpScene extends Phaser.Scene {
-  constructor(onSnapshot, onReady) {
+  constructor(onSnapshot, onReady, onLoading) {
     super("meadow-run");
     this.onSnapshot = onSnapshot;
     this.onReady = onReady;
+    this.onLoading = onLoading;
     this.mode = "menu";
     this.muted = false;
     this.duck = false;
@@ -21,7 +22,9 @@ class JumpScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("meadow-atlas", "/assets/chicken-jump-ai-v1.png");
+    this.onLoading?.(35);
+    this.load.on("progress", (value) => this.onLoading?.(35 + Math.round(value * 60)));
+    this.load.image("meadow-atlas", "/assets/chicken-jump-ai-v1.png", { timeout: 12000 });
   }
 
   create() {
@@ -417,13 +420,14 @@ class JumpScene extends Phaser.Scene {
   }
 }
 
-export function mountJumpGame(parent, onSnapshot, onReady) {
+export function mountJumpGame(parent, onSnapshot, onReady, onLoading) {
   return new Phaser.Game({
     type: Phaser.AUTO, parent, width: W, height: H, backgroundColor: "#c5e9dc",
     render: { antialias: true, roundPixels: true },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: "arcade", arcade: { gravity: { x: 0, y: 1800 }, fps: 120, fixedStep: true, debug: false } },
     input: { keyboard: { capture: [] }, activePointers: 3 },
-    scene: new JumpScene(onSnapshot, onReady),
+    loader: { maxRetries: 0 },
+    scene: new JumpScene(onSnapshot, onReady, onLoading),
   });
 }
