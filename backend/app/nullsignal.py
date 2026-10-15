@@ -52,6 +52,9 @@ class NullsignalStore:
             raise HTTPException(404, "Diese Lobby ist abgelaufen oder existiert nicht mehr.")
         room = dict(row)
         room["state"] = json.loads(room["state"])
+        # Existing unstarted lobbies adopt the current mission length as well.
+        if room["state"]["status"] == "lobby":
+            room["state"]["remaining"] = MISSIONS[room["state"]["mission"]]["seconds"]
         return room
 
     @staticmethod

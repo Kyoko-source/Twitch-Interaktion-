@@ -16,10 +16,12 @@ fordert kein Mikrofon an und überträgt keine Sprachaufnahmen.
 5. Drei Fehler oder abgelaufene Zeit beenden die Mission. Jeder Fehler kostet
    außerdem acht Sekunden. Eine neue Runde erzeugt neue Daten und Handbuchregeln.
 
-Erstkontakt: 3 Module, 6 Minuten. Störfall: 6 Module, 8 Minuten. Blackout:
-8 Module auf Vorder- und Rückseite, 9 Minuten. Alle acht Modularten haben eigene
+Erstkontakt: 3 Module, 3 Minuten. Störfall: 6 Module, 5 Minuten. Blackout:
+8 Module auf Vorder- und Rückseite, 6 Minuten. Alle acht Modularten haben eigene
 Regeln und Interaktionen: Kabel, Glyphen, Frequenzen, dreistufige Tastenfolge,
 Relais, gespiegelte Regler, drehbare Rohrverbindungen und ein Rechenschloss.
+Das Glyphenfeld im Expertenhandbuch zeigt ausschließlich die Symbole ohne
+sichtbare Namen; die Spalten A–D bleiben zur Orientierung erhalten.
 
 Beim Frequenzkern lässt sich die Folge ausschließlich an der blinkenden LED
 beobachten: fünf kurze/lange Lichtimpulse, danach eine lange Pause. Weder die

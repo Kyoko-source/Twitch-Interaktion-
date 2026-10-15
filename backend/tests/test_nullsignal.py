@@ -208,7 +208,7 @@ class NullsignalTests(unittest.TestCase):
             list(pool.map(lambda _:self.store.action(self.id,"alice",key,self.host["round_id"],"wires","cut",wrong,self.now),range(6)))
         host = self.store.get(self.id,"host","alice",self.now)
         self.assertEqual(host["strikes"],1)
-        self.assertEqual(host["deadline"],self.now+540-8)
+        self.assertEqual(host["deadline"],self.now+MISSIONS["blackout"]["seconds"]-8)
         with self.assertRaises(HTTPException):
             self.act("wires","cut",correct,key=key)
 
@@ -253,17 +253,17 @@ class NullsignalTests(unittest.TestCase):
         self.start()
         self.store.get(self.id,"host","alice",self.now+10)
         paused = self.store.get(self.id,"host","alice",self.now+30)
-        self.assertEqual((paused["status"],paused["remaining"],paused["pause_reason"]),("paused",525,"connection"))
+        self.assertEqual((paused["status"],paused["remaining"],paused["pause_reason"]),("paused",MISSIONS["blackout"]["seconds"]-GRACE,"connection"))
         self.assertIsNone(paused["deadline"])
         self.store.get(self.id,"expert",self.token,self.now+40)
         resumed = self.store.control(self.id,"alice","start",now=self.now+40)
-        self.assertEqual(resumed["deadline"],self.now+40+525)
+        self.assertEqual(resumed["deadline"],self.now+40+MISSIONS["blackout"]["seconds"]-GRACE)
 
     def test_timer_expiry_is_authoritative_when_both_players_are_present(self):
         self.start()
-        for offset in range(5,540,5):
+        for offset in range(5,MISSIONS["blackout"]["seconds"],5):
             self.touch(self.now+offset)
-        result = self.store.get(self.id,"host","alice",self.now+540)
+        result = self.store.get(self.id,"host","alice",self.now+MISSIONS["blackout"]["seconds"])
         self.assertEqual(result["status"],"exploded")
         self.assertEqual(result["remaining"],0)
 

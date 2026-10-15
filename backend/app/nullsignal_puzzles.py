@@ -9,9 +9,9 @@ MODULES = [
     ("pipes", "Kreislauf"), ("vectors", "Vektorschloss"),
 ]
 MISSIONS = {
-    "contact": {"id": "contact", "name": "Erstkontakt", "modules": 3, "seconds": 360, "reward": 6, "level": "Einstieg"},
-    "incident": {"id": "incident", "name": "Störfall", "modules": 6, "seconds": 480, "reward": 12, "level": "Standard"},
-    "blackout": {"id": "blackout", "name": "Blackout", "modules": 8, "seconds": 540, "reward": 18, "level": "Experte"},
+    "contact": {"id": "contact", "name": "Erstkontakt", "modules": 3, "seconds": 180, "reward": 6, "level": "Einstieg"},
+    "incident": {"id": "incident", "name": "Störfall", "modules": 6, "seconds": 300, "reward": 12, "level": "Standard"},
+    "blackout": {"id": "blackout", "name": "Blackout", "modules": 8, "seconds": 360, "reward": 18, "level": "Experte"},
 }
 COLORS = {"red": "Rot", "blue": "Blau", "yellow": "Gelb", "white": "Weiß", "purple": "Violett", "green": "Grün"}
 GLYPHS = ["hex", "diamond", "triangle", "cross", "dots", "wave", "orbit", "hourglass", "stairs", "eye", "fork", "chevron"]

@@ -10,7 +10,7 @@ import {ModuleControls} from './ModuleControls';
 import './nullsignal.css';
 
 const DeviceScene=lazy(()=>import('./DeviceScene'));
-const defaultMissions=[{id:'contact',name:'Erstkontakt',modules:3,seconds:360,reward:6,level:'Einstieg'},{id:'incident',name:'Störfall',modules:6,seconds:480,reward:12,level:'Standard'},{id:'blackout',name:'Blackout',modules:8,seconds:540,reward:18,level:'Experte'}];
+const defaultMissions=[{id:'contact',name:'Erstkontakt',modules:3,seconds:180,reward:6,level:'Einstieg'},{id:'incident',name:'Störfall',modules:6,seconds:300,reward:12,level:'Standard'},{id:'blackout',name:'Blackout',modules:8,seconds:360,reward:18,level:'Experte'}];
 const clockText=value=>{const seconds=Math.max(0,Math.ceil(value));return `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;};
 function stored(key,fallback='',storage=localStorage){try{return storage.getItem(key)||fallback;}catch{return fallback;}}
 function invitation(){const parts=location.hash.replace(/^#\/?/,'').split('/');if(parts[0]!=='nullsignal')return null;return {roomId:parts[2]||'',token:parts[3]||'',valid:parts[1]==='join'&&/^[a-f0-9]{32}$/.test(parts[2]||'')&&/^[A-Za-z0-9_-]{20,64}$/.test(parts[3]||'')};}
@@ -35,7 +35,7 @@ function Results({room,role,busy,onReset,onLobby}){
 
 export function Nullsignal({user}){
   const [invite,setInvite]=useState(invitation),role=invite?'expert':'host';
-  const [room,setRoom]=useState(null),[catalog,setCatalog]=useState(defaultMissions),[mission,setMission]=useState('contact'),[name,setName]=useState(()=>stored('nullsignal-name')),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[networkError,setNetworkError]=useState(''),[notice,setNotice]=useState(''),[selected,setSelected]=useState(''),[cameraView,setCameraView]=useState(null),[time,setTime]=useState(360),[records,setRecords]=useState([]),[enabled,setEnabled]=useState(()=>stored('nullsignal-sound','on')!=='off'),[volume,setVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-volume','.6'))||0)));
+  const [room,setRoom]=useState(null),[catalog,setCatalog]=useState(defaultMissions),[mission,setMission]=useState('contact'),[name,setName]=useState(()=>stored('nullsignal-name')),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[networkError,setNetworkError]=useState(''),[notice,setNotice]=useState(''),[selected,setSelected]=useState(''),[cameraView,setCameraView]=useState(null),[time,setTime]=useState(180),[records,setRecords]=useState([]),[enabled,setEnabled]=useState(()=>stored('nullsignal-sound','on')!=='off'),[volume,setVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-volume','.6'))||0)));
   const [musicEnabled,setMusicEnabled]=useState(()=>stored('nullsignal-music','on')!=='off'),[musicVolume,setMusicVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-music-volume','.25'))||0))),[audioReady,setAudioReady]=useState(false);
   const root=useRef(null),roomRef=useRef(null),alive=useRef(true),lock=useRef(false),guestToken=useRef(''),clock=useRef(null),sound=useRef(null),lastEvent=useRef(null),lastReward=useRef(null),linkInput=useRef(null),creation=useRef(null),pendingAction=useRef(null),pendingPill=useRef(null),pillShortcut=useRef(null);
   if(!sound.current)sound.current=new NullsignalAudio();
@@ -46,7 +46,7 @@ export function Nullsignal({user}){
     if(pendingPill.current&&next.round_id===pendingPill.current.roundId&&(next.calm?.pills_remaining??2)<pendingPill.current.before)pendingPill.current=null;
     roomRef.current=next;if(pendingAction.current?.id===next.event?.id)pendingAction.current=null;clock.current={deadline:next.deadline,remaining:next.remaining,serverTime:next.server_time,received:performance.now(),status:next.status,calm:next.calm?.seconds_remaining||0};setRoom(next);setMission(next.mission.id);setNetworkError('');
   },[]);
-  const remaining=useCallback(()=>{const c=clock.current;if(!c)return 360;return c.status==='running'&&c.deadline!==null?Math.max(0,c.deadline-c.serverTime-(performance.now()-c.received)/1000):c.remaining;},[]);
+  const remaining=useCallback(()=>{const c=clock.current;if(!c)return 180;return c.status==='running'&&c.deadline!==null?Math.max(0,c.deadline-c.serverTime-(performance.now()-c.received)/1000):c.remaining;},[]);
   const calmRemaining=useCallback(()=>{const c=clock.current;if(!c)return 0;return Math.max(0,c.calm-(c.status==='running'?(performance.now()-c.received)/1000:0));},[]);
   useEffect(()=>{
     const keydown=event=>{if(role!=='host'||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.key.toLowerCase()!=='c'||event.target.closest?.('input,textarea,select,[contenteditable=true],[role=textbox]'))return;event.preventDefault();pillShortcut.current?.();};
