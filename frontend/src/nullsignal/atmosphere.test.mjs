@@ -24,3 +24,14 @@ test('hallucinations need both sustained untreated stress and low remaining time
   assert.equal(visual({...base,remaining:0}).hallucination,0);
   assert.equal(visual({...base,scare_remaining:0}).scare,false);
 });
+
+test('room visits approach in three stages, have quiet gaps and stop for calm, pause and a scare',()=>{
+  const base={running:true,remaining:100,untreated:80,outage_start:40};
+  assert.equal(visual({...base,played:57.9}).visitor,null);
+  for(const [cycle,stage] of [[0,0],[1,1],[2,2],[3,2]]){
+    const played=58+32*cycle;
+    assert.deepEqual(visual({...base,played}).visitor,{cycle,stage,age:0});
+    assert.equal(visual({...base,played:played+12}).visitor,null);
+    for(const options of [{calm:1},{running:false},{scare_remaining:1},{untreated:34}])assert.equal(visual({...base,played,...options}).visitor,null);
+  }
+});

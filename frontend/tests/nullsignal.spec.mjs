@@ -276,7 +276,7 @@ test('power failure lights actual 3D surfaces; hallucination and single scare yi
     const response=await route.fetch({url:API+new URL(route.request().url()).pathname}),state=await response.json();
     if(state.status==='running'){
       state.remaining=phase==='normal'?170:phase==='outage'?100:45;state.deadline=state.server_time+state.remaining;
-      state.atmosphere={...state.atmosphere,played:phase==='outage'?43:phase==='normal'?10:74,untreated:100,outage_start:40,scare_id:phase==='scare'?state.round_id:null,scare_remaining:phase==='scare'?1.2:0};
+      state.atmosphere={...state.atmosphere,played:phase==='outage'?43:phase==='normal'?10:60,untreated:100,outage_start:40,scare_id:phase==='scare'?state.round_id:null,scare_remaining:phase==='scare'?1.2:0};
     }
     return route.fulfill({json:state});
   });
@@ -290,12 +290,12 @@ test('power failure lights actual 3D surfaces; hallucination and single scare yi
   // A genuine raycast press still reaches the server during the outage.
   const base=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}}),glyph=base.bomb.modules.find(m=>m.kind==='glyphs'),step=solution(glyph,manual.manual.find(m=>m.id===glyph.id).manual,base.bomb)[0];
   await physical(host,glyph,...step);expect((await backend(request,`/rooms/${id}/host`)).strikes).toBe(0);
-  phase='hallucination';await expect(layer).toHaveAttribute('data-blackout','false');await expect.poll(async()=>Number(await layer.getAttribute('data-hallucination'))).toBeGreaterThan(.9);await expect(host.locator('.nsPhantom')).toBeVisible();await host.waitForTimeout(700);await host.screenshot({path:join(tmpdir(),'nullsignal-hallucination-desktop.png')});
+  phase='hallucination';await expect(layer).toHaveAttribute('data-blackout','false');await expect.poll(async()=>Number(await layer.getAttribute('data-hallucination'))).toBeGreaterThan(.9);await expect.poll(()=>canvas.evaluate(c=>c.__nullsignalScene.visitor().visible)).toBe(true);await host.waitForTimeout(700);await host.screenshot({path:join(tmpdir(),'nullsignal-hallucination-desktop.png')});
   phase='scare';await expect(layer).toHaveAttribute('data-scare','true');await expect(host.locator('.nsJumpscare')).toBeVisible();await expect.poll(()=>host.locator('.nsJumpscare img').evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);await host.screenshot({path:join(tmpdir(),'nullsignal-jumpscare-desktop.png')});
   await expect.poll(()=>host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);await host.waitForTimeout(1700);expect(await host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);
   await host.getByRole('button',{name:'Beruhigungspille nehmen',exact:true}).click();await expect(layer).toHaveAttribute('data-scare','false');await expect(layer).toHaveAttribute('data-hallucination','0.000');expect((await backend(request,`/rooms/${id}/host`)).calm.pills_remaining).toBe(1);
   expect(await guest.locator('.nsAtmosphere').count()).toBe(0);expect(await host.locator('.nsAtmosphere').evaluate(e=>getComputedStyle(e).pointerEvents)).toBe('none');
-  await host.getByRole('button',{name:'Mission pausieren',exact:true}).click();await expect(layer).toHaveAttribute('data-blackout','false');await expect(layer).toHaveAttribute('data-scare','false');expect((await lighting()).flashlight).toBe(0);
+  await host.getByRole('button',{name:'Mission pausieren',exact:true}).click();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','paused');await expect(layer).toHaveAttribute('data-blackout','false');await expect(layer).toHaveAttribute('data-scare','false');await expect.poll(async()=>(await lighting()).flashlight).toBe(0);
   expect(errors).toEqual([]);
 });
 
@@ -318,4 +318,29 @@ test('mobile outage toggle works; reduced motion avoids scare zoom and horror pr
   await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();
   await expect(host.locator('.nsAudioSettings')).toHaveAttribute('open','');await host.getByLabel('Schreckeffekte einschalten',{exact:true}).uncheck();await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-scare','false');await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-hallucination','0.000');
   await host.reload();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','running');await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();await expect(host.getByLabel('Schreckeffekte einschalten',{exact:true})).not.toBeChecked();expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);await session.detach();
+});
+
+for(const mobile of [false,true])test(`room visitor ${mobile?'touch':'desktop'}: approaches in world space, torch banishes, reload preserves dismissal and pills clear`,async({browser,request})=>{
+  test.setTimeout(90000);
+  const game=await createLobby(browser,request,{mobile,mission:'contact'}),{host,id,errors}=game;host.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await joinGuest(game,'Workshop expert');await start(game);
+  let cycle=0;
+  await host.route('**/api/nullsignal/rooms/*/host',async route=>{
+    const response=await route.fetch({url:API+new URL(route.request().url()).pathname}),state=await response.json();
+    if(state.status==='running'){state.remaining=150;state.deadline=state.server_time+150;state.atmosphere={...state.atmosphere,played:60+32*cycle,untreated:100,outage_start:40,scare_id:null,scare_remaining:0};}
+    return route.fulfill({json:state});
+  });
+  const canvas=host.locator('.nsViewport canvas'),visitor=()=>canvas.evaluate(c=>c.__nullsignalScene.visitor()),look=host.getByRole('button',{name:'Raum ansehen',exact:true}),torch=host.getByRole('button',{name:'Taschenlampe',exact:true});
+  await expect.poll(async()=>(await visitor()).visible).toBe(true);
+  await (mobile?look.tap():host.keyboard.press('r'));await expect(look).toHaveAttribute('aria-pressed','true');await host.waitForTimeout(600);
+  const first=await visitor();expect(first.stage).toBe(0);expect(first.target.inView).toBe(true);await host.screenshot({path:join(tmpdir(),`nullsignal-room-far-${mobile?'mobile':'desktop'}.png`)});
+  await (mobile?torch.tap():host.keyboard.press('f'));await expect(torch).toHaveAttribute('aria-pressed','false');
+  const rect=await canvas.boundingBox(),target=(await visitor()).target;
+  await (mobile?canvas.tap({position:{x:target.x,y:target.y}}):host.mouse.move(rect.x+target.x,rect.y+target.y));await host.waitForTimeout(800);expect((await visitor()).dismissed).not.toContain(0);
+  await (mobile?torch.tap():host.keyboard.press('f'));await expect(torch).toHaveAttribute('aria-pressed','true');await expect.poll(async()=>(await visitor()).dismissed).toContain(0);await expect.poll(async()=>(await visitor()).visible).toBe(false);
+  await host.reload();await expect(host.locator('.nsViewport')).toHaveAttribute('data-loaded','true',{timeout:20000});await expect.poll(async()=>(await visitor()).dismissed).toContain(0);expect((await visitor()).visible).toBe(false);
+  cycle=1;await expect.poll(async()=>(await visitor()).visible).toBe(true);await expect.poll(async()=>(await visitor()).stage).toBe(1);const second=await visitor();expect(second.position[2]).toBeGreaterThan(first.position[2]);
+  cycle=2;await expect.poll(async()=>(await visitor()).stage).toBe(2);expect((await visitor()).position[2]).toBeGreaterThan(second.position[2]);
+  await (mobile?look.tap():host.keyboard.press('r'));await host.waitForTimeout(650);await host.screenshot({path:join(tmpdir(),`nullsignal-room-near-${mobile?'mobile':'desktop'}.png`)});
+  const pill=host.getByRole('button',{name:'Beruhigungspille nehmen',exact:true});await (mobile?pill.tap():host.keyboard.press('c'));await expect(pill).toContainText('1/2');await expect.poll(async()=>(await visitor()).visible).toBe(false);expect((await backend(request,`/rooms/${id}/host`)).calm.pills_remaining).toBe(1);
+  await host.getByRole('button',{name:'Mission pausieren',exact:true}).click();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','paused');expect((await visitor()).visible).toBe(false);expect(errors).toEqual([]);expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

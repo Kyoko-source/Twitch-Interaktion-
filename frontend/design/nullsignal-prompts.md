@@ -24,6 +24,19 @@ Production GAME BACKGROUND asset, original NULLSIGNAL cooperative industrial def
 
 Production material texture for a realistic original industrial 3D game: seamless tileable square orthographic front-on macro photograph of dark graphite brushed powder-coated steel, gunmetal nearly black #363e41 surface with subtle fine horizontal machining marks, sparse realistic hairline scuffs and small worn pale scratches. Even flat diffuse illumination, no highlights baked as bands, no perspective, no objects, no edges, no bolts, no labels, no text, no rust holes. Used as diffuse and subtle bump map on a physical metal equipment case. Premium tangible rough steel, believable material detail that reads at medium distance, not a decorative abstract pattern. 1536x1536 if possible, fully filled texture.
 
+## Workshop visitor — 2026-10-15
+
+Built-in image generation edit using `apparition-v2.png` as the character
+identity reference, `transparent_background: true`. Output copied unchanged
+from `C:/Users/Flori/.codex/generated_images/01a13ead-15b6-78f1-bc15-d0fb38b4edf7/exec-5399ab4c-ae37-4dea-aa9a-6bcb471db38b.png`
+to `frontend/public/assets/nullsignal/visitor-fullbody-v1.png`.
+This full-body cutout is used on a world-space Three.js sprite, with depth
+occlusion, perspective and flashlight detection; the close-up remains separate.
+
+Final prompt:
+
+Edit target: the attached original NULLSIGNAL horror character cutout. Create a full-body standing version of THIS SAME fictional adult humanoid apparition. Preserve the specific face identity: grey waxy cracked skin, cavernous dark sockets, cloudy milky pale eyes, gaunt elongated cheeks, sparse wet black hair, distended open mouth and uneven teeth. Extend the composition to include the entire body down to the boots, keeping realistic adult human proportions with a normal-size head, shoulders, two arms, two hands and two legs. A tall slightly stooped emaciated figure in a long tattered charcoal industrial work-coat, torn hems, dark trousers and worn work boots; thin pale hands hang at the sides. Frightening unnaturally still front-facing pose, looking toward the viewer. This is a game character sprite that stands behind a workbench in a 3D workshop, NOT a close-up portrait. The full silhouette must be unmistakable at a small size: whole head and feet visible with transparent margin on all sides; head at upper 10–25 percent of image, feet near lower 90 percent. Portrait 1024 by 1536. Keep original cinematic realistic skin and cloth detail, subtle desaturated cyan rim light and dirty copper edge light, dark ominous lighting but readable facial highlights. Isolate on a genuinely alpha-transparent background; no scene, no floor, no cast ground shadow, no text, no graphic border or logos. No new character identity, no recognizable movie/game character, no weapons, no blood or exposed viscera. Deliver ONE full-body cutout.
+
 ## Apparition v2 — 2026-10-15
 
 Built-in image generation, `transparent_background: true`. Original output:

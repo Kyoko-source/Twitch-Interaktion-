@@ -137,3 +137,32 @@ browser scenarios passed with an isolated backend. Console errors: zero.
 Viewed `nullsignal-jumpscare-desktop.png` and `nullsignal-jumpscare-mobile.png`
 in the system temporary directory. Playwright / Edge fallback because Browser
 plugin is not available; Firefox, Safari and physical phones remain untested.
+
+## Visitor in the workshop
+
+The user selected a presence that appears in the workshop, approaches across
+sightings and disappears in the flashlight beam. The existing workshop and
+character identity are retained. An original full-body Image Gen extension is
+saved as `frontend/public/assets/nullsignal/visitor-fullbody-v1.png` (1024 ×
+1536 RGBA, 1,997,666 bytes); provenance and the exact prompt are in
+`nullsignal-prompts.md`.
+
+| Intent | Rendered evidence / decision |
+| --- | --- |
+| In the room | The figure is a Three.js sprite in world space with actual perspective and depth testing behind the device and table. It is intentionally a camera-facing cutout, not a rigged mesh; the workshop backdrop remains the established raster environment. |
+| Approaching presence | Three separate depth positions, alternating sides, with twelve-second appearances and quiet gaps. It stays independent of case rotation and never counterfeits module values. |
+| Looking around | R / Raum ansehen widens the workshop view and returns to the bomb on a second press or module selection. The camera does not rotate the table with the case. |
+| Flashlight | Actual beam alignment and a short hold dissolve the figure. A test exposed invisible selection outlines blocking rays; only visible opaque meshes now occlude the beam. |
+| Mobile | Face placement was adjusted beside the case in portrait orientation. Touch aims the beam in room view; both distant and close sightings fit without horizontal overflow. |
+| Existing controls | Pills, pause and opt-out remove the visitor. A dismissed sighting persists across reload within the browser session; a new round starts a fresh sequence. |
+| Loading and disposal | The full-body texture loads only for an enabled active host round, separate from mandatory workshop readiness. Texture, sprite material and late callbacks are disposed safely. |
+
+Validation: production build, nine Node checks and all 15 Nullsignal browser
+scenarios passed. Tests include complete eight-module defusal, audio, touch,
+room view, real flashlight dismissal, persistence and pills using isolated
+backend rooms. Desktop 1536 × 1024 and mobile 390 × 844 screenshots were viewed:
+`nullsignal-room-far-desktop.png`, `nullsignal-room-near-desktop.png`,
+`nullsignal-room-far-mobile.png`, `nullsignal-room-near-mobile.png` in the
+system temporary directory. Relevant browser console errors: zero.
+Browser plugin not available; used Playwright / Edge. Safari, Firefox and
+physical mobile hardware remain untested.

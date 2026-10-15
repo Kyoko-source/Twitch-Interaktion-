@@ -155,8 +155,8 @@ echten 3D-Lichtkegel aus. **F** oder der Schalter oben links schaltet sie um.
 Die LEDs und der Countdown bleiben sichtbar. Das Handbuch bleibt unbeeinflusst.
 
 Ohne Beruhigung entstehen bei weniger als zwei Minuten Restzeit und mehr als
-50 aktiven Sekunden ohne Pillenwirkung allmählich Bildstörungen und gelegentliche
-Schattenerscheinungen. Bei höchstens 50 Sekunden Restzeit und mindestens 85
+50 aktiven Sekunden ohne Pillenwirkung allmählich Bildstörungen. Bei höchstens
+50 Sekunden Restzeit und mindestens 85
 aktiven Sekunden ohne Beruhigung erscheint einmal pro Runde eine eigene
 verzerrte Gestalt für 1,2 Sekunden mit einem kurzen Sample-Stinger. Rätselwerte,
 Fehlerzahl und Antworten werden dadurch nicht verändert.
@@ -170,6 +170,30 @@ ausgeschaltet werden; die Wahl bleibt lokal gespeichert. Bei reduzierter
 Bewegung entfallen Zoom, Figuren-Close-up und dekorative Animationen.
 Ausfall, Erscheinung und Schreck verwenden endliche vorhandene CC0-Samples;
 Musik und Countdown folgen weiterhin ihren bisherigen Einstellungen.
+
+### Die Gestalt in der Werkstatt
+
+Mit **R** oder **Raum ansehen** wechselt der Entschärfer in eine weitere
+Werkstattansicht. Erneutes Drücken führt zur Bombe zurück; auch ein Modul-Klick
+fokussiert wieder das Rätsel. Auf Touch-Geräten führt ein Finger in der
+Raumansicht die Taschenlampe. **F** bzw. der Lampenschalter funktioniert jetzt
+auch bei eingeschalteter Werkstattbeleuchtung.
+
+Die erste Raumerscheinung kann nach 58–68 aktiven Sekunden auftreten, wenn
+mindestens 35 Sekunden ohne Beruhigung vergangen sind. Alle 32 Sekunden gibt
+es ein zwölf Sekunden langes Sichtungsfenster, mit ruhigen Pausen dazwischen.
+Die Gestalt steht zunächst weiter hinten links, bei der nächsten Sichtung
+rechts näher und später direkt hinter dem Tisch. Sie ist ein eigener
+Ganzkörper-Billboard im 3D-Raum, mit perspektivischer Größe und Verdeckung
+durch das echte Gehäuse und den Tisch, kein Bildschirm-Overlay.
+
+Etwa eine halbe Sekunde gezieltes Anleuchten lässt sie auflösen. Nur sichtbare
+feste Geometrie blockiert den Lichtweg; unsichtbare Klickflächen und
+Auswahlkonturen tun das nicht. Vertriebene Sichtungen bleiben in derselben
+Browsersitzung auch nach einem Neuladen weg. Neue Runden haben einen eigenen
+Zeitplan. Pillen, Pause und ausgeschaltete Schreckeffekte entfernen die
+Raumgestalt ebenfalls. Während des Jumpscares erscheint keine zusätzliche
+Raumgestalt. Der Experte bekommt weiter nur sein Handbuch.
 
 ## Prüfung
 
