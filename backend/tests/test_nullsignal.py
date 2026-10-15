@@ -372,6 +372,57 @@ class NullsignalTests(unittest.TestCase):
             responses = list(pool.map(lambda _: self.store.calm(self.id, "alice", key, self.host["round_id"], self.now+1), range(2)))
         self.assertEqual([response["calm"]["pills_remaining"] for response in responses], [1, 1])
 
+    def test_atmosphere_clock_is_private_persistent_and_frozen_during_pause(self):
+        self.start()
+        for offset in range(5, 46, 5):
+            self.touch(self.now+offset)
+        current = self.store.get(self.id, "host", "alice", self.now+45)
+        self.assertEqual(current["atmosphere"]["played"], 45)
+        self.assertEqual(current["atmosphere"]["untreated"], 45)
+        self.assertTrue(40 <= current["atmosphere"]["outage_start"] <= 50)
+        self.assertNotIn("atmosphere", self.store.get(self.id, "expert", self.token, self.now+45))
+        paused = self.store.control(self.id, "alice", "pause", now=self.now+46)
+        restored = NullsignalStore(self.ledger).get(self.id, "host", "alice", self.now+1000)
+        self.assertEqual(restored["atmosphere"], paused["atmosphere"])
+
+    def test_scare_is_once_per_round_does_not_replace_module_events_and_resets(self):
+        self.start()
+        for offset in range(5, 310, 5):
+            self.touch(self.now+offset)
+        first = self.store.get(self.id, "host", "alice", self.now+310)
+        self.assertEqual(first["atmosphere"]["scare_id"], self.host["round_id"])
+        self.assertAlmostEqual(first["atmosphere"]["scare_remaining"], 1.2)
+        self.assertEqual(first["event"], self.host["event"])
+        self.assertEqual(first["strikes"], 0)
+        later = NullsignalStore(self.ledger).get(self.id, "host", "alice", self.now+312)
+        self.assertEqual(later["atmosphere"]["scare_remaining"], 0)
+        self.assertEqual(later["atmosphere"]["scare_id"], first["atmosphere"]["scare_id"])
+        self.store.control(self.id, "alice", "pause", now=self.now+313)
+        reset = self.store.control(self.id, "alice", "reset", now=self.now+314)
+        self.assertIsNone(reset["atmosphere"]["scare_id"])
+        self.assertEqual(reset["atmosphere"]["played"], 0)
+
+    def test_pill_delays_untreated_stress_and_cancels_active_scare(self):
+        self.start()
+        for offset in range(5, 310, 5):
+            self.touch(self.now+offset)
+            if offset == 290:
+                self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+offset)
+        self.touch(self.now+310)
+        self.assertIsNone(self.store.get(self.id, "host", "alice", self.now+310)["atmosphere"]["scare_id"])
+        self.assertEqual(self.store.get(self.id, "host", "alice", self.now+310)["atmosphere"]["untreated"], 0)
+        # A different untreated round can be interrupted even during its close-up.
+        self.store.control(self.id, "alice", "pause", now=self.now+311)
+        self.host = self.store.control(self.id, "alice", "reset", "contact", self.now+312)
+        self.now += 312
+        self.store.ready(self.id, self.token, True, self.now)
+        self.host = self.store.control(self.id, "alice", "start", now=self.now)
+        for offset in range(5, 135, 5):
+            self.touch(self.now+offset)
+        cancelled = self.store.calm(self.id, "alice", uuid4().hex, self.host["round_id"], self.now+130.1)
+        self.assertEqual(cancelled["atmosphere"]["scare_remaining"], 0)
+        self.assertEqual(cancelled["atmosphere"]["untreated"], 0)
+
     def request(self,method,path,payload=None,headers=None):
         async def run():
             messages=[];body=json.dumps(payload).encode() if payload is not None else b""

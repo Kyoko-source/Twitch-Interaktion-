@@ -33,6 +33,11 @@ class DeviceRenderer {
     const key=new T.DirectionalLight('#ffd7a0',2.8);key.position.set(-4,7,6);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;key.shadow.normalBias=.025;this.scene.add(key);
     const fill=new T.DirectionalLight('#94c8ec',1.3);fill.position.set(5,2,4);this.scene.add(fill);
     const rim=new T.DirectionalLight('#ffac64',1.5);rim.position.set(0,2,-5);this.scene.add(rim);
+    this.workLights=[ambient,key,fill,rim];this.workIntensities=this.workLights.map(light=>light.intensity);
+    this.lampPointer=new T.Vector2();
+    this.flashlight=new T.SpotLight('#fff1cf',65,40,Math.PI/7,.72,1);
+    this.flashlight.position.set(.13,-.08,-.12);this.camera.add(this.flashlight);this.scene.add(this.camera,this.flashlight.target);
+    this.emergency=new T.PointLight('#f35c3e',0,16,1);this.emergency.position.set(-3,1,-1);this.scene.add(this.emergency);
     const pmrem=new T.PMREMGenerator(this.renderer),roomEnvironment=new RoomEnvironment();this.environment=pmrem.fromScene(roomEnvironment,.06);this.scene.environment=this.environment.texture;this.scene.environmentIntensity=.4;roomEnvironment.dispose();pmrem.dispose();
     this.table=new T.Mesh(new T.BoxGeometry(13,.18,8),new T.MeshStandardMaterial({color:'#594331',metalness:.35,roughness:.8}));this.table.position.y=-2.2;this.table.receiveShadow=true;this.scene.add(this.table);
     this.composer=new EffectComposer(this.renderer);this.composer.addPass(new RenderPass(this.scene,this.camera));this.bloom=new UnrealBloomPass(new T.Vector2(800,600),.1,.35,2.5);this.composer.addPass(this.bloom);this.outputPass=new OutputPass();this.composer.addPass(this.outputPass);
@@ -44,14 +49,17 @@ class DeviceRenderer {
     this.down=event=>{
       if(event.button!==0)return;this.activePointers.add(event.pointerId);
       if(this.activePointers.size!==1){this.downPoint=null;return;}
-      this.downPoint={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,time:performance.now(),dragged:false};
+      this.downPoint={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,time:performance.now(),dragged:false,lightOnly:event.pointerType==='touch'&&Boolean(this.getProps().atmosphere?.().blackout)};
+      if(this.downPoint.lightOnly){const rect=this.renderer.domElement.getBoundingClientRect();this.lampPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);}
       this.renderer.domElement.setPointerCapture(event.pointerId);
     };
     this.up=event=>{const point=this.downPoint;this.activePointers.delete(event.pointerId);if(point?.id===event.pointerId){this.downPoint=null;if(!point.dragged&&Math.hypot(event.clientX-point.x,event.clientY-point.y)<=7&&performance.now()-point.time<=700)this.pick(event);}if(this.renderer.domElement.hasPointerCapture(event.pointerId))this.renderer.domElement.releasePointerCapture(event.pointerId);};
     this.cancel=event=>{this.activePointers.delete(event.pointerId);this.downPoint=null;};
     this.move=event=>{
+      const rect=this.renderer.domElement.getBoundingClientRect();this.lampPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
       if(!this.device)return;const point=this.downPoint;
       if(point?.id===event.pointerId&&this.activePointers.size===1){
+        if(point.lightOnly){if(Math.hypot(event.clientX-point.x,event.clientY-point.y)>7)point.dragged=true;return;}
         if(!point.dragged&&Math.hypot(event.clientX-point.x,event.clientY-point.y)>7){point.dragged=true;this.rotationTween=null;if(this.focused){this.focused=false;this.getProps().onSelect('');this.frameDevice();}}
         if(point.dragged){this.yaw+=(event.clientX-point.lastX)*.008;this.pitch=T.MathUtils.clamp(this.pitch+(event.clientY-point.lastY)*.006,-.55,.55);point.lastX=event.clientX;point.lastY=event.clientY;this.applyRotation();this.renderer.domElement.style.cursor='grabbing';return;}
       }
@@ -60,7 +68,7 @@ class DeviceRenderer {
     this.contextLost=event=>{event.preventDefault();if(this.alive)this.onError('Die 3D-Verbindung wurde unterbrochen. Lade die 3D-Ansicht erneut; eure Runde bleibt gespeichert.');};
     this.renderer.domElement.addEventListener('pointerdown',this.down);this.renderer.domElement.addEventListener('pointerup',this.up);this.renderer.domElement.addEventListener('pointercancel',this.cancel);this.renderer.domElement.addEventListener('pointermove',this.move);this.renderer.domElement.addEventListener('webglcontextlost',this.contextLost);
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
-    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms()};
+    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms(),lighting:()=>({blackout:this.blackout,flashlight:this.flashlight.intensity,aim:this.flashlight.target.position.toArray(),background:this.scene.backgroundIntensity})};
     this.resize();this.view('front',true);
     const loader=new T.TextureLoader();Promise.all([loader.loadAsync('/assets/nullsignal/steel.png'),loader.loadAsync('/assets/nullsignal/workshop.png')]).then(([texture,background])=>{
       if(!this.alive){texture.dispose();background.dispose();return;}
@@ -152,6 +160,7 @@ class DeviceRenderer {
     if(!this.camera)return;this.focused=false;this.orient(!this.closed&&side==='back'?Math.PI:0,0,instant);this.frameDevice(instant);
   }
   focus(id){
+    this.lampPointer.set(0,0);
     const item=this.device?.modules.get(id);if(!item)return;this.device.root.updateMatrixWorld(true);
     const yaw=item.panel.parent.position.z<0?Math.PI:0,quaternion=this.rotation(yaw,0);
     const target=this.device.root.worldToLocal(item.panel.getWorldPosition(new T.Vector3())).applyQuaternion(quaternion).add(new T.Vector3(0,this.deviceHeight(quaternion),0));
@@ -169,9 +178,18 @@ class DeviceRenderer {
   }
   animate(now){
     if(!this.alive)return;const props=this.getProps();
+    const blackout=!this.closed&&Boolean(props.atmosphere?.().blackout);
+    if(blackout!==this.blackout){
+      this.blackout=blackout;this.container.dataset.blackout=String(blackout);this.lampPointer.set(0,0);
+      this.workLights.forEach((light,i)=>{light.intensity=this.workIntensities[i]*(blackout ? .025 : 1);});
+      this.scene.environmentIntensity=blackout ? .015 : .4;this.scene.backgroundIntensity=blackout ? .018 : 1;
+      this.emergency.intensity=blackout ? .7 : 0;this.renderer.shadowMap.needsUpdate=true;
+    }
+    this.flashlight.intensity=blackout&&props.flashlight?65:0;
     if(this.rotationTween){const tween=this.rotationTween,t=Math.min(1,(now-tween.start)/420),ease=1-Math.pow(1-t,3);this.yaw=T.MathUtils.lerp(tween.yaw,tween.toYaw,ease);this.pitch=T.MathUtils.lerp(tween.pitch,tween.toPitch,ease);this.applyRotation();if(t===1)this.rotationTween=null;}
     if(this.tween){const t=Math.min(1,(now-this.tween.start)/420),ease=1-Math.pow(1-t,3);this.camera.position.lerpVectors(this.tween.position,this.tween.to,ease);this.controls.target.lerpVectors(this.tween.target,this.tween.toTarget,ease);if(t===1)this.tween=null;}
     this.controls.update();
+    this.flashlight.target.position.set(this.lampPointer.x,this.lampPointer.y,.99).unproject(this.camera);
     if(this.device&&!this.closed){
       const remaining=props.remaining(),sec=Math.max(0,Math.ceil(remaining)),text=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
       if(text!==this.lastTimer){this.device.timer.paint(text);this.lastTimer=text;}

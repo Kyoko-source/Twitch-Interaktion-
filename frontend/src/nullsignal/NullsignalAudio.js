@@ -18,7 +18,7 @@ export class NullsignalAudio {
     if(!this.context){
       const Context=window.AudioContext||window.webkitAudioContext;if(!Context)return false;
       this.context=new Context();
-      this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',beep:'/audio/nullsignal-beep.wav',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg'});
+      this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',beep:'/audio/nullsignal-beep.wav',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg',outage:'/audio/impactMetal_heavy_000.ogg',phantom:'/audio/impactBell_heavy_000.ogg',scare:'/audio/impactBell_heavy_000.ogg',scareImpact:'/audio/explosionCrunch_000.ogg'});
       this.audio.volume(this.enabled?this.volume:0);this.audio.preload();
       this.audio.load('beep').then(buffer=>{this.beepReady=Boolean(buffer);});
     }
@@ -34,6 +34,7 @@ export class NullsignalAudio {
     this.syncMusic();this.syncAlarm();
   }
   mission({role,status,roundId,remaining,strikes=0}){
+    if(status==='paused'||status==='lobby'||status==='closed')this.audio?.stop();
     if(roundId!==this.roundId){const ingame=this.tracks.get('ingame');if(ingame)ingame.currentTime=0;}
     if(roundId!==this.roundId||status!==this.status)this.nextBeep=0;
     this.roundId=roundId;this.status=status;this.remaining=remaining;this.strikes=strikes;
@@ -71,6 +72,17 @@ export class NullsignalAudio {
   }
   play(kind){
     if(!this.enabled||!this.audio||this.disposed)return;
+    if(kind==='calm')this.audio.stop();
+    if(['outage','phantom','scare'].includes(kind)){
+      if(!this.host||this.status!=='running')return;
+      if(kind==='outage')this.audio.play('outage',{gain:.4,rate:.5,gap:1});
+      if(kind==='phantom')this.audio.play('phantom',{gain:.12,rate:.55,gap:5});
+      if(kind==='scare'){
+        this.audio.play('scare',{gain:.55,rate:.65,gap:1});
+        this.audio.play('scareImpact',{gain:.3,rate:1.4,gap:1});
+      }
+      return;
+    }
     const name=({neutral:'click',good:'good',calm:'good',bad:'bad',defused:'win',exploded:'explode'})[kind]||kind;
     this.audio.play(name,{gain:name==='click'?.18:name==='explode'?.6:.35,gap:.04});
   }

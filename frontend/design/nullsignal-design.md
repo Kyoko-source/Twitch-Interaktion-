@@ -89,3 +89,29 @@ again, including complete eight-module defusal and the mobile start regression.
 Production Vite build passed. Browser plugin unavailable; used Playwright with
 installed Microsoft Edge, desktop and mobile emulation. Firefox, Safari and
 physical mobile GPUs have not been separately validated.
+
+## Notstrom and stress extension
+
+The established workshop, layout and colour tokens remain the reference.
+Desktop (1536 × 1024) and touch mobile (390 × 844) were inspected in Edge.
+Screenshots in the system temporary directory: `nullsignal-outage-desktop.png`,
+`nullsignal-outage-mobile.png`, `nullsignal-hallucination-desktop.png`,
+`nullsignal-jumpscare-desktop.png`.
+
+| Reference / intent | Rendered check and decision |
+| --- | --- |
+| Physical workshop lighting | Actual world lights and environment dim during outages; a camera-mounted spotlight follows the pointer. Warm light on brushed metal and readable emissive LEDs were visually checked. |
+| Existing copper / mint palette | A small copper NOTSTROM panel sits inside the scene; countdown, toolbar and manual retain their established hierarchy. |
+| Real module interaction | Genuine glyph raycast press reaches the isolated backend during darkness. No overlay intercepts puzzle input. |
+| Progressive unease | Sparse original vector-mask silhouettes and translucent scan lines affect only the host stage. They never replace puzzle values or expert rules. |
+| Short scare | An original mask rushes into the host view for 1.2 seconds with finite CC0 sample layers. Its flat graphic treatment intentionally matches the game's original glyphs; it is not a copied character or photographic asset. |
+| Mobile | A finger swipe directs the torch during an outage without turning the device. Front/back buttons still allow rotation; ordinary drag outside an outage stays unchanged. Controls fit without horizontal overflow. |
+| Motion / preference | Reduced Motion removes the close-up and zoom, leaving a brief static message. Hallucinations and scare can be disabled together with a persisted setting. Pills clear both while the red deadline warning remains. |
+| Audio feedback | Test caught a shared sample cooldown suppressing the scare after an apparition; separate effect keys now prevent this. Mute and effect volume still govern all samples. |
+
+Validation: 68 backend tests, 13 browser scenarios and eight Node checks pass
+across the regression and targeted runs. Browser plugin not available; used
+Playwright with installed Edge. Local Python lacked `jose`, so backend tests
+ran in the production-equivalent disposable Python 3.11 Docker image with its
+own temporary SQLite database. No production accounts or wallets were used.
+Safari, Firefox and physical mobile hardware remain untested.

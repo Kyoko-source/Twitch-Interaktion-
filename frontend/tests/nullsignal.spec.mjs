@@ -260,3 +260,62 @@ test('touch drag turns only the bomb and two-finger zoom does not tilt the workb
   const cx=rect.x+rect.width*.5;await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx-30,y,id:2},{x:cx+30,y,id:3}]});for(let step=1;step<=8;step++)await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx-30-step*5,y,id:2},{x:cx+30+step*5,y,id:3}]});await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await host.waitForTimeout(150);
   const zoomed=await state();expect(zoomed.camera).not.toEqual(rotated.camera);expect(zoomed.deviceRotation).toEqual(rotated.deviceRotation);expect(zoomed.cameraRotation.map(value=>Number(value.toFixed(8)))).toEqual(before.cameraRotation.map(value=>Number(value.toFixed(8))));await host.screenshot({path:join(tmpdir(),'nullsignal-fixed-table-mobile.png')});await session.detach();expect(errors).toEqual([]);
 });
+
+test('power failure lights actual 3D surfaces; hallucination and single scare yield to real pills and pause',async({browser,request})=>{
+  test.setTimeout(90000);
+  const game=await createLobby(browser,request,{mission:'contact'}),{host,guest,id,errors}=game;
+  host.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
+  await host.addInitScript(()=>{
+    window.fearSamples=[];const C=window.AudioContext||window.webkitAudioContext,create=C.prototype.createBufferSource;
+    C.prototype.createBufferSource=function(...args){const source=create.apply(this,args),start=source.start.bind(source);source.start=(...args)=>{window.fearSamples.push({rate:source.playbackRate.value,duration:source.buffer?.duration});return start(...args);};return source;};
+  });
+  await host.reload();await expect(host.getByLabel('Einladungslink')).toBeVisible();
+  const token=await joinGuest(game,'Power expert');await start(game);const canvas=host.locator('.nsViewport canvas'),layer=host.locator('.nsAtmosphere');
+  let phase='normal';
+  await host.route('**/api/nullsignal/rooms/*/host',async route=>{
+    const response=await route.fetch({url:API+new URL(route.request().url()).pathname}),state=await response.json();
+    if(state.status==='running'){
+      state.remaining=phase==='normal'?170:phase==='outage'?100:45;state.deadline=state.server_time+state.remaining;
+      state.atmosphere={...state.atmosphere,played:phase==='outage'?43:phase==='normal'?10:74,untreated:100,outage_start:40,scare_id:phase==='scare'?state.round_id:null,scare_remaining:phase==='scare'?1.2:0};
+    }
+    return route.fulfill({json:state});
+  });
+  phase='outage';await expect(layer).toHaveAttribute('data-blackout','true');await expect(host.locator('.nsViewport')).toHaveAttribute('data-blackout','true');
+  const lighting=()=>canvas.evaluate(c=>c.__nullsignalScene.lighting());
+  expect((await lighting()).flashlight).toBe(65);expect((await lighting()).background).toBeLessThan(.05);
+  const before=(await lighting()).aim,rect=await canvas.boundingBox();await host.mouse.move(rect.x+rect.width*.7,rect.y+rect.height*.65);await expect.poll(async()=>JSON.stringify((await lighting()).aim)).not.toBe(JSON.stringify(before));
+  await host.screenshot({path:join(tmpdir(),'nullsignal-outage-desktop.png')});
+  await host.keyboard.press('f');await expect(host.getByRole('button',{name:'Taschenlampe',exact:true})).toHaveAttribute('aria-pressed','false');await expect.poll(async()=>(await lighting()).flashlight).toBe(0);
+  await host.getByRole('button',{name:'Taschenlampe',exact:true}).click();await expect.poll(async()=>(await lighting()).flashlight).toBe(65);
+  // A genuine raycast press still reaches the server during the outage.
+  const base=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}}),glyph=base.bomb.modules.find(m=>m.kind==='glyphs'),step=solution(glyph,manual.manual.find(m=>m.id===glyph.id).manual,base.bomb)[0];
+  await physical(host,glyph,...step);expect((await backend(request,`/rooms/${id}/host`)).strikes).toBe(0);
+  phase='hallucination';await expect(layer).toHaveAttribute('data-blackout','false');await expect.poll(async()=>Number(await layer.getAttribute('data-hallucination'))).toBeGreaterThan(.9);await expect(host.locator('.nsPhantom')).toBeVisible();await host.waitForTimeout(700);await host.screenshot({path:join(tmpdir(),'nullsignal-hallucination-desktop.png')});
+  phase='scare';await expect(layer).toHaveAttribute('data-scare','true');await expect(host.locator('.nsJumpscare')).toBeVisible();await host.screenshot({path:join(tmpdir(),'nullsignal-jumpscare-desktop.png')});
+  await expect.poll(()=>host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);await host.waitForTimeout(1700);expect(await host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);
+  await host.getByRole('button',{name:'Beruhigungspille nehmen',exact:true}).click();await expect(layer).toHaveAttribute('data-scare','false');await expect(layer).toHaveAttribute('data-hallucination','0.000');expect((await backend(request,`/rooms/${id}/host`)).calm.pills_remaining).toBe(1);
+  expect(await guest.locator('.nsAtmosphere').count()).toBe(0);expect(await host.locator('.nsAtmosphere').evaluate(e=>getComputedStyle(e).pointerEvents)).toBe('none');
+  await host.getByRole('button',{name:'Mission pausieren',exact:true}).click();await expect(layer).toHaveAttribute('data-blackout','false');await expect(layer).toHaveAttribute('data-scare','false');expect((await lighting()).flashlight).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('mobile outage toggle works; reduced motion avoids scare zoom and horror preference persists',async({browser,request})=>{
+  const game=await createLobby(browser,request,{mobile:true,mission:'contact'}),{host,errors}=game;await host.emulateMedia({reducedMotion:'reduce'});await joinGuest(game,'Torch expert');await start(game);
+  host.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
+  let scare=false;
+  await host.route('**/api/nullsignal/rooms/*/host',async route=>{
+    const response=await route.fetch({url:API+new URL(route.request().url()).pathname}),state=await response.json();
+    if(state.status==='running'){state.remaining=45;state.deadline=state.server_time+45;state.atmosphere={...state.atmosphere,played:43,untreated:100,outage_start:40,scare_id:scare?state.round_id:null,scare_remaining:scare?1.2:0};}
+    return route.fulfill({json:state});
+  });
+  await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-blackout','true');const torch=host.getByRole('button',{name:'Taschenlampe',exact:true});await torch.tap();await expect(torch).toHaveAttribute('aria-pressed','false');await torch.tap();await expect(torch).toHaveAttribute('aria-pressed','true');
+  const canvas=host.locator('.nsViewport canvas'),rect=await canvas.boundingBox(),session=await game.hc.newCDPSession(host),before=await canvas.evaluate(c=>({rotation:c.__nullsignalScene.transforms().deviceRotation,aim:c.__nullsignalScene.lighting().aim}));
+  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:rect.x+rect.width*.45,y:rect.y+rect.height*.65,id:1}]});
+  for(let step=1;step<=10;step++){await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:rect.x+rect.width*(.45+.25*step/10),y:rect.y+rect.height*(.65+.15*step/10),id:1}]});await host.waitForTimeout(20);}
+  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await host.waitForTimeout(100);
+  expect(await canvas.evaluate(c=>c.__nullsignalScene.transforms().deviceRotation)).toEqual(before.rotation);expect(await canvas.evaluate(c=>c.__nullsignalScene.lighting().aim)).not.toEqual(before.aim);
+  await host.screenshot({path:join(tmpdir(),'nullsignal-outage-mobile.png')});scare=true;await expect(host.locator('.nsJumpscare')).toBeVisible();expect(await host.locator('.nsJumpscare svg').evaluate(e=>getComputedStyle(e).display)).toBe('none');expect(await host.locator('.nsJumpscare').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
+  await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();
+  await expect(host.locator('.nsAudioSettings')).toHaveAttribute('open','');await host.getByLabel('Schreckeffekte einschalten',{exact:true}).uncheck();await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-scare','false');await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-hallucination','0.000');
+  await host.reload();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','running');await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();await expect(host.getByLabel('Schreckeffekte einschalten',{exact:true})).not.toBeChecked();expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);await session.detach();
+});

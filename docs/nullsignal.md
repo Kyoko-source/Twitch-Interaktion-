@@ -146,6 +146,31 @@ Song wird erst vollständig hochgeladen und danach atomar freigegeben, sodass ei
 abgebrochener Upload keinen bestehenden Song ersetzt. Die Songs werden weder
 in Git eingecheckt noch für Tests in die Live-Seite kopiert.
 
+## Notstrom und Stress
+
+Während einer Runde fällt die Werkstattbeleuchtung erstmals nach 40–50 aktiven
+Sekunden für zwölf Sekunden aus, danach mit 75 Sekunden Abstand. Die
+Taschenlampe geht standardmäßig mit in die Runde; Maus oder Finger richten den
+echten 3D-Lichtkegel aus. **F** oder der Schalter oben links schaltet sie um.
+Die LEDs und der Countdown bleiben sichtbar. Das Handbuch bleibt unbeeinflusst.
+
+Ohne Beruhigung entstehen bei weniger als zwei Minuten Restzeit und mehr als
+50 aktiven Sekunden ohne Pillenwirkung allmählich Bildstörungen und gelegentliche
+Schattenerscheinungen. Bei höchstens 50 Sekunden Restzeit und mindestens 85
+aktiven Sekunden ohne Beruhigung erscheint einmal pro Runde eine eigene
+Maskengestalt für 1,2 Sekunden mit einem kurzen Sample-Stinger. Rätselwerte,
+Fehlerzahl und Antworten werden dadurch nicht verändert.
+
+**C** nimmt weiterhin eine der zwei Pillen: 30 aktive Sekunden klare Sicht,
+keine Halluzinationen und anschließend ein neu beginnender Stressaufbau.
+Pausen frieren alle Zeitpläne ein; der Server speichert den einmaligen Schreck
+auch über Neuladen hinweg. Die Expertenprojektion enthält keine Stressdaten.
+Unter den Einstellungen können Halluzinationen und Jumpscare gemeinsam
+ausgeschaltet werden; die Wahl bleibt lokal gespeichert. Bei reduzierter
+Bewegung entfallen Zoom, Masken-Close-up und dekorative Animationen.
+Ausfall, Erscheinung und Schreck verwenden endliche vorhandene CC0-Samples;
+Musik und Countdown folgen weiterhin ihren bisherigen Einstellungen.
+
 ## Prüfung
 
 Backend: `python -m unittest discover -s tests` im Backend-Container. Die

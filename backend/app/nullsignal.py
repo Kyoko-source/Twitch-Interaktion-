@@ -18,6 +18,7 @@ from .nullsignal_puzzles import MISSIONS, generate, apply_action
 GRACE = 15
 LIFETIME = 7200
 CALM_SECONDS = 30
+SCARE_SECONDS = 1.2
 
 
 def digest(value):
@@ -44,7 +45,19 @@ class NullsignalStore:
                 "expert_seen": now if guest else 0, "remaining": MISSIONS[mission]["seconds"],
                 "deadline": None, "active_since": None, "played": 0, "strikes": 0,
                 "pause_reason": "", "event": None, "finalized": False, "reward": 0,
-                "bomb": generate(mission), "pills_remaining": 2, "calm_until_played": 0}
+                "bomb": generate(mission), "pills_remaining": 2, "calm_until_played": 0,
+                "scare_at_played": None}
+
+    @staticmethod
+    def atmosphere(state, now):
+        """Active-play clock only: pause/reconnect cannot advance stress or outages."""
+        played = state["played"] + (max(0, now-state["active_since"]) if state["active_since"] is not None else 0)
+        calm_until = state.get("calm_until_played", 0)
+        scare_at = state.get("scare_at_played")
+        return {"played": played, "untreated": max(0, played-calm_until),
+                "outage_start": 40+int(state["round_id"][:4], 16) % 11,
+                "scare_id": state["round_id"] if scare_at is not None else None,
+                "scare_remaining": max(0, SCARE_SECONDS-(played-scare_at)) if scare_at is not None and played >= calm_until else 0}
 
     def load(self, db, room_id, now):
         row = db.execute("SELECT * FROM nullsignal_rooms WHERE id=?", (room_id,)).fetchone()
@@ -122,6 +135,11 @@ class NullsignalStore:
                 state["status"] = "paused"
                 state["pause_reason"] = "connection"
                 state["version"] += 1
+            if state["status"] == "running" and state.get("scare_at_played") is None:
+                atmosphere = self.atmosphere(state, now)
+                if state["deadline"]-now <= 50 and atmosphere["untreated"] >= 85:
+                    state["scare_at_played"] = atmosphere["played"]
+                    state["version"] += 1
         self.finish(db, room, now)
 
     def project(self, db, room, role, now):
@@ -131,6 +149,7 @@ class NullsignalStore:
                       host_online=now-state["host_seen"] < GRACE, expert_online=bool(room["guest_hash"]) and now-state["expert_seen"] < GRACE,
                       expires=room["expires"], solved=sum(m["solved"] for m in state["bomb"]["modules"]))
         if role == "host":
+            result["atmosphere"] = self.atmosphere(state, now)
             played = state["played"] + (max(0, now-state["active_since"]) if state["active_since"] is not None else 0)
             result["calm"] = {"pills_remaining": state.get("pills_remaining", 2),
                               "seconds_remaining": max(0, state.get("calm_until_played", 0)-played)}
