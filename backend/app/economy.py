@@ -22,6 +22,7 @@ MIN_RUN_SECONDS = 15
 LEVEL_SIZE = 250
 SCORE_DIVISORS = {"chicken-jump": 100, "chicken-snake": 10, "chicken-flipper": 2500, "braincell-survivor": 200}
 GAME_TITLES = {"chicken-jump": "Chicken Jump", "chicken-snake": "Chicken Snake", "chicken-flipper": "PEPPLE Pinball", "braincell-survivor": "Pepple Survivor"}
+GAME_TITLES["nullsignal"] = "NULLSIGNAL"
 PUNISHMENT_CATEGORIES = {"Bestrafungs Ideen", "Idee Bestrafungsrad"}
 
 

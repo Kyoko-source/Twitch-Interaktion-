@@ -1,0 +1,123 @@
+import React,{Suspense,lazy,useCallback,useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {ArrowLeft,Check,Copy,Maximize,Minimize,Pause,Play,RotateCcw,Volume2,VolumeX,Wifi,WifiOff,X,User,ShieldCheck,BookOpen,ChevronRight} from 'lucide-react';
+import {api} from '../api';
+import {requestId} from '../economy/useGameRewards';
+import {SampleAudio} from '../audio/SampleAudio';
+import {Manual} from './Manual';
+import {ModuleControls} from './ModuleControls';
+import './nullsignal.css';
+
+const DeviceScene=lazy(()=>import('./DeviceScene'));
+const defaultMissions=[{id:'contact',name:'Erstkontakt',modules:3,seconds:360,reward:6,level:'Einstieg'},{id:'incident',name:'Störfall',modules:6,seconds:480,reward:12,level:'Standard'},{id:'blackout',name:'Blackout',modules:8,seconds:540,reward:18,level:'Experte'}];
+const clockText=value=>{const seconds=Math.max(0,Math.ceil(value));return `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;};
+function stored(key,fallback='',storage=localStorage){try{return storage.getItem(key)||fallback;}catch{return fallback;}}
+function invitation(){const parts=location.hash.replace(/^#\/?/,'').split('/');if(parts[0]!=='nullsignal')return null;return {roomId:parts[2]||'',token:parts[3]||'',valid:parts[1]==='join'&&/^[a-f0-9]{32}$/.test(parts[2]||'')&&/^[A-Za-z0-9_-]{20,64}$/.test(parts[3]||'')};}
+
+async function expertRequest(roomId,token,suffix='',options={}){
+  const response=await fetch(`/api/nullsignal/rooms/${roomId}/${suffix||'expert'}`,{cache:'no-store',...options,headers:{'Content-Type':'application/json',...(token?{'X-Nullsignal-Token':token}:{}),...options.headers}});
+  const result=await response.json();if(!response.ok){const error=new Error(typeof result.detail==='string'?result.detail:'Die Anfrage konnte nicht verarbeitet werden.');error.status=response.status;throw error;}return result;
+}
+
+class NullsignalSound {
+  async unlock(){
+    if(!this.context){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;this.context=new Ctx();this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',tick:'/audio/impactGeneric_light_000.ogg',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg'});this.audio.preload();}
+    if(this.context.state==='suspended')await this.context.resume();
+  }
+  settings(enabled,volume){this.enabled=enabled;this.volume=volume;this.audio?.volume(enabled?volume:0);if(!enabled)this.audio?.stop();}
+  play(kind){if(!this.enabled||!this.audio)return;this.audio.volume(this.volume);const names={neutral:'click',good:'good',bad:'bad',defused:'win',exploded:'explode'};const name=names[kind]||kind;this.audio.play(name,{gain:name==='tick'?.055:name==='click'?.18:name==='explode'?.6:.35,gap:.04});}
+  dispose(){this.audio?.dispose();this.context?.close().catch(()=>{});}
+}
+
+function Header({role,room,time,enabled,setEnabled,volume,setVolume,root,onBack}){
+  const [full,setFull]=useState(Boolean(document.fullscreenElement));
+  useEffect(()=>{const update=()=>setFull(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',update);return()=>document.removeEventListener('fullscreenchange',update);},[]);
+  return <header className="nsHeader"><a className="nsBack" href="#games/chicken-jump" onClick={onBack} aria-label="Zurück zu den Minispielen"><ArrowLeft size={20}/></a><div className="nsBrand"><h1 id="nullsignal-title">NULLSIGNAL</h1><p>{role==='expert'?'Handbuch':'Zwei Stimmen. Eine Chance.'}</p></div><div className="nsHeaderTools"><span className="nsRole">{role==='expert'?`Experte${room?.expert_name?` · ${room.expert_name}`:''}`:'Entschärfer'}</span>{room&&<time className={`nsCountdown ${time<60&&room.status==='running'?'isUrgent':''}`} aria-label="Verbleibende Zeit">{clockText(time)}</time>}<button className="nsIcon" type="button" aria-label={enabled?'Spiel stummschalten':'Spielton einschalten'} onClick={()=>setEnabled(!enabled)}>{enabled?<Volume2 size={21}/>:<VolumeX size={21}/>}</button><label className="nsVolume" aria-label="Spiellautstärke"><input aria-label="Spiellautstärke" type="range" min="0" max="1" step="0.05" value={volume} onChange={event=>setVolume(Number(event.target.value))}/></label>{document.fullscreenEnabled&&<button className="nsIcon" type="button" aria-label={full?'Vollbild verlassen':'Vollbild öffnen'} onClick={()=>{const operation=document.fullscreenElement?document.exitFullscreen():root.current.requestFullscreen();operation?.catch(()=>{});}}>{full?<Minimize size={21}/>:<Maximize size={21}/>}</button>}</div></header>;
+}
+
+function Connection({room,role,networkError}){const connected=room&&(role==='host'?room.expert_online:room.host_online)&&!networkError;return <span className={`nsConnection ${connected?'isConnected':''}`}>{connected?<Wifi size={16}/>:<WifiOff size={16}/>}<span>{networkError?'Verbindung unterbrochen':connected?'Verbindung stabil':role==='host'?'Warte auf Experten':'Warte auf Entschärfer'}</span></span>;}
+
+function Results({room,role,busy,onReset,onLobby}){
+  const success=room.status==='defused';
+  return <section className={`nsResult ${success?'isSuccess':''}`} aria-label="Missionsergebnis"><div>{success?<ShieldCheck size={44}/>:<X size={44}/>}<h2>{success?'Nullsignal. Alles sicher.':'Verbindung verloren.'}</h2><p>{success?`${room.host_name} und ${room.expert_name} haben die Mission gemeinsam entschärft.`:room.event?.message||'Die Zeit ist abgelaufen.'}</p><dl><div><dt>Module</dt><dd>{room.solved} / {room.mission.modules}</dd></div><div><dt>Fehler</dt><dd>{room.strikes} / 3</dd></div><div><dt>Restzeit</dt><dd>{clockText(room.result?.remaining||0)}</dd></div></dl>{success&&<p className="nsTeamScore">Teamwertung <strong>{Number(room.result?.score||0).toLocaleString('de-DE')}</strong>{role==='host'&&<span>+{room.chickens_awarded||0} Chickens · Tageslimit wird berücksichtigt</span>}</p>}{role==='host'?<div className="nsResultButtons"><button className="nsPrimary" type="button" disabled={busy} onClick={onReset}><RotateCcw size={17}/>Neue Runde</button><button className="nsSecondary" type="button" disabled={busy} onClick={onLobby}>Mission wechseln</button></div>:<p>Der Streamer kann eine neue Runde starten. Danach bitte erneut bereit melden.</p>}</div></section>;
+}
+
+export function Nullsignal({user}){
+  const [invite,setInvite]=useState(invitation),role=invite?'expert':'host';
+  const [room,setRoom]=useState(null),[catalog,setCatalog]=useState(defaultMissions),[mission,setMission]=useState('contact'),[name,setName]=useState(()=>stored('nullsignal-name')),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[networkError,setNetworkError]=useState(''),[notice,setNotice]=useState(''),[selected,setSelected]=useState(''),[cameraView,setCameraView]=useState(null),[time,setTime]=useState(360),[records,setRecords]=useState([]),[enabled,setEnabled]=useState(()=>stored('nullsignal-sound','on')!=='off'),[volume,setVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-volume','.6'))||0)));
+  const root=useRef(null),roomRef=useRef(null),alive=useRef(true),lock=useRef(false),guestToken=useRef(''),clock=useRef(null),sound=useRef(null),lastEvent=useRef(null),lastReward=useRef(null),linkInput=useRef(null),creation=useRef(null),pendingAction=useRef(null);
+  if(!sound.current)sound.current=new NullsignalSound();
+  const apply=useCallback(next=>{
+    if(!alive.current)return;
+    const previous=roomRef.current;
+    if(previous&&next.room_id===previous.room_id&&(next.version<previous.version||(next.version===previous.version&&next.server_time<previous.server_time)))return;
+    roomRef.current=next;if(pendingAction.current?.id===next.event?.id)pendingAction.current=null;clock.current={deadline:next.deadline,remaining:next.remaining,serverTime:next.server_time,received:performance.now(),status:next.status};setRoom(next);setMission(next.mission.id);setNetworkError('');
+  },[]);
+  const remaining=useCallback(()=>{const c=clock.current;if(!c)return 360;return c.status==='running'&&c.deadline!==null?Math.max(0,c.deadline-c.serverTime-(performance.now()-c.received)/1000):c.remaining;},[]);
+  useEffect(()=>{
+    alive.current=true;const previousOverflow=document.body.style.overflow,app=document.querySelector('.communityApp'),previousInert=app?.inert,previousFocus=document.activeElement;document.body.style.overflow='hidden';if(app)app.inert=true;root.current?.querySelector('h1')?.setAttribute('tabindex','-1');root.current?.querySelector('h1')?.focus();document.title='NULLSIGNAL · Aviary';
+    const route=()=>setInvite(invitation());window.addEventListener('hashchange',route);
+    return()=>{alive.current=false;document.body.style.overflow=previousOverflow;if(app)app.inert=previousInert;previousFocus?.focus?.();window.removeEventListener('hashchange',route);sound.current.dispose();};
+  },[]);
+  useEffect(()=>{sound.current.settings(enabled,volume);try{localStorage.setItem('nullsignal-sound',enabled?'on':'off');localStorage.setItem('nullsignal-volume',String(volume));}catch{}},[enabled,volume]);
+  useEffect(()=>{const update=()=>setTime(Math.ceil(remaining()));update();const interval=setInterval(update,100);return()=>clearInterval(interval);},[remaining,room?.room_id]);
+  useEffect(()=>{
+    let current=true;setError('');setRoom(null);roomRef.current=null;clock.current=null;
+    if(role==='host'){
+      if(!user){setLoading(false);return;}
+      setLoading(true);api('/api/nullsignal/rooms/active').then(result=>{if(current&&result)apply(result);}).catch(err=>current&&setError(err.message)).finally(()=>current&&setLoading(false));
+    }else{
+      if(!invite.valid){setError('Dieser Einladungslink ist unvollständig. Bitte den Streamer um den vollständigen Link bitten.');return;}
+      guestToken.current=stored(`nullsignal-guest:${invite.roomId}`,'',sessionStorage);
+      if(guestToken.current){setLoading(true);expertRequest(invite.roomId,guestToken.current).then(result=>{if(current)apply(result);}).catch(err=>{if(current){guestToken.current='';try{sessionStorage.removeItem(`nullsignal-guest:${invite.roomId}`);}catch{}setError(err.message);}}).finally(()=>current&&setLoading(false));}
+    }
+    return()=>{current=false;};
+  },[role,user?.username,invite?.roomId,invite?.token,apply]);
+  useEffect(()=>{
+    if(!room?.room_id||room.status==='closed')return;let cancelled=false,inFlight=false;const controller=new AbortController(),id=room.room_id;
+    const poll=async()=>{if(inFlight)return;inFlight=true;try{const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(8000)]);const next=role==='host'?await api(`/api/nullsignal/rooms/${id}/host`,{cache:'no-store',signal}):await expertRequest(id,guestToken.current,'',{signal});if(!cancelled)apply(next);}catch(err){if(!cancelled&&err.name!=='AbortError'){setNetworkError(err.name==='TimeoutError'?'Verbindung unterbrochen. Wiederverbinden …':err.message);if([401,404].includes(err.status)){cancelled=true;setError(err.message);roomRef.current=null;clock.current=null;setRoom(null);}}}finally{inFlight=false;}};
+    const timer=setInterval(poll,750);return()=>{cancelled=true;clearInterval(timer);controller.abort();};
+  },[room?.room_id,room?.status==='closed',role,apply]);
+  useEffect(()=>{
+    if(!room?.event||room.event.id===lastEvent.current)return;lastEvent.current=room.event.id;if(role==='host')sound.current.play(room.event.kind);
+  },[room?.event?.id,role]);
+  useEffect(()=>{if(role==='host'&&room?.status==='running'&&time<=60&&time>0)sound.current.play('tick');},[time,role,room?.status]);
+  useEffect(()=>{
+    if(role!=='host'||!room?.wallet||lastReward.current===room.round_id)return;lastReward.current=room.round_id;window.dispatchEvent(new CustomEvent('aviary-wallet',{detail:{username:room.host_name,wallet:room.wallet}}));
+  },[room?.round_id,room?.wallet,role]);
+  useEffect(()=>{setSelected('');lastEvent.current=null;},[room?.round_id]);
+  useEffect(()=>{
+    let active=true;fetch('/api/nullsignal/catalog').then(response=>response.ok?response.json():defaultMissions).then(next=>{if(active)setCatalog(next);}).catch(()=>{});return()=>{active=false;};
+  },[]);
+  useEffect(()=>{let active=true;fetch(`/api/nullsignal/records/${mission}`,{cache:'no-store'}).then(response=>response.ok?response.json():[]).then(rows=>active&&setRecords(rows)).catch(()=>{});return()=>{active=false;};},[mission,room?.status]);
+  async function action(task){if(lock.current)return;lock.current=true;setBusy(true);setError('');setNotice('');sound.current.unlock().then(()=>sound.current.settings(enabled,volume)).catch(()=>{});try{await task();}catch(err){if(alive.current)setError(err.name==='TimeoutError'?'Die Verbindung ist zu langsam. Bitte erneut versuchen; bestätigte Eingaben werden nicht doppelt gewertet.':err.message);}finally{lock.current=false;if(alive.current)setBusy(false);}}
+  function create(){action(async()=>{if(creation.current?.mission!==mission)creation.current={mission,request_id:requestId()};const next=await api('/api/nullsignal/rooms',{method:'POST',body:JSON.stringify(creation.current),signal:AbortSignal.timeout(10000)});creation.current=null;apply(next);});}
+  function join(event){event.preventDefault();action(async()=>{
+    if(!guestToken.current)guestToken.current=(crypto.randomUUID()+crypto.randomUUID()).replaceAll('-','');try{sessionStorage.setItem(`nullsignal-guest:${invite.roomId}`,guestToken.current);}catch{}
+    const next=await expertRequest(invite.roomId,guestToken.current,'join',{method:'POST',body:JSON.stringify({invite_token:invite.token,name:name.trim()}),signal:AbortSignal.timeout(10000)});guestToken.current=next.guest_token;try{sessionStorage.setItem(`nullsignal-guest:${invite.roomId}`,next.guest_token);localStorage.setItem('nullsignal-name',name.trim());}catch{}apply(next);
+  });}
+  function control(command){action(async()=>{
+    const next=await api(`/api/nullsignal/rooms/${roomRef.current.room_id}/control`,{method:'POST',body:JSON.stringify({command,...(command==='reset'?{mission}: {})})});
+    if(command==='close'){setRoom(null);roomRef.current=null;clock.current=null;setSelected('');}else apply(next);
+  });}
+  function ready(value){action(async()=>apply(await expertRequest(roomRef.current.room_id,guestToken.current,'ready',{method:'POST',body:JSON.stringify({ready:value})})));}
+  function moduleAction(moduleId,operation,value=null){action(async()=>{const current=roomRef.current,signature=JSON.stringify([current.round_id,moduleId,operation,value]);if(pendingAction.current?.signature!==signature)pendingAction.current={signature,id:requestId()};const next=await api(`/api/nullsignal/rooms/${current.room_id}/action`,{method:'POST',body:JSON.stringify({round_id:current.round_id,request_id:pendingAction.current.id,module_id:moduleId,operation,value}),signal:AbortSignal.timeout(10000)});pendingAction.current=null;apply(next);});}
+  const inviteUrl=room&&`${location.origin}/#nullsignal/join/${room.room_id}/${room.invite_token}`;
+  function copy(){navigator.clipboard?.writeText(inviteUrl).then(()=>setNotice('Einladungslink kopiert.')).catch(()=>{linkInput.current?.select();setNotice('Link markiert. Mit Strg + C kopieren.');});if(!navigator.clipboard){linkInput.current?.select();setNotice('Link markiert. Mit Strg + C kopieren.');}}
+  function view(side){setSelected('');setCameraView({side,key:Date.now()});}
+  const inLobby=!room||room.status==='lobby'||room.status==='closed',ended=room&&['defused','exploded'].includes(room.status),selectedModule=room?.bomb?.modules.find(m=>m.id===selected);
+  const sceneProps={bomb:room?.bomb,roundId:room?.round_id,preview:inLobby,status:room?.status,selected,onSelect:setSelected,onAction:moduleAction,remaining,strikes:room?.strikes,event:room?.event,cameraView};
+  const scene=<Suspense fallback={<div className="nsSceneMessage" role="status">3D-Werkstatt lädt …</div>}><DeviceScene {...sceneProps}/></Suspense>;
+  return createPortal(<main className={`nsGame ${role==='expert'?'nsExpert':''} ${inLobby?'nsLobbyMode':''}`} ref={root} aria-labelledby="nullsignal-title" data-role={role} data-status={room?.status||'welcome'} data-busy={busy}>
+    <Header role={role} room={room} time={time} enabled={enabled} setEnabled={setEnabled} volume={volume} setVolume={setVolume} root={root}/>
+    {(error||notice)&&<div className={`nsToast ${error?'isError':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button className="nsIcon" type="button" aria-label="Hinweis schließen" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
+    {role==='expert'?room?<><div className="nsExpertStatus"><Connection room={room} role={role} networkError={networkError}/><span>{room.mission.name} · {room.solved} / {room.mission.modules} Module · {room.strikes} / 3 Fehler</span><strong>{room.status==='lobby'?'Warte auf den Start':room.status==='paused'?'Mission pausiert':room.status==='defused'?'Gemeinsam entschärft':room.status==='exploded'?'Mission gescheitert':'Mission läuft'}</strong></div><Manual room={room} busy={busy} onReady={ready}/>{ended&&<details className="nsExpertResult"><summary>Teamergebnis anzeigen</summary><Results room={room} role={role} busy={busy}/></details>}</>:<section className="nsGuestJoin"><BookOpen size={44}/><h2>Du bist der Experte.</h2><p>Dein Partner sieht die Bombe. Du bekommst das Handbuch. Nur gemeinsam findet ihr den richtigen Weg.</p><form onSubmit={join}><label>Dein Name<input autoComplete="nickname" minLength={2} maxLength={24} required value={name} onChange={event=>setName(event.target.value)} disabled={busy||loading}/></label><button className="nsPrimary" type="submit" disabled={busy||loading||!invite.valid||name.trim().length<2}>{loading?'Verbindung wird hergestellt …':busy?'Du trittst bei …':'Als Experte beitreten'}<ChevronRight size={19}/></button></form><p className="nsCaption">Kein Konto nötig. Dein Name erscheint im Teamergebnis. Nutzt euren Sprachchat und blendet den Stream aus.</p></section>
+    :inLobby?<div className="nsLobby" key="lobby"><div className="nsLobbyScene">{scene}</div><section className="nsLobbyPanel"><h2>Wählt eure Mission.</h2><div className="nsMissions" role="group" aria-label="Mission wählen">{catalog.map(item=><button type="button" key={item.id} className={mission===item.id?'isSelected':''} disabled={busy||Boolean(room)} aria-pressed={mission===item.id} onClick={()=>setMission(item.id)}><span><strong>{item.name}</strong><small>{item.modules} Module · {item.seconds/60} Minuten · {item.level}</small></span><ChevronRight size={21}/></button>)}</div>
+      {!user?<div className="nsLoginPrompt"><p>Zum Erstellen einer Lobby meldet sich der Streamer an. Dein eingeladener Partner braucht kein Konto.</p><a className="nsPrimary" href="#login">Bei Aviary anmelden</a></div>:loading?<p className="nsCaption">Deine Lobby wird gesucht …</p>:!room?<button className="nsPrimary nsCreate" type="button" disabled={busy} onClick={create}>Lobby erstellen<ChevronRight size={20}/></button>:<section className="nsLobbyDetails"><h3>Deine Lobby</h3><div className="nsPlayers"><div><User/><span>Entschärfer<strong>{room.host_name}</strong></span><Check size={17}/></div><div className={room.expert_ready?'isReady':''}><BookOpen/><span>Experte<strong>{room.expert_name||'Wartet auf Einladung'}</strong><small>{room.expert_name?room.expert_ready?'Bereit':room.expert_online?'Liest das Handbuch':'Nicht verbunden':''}</small></span>{room.expert_ready&&<Check size={17}/>}</div></div><label>Einladungslink<div className="nsInviteField"><input aria-label="Einladungslink" ref={linkInput} readOnly value={inviteUrl} onFocus={event=>event.target.select()}/><button className="nsSecondary" type="button" onClick={copy}><Copy size={17}/>Link kopieren</button></div></label><p className="nsCaption">Dein Partner braucht kein Konto. Sprecht über euren Sprachchat.</p><button className="nsPrimary nsStart" type="button" disabled={busy||!room.expert_ready||!room.expert_online} onClick={()=>control('start')}><Play size={18}/>Mission starten</button><div className="nsLobbyLinks"><button type="button" className="nsText" disabled={busy} onClick={()=>control('replace')}>Einladung erneuern / Gast entfernen</button><button type="button" className="nsText" disabled={busy} onClick={()=>control('close')}>Lobby schließen</button></div></section>}
+      <details className="nsHowTo"><summary>So spielt ihr zusammen</summary><ol><li>Streamer erstellt eine Lobby und verschickt den Einladungslink.</li><li>Gast öffnet den Link, gibt einen Namen ein und meldet sich bereit.</li><li>Ihr sprecht über euren Sprachchat. Der Gast schaut ausschließlich ins Handbuch.</li><li>Module anklicken, Details beschreiben und die Anweisungen ausführen. Drei Fehler beenden die Mission.</li></ol><p>Nach 15 Sekunden ohne Verbindung pausiert die Mission. Ihr könnt danach gemeinsam fortsetzen.</p><p>Erfolgreiche Missionen bringen dem Streamer bis zu 6 / 12 / 18 Chickens, ab 15 Sekunden aktiver Spielzeit und innerhalb des Tageslimits von 120.</p></details>
+      <details className="nsRecords"><summary>Teambestleistungen · {catalog.find(m=>m.id===mission)?.name}</summary>{records.length?<ol>{records.map((row,i)=><li key={`${row.host}-${row.created}`}><span>{i+1}. {row.host} + {row.expert}</span><strong>{Number(row.score).toLocaleString('de-DE')}</strong></li>)}</ol>:<p>Noch kein Team hat diese Mission entschärft.</p>}</details>
+    </section></div>:<div className="nsPlay" key="play"><section className="nsStage" aria-label="Bombenansicht">{scene}{room.status==='paused'&&<div className="nsPause"><Pause size={36}/><h2>Mission pausiert.</h2><p>{room.pause_reason==='connection'?'Die Verbindung wurde unterbrochen. Sobald ihr beide wieder da seid, könnt ihr fortsetzen.':'Nehmt euch einen Moment. Die Zeit steht still.'}</p><button className="nsPrimary" type="button" disabled={busy||!room.expert_online||!room.expert_ready} onClick={()=>control('start')}><Play size={18}/>Fortsetzen</button><button className="nsText" type="button" disabled={busy} onClick={()=>control('reset')}>Neue Runde vorbereiten</button></div>}{ended&&<Results room={room} role={role} busy={busy} onReset={()=>control('reset')} onLobby={()=>control('close')}/>}</section><aside className="nsModuleRail"><h2>Module <small>{room.solved}/{room.mission.modules}</small></h2><nav aria-label="Bombenmodule">{room.bomb.modules.map((module,i)=><button type="button" key={module.id} className={`${selected===module.id?'isSelected':''} ${module.solved?'isSolved':''}`} onClick={()=>setSelected(module.id)}><span>{String(i+1).padStart(2,'0')}</span>{module.name}{module.solved?<Check size={17}/>:<ChevronRight size={17}/>}</button>)}</nav><details className="nsPhysicalFacts" open><summary>Typenschild am Gehäuse</summary><dl><div><dt>Seriennummer</dt><dd>{room.bomb.serial}</dd></div><div><dt>Spannung</dt><dd>{room.bomb.voltage} V</dd></div><div><dt>Kühlmittel</dt><dd>{room.bomb.coolant}</dd></div></dl></details>{selectedModule?<details className="nsAccessibleControls" open><summary>Modul bedienen</summary><ModuleControls module={selectedModule} busy={busy} running={room.status==='running'} onAction={moduleAction}/></details>:<p className="nsControlHint">Modul anklicken, um es zu fokussieren. Direkt in 3D oder mit den Tasten hier bedienen.</p>}</aside></div>}
+    {role==='host'&&!inLobby&&<footer className="nsToolbar"><div><button className="nsSecondary" type="button" onClick={()=>view('front')}>Vorderseite</button><button className="nsSecondary" type="button" onClick={()=>view('back')}>Rückseite</button><button className="nsSecondary nsResetView" type="button" onClick={()=>view('front')}><RotateCcw size={17}/>Ansicht zurücksetzen</button></div><p>Klicken: Modul fokussieren · Ziehen: Bombe drehen</p><Connection room={room} role={role} networkError={networkError}/>{room.status==='running'&&<button className="nsIcon" type="button" aria-label="Mission pausieren" onClick={()=>control('pause')} disabled={busy}><Pause size={19}/></button>}</footer>}
+    {networkError&&role==='host'&&inLobby&&<p className="nsNetworkBanner" role="status">{networkError}</p>}
+  </main>,document.body);
+}

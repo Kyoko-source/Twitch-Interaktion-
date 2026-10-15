@@ -1,0 +1,102 @@
+# NULLSIGNAL
+
+Originales kooperatives 3D-Spiel für genau zwei Personen. Der Streamer startet
+unter `/#games/nullsignal` eine Lobby. Der Gast öffnet den Einladungslink,
+gibt einen Namen ein und bekommt ausschließlich das Handbuch, ohne Aviary-Konto.
+Für die Kommunikation wird der vorhandene Sprachchat verwendet; das Spiel
+fordert kein Mikrofon an und überträgt keine Sprachaufnahmen.
+
+## Spielen
+
+1. Als Streamer anmelden, Mission auswählen und Lobby erstellen.
+2. Einladungslink kopieren und an den Spielpartner senden.
+3. Der Gast blendet den Stream aus, öffnet das Handbuch und meldet sich bereit.
+4. Der Streamer startet. Module zum Fokussieren anklicken; Ziehen dreht das Gerät.
+   Die zusätzliche Modulbedienung unterstützt Tastatur, Touch und Farbnamen.
+5. Drei Fehler oder abgelaufene Zeit beenden die Mission. Jeder Fehler kostet
+   außerdem acht Sekunden. Eine neue Runde erzeugt neue Daten und Handbuchregeln.
+
+Erstkontakt: 3 Module, 6 Minuten. Störfall: 6 Module, 8 Minuten. Blackout:
+8 Module auf Vorder- und Rückseite, 9 Minuten. Alle acht Modularten haben eigene
+Regeln und Interaktionen: Kabel, Glyphen, Frequenzen, dreistufige Tastenfolge,
+Relais, gespiegelte Regler, drehbare Rohrverbindungen und ein Rechenschloss.
+
+Erfolgreiche Missionen vergeben bis zu 6 / 12 / 18 Chickens an das Host-Konto,
+ab 15 Sekunden tatsächlicher aktiver Spielzeit. Das vorhandene Tageslimit von
+120 gilt gemeinsam mit den anderen Spielen. Teamrekorde werden pro Mission
+gespeichert und über die vorhandene Highscore-Browserquelle angekündigt.
+
+## Sitzungen und Autorität
+
+- FastAPI prüft alle Aktionen und den Server-Zeitpunkt. Es gibt keinen frei
+  beschreibbaren Score- oder Belohnungs-Endpunkt für dieses Spiel.
+- SQLite im bestehenden persistenten Backend-Volume; nur zusätzliche
+  `nullsignal_*`-Tabellen. Auszahlungen und Rekordmeldungen passieren atomar
+  mit den vorhandenen Wallets, Runs und dem Alert-Ausgang.
+- Host-Routen verlangen das bestehende JWT und den korrekten Raum-Eigentümer;
+  bestehende Sperren und Session-Widerrufe gelten weiterhin.
+- Eine unerratbare Einladung belegt genau einen Expertenplatz. Der Browser
+  speichert vor dem Beitritt einen zufälligen Zugangsschlüssel in sessionStorage.
+  Wiederholungen nach einer verlorenen Antwort belegen keinen weiteren Platz.
+  Der Schlüssel wird nur als Header gesendet; die Einladung steht im URL-Hash.
+- Host-Projektion enthält sichtbare Bombendaten, aber weder Antworten noch
+  Handbuchregeln. Experten-Projektion enthält Regeln, aber keine Bombenanordnung,
+  Seriennummer, Host-Wallet oder Einladung. Beide Antworten sind `no-store`.
+- Lobby-Erstellung und Aktionen sind gegen doppelte Anfragen abgesichert. Alte
+  Aktionen passen nach einer neuen Runde nicht mehr zur Runden-ID.
+- Zwei HTTP-Abfragen im 750-ms-Takt halten die Rollen synchron. Fehlende
+  Verbindung pausiert nach 15 Sekunden exakt am Ablauf dieser Frist; Pausen
+  erzeugen keine zusätzliche Spielzeit. Nur der Host kann fortsetzen, wenn der
+  Experte wieder verbunden und bereit ist.
+- Eine Einladung gilt zwei Stunden. Der Host kann Gast und Link ersetzen,
+  die Lobby schließen oder eine neue Runde mit demselben Partner vorbereiten.
+
+## Grafik, Assets und Audio
+
+Three.js mit echter Geometrie, gebogenen Kabeln, Raycasting, Orbit-Kamera,
+physikalischen Materialien, eigener Werkbank, Schatten, Materialtextur,
+kontrolliertem Bloom und korrektem Output-Pass. Der Gast lädt die 3D-Bibliothek
+nicht. Die Szene begrenzt die Pixeldichte; statische Schatten werden erst bei
+einer Geometrieänderung neu berechnet. Reduced Motion entfernt Kameraschütteln,
+Partikel und animierte Kamerafahrten.
+
+Werkstatt und Metalltextur sind eigene Image-Gen-Assets in
+`frontend/public/assets/nullsignal/`. Prompts und Gestaltungsspezifikation liegen
+unter `frontend/design/nullsignal-*`. Rätseltexte und Vektorglyphen wurden eigens
+geschrieben. Audio verwendet vorhandene unveränderte Kenney-CC0-Aufnahmen;
+Lizenzen stehen in `frontend/public/audio/`. Keine Musikschleife.
+
+## Prüfung
+
+Backend: `python -m unittest discover -s tests` im Backend-Container. Die
+Nullsignal-Tests prüfen unter anderem alle acht Module über 100 Seeds anhand
+der getrennten sichtbaren Daten und Handbuchregeln, Rollen, gleichzeitigen
+Beitritt, Wiederholungen, Auszahlungen, Rekorde, Pausen und Wiederherstellung.
+
+Browser: `NULLSIGNAL_TEST_API=http://127.0.0.1:4187 npx playwright test nullsignal.spec.mjs`
+im Frontend, nach `npm run build`. Der Test-Endpunkt muss auf einen isolierten,
+nur über Loopback erreichbaren Backend-Container mit Test-Identität zeigen.
+Die Suite verweigert externe Test-Endpunkte und wird ohne diese explizite
+Konfiguration übersprungen. Sie testet zwei echte Browser mit echten
+Backend-Räumen, echte 3D-Klicks auf alle Modultypen, Touch und Wiederverbinden.
+Der Test-Auth-Adapter wird ausschließlich außerhalb des Repositories in den
+wegwerfbaren Test-Container eingebunden; er ist kein Teil des Produkt-Images.
+Die reproduzierbare Vorlage liegt in `backend/tests/nullsignal_qa_server.py`;
+der Produkt-Dockerfile kopiert ausschließlich `app/`, niemals `tests/`.
+
+Beispiel für einen eigenen isolierten Test-Container (Linux / Docker):
+
+```sh
+docker build -t aviary-backend:nullsignal-qa backend
+docker run --rm --name nullsignal-qa -p 127.0.0.1:4187:8000 \
+  -e NULLSIGNAL_QA_ONLY=loopback-disposable \
+  -e AVIARY_ECONOMY_DB=/tmp/nullsignal-qa.sqlite3 \
+  -e PYTHONPATH=/app/tests:/app \
+  -v "$PWD/backend/tests:/app/tests:ro" \
+  aviary-backend:nullsignal-qa uvicorn nullsignal_qa_server:app --host 0.0.0.0 --port 8000
+```
+
+Der Adapter verweigert den Start ohne die explizite Test-Kennung. Keine
+Produktions-Volumes, Zugangsdaten oder öffentlichen Ports an diesen Container
+binden. Für die lokale Frontend-Suite zeigt `NULLSIGNAL_TEST_API` auf Port 4187;
+die bestehende Playwright-Konfiguration startet den Frontend-Preview auf 4186.

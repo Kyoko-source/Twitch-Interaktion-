@@ -29,7 +29,9 @@ export async function api(path, options = {}, responseType = "json") {
       setToken("");
       window.dispatchEvent(new CustomEvent("aviary-session-ended", { detail: { message } }));
     }
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
