@@ -115,3 +115,25 @@ Playwright with installed Edge. Local Python lacked `jose`, so backend tests
 ran in the production-equivalent disposable Python 3.11 Docker image with its
 own temporary SQLite database. No production accounts or wallets were used.
 Safari, Firefox and physical mobile hardware remain untested.
+
+## Apparition v2 refinement
+
+User requested a scarier jumpscare person. Replaced the flat vector mask with
+an original Image Gen character cutout; full prompt and provenance are in
+`nullsignal-prompts.md`. The original PNG is copied unchanged to
+`frontend/public/assets/nullsignal/apparition-v2.png`.
+
+| Intent | Inspected result |
+| --- | --- |
+| More frightening face | Clouded eyes, sunken cheeks, asymmetry, skin detail and a distended mouth read clearly in the existing one-second close-up. |
+| Workshop integration | Transparent alpha, charcoal coat and subtle cyan / copper edge lighting blend into the original dark scene; no opaque rectangular image background. |
+| Desktop framing | Enlarged image height preserves the eyes and mouth while intentionally cropping hair and shoulders during the rush. |
+| Mobile framing | 390 × 844 screenshot shows both eyes and the open mouth; only the stage contains the image, leaving countdown and pill controls readable. |
+| Motion and controls | Existing scare cadence, sounds, pause, pills, once-per-round rule and opt-out stay intact. Reduced Motion still hides the close-up image. |
+| Loading | Character is decoded near the beginning of an enabled round, before the brief scare. Browser assertions verify the actual image decoded successfully. |
+
+Validation: production build and the two existing desktop/mobile atmosphere
+browser scenarios passed with an isolated backend. Console errors: zero.
+Viewed `nullsignal-jumpscare-desktop.png` and `nullsignal-jumpscare-mobile.png`
+in the system temporary directory. Playwright / Edge fallback because Browser
+plugin is not available; Firefox, Safari and physical phones remain untested.

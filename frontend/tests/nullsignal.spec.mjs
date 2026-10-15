@@ -291,7 +291,7 @@ test('power failure lights actual 3D surfaces; hallucination and single scare yi
   const base=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}}),glyph=base.bomb.modules.find(m=>m.kind==='glyphs'),step=solution(glyph,manual.manual.find(m=>m.id===glyph.id).manual,base.bomb)[0];
   await physical(host,glyph,...step);expect((await backend(request,`/rooms/${id}/host`)).strikes).toBe(0);
   phase='hallucination';await expect(layer).toHaveAttribute('data-blackout','false');await expect.poll(async()=>Number(await layer.getAttribute('data-hallucination'))).toBeGreaterThan(.9);await expect(host.locator('.nsPhantom')).toBeVisible();await host.waitForTimeout(700);await host.screenshot({path:join(tmpdir(),'nullsignal-hallucination-desktop.png')});
-  phase='scare';await expect(layer).toHaveAttribute('data-scare','true');await expect(host.locator('.nsJumpscare')).toBeVisible();await host.screenshot({path:join(tmpdir(),'nullsignal-jumpscare-desktop.png')});
+  phase='scare';await expect(layer).toHaveAttribute('data-scare','true');await expect(host.locator('.nsJumpscare')).toBeVisible();await expect.poll(()=>host.locator('.nsJumpscare img').evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);await host.screenshot({path:join(tmpdir(),'nullsignal-jumpscare-desktop.png')});
   await expect.poll(()=>host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);await host.waitForTimeout(1700);expect(await host.evaluate(()=>window.fearSamples.filter(s=>Math.abs(s.rate-.65)<.01).length)).toBe(1);
   await host.getByRole('button',{name:'Beruhigungspille nehmen',exact:true}).click();await expect(layer).toHaveAttribute('data-scare','false');await expect(layer).toHaveAttribute('data-hallucination','0.000');expect((await backend(request,`/rooms/${id}/host`)).calm.pills_remaining).toBe(1);
   expect(await guest.locator('.nsAtmosphere').count()).toBe(0);expect(await host.locator('.nsAtmosphere').evaluate(e=>getComputedStyle(e).pointerEvents)).toBe('none');
@@ -300,7 +300,7 @@ test('power failure lights actual 3D surfaces; hallucination and single scare yi
 });
 
 test('mobile outage toggle works; reduced motion avoids scare zoom and horror preference persists',async({browser,request})=>{
-  const game=await createLobby(browser,request,{mobile:true,mission:'contact'}),{host,errors}=game;await host.emulateMedia({reducedMotion:'reduce'});await joinGuest(game,'Torch expert');await start(game);
+  const game=await createLobby(browser,request,{mobile:true,mission:'contact'}),{host,errors}=game;await joinGuest(game,'Torch expert');await start(game);
   host.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   let scare=false;
   await host.route('**/api/nullsignal/rooms/*/host',async route=>{
@@ -314,7 +314,7 @@ test('mobile outage toggle works; reduced motion avoids scare zoom and horror pr
   for(let step=1;step<=10;step++){await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:rect.x+rect.width*(.45+.25*step/10),y:rect.y+rect.height*(.65+.15*step/10),id:1}]});await host.waitForTimeout(20);}
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await host.waitForTimeout(100);
   expect(await canvas.evaluate(c=>c.__nullsignalScene.transforms().deviceRotation)).toEqual(before.rotation);expect(await canvas.evaluate(c=>c.__nullsignalScene.lighting().aim)).not.toEqual(before.aim);
-  await host.screenshot({path:join(tmpdir(),'nullsignal-outage-mobile.png')});scare=true;await expect(host.locator('.nsJumpscare')).toBeVisible();expect(await host.locator('.nsJumpscare svg').evaluate(e=>getComputedStyle(e).display)).toBe('none');expect(await host.locator('.nsJumpscare').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
+  await host.screenshot({path:join(tmpdir(),'nullsignal-outage-mobile.png')});scare=true;await expect(host.locator('.nsJumpscare img')).toBeVisible();await expect.poll(()=>host.locator('.nsJumpscare img').evaluate(image=>image.complete&&image.naturalWidth===1024)).toBe(true);await host.screenshot({path:join(tmpdir(),'nullsignal-jumpscare-mobile.png')});await host.emulateMedia({reducedMotion:'reduce'});expect(await host.locator('.nsJumpscare img').evaluate(e=>getComputedStyle(e).display)).toBe('none');expect(await host.locator('.nsJumpscare').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
   await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();
   await expect(host.locator('.nsAudioSettings')).toHaveAttribute('open','');await host.getByLabel('Schreckeffekte einschalten',{exact:true}).uncheck();await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-scare','false');await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-hallucination','0.000');
   await host.reload();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','running');await host.getByLabel('Audio-Einstellungen',{exact:true}).tap();await expect(host.getByLabel('Schreckeffekte einschalten',{exact:true})).not.toBeChecked();expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);await session.detach();
