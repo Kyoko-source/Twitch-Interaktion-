@@ -217,6 +217,7 @@ class JumpScene extends Phaser.Scene {
   }
 
   startRun() {
+    this.onRewardRunStart?.();
     this.ensureAudio();
     this.resetRun();
     this.mode = "play";

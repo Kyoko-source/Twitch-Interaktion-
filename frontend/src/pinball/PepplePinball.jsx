@@ -12,7 +12,7 @@ import {
   VolumeX,
   Zap,
 } from "lucide-react";
-import { api } from "../api";
+import { useGameRewards } from "../economy/useGameRewards";
 import "./pinball.css";
 
 const INITIAL = {
@@ -29,6 +29,7 @@ const INITIAL = {
 };
 
 export function PepplePinball({ user, renderScoreboard }) {
+  const rewards = useGameRewards("chicken-flipper", user);
   const host = useRef(null),
     gameRef = useRef(null),
     audioRef = useRef(true);
@@ -63,6 +64,7 @@ export function PepplePinball({ user, renderScoreboard }) {
     };
   }, []);
   function restart() {
+    rewards.beginRound();
     gameRef.current?.reset();
     setMessage("");
     host.current?.closest(".neonPinball")?.scrollIntoView({ block: "start" });
@@ -77,16 +79,12 @@ export function PepplePinball({ user, renderScoreboard }) {
     if (saving) return;
     setSaving(true);
     try {
-      await api("/api/scores", {
-        method: "POST",
-        body: JSON.stringify({
-          game: "chicken-flipper",
+      const result = await rewards.submitRound({
           score: run.score,
           level: run.level,
           round: Math.max(1, run.streak || run.combo),
-        }),
       });
-      setMessage("Score eingereicht.");
+      setMessage(result.message);
       setRefresh((v) => v + 1);
     } catch (e) {
       setMessage(e.message);
@@ -219,11 +217,11 @@ export function PepplePinball({ user, renderScoreboard }) {
                   <button
                     type="button"
                     className="pinballSave"
-                    disabled={saving}
+                    disabled={saving || rewards.submitted}
                     onClick={save}
                   >
                     <Save size={16} />
-                    {saving ? "Speichert ..." : "Score einreichen"}
+                    {saving ? "Speichert ..." : rewards.submitted ? "Runde gewertet" : "Score & Chickens einreichen"}
                   </button>
                 )}
               </div>

@@ -1,0 +1,45 @@
+.shopWallet { display: flex; align-items: center; gap: 14px; padding: 16px 20px; color: var(--amber); background: #251f18; border: 1px solid #4b3c28; border-radius: 12px; flex-shrink: 0; }
+.shopWallet strong { display: block; font-size: 27px; line-height: 1.2; color: #f1cb86; }
+.shopWallet small { display: block; color: #b5a48c; font-size: 11px; margin-top: 4px; }
+.shopEarnBanner { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border: 1px solid #3d3051; border-radius: 10px; background: #20182b; color: var(--violet); }
+.shopEarnBanner > span { display: grid; gap: 4px; flex: 1; }
+.shopEarnBanner strong { font-size: 13px; font-weight: 600; color: #d3bce9; }
+.shopEarnBanner small { font-size: 11px; color: #a99ab9; }
+.shopEarnBanner > svg { flex-shrink: 0; }
+.shopCategoryTabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.shopCategoryTabs button { min-height: 38px; font-size: 12px; font-weight: 500; color: #bfb1d0; background: #211c29; border: 1px solid #342b40; }
+.shopCategoryTabs button.active { background: #39284d; border-color: #78559a; color: #e0c8ff; }
+.shopCatalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.shopRewardCard { display: flex; flex-direction: column; padding: 23px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.shopRewardCard.isPunishment { border-color: #45344f; background: linear-gradient(140deg, #211a2a, #19171f 70%); }
+.shopCardTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+.shopRewardIcon { display: inline-flex; padding: 12px; border-radius: 11px; background: #34233d; color: #c79bee; }
+.shopLiveLabel { display: inline-flex; align-items: center; gap: 6px; color: #d6ad77; font-size: 10px; }
+.shopRewardCategory { color: #9985ad; font-size: 10px; letter-spacing: .03em; }
+.shopRewardCard h2 { font-size: 20px; margin: 9px 0 10px; line-height: 1.3; }
+.shopRewardCard > p { font-size: 12px; color: #a89ab7; line-height: 1.7; margin: 0 0 24px; flex: 1; }
+.shopRewardPrice { display: flex; align-items: center; gap: 7px; margin-bottom: 16px; color: var(--amber); }
+.shopRewardPrice strong { font-size: 23px; font-weight: 650; }
+.shopRewardPrice span { font-size: 12px; color: #b4a28a; }
+.shopRewardCard > button { width: 100%; font-size: 12px; }
+.purchaseSuccess { display: flex; align-items: center; gap: 10px; border-color: #3e6754; color: #a5dfbf; background: #1a2921; }
+.shopAlertsAdmin > div > h2 { display: flex; align-items: center; gap: 12px; }
+.shopAlertsAdmin p { font-size: 13px; line-height: 1.7; }
+.shopAlertsAdmin button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.shopAlertPreview { aspect-ratio: 3 / 2; border-radius: 10px; overflow: hidden; background-color: #0e0c13; background-image: linear-gradient(45deg, #211b2a 25%, transparent 25%), linear-gradient(-45deg, #211b2a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #211b2a 75%), linear-gradient(-45deg, transparent 75%, #211b2a 75%); background-size: 24px 24px; background-position: 0 0, 0 12px, 12px -12px, -12px 0; }
+.shopAlertPreview iframe { display: block; width: 100%; height: 100%; border: 0; }
+.recentShopPurchase { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; }
+.recentShopPurchase > span { display: grid; gap: 4px; }
+.recentShopPurchase small { color: var(--muted); }
+.recentShopPurchase b { color: var(--amber); white-space: nowrap; font-size: 12px; }
+.gameEarningInfo { padding: 14px 18px; border: 1px solid #493653; border-radius: 10px; background: #22192a; font-size: 12px; color: #c5aedc; line-height: 1.7; }
+@media (max-width: 680px) {
+  .shopWallet { width: 100%; padding: 12px 16px; } .shopWallet strong { font-size: 23px; }
+  .shopEarnBanner { flex-wrap: wrap; gap: 12px; padding: 16px; } .shopEarnBanner > span { min-width: 200px; }
+  .shopEarnBanner .inlineLink { margin-left: 36px; }
+  .shopCatalog { grid-template-columns: minmax(0, 1fr); }
+  .shopCategoryTabs button { padding: 8px 11px; font-size: 11px; }
+  .shopRewardCard { padding: 21px; }
+  .shopAlertsAdmin .communitySectionHeading { flex-wrap: wrap; }
+  .recentShopPurchase { align-items: flex-start; flex-direction: column; }
+}

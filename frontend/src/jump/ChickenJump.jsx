@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Diamond, Pause, Play, RefreshCw, Save, Trophy, Volume2, VolumeX } from "lucide-react";
-import { api } from "../api";
+import { useGameRewards } from "../economy/useGameRewards";
 import "./jump.css";
 
 const initial = { status: "loading", score: 0, distance: 0, pepples: 0, combo: 1, best: 0 };
 
 export function ChickenJump({ user, renderScoreboard }) {
+  const rewards = useGameRewards("chicken-jump", user);
   const host = useRef(null);
   const scene = useRef(null);
   const [run, setRun] = useState(initial);
@@ -19,7 +20,7 @@ export function ChickenJump({ user, renderScoreboard }) {
     let game;
     import("./JumpScene").then(({ mountJumpGame }) => {
       if (cancelled) return;
-      game = mountJumpGame(host.current, setRun, (nextScene) => { scene.current = nextScene; });
+      game = mountJumpGame(host.current, setRun, (nextScene) => { scene.current = nextScene; nextScene.onRewardRunStart = rewards.beginRound; });
     }).catch(() => setMessage("Das Spiel konnte nicht geladen werden. Bitte neu laden."));
     return () => {
       cancelled = true;
@@ -38,8 +39,8 @@ export function ChickenJump({ user, renderScoreboard }) {
     if (saving) return;
     setSaving(true);
     try {
-      await api("/api/scores", { method: "POST", body: JSON.stringify({ game: "chicken-jump", score: run.score, level: 1 + Math.floor(run.distance / 100) }) });
-      setMessage("Rekord eingereicht.");
+      const result = await rewards.submitRound({ score: run.score, level: 1 + Math.floor(run.distance / 100) });
+      setMessage(result.message);
       setRefreshKey((value) => value + 1);
     } catch (err) {
       setMessage(err.message);
@@ -68,7 +69,7 @@ export function ChickenJump({ user, renderScoreboard }) {
       <div className="jumpRunnerStats" aria-live="off">
         <div><span>PUNKTE</span><strong>{run.score.toLocaleString("de-DE")}</strong></div>
         <div><span>STRECKE</span><strong>{Math.floor(run.distance)}<small> m</small></strong></div>
-        <div><span><Diamond size={12} /> PEPPLES</span><strong>{run.pepples}</strong></div>
+        <div><span><Diamond size={12} /> FEDERN</span><strong>{run.pepples}</strong></div>
         <div><span>SAMMELKETTE</span><strong className={run.combo > 1 ? "jumpComboActive" : ""}>x{run.combo}</strong></div>
       </div>
       <div className="jumpRunnerStage">
@@ -76,9 +77,9 @@ export function ChickenJump({ user, renderScoreboard }) {
         {!active && <div className={`jumpRunnerOverlay ${ended ? "ended" : ""}`}>
           <span className="jumpOverlayTag">{ended ? "RUN BEENDET" : run.status === "paused" ? "KURZE VERSCHNAUFPAUSE" : "MEADOW RUN"}</span>
           <h3>{ended ? run.score.toLocaleString("de-DE") : run.status === "paused" ? "Pause" : "Chicken Jump"}</h3>
-          {ended && <p>{Math.floor(run.distance)} m <span>/</span> {run.pepples} Pepples <span>/</span> Best {run.best.toLocaleString("de-DE")}</p>}
+          {ended && <p>{Math.floor(run.distance)} m <span>/</span> {run.pepples} Federn <span>/</span> Best {run.best.toLocaleString("de-DE")}</p>}
           <button type="button" className="jumpPrimary" disabled={run.status === "loading"} onClick={() => run.status === "paused" ? scene.current?.togglePause() : restart()}><Play size={20} fill="currentColor" /> {run.status === "loading" ? "Lade ..." : ended ? "Nochmal laufen" : run.status === "paused" ? "Weiterlaufen" : "Loslaufen"}</button>
-          {ended && user && <button type="button" className="jumpSave" disabled={saving} onClick={saveScore}><Save size={16} /> {saving ? "Speichert ..." : "Score einreichen"}</button>}
+          {ended && user && <button type="button" className="jumpSave" disabled={saving || rewards.submitted} onClick={saveScore}><Save size={16} /> {saving ? "Speichert ..." : rewards.submitted ? "Runde gewertet" : "Score & Chickens einreichen"}</button>}
         </div>}
       </div>
       <div className="jumpRunnerFooter">

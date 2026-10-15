@@ -28,6 +28,9 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { CommunityShop } from "./economy/CommunityShop";
+import { ShopAlertsAdmin } from "./economy/ShopAlertsAdmin";
+import { useGameRewards } from "./economy/useGameRewards";
 import { api, setToken } from "./api";
 import { PepplePinball } from "./pinball/PepplePinball";
 import { ChickenJump } from "./jump/ChickenJump";
@@ -52,10 +55,10 @@ const nav = [
 ];
 
 const gameMeta = {
-  "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring ueber Zaeune, ducke dich unter Voegel und sammle Pepples." },
+  "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring über Zäune, sammle Federn und erspiele dir Chickens." },
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Fuehre die Neon-Spur durch den Kaefig und friss Energiekerne." },
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
-  "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Pepples." },
+  "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Chickens." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
 
@@ -198,14 +201,6 @@ function ProfilePage({ user, setUser, setPage }) {
     }
   }
 
-  async function claimDaily() {
-    try {
-      const result = await api("/api/daily-reward", { method: "POST", body: "{}" });
-      setMessage(result.message);
-    } catch (err) {
-      setMessage(err.message);
-    }
-  }
 
   return (
     <section className="stack">
@@ -218,11 +213,11 @@ function ProfilePage({ user, setUser, setPage }) {
           <p>{user.bio || "Noch keine Bio eingetragen."}</p>
         </div>
         <div className="heroPanel compact">
-          <Stat label="Pepples" value={user.braincells} />
+          <Stat label="Chickens erspielt" value={user.chickens_earned} />
           <Stat label="Chickens" value={user.chickens} />
         </div>
       </div>
-      <button onClick={claimDaily} type="button">Daily Reward abholen</button>
+      <button onClick={() => setPage("games")} type="button">Chickens in Minispielen verdienen</button>
       <form className="panel form" onSubmit={save}>
         <label>Biografie<textarea value={profile.bio || ""} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} /></label>
         <label>Lieblingsspiel<input value={profile.favorite_game || ""} onChange={(event) => setProfile({ ...profile, favorite_game: event.target.value })} /></label>
@@ -262,8 +257,8 @@ function MembersPage({ user, setPage }) {
   const top = data[0];
   const totals = data.reduce((acc, member) => ({
     chickens: acc.chickens + Number(member.chickens || 0),
-    braincells: acc.braincells + Number(member.braincells || 0),
-  }), { chickens: 0, braincells: 0 });
+    chickens_earned: acc.chickens_earned + Number(member.chickens_earned || 0),
+  }), { chickens: 0, chickens_earned: 0 });
 
   function openPrivate(member) {
     try {
@@ -284,7 +279,7 @@ function MembersPage({ user, setPage }) {
         </div>
         <div className="memberStats">
           <Stat label="Mitglieder" value={data.length} />
-          <Stat label="Pepples" value={totals.braincells} />
+          <Stat label="Chickens erspielt" value={totals.chickens_earned} />
           <Stat label="Chickens" value={totals.chickens} />
         </div>
       </div>
@@ -297,7 +292,7 @@ function MembersPage({ user, setPage }) {
             <RoleBadge user={top} />
             <p>{top.favorite_game ? `Lieblingsspiel: ${top.favorite_game}` : "Lieblingsspiel noch geheim."}</p>
           </div>
-          <strong>{top.braincells || 0} Pepples</strong>
+          <strong>{top.chickens_earned || 0} Chickens</strong>
         </div>
       )}
       <input className="searchInput" placeholder="Mitglied suchen..." value={query} onChange={(event) => setQuery(event.target.value)} />
@@ -312,8 +307,8 @@ function MembersPage({ user, setPage }) {
             <RoleBadge user={member} />
             <p>{member.favorite_game || "Kein Lieblingsspiel gesetzt"}</p>
             <div className="miniStats">
-              <span>{member.braincells || 0} Pepples</span>
-              <span>{member.chickens || 0} Chickens</span>
+              <span>{member.chickens_earned || 0} erspielt</span>
+              <span>{member.chickens || 0} verfügbar</span>
             </div>
             {user && member.username !== user.username && (
               <button className="miniAction" onClick={() => openPrivate(member)} type="button">
@@ -560,15 +555,15 @@ function ChatPage({ user, setPage }) {
 function LeaderboardPage() {
   const { data, loading, error } = useApi("/api/leaderboard", []);
   const top = data.slice(0, 3);
-  const maxScore = Math.max(1, ...data.map((item) => Number(item.braincells || 0)));
+  const maxScore = Math.max(1, ...data.map((item) => Number(item.chickens_earned || 0)));
 
   return (
     <section className="stack">
       <div className="leaderHero">
         <div>
           <p className="kicker">Rangliste</p>
-          <h1>Pepple Circuit</h1>
-          <p>Die besten Spieler unseres Schwarms. Sammle Pepples und klettere nach oben.</p>
+          <h1>Chicken-Rangliste</h1>
+          <p>Die besten Spieler unseres Schwarms, sortiert nach insgesamt erspielten Chickens. Einkäufe kosten dich keinen Rang.</p>
         </div>
         <Trophy size={72} />
       </div>
@@ -583,7 +578,7 @@ function LeaderboardPage() {
               <Avatar user={item} />
               <strong>{item.username}</strong>
               <RoleBadge user={item} />
-              <small>{item.rank_name} · {item.braincells || 0} Pepples</small>
+              <small>{item.rank_name} · {item.chickens_earned || 0} Chickens</small>
             </article>
           );
         })}
@@ -597,8 +592,8 @@ function LeaderboardPage() {
               <strong>{item.username}</strong>
               <small><RoleBadge user={item} /> {item.rank_name}</small>
             </div>
-            <div className="progressTrack"><span style={{ width: `${Math.max(4, (Number(item.braincells || 0) / maxScore) * 100)}%` }} /></div>
-            <b>{item.braincells || 0}</b>
+            <div className="progressTrack"><span style={{ width: `${Math.max(0, (Number(item.chickens_earned || 0) / maxScore) * 100)}%` }} /></div>
+            <b>{item.chickens_earned || 0}</b>
             <small>{item.chickens || 0} Chickens</small>
           </article>
         ))}
@@ -609,56 +604,7 @@ function LeaderboardPage() {
 
 function ShopPage({ user, setPage }) {
   const { data, error, loading } = useApi("/api/shop", []);
-  const [message, setMessage] = useState("");
-  const [cardMessages, setCardMessages] = useState({});
-  const [buying, setBuying] = useState("");
-  if (!user) return <EmptyLogin setPage={setPage} />;
-  async function buy(item) {
-    const key = item.id || item.name;
-    setBuying(key);
-    setCardMessages((current) => ({ ...current, [key]: "Kauf wird verarbeitet..." }));
-    try {
-      const result = await api("/api/shop/purchase", { method: "POST", body: JSON.stringify({ item_id: item.id }) });
-      let nextMessage = result.message;
-      if (item.category === "Chat Animation" && item.style) {
-        await api("/api/chat/styles", { method: "POST", body: JSON.stringify({ style: item.style }) });
-        nextMessage = "Gekauft und direkt im Chat aktiviert.";
-      }
-      setMessage(nextMessage);
-      setCardMessages((current) => ({ ...current, [key]: nextMessage }));
-    } catch (err) {
-      setMessage(err.message);
-      setCardMessages((current) => ({ ...current, [key]: err.message }));
-    } finally {
-      setBuying("");
-    }
-  }
-  return (
-    <section className="stack">
-      <div className="sectionHero"><h1>Shop</h1><p>{user.chickens || 0} Chickens verfuegbar.</p></div>
-      <div className="notice">Chat-Animationen kaufst du hier und aktivierst sie danach im Reiter Chat.</div>
-      {message && <div className="notice">{message}</div>}
-      {loading && <div className="notice">Lade Shop...</div>}
-      {error && <div className="notice error">{error}</div>}
-      <div className="grid">
-        {data.map((item) => {
-          const key = item.id || item.name;
-          const busy = buying === key;
-          return (
-            <article className="card shopCard" key={key}>
-              <p className="kicker">{item.category || "Reward"}</p>
-              <h3>{item.name}</h3>
-              <p>{item.desc || item.description}</p>
-              {item.category === "Chat Animation" && <div className={`shopChatPreview ${chatStyleClass(item.style)}`}><span>So sieht dein Chatbalken aus</span></div>}
-              <strong>{item.price} Chickens</strong>
-              <button onClick={() => buy(item)} disabled={busy} type="button">{busy ? "Kaufe..." : "Kaufen"}</button>
-              {cardMessages[key] && <div className={`shopCardMessage ${cardMessages[key].includes("Nicht genug") || cardMessages[key].includes("fehlgeschlagen") ? "error" : ""}`}>{cardMessages[key]}</div>}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
+  return <CommunityShop user={user} setPage={setPage} data={data} error={error} loading={loading} />;
 }
 
 function EventsPage({ user, setPage }) {
@@ -770,6 +716,7 @@ function writeSurvivorSettings(settings) {
 
 
 function ChickenSnake({ user }) {
+  const rewards = useGameRewards("chicken-snake", user);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("WASD oder Pfeiltasten.");
   const [snapshot, setSnapshot] = useState({ score: 0, level: 1 });
@@ -831,6 +778,7 @@ function ChickenSnake({ user }) {
   }, [running]);
 
   function start() {
+    rewards.beginRound();
     stateRef.current = { snake: [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }], food: { x: 16, y: 8 }, score: 0, acc: 0, over: false };
     dirRef.current = { x: 1, y: 0 };
     setSnapshot({ score: 0, level: 3 });
@@ -840,15 +788,21 @@ function ChickenSnake({ user }) {
 
   async function save() {
     try {
-      await api("/api/scores", { method: "POST", body: JSON.stringify({ game: "chicken-snake", score: snapshot.score, level: snapshot.level }) });
-      setMessage("Score gespeichert.");
+      const result = await rewards.submitRound({ score: snapshot.score, level: snapshot.level });
+      setMessage(result.message);
       setRefreshKey((value) => value + 1);
     } catch (err) {
       setMessage(err.message);
     }
   }
 
-  return <GameFrame meta={gameMeta["chicken-snake"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onSave={user && snapshot.score > 0 ? save : null} refreshKey={refreshKey} game="chicken-snake" />;
+  function finish() {
+    stateRef.current.over = true;
+    setRunning(false);
+    setMessage(`Runde beendet: ${snapshot.score} Punkte. Reiche deinen Score ein, um Chickens zu erhalten.`);
+  }
+
+  return <GameFrame meta={gameMeta["chicken-snake"]} canvasRef={canvasRef} message={message} score={snapshot.score} level={snapshot.level} onStart={start} onFinish={running ? finish : null} onSave={user && snapshot.score > 0 && !running && !rewards.saving && !rewards.submitted ? save : null} refreshKey={refreshKey} game="chicken-snake" />;
 }
 
 
@@ -869,6 +823,7 @@ function roundRect(ctx, x, y, w, h, r = 8, strokeOnly = false) {
 }
 
 function PeppleSurvivor({ user }) {
+  const rewards = useGameRewards("braincell-survivor", user);
   const upgradePool = [
     { id: "bolt", name: "Federblitz", kind: "weapon", icon: "feather", desc: "Feuert zielsuchende Federbolzen auf nahe Gegner.", color: "#c88cff" },
     { id: "orbit", name: "Orbit-Kaefig", kind: "weapon", icon: "orbit", desc: "Beschwoert kreisende Kaefig-Ringe um dich.", color: "#ffcf8a" },
@@ -3288,6 +3243,7 @@ function PeppleSurvivor({ user }) {
   }, [status, audioOn, volume, controlMode], recoverRun);
 
   function start() {
+    rewards.beginRound();
     stateRef.current = makeSurvivorState();
     setChoices([]);
     setLastRun(null);
@@ -3343,8 +3299,8 @@ function PeppleSurvivor({ user }) {
 
   async function save() {
     try {
-      await api("/api/scores", { method: "POST", body: JSON.stringify({ game: "braincell-survivor", score: snapshot.score, level: snapshot.level, seconds_survived: snapshot.seconds, kills: snapshot.kills, build: "web-survivor" }) });
-      setMessage("Score gespeichert.");
+      const result = await rewards.submitRound({ score: snapshot.score, level: snapshot.level, seconds_survived: snapshot.seconds, kills: snapshot.kills, build: "web-survivor" });
+      setMessage(result.message);
       setRefreshKey((value) => value + 1);
     } catch (err) {
       setMessage(err.message);
@@ -3514,7 +3470,7 @@ function PeppleSurvivor({ user }) {
               <p>{snapshot.score} Score · {snapshot.kills} Kills · Level {snapshot.level}</p>
               <div className="gameActions survivorActions">
                 <button onClick={start} type="button"><RefreshCw size={16} /> Run neu starten</button>
-                {user && snapshot.score > 0 && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+                {user && snapshot.score > 0 && <button className="ghost" onClick={save} disabled={rewards.saving || rewards.submitted} type="button">{rewards.submitted ? "Runde gewertet" : "Score & Chickens einreichen"}</button>}
                 <button className="ghost" onClick={toggleFullscreen} type="button"><Gamepad2 size={16} /> {fullscreen ? "Vollbild aus" : "Vollbild"}</button>
               </div>
             </div>
@@ -3526,7 +3482,7 @@ function PeppleSurvivor({ user }) {
         {(status === "play" || status === "paused") && <button className="ghost" onClick={togglePause} type="button"><Zap size={16} /> {status === "paused" ? "Fortsetzen" : "Pause"}</button>}
         <button className="ghost" onClick={toggleFullscreen} type="button"><Gamepad2 size={16} /> {fullscreen ? "Vollbild aus" : "Vollbild"}</button>
         <button className="ghost" onClick={() => setAudioOn((value) => !value)} type="button"><Zap size={16} /> Ton {audioOn ? "an" : "aus"}</button>
-        {user && snapshot.score > 0 && status === "gameover" && <button className="ghost" onClick={save} type="button">Score speichern</button>}
+        {user && snapshot.score > 0 && status === "gameover" && <button className="ghost" onClick={save} disabled={rewards.saving || rewards.submitted} type="button">{rewards.submitted ? "Runde gewertet" : "Score & Chickens einreichen"}</button>}
       </div>
       <div className="survivorScorePanel">
         <h3>Top Scores</h3>
@@ -3552,13 +3508,14 @@ function GameHeader({ meta, message, score, level }) {
   );
 }
 
-function GameFrame({ meta, canvasRef, message, score, level, onStart, onSave, refreshKey, game }) {
+function GameFrame({ meta, canvasRef, message, score, level, onStart, onFinish, onSave, refreshKey, game }) {
   return (
     <section className="gameFrame" style={{ "--game-accent": meta.accent }}>
       <GameHeader meta={meta} message={message} score={score} level={level} />
       <canvas className="gameCanvas" ref={canvasRef} width="920" height="420" />
       <div className="gameActions">
         <button onClick={onStart} type="button"><RefreshCw size={16} /> Spiel starten</button>
+        {onFinish && <button className="ghost" onClick={onFinish} type="button">Runde abschließen</button>}
         {onSave && <button className="ghost" onClick={onSave} type="button">Score speichern</button>}
       </div>
       <Scoreboard game={game} refreshKey={refreshKey} />
@@ -3599,10 +3556,11 @@ function GamesPage({ user }) {
         <div>
           <p className="kicker">Minispiele</p>
           <h1>Dein nächster Highscore wartet.</h1>
-          <p>Vier Spiele, neue Bestleistungen und jede Menge Pepples. Such dir dein Spiel aus.</p>
+          <p>Vier Spiele, neue Bestleistungen und jede Menge Chickens. Such dir dein Spiel aus.</p>
         </div>
         <Zap size={64} />
       </div>
+      <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => id !== "dnd" && setGame(id)} disabled={id === "dnd"} type="button">
@@ -4054,7 +4012,7 @@ function AdminPage() {
   const [message, setMessage] = useState("");
   const [tab, setTab] = useState("registrations");
   const [reloadKey, setReloadKey] = useState(0);
-  const [points, setPoints] = useState({ username: "", chickens_delta: 0, braincells_delta: 0 });
+  const [points, setPoints] = useState({ username: "", chickens_delta: 0 });
   const [roleForm, setRoleForm] = useState({ username: "", role: "member" });
   const [news, setNews] = useState({ title: "", body: "", image_url: "" });
   const [shop, setShop] = useState({ name: "", description: "", price: 0, category: "Rewards" });
@@ -4105,10 +4063,11 @@ function AdminPage() {
 
   const tabs = [
     ["registrations", "Registrierungen"],
-    ["points", "Punkte"],
+    ["points", "Chickens"],
     ["roles", "Rollen"],
     ["news", "News"],
     ["live-news", "Live News"],
+    ["shop-alerts", "Shop-Alerts"],
     ["shop", "Shop"],
     ["events", "Events"],
     ["support", "Support"],
@@ -4120,7 +4079,7 @@ function AdminPage() {
         <div>
           <p className="kicker">Admin Center</p>
           <h1>Kontrollraum</h1>
-          <p>Registrierungen, Punkte, News, Shop, Events und Meldungen sind jetzt bedienbar.</p>
+          <p>Registrierungen, Chickens, News, Shop, Events und Meldungen verwalten.</p>
         </div>
         <Shield size={72} />
       </div>
@@ -4142,11 +4101,10 @@ function AdminPage() {
           </div>
           {tab === "registrations" && <div className="grid">{overview.registration_requests.map((item) => <article className="card" key={item.id}><h3>{item.username}</h3><p>{item.status}</p><button onClick={() => approveRegistration(item.id, item.username)} type="button"><Check size={16} /> Genehmigen</button></article>)}</div>}
           {tab === "points" && (
-            <form className="panel form" onSubmit={(event) => { event.preventDefault(); mutate("/api/admin/points", { method: "POST", body: JSON.stringify({ ...points, chickens_delta: Number(points.chickens_delta), braincells_delta: Number(points.braincells_delta) }) }); }}>
+            <form className="panel form" onSubmit={(event) => { event.preventDefault(); mutate("/api/admin/points", { method: "POST", body: JSON.stringify({ ...points, chickens_delta: Number(points.chickens_delta) }) }); }}>
               <label>User<input value={points.username} onChange={(event) => setPoints({ ...points, username: event.target.value })} /></label>
               <label>Chickens Delta<input type="number" value={points.chickens_delta} onChange={(event) => setPoints({ ...points, chickens_delta: event.target.value })} /></label>
-              <label>Pepples Delta<input type="number" value={points.braincells_delta} onChange={(event) => setPoints({ ...points, braincells_delta: event.target.value })} /></label>
-              <button type="submit"><Plus size={16} /> Punkte buchen</button>
+              <button type="submit"><Plus size={16} /> Chickens buchen</button>
             </form>
           )}
           {tab === "roles" && (
@@ -4177,6 +4135,7 @@ function AdminPage() {
             </AdminListForm>
           )}
           {tab === "live-news" && <LiveNewsAdmin password={password} />}
+          {tab === "shop-alerts" && <ShopAlertsAdmin password={password} />}
           {tab === "shop" && (
             <AdminListForm title="Shop Item erstellen" form={shop} setForm={setShop} fields={["name", "description", "price", "category"]} onSubmit={() => mutate("/api/admin/shop", { method: "POST", body: JSON.stringify({ ...shop, price: Number(shop.price) }) })}>
               {overview.shop_items.map((item) => <AdminRow key={item.id} title={`${item.name} · ${item.price} Chickens`} text={item.description || item.desc} onDelete={() => mutate(`/api/admin/shop/${item.id}`, { method: "DELETE" })} />)}
@@ -4483,6 +4442,14 @@ function App() {
       window.removeEventListener("hashchange", syncPage);
       window.removeEventListener("popstate", syncPage);
     };
+  }, []);
+
+  useEffect(() => {
+    function syncWallet(event) {
+      setUser((current) => current?.username === event.detail.username ? { ...current, ...event.detail.wallet } : current);
+    }
+    window.addEventListener("aviary-wallet", syncWallet);
+    return () => window.removeEventListener("aviary-wallet", syncWallet);
   }, []);
 
   const content = useMemo(() => {

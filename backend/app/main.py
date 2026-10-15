@@ -14,6 +14,8 @@ from .auth import create_access_token, current_user, hash_password, require_admi
 from .config import get_settings
 from .supabase import supabase
 from .live_news import router as live_news_router
+from .purchase_alerts import router as purchase_alerts_router
+from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
@@ -34,14 +36,15 @@ PURCHASE_CATEGORIES = {
     "Out of Stream Rewards",
 }
 CHAT_STYLE_SHOP_ITEMS = [
-    {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 650, "category": "Chat Animation", "style": "sparkle"},
-    {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 900, "category": "Chat Animation", "style": "cotton"},
-    {"id": "chat-style-neon", "name": "Chat Animation: Neon Pulse", "description": "Cooler Cyber-Look mit wandernder Neon-Kante.", "price": 1200, "category": "Chat Animation", "style": "neon"},
-    {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz fuer deine Nachrichten.", "price": 1500, "category": "Chat Animation", "style": "royal"},
+    {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 300, "category": "Chat Animation", "style": "sparkle"},
+    {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 450, "category": "Chat Animation", "style": "cotton"},
+    {"id": "chat-style-neon", "name": "Chat Animation: Neon Pulse", "description": "Cooler Cyber-Look mit wandernder Neon-Kante.", "price": 600, "category": "Chat Animation", "style": "neon"},
+    {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz fuer deine Nachrichten.", "price": 900, "category": "Chat Animation", "style": "royal"},
 ]
 
 app = FastAPI(title="Aviary API")
 app.include_router(live_news_router)
+app.include_router(purchase_alerts_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
@@ -92,6 +95,11 @@ class EventSignup(BaseModel):
 
 class PurchaseRequest(BaseModel):
     item_id: str
+    request_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
+
+
+class GameRunCreate(BaseModel):
+    game: str
 
 
 class ChatStyleUpdate(BaseModel):
@@ -101,7 +109,6 @@ class ChatStyleUpdate(BaseModel):
 class PointsUpdate(BaseModel):
     username: str
     chickens_delta: int = 0
-    braincells_delta: int = 0
 
 
 class RoleUpdate(BaseModel):
@@ -111,12 +118,13 @@ class RoleUpdate(BaseModel):
 
 class ScoreCreate(BaseModel):
     game: str
-    score: int
-    level: int = 1
-    round: int = 1
-    seconds_survived: int = 0
-    kills: int = 0
-    build: str = ""
+    run_id: str = Field(min_length=16, max_length=64)
+    score: int = Field(ge=0, le=1000000000, strict=True)
+    level: int = Field(default=1, ge=1, le=10000, strict=True)
+    round: int = Field(default=1, ge=1, le=1000, strict=True)
+    seconds_survived: int = Field(default=0, ge=0, le=7200, strict=True)
+    kills: int = Field(default=0, ge=0, le=10000000, strict=True)
+    build: str = Field(default="", max_length=500)
 
 
 class GalleryCreate(BaseModel):
@@ -143,7 +151,7 @@ class NewsCreate(BaseModel):
 class ShopItemCreate(BaseModel):
     name: str = Field(max_length=100)
     description: str = Field(default="", max_length=1200)
-    price: int = 0
+    price: int = Field(default=0, ge=0, le=1000000, strict=True)
     category: str = Field(default="Rewards", max_length=80)
 
 
@@ -232,10 +240,15 @@ def single_user(username: str) -> dict[str, Any] | None:
 
 
 def public_user(user: dict[str, Any]) -> dict[str, Any]:
-    hidden = {"password_hash", "approval_code_hash"}
+    hidden = {"password_hash", "approval_code_hash", "braincells"}
     public = {key: value for key, value in user.items() if key not in hidden}
     public["role"] = user_role(str(public.get("username") or ""), public.get("role"))
+    public.update(economy().balance(str(user["username"])))
     return public
+
+
+def ranked_users(users):
+    return sorted([public_user(user) for user in users], key=lambda user: (-user["chickens_earned"], str(user["username"]).lower()))
 
 
 def chat_style_ids() -> set[str]:
@@ -269,7 +282,7 @@ def purchased_item_names(username: str) -> set[str]:
         purchases = rows(f"purchases?username=eq.{quote(username)}&select=reward_name")
     except HTTPException:
         purchases = []
-    return {str(purchase.get("reward_name") or "") for purchase in purchases}
+    return {str(purchase.get("reward_name") or "") for purchase in purchases} | economy().owned_names(username)
 
 
 def load_chat_style_purchases() -> dict[str, list[str]]:
@@ -405,7 +418,7 @@ def rank_name(points: int) -> str:
     if points >= 10000:
         return "Aviary Legende"
     if points >= 5000:
-        return "Goldener Pepple"
+        return "Goldenes Chicken"
     if points >= 2000:
         return "Schwarm Elite"
     if points >= 750:
@@ -493,7 +506,7 @@ def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
 
 @app.get("/api/dashboard")
 def dashboard() -> dict[str, Any]:
-    users = rows("users?select=*&order=braincells.desc")
+    users = rows("users?select=*&order=username.asc")
     cutoff = (datetime.now() - timedelta(seconds=45)).isoformat()
     try:
         presence_rows = rows(f"user_presence?select=username,last_seen&last_seen=gte.{quote(cutoff)}&order=last_seen.desc&limit=8")
@@ -508,12 +521,11 @@ def dashboard() -> dict[str, Any]:
     news = rows("news_posts?select=*&active=eq.true&order=published_at.desc,created_at.desc&limit=5")
     events = rows("events?select=*&order=id.desc&limit=5")
     gallery = rows("creative_gallery?select=*&order=created_at.desc&limit=6")
-    leaderboard = [public_user(user) for user in users]
+    leaderboard = ranked_users(users)
     return {
         "stats": {
             "users": len(users),
-            "chickens": sum(int(user.get("chickens") or 0) for user in users),
-            "braincells": sum(int(user.get("braincells") or 0) for user in users),
+            "chickens": sum(user["chickens"] for user in leaderboard),
         },
         "leaderboard": leaderboard[:10],
         "active_members": active_members,
@@ -542,7 +554,7 @@ def clear_presence(user: dict[str, Any] = Depends(current_user)) -> dict[str, st
 
 @app.get("/api/users")
 def users() -> list[dict[str, Any]]:
-    return [public_user(user) for user in rows("users?select=*&order=braincells.desc")]
+    return ranked_users(rows("users?select=*&order=username.asc"))
 
 
 @app.get("/api/chat/online")
@@ -645,8 +657,8 @@ def update_chat_style(payload: ChatStyleUpdate, user: dict[str, Any] = Depends(c
 @app.get("/api/leaderboard")
 def leaderboard() -> list[dict[str, Any]]:
     return [
-        {**public_user(user), "rank_name": rank_name(int(user.get("braincells") or 0))}
-        for user in rows("users?select=*&order=braincells.desc")
+        {**user, "rank_name": rank_name(user["chickens_earned"])}
+        for user in ranked_users(rows("users?select=*&order=username.asc"))
     ]
 
 
@@ -673,24 +685,19 @@ def update_profile(payload: ProfileUpdate, user: dict[str, Any] = Depends(curren
 
 
 @app.post("/api/daily-reward")
-def daily_reward(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
-    today = date.today().isoformat()
-    username = str(user["username"])
-    existing = rows(f"daily_rewards?username=eq.{quote(username)}&reward_date=eq.{today}&limit=1")
-    if existing:
-        return {"claimed": False, "message": "Daily Reward wurde heute schon abgeholt."}
-    streak = len(rows(f"daily_rewards?username=eq.{quote(username)}&order=reward_date.desc&limit=7"))
-    chickens = 250 + min(streak, 7) * 50
-    braincells = 25
-    supabase().post("daily_rewards", {"username": username, "reward_date": today, "chickens": chickens, "braincells": braincells}, returning=False)
-    supabase().patch(
-        f"users?username=eq.{quote(username)}",
-        {
-            "chickens": int(user.get("chickens") or 0) + chickens,
-            "braincells": int(user.get("braincells") or 0) + braincells,
-        },
-    )
-    return {"claimed": True, "message": f"+{chickens} Chickens und +{braincells} Pepples"}
+def daily_reward(user: dict[str, Any] = Depends(current_user)):
+    raise HTTPException(410, "Chickens verdienst du jetzt ausschließlich durch Minispiele. Der tägliche Login-Bonus entfällt.")
+
+
+@app.get("/api/economy")
+def economy_rules():
+    return {"currency": "Chickens", "daily_cap": DAILY_CAP, "round_cap": ROUND_CAP,
+            "minimum_run_seconds": MIN_RUN_SECONDS, "level_size": LEVEL_SIZE}
+
+
+@app.post("/api/game-runs")
+def start_game_run(payload: GameRunCreate, user: dict[str, Any] = Depends(current_user)):
+    return economy().start_run(str(user["username"]), payload.game)
 
 
 @app.get("/api/news")
@@ -712,30 +719,15 @@ def shop() -> list[dict[str, Any]]:
 
 
 @app.post("/api/shop/purchase")
-def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_user)):
     builtin_item = next((item for item in CHAT_STYLE_SHOP_ITEMS if item["id"] == payload.item_id), None)
     items = [builtin_item] if builtin_item else rows(f"shop_items?id=eq.{quote(payload.item_id)}&active=eq.true&limit=1")
     if not items:
         raise HTTPException(status_code=404, detail="Item nicht gefunden")
     item = items[0]
-    price = int(item.get("price") or 0)
-    current_chickens = int(user.get("chickens") or 0)
-    if builtin_item and item.get("name") in purchased_item_names(str(user["username"])):
-        return {"message": "Chat-Animation besitzt du bereits."}
-    if current_chickens < price:
-        raise HTTPException(status_code=400, detail="Nicht genug Chickens")
-    purchase_category = str(item.get("category") or "").strip()
-    if purchase_category not in PURCHASE_CATEGORIES:
-        purchase_category = PURCHASE_CATEGORY_FALLBACK
-    supabase().post(
-        "purchases",
-        {"username": user["username"], "reward_name": item.get("name"), "reward_category": purchase_category, "price": price, "status": "open"},
-        returning=False,
-    )
-    if builtin_item:
-        remember_chat_style_purchase(str(user["username"]), str(item["style"]))
-    supabase().patch(f"users?username=eq.{quote(str(user['username']))}", {"chickens": current_chickens - price})
-    return {"message": "Item gekauft."}
+    username = str(user["username"])
+    owned = bool(item.get("style") and item.get("name") in purchased_item_names(username))
+    return economy().buy(username, item, payload.request_id, owned=owned)
 
 
 @app.get("/api/events")
@@ -867,36 +859,22 @@ def scores(game: str) -> list[dict[str, Any]]:
     table = score_table(game)
     if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
-    return rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
+    legacy = rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
+    combined = [*legacy, *economy().scores(game)]
+    return sorted(combined, key=lambda score: (-int(score.get("score") or 0), str(score.get("created_at") or "")))[:100]
 
 
 @app.post("/api/scores")
-def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
-    table = score_table(payload.game)
-    if not table:
+def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user)):
+    if not score_table(payload.game):
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
-    data: dict[str, Any] = {
-        "username": user["username"],
-        "score": max(0, int(payload.score)),
-        "level": max(1, int(payload.level)),
-    }
-    if payload.game == "chicken-flipper":
-        data["round"] = max(1, int(payload.round))
-    if payload.game == "braincell-survivor":
-        data.update(
-            {
-                "seconds_survived": max(0, int(payload.seconds_survived)),
-                "kills": max(0, int(payload.kills)),
-                "build": payload.build[:500],
-            }
-        )
-    supabase().post(table, data, returning=False)
-    return {"message": "Score gespeichert."}
+    data = payload.model_dump(exclude={"game", "run_id"})
+    return economy().complete_run(str(user["username"]), payload.game, payload.run_id, data)
 
 
 @app.get("/api/admin/overview", dependencies=[Depends(require_admin)])
 def admin_overview() -> dict[str, Any]:
-    users_data = rows("users?select=*&order=braincells.desc")
+    users_data = rows("users?select=*&order=username.asc")
     return {
         "users": [public_user(user) for user in users_data],
         "registration_requests": rows("registration_requests?select=*&status=eq.pending&order=created_at.asc"),
@@ -906,19 +884,12 @@ def admin_overview() -> dict[str, Any]:
 
 
 @app.post("/api/admin/points", dependencies=[Depends(require_admin)])
-def admin_points(payload: PointsUpdate) -> dict[str, str]:
+def admin_points(payload: PointsUpdate):
     username = clean_username(payload.username)
-    user = single_user(username)
-    if not user:
+    if not single_user(username):
         raise HTTPException(status_code=404, detail="User nicht gefunden")
-    supabase().patch(
-        f"users?username=eq.{quote(username)}",
-        {
-            "chickens": max(0, int(user.get("chickens") or 0) + payload.chickens_delta),
-            "braincells": max(0, int(user.get("braincells") or 0) + payload.braincells_delta),
-        },
-    )
-    return {"message": "Punkte aktualisiert."}
+    wallet = economy().adjust(username, payload.chickens_delta)
+    return {"message": "Chickens aktualisiert.", "wallet": wallet}
 
 
 @app.post("/api/admin/role", dependencies=[Depends(require_admin)])
