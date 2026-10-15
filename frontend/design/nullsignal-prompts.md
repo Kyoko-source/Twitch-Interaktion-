@@ -23,4 +23,3 @@ Production GAME BACKGROUND asset, original NULLSIGNAL cooperative industrial def
 ## Metal
 
 Production material texture for a realistic original industrial 3D game: seamless tileable square orthographic front-on macro photograph of dark graphite brushed powder-coated steel, gunmetal nearly black #363e41 surface with subtle fine horizontal machining marks, sparse realistic hairline scuffs and small worn pale scratches. Even flat diffuse illumination, no highlights baked as bands, no perspective, no objects, no edges, no bolts, no labels, no text, no rust holes. Used as diffuse and subtle bump map on a physical metal equipment case. Premium tangible rough steel, believable material detail that reads at medium distance, not a decorative abstract pattern. 1536x1536 if possible, fully filled texture.
-
