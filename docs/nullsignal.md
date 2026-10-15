@@ -53,12 +53,20 @@ gespeichert und über die vorhandene Highscore-Browserquelle angekündigt.
 
 ## Grafik, Assets und Audio
 
-Three.js mit echter Geometrie, gebogenen Kabeln, Raycasting, Orbit-Kamera,
+Three.js mit echter Geometrie, gebogenen Kabeln, Raycasting, Objektrotation und Zoomkamera,
 physikalischen Materialien, eigener Werkbank, Schatten, Materialtextur,
 kontrolliertem Bloom und korrektem Output-Pass. Der Gast lädt die 3D-Bibliothek
 nicht. Die Szene begrenzt die Pixeldichte; statische Schatten werden erst bei
 einer Geometrieänderung neu berechnet. Reduced Motion entfernt Kameraschütteln,
 Partikel und animierte Kamerafahrten.
+
+Ziehen dreht ausschließlich das Gehäuse, auch in der Lobby. Die Kamera behält
+ihre Blickrichtung, Werkstatt und Tisch bleiben beim Drehen fest. Mausrad und
+Zwei-Finger-Geste zoomen; Vorder-/Rückseite drehen das Gerät entsprechend.
+Modulfokus richtet die passende Gehäuseseite aus und vergrößert sie, ohne den
+Tisch zu kippen. Ziehen verlässt den Modulfokus. Eine Höhenkorrektur verhindert,
+dass das geneigte Gehäuse durch die Tischplatte ragt. Schatten werden bei diesen
+Bewegungen aktualisiert, nach Stillstand wieder nur bei Zustandsänderungen.
 
 Werkstatt und Metalltextur sind eigene Image-Gen-Assets in
 `frontend/public/assets/nullsignal/`. Prompts und Gestaltungsspezifikation liegen

@@ -25,7 +25,9 @@ class DeviceRenderer {
     this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.05;
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.autoUpdate=false;
     container.append(this.renderer.domElement);this.renderer.domElement.setAttribute('aria-label','Drehbare 3D-Bombe. Ziehen zum Drehen, Modul anklicken zum Fokussieren.');this.renderer.domElement.setAttribute('role','img');
-    this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enablePan=false;this.controls.enableDamping=true;this.controls.dampingFactor=.085;this.controls.minDistance=1.8;this.controls.maxDistance=17;this.controls.minPolarAngle=.2;this.controls.maxPolarAngle=Math.PI/2-.03;
+    // OrbitControls only handles wheel/pinch zoom. Drag rotates the device itself.
+    this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableRotate=false;this.controls.enablePan=false;this.controls.enableDamping=true;this.controls.dampingFactor=.085;this.controls.minDistance=1.8;this.controls.maxDistance=17;
+    this.yaw=0;this.pitch=0;this.activePointers=new Set();
     this.onOrbit=()=>{this.tween=null;};this.controls.addEventListener('start',this.onOrbit);
     const ambient=new T.HemisphereLight('#b9d8df','#39271d',.8);this.scene.add(ambient);
     const key=new T.DirectionalLight('#ffd7a0',2.8);key.position.set(-4,7,6);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;key.shadow.normalBias=.025;this.scene.add(key);
@@ -39,13 +41,26 @@ class DeviceRenderer {
     const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(positions,3));
     this.particles=new T.Points(geo,new T.PointsMaterial({size:.04,color:'#ffb46b',transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending}));this.scene.add(this.particles);
     this.pointer=new T.Vector2();this.ray=new T.Raycaster();
-    this.down=event=>{this.downPoint={x:event.clientX,y:event.clientY,time:performance.now()};};
-    this.up=event=>{if(!this.downPoint||Math.hypot(event.clientX-this.downPoint.x,event.clientY-this.downPoint.y)>7||performance.now()-this.downPoint.time>700)return;this.pick(event);};
-    this.move=event=>{if(!this.device)return;this.setRay(event);const found=this.ray.intersectObjects(this.device.hits,false)[0];this.renderer.domElement.style.cursor=found?'pointer':'grab';};
+    this.down=event=>{
+      if(event.button!==0)return;this.activePointers.add(event.pointerId);
+      if(this.activePointers.size!==1){this.downPoint=null;return;}
+      this.downPoint={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,time:performance.now(),dragged:false};
+      this.renderer.domElement.setPointerCapture(event.pointerId);
+    };
+    this.up=event=>{const point=this.downPoint;this.activePointers.delete(event.pointerId);if(point?.id===event.pointerId){this.downPoint=null;if(!point.dragged&&Math.hypot(event.clientX-point.x,event.clientY-point.y)<=7&&performance.now()-point.time<=700)this.pick(event);}if(this.renderer.domElement.hasPointerCapture(event.pointerId))this.renderer.domElement.releasePointerCapture(event.pointerId);};
+    this.cancel=event=>{this.activePointers.delete(event.pointerId);this.downPoint=null;};
+    this.move=event=>{
+      if(!this.device)return;const point=this.downPoint;
+      if(point?.id===event.pointerId&&this.activePointers.size===1){
+        if(!point.dragged&&Math.hypot(event.clientX-point.x,event.clientY-point.y)>7){point.dragged=true;this.rotationTween=null;if(this.focused){this.focused=false;this.getProps().onSelect('');this.frameDevice();}}
+        if(point.dragged){this.yaw+=(event.clientX-point.lastX)*.008;this.pitch=T.MathUtils.clamp(this.pitch+(event.clientY-point.lastY)*.006,-.55,.55);point.lastX=event.clientX;point.lastY=event.clientY;this.applyRotation();this.renderer.domElement.style.cursor='grabbing';return;}
+      }
+      this.setRay(event);const found=this.ray.intersectObjects(this.device.hits,false)[0];this.renderer.domElement.style.cursor=found?'pointer':'grab';
+    };
     this.contextLost=event=>{event.preventDefault();if(this.alive)this.onError('Die 3D-Verbindung wurde unterbrochen. Lade die 3D-Ansicht erneut; eure Runde bleibt gespeichert.');};
-    this.renderer.domElement.addEventListener('pointerdown',this.down);this.renderer.domElement.addEventListener('pointerup',this.up);this.renderer.domElement.addEventListener('pointermove',this.move);this.renderer.domElement.addEventListener('webglcontextlost',this.contextLost);
+    this.renderer.domElement.addEventListener('pointerdown',this.down);this.renderer.domElement.addEventListener('pointerup',this.up);this.renderer.domElement.addEventListener('pointercancel',this.cancel);this.renderer.domElement.addEventListener('pointermove',this.move);this.renderer.domElement.addEventListener('webglcontextlost',this.contextLost);
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
-    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side)};
+    this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms()};
     this.resize();this.view('front',true);
     const loader=new T.TextureLoader();Promise.all([loader.loadAsync('/assets/nullsignal/steel.png'),loader.loadAsync('/assets/nullsignal/workshop.png')]).then(([texture,background])=>{
       if(!this.alive){texture.dispose();background.dispose();return;}
@@ -63,7 +78,7 @@ class DeviceRenderer {
     if(!this.steel)return;
     if(this.device){this.scene.remove(this.device.root);disposeTree(this.device.root);}
     const props=this.getProps();this.closed=props.preview;this.lastRound=props.roundId;this.device=createDevice({steel:this.steel,bomb:props.bomb,closed:this.closed});this.scene.add(this.device.root);
-    if(this.closed){this.device.root.rotation.x=-Math.PI/2;this.device.root.rotation.z=-.12;this.device.root.position.y=-1.54;}
+    this.device.root.updateMatrixWorld(true);this.localBounds=new T.Box3().setFromObject(this.device.root);
     this.lastSelected=null;this.lastTimer='';this.renderer.shadowMap.needsUpdate=true;this.applyState();this.view('front',true);
   }
   update(){
@@ -111,15 +126,42 @@ class DeviceRenderer {
     if(instant||this.reduced){this.camera.position.copy(position);this.controls.target.copy(target);this.controls.update();this.tween=null;return;}
     this.tween={start:performance.now(),position:this.camera.position.clone(),target:this.controls.target.clone(),to:position,toTarget:target};
   }
-  view(side='front',instant=false){
-    if(!this.camera)return;const fit=Math.max(1,1.0/this.camera.aspect);
+  rotation(yaw=this.yaw,pitch=this.pitch){
+    const base=new T.Quaternion().setFromEuler(new T.Euler(this.closed?-Math.PI/2:0,0,this.closed?-.12:0));
+    return new T.Quaternion().setFromEuler(new T.Euler(pitch,yaw,0,'YXZ')).multiply(base);
+  }
+  deviceHeight(quaternion){
+    const bounds=this.localBounds.clone().applyMatrix4(new T.Matrix4().makeRotationFromQuaternion(quaternion));
+    return Math.max(this.closed?-1.54:0,-2.095-bounds.min.y);
+  }
+  applyRotation(){
+    if(!this.device||!this.localBounds)return;const quaternion=this.rotation();
+    this.device.root.quaternion.copy(quaternion);this.device.root.position.y=this.deviceHeight(quaternion);this.device.root.updateMatrixWorld(true);this.renderer.shadowMap.needsUpdate=true;
+  }
+  orient(yaw,pitch=0,instant=false){
+    const delta=Math.atan2(Math.sin(yaw-this.yaw),Math.cos(yaw-this.yaw));
+    if(instant||this.reduced){this.yaw+=delta;this.pitch=pitch;this.rotationTween=null;this.applyRotation();return;}
+    this.rotationTween={start:performance.now(),yaw:this.yaw,pitch:this.pitch,toYaw:this.yaw+delta,toPitch:pitch};
+  }
+  frameDevice(instant=false){
+    const fit=Math.max(1,1/this.camera.aspect);
     if(this.closed)this.tweenTo(new T.Vector3(3.4,4.2,9.4).multiplyScalar(fit),new T.Vector3(0,-1.2,0),instant);
-    else this.tweenTo(new T.Vector3(side==='back'?-2.2:2.2,1,side==='back'?-9.2:9.2).multiplyScalar(fit),new T.Vector3(0,.05,0),instant);
+    else this.tweenTo(new T.Vector3(2.2,1,9.2).multiplyScalar(fit).add(new T.Vector3(0,.05*(1-fit),0)),new T.Vector3(0,.05,0),instant);
+  }
+  view(side='front',instant=false){
+    if(!this.camera)return;this.focused=false;this.orient(!this.closed&&side==='back'?Math.PI:0,0,instant);this.frameDevice(instant);
   }
   focus(id){
     const item=this.device?.modules.get(id);if(!item)return;this.device.root.updateMatrixWorld(true);
-    const target=item.panel.getWorldPosition(new T.Vector3()),normal=new T.Vector3(0,0,1).transformDirection(item.panel.matrixWorld);
-    const distance=2.9*Math.max(1,.95/this.camera.aspect);this.tweenTo(target.clone().addScaledVector(normal,distance).add(new T.Vector3(0,.08,0)),target);
+    const yaw=item.panel.parent.position.z<0?Math.PI:0,quaternion=this.rotation(yaw,0);
+    const target=this.device.root.worldToLocal(item.panel.getWorldPosition(new T.Vector3())).applyQuaternion(quaternion).add(new T.Vector3(0,this.deviceHeight(quaternion),0));
+    const direction=new T.Vector3(2.2,.95,9.2).normalize(),distance=2.9*Math.max(1,.95/this.camera.aspect);
+    this.focused=true;this.orient(yaw);this.tweenTo(target.clone().addScaledVector(direction,distance),target);
+  }
+  transforms(){
+    this.scene.updateMatrixWorld(true);
+    const corners=[[-6.5,-2.11,-4],[6.5,-2.11,-4],[6.5,-2.11,4],[-6.5,-2.11,4]].map(point=>new T.Vector3(...point).project(this.camera).toArray());
+    return {camera:this.camera.position.toArray(),cameraRotation:this.camera.quaternion.toArray(),table:this.table.matrixWorld.toArray(),tableCorners:corners,deviceRotation:this.device?.root.quaternion.toArray()};
   }
   targets(){
     if(!this.device)return[];this.scene.updateMatrixWorld(true);
@@ -127,6 +169,7 @@ class DeviceRenderer {
   }
   animate(now){
     if(!this.alive)return;const props=this.getProps();
+    if(this.rotationTween){const tween=this.rotationTween,t=Math.min(1,(now-tween.start)/420),ease=1-Math.pow(1-t,3);this.yaw=T.MathUtils.lerp(tween.yaw,tween.toYaw,ease);this.pitch=T.MathUtils.lerp(tween.pitch,tween.toPitch,ease);this.applyRotation();if(t===1)this.rotationTween=null;}
     if(this.tween){const t=Math.min(1,(now-this.tween.start)/420),ease=1-Math.pow(1-t,3);this.camera.position.lerpVectors(this.tween.position,this.tween.to,ease);this.controls.target.lerpVectors(this.tween.target,this.tween.toTarget,ease);if(t===1)this.tween=null;}
     this.controls.update();
     if(this.device&&!this.closed){
@@ -150,7 +193,7 @@ class DeviceRenderer {
   }
   dispose(){
     this.alive=false;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();
-    const canvas=this.renderer.domElement;canvas.removeEventListener('pointerdown',this.down);canvas.removeEventListener('pointerup',this.up);canvas.removeEventListener('pointermove',this.move);canvas.removeEventListener('webglcontextlost',this.contextLost);
+    const canvas=this.renderer.domElement;canvas.removeEventListener('pointerdown',this.down);canvas.removeEventListener('pointerup',this.up);canvas.removeEventListener('pointercancel',this.cancel);canvas.removeEventListener('pointermove',this.move);canvas.removeEventListener('webglcontextlost',this.contextLost);
     disposeTree(this.scene);this.steel?.dispose();this.background?.dispose();this.environment.dispose();this.composer.dispose();this.bloom.dispose();this.outputPass.dispose();this.renderer.dispose();this.renderer.forceContextLoss();canvas.remove();
   }
 }
