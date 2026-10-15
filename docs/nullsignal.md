@@ -21,6 +21,11 @@ Erstkontakt: 3 Module, 6 Minuten. Störfall: 6 Module, 8 Minuten. Blackout:
 Regeln und Interaktionen: Kabel, Glyphen, Frequenzen, dreistufige Tastenfolge,
 Relais, gespiegelte Regler, drehbare Rohrverbindungen und ein Rechenschloss.
 
+Beim Frequenzkern lässt sich die Folge ausschließlich an der blinkenden LED
+beobachten: fünf kurze/lange Lichtimpulse, danach eine lange Pause. Weder die
+Bombe noch die zusätzliche Modulbedienung zeigen den fertigen Punkt-Strich-Code.
+Nur das Expertenhandbuch enthält die Tabelle zum Zuordnen der beschriebenen Folge.
+
 Erfolgreiche Missionen vergeben bis zu 6 / 12 / 18 Chickens an das Host-Konto,
 ab 15 Sekunden tatsächlicher aktiver Spielzeit. Das vorhandene Tageslimit von
 120 gilt gemeinsam mit den anderen Spielen. Teamrekorde werden pro Mission

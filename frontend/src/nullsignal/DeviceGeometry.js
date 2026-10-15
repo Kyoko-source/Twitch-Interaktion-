@@ -110,8 +110,8 @@ export function createDevice({steel,bomb,closed=false}) {
       }else if(m.kind==='glyphs'){
         data.keys.forEach((key,i)=>{const xx=i%2===0?-.36:.36,yy=i<2?.13:-.25;const buttonMesh=button(panel,m.id,xx,yy,.63,.32,'','press',i);glyph(panel,xx,yy,key);item.buttons.push(buttonMesh);});
       }else if(m.kind==='frequency'){
-        item.lamp=new T.Mesh(new T.SphereGeometry(.039,12,8),materials.mint.clone());item.lamp.position.set(.55,.26,.12);panel.add(item.lamp);
-        label(panel,-.12,.25,.072,1.0,.13,data.pattern.split('').map(bit=>bit==='1'?'—':'·').join(' '),{size:55,color:'#e8b56b'});
+        cylinder(panel,0,.26,.08,.078,.04,materials.black);
+        item.lamp=new T.Mesh(new T.SphereGeometry(.055,16,12),materials.mint.clone());item.lamp.position.set(0,.26,.12);panel.add(item.lamp);
         const ring=new T.Mesh(new T.TorusGeometry(.23,.025,10,48),materials.edge);ring.position.set(0,-.08,.09);panel.add(ring);
         cylinder(panel,0,-.08,.12,.2,.11,materials.black);
         item.needle=box(panel,0,.055,.195,.018,.11,.015,materials.copper,.004);item.needle.userData.centerY=-.08;

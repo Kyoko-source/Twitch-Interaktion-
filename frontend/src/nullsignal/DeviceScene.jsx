@@ -176,8 +176,8 @@ class DeviceRenderer {
       const remaining=props.remaining(),sec=Math.max(0,Math.ceil(remaining)),text=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
       if(text!==this.lastTimer){this.device.timer.paint(text);this.lastTimer=text;}
       for(const m of props.bomb?.modules||[])if(m.kind==='frequency'){
-        const item=this.device.modules.get(m.id),position=(now/450)%9,index=Math.floor(position);
-        if(item?.lamp)item.lamp.material.emissiveIntensity=props.status==='running'&&!m.solved&&index<5&&(position%1)<(m.data.pattern[index]==='1'?.85:.25)?2.5:.02;
+        const item=this.device.modules.get(m.id),position=(now/650)%9,index=Math.floor(position);
+        if(item?.lamp){const on=props.status==='running'&&!m.solved&&index<5&&(position%1)<(m.data.pattern[index]==='1'?.85:.25);item.lamp.material.emissiveIntensity=on?2.5:.015;item.lamp.material.color.set(on?'#83e5cd':'#263c39');}
       }
       const age=(now-this.effectStart)/1000;
       if(!this.reduced&&age<1.2){
