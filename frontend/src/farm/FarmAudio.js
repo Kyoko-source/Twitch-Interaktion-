@@ -43,8 +43,8 @@ export async function voiceWav(context, blob) {
   source.buffer=decoded;source.connect(offline.destination);source.start();
   const samples=(await offline.startRendering()).getChannelData(0);
   let peak=0;for(const value of samples)peak=Math.max(peak,Math.abs(value));
-  if(peak<.007)throw new Error('Ich höre noch nichts. Prüfe dein Mikrofon und sprich etwas lauter.');
-  let first=0,last=samples.length-1;const threshold=Math.max(.005,peak*.025);
+  if(peak<.0008)throw new Error('Von diesem Mikrofon kommt kein Ton an. Wähle oben dein Mikrofon und prüfe mit „Mikrofon testen“ den Pegel. Prüfe auch die Stummschalttaste am Headset und den Eingangspegel in deinen Systemeinstellungen.');
+  let first=0,last=samples.length-1;const threshold=Math.max(.0002,peak*.025);
   while(first<last&&Math.abs(samples[first])<threshold)first++;
   while(last>first&&Math.abs(samples[last])<threshold)last--;
   first=Math.max(0,first-320);last=Math.min(samples.length-1,last+640);
@@ -53,7 +53,8 @@ export async function voiceWav(context, blob) {
   text(0,'RIFF');view.setUint32(4,36+length*2,true);text(8,'WAVE');text(12,'fmt ');view.setUint32(16,16,true);
   view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,16000,true);view.setUint32(28,32000,true);
   view.setUint16(32,2,true);view.setUint16(34,16,true);text(36,'data');view.setUint32(40,length*2,true);
-  const scale=Math.min(5,.75/peak);
+  // Normalize quiet headset inputs, while still rejecting digital silence.
+  const scale=Math.min(128,.75/peak);
   for(let i=0;i<length;i++){const fade=Math.min(1,i/128,(length-i-1)/128);const value=Math.max(-1,Math.min(1,(samples[first+i]||0)*scale*fade));view.setInt16(44+i*2,Math.round(value*32767),true);}
   return {blob:new Blob([buffer],{type:'audio/wav'}),duration:length/16000};
 }

@@ -111,3 +111,70 @@ test('chaos mode plays all 100 recorded calls through real decoded audio buffers
   await expect.poll(()=>page.evaluate(()=>window.farmStarted)).toBe(100);
   await page.getByRole('button',{name:'Farm pausieren',exact:true}).click();expect(errors).toEqual([]);
 });
+
+test('silent default input can be replaced with a quiet microphone: live test, normalized recording and private save',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(()=>{
+    window.micRequests=[];window.micTracks=[];
+    navigator.mediaDevices.enumerateDevices=async()=>[
+      {kind:'audioinput',deviceId:'silent-input',label:'Stummer Monitor'},
+      {kind:'audioinput',deviceId:'quiet-headset',label:'Mein leises Headset'},
+    ];
+    navigator.mediaDevices.getUserMedia=async options=>{
+      window.micRequests.push(options);
+      const context=new AudioContext(),tone=context.createOscillator(),gain=context.createGain(),destination=context.createMediaStreamDestination();
+      tone.frequency.value=330;gain.gain.value=options.audio.deviceId?.exact==='quiet-headset'?.002:0;
+      tone.connect(gain).connect(destination);tone.start();await context.resume();
+      const track=destination.stream.getAudioTracks()[0],stop=track.stop.bind(track);
+      track.stop=()=>{stop();tone.stop();context.close();};window.micTracks.push(track);
+      return destination.stream;
+    };
+  });
+  const {uploads}=await setup(page);
+  await page.getByRole('button',{name:'Sound aufnehmen',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Noch kein Ton');
+  await page.getByRole('button',{name:'Aufnahme stoppen',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('Von diesem Mikrofon kommt kein Ton an');
+  await expect(page.getByRole('button',{name:'Stimme speichern',exact:true})).toBeDisabled();expect(uploads).toHaveLength(0);
+  await page.getByLabel('Mikrofon auswählen').selectOption('quiet-headset');
+  await page.getByRole('button',{name:'Mikrofon testen',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Ton kommt an.');
+  await expect(page.getByRole('button',{name:'Sound aufnehmen',exact:true})).toBeDisabled();
+  expect(uploads).toHaveLength(0);
+  await page.locator('.farmStudio').screenshot({path:join(tmpdir(),'aviary-farm-microphone-test.png')});
+  await page.getByRole('button',{name:'Mikrofontest stoppen',exact:true}).click();
+  expect(await page.evaluate(()=>window.micTracks.every(track=>track.readyState==='ended'))).toBe(true);
+  await page.getByRole('button',{name:'Sound aufnehmen',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Ton kommt an.');
+  await page.waitForTimeout(900);await page.getByRole('button',{name:'Aufnahme stoppen',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Anhören',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Anhören',exact:true}).click();
+  await page.getByRole('button',{name:'Stimme speichern',exact:true}).click();
+  expect(uploads).toHaveLength(1);
+  const wav=uploads[0].bytes;let peak=0;for(let i=44;i<wav.length;i+=2)peak=Math.max(peak,Math.abs(wav.readInt16LE(i)/32768));
+  expect(peak).toBeGreaterThan(.15);expect(peak).toBeLessThan(.99);
+  expect(await page.evaluate(()=>window.micRequests.every(request=>request.audio.echoCancellation===false&&request.audio.noiseSuppression===false&&request.audio.autoGainControl===false))).toBe(true);
+  expect(await page.evaluate(()=>window.micRequests.at(-1).audio.deviceId)).toEqual({exact:'quiet-headset'});
+  expect(await page.evaluate(()=>window.micTracks.every(track=>track.readyState==='ended'))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('microphone test releases input on navigation and explains unavailable devices',async({page})=>{
+  await page.addInitScript(()=>{
+    navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Unavailable','NotReadableError');};
+  });
+  await setup(page);
+  await page.getByRole('button',{name:'Mikrofon testen',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('andere App es exklusiv verwendet');
+  await expect(page.getByRole('button',{name:'Sound aufnehmen',exact:true})).toBeEnabled();
+  await page.evaluate(()=>{
+    navigator.mediaDevices.getUserMedia=async()=>{
+      const context=new AudioContext(),destination=context.createMediaStreamDestination();window.testInput=destination.stream;
+      const track=window.testInput.getAudioTracks()[0],stop=track.stop.bind(track);track.stop=()=>{stop();context.close();};return window.testInput;
+    };
+  });
+  await page.getByRole('button',{name:'Mikrofon testen',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Mikrofontest stoppen',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Pepple Survivor',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.testInput.getTracks().every(track=>track.readyState==='ended'))).toBe(true);
+});
