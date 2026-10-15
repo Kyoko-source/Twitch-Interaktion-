@@ -4,11 +4,22 @@
 }
 
 {$SITE_ADDRESS} {
-  reverse_proxy frontend:80
+  # Existing OBS sources keep their HTTP assets and read-only polling URLs.
+  @legacyOBS {
+    method GET HEAD
+    path /overlays/* /api/live-news /api/purchase-alerts
+  }
+  handle @legacyOBS {
+    reverse_proxy frontend:80
+  }
+  # All visitor pages and other requests use the trusted canonical origin.
+  # Browsers preserve hash routes; {uri} preserves paths and query strings.
+  handle {
+    redir https://{$FARM_TLS_IP:62.238.49.219}{uri} 308
+  }
 }
 
-# Microphone capture requires a trusted secure context. Keep existing HTTP OBS
-# URLs working while Caddy manages and renews the IP certificate automatically.
+# Caddy manages and renews the trusted IP certificate automatically.
 https://{$FARM_TLS_IP:62.238.49.219} {
   tls {
     issuer acme {
