@@ -69,7 +69,8 @@ Partikel und animierte Kamerafahrten.
 
 Ziehen dreht ausschließlich das Gehäuse, auch in der Lobby. Die Kamera behält
 ihre Blickrichtung, Werkstatt und Tisch bleiben beim Drehen fest. Mausrad und
-Zwei-Finger-Geste zoomen; Vorder-/Rückseite drehen das Gerät entsprechend.
+Zwei-Finger-Geste zoomen; herauszoomen ist bis zur Gesamtansicht der Bombe
+begrenzt, angepasst an das Bildschirmformat. Vorder-/Rückseite drehen das Gerät entsprechend.
 Modulfokus richtet die passende Gehäuseseite aus und vergrößert sie, ohne den
 Tisch zu kippen. Ziehen verlässt den Modulfokus. Eine Höhenkorrektur verhindert,
 dass das geneigte Gehäuse durch die Tischplatte ragt. Schatten werden bei diesen

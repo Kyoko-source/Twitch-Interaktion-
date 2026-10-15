@@ -26,7 +26,8 @@ class DeviceRenderer {
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.shadowMap.autoUpdate=false;
     container.append(this.renderer.domElement);this.renderer.domElement.setAttribute('aria-label','Drehbare 3D-Bombe. Ziehen zum Drehen, Modul anklicken zum Fokussieren.');this.renderer.domElement.setAttribute('role','img');
     // OrbitControls only handles wheel/pinch zoom. Drag rotates the device itself.
-    this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableRotate=false;this.controls.enablePan=false;this.controls.enableDamping=true;this.controls.dampingFactor=.085;this.controls.minDistance=1.8;this.controls.maxDistance=17;
+    this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableRotate=false;this.controls.enablePan=false;this.controls.enableDamping=true;this.controls.dampingFactor=.085;this.controls.minDistance=1.8;
+    this.closed=getProps().preview;
     this.yaw=0;this.pitch=0;this.activePointers=new Set();
     this.onOrbit=()=>{this.tween=null;};this.controls.addEventListener('start',this.onOrbit);
     const ambient=new T.HemisphereLight('#b9d8df','#39271d',.8);this.scene.add(ambient);
@@ -80,6 +81,8 @@ class DeviceRenderer {
   resize(){
     if(!this.alive)return;const width=Math.max(1,this.container.clientWidth),height=Math.max(1,this.container.clientHeight);
     this.camera.aspect=width/height;this.camera.updateProjectionMatrix();this.renderer.setSize(width,height);this.composer.setSize(width,height);
+    // Stop at the composed overview instead of revealing the edge of the set.
+    const {position,target}=this.overviewFrame();this.controls.maxDistance=position.distanceTo(target);this.controls.update();
     if(this.background){const ratio=this.camera.aspect/(this.background.image.width/this.background.image.height);this.background.repeat.set(Math.min(1,ratio),Math.min(1,1/ratio));this.background.offset.set((1-this.background.repeat.x)/2,(1-this.background.repeat.y)/2);}
   }
   rebuild(){
@@ -151,10 +154,12 @@ class DeviceRenderer {
     if(instant||this.reduced){this.yaw+=delta;this.pitch=pitch;this.rotationTween=null;this.applyRotation();return;}
     this.rotationTween={start:performance.now(),yaw:this.yaw,pitch:this.pitch,toYaw:this.yaw+delta,toPitch:pitch};
   }
-  frameDevice(instant=false){
+  overviewFrame(){
     const fit=Math.max(1,1/this.camera.aspect);
-    if(this.closed)this.tweenTo(new T.Vector3(3.4,4.2,9.4).multiplyScalar(fit),new T.Vector3(0,-1.2,0),instant);
-    else this.tweenTo(new T.Vector3(2.2,1,9.2).multiplyScalar(fit).add(new T.Vector3(0,.05*(1-fit),0)),new T.Vector3(0,.05,0),instant);
+    return this.closed?{position:new T.Vector3(3.4,4.2,9.4).multiplyScalar(fit),target:new T.Vector3(0,-1.2,0)}:{position:new T.Vector3(2.2,1,9.2).multiplyScalar(fit).add(new T.Vector3(0,.05*(1-fit),0)),target:new T.Vector3(0,.05,0)};
+  }
+  frameDevice(instant=false){
+    const {position,target}=this.overviewFrame();this.controls.maxDistance=position.distanceTo(target);this.tweenTo(position,target,instant);
   }
   view(side='front',instant=false){
     if(!this.camera)return;this.focused=false;this.orient(!this.closed&&side==='back'?Math.PI:0,0,instant);this.frameDevice(instant);
@@ -170,7 +175,7 @@ class DeviceRenderer {
   transforms(){
     this.scene.updateMatrixWorld(true);
     const corners=[[-6.5,-2.11,-4],[6.5,-2.11,-4],[6.5,-2.11,4],[-6.5,-2.11,4]].map(point=>new T.Vector3(...point).project(this.camera).toArray());
-    return {camera:this.camera.position.toArray(),cameraRotation:this.camera.quaternion.toArray(),table:this.table.matrixWorld.toArray(),tableCorners:corners,deviceRotation:this.device?.root.quaternion.toArray()};
+    return {camera:this.camera.position.toArray(),cameraRotation:this.camera.quaternion.toArray(),table:this.table.matrixWorld.toArray(),tableCorners:corners,deviceRotation:this.device?.root.quaternion.toArray(),zoomDistance:this.camera.position.distanceTo(this.controls.target),zoomLimit:this.controls.maxDistance};
   }
   targets(){
     if(!this.device)return[];this.scene.updateMatrixWorld(true);
