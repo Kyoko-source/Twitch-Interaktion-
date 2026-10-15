@@ -63,8 +63,48 @@ Partikel und animierte Kamerafahrten.
 Werkstatt und Metalltextur sind eigene Image-Gen-Assets in
 `frontend/public/assets/nullsignal/`. Prompts und Gestaltungsspezifikation liegen
 unter `frontend/design/nullsignal-*`. Rätseltexte und Vektorglyphen wurden eigens
-geschrieben. Audio verwendet vorhandene unveränderte Kenney-CC0-Aufnahmen;
-Lizenzen stehen in `frontend/public/audio/`. Keine Musikschleife.
+geschrieben. Die Effekte verwenden vorhandene unveränderte Kenney-CC0-Aufnahmen;
+Lizenzen stehen in `frontend/public/audio/`. Eigene Musik ist optional, siehe unten.
+
+## Countdown und eigene Musik
+
+Der Countdown piept ab Missionsbeginn einmal pro Sekunde. Ab 60 Sekunden gilt
+ein halber Sekundenabstand; ab 30 Sekunden sinkt der Abstand von 0,32 Sekunden
+kontinuierlich bis 0,08 Sekunden. Jeder Fehler multipliziert den Abstand zusätzlich
+mit 0,7, unabhängig von der Restzeit. Der Mindestabstand beträgt 0,05 Sekunden.
+Pausieren, Entschärfen, Stummschalten und Verlassen stoppen den Countdown-Ton;
+bei null beendet der Server die Runde und löst den vorhandenen Explosionssound
+und den 3D-Effekt aus. Es werden keine verpassten Pieptöne nachgeholt.
+Der eigene kurze WAV-Piepton lässt sich mit
+`node frontend/scripts/generate-nullsignal-beep.mjs` reproduzieren.
+
+In `frontend/public/music/nullsignal/` genau diese optionalen Dateien ablegen:
+
+- `menu.mp3`: Nullsignal-Hauptmenü und Lobby.
+- `ingame.mp3`: laufende Mission.
+
+Beide Titel laufen in Schleife. Beim Start wechselt die Musik automatisch;
+bei Pause und Ergebnis stoppt sie. Es spielt immer nur ein Titel. Der Gast
+erhält keine Musik. Im Audio-Menü sind Effekte/Countdown und Musik getrennt
+regelbar; die Einstellungen bleiben im Browser gespeichert. Der Lautsprecher
+schaltet alles stumm. Beim ersten Besuch braucht der Browser einen Klick oder
+Tastendruck, bevor er Ton abspielen darf; dafür gibt es „Ton einschalten“.
+Fehlende MP3s bleiben still und beeinträchtigen die Spielsounds nicht.
+
+Auf Hetzner ist der Ordner
+`/opt/twitch-interaktion/frontend/public/music/nullsignal/` direkt in Nginx
+eingebunden. Dort genügt das Ablegen oder Ersetzen der MP3s; kein Build und kein
+Neustart sind erforderlich. Anschließend die Spielseite neu laden. Nginx liefert
+fehlende optionale Titel als 204 ohne SPA-Fallback und vorhandene Dateien mit
+MP3-MIME-Type, Range-Unterstützung und Revalidierung statt Langzeitcache aus.
+Die Songs sind in Git ignoriert und bleiben bei Deployments erhalten.
+
+Vom Windows-PC: Dateien in den lokalen Ordner legen und
+`deploy/upload-nullsignal-music.cmd` doppelklicken (oder das gleichnamige `.ps1`
+ausführen). Der vorhandene Hetzner-SSH-Schlüssel wird verwendet. Jeder vorhandene
+Song wird erst vollständig hochgeladen und danach atomar freigegeben, sodass ein
+abgebrochener Upload keinen bestehenden Song ersetzt. Die Songs werden weder
+in Git eingecheckt noch für Tests in die Live-Seite kopiert.
 
 ## Prüfung
 

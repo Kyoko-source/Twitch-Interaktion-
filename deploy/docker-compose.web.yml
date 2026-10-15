@@ -27,6 +27,8 @@ services:
         condition: service_healthy
     expose:
       - "80"
+    volumes:
+      - ../frontend/public/music/nullsignal:/usr/share/nginx/html/music/nullsignal:ro
 
   caddy:
     image: caddy:2-alpine

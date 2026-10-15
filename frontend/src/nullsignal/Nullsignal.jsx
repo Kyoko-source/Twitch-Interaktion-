@@ -1,9 +1,9 @@
 import React,{Suspense,lazy,useCallback,useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ArrowLeft,Check,Copy,Maximize,Minimize,Pause,Play,RotateCcw,Volume2,VolumeX,Wifi,WifiOff,X,User,ShieldCheck,BookOpen,ChevronRight} from 'lucide-react';
+import {ArrowLeft,Check,Copy,Maximize,Minimize,Pause,Play,RotateCcw,Volume2,VolumeX,Wifi,WifiOff,X,User,ShieldCheck,BookOpen,ChevronRight,SlidersHorizontal} from 'lucide-react';
 import {api} from '../api';
 import {requestId} from '../economy/useGameRewards';
-import {SampleAudio} from '../audio/SampleAudio';
+import {NullsignalAudio} from './NullsignalAudio';
 import {Manual} from './Manual';
 import {ModuleControls} from './ModuleControls';
 import './nullsignal.css';
@@ -19,20 +19,10 @@ async function expertRequest(roomId,token,suffix='',options={}){
   const result=await response.json();if(!response.ok){const error=new Error(typeof result.detail==='string'?result.detail:'Die Anfrage konnte nicht verarbeitet werden.');error.status=response.status;throw error;}return result;
 }
 
-class NullsignalSound {
-  async unlock(){
-    if(!this.context){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;this.context=new Ctx();this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',tick:'/audio/impactGeneric_light_000.ogg',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg'});this.audio.preload();}
-    if(this.context.state==='suspended')await this.context.resume();
-  }
-  settings(enabled,volume){this.enabled=enabled;this.volume=volume;this.audio?.volume(enabled?volume:0);if(!enabled)this.audio?.stop();}
-  play(kind){if(!this.enabled||!this.audio)return;this.audio.volume(this.volume);const names={neutral:'click',good:'good',bad:'bad',defused:'win',exploded:'explode'};const name=names[kind]||kind;this.audio.play(name,{gain:name==='tick'?.055:name==='click'?.18:name==='explode'?.6:.35,gap:.04});}
-  dispose(){this.audio?.dispose();this.context?.close().catch(()=>{});}
-}
-
-function Header({role,room,time,enabled,setEnabled,volume,setVolume,root,onBack}){
+function Header({role,room,time,enabled,setEnabled,volume,setVolume,musicEnabled,setMusicEnabled,musicVolume,setMusicVolume,audioReady,unlockAudio,root,onBack}){
   const [full,setFull]=useState(Boolean(document.fullscreenElement));
   useEffect(()=>{const update=()=>setFull(Boolean(document.fullscreenElement));document.addEventListener('fullscreenchange',update);return()=>document.removeEventListener('fullscreenchange',update);},[]);
-  return <header className="nsHeader"><a className="nsBack" href="#games/chicken-jump" onClick={onBack} aria-label="Zurück zu den Minispielen"><ArrowLeft size={20}/></a><div className="nsBrand"><h1 id="nullsignal-title">NULLSIGNAL</h1><p>{role==='expert'?'Handbuch':'Zwei Stimmen. Eine Chance.'}</p></div><div className="nsHeaderTools"><span className="nsRole">{role==='expert'?`Experte${room?.expert_name?` · ${room.expert_name}`:''}`:'Entschärfer'}</span>{room&&<time className={`nsCountdown ${time<60&&room.status==='running'?'isUrgent':''}`} aria-label="Verbleibende Zeit">{clockText(time)}</time>}<button className="nsIcon" type="button" aria-label={enabled?'Spiel stummschalten':'Spielton einschalten'} onClick={()=>setEnabled(!enabled)}>{enabled?<Volume2 size={21}/>:<VolumeX size={21}/>}</button><label className="nsVolume" aria-label="Spiellautstärke"><input aria-label="Spiellautstärke" type="range" min="0" max="1" step="0.05" value={volume} onChange={event=>setVolume(Number(event.target.value))}/></label>{document.fullscreenEnabled&&<button className="nsIcon" type="button" aria-label={full?'Vollbild verlassen':'Vollbild öffnen'} onClick={()=>{const operation=document.fullscreenElement?document.exitFullscreen():root.current.requestFullscreen();operation?.catch(()=>{});}}>{full?<Minimize size={21}/>:<Maximize size={21}/>}</button>}</div></header>;
+  return <header className="nsHeader"><a className="nsBack" href="#games/chicken-jump" onClick={onBack} aria-label="Zurück zu den Minispielen"><ArrowLeft size={20}/></a><div className="nsBrand"><h1 id="nullsignal-title">NULLSIGNAL</h1><p>{role==='expert'?'Handbuch':'Zwei Stimmen. Eine Chance.'}</p></div><div className="nsHeaderTools"><span className="nsRole">{role==='expert'?`Experte${room?.expert_name?` · ${room.expert_name}`:''}`:'Entschärfer'}</span>{room&&<time className={`nsCountdown ${time<60&&room.status==='running'?'isUrgent':''}`} aria-label="Verbleibende Zeit">{clockText(time)}</time>}<button className="nsIcon" type="button" data-audio-toggle aria-label={!audioReady?'Ton einschalten':enabled?'Spiel stummschalten':'Spielton einschalten'} onClick={()=>{if(!audioReady){setEnabled(true);unlockAudio();}else setEnabled(!enabled);}}>{enabled?<Volume2 size={21}/>:<VolumeX size={21}/>}</button><details className="nsAudioSettings"><summary aria-label="Audio-Einstellungen"><SlidersHorizontal size={20}/></summary><div><label>Effekte &amp; Countdown<input aria-label="Spiellautstärke" type="range" min="0" max="1" step="0.05" value={volume} onChange={event=>setVolume(Number(event.target.value))}/></label><label className="nsMusicToggle"><input aria-label="Musik einschalten" type="checkbox" checked={musicEnabled} onChange={event=>setMusicEnabled(event.target.checked)}/>Musik</label><label>Musiklautstärke<input aria-label="Musiklautstärke" type="range" min="0" max="1" step="0.05" value={musicVolume} onChange={event=>setMusicVolume(Number(event.target.value))}/></label></div></details>{document.fullscreenEnabled&&<button className="nsIcon" type="button" aria-label={full?'Vollbild verlassen':'Vollbild öffnen'} onClick={()=>{const operation=document.fullscreenElement?document.exitFullscreen():root.current.requestFullscreen();operation?.catch(()=>{});}}>{full?<Minimize size={21}/>:<Maximize size={21}/>}</button>}</div></header>;
 }
 
 function Connection({room,role,networkError}){const connected=room&&(role==='host'?room.expert_online:room.host_online)&&!networkError;return <span className={`nsConnection ${connected?'isConnected':''}`}>{connected?<Wifi size={16}/>:<WifiOff size={16}/>}<span>{networkError?'Verbindung unterbrochen':connected?'Verbindung stabil':role==='host'?'Warte auf Experten':'Warte auf Entschärfer'}</span></span>;}
@@ -45,8 +35,9 @@ function Results({room,role,busy,onReset,onLobby}){
 export function Nullsignal({user}){
   const [invite,setInvite]=useState(invitation),role=invite?'expert':'host';
   const [room,setRoom]=useState(null),[catalog,setCatalog]=useState(defaultMissions),[mission,setMission]=useState('contact'),[name,setName]=useState(()=>stored('nullsignal-name')),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[networkError,setNetworkError]=useState(''),[notice,setNotice]=useState(''),[selected,setSelected]=useState(''),[cameraView,setCameraView]=useState(null),[time,setTime]=useState(360),[records,setRecords]=useState([]),[enabled,setEnabled]=useState(()=>stored('nullsignal-sound','on')!=='off'),[volume,setVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-volume','.6'))||0)));
+  const [musicEnabled,setMusicEnabled]=useState(()=>stored('nullsignal-music','on')!=='off'),[musicVolume,setMusicVolume]=useState(()=>Math.max(0,Math.min(1,Number(stored('nullsignal-music-volume','.25'))||0))),[audioReady,setAudioReady]=useState(false);
   const root=useRef(null),roomRef=useRef(null),alive=useRef(true),lock=useRef(false),guestToken=useRef(''),clock=useRef(null),sound=useRef(null),lastEvent=useRef(null),lastReward=useRef(null),linkInput=useRef(null),creation=useRef(null),pendingAction=useRef(null);
-  if(!sound.current)sound.current=new NullsignalSound();
+  if(!sound.current)sound.current=new NullsignalAudio();
   const apply=useCallback(next=>{
     if(!alive.current)return;
     const previous=roomRef.current;
@@ -59,7 +50,7 @@ export function Nullsignal({user}){
     const route=()=>setInvite(invitation());window.addEventListener('hashchange',route);
     return()=>{alive.current=false;document.body.style.overflow=previousOverflow;if(app)app.inert=previousInert;previousFocus?.focus?.();window.removeEventListener('hashchange',route);sound.current.dispose();};
   },[]);
-  useEffect(()=>{sound.current.settings(enabled,volume);try{localStorage.setItem('nullsignal-sound',enabled?'on':'off');localStorage.setItem('nullsignal-volume',String(volume));}catch{}},[enabled,volume]);
+  useEffect(()=>{sound.current.settings(enabled,volume,musicEnabled,musicVolume);try{localStorage.setItem('nullsignal-sound',enabled?'on':'off');localStorage.setItem('nullsignal-volume',String(volume));localStorage.setItem('nullsignal-music',musicEnabled?'on':'off');localStorage.setItem('nullsignal-music-volume',String(musicVolume));}catch{}},[enabled,volume,musicEnabled,musicVolume]);
   useEffect(()=>{const update=()=>setTime(Math.ceil(remaining()));update();const interval=setInterval(update,100);return()=>clearInterval(interval);},[remaining,room?.room_id]);
   useEffect(()=>{
     let current=true;setError('');setRoom(null);roomRef.current=null;clock.current=null;
@@ -81,7 +72,7 @@ export function Nullsignal({user}){
   useEffect(()=>{
     if(!room?.event||room.event.id===lastEvent.current)return;lastEvent.current=room.event.id;if(role==='host')sound.current.play(room.event.kind);
   },[room?.event?.id,role]);
-  useEffect(()=>{if(role==='host'&&room?.status==='running'&&time<=60&&time>0)sound.current.play('tick');},[time,role,room?.status]);
+  useEffect(()=>{sound.current.mission({role,status:room?.status,roundId:room?.round_id,remaining,strikes:room?.strikes||0});},[role,room?.status,room?.round_id,room?.strikes,remaining]);
   useEffect(()=>{
     if(role!=='host'||!room?.wallet||lastReward.current===room.round_id)return;lastReward.current=room.round_id;window.dispatchEvent(new CustomEvent('aviary-wallet',{detail:{username:room.host_name,wallet:room.wallet}}));
   },[room?.round_id,room?.wallet,role]);
@@ -90,7 +81,8 @@ export function Nullsignal({user}){
     let active=true;fetch('/api/nullsignal/catalog').then(response=>response.ok?response.json():defaultMissions).then(next=>{if(active)setCatalog(next);}).catch(()=>{});return()=>{active=false;};
   },[]);
   useEffect(()=>{let active=true;fetch(`/api/nullsignal/records/${mission}`,{cache:'no-store'}).then(response=>response.ok?response.json():[]).then(rows=>active&&setRecords(rows)).catch(()=>{});return()=>{active=false;};},[mission,room?.status]);
-  async function action(task){if(lock.current)return;lock.current=true;setBusy(true);setError('');setNotice('');sound.current.unlock().then(()=>sound.current.settings(enabled,volume)).catch(()=>{});try{await task();}catch(err){if(alive.current)setError(err.name==='TimeoutError'?'Die Verbindung ist zu langsam. Bitte erneut versuchen; bestätigte Eingaben werden nicht doppelt gewertet.':err.message);}finally{lock.current=false;if(alive.current)setBusy(false);}}
+  function unlockAudio(event){if(event?.target?.closest?.('[data-audio-toggle]'))return;sound.current.unlock().then(ready=>{if(alive.current)setAudioReady(ready);}).catch(()=>{});}
+  async function action(task){if(lock.current)return;lock.current=true;setBusy(true);setError('');setNotice('');unlockAudio();try{await task();}catch(err){if(alive.current)setError(err.name==='TimeoutError'?'Die Verbindung ist zu langsam. Bitte erneut versuchen; bestätigte Eingaben werden nicht doppelt gewertet.':err.message);}finally{lock.current=false;if(alive.current)setBusy(false);}}
   function create(){action(async()=>{if(creation.current?.mission!==mission)creation.current={mission,request_id:requestId()};const next=await api('/api/nullsignal/rooms',{method:'POST',body:JSON.stringify(creation.current),signal:AbortSignal.timeout(10000)});creation.current=null;apply(next);});}
   function join(event){event.preventDefault();action(async()=>{
     if(!guestToken.current)guestToken.current=(crypto.randomUUID()+crypto.randomUUID()).replaceAll('-','');try{sessionStorage.setItem(`nullsignal-guest:${invite.roomId}`,guestToken.current);}catch{}
@@ -108,8 +100,8 @@ export function Nullsignal({user}){
   const inLobby=!room||room.status==='lobby'||room.status==='closed',ended=room&&['defused','exploded'].includes(room.status),selectedModule=room?.bomb?.modules.find(m=>m.id===selected);
   const sceneProps={bomb:room?.bomb,roundId:room?.round_id,preview:inLobby,status:room?.status,selected,onSelect:setSelected,onAction:moduleAction,remaining,strikes:room?.strikes,event:room?.event,cameraView};
   const scene=<Suspense fallback={<div className="nsSceneMessage" role="status">3D-Werkstatt lädt …</div>}><DeviceScene {...sceneProps}/></Suspense>;
-  return createPortal(<main className={`nsGame ${role==='expert'?'nsExpert':''} ${inLobby?'nsLobbyMode':''}`} ref={root} aria-labelledby="nullsignal-title" data-role={role} data-status={room?.status||'welcome'} data-busy={busy}>
-    <Header role={role} room={room} time={time} enabled={enabled} setEnabled={setEnabled} volume={volume} setVolume={setVolume} root={root}/>
+  return createPortal(<main className={`nsGame ${role==='expert'?'nsExpert':''} ${inLobby?'nsLobbyMode':''}`} ref={root} aria-labelledby="nullsignal-title" onPointerDownCapture={unlockAudio} onKeyDownCapture={unlockAudio} data-role={role} data-status={room?.status||'welcome'} data-busy={busy}>
+    <Header role={role} room={room} time={time} enabled={enabled} setEnabled={setEnabled} volume={volume} setVolume={setVolume} musicEnabled={musicEnabled} setMusicEnabled={setMusicEnabled} musicVolume={musicVolume} setMusicVolume={setMusicVolume} audioReady={audioReady} unlockAudio={unlockAudio} root={root}/>
     {(error||notice)&&<div className={`nsToast ${error?'isError':''}`} role={error?'alert':'status'}><span>{error||notice}</span><button className="nsIcon" type="button" aria-label="Hinweis schließen" onClick={()=>{setError('');setNotice('');}}><X size={17}/></button></div>}
     {role==='expert'?room?<><div className="nsExpertStatus"><Connection room={room} role={role} networkError={networkError}/><span>{room.mission.name} · {room.solved} / {room.mission.modules} Module · {room.strikes} / 3 Fehler</span><strong>{room.status==='lobby'?'Warte auf den Start':room.status==='paused'?'Mission pausiert':room.status==='defused'?'Gemeinsam entschärft':room.status==='exploded'?'Mission gescheitert':'Mission läuft'}</strong></div><Manual room={room} busy={busy} onReady={ready}/>{ended&&<details className="nsExpertResult"><summary>Teamergebnis anzeigen</summary><Results room={room} role={role} busy={busy}/></details>}</>:<section className="nsGuestJoin"><BookOpen size={44}/><h2>Du bist der Experte.</h2><p>Dein Partner sieht die Bombe. Du bekommst das Handbuch. Nur gemeinsam findet ihr den richtigen Weg.</p><form onSubmit={join}><label>Dein Name<input autoComplete="nickname" minLength={2} maxLength={24} required value={name} onChange={event=>setName(event.target.value)} disabled={busy||loading}/></label><button className="nsPrimary" type="submit" disabled={busy||loading||!invite.valid||name.trim().length<2}>{loading?'Verbindung wird hergestellt …':busy?'Du trittst bei …':'Als Experte beitreten'}<ChevronRight size={19}/></button></form><p className="nsCaption">Kein Konto nötig. Dein Name erscheint im Teamergebnis. Nutzt euren Sprachchat und blendet den Stream aus.</p></section>
     :inLobby?<div className="nsLobby" key="lobby"><div className="nsLobbyScene">{scene}</div><section className="nsLobbyPanel"><h2>Wählt eure Mission.</h2><div className="nsMissions" role="group" aria-label="Mission wählen">{catalog.map(item=><button type="button" key={item.id} className={mission===item.id?'isSelected':''} disabled={busy||Boolean(room)} aria-pressed={mission===item.id} onClick={()=>setMission(item.id)}><span><strong>{item.name}</strong><small>{item.modules} Module · {item.seconds/60} Minuten · {item.level}</small></span><ChevronRight size={21}/></button>)}</div>

@@ -165,6 +165,49 @@ test('mobile: full 3D host, eight readable manual chapters, touch controls and n
   await expect.poll(async()=>(await backend(request,`/rooms/${id}/host`)).solved).toBe(1);expect(game.errors).toEqual([]);
 });
 
+test('countdown audio accelerates with time and mistakes; real MP3s switch, pause, mute and stop at explosion',async({browser,request})=>{
+  test.setTimeout(90000);
+  const game=await createLobby(browser,request,{mission:'contact'}),{host,id,errors}=game;
+  // An existing project MP3 is a disposable playback fixture, never a shipped song.
+  await host.route('**/music/nullsignal/*.mp3',route=>route.fulfill({path:join(process.cwd(),'../assets/chicken_theme.mp3'),contentType:'audio/mpeg'}));
+  await host.addInitScript(()=>{
+    window.countdownProbe={beeps:[],sources:[],music:[]};
+    const Context=window.AudioContext||window.webkitAudioContext,create=Context.prototype.createBufferSource,play=HTMLMediaElement.prototype.play;
+    Context.prototype.createBufferSource=function(...args){const source=create.apply(this,args),start=source.start.bind(source);source.start=(...args)=>{const duration=source.buffer?.duration||0;window.countdownProbe.sources.push(duration);if(Math.abs(duration-.06)<.0001)window.countdownProbe.beeps.push(performance.now());return start(...args);};return source;};
+    HTMLMediaElement.prototype.play=function(...args){if(this.src.includes('/music/nullsignal/')&&!window.countdownProbe.music.includes(this))window.countdownProbe.music.push(this);return play.apply(this,args);};
+  });
+  await host.reload();await expect(host.getByLabel('Einladungslink')).toBeVisible();await host.getByRole('button',{name:'Ton einschalten',exact:true}).click();
+  const playing=()=>host.evaluate(()=>window.countdownProbe.music.filter(track=>!track.paused&&!track.ended).map(track=>({src:track.src,time:track.currentTime,loop:track.loop,volume:track.volume})));
+  await expect.poll(async()=>(await playing())[0]?.src).toContain('menu.mp3');await expect.poll(async()=>(await playing())[0]?.time||0).toBeGreaterThan(.05);expect((await playing())[0].loop).toBe(true);
+  await host.getByLabel('Audio-Einstellungen',{exact:true}).click();const musicRange=host.getByLabel('Musiklautstärke',{exact:true});await musicRange.press('Home');for(let i=0;i<8;i++)await musicRange.press('ArrowRight');await expect.poll(async()=>(await playing())[0]?.volume).toBe(.4);await host.screenshot({path:join(tmpdir(),'nullsignal-audio-desktop.png')});await host.getByLabel('Audio-Einstellungen',{exact:true}).click();
+  await joinGuest(game,'Audio expert');await start(game);await expect.poll(async()=>(await playing())[0]?.src).toContain('ingame.mp3');expect((await playing()).length).toBe(1);
+  const base=await backend(request,`/rooms/${id}/host`);let version=base.version+100,fixture={...base};
+  await host.route('**/api/nullsignal/rooms/*/host',route=>route.fulfill({json:{...fixture,version:version++,server_time:Date.now()/1000,...(fixture.status==='running'?{deadline:Date.now()/1000+fixture.remaining}:{deadline:null})}}));
+  async function tempo(remaining,strikes,wait){
+    fixture={...base,status:'running',remaining,strikes,event:null};
+    await expect(host.getByLabel('Verbleibende Zeit')).toHaveText(`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`);
+    const begin=await host.evaluate(()=>window.countdownProbe.beeps.length);await host.waitForTimeout(wait);
+    const beats=await host.evaluate(begin=>window.countdownProbe.beeps.slice(begin),begin),gaps=beats.slice(1).map((beat,i)=>beat-beats[i]).sort((a,b)=>a-b);expect(gaps.length).toBeGreaterThan(0);return gaps[Math.floor(gaps.length/2)];
+  }
+  const normal=await tempo(300,0,2400),minute=await tempo(60,0,1800),halfMinute=await tempo(30,0,1400),critical=await tempo(5,0,1000),firstMistake=await tempo(300,1,2100),secondMistake=await tempo(300,2,1700);
+  expect(normal).toBeGreaterThan(850);expect(minute).toBeLessThan(normal*.75);expect(halfMinute).toBeLessThan(minute*.85);expect(critical).toBeLessThan(halfMinute*.65);expect(firstMistake).toBeLessThan(normal*.85);expect(secondMistake).toBeLessThan(firstMistake*.85);
+  fixture={...fixture,status:'paused',remaining:200};await expect(host.locator('.nsGame')).toHaveAttribute('data-status','paused');expect(await playing()).toEqual([]);let count=await host.evaluate(()=>window.countdownProbe.beeps.length);await host.waitForTimeout(350);expect(await host.evaluate(()=>window.countdownProbe.beeps.length)).toBe(count);
+  fixture={...fixture,status:'running',remaining:5,strikes:0};await expect.poll(async()=>(await playing())[0]?.src).toContain('ingame.mp3');await host.getByRole('button',{name:'Spiel stummschalten',exact:true}).click();await expect(host.getByRole('button',{name:'Spielton einschalten',exact:true})).toBeVisible();expect(await playing()).toEqual([]);count=await host.evaluate(()=>window.countdownProbe.beeps.length);await host.waitForTimeout(350);expect(await host.evaluate(()=>window.countdownProbe.beeps.length)).toBe(count);
+  await host.getByRole('button',{name:'Spielton einschalten',exact:true}).click();await expect.poll(async()=>(await playing()).length).toBe(1);
+  const effects=await host.evaluate(()=>window.countdownProbe.sources.filter(duration=>Math.abs(duration-.06)>.0001).length);
+  fixture={...fixture,status:'exploded',remaining:0,strikes:3,event:{id:'audio-explosion-proof',kind:'exploded',message:'Die Zeit ist abgelaufen.'},result:{remaining:0,score:0}};
+  await expect(host.getByRole('region',{name:'Missionsergebnis'})).toBeVisible();expect(await playing()).toEqual([]);await expect.poll(()=>host.evaluate(()=>window.countdownProbe.sources.filter(duration=>Math.abs(duration-.06)>.0001).length)).toBeGreaterThan(effects);count=await host.evaluate(()=>window.countdownProbe.beeps.length);await host.waitForTimeout(350);expect(await host.evaluate(()=>window.countdownProbe.beeps.length)).toBe(count);
+  console.log('Measured countdown intervals (ms)',{normal,minute,halfMinute,critical,firstMistake,secondMistake});expect(errors).toEqual([]);
+});
+
+test('mobile audio settings remain usable and absent optional songs leave countdown effects working',async({browser,request})=>{
+  const game=await createLobby(browser,request,{mobile:true,mission:'contact'}),{host,errors}=game;
+  await host.route('**/music/nullsignal/*.mp3',route=>route.fulfill({status:204}));await host.reload();await expect(host.getByLabel('Einladungslink')).toBeVisible();await host.getByLabel('Audio-Einstellungen',{exact:true}).click();
+  await expect(host.getByLabel('Musiklautstärke',{exact:true})).toBeVisible();await host.getByLabel('Musik einschalten',{exact:true}).uncheck();await expect(host.getByLabel('Musik einschalten',{exact:true})).not.toBeChecked();await host.getByLabel('Musik einschalten',{exact:true}).check();await host.getByLabel('Spiellautstärke',{exact:true}).press('ArrowLeft');
+  const rect=await host.locator('.nsAudioSettings>div').boundingBox();expect(rect.x).toBeGreaterThanOrEqual(0);expect(rect.x+rect.width).toBeLessThanOrEqual(390);await host.screenshot({path:join(tmpdir(),'nullsignal-audio-mobile.png')});await host.getByLabel('Audio-Einstellungen',{exact:true}).click();
+  await joinGuest(game,'Silent music');await start(game);await expect.poll(()=>host.evaluate(()=>window.nullsignalAudioProof.sources)).toBeGreaterThan(0);expect(errors).toEqual([]);
+});
+
 test('guest welcome never loads Three.js; invalid invitation and denied 3D texture have usable recovery',async({browser,request})=>{
   const game=await createLobby(browser,request,{mission:'contact'});await game.host.route('**/assets/nullsignal/steel.png',route=>route.abort());await game.host.reload();await expect(game.host.getByRole('button',{name:'3D erneut laden',exact:true})).toBeVisible();await game.host.unroute('**/assets/nullsignal/steel.png');await game.host.getByRole('button',{name:'3D erneut laden',exact:true}).click();await expect(game.host.locator('.nsViewport')).toHaveAttribute('data-loaded','true',{timeout:20000});
   const assets=[];game.guest.on('request',request=>{if(request.url().includes('/assets/'))assets.push(request.url());});await game.guest.goto('/#nullsignal/join/broken/link');await expect(game.guest.getByRole('alert')).toContainText('unvollständig');await expect(game.guest.getByRole('button',{name:'Als Experte beitreten',exact:true})).toBeDisabled();expect(assets.some(url=>/DeviceScene|OutputPass|workshop\.png|steel\.png/.test(url))).toBe(false);
