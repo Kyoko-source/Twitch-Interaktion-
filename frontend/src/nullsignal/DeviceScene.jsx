@@ -40,12 +40,16 @@ class DeviceRenderer {
     this.flashlight.position.set(.13,-.08,-.12);this.camera.add(this.flashlight);this.scene.add(this.camera,this.flashlight.target);
     this.emergency=new T.PointLight('#f35c3e',0,16,1);this.emergency.position.set(-3,1,-1);this.scene.add(this.emergency);
     const pmrem=new T.PMREMGenerator(this.renderer),roomEnvironment=new RoomEnvironment();this.environment=pmrem.fromScene(roomEnvironment,.06);this.scene.environment=this.environment.texture;this.scene.environmentIntensity=.4;roomEnvironment.dispose();pmrem.dispose();
-    this.table=new T.Mesh(new T.BoxGeometry(13,.18,8),new T.MeshStandardMaterial({color:'#594331',metalness:.35,roughness:.8}));this.table.position.y=-2.2;this.table.receiveShadow=true;this.scene.add(this.table);
+    this.table=new T.Mesh(new T.BoxGeometry(13,.18,8),new T.MeshStandardMaterial({color:'#373d40',metalness:.6,roughness:.56}));this.table.position.y=-2.2;this.table.receiveShadow=true;this.scene.add(this.table);
     this.composer=new EffectComposer(this.renderer);this.composer.addPass(new RenderPass(this.scene,this.camera));this.bloom=new UnrealBloomPass(new T.Vector2(800,600),.1,.35,2.5);this.composer.addPass(this.bloom);this.outputPass=new OutputPass();this.composer.addPass(this.outputPass);
     const count=80,positions=new Float32Array(count*3);this.particleDirections=[];
     for(let i=0;i<count;i++){const v=new T.Vector3(Math.sin(i*2.4),Math.cos(i*7.1)*.8+.6,Math.cos(i*3.3)).normalize();this.particleDirections.push(v);}
     const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(positions,3));
     this.particles=new T.Points(geo,new T.PointsMaterial({size:.04,color:'#ffb46b',transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending}));this.scene.add(this.particles);
+    const dustPositions=new Float32Array(48*3);
+    for(let i=0;i<48;i++){dustPositions[i*3]=Math.sin(i*17.13)*5;dustPositions[i*3+1]=Math.cos(i*3.71)*3;dustPositions[i*3+2]=Math.sin(i*1.73)*3;}
+    const dustGeometry=new T.BufferGeometry();dustGeometry.setAttribute('position',new T.BufferAttribute(dustPositions,3));
+    this.dust=new T.Points(dustGeometry,new T.PointsMaterial({size:.012,color:'#c4e3df',transparent:true,opacity:.2,depthWrite:false,blending:T.AdditiveBlending}));this.scene.add(this.dust);
     this.pointer=new T.Vector2();this.ray=new T.Raycaster();
     this.down=event=>{
       if(event.button!==0)return;this.activePointers.add(event.pointerId);
@@ -71,7 +75,7 @@ class DeviceRenderer {
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
     this.renderer.domElement.__nullsignalScene={ready:false,targets:()=>this.targets(),view:side=>this.view(side),transforms:()=>this.transforms(),lighting:()=>({blackout:this.blackout,flashlight:this.flashlight.intensity,aim:this.flashlight.target.position.toArray(),background:this.scene.backgroundIntensity})};
     this.resize();this.view('front',true);
-    const loader=new T.TextureLoader();Promise.all([loader.loadAsync('/assets/nullsignal/steel.png'),loader.loadAsync('/assets/nullsignal/workshop.png')]).then(([texture,background])=>{
+    const loader=new T.TextureLoader();Promise.all([loader.loadAsync('/assets/nullsignal/steel.png'),loader.loadAsync('/assets/nullsignal/workshop-v3.png')]).then(([texture,background])=>{
       if(!this.alive){texture.dispose();background.dispose();return;}
       texture.colorSpace=T.SRGBColorSpace;texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.repeat.set(2,2);texture.anisotropy=Math.min(this.renderer.capabilities.getMaxAnisotropy(),8);this.steel=texture;this.table.material.map=texture;this.table.material.bumpMap=texture;this.table.material.bumpScale=.025;this.table.material.needsUpdate=true;
       background.colorSpace=T.SRGBColorSpace;this.background=background;this.scene.background=background;this.resize();this.rebuild();this.renderer.domElement.__nullsignalScene.ready=true;this.onReady();
@@ -110,6 +114,11 @@ class DeviceRenderer {
       item.outline.material.opacity=selected===m.id ? .65 : 0;
       if(m.kind==='wires')item.values.forEach((cable,i)=>{const cut=m.data.cut.includes(i);cable.visible=!cut;cable.userData.hitArea.visible=!cut;cable.userData.broken.visible=cut;});
       if(m.kind==='glyphs')item.buttons.forEach((key,i)=>{key.material.color.set(m.progress.includes(m.data.keys[i])?'#4c9a84':'#303d42');});
+      if(m.kind==='capacitors')item.buttons.forEach((key,i)=>key.material.color.set(m.progress.includes(i)?'#638c58':'#393d32'));
+      if(m.kind==='capacitors'||m.kind==='compass'){
+        const count=m.kind==='capacitors'?4:3,signature=`${m.progress.length}:${m.solved}`;
+        if(item.previous!==signature){item.stage.paint(m.solved?'GESICHERT':`${m.progress.length} / ${count}`);item.previous=signature;}
+      }
       if(m.kind==='frequency'){
         const angle=(-.7+m.data.tuning/8*1.4)*Math.PI;item.needle.position.set(Math.sin(angle)*.145,-.08+Math.cos(angle)*.145,.195);item.needle.rotation.z=-angle;
         const value=m.data.channels[m.data.tuning].toFixed(1);if(item.previous!==value){item.labels[0].paint(value);item.previous=value;}
@@ -189,8 +198,10 @@ class DeviceRenderer {
       this.workLights.forEach((light,i)=>{light.intensity=this.workIntensities[i]*(blackout ? .025 : 1);});
       this.scene.environmentIntensity=blackout ? .015 : .4;this.scene.backgroundIntensity=blackout ? .018 : 1;
       this.emergency.intensity=blackout ? .7 : 0;this.renderer.shadowMap.needsUpdate=true;
+      this.dust.material.opacity=blackout?.035:.2;
     }
     this.flashlight.intensity=blackout&&props.flashlight?65:0;
+    if(!this.reduced){this.dust.rotation.y=Math.sin(now/90000)*.09;this.dust.position.y=Math.sin(now/17000)*.14;}
     if(this.rotationTween){const tween=this.rotationTween,t=Math.min(1,(now-tween.start)/420),ease=1-Math.pow(1-t,3);this.yaw=T.MathUtils.lerp(tween.yaw,tween.toYaw,ease);this.pitch=T.MathUtils.lerp(tween.pitch,tween.toPitch,ease);this.applyRotation();if(t===1)this.rotationTween=null;}
     if(this.tween){const t=Math.min(1,(now-this.tween.start)/420),ease=1-Math.pow(1-t,3);this.camera.position.lerpVectors(this.tween.position,this.tween.to,ease);this.controls.target.lerpVectors(this.tween.target,this.tween.toTarget,ease);if(t===1)this.tween=null;}
     this.controls.update();

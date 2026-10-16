@@ -1,4 +1,5 @@
 import {SampleAudio} from '../audio/SampleAudio.js';
+import {RoomAudio} from './RoomAudio.js';
 
 // Seconds between finite, recorded beeps. Mistakes multiply every time tier.
 export function countdownInterval(remaining,strikes=0){
@@ -9,7 +10,7 @@ export function countdownInterval(remaining,strikes=0){
 
 export class NullsignalAudio {
   constructor(){
-    this.enabled=true;this.volume=.6;this.musicEnabled=true;this.musicVolume=.25;
+    this.enabled=true;this.volume=.6;this.musicEnabled=true;this.musicVolume=.25;this.ambienceVolume=.35;
     this.mode=null;this.tracks=new Map();this.pending=new Set();this.failed=new Set();
     this.unlocked=false;this.disposed=false;this.alarm=null;this.nextBeep=0;
   }
@@ -18,7 +19,8 @@ export class NullsignalAudio {
     if(!this.context){
       const Context=window.AudioContext||window.webkitAudioContext;if(!Context)return false;
       this.context=new Context();
-      this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',beep:'/audio/nullsignal-beep.wav',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg',outage:'/audio/impactMetal_heavy_000.ogg'});
+      this.audio=new SampleAudio(this.context,{click:'/audio/impactMetal_light_001.ogg',beep:'/audio/nullsignal-beep.wav',good:'/audio/forceField_003.ogg',bad:'/audio/impactBell_heavy_000.ogg',explode:'/audio/explosionCrunch_000.ogg',win:'/audio/forceField_000.ogg',outage:'/audio/impactMetal_heavy_000.ogg',mechanical:'/audio/impactMetal_light_000.ogg',room:'/audio/nullsignal-workshop.wav',roomLow:'/audio/nullsignal-low-power.wav'});
+      this.roomAudio=new RoomAudio(this.context,this.audio);
       this.audio.volume(this.enabled?this.volume:0);this.audio.preload();
       this.audio.load('beep').then(buffer=>{this.beepReady=Boolean(buffer);});
     }
@@ -26,21 +28,23 @@ export class NullsignalAudio {
     this.unlocked=true;this.syncMusic();
     if(this.context.state==='suspended')await this.context.resume();
     if(this.disposed)return false;
-    this.syncAlarm();return this.context.state==='running';
+    this.syncAlarm();this.syncAmbience();return this.context.state==='running';
   }
-  settings(enabled,volume,musicEnabled,musicVolume){
+  settings(enabled,volume,musicEnabled,musicVolume,ambienceVolume=.35){
     this.enabled=enabled;this.volume=volume;this.musicEnabled=musicEnabled;this.musicVolume=musicVolume;
+    this.ambienceVolume=ambienceVolume;
     this.audio?.volume(enabled?volume:0);if(!enabled)this.audio?.stop();
-    this.syncMusic();this.syncAlarm();
+    this.syncMusic();this.syncAlarm();this.syncAmbience();
   }
-  mission({role,status,roundId,remaining,strikes=0}){
+  mission({role,status,roundId,remaining,strikes=0,atmosphere}){
     if(status==='paused'||status==='lobby'||status==='closed')this.audio?.stop();
     if(roundId!==this.roundId){const ingame=this.tracks.get('ingame');if(ingame)ingame.currentTime=0;}
     if(roundId!==this.roundId||status!==this.status)this.nextBeep=0;
     this.roundId=roundId;this.status=status;this.remaining=remaining;this.strikes=strikes;
     this.host=role==='host';this.mode=this.host?(!status||status==='lobby'||status==='closed'?'menu':status==='running'?'ingame':null):null;
-    this.syncMusic();this.syncAlarm();
+    this.atmosphere=atmosphere;this.syncMusic();this.syncAlarm();this.syncAmbience();
   }
+  syncAmbience(){this.roomAudio?.sync({allowed:!this.disposed&&this.unlocked&&this.host&&this.enabled&&this.volume>0&&this.ambienceVolume>0&&this.context?.state==='running'&&(!this.status||this.status==='lobby'||this.status==='running'),volume:this.ambienceVolume,blackout:Boolean(this.atmosphere?.().blackout)});}
   musicAllowed(){return !this.disposed&&this.unlocked&&this.enabled&&this.musicEnabled&&this.musicVolume>0;}
   syncMusic(){
     const target=this.musicAllowed()?this.mode:null;
@@ -62,6 +66,7 @@ export class NullsignalAudio {
   }
   pump(){
     if(!this.alarmAllowed()){this.alarm=null;return;}
+    this.syncAmbience();
     const remaining=this.remaining?.()??0,interval=countdownInterval(remaining,this.strikes),now=performance.now()/1000;
     if(this.beepReady&&Number.isFinite(interval)){
       // A penalty immediately shortens the next interval. Never replay missed beats.
@@ -80,6 +85,6 @@ export class NullsignalAudio {
   dispose(){
     this.disposed=true;clearTimeout(this.alarm);this.alarm=null;
     for(const track of this.tracks.values()){track.pause();track.removeAttribute('src');track.load();}
-    this.tracks.clear();this.audio?.dispose();this.context?.close().catch(()=>{});
+    this.tracks.clear();this.roomAudio?.dispose();this.audio?.dispose();this.context?.close().catch(()=>{});
   }
 }

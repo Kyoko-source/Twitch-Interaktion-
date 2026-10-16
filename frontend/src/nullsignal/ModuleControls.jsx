@@ -2,6 +2,7 @@ import React from 'react';
 import {Check,ChevronLeft,ChevronRight} from 'lucide-react';
 import {Glyph,Pipe} from './Manual';
 import {GLYPHS,COLOR_HEX,COLOR_NAMES} from './glyphs';
+import {DIRECTIONS} from './modules';
 
 export function ModuleControls({module,busy,running,onAction}){
   if(!module)return <p className="nsControlHint">Klicke ein Modul an, um es zu fokussieren. Ziehen dreht die Bombe.</p>;
@@ -17,5 +18,7 @@ export function ModuleControls({module,busy,running,onAction}){
     {module.kind==='sliders'&&<><p className="nsPlateLabel">{data.mark} / Polarität {data.polarity}</p><div className="nsSliderKeys">{data.sliders.map((value,row)=><div key={row}><strong>{'ABC'[row]}</strong>{[0,1,2,3,4].map(position=><button key={position} type="button" disabled={disabled} aria-label={`Regler ${'ABC'[row]} auf ${position}`} aria-pressed={position===value} onClick={()=>act('slide',[row,position])}>{position}</button>)}</div>)}</div>{submit}</>}
     {module.kind==='pipes'&&<><div className="nsPipeKeys">{data.tiles.map((mask,i)=><button key={i} type="button" disabled={disabled} aria-label={`Rohr ${'ABC'[i%3]}${Math.floor(i/3)+1} drehen`} onClick={()=>act('rotate',i)}><Pipe mask={mask} rotation={data.rotations[i]}/></button>)}</div>{submit}</>}
     {module.kind==='vectors'&&<><p className="nsPlateLabel">A: {data.numbers[0]} · B: {data.numbers[1]} · C: {data.numbers[2]}</p><output className="nsCodeDisplay" aria-label="Eingegebener Code">{data.entered.padEnd(4,'_')}</output><div className="nsNumberKeys">{[1,2,3,4,5,6,7,8,9].map(key=><button key={key} type="button" disabled={disabled||data.entered.length>=4} aria-label={`Ziffer ${key}`} onClick={()=>act('digit',key)}>{key}</button>)}<button type="button" disabled={disabled} aria-label="Code löschen" onClick={()=>act('clear')}>C</button><button type="button" disabled={disabled||data.entered.length>=4} aria-label="Ziffer 0" onClick={()=>act('digit',0)}>0</button><button type="button" disabled={disabled||data.entered.length!==4} onClick={()=>act('submit')}>OK</button></div></>}
+    {module.kind==='capacitors'&&<><p className="nsControlHint">Ladungszahlen und Gehäusespannung beschreiben. Reihenfolge vom Experten abwarten.</p><div className="nsCapacitorKeys">{data.cells.map((charge,i)=><button type="button" key={i} disabled={disabled} aria-label={`Zelle ${i+1}, Ladung ${charge}`} aria-pressed={module.progress.includes(i)} onClick={()=>act('press',i)}><span>{'ABCD'[i]}</span><strong>{charge}</strong></button>)}</div><p className="nsControlHint">{module.progress.length} / 4 Zellen aktiviert</p></>}
+    {module.kind==='compass'&&<><p className="nsPlateLabel">{data.mark} · Referenz {DIRECTIONS[data.facing]}</p><div className="nsCompassKeys">{DIRECTIONS.map((direction,i)=><button type="button" key={i} disabled={disabled} aria-label={`Richtung ${['oben','rechts','unten','links'][i]}`} onClick={()=>act('press',i)}>{direction}</button>)}</div><p className="nsControlHint">{module.progress.length} / 3 Richtungen eingegeben</p></>}
   </section>;
 }

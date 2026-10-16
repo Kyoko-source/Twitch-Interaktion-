@@ -1,12 +1,13 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {GLYPHS,COLOR_HEX} from './glyphs';
+import {MODULE_STYLE,DIRECTIONS} from './modules';
 
 export function createDevice({steel,bomb,closed=false}) {
   const root=new T.Group(),hits=[],modules=new Map(),animated=[],textures=[];
   const materials={
-    case:new T.MeshStandardMaterial({color:'#424b50',map:steel,bumpMap:steel,bumpScale:.016,metalness:.72,roughness:.54}),
-    plate:new T.MeshStandardMaterial({color:'#555e62',map:steel,bumpMap:steel,bumpScale:.008,metalness:.58,roughness:.6}),
+    case:new T.MeshStandardMaterial({color:'#343c40',map:steel,bumpMap:steel,bumpScale:.025,metalness:.78,roughness:.4}),
+    plate:new T.MeshStandardMaterial({color:'#454e53',map:steel,bumpMap:steel,bumpScale:.012,metalness:.68,roughness:.48}),
     copper:new T.MeshStandardMaterial({color:'#b37a47',map:steel,metalness:.75,roughness:.42}),
     edge:new T.MeshStandardMaterial({color:'#68767c',metalness:.8,roughness:.55}),
     black:new T.MeshStandardMaterial({color:'#10191d',roughness:.7,metalness:.22}),
@@ -58,6 +59,18 @@ export function createDevice({steel,bomb,closed=false}) {
     const ridge=new T.Mesh(new T.TorusGeometry(.112,.008,5,16),materials.black);ridge.rotation.y=Math.PI/2;ridge.position.set(-.6+i*.07,2.36,0);root.add(ridge);
   }
   for(const x of [-1.6,1.6]){box(root,x,-1.86,.54,.3,.32,.12,materials.edge);box(root,x,-1.86,.63,.14,.2,.07,materials.copper);}
+  // Raised carrier rails and exposed service conduits add real depth around sockets.
+  for(const side of [-1,1]){
+    for(const x of [-2.02,1.42])box(root,x,0,side*.56,.045,3.38,.055,materials.edge,.012);
+    for(const y of [-1.78,.63]){
+      box(root,-.3,y,side*.56,3.34,.038,.055,materials.copper,.01);
+      for(const x of [-1.85,.95])screw(root,x,y,side*.62);
+    }
+    for(let i=0;i<3;i++){
+      const curve=new T.CatmullRomCurve3([new T.Vector3(-2.12,-1.5+i*.13,side*.52),new T.Vector3(-2.2,-.7+i*.13,side*.63),new T.Vector3(-2.17,.6+i*.13,side*.63),new T.Vector3(-1.8,1.65+i*.06,side*.52)]);
+      const conduit=new T.Mesh(new T.TubeGeometry(curve,30,.022,7,false),i===1?materials.copper:materials.rubber);conduit.castShadow=true;root.add(conduit);
+    }
+  }
   if(closed){
     box(root,0,0,.54,4.28,3.57,.16,materials.case,.09);
     for(const x of [-1.91,1.91])for(const y of [-1.55,1.55])screw(root,x,y,.646);
@@ -91,8 +104,12 @@ export function createDevice({steel,bomb,closed=false}) {
         if(side&&slot===3)label(panel,0,0,.075,1.35,.64,'N S  /  24',{size:90,color:'#919f96'});
         continue;
       }
+      const tint=MODULE_STYLE[m.kind]?.color||'#ffa85b';
+      const identityMaterial=new T.MeshStandardMaterial({color:tint,emissive:tint,emissiveIntensity:.18,roughness:.4,metalness:.4});
+      box(panel,-.824,0,.044,.018,.8,.015,identityMaterial,.004);
+      box(panel,0,-.513,.045,1.28,.012,.015,materials.edge,.003);
       hit(plate,m.id);
-      label(panel,-.05,.427,.044,1.25,.12,m.name.toUpperCase(),{size:44,color:'#d3d9d0'});
+      label(panel,-.05,.427,.044,1.25,.12,m.name.toUpperCase(),{size:44,color:tint});
       const led=new T.Mesh(new T.SphereGeometry(.032,12,8),materials.red.clone());led.position.set(.67,.42,.08);panel.add(led);
       const outline=new T.LineSegments(new T.EdgesGeometry(new RoundedBoxGeometry(1.7,1.1,.08,1,.04)),new T.LineBasicMaterial({color:'#ff9c52',transparent:true,opacity:0}));outline.position.z=.018;panel.add(outline);
       const item={panel,led,outline,kind:m.kind,buttons:[],values:[],labels:[]};modules.set(m.id,item);
@@ -150,6 +167,20 @@ export function createDevice({steel,bomb,closed=false}) {
         });
         label(panel,-.67,-.04,.075,.13,.12,'→',{size:80,color:'#ffb466'});label(panel,.67,-.04,.075,.13,.12,'→',{size:80,color:'#ffb466'});
         button(panel,m.id,0,-.43,.7,.14,'PRÜFEN','submit',null,{size:40});
+      }else if(m.kind==='capacitors'){
+        data.cells.forEach((charge,i)=>{
+          const xx=-.54+i*.36;
+          cylinder(panel,xx,.02,.09,.13,.15,materials.black);
+          const cell=button(panel,m.id,xx,.02,.28,.48,String(charge),'press',i,{size:120,ink:'#f5df95'});item.buttons.push(cell);
+          label(panel,xx,-.31,.075,.24,.1,'ABCD'[i],{size:50,color:'#becbc4'});
+        });
+        item.stage=label(panel,0,.29,.075,.8,.1,'0 / 4',{size:42,color:tint});
+      }else if(m.kind==='compass'){
+        label(panel,-.46,.27,.075,.42,.14,data.mark,{size:62,color:tint});
+        label(panel,.34,.27,.075,.67,.14,`REF ${DIRECTIONS[data.facing]}`,{size:60,color:'#d8e6ef'});
+        const points=[[0,.08],[.4,-.1],[0,-.29],[-.4,-.1]];
+        points.forEach(([xx,yy],i)=>item.buttons.push(button(panel,m.id,xx,yy,.29,.17,DIRECTIONS[i],'press',i,{size:100,ink:'#bad4ff'})));
+        item.stage=label(panel,0,-.44,.075,.65,.09,'0 / 3',{size:42,color:tint});
       }else if(m.kind==='vectors'){
         label(panel,-.45,.27,.075,.7,.13,`A${data.numbers[0]} B${data.numbers[1]} C${data.numbers[2]}`,{size:35,color:'#bdc6bb'});
         item.labels.push(label(panel,.42,.26,.075,.55,.15,'____',{size:70,color:'#ffb466'}));

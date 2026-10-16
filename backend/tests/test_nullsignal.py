@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from app.economy import EconomyStore
 from app.nullsignal import NullsignalStore, GRACE
-from app.nullsignal_puzzles import generate, apply_action, MISSIONS
+from app.nullsignal_puzzles import generate, apply_action, MISSIONS, MODULES
 from app import main, auth, nullsignal
 
 
@@ -83,6 +83,12 @@ def solution(module, manual, facts):
         w = rules["weights"]
         code = [w[0]*a+b, w[1]*b+c, w[2]*c+a, w[3]*s+b]
         return [("digit", number % 10) for number in code]+[("submit", None)]
+    if kind == "capacitors":
+        order = sorted(range(4), key=lambda i: data["cells"][i], reverse=rules[f"v{facts['voltage']}"] == "descending")
+        return [("press", i) for i in order]
+    if kind == "compass":
+        row = next(row for row in rules["rows"] if row["mark"] == data["mark"])
+        return [("press", (direction+data["facing"]) % 4) for direction in row["directions"]]
     raise AssertionError(kind)
 
 
@@ -93,7 +99,9 @@ class NullsignalTests(unittest.TestCase):
         self.ledger.mark_ready(["alice", "bob"])
         self.store = NullsignalStore(self.ledger)
         self.now = 100000
-        self.host = self.store.create("alice", "blackout", self.now)
+        # Stable fixture includes the particular wire/frequency modules used below.
+        with patch("app.nullsignal.generate", side_effect=lambda mission: generate(mission, 3)):
+            self.host = self.store.create("alice", "blackout", self.now)
         self.id = self.host["room_id"]
 
     def tearDown(self):
@@ -129,15 +137,42 @@ class NullsignalTests(unittest.TestCase):
         return self.host
 
     def test_every_module_is_solvable_from_manual_across_100_seeds(self):
+        seen = set()
         for seed in range(100):
             bomb = generate("blackout", seed)
             for module in bomb["modules"]:
+                seen.add(module["kind"])
                 with self.subTest(seed=seed, kind=module["kind"]):
                     visible = {key: copy.deepcopy(module[key]) for key in ["id", "kind", "data"]}
                     steps = solution(visible, {"manual": module["manual"]}, bomb)
                     for operation, value in steps:
                         self.assertNotEqual(apply_action(module, operation, value), "bad")
                     self.assertTrue(module["solved"])
+        self.assertEqual(seen, {kind for kind, _ in MODULES})
+
+    def test_all_missions_randomize_unique_module_selection_and_order(self):
+        for mission, spec in MISSIONS.items():
+            samples = [generate(mission, seed) for seed in range(100)]
+            combinations = set()
+            for bomb in samples:
+                ids = [module["id"] for module in bomb["modules"]]
+                self.assertEqual(len(ids), spec["modules"])
+                self.assertEqual(len(ids), len(set(ids)))
+                combinations.add(tuple(sorted(ids)))
+            self.assertGreater(len(combinations), 10)
+            self.assertEqual({m["kind"] for b in samples for m in b["modules"]}, {kind for kind, _ in MODULES})
+            self.assertEqual(generate(mission, 42), generate(mission, 42))
+
+    def test_new_sequence_modules_reject_wrong_input_and_reset_progress(self):
+        for kind in ("capacitors", "compass"):
+            module = next(m for seed in range(100) for m in generate("blackout", seed)["modules"] if m["kind"] == kind)
+            correct = module["answer"]
+            self.assertEqual(apply_action(module, "press", correct[0]), "neutral")
+            self.assertEqual(apply_action(module, "press", (correct[1]+1) % 4), "bad")
+            self.assertEqual(module["progress"], [])
+            for value in correct:
+                apply_action(module, "press", value)
+            self.assertTrue(module["solved"])
 
     def test_guest_without_account_gets_only_manual_host_never_gets_rules_or_answers(self):
         expert = self.join()
@@ -199,8 +234,8 @@ class NullsignalTests(unittest.TestCase):
 
     def test_duplicate_wrong_action_strikes_once_even_concurrently(self):
         self.start()
-        wire = self.host["bomb"]["modules"][0]
-        manual = self.store.get(self.id, "expert", self.token, self.now)["manual"][0]
+        wire = next(m for m in self.host["bomb"]["modules"] if m["kind"] == "wires")
+        manual = next(m for m in self.store.get(self.id, "expert", self.token, self.now)["manual"] if m["kind"] == "wires")
         correct = solution(wire, manual, self.host["bomb"])[0][1]
         wrong = (correct+1) % len(wire["data"]["wires"])
         key = uuid4().hex
@@ -214,9 +249,9 @@ class NullsignalTests(unittest.TestCase):
 
     def test_three_mistakes_explode_and_do_not_pay_or_record_win(self):
         self.start()
-        frequency = self.host["bomb"]["modules"][2]
+        frequency = next(m for m in self.host["bomb"]["modules"] if m["kind"] == "frequency")
         expert = self.store.get(self.id,"expert",self.token,self.now)
-        correct = solution(frequency,expert["manual"][2],self.host["bomb"])[0][1]
+        correct = solution(frequency,next(m for m in expert["manual"] if m["kind"] == "frequency"),self.host["bomb"])[0][1]
         self.act("frequency","tune",(correct+1)%9)
         for _ in range(3):
             self.act("frequency","submit")
@@ -312,7 +347,7 @@ class NullsignalTests(unittest.TestCase):
                 self.act("wires",operation,value)
         current = self.store.get(self.id,"host","alice",self.now)
         self.assertEqual(current["strikes"],0)
-        self.assertEqual(current["bomb"]["modules"][0]["data"]["cut"],[])
+        self.assertEqual(next(m for m in current["bomb"]["modules"] if m["kind"] == "wires")["data"]["cut"],[])
 
     def test_two_pills_per_round_idempotent_consumption_and_rematch_refill(self):
         self.start()

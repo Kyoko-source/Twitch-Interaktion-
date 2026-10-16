@@ -30,7 +30,7 @@ async function attach(page,host){
     return route.fulfill({json:uri.pathname==='/api/auth/me'?{user:host?{username:'NullsignalQA',role:'member',chickens:0}:null}:uri.pathname==='/api/dashboard'?{stats:{},leaderboard:[],active_members:[],news:[],events:[]}:[]});
   });
 }
-async function createLobby(browser,request,{mission='blackout',mobile=false}={}){
+async function createLobby(browser,request,{mission='blackout',mobile=false,required=[]}={}){
   // Close only this isolated test identity's earlier disposable rooms.
   for(let i=0;i<4;i++){const prior=await backend(request,'/rooms/active');if(!prior)break;await backend(request,`/rooms/${prior.room_id}/control`,{method:'POST',data:{command:'close'}});}
   const viewport=mobile?{width:390,height:844}:{width:1536,height:1024};
@@ -40,7 +40,15 @@ async function createLobby(browser,request,{mission='blackout',mobile=false}={})
   await host.goto('/#games/nullsignal');await expect(host.getByRole('button',{name:'Lobby erstellen',exact:true})).toBeEnabled();
   const title={contact:'Erstkontakt',incident:'Störfall',blackout:'Blackout'}[mission];await host.getByRole('button',{name:new RegExp(`^${title}.*Module`)}).click();
   await host.getByRole('button',{name:'Lobby erstellen',exact:true}).click();await expect(host.getByLabel('Einladungslink')).toBeVisible();
-  const invite=await host.getByLabel('Einladungslink').inputValue(),id=invite.split('/').at(-2);rooms.add(id);
+  let invite=await host.getByLabel('Einladungslink').inputValue(),id=invite.split('/').at(-2);rooms.add(id);
+  // Reroll only isolated QA rooms for scenarios that exercise a specific module.
+  let state=await backend(request,`/rooms/${id}/host`),rerolled=false;
+  for(let attempt=0;!required.every(kind=>state.bomb.modules.some(m=>m.kind===kind))&&attempt<50;attempt++){
+    await backend(request,`/rooms/${id}/control`,{method:'POST',data:{command:'close'}});rooms.delete(id);
+    state=await backend(request,'/rooms',{method:'POST',data:{mission}});id=state.room_id;rooms.add(id);rerolled=true;
+  }
+  expect(required.every(kind=>state.bomb.modules.some(m=>m.kind===kind))).toBe(true);
+  if(rerolled){await host.reload();await expect(host.getByLabel('Einladungslink')).toHaveValue(new RegExp(id));invite=await host.getByLabel('Einladungslink').inputValue();}
   return {host,guest,hc,gc,invite,id,errors};
 }
 async function joinGuest(game,name='Alex'){
@@ -78,15 +86,17 @@ function solution(module,rules,facts){
         for(let extra=0;extra<4;extra++){const n=(data.rotations[index]+extra)%4,base=data.tiles[index],rotated=((base<<n)|(base>>(4-n)))&15;if(rotated===mask){for(let step=0;step<extra;step++)actions.push(['rotate',index]);break;}}
       });return actions.concat([['submit',null]]);}
     case 'vectors':{const [a,b,c]=data.numbers,[w,x,y,z]=rules.weights,s=Number(facts.serial.at(-1));return [w*a+b,x*b+c,y*c+a,z*s+b].map(value=>['digit',value%10]).concat([['submit',null]]);}
+    case 'capacitors':return [...data.cells.keys()].sort((a,b)=>rules[`v${facts.voltage}`]==='ascending'?data.cells[a]-data.cells[b]:data.cells[b]-data.cells[a]).map(i=>['press',i]);
+    case 'compass':return rules.rows.find(row=>row.mark===data.mark).directions.map(d=>['press',(d+data.facing)%4]);
     default:throw new Error(module.kind);
   }
 }
 
 test.afterEach(async({request})=>{for(const id of rooms)await backend(request,`/rooms/${id}/control`,{method:'POST',data:{command:'close'}}).catch(()=>{});rooms.clear();for(const context of contexts){for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await context.close();}contexts.length=0;});
 
-test('two real browsers: private manual, genuine 3D cable cut, all eight modules, result, reward and rematch',async({browser,request})=>{
+test('two real browsers: private manual, genuine 3D controls including new modules, result, reward and rematch',async({browser,request})=>{
   test.setTimeout(180000);
-  const game=await createLobby(browser,request),token=await joinGuest(game),{host,guest,id,errors}=game;
+  const game=await createLobby(browser,request,{required:['wires','capacitors','compass']}),token=await joinGuest(game),{host,guest,id,errors}=game;
   const initial=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}});
   expect(manual.bomb).toBeUndefined();expect(initial.manual).toBeUndefined();expect(JSON.stringify(initial)).not.toContain('"answer"');expect(JSON.stringify(manual)).not.toContain(initial.bomb.serial);
   expect(await guest.locator('.nsViewport canvas').count()).toBe(0);expect(await guest.evaluate(()=>localStorage.getItem('aviary_token'))).toBeNull();
@@ -97,6 +107,7 @@ test('two real browsers: private manual, genuine 3D cable cut, all eight modules
   await host.waitForTimeout(500);await host.screenshot({path:join(tmpdir(),'nullsignal-host-desktop.png')});await guest.screenshot({path:join(tmpdir(),'nullsignal-manual-desktop.png')});
   const began=Date.now();
   for(const module of initial.bomb.modules){
+    if(module.id===initial.bomb.modules.at(-1).id&&Date.now()-began<16000)await host.waitForTimeout(16000-(Date.now()-began));
     const rules=manual.manual.find(m=>m.id===module.id).manual,steps=solution(module,rules,initial.bomb);
     let physicalUsed=false;
     if(module.kind==='wires'){
@@ -117,6 +128,8 @@ test('two real browsers: private manual, genuine 3D cable cut, all eight modules
         else if(module.kind==='sliders'&&operation==='slide')await uiAction(host,host.getByRole('button',{name:`Regler ${'ABC'[value[0]]} auf ${value[1]}`,exact:true}));
         else if(module.kind==='pipes'&&operation==='rotate')await uiAction(host,host.getByRole('button',{name:`Rohr ${'ABC'[value%3]}${Math.floor(value/3)+1} drehen`,exact:true}));
         else if(module.kind==='vectors'&&operation==='digit')await uiAction(host,host.getByRole('button',{name:`Ziffer ${value}`,exact:true}));
+        else if(module.kind==='capacitors')await uiAction(host,host.getByRole('button',{name:`Zelle ${value+1}, Ladung ${module.data.cells[value]}`,exact:true}));
+        else if(module.kind==='compass')await uiAction(host,host.getByRole('button',{name:`Richtung ${['oben','rechts','unten','links'][value]}`,exact:true}));
         else if(operation==='submit'){
           if(module.kind==='vectors'&&Date.now()-began<16000)await host.waitForTimeout(16000-(Date.now()-began));
           await uiAction(host,host.getByRole('button',{name:module.kind==='frequency'?'Senden':module.kind==='vectors'?'OK':'Prüfen',exact:true}));
@@ -131,6 +144,34 @@ test('two real browsers: private manual, genuine 3D cable cut, all eight modules
   await expect(guest.locator('.nsExpertStatus')).toContainText('Gemeinsam entschärft');await host.screenshot({path:join(tmpdir(),'nullsignal-result-desktop.png')});
   await host.getByRole('button',{name:'Neue Runde',exact:true}).click();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','lobby');await expect(guest.getByRole('button',{name:'Ich bin bereit',exact:true})).toBeVisible();
   expect((await backend(request,`/rooms/${id}/host`)).round_id).not.toBe(result.round_id);expect(errors).toEqual([]);
+});
+
+test('expert field manual has searchable colored chapters, correct generated rules and unlabelled glyphs',async({browser,request})=>{
+  const game=await createLobby(browser,request,{required:['wires','glyphs','frequency','capacitors','compass']}),{guest,errors}=game;await joinGuest(game,'Manual expert');
+  const nav=guest.getByRole('navigation',{name:'Handbuchinhalt'}),paper=guest.getByRole('article',{name:'Entschärfungshandbuch'});
+  await guest.getByLabel('Modul suchen',{exact:true}).fill('Kabel');await expect(nav.getByRole('button')).toHaveCount(1);await nav.getByRole('button',{name:/Kabelmatrix/}).click();
+  await expect(paper.getByRole('heading',{name:'Kabelmatrix',exact:true})).toBeVisible();expect(await paper.evaluate(e=>getComputedStyle(e).backgroundColor)).toBe('rgb(255, 255, 255)');
+  await expect(paper).toContainText('01 · Beobachten');await expect(paper).toContainText('02 · Entscheiden');await expect(paper.locator('.nsDecisionRules li')).toHaveCount(4);await expect(paper.locator('.nsWorkedExample')).toContainText('Regel 1 gilt');await guest.screenshot({path:join(tmpdir(),'nullsignal-v3-manual-desktop.png')});
+  await guest.getByLabel('Modul suchen',{exact:true}).fill('nichtvorhanden');await expect(nav).toContainText('Kein Modul gefunden');await guest.getByLabel('Modul suchen',{exact:true}).fill('');
+  await guest.screenshot({path:join(tmpdir(),'nullsignal-v3-manual-desktop.png')});
+  for(const kind of ['capacitors','compass','frequency','glyphs']){
+    const names={capacitors:'Energiebank',compass:'Richtungskern',frequency:'Frequenzkern',glyphs:'Glyphenfeld'};await nav.getByRole('button',{name:new RegExp(names[kind])}).click();await expect(paper.getByRole('heading',{name:names[kind],exact:true})).toBeVisible();await expect(paper.locator('.nsCommsTip')).toBeVisible();
+    if(kind==='glyphs'){expect(await paper.locator('.nsGlyphColumns>div>div').count()).toBe(24);expect(await paper.locator('.nsGlyphColumns>div>div').allTextContents()).toEqual(Array(24).fill(''));}
+  }
+  expect(errors).toEqual([]);
+});
+
+test('room ambience starts on gesture, changes at outage, follows its volume, pause and global mute',async({browser,request})=>{
+  const game=await createLobby(browser,request,{mission:'contact'}),{host,id,errors}=game;
+  await host.addInitScript(()=>{window.roomProof=[];const C=window.AudioContext||window.webkitAudioContext,create=C.prototype.createBufferSource;C.prototype.createBufferSource=function(...args){const source=create.apply(this,args),start=source.start.bind(source);source.start=(...args)=>{if(source.loop){const entry={ended:false,duration:source.buffer?.duration};window.roomProof.push(entry);source.addEventListener('ended',()=>entry.ended=true);}return start(...args);};return source;};});
+  await host.reload();await expect(host.getByLabel('Einladungslink')).toBeVisible();await host.getByRole('button',{name:'Ton einschalten',exact:true}).click();
+  const loops=()=>host.evaluate(()=>window.roomProof.filter(s=>!s.ended).length);await expect.poll(loops).toBe(1);
+  await host.getByLabel('Audio-Einstellungen',{exact:true}).click();await host.getByLabel('Raumklang-Lautstärke',{exact:true}).press('Home');await expect.poll(loops).toBe(0);await host.getByLabel('Raumklang-Lautstärke',{exact:true}).press('ArrowRight');await expect.poll(loops).toBe(1);await host.getByLabel('Audio-Einstellungen',{exact:true}).click();
+  await joinGuest(game,'Room expert');await start(game);const before=await host.evaluate(()=>window.roomProof.length);
+  let blackout=true;await host.route('**/api/nullsignal/rooms/*/host',async route=>{const response=await route.fetch({url:API+new URL(route.request().url()).pathname}),state=await response.json();if(state.status==='running')state.atmosphere={...state.atmosphere,played:blackout?43:60,outage_start:40};return route.fulfill({response,json:state});});
+  await expect(host.locator('.nsAtmosphere')).toHaveAttribute('data-blackout','true');await expect.poll(()=>host.evaluate(()=>window.roomProof.length)).toBeGreaterThan(before);await expect.poll(loops).toBe(1);
+  await host.getByRole('button',{name:'Spiel stummschalten',exact:true}).click();await expect.poll(loops).toBe(0);await host.getByRole('button',{name:'Spielton einschalten',exact:true}).click();await expect.poll(loops).toBe(1);
+  await host.getByRole('button',{name:'Mission pausieren',exact:true}).click();await expect(host.locator('.nsGame')).toHaveAttribute('data-status','paused');await expect.poll(loops).toBe(0);expect(errors).toEqual([]);
 });
 
 test('lost join response reconnects without an account; occupied invite cannot replace guest; host reload recovers lobby',async({browser,request})=>{
@@ -154,12 +195,12 @@ test('connection loss pauses real server clock and reconnect can resume the same
 });
 
 test('mobile: full 3D host, eight readable manual chapters, touch controls and no overflow',async({browser,request})=>{
-  const game=await createLobby(browser,request,{mobile:true}),token=await joinGuest(game,'Mobile expert');await start(game);
+  const game=await createLobby(browser,request,{mobile:true,required:['wires','vectors']}),token=await joinGuest(game,'Mobile expert');await start(game);
   const {host,guest,id}=game;await expect(guest.getByLabel('Handbuchkapitel')).toBeVisible();await guest.getByLabel('Handbuchkapitel').selectOption('vectors');await expect(guest.getByRole('article',{name:'Entschärfungshandbuch'})).toContainText('Berechne einen vierstelligen Code');
   expect(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await guest.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await host.locator('.nsGame').evaluate(element=>element.getBoundingClientRect().width)).toBe(390);
   expect(await host.locator('.nsPlay').evaluate(element=>element.scrollTop)).toBe(0);
   await host.screenshot({path:join(tmpdir(),'nullsignal-host-mobile.png')});await guest.screenshot({path:join(tmpdir(),'nullsignal-manual-mobile.png')});
-  const state=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}}),steps=solution(state.bomb.modules[0],manual.manual[0].manual,state.bomb);
+  const state=await backend(request,`/rooms/${id}/host`),manual=await backend(request,`/rooms/${id}/expert`,{headers:{'X-Nullsignal-Token':token}}),wire=state.bomb.modules.find(m=>m.kind==='wires'),steps=solution(wire,manual.manual.find(m=>m.id===wire.id).manual,state.bomb);
   await host.getByRole('navigation',{name:'Bombenmodule'}).getByRole('button',{name:/Kabelmatrix/}).tap();const canvas=host.locator('.nsViewport canvas');await canvas.scrollIntoViewIfNeeded();await host.waitForTimeout(600);
   const target=await canvas.evaluate((c,value)=>c.__nullsignalScene.targets().find(t=>t.id==='wires'&&t.operation==='cut'&&t.value===value&&t.inView),steps[0][1]);expect(target).toBeTruthy();await Promise.all([host.waitForResponse(r=>r.url().endsWith('/action')),canvas.tap({position:{x:target.x,y:target.y}})]);
   await expect.poll(async()=>(await backend(request,`/rooms/${id}/host`)).solved).toBe(1);expect(game.errors).toEqual([]);
@@ -252,7 +293,7 @@ test('drag rotates only the case in lobby and mission; table and camera stay fix
   await joinGuest(game,'Steady table');await start(game);const beforeGame=await transforms();await drag();const afterGame=await transforms();expect(afterGame.deviceRotation).not.toEqual(beforeGame.deviceRotation);expect(afterGame.tableCorners).toEqual(beforeGame.tableCorners);expect(afterGame.cameraRotation).toEqual(beforeGame.cameraRotation);expect((await backend(request,`/rooms/${id}/host`)).strikes).toBe(0);await host.screenshot({path:join(tmpdir(),'nullsignal-fixed-table-game.png')});
   await checkZoomLimit();await host.screenshot({path:join(tmpdir(),'nullsignal-zoom-limit-desktop.png')});
   await host.getByRole('button',{name:'Rückseite',exact:true}).click();await host.waitForTimeout(550);const back=await transforms();expect(back.deviceRotation).not.toEqual(afterGame.deviceRotation);expect(back.cameraRotation.map(value=>Number(value.toFixed(8)))).toEqual(beforeGame.cameraRotation.map(value=>Number(value.toFixed(8))));
-  await host.getByRole('navigation',{name:'Bombenmodule'}).getByRole('button',{name:/Kreislauf/}).click();await host.waitForTimeout(550);expect((await canvas.evaluate(canvas=>canvas.__nullsignalScene.targets())).some(target=>target.id==='pipes'&&target.inView)).toBe(true);const focused=await transforms();expect(focused.cameraRotation.map(value=>Number(value.toFixed(8)))).toEqual(beforeGame.cameraRotation.map(value=>Number(value.toFixed(8))));await host.screenshot({path:join(tmpdir(),'nullsignal-fixed-table-back-focus.png')});expect(errors).toEqual([]);
+  const rear=(await backend(request,`/rooms/${id}/host`)).bomb.modules.at(-1);await host.getByRole('navigation',{name:'Bombenmodule'}).getByRole('button',{name:new RegExp(rear.name)}).click();await host.waitForTimeout(550);expect((await canvas.evaluate(canvas=>canvas.__nullsignalScene.targets())).some(target=>target.id===rear.id&&target.inView)).toBe(true);const focused=await transforms();expect(focused.cameraRotation.map(value=>Number(value.toFixed(8)))).toEqual(beforeGame.cameraRotation.map(value=>Number(value.toFixed(8))));await host.screenshot({path:join(tmpdir(),'nullsignal-fixed-table-back-focus.png')});expect(errors).toEqual([]);
 });
 
 test('touch drag turns only the bomb and two-finger zoom does not tilt the workbench',async({browser,request})=>{
@@ -269,7 +310,7 @@ test('touch drag turns only the bomb and two-finger zoom does not tilt the workb
 
 test('power failure lights actual 3D surfaces; hallucination yields to pills and legacy scare events stay disabled',async({browser,request})=>{
   test.setTimeout(90000);
-  const game=await createLobby(browser,request,{mission:'contact'}),{host,guest,id,errors}=game;
+  const game=await createLobby(browser,request,{mission:'contact',required:['glyphs']}),{host,guest,id,errors}=game;
   host.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   await host.addInitScript(()=>{
     window.fearSamples=[];const C=window.AudioContext||window.webkitAudioContext,create=C.prototype.createBufferSource;

@@ -7,6 +7,7 @@ MODULES = [
     ("frequency", "Frequenzkern"), ("sequence", "Impulsfolge"),
     ("relays", "Relaiswerk"), ("sliders", "Phasenregler"),
     ("pipes", "Kreislauf"), ("vectors", "Vektorschloss"),
+    ("capacitors", "Energiebank"), ("compass", "Richtungskern"),
 ]
 MISSIONS = {
     "contact": {"id": "contact", "name": "Erstkontakt", "modules": 3, "seconds": 180, "reward": 6, "level": "Einstieg"},
@@ -23,7 +24,7 @@ def generate(mission, seed=None):
     digit = int(serial[-1])
     facts = {"serial": serial, "coolant": rng.choice(["KALT", "WARM"]), "voltage": rng.choice([18, 24])}
     modules = []
-    for kind, name in MODULES[:MISSIONS[mission]["modules"]]:
+    for kind, name in rng.sample(MODULES, MISSIONS[mission]["modules"]):
         item = {"id": kind, "kind": kind, "name": name, "solved": False, "progress": [], "data": {}, "manual": {}}
         data, manual = item["data"], item["manual"]
         if kind == "wires":
@@ -100,6 +101,18 @@ def generate(mission, seed=None):
             manual["weights"] = weights
             a, b, c = numbers
             item["answer"] = "".join(str(value % 10) for value in [weights[0]*a+b, weights[1]*b+c, weights[2]*c+a, weights[3]*digit+b])
+        elif kind == "capacitors":
+            cells = rng.sample(range(1, 10), 4)
+            orders = rng.sample(["ascending", "descending"], 2)
+            data.update(cells=cells)
+            manual.update(v18=orders[0], v24=orders[1])
+            item["answer"] = sorted(range(4), key=lambda i: cells[i], reverse=manual[f"v{facts['voltage']}"] == "descending")
+        elif kind == "compass":
+            rows = [{"mark": mark, "directions": [rng.randrange(4) for _ in range(3)]} for mark in ["KA", "KB", "KC", "KD", "KE", "KF"]]
+            chosen = rng.choice(rows)
+            data.update(mark=chosen["mark"], facing=rng.randrange(4))
+            manual["rows"] = rows
+            item["answer"] = [(direction+data["facing"]) % 4 for direction in chosen["directions"]]
         modules.append(item)
     return {**facts, "modules": modules}
 
@@ -180,6 +193,15 @@ def apply_action(module, operation, value):
         good = data["entered"] == module["answer"]
         if not good:
             data["entered"] = ""
+    elif kind in ("capacitors", "compass") and operation == "press":
+        i = index(4)
+        if i != module["answer"][len(progress)]:
+            progress.clear()
+            return "bad"
+        progress.append(i)
+        good = len(progress) == len(module["answer"])
+        if not good:
+            return "neutral"
     else:
         raise ValueError("Diese Aktion gibt es an diesem Modul nicht.")
     if good:

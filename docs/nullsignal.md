@@ -17,9 +17,16 @@ fordert kein Mikrofon an und überträgt keine Sprachaufnahmen.
    außerdem acht Sekunden. Eine neue Runde erzeugt neue Daten und Handbuchregeln.
 
 Erstkontakt: 3 Module, 3 Minuten. Störfall: 6 Module, 5 Minuten. Blackout:
-8 Module auf Vorder- und Rückseite, 6 Minuten. Alle acht Modularten haben eigene
+8 Module auf Vorder- und Rückseite, 6 Minuten. Jede Runde zieht ohne Duplikate
+3 / 6 / 8 Module aus zehn Typen und mischt ihre Reihenfolge auf den Steckplätzen.
+Auch Blackout enthält dadurch wechselnde Zusammenstellungen. Alle Modularten haben eigene
 Regeln und Interaktionen: Kabel, Glyphen, Frequenzen, dreistufige Tastenfolge,
-Relais, gespiegelte Regler, drehbare Rohrverbindungen und ein Rechenschloss.
+Relais, gespiegelte Regler, drehbare Rohrverbindungen, ein Rechenschloss,
+eine nach Gehäusespannung geordnete Energiebank und einen Richtungskern mit
+gedrehten Pfeilfolgen. Daten und Handbuchregeln entstehen weiterhin gemeinsam
+auf dem Server. Bereits gespeicherte Runden behalten ihre vorhandenen Module.
+Das neue Handbuch besitzt eine Kapitelsuche, Farben und Icons pro Modul,
+Beobachten-/Entscheiden-Schritte, Rechen- und Bedienbeispiele und Gesprächshilfen.
 Das Glyphenfeld im Expertenhandbuch zeigt ausschließlich die Symbole ohne
 sichtbare Namen; die Spalten A–D bleiben zur Orientierung erhalten.
 
@@ -117,6 +124,15 @@ und den 3D-Effekt aus. Es werden keine verpassten Pieptöne nachgeholt.
 Der eigene kurze WAV-Piepton lässt sich mit
 `node frontend/scripts/generate-nullsignal-beep.mjs` reproduzieren.
 
+Zusätzlich gibt es leisen, nichtmusikalischen Raumklang aus Regen-/Lüftungstexturen
+und unregelmäßigen mechanischen Klicks. Bei Notstrom wechselt die Textur sanft
+zu einer ruhigeren Variante. Die Original-WAVs lassen sich mit
+`node frontend/scripts/generate-nullsignal-ambience.mjs` reproduzieren.
+„Raumklang“ hat einen eigenen, lokal gespeicherten Lautstärkeregler; 0 schaltet
+ihn vollständig aus. Pause, Ergebnis, globale Stummschaltung und Verlassen stoppen
+die Quellen. Der Experte bekommt keinen automatischen Raumklang. Browser benötigen
+weiterhin eine erste Benutzerinteraktion zum Freigeben des Tons.
+
 In `frontend/public/music/nullsignal/` genau diese optionalen Dateien ablegen:
 
 - `menu.mp3`: Nullsignal-Hauptmenü und Lobby.
@@ -173,7 +189,7 @@ Musik und Countdown folgen weiterhin ihren bisherigen Einstellungen.
 ## Prüfung
 
 Backend: `python -m unittest discover -s tests` im Backend-Container. Die
-Nullsignal-Tests prüfen unter anderem alle acht Module über 100 Seeds anhand
+Nullsignal-Tests prüfen unter anderem alle zehn Module über 100 Seeds anhand
 der getrennten sichtbaren Daten und Handbuchregeln, Rollen, gleichzeitigen
 Beitritt, Wiederholungen, Auszahlungen, Rekorde, Pausen und Wiederherstellung.
 
