@@ -19,6 +19,7 @@ var source: AudioStreamPlayer3D
 var mesh_cache := {}
 var last_sound := 0
 var atmosphere: NurseryAtmosphere
+var native_art: NativeArt
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -57,13 +58,13 @@ func box(parent: Node3D, pos: Vector3, size: Vector3, material: Material, solid:
  return mesh
 
 func tube(parent: Node3D, a: Vector3, b: Vector3, radius: float, material: Material) -> MeshInstance3D:
- var mesh:=MeshInstance3D.new();var shape:=CylinderMesh.new();shape.top_radius=radius;shape.bottom_radius=radius;shape.height=a.distance_to(b);shape.radial_segments=14;mesh.mesh=shape;mesh.material_override=material;mesh.position=(a+b)*.5;parent.add_child(mesh)
+ var mesh:=MeshInstance3D.new();var shape:=CylinderMesh.new();shape.top_radius=radius;shape.bottom_radius=radius;shape.height=a.distance_to(b);shape.radial_segments=14 if OS.has_feature("web") else 32;mesh.mesh=shape;mesh.material_override=material;mesh.position=(a+b)*.5;parent.add_child(mesh)
  var direction:=(b-a).normalized()
  if absf(direction.dot(Vector3.UP))<.999: mesh.quaternion=Quaternion(Vector3.UP,direction)
  return mesh
 
 func sphere(parent: Node3D, pos: Vector3, radius: float, material: Material) -> MeshInstance3D:
- var mesh:=MeshInstance3D.new();var shape:=SphereMesh.new();shape.radius=radius;shape.height=radius*2;shape.radial_segments=16;shape.rings=8;mesh.mesh=shape;mesh.material_override=material;mesh.position=pos;parent.add_child(mesh);return mesh
+ var mesh:=MeshInstance3D.new();var shape:=SphereMesh.new();shape.radius=radius;shape.height=radius*2;shape.radial_segments=16 if OS.has_feature("web") else 40;shape.rings=8 if OS.has_feature("web") else 20;mesh.mesh=shape;mesh.material_override=material;mesh.position=pos;parent.add_child(mesh);return mesh
 
 func text(parent: Node3D, value: String, pos: Vector3, size: float, color: Color=Color("e6dbc1")) -> Label3D:
  var label:=Label3D.new();label.text=value;label.font_size=64;label.pixel_size=size/64;label.position=pos;label.modulate=color;label.outline_size=0;label.no_depth_test=false;label.shaded=false;parent.add_child(label);return label
@@ -80,7 +81,10 @@ func build() -> void:
  materials.wall.uv1_triplanar=true;materials.wall.uv1_scale=Vector3.ONE*.5
  _environment();_architecture(rubber);_play_structure();_reception();_party_room();_service();_doors();_details()
  atmosphere=NurseryAtmosphere.new();add_child(atmosphere);atmosphere.build(self)
+ if not OS.has_feature("web"):
+  native_art=NativeArt.new();add_child(native_art);native_art.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
+ if native_art: source.bus="Interior"
 
 func _environment() -> void:
  environment=WorldEnvironment.new();var env:=Environment.new();env.background_mode=Environment.BG_COLOR;env.background_color=Color("071014");env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.ambient_light_color=Color("738c8b");env.ambient_light_energy=.16;env.tonemap_mode=Environment.TONE_MAPPER_FILMIC;env.fog_enabled=true;env.fog_light_color=Color("35433b");env.fog_light_energy=.55;env.fog_density=.025;environment.environment=env;add_child(environment)
@@ -91,6 +95,7 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(0,-.138,-1),Vector3(21,.3,24),materials.dark,true).hide()
  # Four instanced tile materials keep the floor inexpensive to render.
  var colors: Array[Color]=[Color("38413e"),Color("3c423d"),Color("343d3b"),Color("41443e")]
+ props.floor_tiles=[]
  for color_index in range(4):
   var transforms: Array[Transform3D]=[]
   for x in range(20):
@@ -99,6 +104,7 @@ func _architecture(rubber: Texture2D) -> void:
   var instance:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;var tile:=BoxMesh.new();tile.size=Vector3(.987,.04,.987);mm.mesh=tile;mm.instance_count=transforms.size()
   for i in range(transforms.size()): mm.set_instance_transform(i,transforms[i])
   instance.multimesh=mm;instance.material_override=mat(colors[color_index],rubber,.26,.16);add_child(instance)
+  props.floor_tiles.append(instance)
  box(self,Vector3(-10.2,2.7,-1),Vector3(.3,5.4,24),materials.wall,true)
  box(self,Vector3(10.2,2.7,-1),Vector3(.3,5.4,24),materials.wall,true)
  box(self,Vector3(0,2.7,-12.2),Vector3(20.4,5.4,.3),materials.wall,true)
@@ -175,15 +181,16 @@ func _play_structure() -> void:
  giant.position.x-=.6;loose.position.x-=.6
 
 func _reception() -> void:
- box(self,Vector3(-8.45,.56,5.4),Vector3(2.65,1.12,4.5),materials.cream,true)
- box(self,Vector3(-8.45,1.15,5.4),Vector3(2.85,.13,4.7),materials.wood)
+ props.counter_base=box(self,Vector3(-8.45,.56,5.4),Vector3(2.65,1.12,4.5),materials.cream,true)
+ props.counter_top=box(self,Vector3(-8.45,1.15,5.4),Vector3(2.85,.13,4.7),materials.wood)
  box(self,Vector3(-8.4,1.45,4.8),Vector3(.58,.42,.07),materials.dark)
  text(self,"NACHTDIENST",Vector3(-8.38,1.47,4.85),.075)
  var hours:=text(self,"KINDERPARADIES\n10:00 – 18:00",Vector3(-9.98,2.1,7.6),.18);hours.rotation.y=PI/2;props.hours=hours
+ var shelves:=group("reception_shelves")
  for z in [1.4,2.6]:
-  box(self,Vector3(-9.4,1.1,z),Vector3(1.05,2.1,1.1),materials.wood,true)
-  for y in [.4,.95,1.5,2]: box(self,Vector3(-9.35,y,z),Vector3(1.13,.06,1.12),materials.cream)
-  for y in [.65,1.2,1.75]: box(self,Vector3(-9.35,y,z),Vector3(1.13,.5,.04),materials.teal)
+  box(shelves,Vector3(-9.4,1.1,z),Vector3(1.05,2.1,1.1),materials.wood,true)
+  for y in [.4,.95,1.5,2]: box(shelves,Vector3(-9.35,y,z),Vector3(1.13,.06,1.12),materials.cream)
+  for y in [.65,1.2,1.75]: box(shelves,Vector3(-9.35,y,z),Vector3(1.13,.5,.04),materials.teal)
  var car:=group("car");car.position=Vector3(-5.2,0,5.5)
  box(car,Vector3(0,.25,0),Vector3(.7,.32,1.1),materials.red)
  var hood:=sphere(car,Vector3(0,.46,-.12),.34,materials.gold);hood.scale=Vector3(1,.75,1.15)
@@ -308,6 +315,7 @@ func _details() -> void:
 func set_anomaly(id: String) -> void:
  current=id;clock=0
  atmosphere.anomaly(id)
+ if native_art: native_art.anomaly(id)
  # Fresh world per round means every normal state starts from the exact same layout.
  if id=="chair_ceiling":
   for chair in props.chairs.get_children(): chair.position.y=4.8;chair.rotation.x=PI
@@ -346,6 +354,7 @@ func set_anomaly(id: String) -> void:
 
 func tick(delta: float, active: bool) -> void:
  atmosphere.tick(delta,active)
+ if native_art: native_art.tick(delta,active)
  if not active: return
  clock+=delta
  if int(clock/25)>last_sound:
@@ -364,6 +373,7 @@ func brightness(value: float) -> void:
 
 func quality(value: int) -> void:
  atmosphere.quality(value)
+ if native_art: native_art.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:

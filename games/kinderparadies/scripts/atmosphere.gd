@@ -193,6 +193,7 @@ func plush(parent: Node3D, pos: Vector3, scale_value: float=1.0) -> Node3D:
 
 func _plush_corner() -> void:
  var bench:=Node3D.new();bench.position=Vector3(1.2,0,9.4);add_child(bench)
+ horrors.bench=bench
  for i in range(4): w.box(bench,Vector3(0,.52,-.24+i*.16),Vector3(3,.07,.13),w.materials.wood,true)
  for side in [-1,1]:
   w.tube(bench,Vector3(side*1.2,.05,-.22),Vector3(side*1.2,.55,-.22),.045,w.materials.rust)

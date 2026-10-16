@@ -1,0 +1,448 @@
+[
+  {
+    "id": "SchoolChair_01",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/SchoolChair_01",
+    "files": [
+      {
+        "path": "models/SchoolChair_01/SchoolChair_01.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/SchoolChair_01/SchoolChair_01_2k.gltf",
+        "sha256": "f072f367f9282032bcc6fefb9ceb01cc2776166d9026a75583f2c8a7767e9693",
+        "bytes": 2695
+      },
+      {
+        "path": "models/SchoolChair_01/textures/SchoolChair_01_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/SchoolChair_01/SchoolChair_01_arm_2k.jpg",
+        "sha256": "270a10398ee3a5753dd4208f2eb3ee97edcb00ccf3ac3227d00b276403d00df4",
+        "bytes": 325085
+      },
+      {
+        "path": "models/SchoolChair_01/textures/SchoolChair_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/SchoolChair_01/SchoolChair_01_nor_gl_2k.jpg",
+        "sha256": "c7f018f35c03f3d42728da0e2aa032c0deea20210cd6b49328c56bde279e60ad",
+        "bytes": 915279
+      },
+      {
+        "path": "models/SchoolChair_01/textures/SchoolChair_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/SchoolChair_01/SchoolChair_01_diff_2k.jpg",
+        "sha256": "7fabb6303317102d68afd3ccc9de247c3ec16577133f45a2d0cd13e550728a89",
+        "bytes": 174857
+      },
+      {
+        "path": "models/SchoolChair_01/SchoolChair_01.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/SchoolChair_01/SchoolChair_01.bin",
+        "sha256": "7d64d556ba88d3962778085b9a190f1adb0d84e667bca8ef032c0ae34b31a9fe",
+        "bytes": 134912
+      }
+    ]
+  },
+  {
+    "id": "wooden_bookshelf_worn",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/wooden_bookshelf_worn",
+    "files": [
+      {
+        "path": "models/wooden_bookshelf_worn/wooden_bookshelf_worn.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/wooden_bookshelf_worn/wooden_bookshelf_worn_2k.gltf",
+        "sha256": "32a03942722d9e9d754e15e4239a81bf34e04170891a2ed871c4eb09cd02c658",
+        "bytes": 2849
+      },
+      {
+        "path": "models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/wooden_bookshelf_worn/wooden_bookshelf_worn_diff_2k.jpg",
+        "sha256": "2a6b9d7bff3a02aaa07cb9de30f57673bdc4b8c43ed50c95f4bb7eeaed3a5468",
+        "bytes": 3196349
+      },
+      {
+        "path": "models/wooden_bookshelf_worn/wooden_bookshelf_worn.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/wooden_bookshelf_worn/wooden_bookshelf_worn.bin",
+        "sha256": "170758113b50132380ab46943f6eab18f2714460dead065aae37241a94abf0f9",
+        "bytes": 267964
+      },
+      {
+        "path": "models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/wooden_bookshelf_worn/wooden_bookshelf_worn_arm_2k.jpg",
+        "sha256": "e61cb355df38ab67feaf9df9e898703cb99d93e33b86028c87d0947f2b7664c0",
+        "bytes": 2749576
+      },
+      {
+        "path": "models/wooden_bookshelf_worn/textures/wooden_bookshelf_worn_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/wooden_bookshelf_worn/wooden_bookshelf_worn_nor_gl_2k.jpg",
+        "sha256": "90f575dc0623901240c54a1b617833584f1f18e56b6f1ddd11a6a04e84c62b07",
+        "bytes": 4101268
+      }
+    ]
+  },
+  {
+    "id": "cardboard_box_01",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/cardboard_box_01",
+    "files": [
+      {
+        "path": "models/cardboard_box_01/cardboard_box_01.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/cardboard_box_01/cardboard_box_01_2k.gltf",
+        "sha256": "feb1b53fa2edaae3708dc7d4f9f014d13a63e811b8bba334c36d86e75f61a002",
+        "bytes": 2903
+      },
+      {
+        "path": "models/cardboard_box_01/textures/cardboard_box_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/cardboard_box_01/cardboard_box_01_diff_2k.jpg",
+        "sha256": "5cdf1f747ba3f2fe656ed3258c2b74086f5ad727cbce58a821f34d0940c08053",
+        "bytes": 1987615
+      },
+      {
+        "path": "models/cardboard_box_01/textures/cardboard_box_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/cardboard_box_01/cardboard_box_01_nor_gl_2k.jpg",
+        "sha256": "b3d77c012e93be72547b9476ef83341b8f617e2c9b5ea9c82c9e8ea1132ea8a2",
+        "bytes": 3005768
+      },
+      {
+        "path": "models/cardboard_box_01/textures/cardboard_box_01_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/cardboard_box_01/cardboard_box_01_arm_2k.jpg",
+        "sha256": "fefb333764dbf17a6679ecd0e04fbe45ae5eb312813796bdb373cb12eb1ffcdd",
+        "bytes": 1309578
+      },
+      {
+        "path": "models/cardboard_box_01/cardboard_box_01.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/cardboard_box_01/cardboard_box_01.bin",
+        "sha256": "7212d43b4cb56459e46d31ab34dc7c310fcfbe170f4a588416dea07ae5628a4b",
+        "bytes": 381936
+      }
+    ]
+  },
+  {
+    "id": "desk_lamp_arm_01",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/desk_lamp_arm_01",
+    "files": [
+      {
+        "path": "models/desk_lamp_arm_01/desk_lamp_arm_01.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/desk_lamp_arm_01/desk_lamp_arm_01_2k.gltf",
+        "sha256": "b3f03ff2c7c186ec73682f7447b3594db2362cbfc0d72a89d2d8967111d2a2b6",
+        "bytes": 4453
+      },
+      {
+        "path": "models/desk_lamp_arm_01/textures/desk_lamp_arm_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_nor_gl_2k.jpg",
+        "sha256": "289e2b9a9d0dcbc02dd8d8dbe612380c13dc48fb7c4484fb39c303f6cf822379",
+        "bytes": 2491219
+      },
+      {
+        "path": "models/desk_lamp_arm_01/textures/desk_lamp_arm_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_diff_2k.jpg",
+        "sha256": "c5f8c5be367a40585f89ce0aeac0224e36146eef63c12864222af080a9784869",
+        "bytes": 2438937
+      },
+      {
+        "path": "models/desk_lamp_arm_01/desk_lamp_arm_01.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/desk_lamp_arm_01/desk_lamp_arm_01.bin",
+        "sha256": "07f34e32abecbaa63d28b9d12d6a0eb82b775a0f50c92327655909d72ff8489b",
+        "bytes": 736804
+      },
+      {
+        "path": "models/desk_lamp_arm_01/textures/desk_lamp_arm_01_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_arm_2k.jpg",
+        "sha256": "d2d55bb3d929ab583d4068adc3dce4e45d29852fd37602ddbb992183a9471b79",
+        "bytes": 2801607
+      }
+    ]
+  },
+  {
+    "id": "rubber_duck_toy",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rubber_duck_toy",
+    "files": [
+      {
+        "path": "models/rubber_duck_toy/rubber_duck_toy.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/rubber_duck_toy/rubber_duck_toy_2k.gltf",
+        "sha256": "d10f8a5f4d7416c62d67cb5d8cd480d93d5750c5cc911128729ae47c5ee05466",
+        "bytes": 3180
+      },
+      {
+        "path": "models/rubber_duck_toy/textures/rubber_duck_toy_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/rubber_duck_toy/rubber_duck_toy_arm_2k.jpg",
+        "sha256": "87cd18f544e579fb9a5bb42076abf731a5dcd629486d2cdd34f3378716e1eeda",
+        "bytes": 1098944
+      },
+      {
+        "path": "models/rubber_duck_toy/rubber_duck_toy.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/rubber_duck_toy/rubber_duck_toy.bin",
+        "sha256": "381e1373b99a4ff23d5ee02cb66bfb5e7d897eaa280581f19b652c38ffd83314",
+        "bytes": 105376
+      },
+      {
+        "path": "models/rubber_duck_toy/textures/rubber_duck_toy_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/rubber_duck_toy/rubber_duck_toy_nor_gl_2k.jpg",
+        "sha256": "2c2cdbaa3a46a1d3f577d510ba3bc999c4fbfd188985ee65e851b6c9b2bbd231",
+        "bytes": 170721
+      },
+      {
+        "path": "models/rubber_duck_toy/textures/rubber_duck_toy_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/rubber_duck_toy/rubber_duck_toy_diff_2k.jpg",
+        "sha256": "6abc199fd0249ff906ddb977510c6f6527887aadc976dbede2ec67bda64b0f92",
+        "bytes": 789401
+      }
+    ]
+  },
+  {
+    "id": "hanging_industrial_lamp",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/hanging_industrial_lamp",
+    "files": [
+      {
+        "path": "models/hanging_industrial_lamp/hanging_industrial_lamp.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/hanging_industrial_lamp/hanging_industrial_lamp_2k.gltf",
+        "sha256": "318ec454902dd49a11c219acf47b59f7a2bd3f20a23c5b26fa7b59e9183f9f98",
+        "bytes": 5436
+      },
+      {
+        "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_emissive_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/hanging_industrial_lamp/hanging_industrial_lamp_emissive_2k.jpg",
+        "sha256": "5ae69e4060495a429b43cd49180b3fcc7d4402e6fe672d0e04691185885b8685",
+        "bytes": 129864
+      },
+      {
+        "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/hanging_industrial_lamp/hanging_industrial_lamp_nor_gl_2k.jpg",
+        "sha256": "eb5196dd618ae777d0cb163ad8ab0e1bcd9b18c44253064ad0f1d3ebf86fd784",
+        "bytes": 3184982
+      },
+      {
+        "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/hanging_industrial_lamp/hanging_industrial_lamp_diff_2k.jpg",
+        "sha256": "cdee2c7c2af9d46f4ff4eac94ffacbe63b64ead655655355c1b9bca28045dfff",
+        "bytes": 2822561
+      },
+      {
+        "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/hanging_industrial_lamp/hanging_industrial_lamp_arm_2k.jpg",
+        "sha256": "71ced5d117238513bf17015d6e987501e6491828f107da21e57ff05e0cf905ec",
+        "bytes": 3131470
+      },
+      {
+        "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_glass_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/hanging_industrial_lamp/hanging_industrial_lamp_glass_nor_gl_2k.jpg",
+        "sha256": "0f5ad2e149c5ca34606521904dbdd9b7368bbb8e0ebd61d8af76f4e300b3ac61",
+        "bytes": 2355589
+      },
+      {
+        "path": "models/hanging_industrial_lamp/hanging_industrial_lamp.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/hanging_industrial_lamp/hanging_industrial_lamp.bin",
+        "sha256": "12e8293535e816f1e8bebc94e95da092599909d3c1b9b6cc7384d90307db06ca",
+        "bytes": 344252
+      }
+    ]
+  },
+  {
+    "id": "metal_office_desk",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_office_desk",
+    "files": [
+      {
+        "path": "models/metal_office_desk/metal_office_desk.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/metal_office_desk/metal_office_desk_2k.gltf",
+        "sha256": "4323f2e6cae9abb82146449b45445ee9446068c5a9b2ca23e018503b3b0af035",
+        "bytes": 13510
+      },
+      {
+        "path": "models/metal_office_desk/textures/metal_office_desk_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_office_desk/metal_office_desk_nor_gl_2k.jpg",
+        "sha256": "25392e7682c43ca07abbbbe717388b9e6d40bbca663836916204f99ac0378d34",
+        "bytes": 490814
+      },
+      {
+        "path": "models/metal_office_desk/textures/metal_office_desk_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_office_desk/metal_office_desk_diff_2k.jpg",
+        "sha256": "3f5854edc8a7979ed4576b914c184bda64d7e6ee9969357738703be49118da30",
+        "bytes": 1787420
+      },
+      {
+        "path": "models/metal_office_desk/textures/metal_office_desk_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_office_desk/metal_office_desk_arm_2k.jpg",
+        "sha256": "23c94b99aec8c9b105ff4d843ac41f229b0effb97abe921f0f8b506ccfd76952",
+        "bytes": 2724325
+      },
+      {
+        "path": "models/metal_office_desk/metal_office_desk.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/metal_office_desk/metal_office_desk.bin",
+        "sha256": "65b558f41a75ad4822e31cc2a97eb34ed359199279a6bfbd650deb27cef78767",
+        "bytes": 229700
+      }
+    ]
+  },
+  {
+    "id": "power_box_01",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/power_box_01",
+    "files": [
+      {
+        "path": "models/power_box_01/power_box_01.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/power_box_01/power_box_01_2k.gltf",
+        "sha256": "c440e5e7f51cb148a5eb8d00f4d973f806817434a675168110cd2bb9cb0a7060",
+        "bytes": 4417
+      },
+      {
+        "path": "models/power_box_01/textures/power_box_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/power_box_01/power_box_01_nor_gl_2k.jpg",
+        "sha256": "fff3e5b9037375226c10e7625b2d7735029cdae4d926ddc90567e02de61420e0",
+        "bytes": 2733825
+      },
+      {
+        "path": "models/power_box_01/textures/power_box_01_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/power_box_01/power_box_01_arm_2k.jpg",
+        "sha256": "792a1e04f9ab4740cbde8a70c1b720f4e411afc42d1359b24ab6602ef52d1c33",
+        "bytes": 3011906
+      },
+      {
+        "path": "models/power_box_01/power_box_01.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/power_box_01/power_box_01.bin",
+        "sha256": "b46efdf668ec2d4e04ff51604b5f1486caf20df632f442aab62601718058db05",
+        "bytes": 782096
+      },
+      {
+        "path": "models/power_box_01/textures/power_box_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/power_box_01/power_box_01_diff_2k.jpg",
+        "sha256": "045f04100a6a95bf6d43ea0989545b52008c84dd1d1d238ad0d7fa89789f8d0b",
+        "bytes": 1883678
+      }
+    ]
+  },
+  {
+    "id": "fabric_pattern_07",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/fabric_pattern_07",
+    "files": [
+      {
+        "path": "pbr/fabric_pattern_07/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_pattern_07/fabric_pattern_07_col_1_2k.jpg",
+        "sha256": "1f4941638b890d4535b1078067be8a831ca302d1e696ed959b4e4512de893cba",
+        "bytes": 2650991
+      },
+      {
+        "path": "pbr/fabric_pattern_07/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_pattern_07/fabric_pattern_07_nor_gl_2k.jpg",
+        "sha256": "84f15ee5f6b63e7e224051a22426c751cc1fe15a794efd001ebfdb5f84828602",
+        "bytes": 2572375
+      },
+      {
+        "path": "pbr/fabric_pattern_07/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_pattern_07/fabric_pattern_07_rough_2k.jpg",
+        "sha256": "be3e311614ee6f31d4cb4a774ed678b7a64189d3e1a55ad71033142185da270a",
+        "bytes": 1657764
+      }
+    ]
+  },
+  {
+    "id": "rubberized_track",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rubberized_track",
+    "files": [
+      {
+        "path": "pbr/rubberized_track/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubberized_track/rubberized_track_diff_2k.jpg",
+        "sha256": "1b7cb225ae8ae7be9cc91f48a234dcd76ed32d4f98a4ac547e0b2f299752438a",
+        "bytes": 3631740
+      },
+      {
+        "path": "pbr/rubberized_track/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubberized_track/rubberized_track_nor_gl_2k.jpg",
+        "sha256": "0c4cccf2bd7eaf7c86f257c287c45cc3ceced63b311744c8a5ed2210560fab3f",
+        "bytes": 5402713
+      },
+      {
+        "path": "pbr/rubberized_track/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubberized_track/rubberized_track_rough_2k.jpg",
+        "sha256": "9044983e5fe3cbc2c653f8eba2a97f90554b3b15ee355b97c45b00137678a35e",
+        "bytes": 1206078
+      }
+    ]
+  },
+  {
+    "id": "fabric_leather_01",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/fabric_leather_01",
+    "files": [
+      {
+        "path": "pbr/fabric_leather_01/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_leather_01/fabric_leather_01_diff_2k.jpg",
+        "sha256": "ca8123e6c031365fd782323bee05ce9da8bf05cc2ed57a83a66f0874923648d8",
+        "bytes": 2467670
+      },
+      {
+        "path": "pbr/fabric_leather_01/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_leather_01/fabric_leather_01_nor_gl_2k.jpg",
+        "sha256": "e4b6b2971ef0dfe999cc288db052011e76f7f5c18a17f7a9b7f8e45d77791959",
+        "bytes": 2764483
+      },
+      {
+        "path": "pbr/fabric_leather_01/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fabric_leather_01/fabric_leather_01_rough_2k.jpg",
+        "sha256": "f3c5d08786ca78b984e4563d92e551b34a1d7f6845b1376da44694039aa62e3b",
+        "bytes": 2621259
+      }
+    ]
+  },
+  {
+    "id": "painted_plaster_wall",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/painted_plaster_wall",
+    "files": [
+      {
+        "path": "pbr/painted_plaster_wall/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_diff_2k.jpg",
+        "sha256": "6fd812ed8dd5be1873c29aeef38ce9bf1fb30a22c6d4b3a12db725e98c26a1be",
+        "bytes": 3132937
+      },
+      {
+        "path": "pbr/painted_plaster_wall/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_nor_gl_2k.jpg",
+        "sha256": "2d601a46ed5ce2af866741c53cafa3cba472620c272e633b6484d4de16a80eb1",
+        "bytes": 4048392
+      },
+      {
+        "path": "pbr/painted_plaster_wall/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_rough_2k.jpg",
+        "sha256": "35aad595469533cc3b7cc209cc6c7e065d660211f02c867f4492d3b371b1fee1",
+        "bytes": 1595466
+      }
+    ]
+  },
+  {
+    "id": "concrete_floor_worn_001",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/concrete_floor_worn_001",
+    "files": [
+      {
+        "path": "pbr/concrete_floor_worn_001/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_floor_worn_001/concrete_floor_worn_001_diff_2k.jpg",
+        "sha256": "e29b45cdcd6d02fae3c087c456196ffa750779a9b62e7071aa3831dc322a0cc4",
+        "bytes": 482906
+      },
+      {
+        "path": "pbr/concrete_floor_worn_001/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_floor_worn_001/concrete_floor_worn_001_nor_gl_2k.jpg",
+        "sha256": "3b782137e34d63fd59b2e92b4e27b2ee4d082caf9dd23f00dc7ab4da5513daef",
+        "bytes": 870609
+      },
+      {
+        "path": "pbr/concrete_floor_worn_001/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_floor_worn_001/concrete_floor_worn_001_rough_2k.jpg",
+        "sha256": "b904992f0d75da2c41edf832bbb838622cca076f48f7913065a152c3b640690e",
+        "bytes": 735249
+      }
+    ]
+  }
+]

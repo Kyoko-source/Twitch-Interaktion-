@@ -1,7 +1,7 @@
 extends Node3D
 
-var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-save.json"
-var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-settings.json"
+var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-save.json"
+var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-settings.json"
 var state := PatrolState.new()
 var world: PlayWorld
 var player: NightGuard
@@ -18,7 +18,7 @@ var notice_time := 0.0
 var post: ColorRect
 var room_audio: AudioStreamPlayer
 var effect: AudioStreamPlayer
-var settings := {"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":1}
+var settings := {"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":1 if OS.has_feature("web") else 2,"render_version":2}
 var last_result := {}
 var qa_callback
 var telemetry_clock := 0.0
@@ -37,6 +37,7 @@ func _ready() -> void:
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
  if "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
+ if "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
 
 func _actions() -> void:
  var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"jump":[KEY_SPACE],"grab":[KEY_G],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
@@ -50,9 +51,11 @@ func _build_world(anomaly: String) -> void:
  if world: remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
  world.brightness(float(settings.brightness))
+ world.quality(int(settings.quality))
  if player: player.reset_pose()
 
 func _audio() -> void:
+ if not OS.has_feature("web"): player.step_player.bus="Interior"
  room_audio=AudioStreamPlayer.new();var stream: AudioStreamWAV=load("res://assets/room.wav").duplicate();stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);room_audio.stream=stream;room_audio.volume_db=-18;add_child(room_audio)
  effect=AudioStreamPlayer.new();effect.stream=load("res://assets/door.ogg");effect.volume_db=-12;add_child(effect)
 
@@ -205,6 +208,7 @@ func _read_settings() -> void:
  var data=JSON.parse_string(FileAccess.get_file_as_string(SETTINGS))
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
+ if not OS.has_feature("web") and int(data.get("render_version",0))<2: settings.quality=2
 
 func _apply_settings() -> void:
  AudioServer.set_bus_volume_db(0,linear_to_db(float(settings.volume)) if float(settings.volume)>0 else -80)
@@ -213,6 +217,10 @@ func _apply_settings() -> void:
  if world: world.brightness(float(settings.brightness))
  if post: post.material.set_shader_parameter("grain",.012 if settings.motion else 0.0)
  get_viewport().msaa_3d=[Viewport.MSAA_DISABLED,Viewport.MSAA_2X,Viewport.MSAA_4X][int(settings.quality)]
+ get_viewport().use_taa=not OS.has_feature("web") and RenderingServer.get_current_rendering_method()=="forward_plus" and int(settings.quality)>0
+ if world and world.native_art and world.native_art.advanced:
+  player.lamp.light_size=.025;player.lamp.light_volumetric_fog_energy=.45
+  player.lamp.spot_angle=27;player.lamp.spot_angle_attenuation=2.3
 
 func _write_settings() -> void:
  var file:=FileAccess.open(SETTINGS,FileAccess.WRITE)
@@ -322,20 +330,31 @@ func _fullscreen() -> void:
  else: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _quit() -> void:
+ if phase=="quitting": return
  _save();_write_settings()
  player.release();room_audio.stop();effect.stop();world.source.stop()
  if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/nachtwache'");_main_menu()
- else: get_tree().quit()
+ else:
+  phase="quitting"
+  var tree:=get_tree()
+  if world: remove_child(world);world.queue_free();world=null
+  ui.queue_free();player.queue_free();player=null
+  await tree.process_frame
+  if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
+  for frame in range(3): await tree.process_frame
+  tree.quit()
 
 func _notification(what: int) -> void:
  if what==NOTIFICATION_WM_CLOSE_REQUEST: _quit()
- if what==NOTIFICATION_APPLICATION_FOCUS_OUT and phase=="play": _pause()
+ if what==NOTIFICATION_APPLICATION_FOCUS_OUT and phase=="play" and "--render-qa" not in OS.get_cmdline_user_args(): _pause()
 
 func _telemetry() -> void:
  if not OS.has_feature("web"): return
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  if OS.has_feature("qa"):
   data.anomaly=state.current;data.controls=[]
+  data.renderer=RenderingServer.get_current_rendering_method()
+  data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze})
   for node in menu.find_children("*","Control",true,false):
@@ -378,3 +397,6 @@ func _self_test() -> void:
  await get_tree().process_frame
  print("NACHTWACHE SELF TEST: ","PASS" if passed else "FAIL")
  get_tree().quit(0 if passed else 1)
+
+func _render_qa() -> void:
+ await load("res://scripts/native_render_qa.gd").new().run(self)

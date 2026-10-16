@@ -105,6 +105,13 @@ func run(game: Node3D) -> bool:
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
  check(game.world.atmosphere.loose.size()==28,"Physical toy budget unexpectedly changed")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
+ if not OS.has_feature("web"):
+  check(game.world.native_art!=null,"Windows art pipeline missing")
+  check(game.world.native_art.model_count==32,"Native imported/hero models not instantiated")
+  check(game.world.native_art.sources.size()==12,"Native model catalog is incomplete")
+  for source in game.world.native_art.sources.values(): check(source is PackedScene,"Native production model failed to load")
+  check(not game.world.props.floor_tiles[0].visible,"Native continuous floor was not selected")
+  check(AudioServer.get_bus_index("Interior")>=0,"Native room acoustics bus missing")
  game.player.release();game.phase="menu"
  game.has_session=true;game.state.start(71);game._save();check(game._can_continue(),"Saved game cannot be continued")
  print("Validation checks: ",checks,"; failures: ",failures.size())

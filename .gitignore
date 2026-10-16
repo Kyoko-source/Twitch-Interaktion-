@@ -17,3 +17,6 @@ frontend/public/standalone/kinderparadies/
 frontend/public/downloads/kinderparadies-*.zip
 frontend/public/downloads/nachtwache-*.zip
 game-releases/
+tools/blender-portable/
+tools/art-source/
+tools/polyhaven-model-catalog.json

@@ -33,7 +33,7 @@ func _ready() -> void:
 func capture() -> void:
  active=true
  torch_body.show()
- Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
+ Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if "--render-qa" in OS.get_cmdline_user_args() else Input.MOUSE_MODE_CAPTURED
 
 func release() -> void:
  drop_prop()

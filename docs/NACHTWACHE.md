@@ -1,7 +1,7 @@
 # NACHTWACHE — Kinderparadies
 
 Spielstart auf der Webseite: `/#games/nachtwache`.
-Windows-Download: `/downloads/nachtwache-windows-v1.1.0.zip`.
+Windows-Download: `/downloads/nachtwache-windows-v1.2.0.zip`.
 Direkter Web-Start: `/standalone/kinderparadies/index.html`.
 
 Vollständiges gemeinsames Godot-Projekt in `games/kinderparadies/`, mit nativer
@@ -40,13 +40,17 @@ Assets, Import-Einstellungen und Buildskripte werden versioniert.
 
 ## Prüfstand
 
-160 native Logik-/Szenenprüfungen einschließlich Sprung, Tragen, Werfen und Pause.
+177 native Logik-/Szenenprüfungen einschließlich Sprung, Tragen, Werfen, Pause
+und sämtlichen zwölf nativen Modelltypen.
 Sechs Browserfälle prüfen echten WASD-Rundgang, beide Entscheidungstüren,
 Anomalie/Reset/13er-Ende, Save/Restore, Pause und Einstellungen, native ZIP-Bytes,
 Release-Game ohne QA-Hooks, Sprung/Physik und den mobilen Launcher ohne Überlauf.
 Browser-Plugin nicht verfügbar; Playwright/Edge mit WebGL verwendet.
 
-Native grafische Performance auf unterschiedlichen PCs, andere Browser und
+Native GPU-Aufnahmen und ein kurzer FPS-Messlauf auf RTX 4080/Vulkan/Forward+ bei
+1536×1024 prüfen die Windows-Grafik inklusive Grafikwechsel und drei Anomalien.
+Native grafische Performance auf weiteren PCs, andere Browser und
 Controller/Touch-Spielsteuerung sind nicht geprüft bzw. nicht Bestandteil dieser
 Desktop-Fassung. Die tatsächliche 3D-Ansicht wird im Launcher gezeigt; Art-Direction,
-Konzeptvergleich und bewusste grafische Abweichungen stehen in `art/DESIGN.md`.
+Konzeptvergleich und bewusste grafische Abweichungen stehen in
+`games/kinderparadies/art/UPGRADE-1.2.md`.

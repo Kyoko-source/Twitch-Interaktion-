@@ -23,9 +23,11 @@ einstellbar. Spielstand wird pro Runde, bei Pause und alle zehn aktiven Sekunden
 lokal gespeichert. Web verwendet den lokalen Browser-Speicher, Windows Godots
 Benutzerdatenverzeichnis. Kein Online-Ranking oder Chickens-Buchungen.
 
-Ziel: Desktop mit Maus/Tastatur. Windows x86_64 mit OpenGL 3.3, Web-Version mit
-WebGL 2.0. Keine Touch- oder Controllersteuerung in dieser Fassung. Qualität
-„Leistung“ deaktiviert dynamische Schatten und MSAA. Kein Installationsprogramm,
+Ziel: Desktop mit Maus/Tastatur. Windows verwendet Forward+ mit Vulkan/Direct3D
+12 und moderner Grafikkarte. Der automatische OpenGL-Fallback unterstützt die
+reduzierte Grafik. Web verwendet WebGL 2.0. Keine Touch-/Controllersteuerung.
+„Leistung“ deaktiviert die aufwendigen Schatten, indirektes Licht und Volumen-
+nebel; „Hoch“ aktiviert die volle Windows-Grafik. Kein Installationsprogramm,
 keine Autostarts und keine Administratorrechte erforderlich.
 
 ## Bauen und prüfen
@@ -36,7 +38,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.1.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.2.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -59,6 +61,10 @@ Schritte, Tür und Leitungsgeräusch: Kenney Impact Sounds, CC0 (beigelegt).
 `drips.wav`: eigene Wasser-/Rohrgeräusche, reproduzierbar mit
 `tools/generate-nachtwache-drips.py`. Keine Hintergrundmusik.
 Godot MIT-Lizenz und Drittanbieterhinweise liegen dem Windows-ZIP bei.
+Windows-Modelle und Materialkarten von Poly Haven: CC0. Quellen, Prüfsummen und
+Lizenzhinweise in `assets/polyhaven-provenance.json` und `PolyHaven-CC0.txt`.
+Die eigenen Hero-Modelle werden mit `tools/model-nachtwache-heroes.py` in Blender
+4.5.9 LTS erzeugt; GLBs und extrahierte Texturen liegen bereits im Repository.
 
 ## Version 1.1
 
@@ -74,3 +80,24 @@ stoppt in Menüs/Pause. Selbst verschobene Objekte zählen nicht als Anomalie.
 Jede neue Runde setzt sie zurück. Der Spieler springt mit Bodenkontakt; kein
 Doppelsprung. Die dekorativen instanzierten Bälle im Bällebad bleiben statisch,
 um die Web-Version spielbar zu halten. Keine vollständige Softbody-Simulation.
+
+## Windows Edition 1.2
+
+Die Windows-Fassung enthält 32 platzierte Modellinstanzen aus zwölf Modelltypen:
+acht CC0-Requisiten und vier eigene Modelle (vernähter Hase, gepolsterte Bank,
+gefaltete Stoffbahn und Geburtstagstorte). Fünf vollständige PBR-Materialsets,
+modellierte Seilnetze, ein gestalteter Empfang und räumlicher Hall ergänzen sie.
+SDFGI, SSIL, SSAO, SSR, Raumreflexionen, weiche Lichtschatten, TAA und beleuchteter
+Volumennebel werden je nach Grafikprofil auf moderner Hardware aktiviert.
+Die Web-Fassung behält die leichtere Szene; native Modelle und Materialkarten
+werden aus ihrem Paket ausgeschlossen. Regeln und Spielstände bleiben gemeinsam.
+
+`--render-qa` erstellt isolierte GPU-Aufnahmen und einen Messbericht unter
+`%TEMP%/NachtwacheNativeQA`. Alternativ `--capture-dir=<absoluter Pfad>`.
+Dieser Modus nutzt eigene QA-Spielstände und zeigt Bewegung, Sprung, Grafik-
+wechsel sowie repräsentative Anomalien. Die Bildprüfung erfolgt auf einer RTX
+4080 bei 1536×1024; andere GPUs und Auflösungen sind noch nicht systematisch geprüft.
+
+Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
+sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler
+auf. Upstream: https://github.com/godotengine/godot/issues/122498.

@@ -3,7 +3,7 @@ config_version=5
 [application]
 config/name="NACHTWACHE - Kinderparadies"
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
+config/features=PackedStringArray("4.6", "Forward Plus")
 config/description="Dreizehn Rundgaenge durch ein verlassenes Kinderparadies."
 config/icon="res://assets/icon.png"
 boot_splash/show_image=false
@@ -17,12 +17,20 @@ window/size/window_height_override=800
 window/stretch/mode="canvas_items"
 
 [rendering]
-renderer/rendering_method="gl_compatibility"
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.web="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
 textures/vram_compression/import_s3tc_bptc=true
 anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/use_taa=true
+anti_aliasing/quality/use_taa.web=false
+lights_and_shadows/positional_shadow/atlas_size=4096
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality=3
+textures/default_filters/anisotropic_filtering_level=4
+environment/volumetric_fog/volume_size=160
+environment/volumetric_fog/volume_depth=96
 environment/defaults/default_clear_color=Color(0.025,0.035,0.04,1)
 
 [audio]

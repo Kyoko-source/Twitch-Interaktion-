@@ -1,0 +1,5 @@
+Poly Haven assets are dedicated to the public domain under CC0 1.0.
+License: https://polyhaven.com/license
+Legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Individual assets, original download URLs and SHA256 hashes: polyhaven-provenance.json.
+Godot-generated imports and modified geometry retain these source notices.
