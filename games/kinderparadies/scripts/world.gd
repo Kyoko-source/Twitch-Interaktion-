@@ -87,7 +87,8 @@ func _environment() -> void:
  var sky:=Sky.new();var sky_material:=ProceduralSkyMaterial.new();sky_material.sky_top_color=Color("233a43");sky_material.sky_horizon_color=Color("8f8068");sky_material.ground_bottom_color=Color("101b22");sky_material.ground_horizon_color=Color("8f8068");sky.sky_material=sky_material;env.sky=sky;env.reflected_light_source=Environment.REFLECTION_SOURCE_SKY
 
 func _architecture(rubber: Texture2D) -> void:
- box(self,Vector3(0,-.138,-1),Vector3(21,.3,24),materials.dark,true)
+ # Collision top matches the visible tiles; the hidden backing mustn't z-fight them.
+ box(self,Vector3(0,-.138,-1),Vector3(21,.3,24),materials.dark,true).hide()
  # Four instanced tile materials keep the floor inexpensive to render.
  var colors: Array[Color]=[Color("38413e"),Color("3c423d"),Color("343d3b"),Color("41443e")]
  for color_index in range(4):
@@ -141,9 +142,9 @@ func _play_structure() -> void:
  var shader:=Shader.new();shader.code="shader_type spatial; render_mode cull_disabled; void fragment(){vec2 cell=fract(UV*vec2(32.0,28.0));if(min(cell.x,cell.y)>0.038)discard;ALBEDO=vec3(0.065,0.075,0.07);ROUGHNESS=0.9;}"
  var net_material:=ShaderMaterial.new();net_material.shader=shader;var nets:=group("nets")
  for x in [-.32,5.52]:
-  var net:=MeshInstance3D.new();var plane:=PlaneMesh.new();plane.size=Vector2(9.25,4.25);net.mesh=plane;net.material_override=net_material;net.rotation=Vector3(PI/2,PI/2,0);net.position=Vector3(x,2.4,-.85);nets.add_child(net)
+  var net:=MeshInstance3D.new();var plane:=PlaneMesh.new();plane.size=Vector2(9.25,4.25);net.mesh=plane;net.material_override=net_material;net.rotation=Vector3(PI/2,PI/2,0);net.position=Vector3(x,2.4,-.85);net.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;nets.add_child(net)
  for z in [-5.52,3.82]:
-  var net:=MeshInstance3D.new();var plane:=QuadMesh.new();plane.size=Vector2(5.8,4.2);net.mesh=plane;net.material_override=net_material;net.position=Vector3(2.6,2.4,z);nets.add_child(net)
+  var net:=MeshInstance3D.new();var plane:=QuadMesh.new();plane.size=Vector2(5.8,4.2);net.mesh=plane;net.material_override=net_material;net.position=Vector3(2.6,2.4,z);net.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;nets.add_child(net)
  # Tube bridge, circular windows and raised access steps.
  tube(structure,Vector3(.3,3.2,-1),Vector3(4.9,3.2,-1),.65,materials.gold)
  for x in [.9,2.6,4.3]:

@@ -51,6 +51,7 @@ not a pixel-identical photographic recreation of the cinematic reference.
 | Materials | Generated peeling plaster, wood/vinyl and micro-normal detail; atlas UV bug fixed on actual 3D mesh. |
 | Props | Stitched multi-part bunny, rocking horse, rope bridge, hanging rollers, phone, desk lamp and tableware. |
 | Atmosphere | Dense distance fog, soft ellipsoid ground clouds and dust; hard horizontal fog planes removed. |
+| Render artifacts | Hidden backing floor to prevent coplanar z-fighting after floor/collision alignment; thin procedural nets don't cast aliased shadows. |
 | UI/type | Existing Oswald/HUD preserved; only requested jump and physics controls added. Reference's invented R/C controls rejected in favor of actual E/G/Space inputs. |
 | Blood | Darkened atlas tint and varied stain sizes/rotations prevent glowing uniformly repeated marks. |
 | Interaction | Real floor-aligned collision, jump/landing without double jump, raycast G pickup, spring force carry, mouse impulse throw and paused rigid bodies. |
