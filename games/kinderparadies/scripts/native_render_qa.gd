@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--croc-qa" in OS.get_cmdline_user_args():
+  await croc_views(game,output);game._quit();return
  await game.get_tree().create_timer(8).timeout
  await capture(game,output,"menu")
  game._new_shift()
@@ -69,3 +71,28 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
+
+func croc_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"croc-front","pos":Vector3(3.9,0,11.3),"yaw":-PI/2,"pitch":.12},
+  {"name":"croc-three-quarter","pos":Vector3(3.5,0,13.7),"yaw":-1.2,"pitch":.12},
+  {"name":"croc-close","pos":Vector3(5.7,0,13.1),"yaw":-1.65,"pitch":.6},
+  {"name":"croc-side","pos":Vector3(12.4,0,16),"yaw":0,"pitch":.12}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(3).timeout;await capture(game,output,shot.name)
+ game._build_world("croc_snap");game._resume()
+ await game.get_tree().create_timer(1.2).timeout
+ game.player.position=Vector3(6.8,0,11.3);game.player.rotation.y=-PI/2;game.player.camera.rotation.x=.12
+ for frame in range(90):
+  await game.get_tree().process_frame
+  if game.world.encounters.triggered: break
+ game._pause();var angle: float=game.world.playground.croc_jaw.rotation.x
+ await game.get_tree().create_timer(.25).timeout
+ var paused: bool=game.world.playground.croc_jaw.rotation.x==angle
+ game._resume();await game.get_tree().create_timer(.24).timeout;await capture(game,output,"croc-snap")
+ await game.get_tree().create_timer(.8).timeout
+ var report:={"renderer":RenderingServer.get_current_rendering_method(),"shared_mesh":is_instance_valid(game.world.playground.croc_visual),"jaw_triggered":game.world.encounters.triggered,"jaw_finished":game.world.encounters.finished,"jaw_pause":paused,"jaw_angle":game.world.playground.croc_jaw.rotation.x}
+ var file:=FileAccess.open(output.path_join("croc-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("CROCODILE QA ",JSON.stringify(report))

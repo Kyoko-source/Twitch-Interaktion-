@@ -5,6 +5,10 @@ var w: PlayWorld
 var inflatable: Node3D
 var inflatable_skin: Node3D
 var fan: AudioStreamPlayer3D
+const CROCODILE_PATH := "res://assets/creatures/night-crocodile.glb"
+var croc_visual: Node3D
+var croc_jaw: Node3D
+var jaw_rest := Vector3.ZERO
 
 func build(world: PlayWorld) -> void:
  w=world
@@ -76,25 +80,45 @@ func strand(transforms: Array[Transform3D], a: Vector3, b: Vector3) -> void:
 func _crocodile() -> void:
  inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,11.3);inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
  inflatable_skin=Node3D.new();inflatable.add_child(inflatable_skin);w.props.inflatable_skin=inflatable_skin
- var pvc:=w.mat(Color("687742"),load("res://assets/vinyl.png"),.32)
- var belly:=w.sphere(inflatable_skin,Vector3(0,.48,0),1,pvc);belly.scale=Vector3(2.2,.5,4.2)
- for side in [-1,1]:
-  var cheek:=w.sphere(inflatable_skin,Vector3(side*1.8,1.25,2.3),1,pvc);cheek.scale=Vector3(.6,1.25,1.5)
-  w.sphere(inflatable_skin,Vector3(side*1.22,2.5,2.8),.47,w.materials.cream)
-  var eye:=w.sphere(inflatable_skin,Vector3(side*1.22,2.5,3.22),.19,w.materials.dark);eye.scale.x=.35
-  for i in range(7): w.tube(inflatable_skin,Vector3(side*1.65,1.7,1+i*.4),Vector3(side*1.65,1.3,1+i*.4),.13,w.materials.cream)
- for i in range(12): w.tube(inflatable_skin,Vector3(-1.6,.65,-2.8+i*.5),Vector3(1.6,.65,-2.8+i*.5),.18,pvc)
+ # Both renderers use the authored mesh, UV skin and outward-facing normals.
+ # The old Web approximation had no upper jaw and coplanar eye decorations.
+ var scene: PackedScene=load(CROCODILE_PATH)
+ croc_visual=scene.instantiate();inflatable_skin.add_child(croc_visual)
+ croc_jaw=croc_visual.find_child("UpperJaw",true,false) as Node3D
+ assert(croc_jaw!=null,"Shared crocodile upper jaw is missing")
+ jaw_rest=croc_jaw.rotation
+ for mesh in croc_visual.find_children("*","MeshInstance3D",true,false):
+  for surface_index in range(mesh.mesh.get_surface_count()):
+   var material: Material=mesh.get_active_material(surface_index)
+   if material is StandardMaterial3D and material.resource_name=="Worn olive PVC":
+    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.16
+    material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+    material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*.65
+   elif material is StandardMaterial3D and material.resource_name in ["Faded ochre bed","Yellowed tapered teeth"]:
+    material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*1.8
+    material.albedo_color=Color("8e7940") if material.resource_name=="Faded ochre bed" else Color("c4b48b")
+ var pvc:=w.mat(Color("343e23"),null,.8)
  # A flat compliant surface sits inside the visual PVC bed, with real collision.
  var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,0);deck.set_meta("bounce_speed",8.0);inflatable.add_child(deck)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(3.3,.55,6.6);shape.shape=bounds;deck.add_child(shape)
  for side in [-1,1]: w.box(inflatable,Vector3(side*2.1,.65,0),Vector3(.55,1.3,7.4),pvc,true).hide()
  for i in range(3): w.box(inflatable,Vector3(-2.65+i*.28,.1+i*.13,-1.4),Vector3(.32,.2+i*.26,1.4),w.materials.gold,true)
- var label:=w.text(inflatable,"KROKO KLUB",Vector3(0,.7,4.2),.24,Color("d1ba7a"));label.rotation.x=-.12
+ # Branding belongs on a worn safety plaque, not floating across its mouth.
+ var plaque:=w.box(inflatable,Vector3(-2.45,.34,3.2),Vector3(.65,.42,.025),w.materials.wood)
+ w.text(plaque,"KROKO KLUB\nMAX. 8 KINDER",Vector3(0,0,.018),.07,Color("9e956c"))
  w.tube(self,Vector3(16.1,.4,12.8),Vector3(17.2,.4,12.8),.19,w.materials.dark)
  w.box(self,Vector3(17.5,.35,12.8),Vector3(.65,.7,.65),w.materials.gold,true)
  w.text(self,"GEBLÄSE\nNICHT ABSCHALTEN",Vector3(17.5,.55,13.14),.07)
  fan=AudioStreamPlayer3D.new();var stream: AudioStreamWAV=load("res://assets/fan.wav");stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);fan.stream=stream;fan.position=Vector3(17.5,.5,12.8);fan.volume_db=-25;fan.max_distance=18;fan.unit_size=3;add_child(fan)
  w.lamp(Vector3(12.4,5.8,12.5),Color("a6b49a"),1.0,12)
+ # A floor inspection light rakes the snout and reveals the material wear.
+ var worklight:=Node3D.new();worklight.position=Vector3(5.7,0,14.8);add_child(worklight)
+ for side in [-1,1]: w.tube(worklight,Vector3(side*.3,.02,.18),Vector3(0,.9,0),.025,w.materials.metal)
+ w.box(worklight,Vector3(0,.95,0),Vector3(.35,.24,.14),w.materials.dark)
+ w.lamp(Vector3(5.8,1.15,14.65),Color("b9c8af"),.8,8)
+
+func set_croc_jaw(angle: float) -> void:
+ croc_jaw.rotation=jaw_rest+Vector3(angle,0,0)
 
 func _party_dressing() -> void:
  # The original six places remain the anomaly reference. The expanded room has

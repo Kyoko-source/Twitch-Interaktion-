@@ -49,6 +49,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
    bunny.rotation.z=sin(elapsed*1.2)*.045
  elif id=="croc_breathes":
   w.props.inflatable_skin.scale=Vector3(1+sin(elapsed*1.4)*.018,1+sin(elapsed*1.4)*.085,1)
+  w.playground.set_croc_jaw(sin(elapsed*1.4)*.045)
  elif id=="balloons_follow":
   var target:=Vector3(clampf(player.position.x-8.5,-.5,9),0,clampf(player.position.z+8,-1,5))
   w.props.balloons.position=w.props.balloons.position.lerp(target,1-exp(-delta*.35))
@@ -78,9 +79,10 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   else: finished=true;face.hide()
  elif id=="croc_snap":
   var pulse:=sin(clampf(attack_time/.65,0,1)*PI)
-  w.props.inflatable_skin.scale=Vector3(1+pulse*.05,1+pulse*.24,1)
-  w.props.inflatable_skin.rotation.x=-pulse*.055
-  if attack_time>.8: finished=true;w.props.inflatable_skin.scale=Vector3(1,1.12,1);w.props.inflatable_skin.rotation.x=0
+  w.playground.set_croc_jaw(pulse*.46)
+  w.props.inflatable_skin.position.z=pulse*.22
+  if attack_time>.8:
+   finished=true;w.playground.set_croc_jaw(.12);w.props.inflatable_skin.position.z=0
  else:
   w.props.balloons.rotation.z=sin(attack_time*13)*maxf(0,1-attack_time)*.25
   if attack_time>1.2: finished=true

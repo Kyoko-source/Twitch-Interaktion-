@@ -68,11 +68,6 @@ func model(parent: Node3D, id: String, pos: Vector3, height: float, yaw: float=0
   for surface_index in range(mesh.mesh.get_surface_count()):
    var material: Material=mesh.get_active_material(surface_index)
    if material is StandardMaterial3D and material.resource_name.begins_with("Worn oatmeal"): material.uv1_scale=Vector3(3,3,1)
-   if id=="hero/inflatable-crocodile" and material is StandardMaterial3D and "PVC" in material.resource_name:
-    material.normal_enabled=true;material.normal_texture=load("res://assets/pbr/fabric_leather_01/normal.jpg");material.normal_scale=.3
-    material.roughness_texture=load("res://assets/pbr/fabric_leather_01/roughness.jpg");material.roughness=.78
-    material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*1.8
-    material.clearcoat_enabled=true;material.clearcoat=.2;material.clearcoat_roughness=.35
  var factor:=height/maxf(bounds.size.y,.01)
  instance.scale=Vector3.ONE*factor
  instance.position=-Vector3(bounds.get_center().x,bounds.position.y,bounds.get_center().z)*factor
@@ -122,8 +117,9 @@ func _models() -> void:
  model(w.props.counter,"desk_lamp_arm_01",Vector3(-.1,1,.99),.45,-.5)
  for z in [-8,0,7]: model(self,"hanging_industrial_lamp",Vector3(-5.5,6.02,z),.72)
 
- hide_geometry(w.props.inflatable_skin)
- model(w.props.inflatable_skin,"hero/inflatable-crocodile",Vector3.ZERO,3.4)
+ # This model is already placed by the common playground for Windows and Web.
+ sources[ExpandedPlayground.CROCODILE_PATH]=load(ExpandedPlayground.CROCODILE_PATH)
+ model_count+=1
  for pos in [Vector3(12.4,6.0,11.4),Vector3(15,6.0,-7.6)]: model(self,"hanging_industrial_lamp",pos,.72)
  model(w.props.party_dressing,"wooden_bookshelf_worn",Vector3(17.9,0,-2.3),1.6,PI/2)
 

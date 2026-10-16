@@ -213,6 +213,11 @@ func _read_settings() -> void:
 func _apply_settings() -> void:
  AudioServer.set_bus_volume_db(0,linear_to_db(float(settings.volume)) if float(settings.volume)>0 else -80)
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
+ # Compatibility shadow maps need back-face rendering to avoid diagonal acne
+ # on the crocodile and walls. Forward+ keeps its finer native bias.
+ var compatibility=RenderingServer.get_current_rendering_method()=="gl_compatibility"
+ player.lamp.shadow_reverse_cull_face=compatibility
+ player.lamp.shadow_bias=.15 if compatibility else .025
  if world: world.quality(int(settings.quality))
  if world: world.brightness(float(settings.brightness))
  if post: post.material.set_shader_parameter("grain",.012 if settings.motion else 0.0)
@@ -358,6 +363,8 @@ func _telemetry() -> void:
   data.encounter={"triggered":world.encounters.triggered,"finished":world.encounters.finished,"time":world.encounters.attack_time,"shock":world.encounters.shock}
   data.renderer=RenderingServer.get_current_rendering_method()
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
+  data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
+  data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze})
   for node in menu.find_children("*","Control",true,false):

@@ -105,6 +105,9 @@ func run(game: Node3D) -> bool:
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
  check(game.world.atmosphere.loose.size()==28,"Physical toy budget unexpectedly changed")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
+ check(is_instance_valid(game.world.playground.croc_visual),"Shared crocodile mesh was not instantiated")
+ check(is_instance_valid(game.world.playground.croc_jaw),"Shared crocodile upper jaw is missing")
+ check(ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH),"Shared crocodile asset was excluded")
  if not OS.has_feature("web"):
   check(game.world.native_art!=null,"Windows art pipeline missing")
   check(game.world.native_art.model_count==36,"Native imported/hero models not instantiated")
@@ -163,6 +166,19 @@ func run(game: Node3D) -> bool:
  check(game.world.props.inflatable_skin.scale.y>1.04,"Crocodile breathing is static")
  game._build_world("horse_rocks");game.world.encounters.tick(.5,true,game.player)
  check(absf(game.world.atmosphere.horrors.horse.rotation.x)>.1,"Rocking horse anomaly is static")
+ game._build_world("croc_snap");game._resume()
+ game.world.encounters.tick(1.1,true,game.player)
+ game.player.position=Vector3(6.8,0,11.3);game.player.rotation.y=-PI/2;game.player.camera.rotation.x=.12
+ await game.get_tree().physics_frame
+ game.world.encounters.tick(.01,true,game.player)
+ check(game.world.encounters.triggered,"Crocodile approach did not trigger")
+ game.world.encounters.tick(.22,true,game.player)
+ var jaw_angle: float=game.world.playground.croc_jaw.rotation.x
+ check(jaw_angle>.3,"Crocodile upper jaw did not close")
+ game.world.encounters.tick(.4,false,game.player)
+ check(is_equal_approx(jaw_angle,game.world.playground.croc_jaw.rotation.x),"Crocodile jaw moved during pause")
+ game.world.encounters.tick(1,true,game.player)
+ check(game.world.encounters.finished and is_equal_approx(game.world.playground.croc_jaw.rotation.x,.12),"Crocodile jaw failed to settle after snap")
  game._build_world("none");game.player.release();game.phase="menu"
  game.has_session=true;game.state.start(71);game._save();check(game._can_continue(),"Saved game cannot be continued")
  print("Validation checks: ",checks,"; failures: ",failures.size())

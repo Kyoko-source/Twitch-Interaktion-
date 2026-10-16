@@ -38,7 +38,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.3.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.3.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -67,7 +67,7 @@ Windows-Modelle und Materialkarten von Poly Haven: CC0. Quellen, Prüfsummen und
 Lizenzhinweise in `assets/polyhaven-provenance.json` und `PolyHaven-CC0.txt`.
 Die eigenen Hero-Modelle werden mit `tools/model-nachtwache-heroes.py` in Blender
 4.5.9 LTS erzeugt; GLBs und extrahierte Texturen liegen bereits im Repository.
-Das originale Krokodil wird mit `tools/model-nachtwache-crocodile.py` erzeugt.
+Das überarbeitete Krokodil wird mit `tools/model-nachtwache-crocodile-v2.py` erzeugt.
 
 ## Version 1.1
 
@@ -124,8 +124,22 @@ Der erste Referenzrundgang bleibt normal; Schreckmomente verursachen keinen
 zusätzlichen Tod und ändern die Rot-/Grün-Entscheidungsregel nicht.
 
 36 native Modellinstanzen aus 13 Modelltypen. Neue Grundfläche und Mechaniken
-sind auch im Web vorhanden; das aufwendige Krokodil-Modell und die PC-Effekte
-bleiben der Windows-Fassung vorbehalten.
+sind auch im Web vorhanden. Ab Version 1.3.1 ist das überarbeitete Krokodil-Modell
+ebenfalls gemeinsam; die aufwendigen PC-Lichteffekte bleiben der Windows-Fassung
+vorbehalten.
+
+## Krokodil 1.3.1
+
+Die alte Web-Ersatzgeometrie wird vollständig durch das gemeinsame originale
+3D-Modell ersetzt. Flache lange Schnauze, Ober- und Unterkiefer, kleine
+eingelassene Glasaugen mit detaillierter Iris, unregelmäßige schmutzige Zähne,
+PVC-Schweißnähte, Falten und gealterte Haut. Gleichmäßige Texturdichte beseitigt
+verzogene Streifen. Das große schwebende Schild weicht einer kleinen Plakette.
+Beim Erschrecken schließt sich der separat modellierte Oberkiefer; Bewegung und
+Ton halten in der Pause an. Hüpf-Fläche, Kontrollweg und Spielregeln bleiben
+gemeinsam. Die Taschenlampe verwendet im Compatibility-Renderer korrigierte
+Schattenflächen und einen eigenen Bias gegen diagonale Streifen auf Wand und
+Figur. Prompts und Dateipfade in `art/PROMPTS-CROCODILE.md`.
 
 Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
 sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler
