@@ -173,7 +173,7 @@ func _pause() -> void:
 func _help(back: String) -> void:
  phase="help";return_phase=back
  var column:=_panel("Dienstanweisung","Nachtdienst im Kinderparadies")
- column.add_child(_paragraph("Kontrolliere Empfang, Bällebad, Partyraum und Wartungsgang. Die Liste oben links bestätigt die besuchten Bereiche."))
+ column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum und Wartungsgang in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Ein Fehler setzt die Serie auf null. Danach erfährst du, was du übersehen hast."))
@@ -253,7 +253,7 @@ func _process(delta: float) -> void:
     _refresh_hud();_announce(zone+" kontrolliert",2.5)
   var target:=_target()
   last_target=target
-  prompt.text=("E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")) if target!="" and state.visited.size()==4 else "Kontrolliere erst alle vier Bereiche." if target!="" else ""
+  prompt.text=("E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")) if target!="" else ""
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
    else:
@@ -279,7 +279,7 @@ func _target() -> String:
 func _decide(red: bool) -> void:
  if phase!="play": return
  var result:=state.decide(red)
- if not result.accepted: _announce("Erst alle vier Bereiche kontrollieren.");return
+ if not result.accepted: return
  phase="transition";player.release();last_result=result;_save(true);effect.play();world.open_door(red)
  await _fade(1,.6)
  phase="result"

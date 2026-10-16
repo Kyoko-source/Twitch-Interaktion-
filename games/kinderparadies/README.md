@@ -12,8 +12,9 @@ unter `/#games/nachtwache` öffnen und „Im Web spielen“ wählen.
 WASD / Pfeiltasten bewegen, Maus umsehen, Umschalt schneller gehen, Leertaste
 springen, G Gegenstand aufheben/loslassen, linke Maustaste werfen, F Taschenlampe,
 E Tür öffnen, TAB Dienstanweisung, ESC Pause, F11 Vollbild.
-Die erste Runde ist normal und dient als Referenz. Alle vier Kontrollbereiche
-besuchen. Keine Anomalie: grüne Tür. Anomalie: rote Tür. 13 richtige Entscheidungen
+Die erste Runde ist normal und dient als Referenz. Bereiche kannst du freiwillig
+erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
+Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen; ein Fehler setzt die Serie zurück und erklärt die Veränderung.
 43 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
@@ -38,7 +39,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.3.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.3.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`

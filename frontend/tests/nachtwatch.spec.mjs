@@ -29,11 +29,12 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
 
 test('visible anomaly, real door raycasts, wrong decision reset and thirteen consecutive correct doors reach the ending',async({page})=>{
  test.setTimeout(120000);await begin(page);
- await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');expect((await state(page)).streak).toBe(0);expect((await state(page)).phase).toBe('play');
+ expect((await state(page)).visited).toEqual([]);await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('result');expect((await state(page)).streak).toBe(1);
+ await page.waitForTimeout(350);await qa(page,{op:'next'});await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await qa(page,{op:'anomaly',id:'balls_float'});await qa(page,{op:'warp',x:3.0,z:8.5,yaw:0});await page.mouse.click(768,512);await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'nachtwache-anomaly-desktop.png')});
- await qa(page,{op:'inspect'});await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('result');expect((await state(page)).streak).toBe(0);
+ await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('result');expect((await state(page)).streak).toBe(0);
  for(let i=0;i<13;i++){
-  await expect.poll(async()=>(await state(page)).phase).toBe('result');await page.waitForTimeout(350);await qa(page,{op:'next'});await expect.poll(async()=>(await state(page)).phase).toBe('play');await page.waitForTimeout(350);await page.mouse.click(768,512);const red=(await state(page)).anomaly!=='none';await qa(page,{op:'inspect'});await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe(red?'red':'green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(i+1);
+  await expect.poll(async()=>(await state(page)).phase).toBe('result');await page.waitForTimeout(350);await qa(page,{op:'next'});await expect.poll(async()=>(await state(page)).phase).toBe('play');await page.waitForTimeout(350);await page.mouse.click(768,512);expect((await state(page)).visited).toEqual([]);const red=(await state(page)).anomaly!=='none';await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe(red?'red':'green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(i+1);
  }
  await expect.poll(async()=>(await state(page)).phase).toBe('won');await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'nachtwache-ending-desktop.png')});
 });
@@ -64,8 +65,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.3.1.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.3.1.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.3.2.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.3.2.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);

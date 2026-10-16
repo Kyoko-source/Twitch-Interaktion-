@@ -10,8 +10,11 @@ func check(condition: bool, message: String) -> void:
 func run(game: Node3D) -> bool:
  var state:=PatrolState.new();state.start(42)
  check(state.current=="none","First round must be normal")
- check(not state.decide(false).accepted,"Must inspect all areas before choosing")
- check(state.rounds==0,"Blocked decision must not consume a round")
+ check(state.visited.is_empty() and state.decide(false).accepted,"Green door must work without visiting any area")
+ check(state.rounds==1 and state.streak==1,"Immediate green decision must advance the round")
+ state.start(42)
+ check(state.visited.is_empty() and state.decide(true).accepted and state.errors==1,"Immediate red decision must be accepted and evaluated normally")
+ state.start(42)
  check(state.inspect("Empfang"),"First inspection accepted")
  check(not state.inspect("Empfang"),"Duplicate checkpoint ignored")
  check(not state.inspect("Unknown"),"Unknown checkpoint ignored")

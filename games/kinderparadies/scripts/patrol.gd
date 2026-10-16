@@ -92,7 +92,7 @@ func inspect(zone: String) -> bool:
  return false
 
 func decide(red: bool) -> Dictionary:
- if completed or visited.size()!=ZONES.size(): return {"accepted":false}
+ if completed: return {"accepted":false}
  var anomaly := current!="none"
  var correct := red==anomaly
  var detail := describe(current)
