@@ -9,3 +9,11 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/public/music/nullsignal/*.mp3
 NULLSIGNAL MUSIK/*.mp3
+tools/godot-portable/
+games/kinderparadies/.godot/
+games/kinderparadies/build/
+games/kinderparadies/exported/
+frontend/public/standalone/kinderparadies/
+frontend/public/downloads/kinderparadies-*.zip
+frontend/public/downloads/nachtwache-*.zip
+game-releases/

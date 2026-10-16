@@ -1,0 +1,19 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {ArrowLeft,Download,Maximize,Monitor,Play} from 'lucide-react';
+import './nachtwache.css';
+
+function GameWindow({onClose}){
+  const root=useRef(null);
+  useEffect(()=>{
+    const app=document.querySelector('.communityApp'),wasInert=app?.inert,overflow=document.body.style.overflow;
+    if(app)app.inert=true;document.body.style.overflow='hidden';
+    return()=>{if(app)app.inert=wasInert;document.body.style.overflow=overflow;};
+  },[]);
+  return createPortal(<section className="nightGameWindow" ref={root} aria-label="NACHTWACHE spielen"><header><button type="button" onClick={onClose}><ArrowLeft size={17}/>Zurück zur Webseite</button><span>NACHTWACHE · Kinderparadies</span><button type="button" aria-label="Spiel im Vollbild öffnen" onClick={()=>root.current?.requestFullscreen?.().catch(()=>{})}><Maximize size={17}/></button></header><iframe title="NACHTWACHE – eigenständiges 3D-Spiel" src="/standalone/kinderparadies/index.html" allow="autoplay; fullscreen" allowFullScreen/></section>,document.body);
+}
+
+export function Nachtwache(){
+  const [playing,setPlaying]=useState(false),[touch]=useState(()=>matchMedia('(pointer: coarse)').matches&&!matchMedia('(any-pointer: fine)').matches);
+  return <section className="nightLaunch" aria-labelledby="night-title"><div className="nightLaunchCopy"><h2 id="night-title">NACHTWACHE</h2><p className="nightSubtitle">Kinderparadies</p><p className="nightLead">Dreizehn Rundgänge.<br/>Keine zweite Sicherheit.</p><p>Nachts gehört das Spieleparadies dir. Kontrolliere Empfang, Bällebad, Partyraum und Wartungsgang. Präge dir jedes Detail ein – etwas könnte sich verändert haben.</p><div className="nightRules"><p><i className="nightGreen"/>Alles normal? <strong>Grüne Tür.</strong></p><p><i className="nightRed"/>Etwas stimmt nicht? <strong>Rote Tür.</strong></p><p><strong>13 richtige Entscheidungen in Folge.</strong> Ein Fehler setzt die Serie zurück.</p></div><div className="nightLaunchActions"><a href="/downloads/nachtwache-windows-v1.0.0.zip" download><Download size={19}/>Für Windows herunterladen</a><button type="button" disabled={touch} onClick={()=>setPlaying(true)}><Play size={19}/>Im Web spielen</button></div><p className="nightSystem"><Monitor size={16}/>Windows 64 Bit · offline spielbar · Spielstand wird lokal gespeichert</p>{touch&&<p className="nightTouchNotice">Die Web-Version benötigt Maus und Tastatur. Den Windows-Download kannst du am PC öffnen.</p>}<details><summary>Steuerung und Spielablauf</summary><p>WASD oder Pfeiltasten bewegen dich, die Maus steuert deinen Blick. F schaltet die Taschenlampe um. E öffnet eine Entscheidungstür, sobald du alle vier Bereiche kontrolliert hast. TAB zeigt deine Dienstanweisung; ESC pausiert.</p><p>Der erste Rundgang ist garantiert normal. Danach wechseln sich normale Runden und 30 mögliche Anomalien ab. Helligkeit, Lautstärke, Mausempfindlichkeit und Grafikqualität findest du im Spielmenü.</p></details></div><div className="nightLaunchArt"><img src="/assets/nachtwache/gameplay.png" alt="Blick durch das dunkle Spieleparadies mit Kletteranlage und den beiden Entscheidungstüren" loading="lazy"/><p>Ego-Perspektive · 30 Anomalien · eine Nachtschicht</p></div>{playing&&<GameWindow onClose={()=>setPlaying(false)}/>}</section>;
+}
