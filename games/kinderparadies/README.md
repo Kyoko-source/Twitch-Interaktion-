@@ -18,6 +18,8 @@ Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen; ein Fehler setzt die Serie zurück und erklärt die Veränderung.
 43 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
+Dichter graugrüner Nebel gehört zur normalen Umgebung. Blutroter Nebel ist eine
+Anomalie; die frühere reine Dichte-Anomalie wurde ersetzt.
 
 Helligkeit, Lautstärke, Empfindlichkeit, Grafikqualität und Kamerabewegung sind
 einstellbar. Spielstand wird pro Runde, bei Pause und alle zehn aktiven Sekunden
@@ -39,7 +41,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.3.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.4.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -141,6 +143,26 @@ Ton halten in der Pause an. Hüpf-Fläche, Kontrollweg und Spielregeln bleiben
 gemeinsam. Die Taschenlampe verwendet im Compatibility-Renderer korrigierte
 Schattenflächen und einen eigenen Bias gegen diagonale Streifen auf Wand und
 Figur. Prompts und Dateipfade in `art/PROMPTS-CROCODILE.md`.
+
+## Umgebung 1.4.0
+
+Das Ostgerüst und seine Rampen stehen vollständig vor der Partyraumwand;
+die Brücke verbindet die tatsächlichen Plattformhöhen. Alle sechs Stühle
+zeigen zum Tisch, auch das importierte Windows-Modell. Verschwundene Stühle
+lassen keine unsichtbaren Kollisionen zurück. 360 Bälle sind mit Abstand
+geschichtet; lose Physikbälle starten außerhalb des dekorativen Bällebads.
+24 gerahmte Gemälde und gedruckte Schilder ersetzen schwebende Wandtexte.
+Die Öffnungszeiten bleiben als gedruckte Variante Teil des Anomaliekatalogs.
+
+Originale kurze Materialgeräusche für Gummi, Holz, Stoff und Kunststoff ersetzen
+den wiederverwendeten Schritt-Sound. Gehaltene Gegenstände erzeugen keine
+Aufprallgeräusche; Rotation, Kraft und Wiederholrate sind begrenzt.
+Dichter Nebel ist immer normal, seine blutrote Verfärbung ist eine Anomalie.
+Alte Spielstände behalten den Fortschritt und starten einmal am Eingang.
+`scene_audit.gd` prüft Wandüberschneidungen, Stuhllehnen und Kugelabstände.
+Im Headless-Modus werden die eingereichten Transformationen geprüft, unter
+Windows/Web die vom Renderer zurückgelesenen Daten. Prompts, Bilder und
+Authoring-Werkzeuge: `art/PROMPTS-POLISH.md`.
 
 Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
 sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler

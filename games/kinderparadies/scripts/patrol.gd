@@ -39,7 +39,7 @@ const ANOMALIES := [
  {"id":"blood_pool","name":"Eine große Blutlache liegt unter dem Geburtstagstisch.","zone":"Partyraum"},
  {"id":"mural_bleeds","name":"Aus dem Wandbild laufen breite Blutspuren.","zone":"Wartungsgang"},
  {"id":"bunny_ceiling","name":"Der Stoffhase hängt kopfüber vor der Decke statt auf seiner Bank zu sitzen.","zone":"Empfang"},
- {"id":"heavy_mist","name":"Der Nebel ist ungewöhnlich dicht und füllt den ganzen Raum.","zone":"Bällebad"},
+ {"id":"heavy_mist","name":"Der normale graugrüne Nebel ist blutrot geworden.","zone":"Bällebad"},
  {"id":"bunny_lunge","name":"Der Stoffhase springt dich bei Annäherung an und bleibt danach vor seiner Bank liegen.","zone":"Empfang"},
  {"id":"bunny_watches","name":"Der Stoffhase dreht sich und verfolgt dich mit seinem Blick.","zone":"Empfang"},
  {"id":"croc_breathes","name":"Das aufblasbare Krokodil atmet wie ein lebendiges Tier.","zone":"Bällebad"},

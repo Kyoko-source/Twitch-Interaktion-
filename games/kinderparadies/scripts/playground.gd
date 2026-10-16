@@ -16,6 +16,8 @@ func build(world: PlayWorld) -> void:
 
 func _second_tower() -> void:
  var tower:=Node3D.new();tower.name="EastTower";add_child(tower)
+ # The party room ends at z=1.7. Keep the entire attraction on the hall side.
+ tower.position.z=2.1
  for x in [10.5,13.9,17.3]:
   for z in [.7,3.6,6.5]:
    w.tube(tower,Vector3(x,.1,z),Vector3(x,6.25,z),.17,w.materials.gold if x<12 else w.materials.teal)
@@ -51,11 +53,11 @@ func _second_tower() -> void:
  ropes.multimesh=mm;ropes.material_override=w.materials.stitch;ropes.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;tower.add_child(ropes)
  # A high bridge connects the two structures, leaving the patrol lane underneath.
  for i in range(23):
-  var x:=5.05+i*.24;var y:=3.65-sin(i/22.0*PI)*.3
+  var x:=5.05+i*.24;var y:=lerpf(2.98,2.18,i/22.0)-sin(i/22.0*PI)*.18
   w.box(tower,Vector3(x,y,2.15),Vector3(.22,.07,1.35),w.materials.wood,true)
   for side in [-1,1]:
    w.tube(tower,Vector3(x,y,2.15+side*.7),Vector3(x,y+.9,2.15+side*.7),.016,w.materials.fabric)
-   if i<22: w.tube(tower,Vector3(x,y+.9,2.15+side*.7),Vector3(x+.24,3.65-sin((i+1)/22.0*PI)*.3+.9,2.15+side*.7),.025,w.materials.fabric)
+   if i<22: w.tube(tower,Vector3(x,y+.9,2.15+side*.7),Vector3(x+.24,lerpf(2.98,2.18,(i+1)/22.0)-sin((i+1)/22.0*PI)*.18+.9,2.15+side*.7),.025,w.materials.fabric)
  # Open lower play bays have padded obstacles and a crawl tunnel.
  for i in range(5):
   var x:=11.2+i*1.2
@@ -65,8 +67,8 @@ func _second_tower() -> void:
  # The lower bays remain open; no invisible box fills the whole attraction.
  ramp(tower,Vector3(8.6,1.1,5.4),Vector3(1.2,.16,5.2),.5,-PI/2)
  ramp(tower,Vector3(16.2,3.27,3.6),Vector3(1.2,.16,5.2),.48)
- var sign:=w.text(tower,"WOLKENWERK",Vector3(13.9,6.55,6.55),.26,Color("a0b2a0"));sign.rotation.y=0
- w.lamp(Vector3(16,5.4,4.3),Color("609da8"),.8,11)
+ w.mounted_sign(tower,"tower",Vector3(13.9,5.45,6.69),Vector2(1.8,.8))
+ w.lamp(Vector3(16,5.4,6.4),Color("609da8"),.8,11)
 
 func ramp(parent: Node3D, pos: Vector3, size: Vector3, angle: float, yaw: float=0) -> void:
  var node:=Node3D.new();parent.add_child(node);node.position=pos;node.rotation=Vector3(angle,yaw,0)
@@ -104,11 +106,10 @@ func _crocodile() -> void:
  for side in [-1,1]: w.box(inflatable,Vector3(side*2.1,.65,0),Vector3(.55,1.3,7.4),pvc,true).hide()
  for i in range(3): w.box(inflatable,Vector3(-2.65+i*.28,.1+i*.13,-1.4),Vector3(.32,.2+i*.26,1.4),w.materials.gold,true)
  # Branding belongs on a worn safety plaque, not floating across its mouth.
- var plaque:=w.box(inflatable,Vector3(-2.45,.34,3.2),Vector3(.65,.42,.025),w.materials.wood)
- w.text(plaque,"KROKO KLUB\nMAX. 8 KINDER",Vector3(0,0,.018),.07,Color("9e956c"))
+ w.mounted_sign(inflatable,"croc",Vector3(-2.45,.34,3.2),Vector2(.65,.35))
  w.tube(self,Vector3(16.1,.4,12.8),Vector3(17.2,.4,12.8),.19,w.materials.dark)
  w.box(self,Vector3(17.5,.35,12.8),Vector3(.65,.7,.65),w.materials.gold,true)
- w.text(self,"GEBLÄSE\nNICHT ABSCHALTEN",Vector3(17.5,.55,13.14),.07)
+ w.mounted_sign(self,"blower",Vector3(17.5,.55,13.18),Vector2(.54,.28))
  fan=AudioStreamPlayer3D.new();var stream: AudioStreamWAV=load("res://assets/fan.wav");stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);fan.stream=stream;fan.position=Vector3(17.5,.5,12.8);fan.volume_db=-25;fan.max_distance=18;fan.unit_size=3;add_child(fan)
  w.lamp(Vector3(12.4,5.8,12.5),Color("a6b49a"),1.0,12)
  # A floor inspection light rakes the snout and reveals the material wear.
@@ -147,8 +148,7 @@ func _party_dressing() -> void:
   var x:=7.2+i*.53;var y:=4.6-sin(i/21.0*PI)*.5
   w.tube(party,Vector3(x,y,-9.8),Vector3(x+.53,y-.01,-9.8),.006,w.materials.stitch)
   var flag:=w.box(party,Vector3(x,y-.16,-9.8),Vector3(.32,.32,.012),[w.materials.red,w.materials.gold,w.materials.teal][i%3]);flag.rotation.z=sin(i)*.2
- w.text(party,"DEIN GROSSER TAG",Vector3(14,3.3,-12.0),.32,Color("bca37c"))
- w.text(party,"WIR HABEN AUF DICH GEWARTET",Vector3(14,2.85,-12.0),.1,Color("8b8170"))
+ w.mounted_sign(party,"birthday",Vector3(14,3.6,-11.95),Vector2(2.5,1.05))
  # A second, lower activity table with child-sized stools gives the wider room
  # a distinct craft corner rather than merely stretching its walls.
  w.tube(party,Vector3(13.7,.58,-3.8),Vector3(13.7,.66,-3.8),1.1,w.materials.cream)
@@ -163,11 +163,14 @@ func _party_dressing() -> void:
   var x:=13.1+(i%3)*.45;var z:=-4.2+(i/3)*.5
   var page:=w.box(party,Vector3(x,.67,z),Vector3(.28,.005,.32),w.materials.paper);page.rotation.y=i*.47
   w.tube(party,Vector3(x-.1,.68,z-.08),Vector3(x+.1,.68,z+.1),.008,w.materials.red)
- for i in range(7):
-  var frame:=w.box(party,Vector3(9.9+i*1.2,2.1,-12.02),Vector3(.74,.64,.035),w.materials.wood)
-  w.box(frame,Vector3(0,0,.022),Vector3(.63,.53,.008),w.materials.paper)
-  w.sphere(frame,Vector3(-.1,.07,.035),.09,w.materials.gold).scale.z=.04
-  w.tube(frame,Vector3(-.23,-.12,.034),Vector3(.23,-.12,.034),.025,w.materials.teal)
+ for i in range(5):
+  w.painting(party,(i+1)%4,Vector3(10.6+i*1.75,2.1,-11.95),Vector2(1.15,.95))
+ # Layered table runner and rounded serving trays give the preparation area purpose.
+ w.box(party,Vector3(15,.695,-7.6),Vector3(.7,.014,1.23),w.materials.fabric)
+ for z in [-8,-7.25]:
+  w.tube(party,Vector3(15.9,.7,z),Vector3(15.9,.72,z),.23,w.materials.metal)
+  for j in range(3):
+   var cake:=w.sphere(party,Vector3(15.75+j*.15,.76,z),.065,w.materials.cream);cake.scale.y=.65
  w.lamp(Vector3(15.7,4.2,-7.6),Color("c5a278"),.65,9)
 
 func _hall_dressing() -> void:
@@ -183,7 +186,8 @@ func _hall_dressing() -> void:
    w.tube(dressing,Vector3(x,0,z),Vector3(x,1.05,z),.06,w.materials.wood)
  for i in range(23): w.tube(dressing,Vector3(-9.7+i*.3,.12,15.7),Vector3(-9.7+i*.3,1,15.7),.026,w.materials.wood)
  for y in [.18,.95]: w.tube(dressing,Vector3(-9.7,y,15.7),Vector3(-2.8,y,15.7),.05,w.materials.wood)
- w.text(dressing,"DIE KLEINEN",Vector3(-6.2,2.7,17.05),.27).rotation.y=PI
+ w.mounted_sign(dressing,"nursery",Vector3(-6.2,3.55,16.97),Vector2(1.65,.75),PI)
+ for i in range(3): w.painting(dressing,i,Vector3(-8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
  for i in range(8):
   var x:=-.8+i*.65;var pad:=w.box(dressing,Vector3(x,.08,14),Vector3(.58,.14,2),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
   pad.rotation.y=sin(i)*.1
@@ -191,7 +195,7 @@ func _hall_dressing() -> void:
   var x:=.5+i*.7
   w.tube(dressing,Vector3(x,.05,16.5),Vector3(x,1.3,16.5),.055,w.materials.gold)
   w.sphere(dressing,Vector3(x,1.3,16.5),.1,w.materials.red)
- w.text(dressing,"BITTE ALLE KINDER ABHOLEN",Vector3(5.8,3.4,17.05),.23,Color("85948c")).rotation.y=PI
+ w.mounted_sign(dressing,"pickup",Vector3(5.8,3.4,16.97),Vector2(2.1,.8),PI)
  for i in range(6):
   var z:=.5+i*2.8
   w.box(dressing,Vector3(19.59,.7,z),Vector3(.15,1.35,2.5),[w.materials.blue,w.materials.gold,w.materials.teal][i%3])

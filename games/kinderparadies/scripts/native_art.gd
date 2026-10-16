@@ -65,6 +65,7 @@ func model(parent: Node3D, id: String, pos: Vector3, height: float, yaw: float=0
   var box: AABB=local*mesh.get_aabb()
   bounds=box if first else bounds.merge(box);first=false
   mesh.gi_mode=GeometryInstance3D.GI_MODE_STATIC
+  mesh.set_meta("native_model",id)
   for surface_index in range(mesh.mesh.get_surface_count()):
    var material: Material=mesh.get_active_material(surface_index)
    if material is StandardMaterial3D and material.resource_name.begins_with("Worn oatmeal"): material.uv1_scale=Vector3(3,3,1)
@@ -81,11 +82,12 @@ func hide_geometry(node: Node) -> void:
 
 func _models() -> void:
  for chair in w.props.chairs.get_children():
-  hide_geometry(chair);model(chair,"SchoolChair_01",Vector3.ZERO,.91,0 if chair.position.x<8 else PI)
+  # Imported chair back points toward -Z; the common chair uses +Z.
+  hide_geometry(chair);model(chair,"SchoolChair_01",Vector3.ZERO,.91,PI)
  hide_geometry(w.props.reception_shelves)
  for z in [1.4,2.7]: model(self,"wooden_bookshelf_worn",Vector3(-9.55,.02,z),2.15,PI/2)
- for i in range(5): model(self,"cardboard_box_01",Vector3(-8.5+(i%2)*.55,.02+(i/2)*.33,-9.8),.34,-.3+i*.4)
- for i in range(4): model(self,"cardboard_box_01",Vector3(-8.25+(i%2)*.5,.02+(i/2)*.4,-3.4),.41,i*.45)
+ for i in range(5): model(self,"cardboard_box_01",Vector3(-8.5+(i%2)*.55,.02+floori(i/2.0)*.35,-9.8),.34,-.3+i*.4)
+ for i in range(4): model(self,"cardboard_box_01",Vector3(-8.25+(i%2)*.5,.02+floori(i/2.0)*.42,-3.4),.41,i*.45)
  model(self,"power_box_01",Vector3(-9.8,1.4,-5.6),.7,PI/2)
  model(self,"metal_office_desk",Vector3(-8.8,.02,-10.8),.85,PI/2)
  model(w.props.counter,"rubber_duck_toy",Vector3(.12,1.0,.45),.13,.5)
@@ -165,7 +167,7 @@ func _rope_segments(strands: Array[Transform3D], a: Vector3, b: Vector3) -> void
 func _lighting() -> void:
  var env:=w.environment.environment
  env.ambient_light_energy=.15;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
- env.fog_density=.005;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.012
+ env.fog_density=.007;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.065
  env.volumetric_fog_albedo=Color("99adae");env.volumetric_fog_length=45;env.volumetric_fog_anisotropy=.4
  env.volumetric_fog_ambient_inject=.12;env.volumetric_fog_gi_inject=.35
  env.volumetric_fog_temporal_reprojection_amount=.75
@@ -207,7 +209,7 @@ func anomaly(id: String) -> void:
   if animated is GeometryInstance3D: animated.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for mesh in animated.find_children("*","MeshInstance3D",true,false): mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
  if id=="heavy_mist" and advanced:
-  w.environment.environment.volumetric_fog_density=.065
+  w.environment.environment.volumetric_fog_albedo=Color("b22629")
  if id=="lights_red":
   if strip_material: strip_material.albedo_color=Color("e22c28");strip_material.emission=Color("e22c28")
   for spot in spots: spot.light_color=Color("e22c28")

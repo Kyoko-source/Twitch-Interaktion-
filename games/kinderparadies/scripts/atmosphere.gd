@@ -129,7 +129,7 @@ func _reception_details() -> void:
  # A broken corkboard with drawings, pushpins and curled corners.
  w.box(self,Vector3(-10.0,2.25,5.5),Vector3(.04,1.35,1.9),w.materials.wood)
  for i in range(5):
-  var z:=4.82+(i%3)*.52;var y:=2.1+(i/3)*.55
+  var z:=4.82+(i%3)*.52;var y:=2.1+floori(i/3.0)*.55
   var page:=w.box(self,Vector3(-9.96,y,z),Vector3(.012,.5,.4),w.materials.paper);page.rotation.x=(i-2)*.08
   w.sphere(self,Vector3(-9.94,y+.21,z),.022,w.materials.red)
   for line in range(4): w.tube(self,Vector3(-9.94,y-.15+line*.09,z-.12),Vector3(-9.94,y-.1+line*.09,z+.13),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
@@ -219,11 +219,13 @@ func prop(pos: Vector3, size: Vector3, material: Material, title: String, mass: 
 
 func _physical_toys() -> void:
  for i in range(18):
-  var x:=-3.7+fmod(i*1.43,8.5);var z:=4.7+fmod(i*1.37,5.4)
+  # Loose physics balls stay outside the decorative packed pit instead of
+  # falling through its non-physical spheres and flickering inside them.
+  var x:=-2.2+(i%6)*1.15;var z:=9.25+floori(i/6.0)*.55
   prop(Vector3(x,.16,z),Vector3.ONE*.29,[w.materials.red,w.materials.blue,w.materials.gold,w.materials.teal][i%4],"Spielball",.16,true)
  for i in range(8):
-  var block:=prop(Vector3(-3.9+(i%3)*.37,.18+(i/3)*.32,8.1),Vector3.ONE*.3,w.materials.wood,"Holzbaustein",.45)
-  w.text(block,["A","B","C","★"][i%4],Vector3(0,0,.152),.18,[Color("85392f"),Color("355d66")][i%2])
+  var block:=prop(Vector3(-3.9+(i%3)*.37,.18+floori(i/3.0)*.32,8.1),Vector3.ONE*.3,w.materials.wood,"Holzbaustein",.45)
+  w.text(block,["A","B","C","★"][i%4],Vector3(0,0,.166),.18,[Color("85392f"),Color("355d66")][i%2])
  # Hollow-looking bucket built as a cup with a separate floor, stable cylinder collider.
  var bucket:=NightProp.new();bucket.position=Vector3(3.7,.26,8.7);bucket.title="Eimer";bucket.mass=.8;add_child(bucket);loose.append(bucket)
  var shape:=CylinderShape3D.new();shape.radius=.24;shape.height=.45;var collider:=CollisionShape3D.new();collider.shape=shape;bucket.add_child(collider)
@@ -238,13 +240,14 @@ func _mist_and_dust() -> void:
  var shader:=Shader.new();shader.code="""
 shader_type spatial;
 render_mode unshaded,blend_mix,depth_draw_never,cull_disabled,shadows_disabled;
-uniform float strength=0.2;
+uniform float strength=0.52;
+uniform vec3 fog_tint=vec3(0.34,0.41,0.38);
 uniform float clock=0.0;
 varying vec3 local_pos;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0)),f.x),f.y);}
 void vertex(){local_pos=VERTEX;VERTEX.y+=sin(VERTEX.x*2.0+clock*0.24)*0.035;}
-void fragment(){vec2 p=local_pos.xz*3.0+vec2(clock*0.035,-clock*0.018);float n=noise(p)*0.65+noise(p*2.3)*0.35;float rim=pow(abs(dot(normalize(NORMAL),normalize(VIEW))),2.0);ALBEDO=vec3(0.34,0.41,0.38);ALPHA=smoothstep(0.2,0.8,n)*rim*strength;}
+void fragment(){vec2 p=local_pos.xz*3.0+vec2(clock*0.035,-clock*0.018);float n=noise(p)*0.65+noise(p*2.3)*0.35;float rim=pow(abs(dot(normalize(NORMAL),normalize(VIEW))),2.0);ALBEDO=fog_tint;ALPHA=smoothstep(0.2,0.8,n)*rim*strength;}
 """
  mist=ShaderMaterial.new();mist.shader=shader
  # Soft ellipsoid clouds have no hard horizontal plane intersections on walls.
@@ -267,12 +270,15 @@ func _horror_variants() -> void:
  for i in range(7):
   decal(horrors.bloody_hands,1,Vector3(-10.015,.8+(i%3)*.4,-4-i*.65),Vector2(.52,.65),Vector3(0,PI/2,(i-3)*.17))
  decal(horrors.blood_pool,3,Vector3(8.5,.034,-7),Vector2(3.1,3.1),Vector3(-PI/2,0,0))
- for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-8.2+i*.7,1.3,-11.975),Vector2(.8,2.3),Vector3(0,0,-PI/2))
+ for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-8.2+i*.7,1.3,-11.935),Vector2(.8,2.3),Vector3(0,0,-PI/2))
 
 func anomaly(id: String) -> void:
  if horrors.has(id) and horrors[id] is Node3D: horrors[id].show()
  if id=="bunny_ceiling": horrors.bunny.position=Vector3(-4.3,3.7,-8.5);horrors.bunny.rotation.z=PI
- if id=="heavy_mist": mist.set_shader_parameter("strength",.52);w.environment.environment.fog_density=.07
+ w.environment.environment.fog_density=.07
+ if id=="heavy_mist":
+  mist.set_shader_parameter("fog_tint",Vector3(.55,.045,.06))
+  w.environment.environment.fog_light_color=Color("9c2834")
 
 func set_active(active: bool) -> void:
  if simulation==active: return

@@ -58,6 +58,24 @@ func run(game: Node3D) -> bool:
  check(game.world.balls.visible,"Normal round did not restore ball pit")
  check(game.world.props.mural.visible,"Normal round did not restore mural")
  check(game.world.props.chairs.visible,"Normal round did not restore chairs")
+ var audit:=SceneAudit.inspect(game.world)
+ check(audit.wall_intersections.is_empty(),"Climbing geometry intersects architecture: "+str(audit.wall_intersections))
+ check(audit.ball_min_distance>.28,"Decorative pit balls intersect each other")
+ var threshold: AABB=game.world.props.play_threshold.global_transform*game.world.props.play_threshold.get_aabb()
+ check(threshold.end.z<4.78,"Play entrance threshold cuts through the ball pit rim")
+ check(audit.chair_back_dot>.95,"A chair back faces the birthday table")
+ check(audit.mounted_art>=20 and audit.floating_labels<=8,"Wall art/signage was not mounted as opaque physical surfaces")
+ var normal_fog: Color=game.world.environment.environment.fog_light_color
+ check(game.world.environment.environment.fog_density>=.065,"Dense fog must be present in a normal round")
+ game._build_world("heavy_mist")
+ check(game.world.environment.environment.fog_light_color.r>normal_fog.r and game.world.environment.environment.fog_light_color.g<normal_fog.g,"Fog anomaly must be visibly red, not ordinary dense mist")
+ game._build_world("balls_float");game.world.tick(4,true)
+ check(SceneAudit.inspect(game.world).ball_min_distance>.28,"Floating ball anomaly causes overlapping balls")
+ game._build_world("hours_wrong")
+ check(game.world.props.hours.material_override.albedo_texture.resource_path.ends_with("hours-wrong.png"),"Printed opening hours anomaly did not update")
+ game._build_world("chairs_missing")
+ for collider in game.world.props.chairs.find_children("*","StaticBody3D",true,false): check(collider.collision_layer==0,"Missing chair left an invisible obstruction")
+ game._build_world("none")
  # Exercise the real CharacterBody3D movement and collision world.
  game.player.reset_pose();game.player.active=true
  var initial: Vector3=game.player.position
@@ -93,6 +111,8 @@ func run(game: Node3D) -> bool:
  check(game.player.prop_target()==body,"Loose object was not physically targetable")
  game.player.grab_prop()
  check(game.player.carried==body and body.held,"Object was not picked up")
+ body.cooldown=0;body.previous_speed=8;body._impact(game.world)
+ check(body.impact_count==0 and not body.impact.playing,"Held object generated a collision sound")
  for frame in range(40): await game.get_tree().physics_frame
  check(body.global_position.distance_to(game.player.camera.global_position)<2.1,"Spring carry failed to lift object")
  game.player.camera.rotation.x=0;game.player.drop_prop(true)
@@ -131,16 +151,16 @@ func run(game: Node3D) -> bool:
   await game.get_tree().physics_frame;bounce_peak=maxf(bounce_peak,game.player.position.y)
   if frame==2: jump.pressed=false;Input.parse_input_event(jump)
  check(bounce_peak>2.1,"Inflatable bed jump has no extra height")
- game.player.position=Vector3(6.4,0,5.4);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
+ game.player.position=Vector3(6.4,0,7.5);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
  Input.action_press("forward")
  for frame in range(135): await game.get_tree().physics_frame
  Input.action_release("forward")
  check(game.player.position.y>1.9 and game.player.position.x>10.5,"East tower ground ramp is not walkable")
- game.player.position=Vector3(16.2,2.2,6.35);game.player.velocity=Vector3.ZERO;game.player.rotation.y=0
+ game.player.position=Vector3(16.2,2.2,8.45);game.player.velocity=Vector3.ZERO;game.player.rotation.y=0
  Input.action_press("forward")
  for frame in range(135): await game.get_tree().physics_frame
  Input.action_release("forward")
- check(game.player.position.y>4 and game.player.position.z<2,"East tower upper ramp is obstructed")
+ check(game.player.position.y>4 and game.player.position.z<4.1,"East tower upper ramp is obstructed")
  # Normal comparison has no proximity scare. The anomaly requires actual
  # proximity, a forward-facing view and unobstructed line of sight.
  game._build_world("none");game._resume();game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=-PI/2
@@ -183,6 +203,14 @@ func run(game: Node3D) -> bool:
  game.world.encounters.tick(1,true,game.player)
  check(game.world.encounters.finished and is_equal_approx(game.world.playground.croc_jaw.rotation.x,.12),"Crocodile jaw failed to settle after snap")
  game._build_world("none");game.player.release();game.phase="menu"
- game.has_session=true;game.state.start(71);game._save();check(game._can_continue(),"Saved game cannot be continued")
+ game.has_session=true;game.state.start(71);game.state.decide(false);game._save();check(game._can_continue(),"Saved game cannot be continued")
+ var legacy:=JSON.parse_string(FileAccess.get_file_as_string(game.SAVE)) as Dictionary
+ legacy.erase("layout_version");legacy.pose=[13,1,1.6,0,0]
+ var expected:=PatrolState.new();expected.restore(legacy.patrol)
+ var legacy_file:=FileAccess.open(game.SAVE,FileAccess.WRITE);legacy_file.store_string(JSON.stringify(legacy));legacy_file.close()
+ game.has_session=false;game._continue()
+ check(game.player.position.is_equal_approx(Vector3(-6.2,0,8.5)),"Old layout save restored the player inside relocated geometry")
+ check(game.state.serialize()==expected.serialize(),"Layout migration changed patrol progress")
+ game._pause()
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

@@ -12,6 +12,7 @@ var practicals: Array[OmniLight3D] = []
 var party_light: OmniLight3D
 var balls: MultiMeshInstance3D
 var ball_transforms: Array[Transform3D] = []
+var ball_render_transforms: Array[Transform3D] = []
 var current := "none"
 var clock := 0.0
 var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(9.3,0,12.2),"Partyraum":Vector3(12,0,-6.4),"Wartungsgang":Vector3(-7.5,0,-7.2)}
@@ -55,6 +56,7 @@ func mat(color: Color, texture: Texture2D=null, roughness: float=.65, metal: flo
 
 func box(parent: Node3D, pos: Vector3, size: Vector3, material: Material, solid: bool=false) -> MeshInstance3D:
  var mesh:=MeshInstance3D.new();mesh.mesh=bevel(size);mesh.material_override=material;mesh.position=pos;parent.add_child(mesh)
+ if solid and parent==self and material==materials.get("wall"): mesh.set_meta("architecture_wall",true)
  if solid:
   var body:=StaticBody3D.new();var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=size;shape.shape=bounds;body.position=pos;body.add_child(shape);parent.add_child(body)
  return mesh
@@ -69,7 +71,30 @@ func sphere(parent: Node3D, pos: Vector3, radius: float, material: Material) -> 
  var mesh:=MeshInstance3D.new();var shape:=SphereMesh.new();shape.radius=radius;shape.height=radius*2;shape.radial_segments=16 if OS.has_feature("web") else 40;shape.rings=8 if OS.has_feature("web") else 20;mesh.mesh=shape;mesh.material_override=material;mesh.position=pos;parent.add_child(mesh);return mesh
 
 func text(parent: Node3D, value: String, pos: Vector3, size: float, color: Color=Color("e6dbc1")) -> Label3D:
- var label:=Label3D.new();label.text=value;label.font_size=64;label.pixel_size=size/64;label.position=pos;label.modulate=color;label.outline_size=0;label.no_depth_test=false;label.shaded=false;parent.add_child(label);return label
+ var label:=Label3D.new();label.text=value;label.font_size=64;label.pixel_size=size/64;label.position=pos;label.modulate=color;label.outline_size=0;label.no_depth_test=false;label.shaded=true;label.alpha_cut=Label3D.ALPHA_CUT_DISCARD;parent.add_child(label);return label
+
+func artwork(parent: Node3D, pos: Vector3, size: Vector2, texture: Texture2D, yaw: float=0, cell: int=-1) -> MeshInstance3D:
+ var image:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=size
+ if cell>=0:
+  var arrays:=quad.surface_get_arrays(0);var uv: PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
+  var offset:=Vector2(cell%2,floori(cell/2.0))*.5
+  for i in range(uv.size()): uv[i]=offset+Vector2.ONE*.012+uv[i]*.476
+  arrays[Mesh.ARRAY_TEX_UV]=uv;var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);image.mesh=geometry
+ else: image.mesh=quad
+ image.material_override=mat(Color("c5c0ac"),texture,.96);image.position=pos;image.rotation.y=yaw;parent.add_child(image)
+ image.set_meta("mounted_art",true)
+ # Separate frame, backing and opaque canvas avoid coplanar text/decal layers.
+ box(image,Vector3(0,0,-.024),Vector3(size.x+.12,size.y+.12,.035),materials.wood)
+ for side in [-1,1]:
+  box(image,Vector3(side*(size.x*.5+.025),0,.012),Vector3(.055,size.y+.12,.06),materials.wood)
+  box(image,Vector3(0,side*(size.y*.5+.025),.012),Vector3(size.x+.12,.055,.06),materials.wood)
+ return image
+
+func mounted_sign(parent: Node3D, id: String, pos: Vector3, size: Vector2, yaw: float=0) -> MeshInstance3D:
+ return artwork(parent,pos,size,load("res://assets/polish/"+id+".png"),yaw)
+
+func painting(parent: Node3D, cell: int, pos: Vector3, size: Vector2, yaw: float=0) -> MeshInstance3D:
+ return artwork(parent,pos,size,load("res://assets/polish/paintings.png"),yaw,cell)
 
 func group(id: String) -> Node3D:
  var node:=Node3D.new();node.name=id;add_child(node);props[id]=node;return node
@@ -135,7 +160,7 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(6.8,3.7,-1),Vector3(.2,7.4,5.4),materials.wall,true)
  box(self,Vector3(6.8,5.25,-5.8),Vector3(.25,4.3,3.2),materials.wood,true)
  box(self,Vector3(13.3,3.7,1.6),Vector3(13,7.4,.2),materials.wall,true)
- var sign:=text(self,"PARTYRAUM",Vector3(6.62,3.3,-5.8),.19);sign.rotation.y=-PI/2
+ mounted_sign(self,"party",Vector3(6.61,3.55,-5.8),Vector2(1.35,.67),-PI/2)
 
 func _play_structure() -> void:
  var structure:=group("structure")
@@ -168,17 +193,21 @@ func _play_structure() -> void:
     var t: float=(row+int(corner[1]))/32.0;var cross: float=(col+int(corner[0]))/8.0;var x:=(cross-.5)*1.25
     tool.set_uv(Vector2(cross,t));tool.add_vertex(Vector3(4.4+x,2.15*(1-t)*(1-t)+.3+pow(absf(x/.625),4)*.22,1.2+t*4.5))
  tool.generate_normals();var slide_mesh:=MeshInstance3D.new();slide_mesh.mesh=tool.commit();var slide_mat: StandardMaterial3D=materials.red.duplicate();slide_mat.cull_mode=BaseMaterial3D.CULL_DISABLED;slide_mesh.material_override=slide_mat;slide.add_child(slide_mesh)
- for i in range(3): box(structure,Vector3(.15,.16+i*.13,4.5-i*.37),Vector3(.9,.32+i*.26,.4),palette[i])
+ # One padded threshold stays in front of the play bay, clear of the pit rim.
+ props.play_threshold=box(structure,Vector3(.15,.17,3.95),Vector3(.95,.2,.35),materials.blue,true)
  var pit:=group("pit")
  for x in [-.7,5.8]: box(pit,Vector3(x,.35,6),Vector3(.25,.65,3.4),materials.blue,true)
  for z in [4.4,7.6]: box(pit,Vector3(2.55,.35,z),Vector3(6.5,.65,.25),materials.red,true)
  # A single instanced mesh for every ball, with per-instance colors.
  balls=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_colors=true
- var ball_mesh:=SphereMesh.new();ball_mesh.radius=.14;ball_mesh.height=.28;ball_mesh.radial_segments=12;ball_mesh.rings=6;mm.mesh=ball_mesh;mm.instance_count=360
- var material:=mat(Color.WHITE,null,.23);material.vertex_color_use_as_albedo=true;balls.material_override=material;balls.multimesh=mm;pit.add_child(balls)
+ var ball_mesh:=SphereMesh.new();ball_mesh.radius=.14;ball_mesh.height=.28;ball_mesh.radial_segments=16 if OS.has_feature("web") else 24;ball_mesh.rings=10;mm.mesh=ball_mesh;mm.instance_count=360
+ var material:=mat(Color.WHITE,null,.46);material.vertex_color_use_as_albedo=true;balls.material_override=material;balls.multimesh=mm;pit.add_child(balls)
  var rng:=RandomNumberGenerator.new();rng.seed=71;var colors: Array[Color]=[NAVY,CORAL,GOLD,TEAL,Color("b0a873")]
  for i in range(360):
-  var p:=Vector3(rng.randf_range(-.4,5.5),rng.randf_range(.22,.46),rng.randf_range(4.65,7.35));var t:=Transform3D(Basis.IDENTITY,p);ball_transforms.append(t);mm.set_instance_transform(i,t);mm.set_instance_color(i,colors[i%colors.size()])
+  var layer:=floori(i/180.0);var row:=floori((i%180)/18.0);var col:=i%18
+  var p:=Vector3(-.13+col*.315+(row%2)*.1575+layer*.09,.17+layer*.285,4.67+row*.288+layer*.06)
+  p+=Vector3(rng.randf_range(-.01,.01),rng.randf_range(-.008,.008),rng.randf_range(-.006,.006))
+  var t:=Transform3D(Basis.IDENTITY,p);ball_transforms.append(t);ball_render_transforms.append(t);mm.set_instance_transform(i,t);mm.set_instance_color(i,colors[rng.randi_range(0,colors.size()-1)])
  var giant:=sphere(self,Vector3(2.2,1.3,6),1.2,materials.red);giant.visible=false;props.giant=giant
  var loose:=sphere(self,Vector3(-1.6,.17,4.8),.17,materials.gold);props.loose=loose
  # Keep a comfortable patrol passage between the structure and party-room wall.
@@ -190,8 +219,8 @@ func _reception() -> void:
  props.counter_base=box(counter,Vector3(0,.46,0),Vector3(.82,.92,2.7),materials.cream,true)
  props.counter_top=box(counter,Vector3(0,.96,0),Vector3(.96,.08,2.9),materials.wood)
  box(counter,Vector3(-.04,1.2,-.55),Vector3(.38,.34,.045),materials.dark)
- text(counter,"NACHTDIENST",Vector3(-.04,1.21,-.52),.045)
- var hours:=text(self,"KINDERPARADIES\n10:00 – 18:00",Vector3(-9.98,2.1,7.6),.18);hours.rotation.y=PI/2;props.hours=hours
+ mounted_sign(counter,"monitor",Vector3(-.04,1.21,-.515),Vector2(.32,.16))
+ props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,7.6),Vector2(1.3,.75),PI/2)
  var shelves:=group("reception_shelves")
  for z in [1.4,2.6]:
   box(shelves,Vector3(-9.4,1.1,z),Vector3(1.05,2.1,1.1),materials.wood,true)
@@ -226,8 +255,9 @@ func _party_room() -> void:
  var chairs:=group("chairs")
  for i in range(6):
   var chair:=Node3D.new();chair.position=Vector3(7.25 if i<3 else 9.75,0,-8.05+(i%3)*1.05);chairs.add_child(chair)
-  box(chair,Vector3(0,.42,0),Vector3(.48,.09,.48),materials.gold if i%2==0 else materials.teal)
-  box(chair,Vector3(0,.7,.23),Vector3(.48,.5,.07),materials.red)
+  chair.rotation.y=-PI/2 if i<3 else PI/2
+  box(chair,Vector3(0,.42,0),Vector3(.48,.09,.48),materials.gold if i%2==0 else materials.teal,true)
+  box(chair,Vector3(0,.7,.23),Vector3(.48,.5,.07),materials.red,true)
   for x in [-.18,.18]:
    for z in [-.18,.18]: box(chair,Vector3(x,.2,z),Vector3(.045,.4,.045),materials.metal)
  var balloons:=group("balloons")
@@ -238,15 +268,15 @@ func _party_room() -> void:
  for i in range(4): tube(self,Vector3(8.3+i*.13,1.07,-7),Vector3(8.3+i*.13,1.24,-7),.014,materials.cream)
  party_light=lamp(Vector3(8.5,3.8,-7),Color("ffca88"),1.1,7)
  party_light.shadow_enabled=true
- text(self,"ALLES GUTE!",Vector3(8.4,3.2,-12.0),.23,Color("d4c28a"))
+ painting(self,1,Vector3(8.5,3.2,-11.96),Vector2(1.45,1.0))
  for i in range(12):
   var flag:=box(self,Vector3(7.1+i*.24,3,-11.98),Vector3(.17,.23,.01),materials.red if i%2==0 else materials.gold);flag.rotation.z=.2 if i%2==0 else -.2
 
 func _service() -> void:
- var mural:=MeshInstance3D.new();var plane:=QuadMesh.new();plane.size=Vector2(3.8,2.55);mural.mesh=plane;mural.material_override=mat(Color.WHITE,load("res://assets/mural.png"),.95);mural.position=Vector3(-7.1,2.2,-12.0);add_child(mural);props.mural=mural
+ props.mural=painting(self,0,Vector3(-7.1,2.2,-11.96),Vector2(3.8,2.55))
  box(self,Vector3(-9.3,1.2,-7.6),Vector3(1.1,2.4,.8),materials.metal,true)
  for y in [.4,1.2,2]: box(self,Vector3(-9.3,y,-7.12),Vector3(.9,.035,.04),materials.dark)
- text(self,"WARTUNG",Vector3(-9.3,2.2,-7.12),.12)
+ mounted_sign(self,"maintenance",Vector3(-9.3,2.2,-7.10),Vector2(.8,.4))
  var extinguisher:=group("extinguisher");extinguisher.position=Vector3(-9.9,.65,-4.3)
  tube(extinguisher,Vector3(0,0,0),Vector3(0,.5,0),.11,materials.red);tube(extinguisher,Vector3(0,.5,0),Vector3(.13,.5,0),.025,materials.dark)
  var footprints:=group("footprints");footprints.visible=false
@@ -277,7 +307,7 @@ func _doors() -> void:
   box(leaf,Vector3(1.25,-.2,.12),Vector3(.23,.06,.1),materials.metal)
   var glow:=mat(color);glow.emission_enabled=true;glow.emission=color;glow.emission_energy_multiplier=1.7
   box(body,Vector3(0,1.85,0),Vector3(1.6,.38,.12),glow)
-  text(body,"ANOMALIE" if red else "NORMAL",Vector3(0,1.85,.08),.19,Color("e8f3de"))
+  mounted_sign(body,"red" if red else "green",Vector3(0,1.85,.09),Vector2(1.4,.29))
   lamp(Vector3(x,3.6,-11),color,1.1,4)
 
 func _details() -> void:
@@ -304,18 +334,15 @@ func _details() -> void:
     box(self,Vector3(-9.28,y+.025,z+side*.25),Vector3(.48,.04,.19),materials.cream)
  tube(self,Vector3(-8.1,0,8.7),Vector3(-8.1,.55,8.7),.23,materials.dark)
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
- for z in [-4,1,6]:
-  box(self,Vector3(-9.98,1.95,z),Vector3(.035,.65,.48),materials.wood)
-  box(self,Vector3(-9.95,1.95,z),Vector3(.012,.55,.38),paper)
-  var plaque:=text(self,"SPIELREGELN\nSOCKENPFLICHT\nKEIN ESSEN",Vector3(-9.93,1.95,z),.064);plaque.rotation.y=PI/2
+ for z in [9.5]:
+  mounted_sign(self,"rules",Vector3(-9.96,1.95,z),Vector2(.65,.4),PI/2)
  for x in [6.7,6.9]:
   box(self,Vector3(x,1.55,-7.55),Vector3(.14,3.1,.13),materials.wood)
   box(self,Vector3(x,1.55,-4.05),Vector3(.14,3.1,.13),materials.wood)
- var board:=text(self,"PARTYRAUM",Vector3(6.61,3.45,-5.8),.18);board.rotation.y=-PI/2
  for y in [1.3,2.5,3.7]:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
- text(self,"DIENSTANWEISUNG\nALLE 4 BEREICHE KONTROLLIEREN\nNORMAL → GRÜN   ANOMALIE → ROT",Vector3(-6.1,2.3,17.05),.14)
+ mounted_sign(self,"duty",Vector3(-6.1,2.3,16.98),Vector2(1.65,.85),PI)
  for i in range(3): box(self,Vector3(18.8,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:
@@ -326,7 +353,9 @@ func set_anomaly(id: String) -> void:
  # Fresh world per round means every normal state starts from the exact same layout.
  if id=="chair_ceiling":
   for chair in props.chairs.get_children(): chair.position.y=6.8;chair.rotation.x=PI
- elif id=="chairs_missing": props.chairs.visible=false
+ elif id=="chairs_missing":
+  props.chairs.visible=false
+  for body in props.chairs.find_children("*","StaticBody3D",true,false): body.collision_layer=0
  elif id=="chair_stack":
   for i in range(props.chairs.get_child_count()): props.chairs.get_child(i).position=Vector3(7.5,i*.65,-5.2)
  elif id=="balls_red":
@@ -357,7 +386,7 @@ func set_anomaly(id: String) -> void:
  elif id=="net_missing": props.nets.visible=false
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
  elif id=="extinguisher_float": props.extinguisher.position.y=2.8
- elif id=="hours_wrong": props.hours.text="KINDERPARADIES\n03:33 – 03:33"
+ elif id=="hours_wrong": props.hours.material_override.albedo_texture=load("res://assets/polish/hours-wrong.png")
 
 func tick(delta: float, active: bool) -> void:
  atmosphere.tick(delta,active)
@@ -370,7 +399,7 @@ func tick(delta: float, active: bool) -> void:
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else .8 if current=="clock_reverse" else -.004)
  if current=="balls_float":
   for i in range(0,360,3):
-   var t:=ball_transforms[i];t.origin.y+=1.0+sin(clock*.7+i)*.4;balls.multimesh.set_instance_transform(i,t)
+   var t:=ball_transforms[i];t.origin.y+=1.0+sin(clock*.7+(i%180)*.015)*.25;ball_render_transforms[i]=t;balls.multimesh.set_instance_transform(i,t)
  elif current=="ball_moves": props.loose.position=Vector3(-1.6,.17,4.8+sin(clock*.8)*2)
  elif current=="car_moves": props.car.position.z=5.5+sin(clock*.6)*1.5
  elif current=="car_float": props.car.position.y=1.7+sin(clock)*.2

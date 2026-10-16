@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--polish-qa" in OS.get_cmdline_user_args():
+  await polish_views(game,output);game._quit();return
  if "--croc-qa" in OS.get_cmdline_user_args():
   await croc_views(game,output);game._quit();return
  await game.get_tree().create_timer(8).timeout
@@ -71,6 +73,30 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
+
+func polish_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"reception","pos":Vector3(-6.4,0,6.7),"yaw":1.2,"pitch":.03},
+  {"name":"hours","pos":Vector3(-8.1,0,7.4),"yaw":PI/2,"pitch":.14},
+  {"name":"party","pos":Vector3(11.8,0,-3.8),"yaw":.65,"pitch":-.12},
+  {"name":"gallery","pos":Vector3(14,0,-9.3),"yaw":0,"pitch":.22},
+  {"name":"pit","pos":Vector3(0,0,9.6),"yaw":0,"pitch":-.46},
+  {"name":"tower","pos":Vector3(6.1,0,4.7),"yaw":-PI/2,"pitch":.3},
+  {"name":"fog-normal","pos":Vector3(-1,0,12),"yaw":-.95,"pitch":.09}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(2).timeout;await capture(game,output,shot.name)
+ var report:=SceneAudit.inspect(game.world)
+ report.renderer=RenderingServer.get_current_rendering_method();report.normal_fog=game.world.environment.environment.fog_density
+ report.native_fog=game.world.environment.environment.volumetric_fog_density
+ var start:=Time.get_ticks_usec()
+ for frame in range(120): await game.get_tree().process_frame
+ report.fps_sample=120.0/((Time.get_ticks_usec()-start)/1000000.0)
+ game._build_world("heavy_mist");game._resume();game.player.position=Vector3(-1,0,12);game.player.rotation.y=-.95;game.player.camera.rotation.x=.09
+ await game.get_tree().create_timer(2).timeout;await capture(game,output,"fog-red")
+ var file:=FileAccess.open(output.path_join("polish-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("POLISH RENDER QA ",JSON.stringify(report))
 
 func croc_views(game: Node3D, output: String) -> void:
  game._new_shift()
