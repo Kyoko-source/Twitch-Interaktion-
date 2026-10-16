@@ -107,12 +107,63 @@ func run(game: Node3D) -> bool:
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
  if not OS.has_feature("web"):
   check(game.world.native_art!=null,"Windows art pipeline missing")
-  check(game.world.native_art.model_count==32,"Native imported/hero models not instantiated")
-  check(game.world.native_art.sources.size()==12,"Native model catalog is incomplete")
+  check(game.world.native_art.model_count==36,"Native imported/hero models not instantiated")
+  check(game.world.native_art.sources.size()==13,"Native model catalog is incomplete")
   for source in game.world.native_art.sources.values(): check(source is PackedScene,"Native production model failed to load")
   check(not game.world.props.floor_tiles[0].visible,"Native continuous floor was not selected")
   check(AudioServer.get_bus_index("Interior")>=0,"Native room acoustics bus missing")
- game.player.release();game.phase="menu"
+ # Scene scale and real contact with the inflatable surface.
+ var desk: MeshInstance3D=game.world.props.counter_top
+ check(desk.get_aabb().size.x<1.1 and desk.get_aabb().size.z<3.1,"Reception desk is oversized")
+ check(game.world.props.structure.scale.y>1.2,"Main climbing frame was not enlarged")
+ game.player.position=Vector3(12.4,1.2,11.3);game.player.velocity=Vector3.ZERO;game.player.active=true
+ for frame in range(30): await game.get_tree().physics_frame
+ check(game.player.is_on_floor() and game.player.position.y>.65,"Inflatable bed collision is not walkable")
+ check(game.player.bounce_speed>7.5,"Inflatable bed did not provide spring jump")
+ jump.pressed=true;Input.parse_input_event(jump);var bounce_peak: float=game.player.position.y
+ for frame in range(70):
+  await game.get_tree().physics_frame;bounce_peak=maxf(bounce_peak,game.player.position.y)
+  if frame==2: jump.pressed=false;Input.parse_input_event(jump)
+ check(bounce_peak>2.1,"Inflatable bed jump has no extra height")
+ game.player.position=Vector3(6.4,0,5.4);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
+ Input.action_press("forward")
+ for frame in range(135): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.y>1.9 and game.player.position.x>10.5,"East tower ground ramp is not walkable")
+ game.player.position=Vector3(16.2,2.2,6.35);game.player.velocity=Vector3.ZERO;game.player.rotation.y=0
+ Input.action_press("forward")
+ for frame in range(135): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.y>4 and game.player.position.z<2,"East tower upper ramp is obstructed")
+ # Normal comparison has no proximity scare. The anomaly requires actual
+ # proximity, a forward-facing view and unobstructed line of sight.
+ game._build_world("none");game._resume();game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=-PI/2
+ game.world.encounters.tick(2,true,game.player)
+ check(not game.world.encounters.triggered,"Normal reference round triggered a scare")
+ game._build_world("bunny_lunge");game._resume();game.player.position=Vector3(-6.2,0,9)
+ game.world.encounters.tick(2,true,game.player)
+ check(not game.world.encounters.triggered,"Bunny triggered outside proximity")
+ game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=PI/2
+ await game.get_tree().physics_frame;game.world.encounters.tick(.01,true,game.player)
+ check(not game.world.encounters.triggered,"Bunny triggered behind the player")
+ game.player.rotation.y=-PI/2;game.player.camera.rotation.x=-.08
+ await game.get_tree().physics_frame;game.world.encounters.tick(.02,true,game.player)
+ check(game.world.encounters.triggered,"Approaching and looking at bunny did not trigger scare")
+ var attack_position: Vector3=game.world.atmosphere.horrors.bunny.position
+ var attack_time: float=game.world.encounters.attack_time
+ game.world.encounters.tick(.5,false,game.player)
+ check(game.world.encounters.attack_time==attack_time and game.world.atmosphere.horrors.bunny.position==attack_position,"Pause did not freeze the scare")
+ game.world.encounters.tick(.3,true,game.player)
+ check(game.world.atmosphere.horrors.bunny.position.distance_to(attack_position)>1,"Bunny did not physically leap")
+ game.world.encounters.tick(2,true,game.player)
+ check(game.world.encounters.finished,"Bunny scare did not finish")
+ game.world.encounters.tick(2,true,game.player)
+ check(game.world.encounters.attack_time<3,"One-shot scare replayed")
+ game._build_world("croc_breathes");game.world.encounters.tick(.8,true,game.player)
+ check(game.world.props.inflatable_skin.scale.y>1.04,"Crocodile breathing is static")
+ game._build_world("horse_rocks");game.world.encounters.tick(.5,true,game.player)
+ check(absf(game.world.atmosphere.horrors.horse.rotation.x)>.1,"Rocking horse anomaly is static")
+ game._build_world("none");game.player.release();game.phase="menu"
  game.has_session=true;game.state.start(71);game._save();check(game._can_continue(),"Saved game cannot be continued")
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

@@ -15,7 +15,7 @@ E Tür öffnen, TAB Dienstanweisung, ESC Pause, F11 Vollbild.
 Die erste Runde ist normal und dient als Referenz. Alle vier Kontrollbereiche
 besuchen. Keine Anomalie: grüne Tür. Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen; ein Fehler setzt die Serie zurück und erklärt die Veränderung.
-36 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
+43 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 
 Helligkeit, Lautstärke, Empfindlichkeit, Grafikqualität und Kamerabewegung sind
@@ -38,7 +38,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.2.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.3.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -58,6 +58,8 @@ Schatten; das Konzeptbild wird nicht als Spielwelt verwendet. Prompts und
 Art-Direction in `art/`. Oswald: SIL Open Font License (beigelegt).
 Schritte, Tür und Leitungsgeräusch: Kenney Impact Sounds, CC0 (beigelegt).
 `room.wav`: eigene nichtmusikalische Raumtextur aus dem Projekt.
+`fan.wav`, `rabbit-scare.wav`, `croc-snap.wav`, `party-burst.wav`: eigene Geräusche,
+reproduzierbar mit `tools/generate-nachtwache-encounters.py`.
 `drips.wav`: eigene Wasser-/Rohrgeräusche, reproduzierbar mit
 `tools/generate-nachtwache-drips.py`. Keine Hintergrundmusik.
 Godot MIT-Lizenz und Drittanbieterhinweise liegen dem Windows-ZIP bei.
@@ -65,6 +67,7 @@ Windows-Modelle und Materialkarten von Poly Haven: CC0. Quellen, Prüfsummen und
 Lizenzhinweise in `assets/polyhaven-provenance.json` und `PolyHaven-CC0.txt`.
 Die eigenen Hero-Modelle werden mit `tools/model-nachtwache-heroes.py` in Blender
 4.5.9 LTS erzeugt; GLBs und extrahierte Texturen liegen bereits im Repository.
+Das originale Krokodil wird mit `tools/model-nachtwache-crocodile.py` erzeugt.
 
 ## Version 1.1
 
@@ -97,6 +100,32 @@ werden aus ihrem Paket ausgeschlossen. Regeln und Spielstände bleiben gemeinsam
 Dieser Modus nutzt eigene QA-Spielstände und zeigt Bewegung, Sprung, Grafik-
 wechsel sowie repräsentative Anomalien. Die Bildprüfung erfolgt auf einer RTX
 4080 bei 1536×1024; andere GPUs und Auflösungen sind noch nicht systematisch geprüft.
+
+## Kinderparadies 1.3
+
+Die Halle wächst von etwa 460 auf 880 Quadratmeter bei 7,4 Metern Deckenhöhe.
+Der Empfangstresen ist jetzt 96 Zentimeter tief und 2,9 Meter lang, mit passenden
+Requisiten statt einer riesigen Tischplatte. Die erste Kletteranlage wird höher
+und breiter, eine zweite Anlage mit begehbaren Rampen und einer Hängebrücke
+kommt hinzu. Der größere Partyraum besitzt Bastelplätze, Kinderhocker,
+Geschenke, Geschirr und Wandzeichnungen; weitere Spielzonen füllen die Halle.
+
+Ein etwa zehn Meter langes originales aufblasbares Krokodil hat modellierte
+PVC-Kammern, Schweißnähte, Zähne, Augen, Ventil und Halteösen. Die begehbare
+Hüpf-Fläche erhöht die Sprunghöhe mit Leertaste. Das ist eine federnde
+Charakterphysik, keine vollständige Softbody-Simulation.
+
+Sieben neue Anomalien ergänzen den Katalog auf 43: zuspringender oder dich
+beobachtender Hase, atmendes oder sich aufbäumendes Krokodil, folgende oder
+plötzlich anschwellende Ballons und ein selbstständig schaukelndes Pferd.
+Die drei Schreckmomente lösen einmal pro Runde bei Nähe, Blickkontakt und
+freier Sichtlinie aus. Bewegungen, Geräusche und Reaktion pausieren gemeinsam.
+Der erste Referenzrundgang bleibt normal; Schreckmomente verursachen keinen
+zusätzlichen Tod und ändern die Rot-/Grün-Entscheidungsregel nicht.
+
+36 native Modellinstanzen aus 13 Modelltypen. Neue Grundfläche und Mechaniken
+sind auch im Web vorhanden; das aufwendige Krokodil-Modell und die PC-Effekte
+bleiben der Windows-Fassung vorbehalten.
 
 Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
 sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler

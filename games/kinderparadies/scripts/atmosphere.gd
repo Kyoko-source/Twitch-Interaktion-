@@ -51,7 +51,7 @@ func decal(parent: Node3D, cell: int, pos: Vector3, size: Vector2, rotation_valu
 func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
-   decal(self,2,Vector3(side*10.025,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
+   decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  for i in range(5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
  # A fixed, dried mark belongs to the reference round. New wet marks are anomalies.
  decal(self,0,Vector3(-9.97,1.08,-8.8),Vector2(.9,.55),Vector3(0,PI/2,-.35),Color(.32,.24,.23,.7))
@@ -80,29 +80,30 @@ func _weathering() -> void:
   var fold:=w.box(sheet,Vector3(.075,.025,0),Vector3(.09,.008,.31),w.materials.paper);fold.rotation.z=-.45
 
 func _softplay_details() -> void:
+ var details:=Node3D.new();w.props.structure.add_child(details);details.position.x=.6
  # Dense rope bridge and a shaped crawl-mouth replace the empty silhouette.
  var rope:=w.mat(Color("756947"),load("res://assets/wood.png"),.95)
  for i in range(14):
   var t:=i/13.0;var x:=-.7+t*4.8;var y:=2.7-sin(t*PI)*.34
-  w.box(self,Vector3(x,y,-4.4),Vector3(.3,.075,1.02),w.materials.wood)
-  for z in [-4.96,-3.84]: w.tube(self,Vector3(x,y,z),Vector3(x,y+.75,z),.013,rope)
+  w.box(details,Vector3(x,y,-4.4),Vector3(.3,.075,1.02),w.materials.wood)
+  for z in [-4.96,-3.84]: w.tube(details,Vector3(x,y,z),Vector3(x,y+.75,z),.013,rope)
   if i<13:
    var nx:=-.7+(i+1)/13.0*4.8;var ny:=2.7-sin((i+1)/13.0*PI)*.34
-   for z in [-4.96,-3.84]: w.tube(self,Vector3(x,y+.75,z),Vector3(nx,ny+.75,z),.026,rope)
+   for z in [-4.96,-3.84]: w.tube(details,Vector3(x,y+.75,z),Vector3(nx,ny+.75,z),.026,rope)
  for z in [-5.5,-2.4,.7,3.8]:
   for x in [-.9,2,4.9]:
    for y in [.38,2.25,4.42]:
-    w.tube(self,Vector3(x,y-.055,z),Vector3(x,y+.055,z),.151,w.materials.rust)
+    w.tube(details,Vector3(x,y-.055,z),Vector3(x,y+.055,z),.151,w.materials.rust)
     for a in range(4):
      var angle:=a*PI/2
-     w.sphere(self,Vector3(x+cos(angle)*.154,y,z+sin(angle)*.154),.018,w.materials.metal)
+     w.sphere(details,Vector3(x+cos(angle)*.154,y,z+sin(angle)*.154),.018,w.materials.metal)
  # Suspended padded obstacles inside the climbing frame, with leather straps.
  for i in range(5):
   var x:=-.05+i*.85;var z:=1.7 if i%2 else -.1
-  w.tube(self,Vector3(x,2.15,z),Vector3(x,1.82,z),.013,w.materials.stitch)
-  var roller:=MeshInstance3D.new();var capsule:=CapsuleMesh.new();capsule.radius=.18;capsule.height=1.25;capsule.radial_segments=16;capsule.rings=8;roller.mesh=capsule;roller.material_override=[w.materials.red,w.materials.gold,w.materials.teal][i%3];roller.position=Vector3(x,1.18,z);roller.rotation.z=(i-2)*.045;add_child(roller)
-  w.tube(self,Vector3(x,1.73,z),Vector3(x,1.76,z),.186,w.materials.stitch)
- var mouth:=Node3D.new();mouth.position=Vector3(-.9,1.25,3.86);add_child(mouth)
+  w.tube(details,Vector3(x,2.15,z),Vector3(x,1.82,z),.013,w.materials.stitch)
+  var roller:=MeshInstance3D.new();var capsule:=CapsuleMesh.new();capsule.radius=.18;capsule.height=1.25;capsule.radial_segments=16;capsule.rings=8;roller.mesh=capsule;roller.material_override=[w.materials.red,w.materials.gold,w.materials.teal][i%3];roller.position=Vector3(x,1.18,z);roller.rotation.z=(i-2)*.045;details.add_child(roller)
+  w.tube(details,Vector3(x,1.73,z),Vector3(x,1.76,z),.186,w.materials.stitch)
+ var mouth:=Node3D.new();mouth.position=Vector3(-.9,1.25,3.86);details.add_child(mouth)
  for side in [-1,1]:
   var cheek:=w.sphere(mouth,Vector3(side*.42,0,.1),.42,w.materials.gold);cheek.scale=Vector3(.6,1.25,.4)
   w.sphere(mouth,Vector3(side*.29,.57,.14),.12,w.materials.cream)
@@ -110,23 +111,21 @@ func _softplay_details() -> void:
  w.tube(mouth,Vector3(-.42,.38,.1),Vector3(.42,.38,.1),.16,w.materials.red)
  # Padded wall panels have seams, straps and individual sagging surfaces.
  for i in range(5):
-  var pad:=w.box(self,Vector3(9.99,.65,3+i*1.35),Vector3(.1,1.2,1.24),[w.materials.blue,w.materials.gold,w.materials.red][i%3])
+  var pad:=w.box(self,Vector3(19.59,.65,3+i*1.35),Vector3(.1,1.2,1.24),[w.materials.blue,w.materials.gold,w.materials.red][i%3])
   w.tube(pad,Vector3(-.061,-.47,-.5),Vector3(-.061,.47,-.5),.009,w.materials.stitch)
   w.tube(pad,Vector3(-.061,-.47,.5),Vector3(-.061,.47,.5),.009,w.materials.stitch)
 
 func _reception_details() -> void:
- # Articulated desk lamp and coiled telephone on the counter.
- w.tube(self,Vector3(-8.1,1.25,7),Vector3(-8.1,1.29,7),.18,w.materials.dark)
- w.tube(self,Vector3(-8.1,1.28,7),Vector3(-8.1,1.78,7),.022,w.materials.metal)
- w.tube(self,Vector3(-8.1,1.78,7),Vector3(-7.85,1.95,7),.023,w.materials.metal)
- var shade:=w.sphere(self,Vector3(-7.82,1.92,7),.17,w.materials.dark);shade.scale=Vector3(1,.55,1)
- var bulb:=w.mat(Color("f3d69b"));bulb.emission_enabled=true;bulb.emission=Color("ffdb90");bulb.emission_energy_multiplier=2
- w.sphere(self,Vector3(-7.82,1.85,7),.065,bulb)
- w.lamp(Vector3(-7.82,1.79,7),Color("ffd696"),.65,3.2)
- var phone:=w.box(self,Vector3(-8.2,1.3,6.1),Vector3(.35,.13,.42),w.materials.dark);phone.rotation.x=-.16
- w.tube(phone,Vector3(-.14,.12,-.12),Vector3(.14,.12,-.12),.045,w.materials.dark)
- for i in range(18):
-  var a:=i*.8;w.sphere(self,Vector3(-8.45+sin(a)*.024,1.24,5.84+i*.018),.012,w.materials.dark)
+ var counter: Node3D=w.props.counter
+ # Desk-sized phone and lamp; all objects use metre dimensions.
+ w.tube(counter,Vector3(-.1,1,.99),Vector3(-.1,1.04,.99),.1,w.materials.dark)
+ w.tube(counter,Vector3(-.1,1.04,.99),Vector3(-.1,1.39,.99),.015,w.materials.metal)
+ w.tube(counter,Vector3(-.1,1.39,.99),Vector3(.1,1.5,.99),.015,w.materials.metal)
+ var shade:=w.sphere(counter,Vector3(.12,1.47,.99),.1,w.materials.dark);shade.scale=Vector3(1,.55,1)
+ w.lamp(Vector3(-8.73,1.39,6.79),Color("ffd696"),.5,3.2)
+ var phone:=w.box(counter,Vector3(-.05,1.05,-1),Vector3(.24,.1,.28),w.materials.dark);phone.rotation.x=-.16
+ w.tube(phone,Vector3(-.09,.08,-.08),Vector3(.09,.08,-.08),.032,w.materials.dark)
+ for i in range(18): w.sphere(counter,Vector3(-.23+sin(i*.8)*.016,1.01,-1.13+i*.012),.008,w.materials.dark)
  # A broken corkboard with drawings, pushpins and curled corners.
  w.box(self,Vector3(-10.0,2.25,5.5),Vector3(.04,1.35,1.9),w.materials.wood)
  for i in range(5):
@@ -135,10 +134,10 @@ func _reception_details() -> void:
   w.sphere(self,Vector3(-9.94,y+.21,z),.022,w.materials.red)
   for line in range(4): w.tube(self,Vector3(-9.94,y-.15+line*.09,z-.12),Vector3(-9.94,y-.1+line*.09,z+.13),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
  # Large original mural inset in reception, plus bent cable runs.
- var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.75,.88);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(-7.098,.67,5.8);mural.rotation.y=PI/2;add_child(mural)
+ var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.8,.6);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(-8.426,.49,5.8);mural.rotation.y=PI/2;add_child(mural)
  for y in [.34,.38]: w.tube(self,Vector3(-9.97,y,-7),Vector3(-9.97,y,3),.014,w.materials.dark)
  # An abandoned rocking horse gives the long wall a recognizable, organic prop.
- var horse:=Node3D.new();horse.position=Vector3(-8.95,0,-1.8);horse.rotation.y=-.7;add_child(horse)
+ var horse:=Node3D.new();horse.position=Vector3(-8.95,0,-1.8);horse.rotation.y=-.7;add_child(horse);horrors.horse=horse
  var torso:=w.sphere(horse,Vector3(0,.65,0),.32,w.materials.wood);torso.scale=Vector3(.65,.8,1.4)
  var neck:=w.sphere(horse,Vector3(0,.95,-.3),.21,w.materials.wood);neck.scale=Vector3(.75,1.6,.8);neck.rotation.x=-.35
  var head:=w.sphere(horse,Vector3(0,1.2,-.43),.22,w.materials.wood);head.scale=Vector3(.75,.9,1.25)
@@ -192,14 +191,14 @@ func plush(parent: Node3D, pos: Vector3, scale_value: float=1.0) -> Node3D:
  return bunny
 
 func _plush_corner() -> void:
- var bench:=Node3D.new();bench.position=Vector3(1.2,0,9.4);add_child(bench)
+ var bench:=Node3D.new();bench.position=Vector3(-3.1,0,5.3);bench.rotation.y=PI/2;add_child(bench)
  horrors.bench=bench
  for i in range(4): w.box(bench,Vector3(0,.52,-.24+i*.16),Vector3(3,.07,.13),w.materials.wood,true)
  for side in [-1,1]:
   w.tube(bench,Vector3(side*1.2,.05,-.22),Vector3(side*1.2,.55,-.22),.045,w.materials.rust)
   w.tube(bench,Vector3(side*1.2,.05,.25),Vector3(side*1.2,1.1,.25),.045,w.materials.rust)
  for y in [.8,1.05]: w.box(bench,Vector3(0,y,.26),Vector3(3,.12,.065),w.materials.wood)
- var bunny:=plush(self,Vector3(.4,.62,9.32),1.08);bunny.rotation.y=PI;horrors.bunny=bunny
+ var bunny:=plush(self,Vector3(-3.35,.62,4.85),1.08);bunny.rotation.y=-PI/2;horrors.bunny=bunny
  # Dried plant with curled individual leaves.
  w.tube(self,Vector3(-9.1,.05,8.9),Vector3(-9.1,.5,8.9),.27,w.materials.rust)
  for i in range(13):

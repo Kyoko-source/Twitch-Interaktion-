@@ -16,8 +16,11 @@ func run(game: Node3D) -> void:
  var fps:=180.0/((Time.get_ticks_usec()-start)/1000000.0)
  var positions: Array[Dictionary]=[
   {"name":"play","pos":Vector3(-3.5,.012,6.4),"yaw":-.72,"pitch":-.05},
-  {"name":"rabbit","pos":Vector3(-4.15,.012,4.7),"yaw":-PI/2,"pitch":-.12},
-  {"name":"party","pos":Vector3(7.1,.012,-5.4),"yaw":-.45,"pitch":-.1},
+  {"name":"rabbit","pos":Vector3(-5.15,.012,4.85),"yaw":-PI/2,"pitch":-.12},
+  {"name":"counter","pos":Vector3(-6.4,.012,5.8),"yaw":PI/2,"pitch":-.1},
+  {"name":"hall","pos":Vector3(-1,.012,12),"yaw":-.95,"pitch":.09},
+  {"name":"crocodile","pos":Vector3(3.5,.012,13.7),"yaw":-1.2,"pitch":.04},
+  {"name":"party","pos":Vector3(7.2,.012,-5.4),"yaw":-1.05,"pitch":-.05},
   {"name":"service","pos":Vector3(-7.2,.012,-6.4),"yaw":0,"pitch":0}]
  for shot in positions:
   game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
@@ -41,6 +44,22 @@ func run(game: Node3D) -> void:
  for id in ["blood_trail","bunny_ceiling","lights_red"]:
   game._build_world(id);game._resume();await game.get_tree().create_timer(3).timeout
   await capture(game,output,id)
+ game._build_world("bunny_lunge");game._resume()
+ await game.get_tree().create_timer(1.4).timeout
+ game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=-PI/2;game.player.camera.rotation.x=-.08
+ var timeout:=0.0
+ while not game.world.encounters.triggered and timeout<3:
+  await game.get_tree().process_frame;timeout+=game.get_process_delta_time()
+ report.bunny_triggered=game.world.encounters.triggered
+ game._pause();var scare_time: float=game.world.encounters.attack_time
+ await game.get_tree().create_timer(.35).timeout
+ report.scare_pause=game.world.encounters.attack_time==scare_time
+ game._resume();await game.get_tree().create_timer(.26).timeout
+ await capture(game,output,"bunny_jump")
+ await game.get_tree().create_timer(1.5).timeout
+ report.bunny_finished=game.world.encounters.finished
+ game._build_world("croc_breathes");game._resume();game.player.position=Vector3(3.5,0,13.7);game.player.rotation.y=-1.2
+ await game.get_tree().create_timer(1.1).timeout;await capture(game,output,"croc_breathes")
  var file:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("NATIVE RENDER QA ",JSON.stringify(report))
  game._quit()

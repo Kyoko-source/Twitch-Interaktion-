@@ -19,9 +19,9 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  test.setTimeout(180000);await load(page);await page.screenshot({path:join(tmpdir(),'nachtwache-menu-desktop.png')});await page.mouse.click(250,490);await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await page.keyboard.press('f');await expect.poll(async()=>(await state(page)).torch).toBe(false);await page.keyboard.press('f');
  await walk(page,'w',s=>s.position[2]<4.5);await expect.poll(async()=>(await state(page)).visited).toContain('Empfang');
- await walk(page,'s',s=>s.position[2]>8.4);await walk(page,'d',s=>s.position[0]>4.4);await walk(page,'w',s=>s.position[2]<8.05);await expect.poll(async()=>(await state(page)).visited).toContain('Bällebad');
- await walk(page,'s',s=>s.position[2]>8.4);await walk(page,'d',s=>s.position[0]>5.75);await walk(page,'w',s=>s.position[2]<-5.8);await walk(page,'d',s=>s.position[0]>7.05);await expect.poll(async()=>(await state(page)).visited).toContain('Partyraum');
- await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'a',s=>s.position[0]<6.1);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
+ await walk(page,'s',s=>s.position[2]>10.3);await walk(page,'d',s=>s.position[0]>8.8);await walk(page,'s',s=>s.position[2]>12.0);await expect.poll(async()=>(await state(page)).visited).toContain('Bällebad');
+ await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-4.9);await walk(page,'d',s=>s.position[0]>11.1);await walk(page,'w',s=>s.position[2]<-6.1);await expect.poll(async()=>(await state(page)).visited).toContain('Partyraum');
+ await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'s',s=>s.position[2]>-4.9);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('help');await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await walk(page,'d',s=>s.position[0]>-4.4);await walk(page,'w',s=>s.position[2]<-9.9);console.log('Door approach',await state(page));await page.screenshot({path:join(tmpdir(),'nachtwache-door-approach.png')});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('result');
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await page.mouse.click(250,550);await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
@@ -64,12 +64,35 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.2.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.2.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.3.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.3.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
  await page.getByRole('button',{name:'Zurück zur Webseite',exact:true}).click();await expect(page.locator('.nightGameWindow')).toHaveCount(0);expect(await page.locator('.communityApp').evaluate(e=>e.inert)).toBe(false);
+});
+
+test('bunny scare requires facing proximity, pauses exactly and completes once; other moving anomalies remain visible',async({page})=>{
+ test.setTimeout(90000);await begin(page);
+ await qa(page,{op:'warp',x:-5.9,z:4.85,yaw:-Math.PI/2,pitch:-.08});await page.waitForTimeout(1500);
+ expect((await state(page)).encounter.triggered).toBe(false);
+ await qa(page,{op:'anomaly',id:'bunny_lunge'});await page.waitForTimeout(1200);
+ await qa(page,{op:'warp',x:-5.9,z:4.85,yaw:Math.PI/2,pitch:-.08});await page.waitForTimeout(250);
+ expect((await state(page)).encounter.triggered).toBe(false);
+ await qa(page,{op:'warp',x:-6.3,z:4.85,yaw:-Math.PI/2,pitch:-.08});await page.mouse.click(768,512);
+ await page.keyboard.down('w');try{await expect.poll(async()=>(await state(page)).encounter.triggered,{intervals:[30]}).toBe(true);}finally{await page.keyboard.up('w');}
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ const paused=(await state(page)).encounter;await page.waitForTimeout(400);expect((await state(page)).encounter.time).toBe(paused.time);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await expect.poll(async()=>(await state(page)).encounter.finished).toBe(true);
+ const ended=(await state(page)).encounter.time;await page.waitForTimeout(500);expect((await state(page)).encounter.time).toBe(ended);
+ await qa(page,{op:'anomaly',id:'croc_snap'});await page.waitForTimeout(1100);
+ await qa(page,{op:'warp',x:6.8,z:11.3,yaw:-Math.PI/2,pitch:0});await expect.poll(async()=>(await state(page)).encounter.triggered).toBe(true);
+ await expect.poll(async()=>(await state(page)).encounter.finished).toBe(true);
+ await qa(page,{op:'anomaly',id:'party_burst'});await page.waitForTimeout(1100);
+ await qa(page,{op:'warp',x:8.5,z:-4.9,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).encounter.triggered).toBe(true);
+ await expect.poll(async()=>(await state(page)).encounter.finished).toBe(true);
+ await qa(page,{op:'new'});expect((await state(page)).encounter.triggered).toBe(false);
 });
 
 test('mobile launcher explains keyboard requirement, keeps Windows download and never overflows',async({browser})=>{

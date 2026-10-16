@@ -150,7 +150,7 @@ func _continue() -> void:
  var pose=data.get("pose",[])
  if pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and absf(p.x)<10 and p.z>-12 and p.z<10 and p.y>-1 and p.y<2:
+  if p.is_finite() and p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2:
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
@@ -236,6 +236,8 @@ func _save(next_round: bool=false) -> void:
 func _process(delta: float) -> void:
  if not world or not player: return
  world.tick(delta,phase=="play")
+ world.encounters.tick(delta,phase=="play",player)
+ player.fright=world.encounters.shock
  if phase=="play":
   state.seconds+=delta
   save_clock+=delta
@@ -353,6 +355,7 @@ func _telemetry() -> void:
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  if OS.has_feature("qa"):
   data.anomaly=state.current;data.controls=[]
+  data.encounter={"triggered":world.encounters.triggered,"finished":world.encounters.finished,"time":world.encounters.attack_time,"shock":world.encounters.shock}
   data.renderer=RenderingServer.get_current_rendering_method()
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
   data.props=[]

@@ -16,6 +16,8 @@ var jump_buffer := 0.0
 var coyote := 0.0
 var landing_offset := 0.0
 var was_airborne := false
+var fright := 0.0
+var bounce_speed := 6.2
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -37,7 +39,7 @@ func capture() -> void:
 
 func release() -> void:
  drop_prop()
- active=false;velocity=Vector3.ZERO;step_player.stop()
+ active=false;velocity=Vector3.ZERO;camera.rotation.z=0;camera.fov=75;step_player.stop()
  jump_buffer=0;coyote=0
  torch_body.hide()
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
@@ -59,12 +61,16 @@ func _physics_process(delta: float) -> void:
  jump_buffer=maxf(0,jump_buffer-delta)
  coyote=.1 if is_on_floor() else maxf(0,coyote-delta)
  if jump_buffer>0 and coyote>0:
-  velocity.y=6.2;jump_buffer=0;coyote=0
+  velocity.y=bounce_speed;jump_buffer=0;coyote=0
  elif not is_on_floor(): velocity.y-=20*delta
  else: velocity.y=-.1
  move_and_slide()
+ bounce_speed=6.2
+ camera.rotation.z=sin(Time.get_ticks_msec()*.055)*fright*.035 if motion else 0.0
+ camera.fov=75+fright*5 if motion else 75.0
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
+  if hit.get_normal().y>.6 and body.has_meta("bounce_speed"): bounce_speed=float(body.get_meta("bounce_speed"))
   if body is NightProp and not body.freeze and not body.held:
    var push: Vector3=-hit.get_normal();push.y=0
    body.apply_central_impulse(push*minf(body.mass,1.8)*speed*delta*10)
@@ -112,4 +118,4 @@ func toggle_lamp() -> void:
 func reset_pose() -> void:
  drop_prop()
  global_position=Vector3(-6.2,0,8.5);rotation.y=0;camera.rotation=Vector3.ZERO;velocity=Vector3.ZERO
- jump_buffer=0;coyote=0;was_airborne=false;landing_offset=0
+ jump_buffer=0;coyote=0;was_airborne=false;landing_offset=0;fright=0;bounce_speed=6.2
