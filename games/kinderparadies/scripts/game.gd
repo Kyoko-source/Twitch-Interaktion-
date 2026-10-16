@@ -39,13 +39,14 @@ func _ready() -> void:
  if "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
 
 func _actions() -> void:
- var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
+ var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"jump":[KEY_SPACE],"grab":[KEY_G],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
  for action in keys:
   if not InputMap.has_action(action): InputMap.add_action(action)
   for key in keys[action]:
    var event:=InputEventKey.new();event.physical_keycode=key;InputMap.action_add_event(action,event)
 
 func _build_world(anomaly: String) -> void:
+ if player: player.drop_prop()
  if world: remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
  world.brightness(float(settings.brightness))
@@ -70,7 +71,7 @@ func _ui() -> void:
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  var cross:=_label("+",23,Color(1,1,1,.65));cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
  checklist=_label("",15,Color("b7c5bf"));checklist.position=Vector2(30,98);hud.add_child(checklist)
- var controls:=_label("WASD Bewegen  ·  Maus Umsehen  ·  F Taschenlampe  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1000;hud.add_child(controls)
+ var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
  notice=_label("",18,Color("eadfc2"));notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP);notice.offset_left=-450;notice.offset_right=450;notice.offset_top=25;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(notice)
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
@@ -96,7 +97,7 @@ func _button(value: String, action: Callable, primary: bool=false) -> Button:
 
 func _panel(title: String, subtitle: String="") -> VBoxContainer:
  for child in menu.get_children(): child.queue_free()
- menu.show();hud.hide();player.release()
+ menu.show();hud.hide();player.release();world.atmosphere.set_active(false)
  var shade:=ColorRect.new();shade.color=Color(.015,.03,.035,.9);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
  var margin:=MarginContainer.new();margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.offset_left=65;margin.offset_top=65;margin.offset_right=-65;margin.offset_bottom=-45;menu.add_child(margin)
  var scroll:=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.custom_minimum_size.x=480;margin.add_child(scroll)
@@ -153,6 +154,7 @@ func _continue() -> void:
 func _resume() -> void:
  phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false
  player.lamp.visible=player.lamp_on
+ world.atmosphere.set_active(true)
  if not room_audio.playing: room_audio.play()
  _refresh_hud();_telemetry()
 
@@ -173,7 +175,9 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Ein Fehler setzt die Serie auf null. Danach erfährst du, was du übersehen hast."))
  column.add_child(_paragraph("Normal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
- column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
+ column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Leichter Bodennebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
+ column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
+ column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
  column.add_child(_button("Zurück",_return_from_panel,true));_telemetry()
 
 func _return_from_panel() -> void:
@@ -235,6 +239,11 @@ func _process(delta: float) -> void:
   var target:=_target()
   last_target=target
   prompt.text=("E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")) if target!="" and state.visited.size()==4 else "Kontrolliere erst alle vier Bereiche." if target!="" else ""
+  if target=="":
+   if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
+   else:
+    var object:=player.prop_target()
+    if object: prompt.text="G · "+object.title+" aufheben"
   if notice_time>0: notice_time-=delta;notice.visible=notice_time>0
  telemetry_clock+=delta
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
@@ -301,6 +310,8 @@ func _unhandled_input(event: InputEvent) -> void:
  if phase!="play": return
  if event is InputEventMouseButton and event.pressed and Input.mouse_mode!=Input.MOUSE_MODE_CAPTURED: player.capture()
  if event.is_action_pressed("torch"): player.toggle_lamp()
+ if event.is_action_pressed("grab"): player.grab_prop();get_viewport().set_input_as_handled()
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and is_instance_valid(player.carried): player.drop_prop(true)
  if event.is_action_pressed("notes"): _help("play");get_viewport().set_input_as_handled()
  if event.is_action_pressed("interact"):
   var target:=_target()
@@ -322,9 +333,11 @@ func _notification(what: int) -> void:
 
 func _telemetry() -> void:
  if not OS.has_feature("web"): return
- var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume}
+ var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  if OS.has_feature("qa"):
   data.anomaly=state.current;data.controls=[]
+  data.props=[]
+  for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze})
   for node in menu.find_children("*","Control",true,false):
    if node.is_visible_in_tree() and (node is Button or node is HSlider):
     var rect: Rect2=node.get_global_rect()
@@ -342,7 +355,7 @@ func _qa_command(args: Array) -> void:
  if not command is Dictionary: return
  match command.get("op",""):
   "new": _new_shift()
-  "warp": player.position=Vector3(command.x,0,command.z);player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=0
+  "warp": player.drop_prop();player.position=Vector3(command.x,0,command.z);player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
   "anomaly": state.current=str(command.id);_build_world(state.current);_resume()
   "inspect":
    for zone in PatrolState.ZONES: state.inspect(zone)
@@ -358,6 +371,7 @@ func _self_test() -> void:
  var validation=load("res://scripts/validation.gd").new()
  var passed: bool=await validation.run(self)
  validation=null
+ room_audio.stop();room_audio.stream=null;effect.stop();world.source.stop();world.atmosphere.drips.stop()
  player.step_player.stop();player.step_player.stream=null
  await get_tree().create_timer(.2).timeout
  await get_tree().process_frame

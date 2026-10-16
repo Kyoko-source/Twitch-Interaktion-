@@ -33,7 +33,13 @@ const ANOMALIES := [
  {"id":"net_missing","name":"Die Sicherheitsnetze an der Kletteranlage fehlen.","zone":"Bällebad"},
  {"id":"star_giant","name":"Ein übergroßer Stern hängt im Wartungsgang.","zone":"Wartungsgang"},
  {"id":"extinguisher_float","name":"Der Feuerlöscher schwebt an der Wand.","zone":"Wartungsgang"},
- {"id":"hours_wrong","name":"Die Öffnungszeiten am Empfang lauten 03:33–03:33.","zone":"Empfang"}
+ {"id":"hours_wrong","name":"Die Öffnungszeiten am Empfang lauten 03:33–03:33.","zone":"Empfang"},
+ {"id":"blood_trail","name":"Eine frische Blutspur zieht sich durch den Hauptgang.","zone":"Empfang"},
+ {"id":"bloody_hands","name":"Blutige Handabdrücke bedecken die Wand im Wartungsgang.","zone":"Wartungsgang"},
+ {"id":"blood_pool","name":"Eine große Blutlache liegt unter dem Geburtstagstisch.","zone":"Partyraum"},
+ {"id":"mural_bleeds","name":"Aus dem Wandbild laufen breite Blutspuren.","zone":"Wartungsgang"},
+ {"id":"bunny_ceiling","name":"Der Stoffhase hängt kopfüber vor der Decke statt auf seiner Bank zu sitzen.","zone":"Empfang"},
+ {"id":"heavy_mist","name":"Der Nebel ist ungewöhnlich dicht und füllt den ganzen Raum.","zone":"Bällebad"}
 ]
 
 var rng := RandomNumberGenerator.new()

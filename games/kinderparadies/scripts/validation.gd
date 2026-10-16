@@ -69,6 +69,43 @@ func run(game: Node3D) -> bool:
  game.player.position.x=-2.15
  await game.get_tree().physics_frame
  check(game._target()=="red","Red door raycast failed")
+ # Real jump input, airborne re-press, landing, spring carry, impulse throw and pause.
+ game.player.reset_pose();game._resume()
+ for frame in range(8): await game.get_tree().physics_frame
+ var jump:=InputEventKey.new();jump.physical_keycode=KEY_SPACE;jump.pressed=true;Input.parse_input_event(jump)
+ var peak:=0.0
+ for frame in range(70):
+  await game.get_tree().physics_frame
+  peak=maxf(peak,game.player.position.y)
+  if frame==1: jump.pressed=false;Input.parse_input_event(jump)
+  if frame==15: jump.pressed=true;Input.parse_input_event(jump)
+  if frame==17: jump.pressed=false;Input.parse_input_event(jump)
+ check(peak>.65,"Jump never left the floor")
+ check(peak<1.1,"Airborne jump allowed a second jump")
+ check(game.player.is_on_floor() and absf(game.player.position.y)<.12,"Jump did not land on floor")
+ var body: NightProp=game.world.atmosphere.loose[0]
+ body.global_position=Vector3(-6.2,.17,6.55);body.linear_velocity=Vector3.ZERO;body.sleeping=false
+ game.player.camera.rotation.x=-.67
+ for frame in range(8): await game.get_tree().physics_frame
+ check(game.player.prop_target()==body,"Loose object was not physically targetable")
+ game.player.grab_prop()
+ check(game.player.carried==body and body.held,"Object was not picked up")
+ for frame in range(40): await game.get_tree().physics_frame
+ check(body.global_position.distance_to(game.player.camera.global_position)<2.1,"Spring carry failed to lift object")
+ game.player.camera.rotation.x=0;game.player.drop_prop(true)
+ check(not body.held and game.player.carried==null,"Throw did not release held object")
+ for frame in range(5): await game.get_tree().physics_frame
+ check(body.linear_velocity.length()>3,"Throw did not apply a physical impulse")
+ game._pause();var frozen_position:=body.position
+ for frame in range(10): await game.get_tree().physics_frame
+ check(body.freeze and body.position.is_equal_approx(frozen_position),"Paused objects kept simulating")
+ game._resume()
+ check(not body.freeze,"Objects failed to resume after pause")
+ game.player.grab_prop();game._build_world("none")
+ check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
+ check(game.world.atmosphere.loose.size()==28,"Physical toy budget unexpectedly changed")
+ check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
+ game.player.release();game.phase="menu"
  game.has_session=true;game.state.start(71);game._save();check(game._can_continue(),"Saved game cannot be continued")
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

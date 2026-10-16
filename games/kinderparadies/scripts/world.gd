@@ -18,6 +18,7 @@ var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(4.5,0,7.0),"Partyr
 var source: AudioStreamPlayer3D
 var mesh_cache := {}
 var last_sound := 0
+var atmosphere: NurseryAtmosphere
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -78,16 +79,17 @@ func build() -> void:
  materials={"blue":mat(NAVY,vinyl,.28),"red":mat(CORAL,vinyl,.3),"gold":mat(GOLD,vinyl,.36),"teal":mat(TEAL,vinyl,.36),"wall":mat(Color("d8d1b9"),load("res://assets/paint.png"),.95),"dark":mat(Color("182127"),null,.65,.35),"metal":mat(Color("536169"),null,.32,.75),"wood":mat(Color("b2a28d"),load("res://assets/wood.png"),.48),"cream":mat(Color("c9c4a9"),vinyl,.7)}
  materials.wall.uv1_triplanar=true;materials.wall.uv1_scale=Vector3.ONE*.5
  _environment();_architecture(rubber);_play_structure();_reception();_party_room();_service();_doors();_details()
+ atmosphere=NurseryAtmosphere.new();add_child(atmosphere);atmosphere.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
 
 func _environment() -> void:
- environment=WorldEnvironment.new();var env:=Environment.new();env.background_mode=Environment.BG_COLOR;env.background_color=Color("071014");env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.ambient_light_color=Color("849fbb");env.ambient_light_energy=.28;env.tonemap_mode=Environment.TONE_MAPPER_FILMIC;env.fog_enabled=true;env.fog_light_color=Color("233d46");env.fog_light_energy=.25;env.fog_density=.008;environment.environment=env;add_child(environment)
+ environment=WorldEnvironment.new();var env:=Environment.new();env.background_mode=Environment.BG_COLOR;env.background_color=Color("071014");env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.ambient_light_color=Color("738c8b");env.ambient_light_energy=.16;env.tonemap_mode=Environment.TONE_MAPPER_FILMIC;env.fog_enabled=true;env.fog_light_color=Color("35433b");env.fog_light_energy=.55;env.fog_density=.025;environment.environment=env;add_child(environment)
  var sky:=Sky.new();var sky_material:=ProceduralSkyMaterial.new();sky_material.sky_top_color=Color("233a43");sky_material.sky_horizon_color=Color("8f8068");sky_material.ground_bottom_color=Color("101b22");sky_material.ground_horizon_color=Color("8f8068");sky.sky_material=sky_material;env.sky=sky;env.reflected_light_source=Environment.REFLECTION_SOURCE_SKY
 
 func _architecture(rubber: Texture2D) -> void:
- box(self,Vector3(0,-.18,-1),Vector3(21,.3,24),materials.dark,true)
+ box(self,Vector3(0,-.138,-1),Vector3(21,.3,24),materials.dark,true)
  # Four instanced tile materials keep the floor inexpensive to render.
- var colors: Array[Color]=[Color("35434c"),Color("49473a"),Color("53403d"),Color("324748")]
+ var colors: Array[Color]=[Color("38413e"),Color("3c423d"),Color("343d3b"),Color("41443e")]
  for color_index in range(4):
   var transforms: Array[Transform3D]=[]
   for x in range(20):
@@ -95,7 +97,7 @@ func _architecture(rubber: Texture2D) -> void:
     if (x*7+z*3)%4==color_index: transforms.append(Transform3D(Basis.IDENTITY,Vector3(x-9.5,-.008,z-12)))
   var instance:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;var tile:=BoxMesh.new();tile.size=Vector3(.987,.04,.987);mm.mesh=tile;mm.instance_count=transforms.size()
   for i in range(transforms.size()): mm.set_instance_transform(i,transforms[i])
-  instance.multimesh=mm;instance.material_override=mat(colors[color_index],rubber,.48,.12);add_child(instance)
+  instance.multimesh=mm;instance.material_override=mat(colors[color_index],rubber,.26,.16);add_child(instance)
  box(self,Vector3(-10.2,2.7,-1),Vector3(.3,5.4,24),materials.wall,true)
  box(self,Vector3(10.2,2.7,-1),Vector3(.3,5.4,24),materials.wall,true)
  box(self,Vector3(0,2.7,-12.2),Vector3(20.4,5.4,.3),materials.wall,true)
@@ -112,9 +114,9 @@ func _architecture(rubber: Texture2D) -> void:
  for z in [-8,0,7]:
   tube(self,Vector3(-5.5,5.1,z),Vector3(-5.5,4.3,z),.02,materials.dark)
   var shade:=sphere(self,Vector3(-5.5,4.25,z),.23,materials.metal);shade.scale.y=.35
-  var practical:=lamp(Vector3(-5.5,4,z),Color("ffdb9e"),1.35,8.5)
+  var practical:=lamp(Vector3(-5.5,4,z),Color("ffdb9e"),.85,8.5)
   practical.shadow_enabled=z==0
- lamp(Vector3(5.8,4.3,-3),Color("66c9d0"),1.65,10)
+ lamp(Vector3(5.8,4.3,-3),Color("66c9d0"),1.1,10)
  lamp(Vector3(-8,2.8,8),Color("78bbc7"),.7,6)
  # Room divider leaves an actual doorway into the party room.
  box(self,Vector3(6.8,2.5,-10),Vector3(.2,5,4.1),materials.wall,true)
@@ -183,10 +185,18 @@ func _reception() -> void:
   for y in [.65,1.2,1.75]: box(self,Vector3(-9.35,y,z),Vector3(1.13,.5,.04),materials.teal)
  var car:=group("car");car.position=Vector3(-5.2,0,5.5)
  box(car,Vector3(0,.25,0),Vector3(.7,.32,1.1),materials.red)
- box(car,Vector3(0,.55,.05),Vector3(.6,.35,.55),materials.gold)
+ var hood:=sphere(car,Vector3(0,.46,-.12),.34,materials.gold);hood.scale=Vector3(1,.75,1.15)
+ var seat:=sphere(car,Vector3(0,.46,.32),.23,materials.dark);seat.scale=Vector3(.95,.33,1.1)
+ var backrest:=sphere(car,Vector3(0,.6,.48),.22,materials.red);backrest.scale=Vector3(1,1,.3)
+ for side in [-1,1]:
+  tube(car,Vector3(side*.27,.28,-.55),Vector3(side*.27,.28,.55),.065,materials.metal)
+  sphere(car,Vector3(side*.23,.44,-.445),.07,materials.cream)
+ tube(car,Vector3(0,.45,0),Vector3(0,.7,-.05),.023,materials.metal)
+ var steering:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.095;torus.outer_radius=.12;torus.rings=24;torus.ring_segments=8;steering.mesh=torus;steering.material_override=materials.dark;steering.position=Vector3(0,.7,-.05);steering.rotation.x=PI/3;car.add_child(steering)
  for x in [-.4,.4]:
-  for z in [-.35,.35]: tube(car,Vector3(x-.05,.18,z),Vector3(x+.05,.18,z),.17,materials.dark)
- sphere(car,Vector3(0,.7,-.12),.13,materials.dark)
+  for z in [-.35,.35]:
+   tube(car,Vector3(x-.05,.18,z),Vector3(x+.05,.18,z),.17,materials.dark)
+   tube(car,Vector3(x-.055,.18,z),Vector3(x+.055,.18,z),.085,materials.metal)
  var face:=group("clock");face.position=Vector3(-9.98,2.8,4);face.rotation.y=PI/2
  tube(face,Vector3(0,0,-.03),Vector3(0,0,.015),.37,materials.metal)
  tube(face,Vector3(0,0,.02),Vector3(0,0,.04),.32,materials.cream)
@@ -211,9 +221,8 @@ func _party_room() -> void:
   var node:=Node3D.new();node.position=Vector3(7.5+i*.7,2.6,-9.7);balloons.add_child(node)
   var ball:=sphere(node,Vector3.ZERO,.23,[materials.red,materials.gold,materials.teal][i]);ball.scale.y=1.22
   tube(node,Vector3(0,-.24,0),Vector3(0,-1.6,0),.004,materials.cream)
- var cake:=box(self,Vector3(8.5,.95,-7),Vector3(.55,.24,.55),materials.gold)
  for i in range(4): tube(self,Vector3(8.3+i*.13,1.07,-7),Vector3(8.3+i*.13,1.24,-7),.014,materials.cream)
- party_light=lamp(Vector3(8.5,3.8,-7),Color("ffca88"),1.65,7)
+ party_light=lamp(Vector3(8.5,3.8,-7),Color("ffca88"),1.1,7)
  party_light.shadow_enabled=true
  text(self,"ALLES GUTE!",Vector3(8.4,3.2,-12.0),.23,Color("d4c28a"))
  for i in range(12):
@@ -277,7 +286,7 @@ func _details() -> void:
  for z in [1.4,2.6]:
   for y in [.48,1.03,1.58]:
    for side in [-1,1]:
-    var shoe:=box(self,Vector3(-9.28,y+.1,z+side*.25),Vector3(.45,.13,.18),materials.blue if y<1 else materials.red)
+    var shoe:=sphere(self,Vector3(-9.28,y+.1,z+side*.25),.17,materials.blue if y<1 else materials.red);shoe.scale=Vector3(1.3,.4,.5)
     box(self,Vector3(-9.28,y+.025,z+side*.25),Vector3(.48,.04,.19),materials.cream)
  tube(self,Vector3(-8.1,0,8.7),Vector3(-8.1,.55,8.7),.23,materials.dark)
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
@@ -293,10 +302,11 @@ func _details() -> void:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
  text(self,"DIENSTANWEISUNG\nALLE 4 BEREICHE KONTROLLIEREN\nNORMAL → GRÜN   ANOMALIE → ROT",Vector3(-6.1,2.3,10.62),.14)
- for i in range(3): box(self,Vector3(6.3,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i])
+ for i in range(3): box(self,Vector3(6.3,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:
  current=id;clock=0
+ atmosphere.anomaly(id)
  # Fresh world per round means every normal state starts from the exact same layout.
  if id=="chair_ceiling":
   for chair in props.chairs.get_children(): chair.position.y=4.8;chair.rotation.x=PI
@@ -334,6 +344,7 @@ func set_anomaly(id: String) -> void:
  elif id=="hours_wrong": props.hours.text="KINDERPARADIES\n03:33 – 03:33"
 
 func tick(delta: float, active: bool) -> void:
+ atmosphere.tick(delta,active)
  if not active: return
  clock+=delta
  if int(clock/25)>last_sound:
@@ -351,6 +362,7 @@ func brightness(value: float) -> void:
  environment.environment.tonemap_exposure=value
 
 func quality(value: int) -> void:
+ atmosphere.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:
