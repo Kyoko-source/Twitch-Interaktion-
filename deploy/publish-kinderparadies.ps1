@@ -46,6 +46,7 @@ rm -f /tmp/kinderparadies-__DIGEST__.tgz /tmp/kinderparadies-music-__SHORT__.sha
 printf '\nPublished native and web game: __RELEASE__\n'
 '@
 $taskRemote=$taskRemote.Replace('__DIGEST__',$taskDigest).Replace('__RELEASE__',$taskRelease).Replace('__COMMIT__',$taskCommit).Replace('__SHORT__',$taskCommit.Substring(0,7))
+$taskRemote=$taskRemote.Replace("`r`n","`n")
 $taskEncoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($taskRemote))
 & ssh -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $SshTarget "printf %s '$taskEncoded' | base64 -d | bash -se"
 if($LASTEXITCODE -ne 0){throw 'Remote release failed; inspect logs before retrying.'}
