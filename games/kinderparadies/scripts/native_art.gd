@@ -91,11 +91,11 @@ func _models() -> void:
  model(self,"power_box_01",Vector3(-9.8,1.4,-5.6),.7,PI/2)
  model(self,"metal_office_desk",Vector3(-8.8,.02,-10.8),.85,PI/2)
  model(w.props.counter,"rubber_duck_toy",Vector3(.12,1.0,.45),.13,.5)
- model(self,"rubber_duck_toy",Vector3(8.8,.87,-7.3),.12,-.8)
+ model(w.props.party_table,"rubber_duck_toy",Vector3(8.8,.87,-7.3),.12,-.8)
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   var p: Vector3=mesh.global_position
-  if absf(p.x-8.5)<.36 and absf(p.z+7)<.34 and p.y>.9 and p.y<1.28: mesh.hide()
- model(self,"hero/birthday-cake",Vector3(8.5,.87,-7),.43)
+  if absf(p.x-10.2)<.36 and absf(p.z+7)<.34 and p.y>.9 and p.y<1.28: mesh.hide()
+ model(w.props.party_table,"hero/birthday-cake",Vector3(8.5,.87,-7),.43)
  # Keep the anomaly parents/transforms so imported details obey every old rule.
  hide_geometry(w.atmosphere.horrors.bunny)
  w.atmosphere.horrors.bunny.rotation.y=-PI/2
@@ -134,35 +134,10 @@ func _counter() -> void:
  for y in [.07,.87]: w.box(counter,Vector3(.45,y,0),Vector3(.06,.03,2.7),w.materials.rust)
 
 func _play_details() -> void:
- hide_geometry(w.props.nets)
- var strands: Array[Transform3D]=[]
- for x in [-.32,5.52]:
-  for i in range(25): _rope_segments(strands,Vector3(x,.36+i*.17,-5.5),Vector3(x,.36+i*.17,3.8))
-  for i in range(51): _rope_segments(strands,Vector3(x,.35,-5.5+i*.186),Vector3(x,4.5,-5.5+i*.186))
- for z in [-5.52,3.82]:
-  for i in range(25): _rope_segments(strands,Vector3(-.3,.36+i*.17,z),Vector3(5.5,.36+i*.17,z))
-  for i in range(33): _rope_segments(strands,Vector3(-.3+i*.18,.35,z),Vector3(-.3+i*.18,4.5,z))
- var ropes:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D
- var cylinder:=CylinderMesh.new();cylinder.top_radius=.006;cylinder.bottom_radius=.006;cylinder.height=1;cylinder.radial_segments=6;mm.mesh=cylinder;mm.instance_count=strands.size()
- for i in range(strands.size()): mm.set_instance_transform(i,strands[i])
- ropes.multimesh=mm;ropes.material_override=w.mat(Color("41463b"),null,.95);ropes.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;w.props.nets.add_child(ropes)
- # Soft landing pads have visible sewn hems, with pockets of dark interior space.
+ # Shared ropes, apertures and obstacles already have matching collisions.
+ # Native rendering only refines materials; it never lays a second net over them.
  var rubber:=w.mat(Color("b2b6ab"));surface(rubber,"rubberized_track",Color("b2b6ab"),1.2)
- for i in range(5):
-  var pad:=w.box(w.props.structure,Vector3(-.35+i*1.1,.33,-4.8),Vector3(.96,.34,.76),rubber if i==2 else [w.materials.blue,w.materials.gold,w.materials.red][i%3])
-  for side in [-1,1]: w.tube(pad,Vector3(side*.43,.14,-.32),Vector3(side*.43,.14,.32),.008,w.materials.stitch)
- # Rope detail and worn joints remain actual geometry, not a background picture.
- for z in [-2.4,.7,3.8]:
-  for i in range(12):
-   var x:=-.8+i*.51
-   w.tube(w.props.structure,Vector3(x,2.35,z),Vector3(x,3.95,z+.05*sin(i)),.012,w.materials.fabric)
-
-func _rope_segments(strands: Array[Transform3D], a: Vector3, b: Vector3) -> void:
- for i in range(5):
-  var start:=a.lerp(b,i/5.0);var end:=a.lerp(b,(i+1)/5.0)
-  start.y-=sin(i/5.0*PI)*.025;end.y-=sin((i+1)/5.0*PI)*.025
-  var direction: Vector3=end-start;var rotation_value:=Quaternion(Vector3.UP,direction.normalized())
-  strands.append(Transform3D(Basis(rotation_value)*Basis.from_scale(Vector3(1,direction.length(),1)),(start+end)*.5))
+ w.props.play_threshold.material_override=rubber
 
 func _lighting() -> void:
  var env:=w.environment.environment

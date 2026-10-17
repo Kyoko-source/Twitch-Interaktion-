@@ -81,15 +81,7 @@ func _weathering() -> void:
 
 func _softplay_details() -> void:
  var details:=Node3D.new();w.props.structure.add_child(details);details.position.x=.6
- # Dense rope bridge and a shaped crawl-mouth replace the empty silhouette.
- var rope:=w.mat(Color("756947"),load("res://assets/wood.png"),.95)
- for i in range(14):
-  var t:=i/13.0;var x:=-.7+t*4.8;var y:=2.7-sin(t*PI)*.34
-  w.box(details,Vector3(x,y,-4.4),Vector3(.3,.075,1.02),w.materials.wood)
-  for z in [-4.96,-3.84]: w.tube(details,Vector3(x,y,z),Vector3(x,y+.75,z),.013,rope)
-  if i<13:
-   var nx:=-.7+(i+1)/13.0*4.8;var ny:=2.7-sin((i+1)/13.0*PI)*.34
-   for z in [-4.96,-3.84]: w.tube(details,Vector3(x,y+.75,z),Vector3(nx,ny+.75,z),.026,rope)
+ # Fittings stay on the posts; play obstacles remain inside the net envelope.
  for z in [-5.5,-2.4,.7,3.8]:
   for x in [-.9,2,4.9]:
    for y in [.38,2.25,4.42]:
@@ -99,16 +91,11 @@ func _softplay_details() -> void:
      w.sphere(details,Vector3(x+cos(angle)*.154,y,z+sin(angle)*.154),.018,w.materials.metal)
  # Suspended padded obstacles inside the climbing frame, with leather straps.
  for i in range(5):
-  var x:=-.05+i*.85;var z:=1.7 if i%2 else -.1
+  var x:=.15+i*.45;var z:=-2.0 if i%2 else -.3
   w.tube(details,Vector3(x,2.15,z),Vector3(x,1.82,z),.013,w.materials.stitch)
-  var roller:=MeshInstance3D.new();var capsule:=CapsuleMesh.new();capsule.radius=.18;capsule.height=1.25;capsule.radial_segments=16;capsule.rings=8;roller.mesh=capsule;roller.material_override=[w.materials.red,w.materials.gold,w.materials.teal][i%3];roller.position=Vector3(x,1.18,z);roller.rotation.z=(i-2)*.045;details.add_child(roller)
+  var roller:=MeshInstance3D.new();var capsule:=CapsuleMesh.new();capsule.radius=.18;capsule.height=1.25;capsule.radial_segments=16;capsule.rings=8;roller.mesh=capsule;roller.material_override=[w.materials.red,w.materials.gold,w.materials.teal][i%3];roller.position=Vector3(x,1.18,z);roller.rotation.z=(i-2)*.045;details.add_child(roller);roller.set_meta("play_obstacle",true)
+  var roller_shape:=CapsuleShape3D.new();roller_shape.radius=.18;roller_shape.height=1.25;PlayGeometry.solid_obstacle(roller,roller_shape)
   w.tube(details,Vector3(x,1.73,z),Vector3(x,1.76,z),.186,w.materials.stitch)
- var mouth:=Node3D.new();mouth.position=Vector3(-.9,1.25,3.86);details.add_child(mouth)
- for side in [-1,1]:
-  var cheek:=w.sphere(mouth,Vector3(side*.42,0,.1),.42,w.materials.gold);cheek.scale=Vector3(.6,1.25,.4)
-  w.sphere(mouth,Vector3(side*.29,.57,.14),.12,w.materials.cream)
-  w.sphere(mouth,Vector3(side*.29,.57,.25),.06,w.materials.dark)
- w.tube(mouth,Vector3(-.42,.38,.1),Vector3(.42,.38,.1),.16,w.materials.red)
  # Padded wall panels have seams, straps and individual sagging surfaces.
  for i in range(5):
   var pad:=w.box(self,Vector3(19.59,.65,3+i*1.35),Vector3(.1,1.2,1.24),[w.materials.blue,w.materials.gold,w.materials.red][i%3])
@@ -156,15 +143,15 @@ func _reception_details() -> void:
 func _party_details() -> void:
  var ceramic:=w.mat(Color("c2bba4"),load("res://assets/paint.png"),.36)
  # Round layered cake replaces the rectangular placeholder.
- for i in range(3): w.tube(self,Vector3(8.5,.85+i*.07,-7),Vector3(8.5,.92+i*.07,-7),.32-i*.008,w.materials.cream if i%2==0 else w.materials.red)
+ for i in range(3): w.tube(w.props.party_table,Vector3(8.5,.85+i*.07,-7),Vector3(8.5,.92+i*.07,-7),.32-i*.008,w.materials.cream if i%2==0 else w.materials.red)
  for i in range(6):
   var z:=-8.1+(i%3)*1.1;var x:=7.9 if i<3 else 9.1
-  w.tube(self,Vector3(x,.85,z),Vector3(x,.865,z),.19,ceramic)
-  w.tube(self,Vector3(x+.12,.86,z+.22),Vector3(x+.12,1.02,z+.22),.058,ceramic)
-  w.tube(self,Vector3(x+.12,1.02,z+.22),Vector3(x+.12,1.025,z+.22),.048,w.materials.dark)
-  w.box(self,Vector3(x-.17,.88,z),Vector3(.025,.018,.22),w.materials.metal)
+  w.tube(w.props.party_table,Vector3(x,.85,z),Vector3(x,.865,z),.19,ceramic)
+  w.tube(w.props.party_table,Vector3(x+.12,.86,z+.22),Vector3(x+.12,1.02,z+.22),.058,ceramic)
+  w.tube(w.props.party_table,Vector3(x+.12,1.02,z+.22),Vector3(x+.12,1.025,z+.22),.048,w.materials.dark)
+  w.box(w.props.party_table,Vector3(x-.17,.88,z),Vector3(.025,.018,.22),w.materials.metal)
  for i in range(4):
-  var strip:=w.box(self,Vector3(8.1+i*.38,.873,-7.2),Vector3(.18,.007,.2),w.materials.paper);strip.rotation.y=i*.6
+  var strip:=w.box(w.props.party_table,Vector3(8.1+i*.38,.873,-7.2),Vector3(.18,.007,.2),w.materials.paper);strip.rotation.y=i*.6
  # Actual triangular bunting on a sagging string.
  for i in range(18):
   var x:=7.05+i*.16;var y:=3.65-sin(i/17.0*PI)*.22
@@ -269,7 +256,7 @@ func _horror_variants() -> void:
   decal(horrors.blood_trail,3 if i%3==1 else 0,Vector3(-5.8+sin(i*.8)*.35,.039,2-i*1.4),Vector2(.75+sin(i*2.1)*.2,1.1+(i%3)*.2),Vector3(-PI/2,i*.65,0))
  for i in range(7):
   decal(horrors.bloody_hands,1,Vector3(-10.015,.8+(i%3)*.4,-4-i*.65),Vector2(.52,.65),Vector3(0,PI/2,(i-3)*.17))
- decal(horrors.blood_pool,3,Vector3(8.5,.034,-7),Vector2(3.1,3.1),Vector3(-PI/2,0,0))
+ decal(horrors.blood_pool,3,Vector3(10.2,.034,-7),Vector2(3.1,3.1),Vector3(-PI/2,0,0))
  for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-8.2+i*.7,1.3,-11.935),Vector2(.8,2.3),Vector3(0,0,-PI/2))
 
 func anomaly(id: String) -> void:

@@ -5,6 +5,17 @@ $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
 $taskTools=Join-Path $PSScriptRoot 'godot-portable'
 $taskGodot=Join-Path $taskTools 'Godot_v4.6.2-stable_win64_console.exe'
+function Invoke-NachtwacheEngine([string[]]$EngineArgs){
+ # Godot can print a runtime script error yet return exit code zero. Such a
+ # build must never be packaged merely because the assertion runner finished.
+ $taskPreviousPreference=$ErrorActionPreference
+ $ErrorActionPreference='Continue'
+ $taskEngineOutput=@(& $taskGodot @EngineArgs 2>&1 | ForEach-Object {$_.ToString()})
+ $taskEngineExit=$LASTEXITCODE
+ $ErrorActionPreference=$taskPreviousPreference
+ $taskEngineOutput | Write-Output
+ if($taskEngineExit -ne 0 -or ($taskEngineOutput -match 'SCRIPT ERROR:|ERROR:').Count -gt 0){throw 'Godot failed or reported a script/runtime error.'}
+}
 if(-not (Test-Path -LiteralPath $taskGodot)){
  New-Item -ItemType Directory -Force -Path $taskTools | Out-Null
  $taskBase='https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable/'
@@ -22,15 +33,12 @@ if(-not (Test-Path -LiteralPath (Join-Path $taskTools 'templates/web_nothreads_r
 }
 foreach($taskDir in @('build/windows','build/web','build/qa','build/package')){New-Item -ItemType Directory -Force -Path (Join-Path $taskProject $taskDir) | Out-Null}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/.gdignore'),'',[Text.UTF8Encoding]::new($false))
-& $taskGodot --headless --path $taskProject --editor --import --quit
-if($LASTEXITCODE -ne 0){throw 'Godot import failed'}
-& $taskGodot --headless --path $taskProject -- --self-test
-if($LASTEXITCODE -ne 0){throw 'Game validation failed'}
+Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--editor','--import','--quit')
+Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--','--self-test')
 $taskExports=@('Windows','Web')
 if($WithQA){$taskExports+='Web QA'}
 foreach($taskPreset in $taskExports){
- & $taskGodot --headless --path $taskProject --export-release $taskPreset
- if($LASTEXITCODE -ne 0){throw "Export failed: $taskPreset"}
+ Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--export-release',$taskPreset)
 }
 foreach($taskTarget in @('build/web','build/qa')){
  $taskHtml=Join-Path $taskProject ($taskTarget+'/index.html')
@@ -48,13 +56,13 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.4.0.zip'
+$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.5.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='1.4.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='1.5.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

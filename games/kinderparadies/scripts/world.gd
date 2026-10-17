@@ -106,8 +106,10 @@ func build() -> void:
  var vinyl: Texture2D=load("res://assets/vinyl.png");var rubber: Texture2D=load("res://assets/floor.png")
  materials={"blue":mat(NAVY,vinyl,.28),"red":mat(CORAL,vinyl,.3),"gold":mat(GOLD,vinyl,.36),"teal":mat(TEAL,vinyl,.36),"wall":mat(Color("d8d1b9"),load("res://assets/paint.png"),.95),"dark":mat(Color("182127"),null,.65,.35),"metal":mat(Color("536169"),null,.32,.75),"wood":mat(Color("b2a28d"),load("res://assets/wood.png"),.48),"cream":mat(Color("c9c4a9"),vinyl,.7)}
  materials.wall.uv1_triplanar=true;materials.wall.uv1_scale=Vector3.ONE*.5
+ materials.stitch=mat(Color("39342b"),null,.98)
  _environment();_architecture(rubber);_play_structure();_reception();_party_room();_service();_doors();_details()
  atmosphere=NurseryAtmosphere.new();add_child(atmosphere);atmosphere.build(self)
+ _wall_paintings()
  playground=ExpandedPlayground.new();add_child(playground);playground.build(self)
  _enlarge_climbing_frame()
  if not OS.has_feature("web"):
@@ -115,6 +117,24 @@ func build() -> void:
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
  encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
+
+func _wall_paintings() -> void:
+ var root:=group("wall_paintings")
+ var placements: Array[Dictionary]=[
+  {"cell":0,"pos":Vector3(6.65,2.8,-.3),"size":Vector2(2.8,3.7),"yaw":-PI/2},
+  {"cell":0,"pos":Vector3(-9.99,2.8,12.5),"size":Vector2(3.0,3.8),"yaw":PI/2},
+  {"cell":1,"pos":Vector3(19.59,2.9,11.8),"size":Vector2(3.7,3.9),"yaw":-PI/2},
+  {"cell":2,"pos":Vector3(-9.99,3.9,-.1),"size":Vector2(3.4,2.5),"yaw":PI/2},
+  {"cell":3,"pos":Vector3(19.59,3.0,-7.3),"size":Vector2(3.5,3.6),"yaw":-PI/2}]
+ for placement in placements:
+  var quad:=QuadMesh.new();quad.size=placement.size;var arrays:=quad.surface_get_arrays(0);var uv: PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
+  var cell: int=placement.cell;var offset:=Vector2(cell%2,floori(cell/2.0))*.5
+  for i in range(uv.size()): uv[i]=offset+Vector2.ONE*.004+uv[i]*.492
+  arrays[Mesh.ARRAY_TEX_UV]=uv;var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+  var material:=mat(Color("b8b4a2"),load("res://assets/polish/wall-motifs.png"),.98)
+  material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+  material.normal_enabled=true;material.normal_texture=atmosphere.micro_normal;material.normal_scale=.12
+  var mesh:=MeshInstance3D.new();mesh.mesh=geometry;mesh.material_override=material;mesh.position=placement.pos;mesh.rotation.y=placement.yaw;mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;root.add_child(mesh)
 
 func _environment() -> void:
  environment=WorldEnvironment.new();var env:=Environment.new();env.background_mode=Environment.BG_COLOR;env.background_color=Color("071014");env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.ambient_light_color=Color("738c8b");env.ambient_light_energy=.16;env.tonemap_mode=Environment.TONE_MAPPER_FILMIC;env.fog_enabled=true;env.fog_light_color=Color("35433b");env.fog_light_energy=.55;env.fog_density=.025;environment.environment=env;add_child(environment)
@@ -156,11 +176,16 @@ func _architecture(rubber: Texture2D) -> void:
  lamp(Vector3(5.8,4.3,-3),Color("66c9d0"),1.1,10)
  lamp(Vector3(-8,2.8,8),Color("78bbc7"),.7,6)
  # Room divider leaves an actual doorway into the party room.
- box(self,Vector3(6.8,3.7,-10),Vector3(.2,7.4,4.1),materials.wall,true)
- box(self,Vector3(6.8,3.7,-1),Vector3(.2,7.4,5.4),materials.wall,true)
- box(self,Vector3(6.8,5.25,-5.8),Vector3(.25,4.3,3.2),materials.wood,true)
+ box(self,Vector3(6.8,3.7,-9.425),Vector3(.2,7.4,5.25),materials.wall,true)
+ box(self,Vector3(6.8,3.7,-1.35),Vector3(.2,7.4,6.1),materials.wall,true)
+ box(self,Vector3(6.8,5.2,-5.6),Vector3(.2,4.4,2.4),materials.wall,true)
  box(self,Vector3(13.3,3.7,1.6),Vector3(13,7.4,.2),materials.wall,true)
- mounted_sign(self,"party",Vector3(6.61,3.55,-5.8),Vector2(1.35,.67),-PI/2)
+ var entry:=group("party_entry");entry.position=Vector3(6.8,0,-5.6)
+ var timber:=mat(Color("7e705c"),load("res://assets/wood.png"),.85);timber.uv1_triplanar=true;timber.uv1_scale=Vector3.ONE*2
+ for side in [-1,1]: box(entry,Vector3(0,1.5,side*1.2),Vector3(.34,3,.12),timber,true)
+ box(entry,Vector3(0,3.03,0),Vector3(.34,.14,2.68),timber,true)
+ entry.set_meta("clear_opening",AABB(Vector3(-.35,0,-1.14),Vector3(.7,2.96,2.28)))
+ mounted_sign(self,"party",Vector3(6.61,3.55,-5.6),Vector2(1.35,.67),-PI/2)
 
 func _play_structure() -> void:
  var structure:=group("structure")
@@ -172,29 +197,27 @@ func _play_structure() -> void:
    for y in [1.8,3.8]:
     tube(structure,Vector3(x,y-.09,z),Vector3(x,y+.09,z),.165,materials.dark)
  for y in [.3,2.25,4.5]:
-  for x in [-.3,5.5]: tube(structure,Vector3(x,y,-5.5),Vector3(x,y,3.8),.13,materials.blue if y<3 else materials.gold)
-  for z in [-5.5,.7,3.8]: tube(structure,Vector3(-.3,y,z),Vector3(5.5,y,z),.13,materials.red if z>.5 else materials.gold)
- for y in [.2,2.2]: box(structure,Vector3(2.6,y,-.85),Vector3(5.7,.18,9.2),materials.blue,true)
- var shader:=Shader.new();shader.code="shader_type spatial; render_mode cull_disabled; void fragment(){vec2 cell=fract(UV*vec2(32.0,28.0));if(min(cell.x,cell.y)>0.038)discard;ALBEDO=vec3(0.065,0.075,0.07);ROUGHNESS=0.9;}"
- var net_material:=ShaderMaterial.new();net_material.shader=shader;var nets:=group("nets")
- for x in [-.32,5.52]:
-  var net:=MeshInstance3D.new();var plane:=PlaneMesh.new();plane.size=Vector2(9.25,4.25);net.mesh=plane;net.material_override=net_material;net.rotation=Vector3(PI/2,PI/2,0);net.position=Vector3(x,2.4,-.85);net.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;nets.add_child(net)
- for z in [-5.52,3.82]:
-  var net:=MeshInstance3D.new();var plane:=QuadMesh.new();plane.size=Vector2(5.8,4.2);net.mesh=plane;net.material_override=net_material;net.position=Vector3(2.6,2.4,z);net.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;nets.add_child(net)
- # Tube bridge, circular windows and raised access steps.
- tube(structure,Vector3(.3,3.2,-1),Vector3(4.9,3.2,-1),.65,materials.gold)
- for x in [.9,2.6,4.3]:
-  var window:=sphere(structure,Vector3(x,3.2,-.4),.4,materials.dark);window.scale=Vector3(1,1,.15)
-  var ring:=MeshInstance3D.new();var rim:=TorusMesh.new();rim.inner_radius=.37;rim.outer_radius=.44;rim.rings=24;rim.ring_segments=12;ring.mesh=rim;ring.material_override=materials.metal;ring.position=Vector3(x,3.2,-.34);ring.rotation.x=PI/2;structure.add_child(ring)
- var slide:=group("slide");var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
- for row in range(32):
-  for col in range(8):
-   for corner in [[0,0],[0,1],[1,0],[1,0],[0,1],[1,1]]:
-    var t: float=(row+int(corner[1]))/32.0;var cross: float=(col+int(corner[0]))/8.0;var x:=(cross-.5)*1.25
-    tool.set_uv(Vector2(cross,t));tool.add_vertex(Vector3(4.4+x,2.15*(1-t)*(1-t)+.3+pow(absf(x/.625),4)*.22,1.2+t*4.5))
- tool.generate_normals();var slide_mesh:=MeshInstance3D.new();slide_mesh.mesh=tool.commit();var slide_mat: StandardMaterial3D=materials.red.duplicate();slide_mat.cull_mode=BaseMaterial3D.CULL_DISABLED;slide_mesh.material_override=slide_mat;slide.add_child(slide_mesh)
- # One padded threshold stays in front of the play bay, clear of the pit rim.
- props.play_threshold=box(structure,Vector3(.15,.17,3.95),Vector3(.95,.2,.35),materials.blue,true)
+  for x in [-.3,5.5]:
+   if x==-.3 and y==.3:
+    tube(structure,Vector3(x,y,-5.5),Vector3(x,y,-1.7),.13,materials.blue);tube(structure,Vector3(x,y,-.3),Vector3(x,y,3.8),.13,materials.blue)
+   elif x==5.5 and y==2.25: tube(structure,Vector3(x,y,-5.5),Vector3(x,y,2.6),.13,materials.blue)
+   else: tube(structure,Vector3(x,y,-5.5),Vector3(x,y,3.8),.13,materials.blue if y<3 else materials.gold)
+  for z in [-5.5,.7,3.8]:
+   if z>=.7 and y<4:
+    tube(structure,Vector3(-.3,y,z),Vector3(2.85,y,z),.13,materials.red)
+    tube(structure,Vector3(4.5,y,z),Vector3(5.5,y,z),.13,materials.red)
+   else: tube(structure,Vector3(-.3,y,z),Vector3(5.5,y,z),.13,materials.red if z>.5 else materials.gold)
+ box(structure,Vector3(2.6,.2,-.85),Vector3(5.7,.18,9.2),materials.blue,true)
+ # Actual upper-floor aperture, aligned with the slide launch instead of a
+ # ramp visually descending through a continuous hidden platform collider.
+ box(structure,Vector3(2.6,2.2,-2.35),Vector3(5.7,.18,6.2),materials.blue,true)
+ box(structure,Vector3(1.3,2.2,2.25),Vector3(3.1,.18,3),materials.blue,true)
+ box(structure,Vector3(4.975,2.2,2.25),Vector3(.95,.18,3),materials.blue,true)
+ var nets:=group("nets");PlayGeometry.west_nets(self,nets)
+ for z in [-3.4,-1.2,1.0]: PlayGeometry.arch(self,structure,z)
+ var slide:=group("slide");PlayGeometry.slide(self,slide)
+ var access:=Node3D.new();access.position=Vector3(-.85,.105,-1);access.rotation.z=atan2(.29,1.2);structure.add_child(access)
+ props.play_threshold=box(access,Vector3.ZERO,Vector3(1.235,.08,1.25),materials.blue,true)
  var pit:=group("pit")
  for x in [-.7,5.8]: box(pit,Vector3(x,.35,6),Vector3(.25,.65,3.4),materials.blue,true)
  for z in [4.4,7.6]: box(pit,Vector3(2.55,.35,z),Vector3(6.5,.65,.25),materials.red,true)
@@ -249,10 +272,12 @@ func _reception() -> void:
  var hour:=box(face,Vector3(-.07,.05,.075),Vector3(.16,.025,.01),materials.dark);hour.rotation.z=-.5
 
 func _party_room() -> void:
- box(self,Vector3(8.5,.78,-7),Vector3(2.1,.12,3.1),materials.cream,true)
+ var table:=group("party_table");table.position.x=1.7
+ box(table,Vector3(8.5,.78,-7),Vector3(2.1,.12,3.1),materials.cream,true)
  for x in [7.65,9.35]:
-  for z in [-8.25,-5.75]: box(self,Vector3(x,.37,z),Vector3(.09,.75,.09),materials.metal)
+  for z in [-8.25,-5.75]: box(table,Vector3(x,.37,z),Vector3(.09,.75,.09),materials.metal)
  var chairs:=group("chairs")
+ chairs.reparent(table,false)
  for i in range(6):
   var chair:=Node3D.new();chair.position=Vector3(7.25 if i<3 else 9.75,0,-8.05+(i%3)*1.05);chairs.add_child(chair)
   chair.rotation.y=-PI/2 if i<3 else PI/2
@@ -265,7 +290,7 @@ func _party_room() -> void:
   var node:=Node3D.new();node.position=Vector3(7.5+i*.7,2.6,-9.7);balloons.add_child(node)
   var ball:=sphere(node,Vector3.ZERO,.23,[materials.red,materials.gold,materials.teal][i]);ball.scale.y=1.22
   tube(node,Vector3(0,-.24,0),Vector3(0,-1.6,0),.004,materials.cream)
- for i in range(4): tube(self,Vector3(8.3+i*.13,1.07,-7),Vector3(8.3+i*.13,1.24,-7),.014,materials.cream)
+ for i in range(4): tube(table,Vector3(8.3+i*.13,1.07,-7),Vector3(8.3+i*.13,1.24,-7),.014,materials.cream)
  party_light=lamp(Vector3(8.5,3.8,-7),Color("ffca88"),1.1,7)
  party_light.shadow_enabled=true
  painting(self,1,Vector3(8.5,3.2,-11.96),Vector2(1.45,1.0))
@@ -315,7 +340,7 @@ func _details() -> void:
  for z in [-8,-2,4,9]:
   box(self,Vector3(-9.99,2.9,z),Vector3(.045,.28,.14),materials.metal)
   lamp(Vector3(-9.75,2.9,z),Color("e8cf9b"),.35,3.5)
- for z in [-2,2,6]:
+ for z in [2,6]:
   tube(self,Vector3(-2.6,.6,z),Vector3(-2.6,.6,z+1.4),.035,materials.metal)
   for zz in [z,z+1.4]: tube(self,Vector3(-2.6,0,zz),Vector3(-2.6,.6,zz),.035,materials.metal)
  var paper:=mat(Color("d5cab2"),load("res://assets/floor.png"),.95)
@@ -336,9 +361,6 @@ func _details() -> void:
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
  for z in [9.5]:
   mounted_sign(self,"rules",Vector3(-9.96,1.95,z),Vector2(.65,.4),PI/2)
- for x in [6.7,6.9]:
-  box(self,Vector3(x,1.55,-7.55),Vector3(.14,3.1,.13),materials.wood)
-  box(self,Vector3(x,1.55,-4.05),Vector3(.14,3.1,.13),materials.wood)
  for y in [1.3,2.5,3.7]:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
@@ -381,9 +403,16 @@ func set_anomaly(id: String) -> void:
  elif id=="balloons_floor":
   for balloon in props.balloons.get_children(): balloon.position.y=.3;balloon.rotation.x=PI
  elif id=="slide_green":
-  for part in props.slide.get_children(): part.material_override=mat(Color("43a76c"),load("res://assets/vinyl.png"),.38)
- elif id=="slide_missing": props.slide.visible=false
- elif id=="net_missing": props.nets.visible=false
+  for part in props.slide.find_children("*","MeshInstance3D",true,false): part.material_override=mat(Color("43a76c"),load("res://assets/vinyl.png"),.38)
+ elif id=="slide_missing":
+  props.slide.visible=false
+  for body in props.slide.find_children("*","StaticBody3D",true,false): body.collision_layer=0
+ elif id=="net_missing":
+  props.nets.visible=false
+  for net in get_tree().get_nodes_in_group("safety_nets"):
+   if is_ancestor_of(net):
+    net.hide()
+    for body in net.find_children("*","StaticBody3D",true,false): body.collision_layer=0
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
  elif id=="extinguisher_float": props.extinguisher.position.y=2.8
  elif id=="hours_wrong": props.hours.material_override.albedo_texture=load("res://assets/polish/hours-wrong.png")
@@ -420,7 +449,7 @@ func open_door(red: bool) -> void:
 func _enlarge_climbing_frame() -> void:
  for id in ["structure","nets","slide"]:
   props[id].scale=Vector3(1.15,1.3,1.12)
-  props[id].position.x=-1.15
+  props[id].position.x=-1.8
  # Ball pit stays low enough to jump into. It grows with the larger frame.
  props.pit.scale=Vector3(1.15,1,1.12);props.pit.position.x=-1.8
  props.giant.position=Vector3(1.38,1.3,6.7)

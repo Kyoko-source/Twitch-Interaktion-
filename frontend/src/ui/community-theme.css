@@ -287,4 +287,4 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .gameLaunch4 .gameLaunchArtwork { background-image:url('/assets/farm/meadow.png'); background-size:cover; background-position:center; }
 .gameLaunch5{--game-color:#ff9c52;background:#14232b;}
 .gameLaunch5 .gameLaunchArtwork{background-image:url('/assets/nullsignal/workshop.png');background-size:cover;background-position:center 55%;}
-.gameLaunch6 { --game-color: #879d94; background: #172826; }.gameLaunch6 .gameLaunchArtwork { background-image: url('/assets/nachtwache/windows-v1.4.0.png'); background-size: cover; background-position: 55% 50%; }
+.gameLaunch6 { --game-color: #879d94; background: #172826; }.gameLaunch6 .gameLaunchArtwork { background-image: url('/assets/nachtwache/windows-v1.5.0.png'); background-size: cover; background-position: 55% 50%; }

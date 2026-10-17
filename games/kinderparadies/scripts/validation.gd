@@ -60,6 +60,28 @@ func run(game: Node3D) -> bool:
  check(game.world.props.chairs.visible,"Normal round did not restore chairs")
  var audit:=SceneAudit.inspect(game.world)
  check(audit.wall_intersections.is_empty(),"Climbing geometry intersects architecture: "+str(audit.wall_intersections))
+ check(audit.net_intrusions.is_empty(),"Play obstacles penetrate intact safety nets: "+str(audit.net_intrusions))
+ check(audit.net_panels==8 and audit.wall_paintings==5,"Shared safety panels or painted wall motifs are missing")
+ var padded:=game.get_tree().get_nodes_in_group("padded_obstacles").filter(func(body): return game.world.is_ancestor_of(body))
+ check(padded.size()==10,"Padded rollers do not have matching physical shapes")
+ var slide_mesh: MeshInstance3D=game.world.props.slide.get_node("MouldedSlide")
+ check(slide_mesh.mesh.get_faces().size()>4200,"Moulded slide shell is incomplete")
+ var slide_normals: PackedVector3Array=slide_mesh.mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+ # Inspect the central riding surface, away from the rounded lip/end cap.
+ check(slide_normals[504].y>.9,"Slide riding surface normals face into the shell")
+ await game.get_tree().physics_frame
+ check(cast(game,Vector3(5.8,1.5,-5.6),Vector3(7.4,1.5,-5.6)).is_empty(),"Party doorway is physically obstructed")
+ var play_frame: Node3D=game.world.props.structure
+ for body in padded:
+  var center: Vector3=body.global_position
+  var hit:=cast(game,center+Vector3(0,0,.6),center-Vector3(0,0,.6))
+  check(not hit.is_empty() and hit.collider==body,"A padded roller's collision does not match its visible mesh")
+ var bridge_hit:=cast(game,Vector3(7.5,4,3.6),Vector3(7.5,1,3.6))
+ check(not bridge_hit.is_empty() and bridge_hit.normal.y>.9,"Bridge walking surface faces away from the player")
+ check(cast(game,play_frame.to_global(Vector3(-.7,1.2,-1)),play_frame.to_global(Vector3(.1,1.2,-1))).is_empty(),"Ground entrance net has an invisible collision")
+ check(not cast(game,play_frame.to_global(Vector3(2,1,-5)),play_frame.to_global(Vector3(2,1,-5.9))).is_empty(),"Intact rear safety net does not block passage")
+ check(cast(game,play_frame.to_global(Vector3(3.65,3.2,3.4)),play_frame.to_global(Vector3(3.65,3.2,4.3))).is_empty(),"Slide opening has an invisible net or beam")
+ check(cast(game,play_frame.to_global(Vector3(5.3,3,3.2)),play_frame.to_global(Vector3(5.8,3,3.2))).is_empty(),"Bridge opening has an invisible net or beam")
  check(audit.ball_min_distance>.28,"Decorative pit balls intersect each other")
  var threshold: AABB=game.world.props.play_threshold.global_transform*game.world.props.play_threshold.get_aabb()
  check(threshold.end.z<4.78,"Play entrance threshold cuts through the ball pit rim")
@@ -161,6 +183,21 @@ func run(game: Node3D) -> bool:
  for frame in range(135): await game.get_tree().physics_frame
  Input.action_release("forward")
  check(game.player.position.y>4 and game.player.position.z<4.1,"East tower upper ramp is obstructed")
+ game.player.position=Vector3(5.8,0,-5.6);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
+ Input.action_press("forward")
+ for frame_index in range(45): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.x>7.3,"Cannot walk through the party doorway")
+ game.player.position=Vector3(4.1,3.01,3.6);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
+ Input.action_press("forward")
+ for frame_index in range(165): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.x>10.7 and game.player.position.y>2,"Bridge path does not pass through both safety apertures")
+ game.player.position=game.world.props.structure.to_global(Vector3(3.65,2.32,.74));game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI
+ Input.action_press("forward")
+ for frame_index in range(155): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.z>6.5 and game.player.position.y<1,"Slide descent is blocked by floor, beam or safety net")
  # Normal comparison has no proximity scare. The anomaly requires actual
  # proximity, a forward-facing view and unobstructed line of sight.
  game._build_world("none");game._resume();game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=-PI/2
@@ -214,3 +251,7 @@ func run(game: Node3D) -> bool:
  game._pause()
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
+
+func cast(game: Node3D, a: Vector3, b: Vector3) -> Dictionary:
+ var query:=PhysicsRayQueryParameters3D.create(a,b,1);query.exclude=[game.player.get_rid()]
+ return game.get_world_3d().direct_space_state.intersect_ray(query)

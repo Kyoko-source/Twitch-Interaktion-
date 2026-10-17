@@ -41,7 +41,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.4.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.5.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -144,7 +144,7 @@ gemeinsam. Die Taschenlampe verwendet im Compatibility-Renderer korrigierte
 Schattenflächen und einen eigenen Bias gegen diagonale Streifen auf Wand und
 Figur. Prompts und Dateipfade in `art/PROMPTS-CROCODILE.md`.
 
-## Umgebung 1.4.0
+## Umgebung 1.5.0
 
 Das Ostgerüst und seine Rampen stehen vollständig vor der Partyraumwand;
 die Brücke verbindet die tatsächlichen Plattformhöhen. Alle sechs Stühle
@@ -167,3 +167,28 @@ Authoring-Werkzeuge: `art/PROMPTS-POLISH.md`.
 Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
 sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler
 auf. Upstream: https://github.com/godotengine/godot/issues/122498.
+
+## Spielanlage und Wandmalereien 1.5.0
+
+Der Durchgang zum Partyraum besitzt einen echten 2,4 Meter breiten und drei
+Meter hohen Wandausschnitt mit schlankem Holzrahmen. Die Westanlage rückt
+zur Seite; Geburtstagstisch und Stühle geben im Nebenraum mehr Platz frei.
+
+Acht Seilnetz-Paneele verwenden dieselben ausgesparten Öffnungen für sichtbare
+Seile, gepolsterte Kanten und Kollisionskörper. Einstieg, Rutsche und Brücke
+bleiben frei. Gepolsterte Bögen ersetzen den geschlossenen Tunnel. Die neue
+U-förmige Rutsche hat eine dicke geformte Schale und einen exakt passenden
+Kollisionskörper; die obere Plattform wird an ihrem Anfang ausgespart.
+Die Brücke folgt einer durchgehenden begehbaren Fläche zwischen beiden
+Gerüsthöhen. Native Zusatznetze und durchstoßende Requisiten entfallen.
+
+Fünf Wandmalereien zeigen originale gealterte Clowns, ein Karussellpferd,
+Sonne und Mond sowie unheimliche Stofftiere. Die transparenten Farbabrisse
+lassen den vorhandenen Putz durchscheinen. Sie sind beleuchtete Wandoberflächen,
+keine schwebenden Schriftzüge. Quelle und Prompt: `art/PROMPTS-MURALS.md`.
+
+`scene_audit.gd` prüft zusätzlich Objekte gegen die intakten Netzflächen.
+Die Bewegungstests laufen real durch Partyraumtür, Rutsche und Brücke; Web-QA
+prüft die Brücke in beide Richtungen. `--render-qa --geometry-qa` erstellt
+gezielte GPU-Aufnahmen dieser Stellen. Buildfehler und Laufzeit-Skriptfehler
+brechen die Verpackung auch bei einem Engine-Exitcode von null ab.

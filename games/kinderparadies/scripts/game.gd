@@ -149,7 +149,7 @@ func _continue() -> void:
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
  has_session=true;_build_world(state.current)
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==2 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0))==3 and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
   if p.is_finite() and p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2:
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
@@ -237,7 +237,7 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":2}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":3}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -388,7 +388,7 @@ func _qa_command(args: Array) -> void:
  match command.get("op",""):
   "audit": qa_layout=SceneAudit.inspect(world)
   "new": _new_shift()
-  "warp": player.drop_prop();player.position=Vector3(command.x,0,command.z);player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
+  "warp": player.drop_prop();player.position=Vector3(command.x,float(command.get("y",0)),command.z);player.velocity=Vector3.ZERO;player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
   "anomaly": state.current=str(command.id);_build_world(state.current);_resume()
   "inspect":
    for zone in PatrolState.ZONES: state.inspect(zone)

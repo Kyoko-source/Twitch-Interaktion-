@@ -20,8 +20,8 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  await page.keyboard.press('f');await expect.poll(async()=>(await state(page)).torch).toBe(false);await page.keyboard.press('f');
  await walk(page,'w',s=>s.position[2]<4.5);await expect.poll(async()=>(await state(page)).visited).toContain('Empfang');
  await walk(page,'s',s=>s.position[2]>10.3);await walk(page,'d',s=>s.position[0]>8.8);await walk(page,'s',s=>s.position[2]>12.0);await expect.poll(async()=>(await state(page)).visited).toContain('Bällebad');
- await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-4.9);await walk(page,'d',s=>s.position[0]>11.1);await walk(page,'w',s=>s.position[2]<-6.1);await expect.poll(async()=>(await state(page)).visited).toContain('Partyraum');
- await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'s',s=>s.position[2]>-4.9);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
+ await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-4.9);await walk(page,'d',s=>s.position[0]>12.1);await walk(page,'w',s=>s.position[2]<-6.1);await expect.poll(async()=>(await state(page)).visited).toContain('Partyraum');
+ await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'s',s=>s.position[2]>-5.7);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('help');await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await walk(page,'d',s=>s.position[0]>-4.4);await walk(page,'w',s=>s.position[2]<-9.9);console.log('Door approach',await state(page));await page.screenshot({path:join(tmpdir(),'nachtwache-door-approach.png')});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('result');
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await page.mouse.click(250,550);await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
@@ -67,8 +67,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.4.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.4.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.5.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.5.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
@@ -115,4 +115,16 @@ test('polished rooms have clear walls, inward chairs, separated balls, mounted a
  await qa(page,{op:'anomaly',id:'balls_float'});await page.waitForTimeout(900);await qa(page,{op:'audit'});expect((await state(page)).layout.ball_min_distance).toBeGreaterThan(.28);
  await qa(page,{op:'anomaly',id:'mural_bleeds'});await qa(page,{op:'warp',x:-7.1,z:-9.3,yaw:0,pitch:.08});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'nachtwache-polish-web-mural-blood.png')});
  await qa(page,{op:'new'});await page.waitForTimeout(300);expect((await state(page)).fog.color).toBe(normal.fog.color);expect((await state(page)).fog.density).toBeCloseTo(normal.fog.density,3);
+});
+
+test('party entrance, moulded slide and bridge are physically traversable through matching net openings',async({page})=>{
+ test.setTimeout(120000);await begin(page);await qa(page,{op:'audit'});
+ const audited=await state(page);expect(audited.layout.net_intrusions).toEqual([]);expect(audited.layout.net_panels).toBe(8);expect(audited.layout.wall_paintings).toBe(5);
+ await qa(page,{op:'warp',x:5.6,z:-5.6,yaw:-Math.PI/2});await page.mouse.click(768,512);await walk(page,'w',s=>s.position[0]>7.4);await walk(page,'s',s=>s.position[0]<6.1);
+ await qa(page,{op:'warp',x:2.3975,y:3.016,z:.828,yaw:Math.PI,pitch:-.2});await walk(page,'w',s=>s.position[2]>6.9);expect((await state(page)).position[1]).toBeLessThan(1.3);
+ await qa(page,{op:'warp',x:4.1,y:3.01,z:3.6,yaw:-Math.PI/2});await walk(page,'w',s=>s.position[0]>10.7);expect((await state(page)).position[1]).toBeGreaterThan(2);
+ await qa(page,{op:'warp',x:10.8,y:2.2,z:3.6,yaw:Math.PI/2});await walk(page,'w',s=>s.position[0]<4.1);expect((await state(page)).position[1]).toBeGreaterThan(2.7);
+ for(const shot of [{name:'door-front',x:4.87,z:-5.6,yaw:-Math.PI/2,pitch:.16},{name:'door-corner',x:5.4,z:-3.1,yaw:-.49,pitch:.1},{name:'slide',x:5.9,z:9.7,yaw:.57,pitch:.08},{name:'upper-play',x:-.535,y:2.99,z:2.9,yaw:0,pitch:-.06},{name:'clown',x:-6.5,z:12.5,yaw:Math.PI/2,pitch:.28},{name:'party-mural',x:16.1,z:-7.3,yaw:-Math.PI/2,pitch:.22}]){
+  await qa(page,{op:'warp',...shot});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'nachtwache-v150-web-'+shot.name+'.png')});
+ }
 });

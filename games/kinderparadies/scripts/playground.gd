@@ -26,43 +26,42 @@ func _second_tower() -> void:
     w.tube(tower,Vector3(x,y-.09,z),Vector3(x,y+.09,z),.19,w.materials.dark)
  for y in [.25,2.15,4.15,6.15]:
   for z in [.7,6.5]: w.tube(tower,Vector3(10.5,y,z),Vector3(17.3,y,z),.14,w.materials.red)
-  for x in [10.5,17.3]: w.tube(tower,Vector3(x,y,.7),Vector3(x,y,6.5),.14,w.materials.blue)
+  for x in [10.5,17.3]:
+   if x==10.5 and y==2.15:
+    for segment in [Vector2(.7,.8),Vector2(2.2,4.7),Vector2(6.1,6.5)]: w.tube(tower,Vector3(x,y,segment.x),Vector3(x,y,segment.y),.14,w.materials.blue)
+   elif x==10.5 and y==.25:
+    w.tube(tower,Vector3(x,y,.7),Vector3(x,y,4.7),.14,w.materials.blue);w.tube(tower,Vector3(x,y,6.1),Vector3(x,y,6.5),.14,w.materials.blue)
+   else: w.tube(tower,Vector3(x,y,.7),Vector3(x,y,6.5),.14,w.materials.blue)
  w.box(tower,Vector3(13.9,2.05,3.6),Vector3(6.8,.2,5.8),w.materials.blue,true)
  # Leave a real opening over the upper ramp so a standing player can emerge.
  w.box(tower,Vector3(13.6,4.05,3.6),Vector3(3.6,.2,5.8),w.materials.blue,true)
  w.box(tower,Vector3(11.15,4.05,2.65),Vector3(1.3,.2,3.9),w.materials.blue,true)
  w.box(tower,Vector3(17.1,4.05,3.6),Vector3(.4,.2,5.8),w.materials.blue,true)
  w.box(tower,Vector3(16.15,4.05,1.3),Vector3(1.5,.2,1.2),w.materials.blue,true)
- # Mesh nets, not a wall-sized opaque texture. Instanced rope keeps draw calls low.
- var transforms: Array[Transform3D]=[]
- for x in [10.5,17.3]:
-  for i in range(31):
-   var y:=.3+i*.19
-   if x==10.5 and y<4:
-    strand(transforms,Vector3(x,y,.7),Vector3(x,y,4.8));strand(transforms,Vector3(x,y,6),Vector3(x,y,6.5))
-   else: strand(transforms,Vector3(x,y,.7),Vector3(x,y,6.5))
-  for i in range(30):
-   var z:=.7+i*.2
-   strand(transforms,Vector3(x,4 if x==10.5 and z>4.8 and z<6 else .3,z),Vector3(x,6.15,z))
- for z in [.7,6.5]:
-  for i in range(31): strand(transforms,Vector3(10.5,.3+i*.19,z),Vector3(17.3,.3+i*.19,z))
-  for i in range(35): strand(transforms,Vector3(10.5+i*.2,.3,z),Vector3(10.5+i*.2,6.15,z))
- var ropes:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D
- var rope:=CylinderMesh.new();rope.height=1;rope.top_radius=.009;rope.bottom_radius=.009;rope.radial_segments=5;mm.mesh=rope;mm.instance_count=transforms.size()
- for i in range(transforms.size()): mm.set_instance_transform(i,transforms[i])
- ropes.multimesh=mm;ropes.material_override=w.materials.stitch;ropes.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;tower.add_child(ropes)
- # A high bridge connects the two structures, leaving the patrol lane underneath.
- for i in range(23):
-  var x:=5.05+i*.24;var y:=lerpf(2.98,2.18,i/22.0)-sin(i/22.0*PI)*.18
-  w.box(tower,Vector3(x,y,2.15),Vector3(.22,.07,1.35),w.materials.wood,true)
+ # The same net openings drive ropes and collisions, including both approaches.
+ PlayGeometry.panel(w,tower,"EastWestNet","x",10.5,Rect2(.7,.3,5.8,5.85),[Rect2(.8,2.05,1.4,2.05),Rect2(4.7,.2,1.4,3.9)])
+ PlayGeometry.panel(w,tower,"EastOuterNet","x",17.3,Rect2(.7,.3,5.8,5.85))
+ PlayGeometry.panel(w,tower,"EastRearNet","z",.7,Rect2(10.5,.3,6.8,5.85))
+ PlayGeometry.panel(w,tower,"EastFrontNet","z",6.5,Rect2(10.5,.3,6.8,5.85))
+ # Bridge is in world hall coordinates so its portals line up on both towers.
+ var bridge:=Node3D.new();bridge.name="ConnectingBridge";add_child(bridge)
+ for i in range(28):
+  var t: float=i/27.0;var x:=lerpf(4.43,10.5,t);var y:=PlayGeometry.bridge_height(t)
+  var plank:=Node3D.new();plank.position=Vector3(x,y-.035,3.6)
+  plank.rotation.z=atan2(PlayGeometry.bridge_height(minf(1,t+.01))-PlayGeometry.bridge_height(maxf(0,t-.01)),6.07*(minf(1,t+.01)-maxf(0,t-.01)));bridge.add_child(plank)
+  var mesh:=w.box(plank,Vector3.ZERO,Vector3(.216,.07,1.2),w.materials.wood);mesh.set_meta("play_obstacle",true)
   for side in [-1,1]:
-   w.tube(tower,Vector3(x,y,2.15+side*.7),Vector3(x,y+.9,2.15+side*.7),.016,w.materials.fabric)
-   if i<22: w.tube(tower,Vector3(x,y+.9,2.15+side*.7),Vector3(x+.24,lerpf(2.98,2.18,(i+1)/22.0)-sin((i+1)/22.0*PI)*.18+.9,2.15+side*.7),.025,w.materials.fabric)
+   w.tube(bridge,Vector3(x,y,3.6+side*.65),Vector3(x,y+.95,3.6+side*.65),.018,w.materials.fabric)
+   if i<27:
+    var nt: float=(i+1)/27.0
+    w.tube(bridge,Vector3(x,y+.95,3.6+side*.65),Vector3(lerpf(4.43,10.5,nt),PlayGeometry.bridge_height(nt)+.95,3.6+side*.65),.027,w.materials.fabric)
+ PlayGeometry.bridge_collision(bridge)
  # Open lower play bays have padded obstacles and a crawl tunnel.
  for i in range(5):
   var x:=11.2+i*1.2
   w.tube(tower,Vector3(x,1.9,3.7),Vector3(x,1.7,3.7),.025,w.materials.stitch)
-  w.tube(tower,Vector3(x,.55,3.7),Vector3(x,1.65,3.7),.22,[w.materials.red,w.materials.gold,w.materials.teal][i%3])
+  var roller:=w.tube(tower,Vector3(x,.55,3.7),Vector3(x,1.65,3.7),.22,[w.materials.red,w.materials.gold,w.materials.teal][i%3])
+  var roller_shape:=CylinderShape3D.new();roller_shape.radius=.22;roller_shape.height=1.1;PlayGeometry.solid_obstacle(roller,roller_shape)
  # Walkable ramps use the same rotated shape as their visible padded mesh.
  # The lower bays remain open; no invisible box fills the whole attraction.
  ramp(tower,Vector3(8.6,1.1,5.4),Vector3(1.2,.16,5.2),.5,-PI/2)

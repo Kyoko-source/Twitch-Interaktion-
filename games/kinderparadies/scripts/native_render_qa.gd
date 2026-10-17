@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--geometry-qa" in OS.get_cmdline_user_args():
+  await geometry_views(game,output);game._quit();return
  if "--polish-qa" in OS.get_cmdline_user_args():
   await polish_views(game,output);game._quit();return
  if "--croc-qa" in OS.get_cmdline_user_args():
@@ -97,6 +99,25 @@ func polish_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(2).timeout;await capture(game,output,"fog-red")
  var file:=FileAccess.open(output.path_join("polish-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("POLISH RENDER QA ",JSON.stringify(report))
+
+func geometry_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"door-front","pos":Vector3(4.87,0,-5.6),"yaw":-PI/2,"pitch":.16},
+  {"name":"door-corner","pos":Vector3(5.4,0,-3.1),"yaw":-.49,"pitch":.1},
+  {"name":"slide","pos":Vector3(5.9,0,9.7),"yaw":.57,"pitch":.08},
+  {"name":"slide-profile","pos":Vector3(5.8,0,4.3),"yaw":PI/2,"pitch":.16},
+  {"name":"upper-play","pos":Vector3(-.535,2.99,2.9),"yaw":0,"pitch":-.06},
+  {"name":"clown","pos":Vector3(-6.5,0,12.5),"yaw":PI/2,"pitch":.28},
+  {"name":"moon","pos":Vector3(-7,0,-.1),"yaw":PI/2,"pitch":.45},
+  {"name":"party-mural","pos":Vector3(16.1,0,-7.3),"yaw":-PI/2,"pitch":.22},
+  {"name":"hall","pos":Vector3(-1,0,12),"yaw":-.95,"pitch":.09}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(2).timeout;await capture(game,output,shot.name)
+ var report:=SceneAudit.inspect(game.world);report.renderer=RenderingServer.get_current_rendering_method()
+ var file:=FileAccess.open(output.path_join("geometry-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("GEOMETRY RENDER QA ",JSON.stringify(report))
 
 func croc_views(game: Node3D, output: String) -> void:
  game._new_shift()
