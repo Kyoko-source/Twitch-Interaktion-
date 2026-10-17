@@ -198,6 +198,47 @@ func run(game: Node3D) -> bool:
  for frame_index in range(155): await game.get_tree().physics_frame
  Input.action_release("forward")
  check(game.player.position.z>6.5 and game.player.position.y<1,"Slide descent is blocked by floor, beam or safety net")
+ # Enter, crawl around both physical bends, fail safe stand-up under the roof,
+ # then stand again outside. Voices must also play in a normal round.
+ game._build_world("none");game._resume();game.player.position=Vector3(-5.5,0,10.7);game.player.rotation.y=PI
+ Input.action_press("forward")
+ for frame_index in range(70): await game.get_tree().physics_frame
+ check(game.player.position.z<12,"Standing player passes through the low tube roof")
+ Input.action_press("crouch")
+ for frame_index in range(95): await game.get_tree().physics_frame
+ Input.action_release("forward");Input.action_release("crouch")
+ for frame_index in range(20): await game.get_tree().physics_frame
+ check(game.world.tubes.contains(game.player.position),"Crouched player cannot enter the tube")
+ check(game.player.crouching and game.player.camera.position.y<1,"Releasing crouch pushes the player through the tube roof")
+ check(game.world.soundscape.voice_count>0 and game.world.current=="none","Normal tube atmosphere does not play children's voices")
+ game.world.soundscape.voice.stop();game.world.soundscape.voice_index=1;game.world.soundscape.cue_voice(game.player)
+ check(game.world.soundscape.last_voice=="children-cry.ogg" and game.world.current=="none","Crying voice is treated as an anomaly or fails to play")
+ game._pause();await game.get_tree().process_frame
+ var sound_clock: float=game.world.soundscape.clock;var voice_timer: float=game.world.soundscape.voice_timer
+ for frame_index in range(12): await game.get_tree().physics_frame
+ check(game.world.soundscape.clock==sound_clock and game.world.soundscape.voice_timer==voice_timer and game.world.soundscape.voice.stream_paused,"Pause does not freeze ambient audio and timers")
+ game._resume();Input.action_press("crouch");Input.action_press("forward")
+ for frame_index in range(1000):
+  var n:=CrawlTubes.nearest(game.player.position)
+  var destination:=CrawlTubes.route(minf(CrawlTubes.LENGTH,n.s+.45))
+  if n.s>CrawlTubes.LENGTH-.3: destination+=Vector3(0,0,-1.2)
+  var direction: Vector3=destination-game.player.position
+  game.player.rotation.y=atan2(-direction.x,-direction.z)
+  await game.get_tree().physics_frame
+  if game.player.position.x>3.4 and game.player.position.z<11.3: break
+ Input.action_release("forward");Input.action_release("crouch")
+ for frame_index in range(25): await game.get_tree().physics_frame
+ check(game.player.position.x>3.4 and game.player.position.z<11.3,"Tube traversal is blocked by a bend, window or old room prop: "+str(game.player.position))
+ check(not game.player.crouching and game.player.camera.position.y>1.5,"Player cannot stand after leaving the tube")
+ check(not game.world.tubes.watcher.visible,"Window figure appears in a normal round")
+ game.state.start(1600);game.has_session=true
+ game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);game.player.set_crouch(true);game._save();game._continue()
+ for frame_index in range(8): await game.get_tree().physics_frame
+ check(game.player.crouching and game.world.tubes.contains(game.player.position),"Reloading a tube save restores a standing player inside the roof")
+ game._build_world("tube_watcher")
+ check(game.world.tubes.watcher.visible,"Window watcher anomaly does not appear")
+ game._build_world("none")
+ check(not game.world.tubes.watcher.visible,"Window watcher is not removed in the next normal round")
  # Normal comparison has no proximity scare. The anomaly requires actual
  # proximity, a forward-facing view and unobstructed line of sight.
  game._build_world("none");game._resume();game.player.position=Vector3(-5.7,0,4.85);game.player.rotation.y=-PI/2

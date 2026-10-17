@@ -41,6 +41,10 @@ func _ready() -> void:
  if "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
 
 func _actions() -> void:
+ if not InputMap.has_action("crouch"):
+  InputMap.add_action("crouch")
+  for key in ([KEY_C] if OS.has_feature("web") else [KEY_C,KEY_CTRL]):
+   var crouch_key:=InputEventKey.new();crouch_key.physical_keycode=key;InputMap.action_add_event("crouch",crouch_key)
  var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"jump":[KEY_SPACE],"grab":[KEY_G],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
  for action in keys:
   if not InputMap.has_action(action): InputMap.add_action(action)
@@ -57,7 +61,7 @@ func _build_world(anomaly: String) -> void:
 
 func _audio() -> void:
  if not OS.has_feature("web"): player.step_player.bus="Interior"
- room_audio=AudioStreamPlayer.new();var stream: AudioStreamWAV=load("res://assets/room.wav").duplicate();stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);room_audio.stream=stream;room_audio.volume_db=-18;add_child(room_audio)
+ room_audio=AudioStreamPlayer.new();room_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;var stream: AudioStreamOggVorbis=load("res://assets/ambience/ventilation.ogg");stream.loop=true;room_audio.stream=stream;room_audio.volume_db=-26;add_child(room_audio)
  effect=AudioStreamPlayer.new();effect.stream=load("res://assets/door.ogg");effect.volume_db=-12;add_child(effect)
 
 func _ui() -> void:
@@ -75,7 +79,7 @@ func _ui() -> void:
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  var cross:=_label("+",23,Color(1,1,1,.65));cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
  checklist=_label("",15,Color("b7c5bf"));checklist.position=Vector2(30,98);hud.add_child(checklist)
- var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
+ var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
  notice=_label("",18,Color("eadfc2"));notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP);notice.offset_left=-450;notice.offset_right=450;notice.offset_top=25;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(notice)
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
@@ -149,10 +153,11 @@ func _continue() -> void:
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
  has_session=true;_build_world(state.current)
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==3 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0))==4 and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
   if p.is_finite() and p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2:
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
+   if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
 func _resume() -> void:
@@ -178,7 +183,7 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Ein Fehler setzt die Serie auf null. Danach erfährst du, was du übersehen hast."))
- column.add_child(_paragraph("Normal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
+ column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
  column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
@@ -237,11 +242,13 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":3}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":4}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
  world.tick(delta,phase=="play")
+ world.tubes.tick(delta,phase=="play",player)
+ world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
  player.fright=world.encounters.shock
  if phase=="play":
@@ -260,6 +267,7 @@ func _process(delta: float) -> void:
    else:
     var object:=player.prop_target()
     if object: prompt.text="G · "+object.title+" aufheben"
+  if prompt.text=="" and (world.tubes.near_entry(player.position) or world.tubes.inside): prompt.text="C halten · Ducken und durch die Röhre krabbeln"
   if notice_time>0: notice_time-=delta;notice.visible=notice_time>0
  telemetry_clock+=delta
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
@@ -339,6 +347,7 @@ func _fullscreen() -> void:
 
 func _quit() -> void:
  if phase=="quitting": return
+ world.soundscape.stop_all()
  _save();_write_settings()
  player.release();room_audio.stop();effect.stop();world.source.stop()
  if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/nachtwache'");_main_menu()
@@ -366,6 +375,7 @@ func _telemetry() -> void:
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x
+  data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.layout=qa_layout
   data.props=[]
@@ -386,6 +396,8 @@ func _qa_command(args: Array) -> void:
  var command=JSON.parse_string(str(args[0]))
  if not command is Dictionary: return
  match command.get("op",""):
+  "look": player.rotation.y=float(command.yaw)
+  "voice": world.soundscape.cue_voice(player)
   "audit": qa_layout=SceneAudit.inspect(world)
   "new": _new_shift()
   "warp": player.drop_prop();player.position=Vector3(command.x,float(command.get("y",0)),command.z);player.velocity=Vector3.ZERO;player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))

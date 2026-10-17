@@ -41,7 +41,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.5.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.6.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -144,7 +144,7 @@ gemeinsam. Die Taschenlampe verwendet im Compatibility-Renderer korrigierte
 Schattenflächen und einen eigenen Bias gegen diagonale Streifen auf Wand und
 Figur. Prompts und Dateipfade in `art/PROMPTS-CROCODILE.md`.
 
-## Umgebung 1.5.0
+## Umgebung 1.6.0
 
 Das Ostgerüst und seine Rampen stehen vollständig vor der Partyraumwand;
 die Brücke verbindet die tatsächlichen Plattformhöhen. Alle sechs Stühle
@@ -168,7 +168,7 @@ Bekannter Engine-Hinweis: Godot 4.6 meldet bei Verwendung von ReflectionProbe
 sieben Textur-RIDs beim Prozessende. Im Lauf treten keine entsprechenden Fehler
 auf. Upstream: https://github.com/godotengine/godot/issues/122498.
 
-## Spielanlage und Wandmalereien 1.5.0
+## Spielanlage und Wandmalereien 1.6.0
 
 Der Durchgang zum Partyraum besitzt einen echten 2,4 Meter breiten und drei
 Meter hohen Wandausschnitt mit schlankem Holzrahmen. Die Westanlage rückt
@@ -192,3 +192,34 @@ Die Bewegungstests laufen real durch Partyraumtür, Rutsche und Brücke; Web-QA
 prüft die Brücke in beide Richtungen. `--render-qa --geometry-qa` erstellt
 gezielte GPU-Aufnahmen dieser Stellen. Buildfehler und Laufzeit-Skriptfehler
 brechen die Verpackung auch bei einem Engine-Exitcode von null ab.
+## Krabbelröhren und Geräuschkulisse 1.6.0
+
+Ein 15,5 Meter langer, gebogener Tunnel mit zwei Eingängen und drei echten
+Polycarbonatfenstern steht hinten in der Halle. Farbige Kunststoffsegmente,
+Verbindungsringe, Schrauben, Innenbeleuchtung und ein durchgehender Boden
+verwenden dieselbe Geometrie in Windows und Web. Die Kleinkindzone bleibt
+neben der Anlage frei; alte Matten, Zaun und Spielstangen ragen nicht hinein.
+
+C halten duckt die Spielfigur, verkleinert den physischen Körper und
+verlangsamt sie. Ein Formtest verhindert das Aufstehen unter der Decke.
+Außerhalb kann sie wieder normal laufen. Auch Laden eines Spielstands in
+der Röhre stellt den geduckten Körper wieder her.
+
+Das frühere globale Regenrauschen entfällt. Leiser tiefpassgefilterter Regen
+ist nur noch an der entfernten Wand zu hören. Lüftung, Türknarzen, Rohrklopfen,
+Relaisklicken, Tropfen und Kunststoffkontakt ergänzen räumlich verteilte Quellen.
+Echte Aufnahmen von Kinderlachen und Weinen wechseln mit Pausen im Tunnel;
+außerhalb werden sie gedämpft. Diese Geräusche sind in normalen und anomalen
+Runden identisch möglich und beeinflussen die Rot-/Grün-Regel nicht.
+Die separate Sound-Zufallsquelle verändert den Anomaliekatalog nicht.
+
+Neue 44. Anomalie: Eine blasse Gestalt blickt durch das Dachfenster.
+Sie ist im Referenzrundgang unsichtbar und verschwindet in normalen Runden.
+Pause hält Geräusche, Stimmen und Ereigniszeiten gemeinsam an.
+
+Feldaufnahmen: Joseph SARDIN / BigSoundBank, CC0 (Türknarzen mit Axeline T.).
+Quelldatei-Prüfsummen, Quellseiten und Bearbeitung in
+`assets/ambience/provenance.json`; reproduzierbare Verarbeitung:
+`tools/prepare-nachtwache-ambience.py`. Kein Musikloop im Hintergrund.
+`--render-qa --tubes-qa` erstellt gezielte Innen-/Außenaufnahmen.
+Gesichtstextur der Gestalt: art/PROMPTS-WATCHER.md. Die neue Geräuschkulisse verwendet explizite Stream-Wiedergabe auch im Web und ändert den Pausenzustand nur bei einem tatsächlichen Wechsel. Damit bleiben Ende, Lautstärke und Wiederaufnahme der Aufnahmen zuverlässig.

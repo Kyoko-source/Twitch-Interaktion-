@@ -4,6 +4,7 @@ extends RefCounted
 const GOAL := 13
 const ZONES := ["Empfang", "Bällebad", "Partyraum", "Wartungsgang"]
 const ANOMALIES := [
+ {"id":"tube_watcher","name":"Eine Gestalt schaut durch das Dachfenster in die Krabbelröhre.","zone":"Bällebad"},
  {"id":"chair_ceiling","name":"Die Stühle hängen an der Decke.","zone":"Partyraum"},
  {"id":"chairs_missing","name":"Alle Stühle im Partyraum sind verschwunden.","zone":"Partyraum"},
  {"id":"chair_stack","name":"Die Stühle stehen übereinander.","zone":"Partyraum"},

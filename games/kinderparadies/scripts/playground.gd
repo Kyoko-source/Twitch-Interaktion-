@@ -177,23 +177,23 @@ func _hall_dressing() -> void:
  # Quiet corners give the larger hall purpose, with adult-size benches beside
  # child-size toys, shoe storage and a gated toddler zone.
  for i in range(4):
-  var x:=-7.7+i*1.15
-  w.box(dressing,Vector3(x,.2,13.4),Vector3(.85,.36,.85),[w.materials.gold,w.materials.blue,w.materials.teal][i%3],true)
-  w.sphere(dressing,Vector3(x,.48,13.4),.2,w.materials.red)
- for x in [-9.7,-2.8]:
+  var x:=-8.7+(i%2)*1.2;var z:=12.3+floori(i/2.0)*1.4
+  w.box(dressing,Vector3(x,.2,z),Vector3(.85,.36,.85),[w.materials.gold,w.materials.blue,w.materials.teal][i%3],true)
+  w.sphere(dressing,Vector3(x,.48,z),.2,w.materials.red)
+ for x in [-9.7,-7.0]:
   for z in [12.2,15.7]:
    w.tube(dressing,Vector3(x,0,z),Vector3(x,1.05,z),.06,w.materials.wood)
- for i in range(23): w.tube(dressing,Vector3(-9.7+i*.3,.12,15.7),Vector3(-9.7+i*.3,1,15.7),.026,w.materials.wood)
- for y in [.18,.95]: w.tube(dressing,Vector3(-9.7,y,15.7),Vector3(-2.8,y,15.7),.05,w.materials.wood)
+ for i in range(10): w.tube(dressing,Vector3(-9.7+i*.3,.12,15.7),Vector3(-9.7+i*.3,1,15.7),.026,w.materials.wood)
+ for y in [.18,.95]: w.tube(dressing,Vector3(-9.7,y,15.7),Vector3(-7,y,15.7),.05,w.materials.wood)
  w.mounted_sign(dressing,"nursery",Vector3(-6.2,3.55,16.97),Vector2(1.65,.75),PI)
  for i in range(3): w.painting(dressing,i,Vector3(-8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
  for i in range(8):
-  var x:=-.8+i*.65;var pad:=w.box(dressing,Vector3(x,.08,14),Vector3(.58,.14,2),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
+  var x:=-2.3+i*.55;var pad:=w.box(dressing,Vector3(x,.08,13.3),Vector3(.5,.14,1.3),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
   pad.rotation.y=sin(i)*.1
  for i in range(6):
-  var x:=.5+i*.7
-  w.tube(dressing,Vector3(x,.05,16.5),Vector3(x,1.3,16.5),.055,w.materials.gold)
-  w.sphere(dressing,Vector3(x,1.3,16.5),.1,w.materials.red)
+  var x:=5+i*.35
+  w.tube(dressing,Vector3(x,.05,16.25),Vector3(x,1.3,16.25),.055,w.materials.gold)
+  w.sphere(dressing,Vector3(x,1.3,16.25),.1,w.materials.red)
  w.mounted_sign(dressing,"pickup",Vector3(5.8,3.4,16.97),Vector2(2.1,.8),PI)
  for i in range(6):
   var z:=.5+i*2.8

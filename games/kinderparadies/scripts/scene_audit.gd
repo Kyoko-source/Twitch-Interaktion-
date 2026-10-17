@@ -11,7 +11,7 @@ static func inspect(w: PlayWorld) -> Dictionary:
  for label in w.find_children("*","Label3D",true,false):
   if label.is_visible_in_tree(): text_count+=1
  var intersections: Array[String]=[]
- for branch in [w.props.structure,w.props.nets,w.props.slide,w.playground.get_node("EastTower"),w.playground.get_node("ConnectingBridge")]:
+ for branch in [w.props.structure,w.props.nets,w.props.slide,w.playground.get_node("EastTower"),w.playground.get_node("ConnectingBridge"),w.tubes]:
   for mesh in branch.find_children("*","MeshInstance3D",true,false):
    if not mesh.is_visible_in_tree(): continue
    var bounds: AABB=mesh.global_transform*mesh.get_aabb()

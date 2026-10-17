@@ -22,6 +22,8 @@ var last_sound := 0
 var atmosphere: NurseryAtmosphere
 var native_art: NativeArt
 var playground: ExpandedPlayground
+var tubes: CrawlTubes
+var soundscape: NightSoundscape
 var encounters: NightEncounters
 
 func bevel(size: Vector3) -> ArrayMesh:
@@ -114,6 +116,8 @@ func build() -> void:
  _enlarge_climbing_frame()
  if not OS.has_feature("web"):
   native_art=NativeArt.new();add_child(native_art);native_art.build(self)
+ tubes=CrawlTubes.new();add_child(tubes);tubes.build(self)
+ soundscape=NightSoundscape.new();add_child(soundscape);soundscape.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
  encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
@@ -368,6 +372,7 @@ func _details() -> void:
  for i in range(3): box(self,Vector3(18.8,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:
+ tubes.set_anomaly(id)
  current=id;clock=0
  atmosphere.anomaly(id)
  encounters.configure(id)
@@ -423,8 +428,6 @@ func tick(delta: float, active: bool) -> void:
  if native_art: native_art.tick(delta,active)
  if not active: return
  clock+=delta
- if int(clock/25)>last_sound:
-  last_sound=int(clock/25);source.pitch_scale=.75;source.play()
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else .8 if current=="clock_reverse" else -.004)
  if current=="balls_float":
   for i in range(0,360,3):

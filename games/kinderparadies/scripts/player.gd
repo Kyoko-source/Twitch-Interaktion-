@@ -18,10 +18,17 @@ var landing_offset := 0.0
 var was_airborne := false
 var fright := 0.0
 var bounce_speed := 6.2
+var crouching:=false
+var capsule: CapsuleShape3D
+var collider: CollisionShape3D
+var stand_clearance: CapsuleShape3D
+var walk_sound: AudioStream
+var crawl_sound: AudioStream
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
  var collision:=CollisionShape3D.new();collision.shape=shape;collision.position.y=.85;add_child(collision)
+ capsule=shape;collider=collision;stand_clearance=CapsuleShape3D.new();stand_clearance.radius=.28;stand_clearance.height=.65
  camera=Camera3D.new();camera.fov=75;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
  # Physical handheld torch, attached to the camera, below the crosshair.
@@ -31,6 +38,7 @@ func _ready() -> void:
  torch_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  var rim:=MeshInstance3D.new();var rim_mesh:=TorusMesh.new();rim_mesh.inner_radius=.064;rim_mesh.outer_radius=.083;rim_mesh.rings=24;rim_mesh.ring_segments=8;rim.mesh=rim_mesh;rim.material_override=material;rim.rotation.x=PI/2;rim.position.y=.15;body.add_child(rim)
  step_player=AudioStreamPlayer.new();step_player.stream=load("res://assets/step.ogg");step_player.volume_db=-19;add_child(step_player)
+ walk_sound=step_player.stream;crawl_sound=load("res://assets/ambience/crawl-contact.wav")
 
 func capture() -> void:
  active=true
@@ -52,15 +60,23 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
  if not active: return
+ var low:=Input.is_action_pressed("crouch")
+ if crouching and not low:
+  var query:=PhysicsShapeQueryParameters3D.new();query.shape=stand_clearance;query.transform=Transform3D(global_basis,global_position+Vector3(0,1.39,0));query.collision_mask=1;query.exclude=[get_rid()];query.margin=.005
+  low=not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+ set_crouch(low)
+ var eye_height:=.8 if crouching else 1.65
+ var sound:=crawl_sound if crouching else walk_sound
+ if step_player.stream!=sound: step_player.stop();step_player.stream=sound
  var direction:=Input.get_vector("left","right","forward","back")
  var aim:=transform.basis*Vector3(direction.x,0,direction.y)
- var speed:=4.5 if Input.is_action_pressed("sprint") else 2.8
+ var speed:=1.35 if crouching else 4.5 if Input.is_action_pressed("sprint") else 2.8
  var target:=aim*speed
  velocity.x=move_toward(velocity.x,target.x,delta*18)
  velocity.z=move_toward(velocity.z,target.z,delta*18)
  jump_buffer=maxf(0,jump_buffer-delta)
  coyote=.1 if is_on_floor() else maxf(0,coyote-delta)
- if jump_buffer>0 and coyote>0:
+ if jump_buffer>0 and coyote>0 and not crouching:
   velocity.y=bounce_speed;jump_buffer=0;coyote=0
  elif not is_on_floor(): velocity.y-=20*delta
  else: velocity.y=-.1
@@ -87,11 +103,11 @@ func _physics_process(delta: float) -> void:
  if direction.length()>.1 and is_on_floor():
   walk_clock+=delta*(9 if speed>3 else 6)
   step_clock+=delta
-  camera.position.y=1.65+landing_offset+(sin(walk_clock)*.018 if motion else 0.0)
-  if step_clock>(.32 if speed>3 else .48):
+  camera.position.y=lerpf(camera.position.y,eye_height+landing_offset+(sin(walk_clock)*(.009 if crouching else .018) if motion else 0.0),delta*12)
+  if step_clock>(.75 if crouching else .32 if speed>3 else .48):
    step_clock=0;step_player.pitch_scale=randf_range(.78,1.05);step_player.play()
  else:
-  camera.position.y=lerpf(camera.position.y,1.65+landing_offset,delta*8)
+  camera.position.y=lerpf(camera.position.y,eye_height+landing_offset,delta*12)
 
 func prop_target() -> NightProp:
  var origin:=camera.global_position
@@ -116,6 +132,11 @@ func toggle_lamp() -> void:
  lamp_on=not lamp_on;lamp.visible=lamp_on
 
 func reset_pose() -> void:
+ set_crouch(false)
  drop_prop()
  global_position=Vector3(-6.2,0,8.5);rotation.y=0;camera.rotation=Vector3.ZERO;velocity=Vector3.ZERO
  jump_buffer=0;coyote=0;was_airborne=false;landing_offset=0;fright=0;bounce_speed=6.2
+
+func set_crouch(value: bool) -> void:
+ crouching=value
+ if capsule: capsule.height=.95 if value else 1.7;collider.position.y=capsule.height*.5

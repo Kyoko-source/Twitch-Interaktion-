@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--tubes-qa" in OS.get_cmdline_user_args():
+  await tube_views(game,output);game._quit();return
  if "--geometry-qa" in OS.get_cmdline_user_args():
   await geometry_views(game,output);game._quit();return
  if "--polish-qa" in OS.get_cmdline_user_args():
@@ -75,6 +77,22 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
+
+func tube_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"tubes-exterior","pos":Vector3(-6.8,0,9.8),"yaw":-2.45,"pitch":-.03},
+  {"name":"tube-entry","pos":Vector3(-5.5,0,10.9),"yaw":PI,"pitch":-.45},
+  {"name":"tube-interior","pos":CrawlTubes.route(6)+Vector3(0,-.72,0),"yaw":-PI/2,"pitch":.05},
+  {"name":"tube-window-normal","pos":CrawlTubes.route(7.4)+Vector3(0,-.72,0),"yaw":0.0,"pitch":1.3}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  Input.action_press("crouch") if shot.name.begins_with("tube-i") or shot.name.begins_with("tube-window") else Input.action_release("crouch")
+  await game.get_tree().create_timer(2).timeout;await capture(game,output,shot.name)
+ game._build_world("tube_watcher");game._resume();game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);game.player.rotation.y=0;game.player.camera.rotation.x=1.3;Input.action_press("crouch")
+ await game.get_tree().create_timer(2).timeout;await capture(game,output,"tube-window-watcher")
+ Input.action_release("crouch")
+ print("TUBE RENDER QA ",JSON.stringify({"watcher":game.world.tubes.watcher.visible,"ambience":game.world.soundscape.snapshot()}))
 
 func polish_views(game: Node3D, output: String) -> void:
  game._new_shift()

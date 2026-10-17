@@ -1,0 +1,5 @@
+Field recordings: Joseph SARDIN / BigSoundBank (door creak also Axeline T.).
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+Source pages, edits and source hashes: provenance.json.
+Original plastic/pipe/relay foley: Aviary project.
+window-watcher-face.png: original generated project artwork; see art/PROMPTS-WATCHER.md.

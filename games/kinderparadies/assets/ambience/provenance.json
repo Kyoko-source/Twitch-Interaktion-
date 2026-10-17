@@ -1,0 +1,60 @@
+[
+  {
+    "file": "children-laugh.ogg",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/laughter-of-children-s1660.html",
+    "original_sha256": "6d39b48db136a604cca10d0bec9cb75822fc951c32df51c61d749c21bde412d1",
+    "processing": "highpass=f=65,lowpass=f=4800,loudnorm=I=-22:TP=-5:LRA=8,afade=t=in:d=0.12,afade=t=out:st=4.3:d=0.5"
+  },
+  {
+    "file": "children-cry.ogg",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/5-year-old-child-crying-5-s2552.html",
+    "original_sha256": "2b6a8cf678287860e47a9521fd047d61179fe7ced41f571f14e64de1eb948620",
+    "processing": "highpass=f=65,lowpass=f=3600,loudnorm=I=-24:TP=-5:LRA=8,afade=t=in:d=0.12,afade=t=out:st=7.5:d=0.5"
+  },
+  {
+    "file": "door-creak.ogg",
+    "author": "Joseph SARDIN & Axeline T.",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/creaking-door-2-s3205.html",
+    "original_sha256": "143cb65a9fcf5a177fefda62211f25405688c79f5d0eb6e3882b12abd415b0f3",
+    "processing": "highpass=f=65,lowpass=f=3300,loudnorm=I=-25:TP=-5:LRA=8,afade=t=in:d=0.12,afade=t=out:st=3.3:d=0.5"
+  },
+  {
+    "file": "ventilation.ogg",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/ventilation-5-s3598.html",
+    "original_sha256": "e1b4f4b9bb7fde0a1a301c59b83eb0d0f778daa595914a792bc4a96e51e3ba70",
+    "processing": "highpass=f=65,lowpass=f=1200,loudnorm=I=-28:TP=-5:LRA=8,afade=t=in:d=0.12,afade=t=out:st=15.5:d=0.5"
+  },
+  {
+    "file": "rain-muted.ogg",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/rain-on-puddle-s1290.html",
+    "original_sha256": "72a8ebd83b33f3cd27ccc7b17a9c44b73f7aea0161de68176c182167839b3dbc",
+    "processing": "highpass=f=65,lowpass=f=650,loudnorm=I=-31:TP=-5:LRA=8,afade=t=in:d=0.12,afade=t=out:st=13.5:d=0.5"
+  },
+  {
+    "file": "crawl-contact.wav",
+    "author": "Aviary project",
+    "license": "Original project sound",
+    "processing": "Deterministic material foley; no music"
+  },
+  {
+    "file": "pipe-knock.wav",
+    "author": "Aviary project",
+    "license": "Original project sound",
+    "processing": "Deterministic material foley; no music"
+  },
+  {
+    "file": "relay-tick.wav",
+    "author": "Aviary project",
+    "license": "Original project sound",
+    "processing": "Deterministic material foley; no music"
+  }
+]
