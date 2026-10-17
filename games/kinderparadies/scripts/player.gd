@@ -84,6 +84,9 @@ func _physics_process(delta: float) -> void:
  bounce_speed=6.2
  camera.rotation.z=sin(Time.get_ticks_msec()*.055)*fright*.035 if motion else 0.0
  camera.fov=75+fright*5 if motion else 75.0
+ # Close jumping faces otherwise leave the narrow torch cone entirely. The
+ # brief spill follows the existing scare pulse and returns to the normal beam.
+ lamp.spot_angle=24+fright*30
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
   if hit.get_normal().y>.6 and body.has_meta("bounce_speed"): bounce_speed=float(body.get_meta("bounce_speed"))
