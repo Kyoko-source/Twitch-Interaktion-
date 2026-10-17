@@ -5,7 +5,7 @@ var w: PlayWorld
 var inflatable: Node3D
 var inflatable_skin: Node3D
 var fan: AudioStreamPlayer3D
-const CROCODILE_PATH := "res://assets/creatures/night-crocodile.glb"
+const CROCODILE_PATH := "res://assets/creatures/night-crocodile-v3.glb"
 var croc_visual: Node3D
 var croc_jaw: Node3D
 var jaw_rest := Vector3.ZERO

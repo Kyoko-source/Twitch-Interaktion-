@@ -153,9 +153,9 @@ func _continue() -> void:
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
  has_session=true;_build_world(state.current)
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==4 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0))==5 and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2:
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -179,11 +179,11 @@ func _pause() -> void:
 func _help(back: String) -> void:
  phase="help";return_phase=back
  var column:=_panel("Dienstanweisung","Nachtdienst im Kinderparadies")
- column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum und Wartungsgang in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
+ column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Ein Fehler setzt die Serie auf null. Danach erfährst du, was du übersehen hast."))
- column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
+ column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand ist normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
  column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
@@ -242,7 +242,7 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":4}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":5}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -377,6 +377,7 @@ func _telemetry() -> void:
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
+  data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
   data.layout=qa_layout
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze,"impacts":body.impact_count,"sound_active":body.impact.playing,"sound":body.impact.stream.resource_path})

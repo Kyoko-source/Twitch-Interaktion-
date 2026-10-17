@@ -54,17 +54,18 @@ Copy-Item -LiteralPath (Join-Path $taskProject 'assets/Kenney-Impact-License.txt
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/PolyHaven-CC0.txt'),(Join-Path $taskProject 'assets/polyhaven-provenance.json') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience/LICENSE.txt') -Destination (Join-Path $taskPackage 'Ambience-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience/provenance.json') -Destination (Join-Path $taskPackage 'Ambience-Provenance.json') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/annex/LICENSE.txt') -Destination (Join-Path $taskPackage 'Annex-License.txt') -Force
 foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.6.0.zip'
+$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.7.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='1.6.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='1.7.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

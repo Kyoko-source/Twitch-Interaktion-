@@ -2,8 +2,9 @@ class_name PatrolState
 extends RefCounted
 
 const GOAL := 13
-const ZONES := ["Empfang", "Bällebad", "Partyraum", "Wartungsgang"]
+const ZONES := ["Empfang", "Bällebad", "Partyraum", "Wartungsgang", "Küche", "Kino"]
 const ANOMALIES := [
+ {"id":"clown_lunge","name":"Der Küchenclown hört auf zu rühren, fährt auf dich zu und beobachtet dich danach.","zone":"Küche"},
  {"id":"tube_watcher","name":"Eine Gestalt schaut durch das Dachfenster in die Krabbelröhre.","zone":"Bällebad"},
  {"id":"chair_ceiling","name":"Die Stühle hängen an der Decke.","zone":"Partyraum"},
  {"id":"chairs_missing","name":"Alle Stühle im Partyraum sind verschwunden.","zone":"Partyraum"},

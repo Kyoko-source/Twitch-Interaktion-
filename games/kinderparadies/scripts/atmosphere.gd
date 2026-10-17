@@ -52,7 +52,8 @@ func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
- for i in range(5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
+ # First segment is now the annex opening; never hang a decal in its doorway.
+ for i in range(1,5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
  # A fixed, dried mark belongs to the reference round. New wet marks are anomalies.
  decal(self,0,Vector3(-9.97,1.08,-8.8),Vector2(.9,.55),Vector3(0,PI/2,-.35),Color(.32,.24,.23,.7))
  for i in range(18):
@@ -257,7 +258,7 @@ func _horror_variants() -> void:
  for i in range(7):
   decal(horrors.bloody_hands,1,Vector3(-10.015,.8+(i%3)*.4,-4-i*.65),Vector2(.52,.65),Vector3(0,PI/2,(i-3)*.17))
  decal(horrors.blood_pool,3,Vector3(10.2,.034,-7),Vector2(3.1,3.1),Vector3(-PI/2,0,0))
- for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-8.2+i*.7,1.3,-11.935),Vector2(.8,2.3),Vector3(0,0,-PI/2))
+ for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-9.91,1.3,-4+i*.7),Vector2(.8,2.3),Vector3(0,PI/2,0))
 
 func anomaly(id: String) -> void:
  if horrors.has(id) and horrors[id] is Node3D: horrors[id].show()

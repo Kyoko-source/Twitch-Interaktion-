@@ -1,0 +1,2 @@
+Original project screen/sign artwork and deterministic foley.
+Clown facial albedo: generated original project artwork; see art/PROMPTS-ANNEX.md.

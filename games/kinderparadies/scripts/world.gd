@@ -15,7 +15,7 @@ var ball_transforms: Array[Transform3D] = []
 var ball_render_transforms: Array[Transform3D] = []
 var current := "none"
 var clock := 0.0
-var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(9.3,0,12.2),"Partyraum":Vector3(12,0,-6.4),"Wartungsgang":Vector3(-7.5,0,-7.2)}
+var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(9.3,0,12.2),"Partyraum":Vector3(12,0,-6.4),"Wartungsgang":Vector3(-7.5,0,-7.2),"Küche":Vector3(-13.8,0,-17.4),"Kino":Vector3(-3,0,-17.65)}
 var source: AudioStreamPlayer3D
 var mesh_cache := {}
 var last_sound := 0
@@ -25,6 +25,7 @@ var playground: ExpandedPlayground
 var tubes: CrawlTubes
 var soundscape: NightSoundscape
 var encounters: NightEncounters
+var annex: ServiceAnnex
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -117,6 +118,7 @@ func build() -> void:
  if not OS.has_feature("web"):
   native_art=NativeArt.new();add_child(native_art);native_art.build(self)
  tubes=CrawlTubes.new();add_child(tubes);tubes.build(self)
+ annex=ServiceAnnex.new();add_child(annex);annex.build(self)
  soundscape=NightSoundscape.new();add_child(soundscape);soundscape.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
@@ -161,7 +163,9 @@ func _architecture(rubber: Texture2D) -> void:
   props.floor_tiles.append(instance)
  box(self,Vector3(-10.2,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
  box(self,Vector3(19.8,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
- box(self,Vector3(4.8,3.7,-12.2),Vector3(30,7.4,.3),materials.wall,true)
+ box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
+ box(self,Vector3(6.7,3.7,-12.2),Vector3(26.2,7.4,.3),materials.wall,true)
+ box(self,Vector3(-7.9,5.05,-12.2),Vector3(3,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,3.7,17.2),Vector3(30,7.4,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
@@ -302,7 +306,7 @@ func _party_room() -> void:
   var flag:=box(self,Vector3(7.1+i*.24,3,-11.98),Vector3(.17,.23,.01),materials.red if i%2==0 else materials.gold);flag.rotation.z=.2 if i%2==0 else -.2
 
 func _service() -> void:
- props.mural=painting(self,0,Vector3(-7.1,2.2,-11.96),Vector2(3.8,2.55))
+ props.mural=painting(self,0,Vector3(-9.96,2.2,-2.8),Vector2(3.8,2.55),PI/2)
  box(self,Vector3(-9.3,1.2,-7.6),Vector3(1.1,2.4,.8),materials.metal,true)
  for y in [.4,1.2,2]: box(self,Vector3(-9.3,y,-7.12),Vector3(.9,.035,.04),materials.dark)
  mounted_sign(self,"maintenance",Vector3(-9.3,2.2,-7.10),Vector2(.8,.4))
@@ -372,6 +376,7 @@ func _details() -> void:
  for i in range(3): box(self,Vector3(18.8,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:
+ annex.configure(id)
  tubes.set_anomaly(id)
  current=id;clock=0
  atmosphere.anomaly(id)
@@ -423,6 +428,7 @@ func set_anomaly(id: String) -> void:
  elif id=="hours_wrong": props.hours.material_override.albedo_texture=load("res://assets/polish/hours-wrong.png")
 
 func tick(delta: float, active: bool) -> void:
+ annex.tick(delta,active)
  atmosphere.tick(delta,active)
  playground.tick(active)
  if native_art: native_art.tick(delta,active)

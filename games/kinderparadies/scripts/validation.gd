@@ -280,7 +280,50 @@ func run(game: Node3D) -> bool:
  check(is_equal_approx(jaw_angle,game.world.playground.croc_jaw.rotation.x),"Crocodile jaw moved during pause")
  game.world.encounters.tick(1,true,game.player)
  check(game.world.encounters.finished and is_equal_approx(game.world.playground.croc_jaw.rotation.x,.12),"Crocodile jaw failed to settle after snap")
- game._build_world("none");game.player.release();game.phase="menu"
+ # Walk the new annex through both real doorways, never through geometry.
+ game._build_world("none");game._resume();game.player.position=Vector3(-7.9,0,-10.3);game.player.velocity=Vector3.ZERO
+ for destination in [Vector3(-7.9,0,-17.65),Vector3(-12.0,0,-17.65),Vector3(-7.9,0,-17.65),Vector3(1.7,0,-17.65)]:
+  Input.action_press("forward")
+  for frame in range(500):
+   var direction: Vector3=destination-game.player.position;direction.y=0
+   if direction.length()<.16: break
+   game.player.rotation.y=atan2(-direction.x,-direction.z)
+   await game.get_tree().physics_frame
+  Input.action_release("forward")
+  check(Vector2(game.player.position.x-destination.x,game.player.position.z-destination.z).length()<.3,"Annex walkway blocked: "+str(destination)+" actual "+str(game.player.position))
+ check(game.player.position.y>-.1 and game.player.position.y<.2,"Annex floor has a gap or obstructing step")
+ check(game.world.annex.clock>0 and not game.world.annex.settled,"Normal kitchen clown must stir")
+ check(not game.world.encounters.triggered,"Normal kitchen or NO SIGNAL cinema caused an anomaly scare")
+ game._pause();await game.get_tree().process_frame
+ var annex_clock: float=game.world.annex.clock;var hand_pose: Vector3=game.world.annex.clown.hand.position
+ for frame in range(12): await game.get_tree().physics_frame
+ check(game.world.annex.clock==annex_clock and game.world.annex.clown.hand.position==hand_pose,"Pause does not freeze projector and spoon")
+ check(game.world.annex.sources.all(func(source): return source.stream_paused),"Annex audio continues in pause")
+ game._resume()
+ # Both new rooms must support a real persisted save, not only main-hall bounds.
+ for pose in [Vector3(-12,0,-17.65),Vector3(1.7,0,-17.65)]:
+  game.state.start(1700);game.has_session=true;game.player.position=pose;game._save();game.has_session=false;game._continue()
+  check(game.player.position.distance_to(pose)<.1,"Annex saved position was discarded")
+ game._build_world("clown_lunge");game._resume();game.player.position=Vector3(-12.2,0,-18);game.player.rotation.y=-2.0;game.player.camera.rotation.x=.09
+ await game.get_tree().physics_frame;game.world.encounters.tick(2,true,game.player)
+ check(not game.world.encounters.triggered,"Clown triggered behind player")
+ game.player.rotation.y=1.1
+ await game.get_tree().physics_frame;game.world.encounters.tick(.01,true,game.player)
+ check(game.world.encounters.triggered,"Visible nearby clown did not trigger")
+ var clown_start: Vector3=game.world.annex.clown.root.position
+ var clown_time: float=game.world.encounters.attack_time
+ game.world.encounters.tick(.4,false,game.player)
+ check(game.world.encounters.attack_time==clown_time and game.world.annex.clown.root.position==clown_start,"Clown moves during pause")
+ game.world.encounters.tick(.3,true,game.player)
+ check(game.world.annex.clown.root.position.distance_to(clown_start)>1,"Clown scare is not a physical lunge")
+ game.world.encounters.tick(2,true,game.player)
+ check(game.world.encounters.finished and game.world.annex.settled,"Clown does not settle after one scare")
+ check(game.world.annex.clown.root.position.distance_to(game.world.annex.clown_origin)<.01,"Clown fails to return to cooker")
+ game.world.tick(.1,true)
+ check(game.world.annex.sources[0].stream_paused,"Stirring sound continues after clown stops stirring")
+ game._build_world("none")
+ check(not game.world.annex.settled and not game.world.annex.scare,"Next normal round failed to restore kitchen clown")
+ game.player.release();game.phase="menu"
  game.has_session=true;game.state.start(71);game.state.decide(false);game._save();check(game._can_continue(),"Saved game cannot be continued")
  var legacy:=JSON.parse_string(FileAccess.get_file_as_string(game.SAVE)) as Dictionary
  legacy.erase("layout_version");legacy.pose=[13,1,1.6,0,0]

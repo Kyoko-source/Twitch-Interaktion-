@@ -86,10 +86,10 @@ func _models() -> void:
   hide_geometry(chair);model(chair,"SchoolChair_01",Vector3.ZERO,.91,PI)
  hide_geometry(w.props.reception_shelves)
  for z in [1.4,2.7]: model(self,"wooden_bookshelf_worn",Vector3(-9.55,.02,z),2.15,PI/2)
- for i in range(5): model(self,"cardboard_box_01",Vector3(-8.5+(i%2)*.55,.02+floori(i/2.0)*.35,-9.8),.34,-.3+i*.4)
+ for i in range(5): model(self,"cardboard_box_01",Vector3(-16.5+(i%2)*.55,.02+floori(i/2.0)*.35,-14.1),.34,-.3+i*.4)
  for i in range(4): model(self,"cardboard_box_01",Vector3(-8.25+(i%2)*.5,.02+floori(i/2.0)*.42,-3.4),.41,i*.45)
  model(self,"power_box_01",Vector3(-9.8,1.4,-5.6),.7,PI/2)
- model(self,"metal_office_desk",Vector3(-8.8,.02,-10.8),.85,PI/2)
+ model(self,"metal_office_desk",Vector3(-7.9,.02,-21.5),.85)
  model(w.props.counter,"rubber_duck_toy",Vector3(.12,1.0,.45),.13,.5)
  model(w.props.party_table,"rubber_duck_toy",Vector3(8.8,.87,-7.3),.12,-.8)
  for mesh in w.find_children("*","MeshInstance3D",true,false):

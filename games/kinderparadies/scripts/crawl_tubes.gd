@@ -151,8 +151,9 @@ func _watcher() -> void:
     portrait.set_uv(Vector2(u,v));portrait.add_vertex(Vector3(x,y,z))
  portrait.generate_normals()
  var mask:=MeshInstance3D.new();mask.mesh=portrait.commit()
- var complexion:=w.mat(Color("b8bfb1"),load("res://assets/ambience/window-watcher-face.png"),.95)
- complexion.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS;mask.material_override=complexion;face.add_child(mask)
+ mask.material_override=HorrorFigures.complexion(load("res://assets/ambience/window-watcher-face.png"),true);face.add_child(mask)
+ coat.albedo_color=Color("211418")
+ skin.albedo_color=Color("6b3030")
  for side in [-1,1]:
   w.tube(watcher,Vector3(side*.34,-.4,0),Vector3(side*.58,-.08,.23),.075,coat)
   w.tube(watcher,Vector3(side*.58,-.08,.23),Vector3(side*.52,.22,.32),.058,coat)

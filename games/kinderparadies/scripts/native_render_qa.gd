@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--annex-qa" in OS.get_cmdline_user_args():
+  await annex_views(game,output);game._quit();return
  if "--tubes-qa" in OS.get_cmdline_user_args():
   await tube_views(game,output);game._quit();return
  if "--geometry-qa" in OS.get_cmdline_user_args():
@@ -77,6 +79,35 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
+
+func annex_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"annex-corridor","pos":Vector3(-7.9,0,-13.6),"yaw":0,"pitch":.03},
+  {"name":"annex-kitchen","pos":Vector3(-10.8,0,-16.7),"yaw":1.02,"pitch":-.01},
+  {"name":"annex-clown","pos":Vector3(-12.2,0,-18.0),"yaw":1.1,"pitch":.09},
+  {"name":"annex-pot","pos":Vector3(-12.2,0,-18.6),"yaw":1.03,"pitch":-.36},
+  {"name":"annex-cinema","pos":Vector3(-4.6,0,-17.65),"yaw":-PI/2,"pitch":.1},
+  {"name":"crocodile-v3","pos":Vector3(4.8,0,13.8),"yaw":-1.25,"pitch":.13},
+  {"name":"crocodile-profile","pos":Vector3(8.3,0,7.4),"yaw":-2.35,"pitch":.11}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(2.5).timeout;await capture(game,output,shot.name)
+ game._build_world("clown_lunge");game._resume();game.player.position=Vector3(-12.2,0,-18);game.player.rotation.y=1.1;game.player.camera.rotation.x=.09
+ var wait:=0.0
+ while not game.world.encounters.triggered and wait<4:
+  await game.get_tree().process_frame;wait+=game.get_process_delta_time()
+ var triggered: bool=game.world.encounters.triggered
+ game._pause();var time: float=game.world.encounters.attack_time
+ await game.get_tree().create_timer(.25).timeout
+ var frozen: bool=time==game.world.encounters.attack_time
+ game._resume();await game.get_tree().create_timer(.32).timeout;await capture(game,output,"annex-clown-lunge")
+ await game.get_tree().create_timer(1.6).timeout
+ var report:={"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"clown_triggered":triggered,"pause_frozen":frozen,"clown_finished":game.world.encounters.finished,"clown_settled":game.world.annex.settled,"clown_position":str(game.world.annex.clown.root.position),"audit":SceneAudit.inspect(game.world)}
+ game._build_world("tube_watcher");game._resume();game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);game.player.rotation.y=0;game.player.camera.rotation.x=1.3;Input.action_press("crouch")
+ await game.get_tree().create_timer(2).timeout;await capture(game,output,"watcher-stained");Input.action_release("crouch")
+ var file:=FileAccess.open(output.path_join("annex-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("ANNEX RENDER QA ",JSON.stringify(report))
 
 func tube_views(game: Node3D, output: String) -> void:
  game._new_shift()

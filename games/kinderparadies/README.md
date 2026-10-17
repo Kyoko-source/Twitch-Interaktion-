@@ -16,7 +16,7 @@ Die erste Runde ist normal und dient als Referenz. Bereiche kannst du freiwillig
 erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen; ein Fehler setzt die Serie zurück und erklärt die Veränderung.
-43 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
+45 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Dichter graugrüner Nebel gehört zur normalen Umgebung. Blutroter Nebel ist eine
 Anomalie; die frühere reine Dichte-Anomalie wurde ersetzt.
@@ -41,7 +41,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.6.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.7.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -223,3 +223,26 @@ Quelldatei-Prüfsummen, Quellseiten und Bearbeitung in
 `tools/prepare-nachtwache-ambience.py`. Kein Musikloop im Hintergrund.
 `--render-qa --tubes-qa` erstellt gezielte Innen-/Außenaufnahmen.
 Gesichtstextur der Gestalt: art/PROMPTS-WATCHER.md. Die neue Geräuschkulisse verwendet explizite Stream-Wiedergabe auch im Web und ändert den Pausenzustand nur bei einem tatsächlichen Wechsel. Damit bleiben Ende, Lautstärke und Wiederaufnahme der Aufnahmen zuverlässig.
+
+
+## v1.7.0 — Küche, Lichtspiel und neue Kreaturen
+
+Der Wartungsbereich führt nun in einen schmalen Flur: links liegt eine verlassene
+Küche, rechts das Mini-Kino. Alle Räume sind frei begehbar; es gibt weiterhin
+keine verpflichtenden Kontrollpunkte. Der Küchenclown rührt normalerweise mit
+einem animierten Löffel in verschimmeltem Essen. Nur die neue 45. Anomalie
+`clown_lunge` löst bei Nähe, Blickkontakt und freier Sicht einen einmaligen
+räumlichen Sprung aus. Danach bleibt der Clown stehen und beobachtet den Spieler.
+Das flackernde NO SIGNAL-Bild, Projektorgeräusch und Topfrühren sind normal.
+Pause friert Animationen und Geräusche ein. Spielstände unterstützen beide Räume;
+ältere Raumlayouts setzen nur die Position zurück und erhalten den Rundgang.
+
+Das Krokodil ist als gemeinsames GLB neu modelliert: längere Schnauze, kleinere
+zurückgesetzte Augen, geformter Gaumen, unregelmäßige Zähne, Schuppenhaut,
+Zehen, Schweißnähte, Reparaturen und aufblasbare Kammern. Der Kiefer bleibt für
+die bestehende Schnapp-Anomalie beweglich. Die Fenstergestalt trägt prozedurale
+dunkelrote Oberflächenspuren auf Gesicht und Händen.
+
+Neue Texturen: `art/PROMPTS-ANNEX.md`; Sounds und Schilder werden reproduzierbar
+mit `tools/prepare-nachtwache-annex.py` erzeugt. Das neue Krokodil entsteht mit
+Blender im Hintergrund aus `tools/model-nachtwache-crocodile-v3.py`.
