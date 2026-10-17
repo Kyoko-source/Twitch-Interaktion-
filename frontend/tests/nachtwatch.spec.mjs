@@ -23,20 +23,21 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-4.9);await walk(page,'d',s=>s.position[0]>12.1);await walk(page,'w',s=>s.position[2]<-6.1);await expect.poll(async()=>(await state(page)).visited).toContain('Partyraum');
  await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'s',s=>s.position[2]>-5.3);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('help');await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
- await walk(page,'d',s=>s.position[0]>-4.4);await walk(page,'w',s=>s.position[2]<-9.9);console.log('Door approach',await state(page));await page.screenshot({path:join(tmpdir(),'nachtwache-door-approach.png')});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('result');
+ await walk(page,'d',s=>s.position[0]>-4.4);await walk(page,'w',s=>s.position[2]<-9.9);console.log('Door approach',await state(page));await page.screenshot({path:join(tmpdir(),'nachtwache-door-approach.png')});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await page.mouse.click(250,550);await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
 });
 
-test('visible anomaly, real door raycasts, wrong decision reset and thirteen consecutive correct doors reach the ending',async({page})=>{
- test.setTimeout(120000);await begin(page);
- expect((await state(page)).visited).toEqual([]);await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('result');expect((await state(page)).streak).toBe(1);
- await page.waitForTimeout(350);await qa(page,{op:'next'});await expect.poll(async()=>(await state(page)).phase).toBe('play');
- await qa(page,{op:'anomaly',id:'balls_float'});await qa(page,{op:'warp',x:3.0,z:8.5,yaw:0});await page.mouse.click(768,512);await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'nachtwache-anomaly-desktop.png')});
- await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('result');expect((await state(page)).streak).toBe(0);
+test('doors advance automatically, a wrong choice triggers one 3D scare and thirteen correct decisions reach the ending',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ expect((await state(page)).visited).toEqual([]);await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).rounds).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).controls).toEqual([]);
+ await page.mouse.click(768,512);await qa(page,{op:'anomaly',id:'balls_float'});await qa(page,{op:'warp',x:3,z:8.5,yaw:0});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'nachtwache-anomaly-desktop.png')});
+ await qa(page,{op:'warp',x:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase,{intervals:[30]}).toBe('failure');expect((await state(page)).failure.running).toBe(true);
+ await page.waitForTimeout(250);await page.screenshot({path:join(tmpdir(),'nachtwache-v180-web-wrong-door.png')});await expect.poll(async()=>(await state(page)).phase,{timeout:12000}).toBe('play');expect((await state(page)).streak).toBe(0);expect((await state(page)).failure.count).toBe(1);
  for(let i=0;i<13;i++){
-  await expect.poll(async()=>(await state(page)).phase).toBe('result');await page.waitForTimeout(350);await qa(page,{op:'next'});await expect.poll(async()=>(await state(page)).phase).toBe('play');await page.waitForTimeout(350);await page.mouse.click(768,512);expect((await state(page)).visited).toEqual([]);const red=(await state(page)).anomaly!=='none';await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe(red?'red':'green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(i+1);
+  await page.waitForTimeout(350);await page.mouse.click(768,512);expect((await state(page)).visited).toEqual([]);const red=(await state(page)).anomaly!=='none';await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.1});await expect.poll(async()=>(await state(page)).target).toBe(red?'red':'green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(i+1);
+  await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe(i===12?'won':'play');
  }
- await expect.poll(async()=>(await state(page)).phase).toBe('won');await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'nachtwache-ending-desktop.png')});
+ expect((await state(page)).failure.count).toBe(1);await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'nachtwache-ending-desktop.png')});
 });
 
 test('pause freezes movement and real settings controls persist volume after reload',async({page})=>{
@@ -67,8 +68,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.7.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.7.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.8.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.8.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
@@ -172,4 +173,14 @@ test('annex corridor, kitchen and cinema have real open routes, persistent saves
  await qa(page,{op:'pause'});const paused=(await state(page)).encounter.time;await page.waitForTimeout(400);expect((await state(page)).encounter.time).toBe(paused);
  await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).encounter.finished).toBe(true);expect((await state(page)).annex.stirring).toBe(false);
  await qa(page,{op:'new'});expect((await state(page)).annex.stirring).toBe(true);expect((await state(page)).encounter.triggered).toBe(false);
+});
+
+
+test('detailed torch flickers briefly, freezes on pause and normal kitchen atmosphere has six extra recordings',async({page})=>{
+ await begin(page);expect((await state(page)).ambience.bed_count).toBe(5);expect((await state(page)).ambience.event_count).toBe(7);
+ await qa(page,{op:'flicker'});await expect.poll(async()=>(await state(page)).flashlight.count).toBe(1);await expect.poll(async()=>(await state(page)).flashlight.strength,{intervals:[20]}).toBeLessThan(1);
+ await qa(page,{op:'pause'});const clock=(await state(page)).flashlight.clock;await page.waitForTimeout(400);expect((await state(page)).flashlight.clock).toBe(clock);
+ await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).flashlight.strength,{timeout:3000}).toBe(1);
+ await page.mouse.click(768,512);
+ for(const shot of [{name:'clown-front',x:-12.4,z:-19.25,yaw:Math.PI/2,pitch:.1},{name:'clown-profile',x:-14.4,z:-17.5,yaw:0,pitch:.14},{name:'reception',x:-9.65,z:5.2,yaw:-1.87,pitch:-.32}]){await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'nachtwache-v180-web-'+shot.name+'.png')});}
 });

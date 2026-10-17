@@ -1,0 +1,56 @@
+[
+  {
+    "file": "fridge.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/fridge-s1157.html",
+    "original_sha256": "c1f33f3508cab6330b66cc8948b9ddafdd8f203929303690bcef8f4f9639302a",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 1200 Hz lowpass, RMS target -28 dBFS, edge fades; duration 14.00s"
+  },
+  {
+    "file": "cutlery.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/cutlery-manipulations-on-plate-s1193.html",
+    "original_sha256": "83a6494d915ba94b1531f2c70fcfa758785d174118c726f86fcc8a6b1e793cb5",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 4300 Hz lowpass, RMS target -26 dBFS, edge fades; duration 8.00s"
+  },
+  {
+    "file": "chain.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/heavy-chain-s0359.html",
+    "original_sha256": "48efcc0364bf98a47a622b7642254b3e885378f8a241b99885ba5781f3a6c41d",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 3200 Hz lowpass, RMS target -25 dBFS, edge fades; duration 4.00s"
+  },
+  {
+    "file": "breathing.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/man-breathing-s2195.html",
+    "original_sha256": "d077b2743eeeaa69f5f2f993ee16b4441d1cd32211774c22bc885c29150d2bb6",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 3500 Hz lowpass, RMS target -25 dBFS, edge fades; duration 9.00s"
+  },
+  {
+    "file": "floor-creak.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/squeaking-parquet-7-s3057.html",
+    "original_sha256": "f93f30a9afde31ee84b0eba101b7d3d8c12900536fc14411ca23364915655e2f",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 3800 Hz lowpass, RMS target -25 dBFS, edge fades; duration 0.60s"
+  },
+  {
+    "file": "fly.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/fly-and-glass-s0759.html",
+    "original_sha256": "e097b6eb52a1918fe88996dd31279700ac77f9a5e1768689650213ff357c05ef",
+    "processing": "Mono 24 kHz, 60 Hz highpass, 2200 Hz lowpass, RMS target -30 dBFS, edge fades; duration 9.00s"
+  },
+  {
+    "file": "door-shock.wav",
+    "author": "Aviary / Joseph SARDIN",
+    "license": "Original mix; source recordings CC0-1.0",
+    "processing": "Layered chain, breathing and original low impact; peak -2.4 dBFS, 1.16 seconds"
+  }
+]

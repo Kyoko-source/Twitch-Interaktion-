@@ -14,9 +14,10 @@ var voice_index:=0
 var voice_count:=0
 var last_voice:=""
 var in_tube:=false
+const NEW_ASSETS:="res://assets/ambience-v180/"
 
 func emitter(file: String, pos: Vector3, db: float, range_value: float) -> AudioStreamPlayer3D:
- var source:=AudioStreamPlayer3D.new();source.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;source.stream=load(ASSETS+file);source.position=pos;source.volume_db=db;source.unit_size=2;source.max_distance=range_value;source.attenuation_filter_cutoff_hz=3300;add_child(source);return source
+ var source:=AudioStreamPlayer3D.new();source.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;source.stream=load(file if file.begins_with("res://") else ASSETS+file);source.position=pos;source.volume_db=db;source.unit_size=2;source.max_distance=range_value;source.attenuation_filter_cutoff_hz=3300;add_child(source);return source
 
 func build(world: PlayWorld) -> void:
  w=world;rng.randomize()
@@ -25,9 +26,15 @@ func build(world: PlayWorld) -> void:
  beds.append(emitter("ventilation.ogg",Vector3(16,5,-5),-15,12))
  beds.append(emitter("ventilation.ogg",Vector3(-8,5,2),-19,9))
  for source in beds: (source.stream as AudioStreamOggVorbis).loop=true
+ for spec in [{"file":"fridge.wav","pos":Vector3(-11,1,-21.7),"db":-7.0,"range":7.0},{"file":"fly.wav","pos":Vector3(-13.25,1.5,-19.25),"db":-5.0,"range":3.6}]:
+  var source:=emitter(NEW_ASSETS+spec.file,spec.pos,spec.db,spec.range);var stream: AudioStreamWAV=source.stream;stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);beds.append(source)
  events.append(emitter("door-creak.ogg",Vector3(6.8,1.8,-5.6),-8,13))
  events.append(emitter("pipe-knock.wav",Vector3(-7,5,-4),-16,12))
  events.append(emitter("relay-tick.wav",Vector3(1,5.8,0),-21,10))
+ events.append(emitter(NEW_ASSETS+"cutlery.wav",Vector3(-16.6,1.2,-18.4),-4,8))
+ events.append(emitter(NEW_ASSETS+"chain.wav",Vector3(13.4,4.8,6.5),-6,14))
+ events.append(emitter(NEW_ASSETS+"floor-creak.wav",Vector3(-3,1.0,-19.2),-4,9))
+ events.append(emitter(NEW_ASSETS+"breathing.wav",Vector3(-7.9,1.8,-21.5),-6,8))
  voice=emitter("children-laugh.ogg",CrawlTubes.route(7.4),-1,5)
  voice.attenuation_filter_cutoff_hz=2700
  if not OS.has_feature("web"):
@@ -56,7 +63,10 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  clock+=delta;event_timer-=delta
  if event_timer<=0:
   # Different positions and long irregular gaps, independent of anomaly RNG.
-  var source:=events[rng.randi_range(0,events.size()-1)];source.pitch_scale=rng.randf_range(.88,1.08);source.play();event_timer=rng.randf_range(11,23)
+  var near:=events.filter(func(source): return source.position.distance_to(player.position)<source.max_distance)
+  if not near.is_empty():
+   var source: AudioStreamPlayer3D=near[rng.randi_range(0,near.size()-1)];source.pitch_scale=rng.randf_range(.94,1.04);source.play()
+  event_timer=rng.randf_range(7,16)
  var entered:=w.tubes.contains(player.position)
  if entered and not in_tube: voice_timer=minf(voice_timer,1.6)
  in_tube=entered

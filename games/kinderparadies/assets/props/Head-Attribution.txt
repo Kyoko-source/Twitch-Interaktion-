@@ -1,0 +1,9 @@
+Creative Commons Licence
+Infinite, 3D Head Scan by Lee Perry-Smith is licensed under a Creative Commons Attribution 3.0 Unported License.
+Based on a work at www.triplegangers.com.
+Permissions beyond the scope of this license may be available at http://www.ir-ltd.net/
+Please remember: Do what you want with the files, but always mention where you got them from...
+
+Source: https://raw.githubusercontent.com/mrdoob/three.js/4500a366ccfd5a59aa2ed296c386fa42bb4edb8c/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb
+CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
+Modified for this game: neck crop, proportions, original clown vertex paint and superficial blood staining, hair, costume, eyes and scene animation. The original surface normal map is retained for small skin relief; portrait colour textures are not used.

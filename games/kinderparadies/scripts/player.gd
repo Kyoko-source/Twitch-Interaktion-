@@ -10,7 +10,7 @@ var walk_clock := 0.0
 var step_clock := 0.0
 var step_player: AudioStreamPlayer
 var lamp_on := true
-var torch_body: MeshInstance3D
+var torch_body: GuardTorch
 var carried: NightProp
 var jump_buffer := 0.0
 var coyote := 0.0
@@ -31,12 +31,7 @@ func _ready() -> void:
  capsule=shape;collider=collision;stand_clearance=CapsuleShape3D.new();stand_clearance.radius=.28;stand_clearance.height=.65
  camera=Camera3D.new();camera.fov=75;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
- # Physical handheld torch, attached to the camera, below the crosshair.
- var body:=MeshInstance3D.new();var mesh:=CylinderMesh.new();mesh.top_radius=.075;mesh.bottom_radius=.048;mesh.height=.3;body.mesh=mesh
- var material:=StandardMaterial3D.new();material.albedo_color=Color("252b2d");material.metallic=.8;material.roughness=.35;body.material_override=material;body.position=Vector3(.28,-.27,-.44);body.rotation.x=PI/2;camera.add_child(body)
- torch_body=body
- torch_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
- var rim:=MeshInstance3D.new();var rim_mesh:=TorusMesh.new();rim_mesh.inner_radius=.064;rim_mesh.outer_radius=.083;rim_mesh.rings=24;rim_mesh.ring_segments=8;rim.mesh=rim_mesh;rim.material_override=material;rim.rotation.x=PI/2;rim.position.y=.15;body.add_child(rim)
+ torch_body=GuardTorch.new();camera.add_child(torch_body);torch_body.build(lamp)
  step_player=AudioStreamPlayer.new();step_player.stream=load("res://assets/step.ogg");step_player.volume_db=-19;add_child(step_player)
  walk_sound=step_player.stream;crawl_sound=load("res://assets/ambience/crawl-contact.wav")
 
@@ -86,7 +81,7 @@ func _physics_process(delta: float) -> void:
  camera.fov=75+fright*5 if motion else 75.0
  # Close jumping faces otherwise leave the narrow torch cone entirely. The
  # brief spill follows the existing scare pulse and returns to the normal beam.
- lamp.spot_angle=24+fright*30
+ torch_body.tick(delta,lamp_on,fright)
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
   if hit.get_normal().y>.6 and body.has_meta("bounce_speed"): bounce_speed=float(body.get_meta("bounce_speed"))

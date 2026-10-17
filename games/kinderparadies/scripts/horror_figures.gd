@@ -15,19 +15,6 @@ ALBEDO=c;ALPHA=skin.a;ROUGHNESS=mix(.95,.58,smear);SPECULAR=.18;}
 """
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("face_map",texture);material.set_shader_parameter("stained",stained);return material
 
-static func face(w: PlayWorld, parent: Node3D, texture: Texture2D) -> Node3D:
- var root:=Node3D.new();root.name="Face";parent.add_child(root)
- var portrait:=SurfaceTool.new();portrait.begin(Mesh.PRIMITIVE_TRIANGLES)
- for row in range(40):
-  for col in range(32):
-   for c in [Vector2i(0,0),Vector2i(1,0),Vector2i(0,1),Vector2i(1,0),Vector2i(1,1),Vector2i(0,1)]:
-    var u: float=(col+c.x)/32.0;var v: float=(row+c.y)/40.0;var x: float=(u-.5)*.58;var y: float=(.5-v)*.73
-    var z: float=.02+.18*sqrt(maxf(.015,1-pow(x/.26,2)-pow(y/.37,2)))+.035*exp(-pow(x/.05,2)-pow((y+.08)/.08,2))
-    portrait.set_uv(Vector2(u,v));portrait.add_vertex(Vector3(x,y,z))
- portrait.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=portrait.commit();mesh.material_override=complexion(texture);root.add_child(mesh)
- var back:=w.sphere(root,Vector3(0,0,-.04),.28,w.mat(Color("302b24"),null,.95));back.scale=Vector3(.8,1.2,.65)
- return root
-
 static func link(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
  var direction:=b-a;mesh.position=(a+b)*.5;mesh.quaternion=Quaternion(Vector3.UP,direction.normalized());mesh.scale=Vector3(1,direction.length(),1)
 
@@ -35,29 +22,27 @@ static func bone(parent: Node3D, radius: float, material: Material) -> MeshInsta
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var root:=Node3D.new();root.name="KitchenClown";parent.add_child(root)
- var suit:=w.mat(Color("562b2e"),load("res://assets/floor.png"),.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
- var stripe:=w.mat(Color("8e794b"),load("res://assets/aged-plaster.png"),.96)
- var cuff:=w.mat(Color("b8ad91"),load("res://assets/paint.png"),.95)
- var glove:=w.mat(Color("a29b84"),load("res://assets/aged-plaster.png"),.85)
- # Soft layered tailoring and stitched panels, with real human limb proportions.
- var torso:=w.sphere(root,Vector3(0,1.12,0),.4,suit);torso.scale=Vector3(.93,1.35,.67)
- for side in [-1,1]:
-  var leg:=w.sphere(root,Vector3(side*.18,.52,0),.23,stripe);leg.scale=Vector3(.8,2,.8)
-  for i in range(5): w.tube(root,Vector3(side*.18-.13+i*.055,.15,.145),Vector3(side*.18-.13+i*.055,.9,.145),.012,suit)
-  var shoe:=w.sphere(root,Vector3(side*.2,.12,.14),.2,w.materials.dark);shoe.scale=Vector3(1,.58,1.8)
-  w.tube(root,Vector3(side*.17,.94,.22),Vector3(side*.18,1.54,.16),.022,stripe)
-  var sleeve:=w.sphere(root,Vector3(side*.34,1.42,0),.18,suit);sleeve.scale=Vector3(1,1.25,1)
- for y in [1.03,1.25,1.47]: w.sphere(root,Vector3(0,y,.265),.045,stripe)
- # A layered pleated ruff catches narrow edge light around the neck.
- for layer in range(3):
-  for i in range(18):
-   var a:=i*TAU/18;var ruffle:=w.sphere(root,Vector3(sin(a)*(.21+layer*.018),1.66+layer*.027,cos(a)*(.17+layer*.018)),.07,cuff);ruffle.scale=Vector3(.7,.32,1.2);ruffle.rotation.y=a
- var head:=face(w,root,load("res://assets/annex/clown-face.png"));head.position=Vector3(0,1.96,.015)
- var hat:=MeshInstance3D.new();var cone:=CylinderMesh.new();cone.top_radius=.015;cone.bottom_radius=.15;cone.height=.42;cone.radial_segments=32;hat.mesh=cone;hat.material_override=stripe;hat.position=Vector3(.055,2.45,-.04);hat.rotation.z=-.17;root.add_child(hat)
- var arm:=bone(root,.105,suit);var forearm:=bone(root,.078,suit);var hand:=w.sphere(root,Vector3.ZERO,.085,glove);hand.scale=Vector3(.85,.7,1.2)
+ var scene: PackedScene=load("res://assets/props/kitchen-clown-v2.glb")
+ var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
+ var head:=root.find_child("Head",true,false) as Node3D
+ assert(head!=null,"Sculpted clown head is missing")
+ for mesh in root.find_children("*","MeshInstance3D",true,false):
+  mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
+  for surface in range(mesh.mesh.get_surface_count()):
+   var material:=mesh.get_active_material(surface) as StandardMaterial3D
+   if material and material.resource_name=="Cracked greasepaint and blood" and not material.normal_texture:
+    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.17;material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*12
+ var suit:=w.mat(Color("744a46"),null,.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
+ var glove:=w.mat(Color("6b2422"),load("res://assets/aged-plaster.png"),.76)
+ var arm:=bone(root,.085,suit);var forearm:=bone(root,.067,suit);var hand:=Node3D.new();root.add_child(hand)
+ var palm:=w.sphere(hand,Vector3.ZERO,.047,glove);palm.scale=Vector3(.85,1.25,.55)
+ for i in range(4):
+  w.tube(hand,Vector3(-.035+i*.022,-.03,.006),Vector3(-.035+i*.022,-.079,.026),.012,glove)
+  w.tube(hand,Vector3(-.035+i*.022,-.079,.026),Vector3(-.035+i*.022,-.071,.06),.01,glove)
+ w.tube(hand,Vector3(.045,.015,0),Vector3(.03,-.025,.05),.016,glove)
  link(arm,Vector3(-.28,1.48,0),Vector3(-.25,1.15,.42))
  link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))
- var idle_arm:=bone(root,.095,suit);link(idle_arm,Vector3(.3,1.44,0),Vector3(.39,.94,.16));w.sphere(root,Vector3(.39,.91,.16),.09,glove)
+ var idle_arm:=bone(root,.075,suit);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))
+ var idle:=hand.duplicate();root.add_child(idle);idle.position=Vector3(.32,.9,.08)
  var spoon:=bone(root,.016,w.materials.wood);var bowl:=w.sphere(root,Vector3.ZERO,.058,w.materials.wood);bowl.scale=Vector3(1,.3,1.35)
  return {"root":root,"head":head,"upper":arm,"forearm":forearm,"hand":hand,"spoon":spoon,"bowl":bowl}

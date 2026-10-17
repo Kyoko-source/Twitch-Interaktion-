@@ -1,0 +1,17 @@
+[
+  {
+    "file": "LeePerrySmith.glb",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/4500a366ccfd5a59aa2ed296c386fa42bb4edb8c/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb",
+    "sha256": "402b8a8ac9f03232e6d64b5962929703a069daf99d3c49ac8eb0e48bedc9c576"
+  },
+  {
+    "file": "LeePerrySmith_License.txt",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/4500a366ccfd5a59aa2ed296c386fa42bb4edb8c/examples/models/gltf/LeePerrySmith/LeePerrySmith_License.txt",
+    "sha256": "7cf4da43a6ae6d32f7f7d063fe129a19468af6f4fe7c53b937f83959709fcb50"
+  },
+  {
+    "file": "Infinite-Level_02_Tangent_SmoothUV.jpg",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/4500a366ccfd5a59aa2ed296c386fa42bb4edb8c/examples/models/gltf/LeePerrySmith/Infinite-Level_02_Tangent_SmoothUV.jpg",
+    "sha256": "36925e51ad9b324b94e8faf4692da1b4132809f2762bb8d5bd549ffd215d4ca6"
+  }
+]

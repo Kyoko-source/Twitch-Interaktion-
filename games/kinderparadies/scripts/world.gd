@@ -249,8 +249,25 @@ func _reception() -> void:
  var counter:=group("counter");counter.position=Vector3(-8.85,0,5.8)
  props.counter_base=box(counter,Vector3(0,.46,0),Vector3(.82,.92,2.7),materials.cream,true)
  props.counter_top=box(counter,Vector3(0,.96,0),Vector3(.96,.08,2.9),materials.wood)
- box(counter,Vector3(-.04,1.2,-.55),Vector3(.38,.34,.045),materials.dark)
- mounted_sign(counter,"monitor",Vector3(-.04,1.21,-.515),Vector2(.32,.16))
+ # Staff stand behind the narrow counter on its west side. The screen, stand,
+ # keyboard and cables share that orientation and all rest on the actual top.
+ var pc:=Node3D.new();pc.name="ReceptionPC";pc.position=Vector3(0,1.025,-.35);pc.rotation.y=-PI/2;counter.add_child(pc)
+ var pc_plastic:=mat(Color("6e746a"),load("res://assets/paint.png"),.78)
+ box(pc,Vector3(0,.015,0),Vector3(.31,.03,.25),materials.dark)
+ box(pc,Vector3(0,.07,-.025),Vector3(.075,.11,.07),materials.metal)
+ var screen:=Node3D.new();screen.position=Vector3(0,.255,-.015);screen.rotation.x=-.07;pc.add_child(screen)
+ box(screen,Vector3(0,0,-.085),Vector3(.42,.32,.24),pc_plastic)
+ box(screen,Vector3(0,.012,.043),Vector3(.365,.245,.018),materials.dark)
+ var display:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(.32,.19);display.mesh=quad;display.position=Vector3(0,.012,.056);screen.add_child(display)
+ var display_mat:=mat(Color("9aaf92"),load("res://assets/annex/terminal.png"),.4);display_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;display.material_override=display_mat
+ var power:=mat(Color("72995b"));power.emission_enabled=true;power.emission=Color("72995b");sphere(screen,Vector3(.155,-.132,.05),.006,power)
+ for i in range(7): box(screen,Vector3(0,-.12+i*.035,-.209),Vector3(.31,.012,.015),materials.dark)
+ box(pc,Vector3(0,.025,.255),Vector3(.39,.033,.135),materials.cream)
+ for row in range(3):
+  for col in range(11): box(pc,Vector3(-.165+col*.032,.044,.21+row*.032),Vector3(.026,.009,.025),materials.dark)
+ for i in range(14):
+  var a:=i/13.0;var b:=(i+1)/13.0
+  tube(counter,Vector3(.12,1.04-a*.7,-.52-a*.35),Vector3(.12,1.04-b*.7,-.52-b*.35),.008,materials.dark)
  props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,7.6),Vector2(1.3,.75),PI/2)
  var shelves:=group("reception_shelves")
  for z in [1.4,2.6]:
@@ -356,8 +373,6 @@ func _details() -> void:
  for i in range(3):
   var sheet:=box(counter,Vector3(.08,1.005,.1+i*.22),Vector3(.26,.005,.32),paper);sheet.rotation.y=i*.15
   for row in range(4): box(counter,Vector3(.08,1.009,.02+i*.22+row*.045),Vector3(.18,.001,.005),materials.dark)
- for row in range(3):
-  for key in range(10): box(counter,Vector3(-.23+key*.037,1.012,-.35+row*.036),Vector3(.03,.012,.026),materials.dark)
  tube(counter,Vector3(.21,1,.68),Vector3(.21,1.12,.68),.045,materials.metal)
  for i in range(4): tube(counter,Vector3(.18+i*.02,1.05,.68),Vector3(.18+i*.02,1.25,.68),.005,materials.gold if i%2 else materials.red)
  for z in [1.4,2.6]:

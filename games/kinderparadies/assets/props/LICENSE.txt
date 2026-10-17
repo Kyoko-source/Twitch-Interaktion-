@@ -1,0 +1,1 @@
+Torch, costume, hair, original vertex paint and scene animation: project-authored. Clown anatomical base: Infinite, 3D Head Scan by Lee Perry-Smith, CC BY 3.0; see Head-Attribution.txt and anatomy-provenance.json. Geometry modified for this game. No portrait colour textures are used. The attributed skin normal map supplies only surface relief.

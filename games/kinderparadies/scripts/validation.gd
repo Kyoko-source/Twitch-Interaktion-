@@ -332,6 +332,41 @@ func run(game: Node3D) -> bool:
  game.has_session=false;game._continue()
  check(game.player.position.is_equal_approx(Vector3(-6.2,0,8.5)),"Old layout save restored the player inside relocated geometry")
  check(game.state.serialize()==expected.serialize(),"Layout migration changed patrol progress")
+ game._new_shift();game.player.lamp_on=true;game.player.lamp.show()
+ game.player.torch_body.trigger();game.player.torch_body.tick(.025,true,0)
+ check(game.player.lamp.light_energy<2,"Torch contact failure did not dim the real light")
+ game._pause();var flicker_clock: float=game.player.torch_body.clock
+ for frame in range(10): await game.get_tree().physics_frame
+ check(game.player.torch_body.clock==flicker_clock,"Torch flicker continues in pause")
+ game._resume()
+ for frame in range(50): await game.get_tree().physics_frame
+ check(is_equal_approx(game.player.lamp.light_energy,4.2),"Torch failed to recover from a short contact failure")
+ check(game.world.soundscape.beds.size()>=5 and game.world.soundscape.events.size()>=7,"New spatial field recordings are missing")
+ var sculpt: Node3D=game.world.annex.clown.head
+ var head_faces:=0
+ for mesh in sculpt.find_children("*","MeshInstance3D",true,false)+([sculpt] if sculpt is MeshInstance3D else []):
+  head_faces+=mesh.mesh.get_faces().size()
+  for surface in range(mesh.mesh.get_surface_count()):
+   var material:=mesh.get_active_material(surface) as StandardMaterial3D
+   check(material!=null and material.albedo_texture==null,"Clown head still uses a portrait texture")
+ check(head_faces>20000,"Clown head lacks real sculpted geometry")
+ game._decide(false)
+ check(game.phase=="transition" and game.state.streak==1,"Correct door did not begin an automatic transition")
+ var limit:=0
+ while game.phase!="play" and limit<900:
+  await game.get_tree().physics_frame;limit+=1
+ check(game.phase=="play" and game.state.rounds==1,"Correct door still needs a confirmation")
+ game._decide(game.state.current=="none")
+ check(game.phase=="failure" and game.door_failure.running and not game.player.active,"Wrong door failed to start the real 3D scare")
+ var rounds_before: int=game.state.rounds
+ game._decide(false)
+ check(game.state.rounds==rounds_before,"Repeated input during a scare counted another decision")
+ limit=0
+ while game.phase!="play" and limit<900:
+  await game.get_tree().physics_frame;limit+=1
+ check(game.phase=="play" and game.state.streak==0 and game.state.errors==1,"Wrong door failed to resume automatically with reset series")
+ check(game.door_failure.shown==1 and not game.door_failure.running,"Wrong door scare replayed or remained visible")
+ await game.get_tree().create_timer(.35).timeout
  game._pause()
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

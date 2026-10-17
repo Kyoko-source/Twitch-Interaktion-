@@ -45,7 +45,7 @@ func build(world: PlayWorld) -> void:
  for x in [-9.35,-6.45]: w.tube(self,Vector3(x,3.25,-12.3),Vector3(x,3.25,-22.3),.06,w.materials.rust)
  plaque("KÜCHE",Vector3(-9.23,2.9,-17.65),PI/2)
  plaque("LICHTSPIEL",Vector3(-6.57,2.9,-17.65),-PI/2)
- _kitchen();_cinema();_audio()
+ _kitchen();KitchenDressing.build(w,self);_cinema();_audio()
  # Wall damp lives on physical plaster, away from door apertures and the screen.
  for z in [-21.0,-18.0,-14.9]:
   w.atmosphere.decal(self,2,Vector3(-17.235,2.15,z),Vector2(1.8,2.7),Vector3(0,PI/2,0),Color(.46,.53,.35,.8))
@@ -92,9 +92,11 @@ func _kitchen() -> void:
 shader_type spatial;
 uniform float clock=0.0;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-void fragment(){vec2 p=UV*35.0;float n=hash(floor(p));float mould=smoothstep(.35,.7,n);ALBEDO=mix(vec3(.18,.12,.045),vec3(.31,.36,.15),mould);ROUGHNESS=.85;}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1)),f.x),f.y);}
+void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;float mould=smoothstep(.43,.62,n);ALBEDO=mix(vec3(.12,.082,.027),vec3(.29,.34,.19),mould);ROUGHNESS=.92;}
 """;food=ShaderMaterial.new();food.shader=shader
  var soup:=w.tube(self,Vector3(-13.25,1.20,-19.25),Vector3(-13.25,1.24,-19.25),.318,food)
+ (soup.mesh as CylinderMesh).radial_segments=48
  for i in range(21):
   var a:=i*2.4;var r:=.05+(i%5)*.05;var mould:=w.sphere(self,Vector3(-13.25+cos(a)*r,1.251,-19.25+sin(a)*r),.025+(i%3)*.012,w.mat(Color("878b60") if i%2 else Color("3c4826"),null,.99));mould.scale.y=.12
  # Racks, dented trays, jars, stacked plates and abandoned ingredients.
@@ -165,6 +167,8 @@ func tick(delta: float, active: bool) -> void:
  if clown_shape.disabled!=scare: clown_shape.set_deferred("disabled",scare)
  if not active: return
  clock+=delta;screen.set_shader_parameter("clock",clock)
+ var flies:=get_node("PotFlies")
+ for i in range(flies.get_child_count()): flies.get_child(i).position=Vector3(-13.25+sin(clock*(1+i*.06)+i*2)*.28,1.55+sin(clock*1.4+i)*.16,-19.25+cos(clock*1.3+i*2)*.25)
  if scare or settled: return
  var a:=clock*1.5;var hand:=Vector3(-.05+cos(a)*.12,1.42,1.08+sin(a)*.12);var tip:=Vector3(cos(a)*.12,1.22,1.15+sin(a)*.12)
  HorrorFigures.link(clown.upper,Vector3(-.28,1.48,0),Vector3(-.25,1.18,.42));HorrorFigures.link(clown.forearm,Vector3(-.25,1.18,.42),hand)

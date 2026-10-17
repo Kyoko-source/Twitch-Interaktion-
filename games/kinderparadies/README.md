@@ -41,7 +41,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.7.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.8.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -71,6 +71,12 @@ Lizenzhinweise in `assets/polyhaven-provenance.json` und `PolyHaven-CC0.txt`.
 Die eigenen Hero-Modelle werden mit `tools/model-nachtwache-heroes.py` in Blender
 4.5.9 LTS erzeugt; GLBs und extrahierte Texturen liegen bereits im Repository.
 Das überarbeitete Krokodil wird mit `tools/model-nachtwache-crocodile-v2.py` erzeugt.
+Der neue Clown verwendet die Geometrie und Oberflächennormalen von „Infinite,
+3D Head Scan“ von Lee Perry-Smith (CC BY 3.0), ohne dessen Porträtfarbtexturen. Eigene Proportionen,
+Schminke, Blutspuren, Haare und Kostüm ergänzen die Basis. Quelle und Lizenz:
+`assets/props/Head-Attribution.txt`, mit SHA256 in `anatomy-provenance.json`.
+Das lizenzierte Ausgangsmodell lädt `tools/fetch-nachtwache-anatomy.py`; die
+bearbeiteten Modelle erstellt `tools/model-nachtwache-props-v180.py`.
 
 ## Version 1.1
 
@@ -246,3 +252,30 @@ dunkelrote Oberflächenspuren auf Gesicht und Händen.
 Neue Texturen: `art/PROMPTS-ANNEX.md`; Sounds und Schilder werden reproduzierbar
 mit `tools/prepare-nachtwache-annex.py` erzeugt. Das neue Krokodil entsteht mit
 Blender im Hintergrund aus `tools/model-nachtwache-crocodile-v3.py`.
+
+
+## v1.8.0 — Modellierter Clown, Taschenlampe und direkte Übergänge
+
+Der Küchenclown verwendet jetzt ein geschlossenes, dreidimensional ausgeformtes
+Kopfmodell mit vertieften Augenlidern, modellierter Nase, Lippen und einzelnen
+Haarsträhnen. Blutspuren und Schminke sind Vertexfarben; eine Gesichtsfotografie wird
+nicht mehr verwendet. Körper, Kleidung und Kragen sind ebenfalls neu modelliert.
+Die Taschenlampe besitzt Griff, Schalter, Kühlrippen, Clip, Reflektor und LED.
+Kurze Wackelkontakte treten unabhängig von Anomalien auf und frieren in Pause ein.
+
+Die Küche enthält Hängeschrank, Pfannen, Lüftung, Rohrleitungen, Mauerwerk,
+Vorbereitungstrolley und montierte Küchenunterlagen. Am Empfang stehen Monitor,
+Standfuß und Tastatur in gemeinsamer Ausrichtung auf dem Pult. Sechs zusätzliche
+CC0-Aufnahmen liefern lokale Kühlschrank-, Fliegen-, Geschirr-, Ketten-, Atem-
+und Knarzgeräusche. Quellen, Lizenznachweise und Bearbeitung liegen in
+`assets/ambience-v180/provenance.json`; die Lautstärke bleibt räumlich begrenzt.
+
+Nach einer Türentscheidung folgt automatisch der nächste Rundgang. Falsche
+Entscheidungen spielen davor einen einmaligen, etwa einsekündigen Schreckmoment
+mit beleuchtetem 3D-Clown und geschichtetem Sound. Die Serie wird zurückgesetzt;
+eine zusätzliche Bestätigung gibt es nicht. Ein kurzer Hinweis erklärt danach
+die übersehene Veränderung. Nach 13 richtigen Entscheidungen folgt der Abschluss.
+
+Modelle: `tools/model-nachtwache-props-v180.py` (Blender im Hintergrund).
+Audio und Küchenunterlagen: `tools/prepare-nachtwache-v180.py` (Python/NumPy/Pillow).
+Keine Änderungen an Benutzerkonten, Chickens oder anderen Minispielen.

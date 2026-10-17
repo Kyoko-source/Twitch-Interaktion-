@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v180-qa" in OS.get_cmdline_user_args():
+  await v180_views(game,output);game._quit();return
  if "--annex-qa" in OS.get_cmdline_user_args():
   await annex_views(game,output);game._quit();return
  if "--tubes-qa" in OS.get_cmdline_user_args():
@@ -108,6 +110,41 @@ func annex_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(2).timeout;await capture(game,output,"watcher-stained");Input.action_release("crouch")
  var file:=FileAccess.open(output.path_join("annex-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("ANNEX RENDER QA ",JSON.stringify(report))
+
+func v180_views(game: Node3D, output: String) -> void:
+ game._new_shift()
+ var shots: Array[Dictionary]=[
+  {"name":"reception-pc","pos":Vector3(-9.65,0,5.2),"yaw":-1.87,"pitch":-.32},
+  {"name":"torch","pos":Vector3(-6.2,0,7.5),"yaw":-.55,"pitch":-.22},
+  {"name":"kitchen","pos":Vector3(-10.8,0,-17),"yaw":1.0,"pitch":.04},
+  {"name":"clown-front","pos":Vector3(-12.4,0,-19.25),"yaw":PI/2,"pitch":.1},
+  {"name":"clown-profile","pos":Vector3(-14.4,0,-17.5),"yaw":0,"pitch":.14}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(2.3).timeout;await capture(game,output,shot.name)
+ game.player.torch_body.trigger()
+ await game.get_tree().create_timer(.03).timeout
+ var flickered: bool=game.player.lamp.light_energy<4
+ game._pause();var torch_clock: float=game.player.torch_body.clock
+ await game.get_tree().create_timer(.3).timeout
+ var frozen: bool=torch_clock==game.player.torch_body.clock
+ game._resume();await game.get_tree().create_timer(.7).timeout
+ var recovered: bool=is_equal_approx(game.player.lamp.light_energy,4.2)
+ game._build_world("none");game._resume();game.state.start(1800)
+ game._decide(true)
+ var limit:=0.0
+ while game.phase=="failure" and game.door_failure.clock<.35 and limit<4:
+  await game.get_tree().process_frame;limit+=game.get_process_delta_time()
+ await capture(game,output,"wrong-door-scare")
+ while game.phase!="play" and limit<12:
+  await game.get_tree().process_frame;limit+=game.get_process_delta_time()
+ var automatic_wrong: bool=game.phase=="play" and game.state.streak==0 and game.state.errors==1 and game.door_failure.shown==1
+ game._decide(game.state.current!="none");limit=0
+ while game.phase!="play" and limit<12:
+  await game.get_tree().process_frame;limit+=game.get_process_delta_time()
+ var report:={"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"flickered":flickered,"flicker_pause":frozen,"flicker_recovered":recovered,"automatic_wrong":automatic_wrong,"automatic_correct":game.phase=="play" and game.state.streak==1,"failure_count":game.door_failure.shown,"ambience":game.world.soundscape.snapshot(),"audit":SceneAudit.inspect(game.world)}
+ var file:=FileAccess.open(output.path_join("v180-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("V180 RENDER QA ",JSON.stringify(report))
 
 func tube_views(game: Node3D, output: String) -> void:
  game._new_shift()

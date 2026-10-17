@@ -29,12 +29,13 @@ var qa_layout := {}
 var title_font: FontVariation
 var save_clock := 0.0
 var transition_shade: ColorRect
+var door_failure: DoorFailure
 
 func _ready() -> void:
  _actions();_read_settings()
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose()
- _audio();_ui();_apply_settings();_main_menu()
+ _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure);_apply_settings();_main_menu()
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
  if "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
@@ -53,11 +54,17 @@ func _actions() -> void:
 
 func _build_world(anomaly: String) -> void:
  if player: player.drop_prop()
- if world: remove_child(world);world.queue_free()
+ if world:
+  _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
+
+func _stop_scene_audio(root: Node) -> void:
+ # Retire paused WAV playbacks before removing a room or closing the game.
+ for source in root.find_children("*","AudioStreamPlayer",true,false)+root.find_children("*","AudioStreamPlayer3D",true,false):
+  source.stop();source.stream=null
 
 func _audio() -> void:
  if not OS.has_feature("web"): player.step_player.bus="Interior"
@@ -133,6 +140,9 @@ func _main_menu() -> void:
  column.add_child(_button("Dienstanweisung",func():_help("menu")))
  column.add_child(_button("Zur Webseite" if OS.has_feature("web") else "Spiel beenden",_quit))
  column.add_child(_paragraph("WASD bewegen  ·  Maus umsehen  ·  E interagieren",14))
+ var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.add_theme_font_size_override("normal_font_size",12)
+ credit.text="Anatomiebasis: Infinite von Lee Perry-Smith (bearbeitet)\n[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]Quelle[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]"
+ credit.meta_clicked.connect(func(link): OS.shell_open(str(link)));column.add_child(credit)
  _telemetry()
 
 func _new_shift() -> void:
@@ -182,8 +192,8 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
- column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Ein Fehler setzt die Serie auf null. Danach erfährst du, was du übersehen hast."))
- column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand ist normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
+ column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Bei einem Fehler folgt ein 3D-Schreckmoment und die Serie beginnt bei null. Danach erklärt ein kurzer Hinweis die Veränderung."))
+ column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
  column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
@@ -246,6 +256,7 @@ func _save(next_round: bool=false) -> void:
 
 func _process(delta: float) -> void:
  if not world or not player: return
+ if phase=="failure": door_failure.tick(delta)
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -290,28 +301,20 @@ func _decide(red: bool) -> void:
  var result:=state.decide(red)
  if not result.accepted: return
  phase="transition";player.release();last_result=result;_save(true);effect.play();world.open_door(red)
- await _fade(1,.6)
- phase="result"
+ if not result.correct:
+  phase="failure";hud.hide();player.lamp.hide();door_failure.start(world,player.camera);_telemetry()
+  await door_failure.finished
+  if phase=="quitting": return
+ phase="transition";await _fade(1,.3)
  if result.completed: _won();return
- var column:=_panel("Richtig erkannt." if result.correct else "Etwas übersehen.","Serie: %d / 13"%state.streak)
- column.add_child(_paragraph("Deine Entscheidung war richtig." if result.correct else "Die Serie beginnt wieder bei null."))
- column.add_child(_paragraph(result.detail,20))
- column.add_child(_button("Nächsten Rundgang beginnen",_next_round,true))
- column.add_child(_button("Hauptmenü",func():_build_world(state.current);_main_menu()))
- _telemetry()
- await _fade(0,.3)
-
-func _next_round() -> void:
- if phase!="result": return
- phase="transition"
- await _fade(1,.25)
- _build_world(state.current);_resume();_announce("Rundgang %d. Bleib aufmerksam."%(state.rounds+1),3)
- await _fade(0,.3)
+ _build_world(state.current);_resume()
+ _announce("Rundgang %d. Bleib aufmerksam."%(state.rounds+1) if result.correct else "Falsche Tür. Serie zurückgesetzt. "+result.detail,3 if result.correct else 6)
+ await _fade(0,.25)
 
 func _fade(alpha: float, duration: float) -> void:
  transition_shade.show()
  await create_tween().tween_property(transition_shade,"color:a",alpha,duration).finished
- if alpha==0: transition_shade.hide()
+ if alpha==0 and is_instance_valid(transition_shade): transition_shade.hide()
 
 func _won() -> void:
  phase="won";world.environment.environment.ambient_light_energy=.65;world.environment.environment.fog_density=.002
@@ -353,6 +356,7 @@ func _quit() -> void:
  if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/nachtwache'");_main_menu()
  else:
   phase="quitting"
+  _stop_scene_audio(self)
   var tree:=get_tree()
   if world: remove_child(world);world.queue_free();world=null
   ui.queue_free();player.queue_free();player=null
@@ -368,6 +372,7 @@ func _notification(what: int) -> void:
 func _telemetry() -> void:
  if not OS.has_feature("web"): return
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
+ data.rounds=state.rounds
  if OS.has_feature("qa"):
   data.anomaly=state.current;data.controls=[]
   data.encounter={"triggered":world.encounters.triggered,"finished":world.encounters.finished,"time":world.encounters.attack_time,"shock":world.encounters.shock}
@@ -378,6 +383,8 @@ func _telemetry() -> void:
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
+  data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
+  data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.layout=qa_layout
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze,"impacts":body.impact_count,"sound_active":body.impact.playing,"sound":body.impact.stream.resource_path})
@@ -399,6 +406,7 @@ func _qa_command(args: Array) -> void:
  match command.get("op",""):
   "look": player.rotation.y=float(command.yaw)
   "voice": world.soundscape.cue_voice(player)
+  "flicker": player.torch_body.trigger()
   "audit": qa_layout=SceneAudit.inspect(world)
   "new": _new_shift()
   "warp": player.drop_prop();player.position=Vector3(command.x,float(command.get("y",0)),command.z);player.velocity=Vector3.ZERO;player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
@@ -407,7 +415,6 @@ func _qa_command(args: Array) -> void:
    for zone in PatrolState.ZONES: state.inspect(zone)
    _refresh_hud()
   "choose": _decide(bool(command.red))
-  "next": _next_round()
   "pause": _pause()
   "resume": _resume()
   "menu": _main_menu()
@@ -417,8 +424,7 @@ func _self_test() -> void:
  var validation=load("res://scripts/validation.gd").new()
  var passed: bool=await validation.run(self)
  validation=null
- room_audio.stop();room_audio.stream=null;effect.stop();world.source.stop();world.atmosphere.drips.stop()
- player.step_player.stop();player.step_player.stream=null
+ set_process(false);_stop_scene_audio(self)
  await get_tree().create_timer(.2).timeout
  await get_tree().process_frame
  await get_tree().process_frame
