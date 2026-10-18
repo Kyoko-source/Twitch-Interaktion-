@@ -66,18 +66,11 @@ func _weathering() -> void:
   var pool:=w.sphere(self,Vector3(-5.2+sin(i*2.2)*2.1,.026,-9+i*2.8),.8,wet);pool.scale=Vector3(1.4,.006,.65);pool.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  # Rust collars, cable trays, hanging chains and damaged strips of ceiling fabric.
  for z in [-9,-5,-1,3,7]:
-  w.tube(self,Vector3(-7.01,4.72,z),Vector3(-7.01,4.72,z+.11),.244,w.materials.rust)
-  for x in [-7.3,-6.7]: w.box(self,Vector3(x,4.72,z+.05),Vector3(.08,.08,.08),w.materials.metal)
- for x in [-4.8,-1.7,4.8]:
-  for i in range(8):
-   var link:=MeshInstance3D.new();var ring:=TorusMesh.new();ring.inner_radius=.026;ring.outer_radius=.041;ring.rings=8;ring.ring_segments=6;link.mesh=ring;link.material_override=w.materials.rust;link.position=Vector3(x,5-i*.065,1.7);link.rotation.x=PI/2 if i%2 else 0;add_child(link)
- var shader:=Shader.new();shader.code="shader_type spatial;render_mode cull_disabled;varying vec2 original_uv;void vertex(){original_uv=UV;VERTEX.z+=sin(UV.x*19.0+UV.y*7.0)*0.06+sin(TIME*0.4+UV.y*3.0)*UV.y*0.035;}void fragment(){float tear=0.82+sin(original_uv.x*53.0)*0.08+sin(original_uv.x*17.0)*0.12;if(original_uv.y>tear)discard;ALBEDO=vec3(0.36,0.34,0.28)*(0.8+sin(original_uv.x*38.0)*0.1);ROUGHNESS=0.96;}"
- cloth=ShaderMaterial.new();cloth.shader=shader
- for i in range(3):
-  var rag:=MeshInstance3D.new();var plane:=QuadMesh.new();plane.size=Vector2(1.2+i*.25,1.8);rag.mesh=plane;rag.material_override=cloth;rag.position=Vector3(-7.5+i*2.8,4.3,-1.5+i*3.3);rag.rotation=Vector3(-.35,.2+i*.3,-.25);add_child(rag)
+  w.tube(self,Vector3(-7.01,6.72,z),Vector3(-7.01,6.72,z+.11),.244,w.materials.rust)
+  for x in [-7.3,-6.7]: w.box(self,Vector3(x,6.72,z+.05),Vector3(.08,.08,.08),w.materials.metal)
  # Creased discarded paper and cups are scattered on the actual floor.
  for i in range(12):
-  var sheet:=w.box(self,Vector3(-8+fmod(i*2.7,13),.035,-9+fmod(i*3.9,18)),Vector3(.24,.008,.32),w.materials.paper);sheet.rotation.y=i*.7
+  var sheet:=w.box(self,Vector3(-8+fmod(i*2.7,13),.017,-9+fmod(i*3.9,18)),Vector3(.24,.008,.32),w.materials.paper);sheet.rotation.y=i*.7
   var fold:=w.box(sheet,Vector3(.075,.025,0),Vector3(.09,.008,.31),w.materials.paper);fold.rotation.z=-.45
 
 func _softplay_details() -> void:
@@ -153,13 +146,6 @@ func _party_details() -> void:
   w.box(w.props.party_table,Vector3(x-.17,.88,z),Vector3(.025,.018,.22),w.materials.metal)
  for i in range(4):
   var strip:=w.box(w.props.party_table,Vector3(8.1+i*.38,.873,-7.2),Vector3(.18,.007,.2),w.materials.paper);strip.rotation.y=i*.6
- # Actual triangular bunting on a sagging string.
- for i in range(18):
-  var x:=7.05+i*.16;var y:=3.65-sin(i/17.0*PI)*.22
-  w.tube(self,Vector3(x,y,-10.7),Vector3(x+.16,y-.015,-10.7),.005,w.materials.stitch)
-  var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-  for p in [Vector3(-.07,0,0),Vector3(.07,0,0),Vector3(0,-.22,0)]: tool.add_vertex(p)
-  tool.generate_normals();var flag:=MeshInstance3D.new();flag.mesh=tool.commit();flag.material_override=[w.materials.red,w.materials.gold,w.materials.blue][i%3];flag.position=Vector3(x,y,-10.7);add_child(flag)
 
 func plush(parent: Node3D, pos: Vector3, scale_value: float=1.0) -> Node3D:
  var bunny:=Node3D.new();bunny.position=pos;bunny.scale=Vector3.ONE*scale_value;parent.add_child(bunny)

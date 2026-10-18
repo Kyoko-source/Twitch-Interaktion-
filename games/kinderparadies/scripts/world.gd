@@ -119,6 +119,7 @@ func build() -> void:
   native_art=NativeArt.new();add_child(native_art);native_art.build(self)
  tubes=CrawlTubes.new();add_child(tubes);tubes.build(self)
  annex=ServiceAnnex.new();add_child(annex);annex.build(self)
+ RoomDressing.build(self)
  soundscape=NightSoundscape.new();add_child(soundscape);soundscape.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
@@ -166,23 +167,27 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
  box(self,Vector3(6.7,3.7,-12.2),Vector3(26.2,7.4,.3),materials.wall,true)
  box(self,Vector3(-7.9,5.05,-12.2),Vector3(3,4.7,.3),materials.wall,true)
- box(self,Vector3(4.8,3.7,17.2),Vector3(30,7.4,.3),materials.wall,true)
+ box(self,Vector3(-9.75,3.7,17.2),Vector3(.9,7.4,.3),materials.wall,true)
+ box(self,Vector3(6.55,3.7,17.2),Vector3(26.5,7.4,.3),materials.wall,true)
+ box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
   box(self,Vector3(x,.12,2.4),Vector3(.08,.23,29.1),materials.dark)
   box(self,Vector3(x,1.1,2.4),Vector3(.06,.045,29.1),materials.teal)
  for z in [-10,-5,0,5,10,15]:
-  box(self,Vector3(4.8,7.08,z),Vector3(29.8,.18,.14),materials.metal)
+  box(self,Vector3(4.8,7.22,z),Vector3(29.8,.16,.14),materials.metal)
   tube(self,Vector3(-10,6.9,z),Vector3(19.6,6.9,z),.035,materials.dark)
  tube(self,Vector3(-7,6.72,17),Vector3(-7,6.72,-12),.22,materials.metal)
  for z in range(-11,11,2): tube(self,Vector3(-7.01,6.72,z),Vector3(-7.01,6.72,z+.05),.239,materials.dark)
- for z in [-8,0,7]:
-  tube(self,Vector3(-5.5,7.1,z),Vector3(-5.5,6.3,z),.02,materials.dark)
-  var shade:=sphere(self,Vector3(-5.5,6.25,z),.23,materials.metal);shade.scale.y=.35
-  var practical:=lamp(Vector3(-5.5,6,z),Color("ffdb9e"),.85,8.5)
-  practical.shadow_enabled=z==0
- lamp(Vector3(5.8,4.3,-3),Color("66c9d0"),1.1,10)
- lamp(Vector3(-8,2.8,8),Color("78bbc7"),.7,6)
+ for pos in [Vector3(-5.5,6.02,-8),Vector3(-5.5,6.02,0),Vector3(-5.5,6.02,7),Vector3(12.4,6.0,11.4),Vector3(10.2,6.0,-7)]:
+  box(self,Vector3(pos.x,7.285,pos.z),Vector3(.2,.03,.2),materials.dark)
+  tube(self,Vector3(pos.x,7.28,pos.z),Vector3(pos.x,pos.y+.72,pos.z),.018,materials.dark)
+  var stem:=tube(self,Vector3(pos.x,pos.y+.72,pos.z),Vector3(pos.x,pos.y+.31,pos.z),.018,materials.dark);stem.set_meta("basic_lamp_shade",true)
+  var shade:=sphere(self,Vector3(pos.x,pos.y+.23,pos.z),.23,materials.metal);shade.scale.y=.35;shade.set_meta("basic_lamp_shade",true)
+  var practical:=lamp(pos,Color("ffdb9e"),.65,8.5);practical.shadow_enabled=pos.z==0
+ for z in [-10,-5,0,5,10,15]:
+  for x in [-7.0,4.0,16.0]: tube(self,Vector3(x,7.30,z),Vector3(x,6.9,z),.014,materials.metal)
+ for z in [-10,-5,0,5,10,15]: tube(self,Vector3(-7,7.30,z),Vector3(-7,6.72,z),.016,materials.rust if materials.has("rust") else materials.dark)
  # Room divider leaves an actual doorway into the party room.
  box(self,Vector3(6.8,3.7,-9.425),Vector3(.2,7.4,5.25),materials.wall,true)
  box(self,Vector3(6.8,3.7,-1.35),Vector3(.2,7.4,6.1),materials.wall,true)
@@ -270,10 +275,6 @@ func _reception() -> void:
   tube(counter,Vector3(.12,1.04-a*.7,-.52-a*.35),Vector3(.12,1.04-b*.7,-.52-b*.35),.008,materials.dark)
  props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,7.6),Vector2(1.3,.75),PI/2)
  var shelves:=group("reception_shelves")
- for z in [1.4,2.6]:
-  box(shelves,Vector3(-9.4,1.1,z),Vector3(1.05,2.1,1.1),materials.wood,true)
-  for y in [.4,.95,1.5,2]: box(shelves,Vector3(-9.35,y,z),Vector3(1.13,.06,1.12),materials.cream)
-  for y in [.65,1.2,1.75]: box(shelves,Vector3(-9.35,y,z),Vector3(1.13,.5,.04),materials.teal)
  var car:=group("car");car.position=Vector3(-5.2,0,5.5)
  box(car,Vector3(0,.25,0),Vector3(.7,.32,1.1),materials.red)
  var hood:=sphere(car,Vector3(0,.46,-.12),.34,materials.gold);hood.scale=Vector3(1,.75,1.15)
@@ -314,9 +315,10 @@ func _party_room() -> void:
  for i in range(3):
   var node:=Node3D.new();node.position=Vector3(7.5+i*.7,2.6,-9.7);balloons.add_child(node)
   var ball:=sphere(node,Vector3.ZERO,.23,[materials.red,materials.gold,materials.teal][i]);ball.scale.y=1.22
-  tube(node,Vector3(0,-.24,0),Vector3(0,-1.6,0),.004,materials.cream)
+  tube(node,Vector3(0,-.24,0),Vector3(0,-2.55,0),.004,materials.cream)
+  box(node,Vector3(0,-2.565,0),Vector3(.13,.07,.13),materials.dark)
  for i in range(4): tube(table,Vector3(8.3+i*.13,1.07,-7),Vector3(8.3+i*.13,1.24,-7),.014,materials.cream)
- party_light=lamp(Vector3(8.5,3.8,-7),Color("ffca88"),1.1,7)
+ party_light=lamp(Vector3(10.2,5.9,-7),Color("ffca88"),1.1,7)
  party_light.shadow_enabled=true
  painting(self,1,Vector3(8.5,3.2,-11.96),Vector2(1.45,1.0))
  for i in range(12):
@@ -375,11 +377,6 @@ func _details() -> void:
   for row in range(4): box(counter,Vector3(.08,1.009,.02+i*.22+row*.045),Vector3(.18,.001,.005),materials.dark)
  tube(counter,Vector3(.21,1,.68),Vector3(.21,1.12,.68),.045,materials.metal)
  for i in range(4): tube(counter,Vector3(.18+i*.02,1.05,.68),Vector3(.18+i*.02,1.25,.68),.005,materials.gold if i%2 else materials.red)
- for z in [1.4,2.6]:
-  for y in [.48,1.03,1.58]:
-   for side in [-1,1]:
-    var shoe:=sphere(self,Vector3(-9.28,y+.1,z+side*.25),.17,materials.blue if y<1 else materials.red);shoe.scale=Vector3(1.3,.4,.5)
-    box(self,Vector3(-9.28,y+.025,z+side*.25),Vector3(.48,.04,.19),materials.cream)
  tube(self,Vector3(-8.1,0,8.7),Vector3(-8.1,.55,8.7),.23,materials.dark)
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
  for z in [9.5]:
@@ -387,7 +384,7 @@ func _details() -> void:
  for y in [1.3,2.5,3.7]:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
- mounted_sign(self,"duty",Vector3(-6.1,2.3,16.98),Vector2(1.65,.85),PI)
+ mounted_sign(self,"duty",Vector3(-5.4,3.4,16.98),Vector2(1.65,.85),PI)
  for i in range(3): box(self,Vector3(18.8,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:

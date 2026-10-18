@@ -7,6 +7,7 @@ static func build(w: PlayWorld, parent: Node3D) -> void:
  var grime:=w.mat(Color("49362b"),load("res://assets/wood.png"),.95)
  # Riveted grease duct, ceiling fluorescent fixture and real ventilation slats.
  w.box(parent,Vector3(-14.65,3.29,-19.25),Vector3(2.4,.33,.44),steel)
+ for x in [-15.6,-13.7]: w.tube(parent,Vector3(x,3.56,-19.25),Vector3(x,3.455,-19.25),.014,steel)
  for x in [-15.7,-14.9,-14.1]:
   for side in [-1,1]: w.sphere(parent,Vector3(x,3.27,-19.25+side*.23),.018,w.materials.rust)
  w.box(parent,Vector3(-15.2,3.48,-17),Vector3(.23,.1,2.2),steel)
@@ -65,3 +66,36 @@ static func build(w: PlayWorld, parent: Node3D) -> void:
  # Local flies circle the abandoned pot even in a normal reference round.
  var flies:=Node3D.new();flies.name="PotFlies";parent.add_child(flies)
  for i in range(9): w.sphere(flies,Vector3(-13.25,1.65,-19.25),.006,w.materials.dark)
+ # Rear preparation station: every utensil rests on a board or a mounted rail.
+ var prep:=Node3D.new();prep.name="KitchenPreparation";prep.position=Vector3(-13.5,.016,-22.0);parent.add_child(prep)
+ w.box(prep,Vector3(0,.47,0),Vector3(2.6,.88,.75),enamel,true)
+ w.box(prep,Vector3(0,.95,0),Vector3(2.72,.08,.84),steel,true)
+ for x in [-.85,0,.85]:
+  w.box(prep,Vector3(x,.48,.388),Vector3(.8,.77,.035),grime)
+  w.tube(prep,Vector3(x-.12,.72,.415),Vector3(x+.12,.72,.415),.014,steel)
+ w.box(prep,Vector3(-.65,1.01,0),Vector3(.75,.04,.5),grime)
+ for i in range(6):
+  var bread:=w.sphere(prep,Vector3(-.9+i*.085,1.075,.02),.057,w.materials.gold if i%2 else w.materials.teal);bread.scale=Vector3(1,.8,1.5)
+ w.box(prep,Vector3(-.2,1.037,.15),Vector3(.34,.008,.035),steel)
+ w.box(prep,Vector3(.04,1.038,.15),Vector3(.15,.015,.045),w.materials.dark)
+ for i in range(3):
+  w.box(prep,Vector3(.65,1.005+i*.022,0),Vector3(.65,.018,.5),steel)
+ for row in range(5):
+  for col in range(17):
+   if (row*7+col)%19==0: continue
+   w.box(parent,Vector3(-16.7+col*.4,.7+row*.24,-22.43),Vector3(.39,.23,.025),enamel if col%5 else grime)
+ # Tall dry-storage rack, with legs, shelf brackets and filled containers.
+ var rack:=Node3D.new();rack.name="KitchenDryStorage";rack.position=Vector3(-10.0,.016,-14.5);parent.add_child(rack)
+ for x in [-.32,.32]:
+  for z in [-.63,.63]: w.tube(rack,Vector3(x,0,z),Vector3(x,2.15,z),.022,steel)
+ for y in [.18,.78,1.38,1.98]:
+  w.box(rack,Vector3(0,y,0),Vector3(.7,.035,1.35),steel,true)
+  for k in range(4):
+   var jar:=w.tube(rack,Vector3(0,y+.018,-.48+k*.32),Vector3(0,y+.28,-.48+k*.32),.105,enamel if k%2 else grime)
+   w.tube(rack,Vector3(0,y+.28,-.48+k*.32),Vector3(0,y+.302,-.48+k*.32),.11,steel)
+   w.box(rack,Vector3(-.107,y+.15,-.48+k*.32),Vector3(.008,.09,.12),w.materials.paper)
+ # Washroom clutter stays in the corner instead of blocking the kitchen route.
+ w.tube(parent,Vector3(-11.1,.02,-13.9),Vector3(-11.1,.33,-13.9),.2,steel)
+ w.tube(parent,Vector3(-11.1,.337,-13.9),Vector3(-11.1,.345,-13.9),.177,w.materials.dark)
+ w.box(parent,Vector3(-10.8,.055,-13.65),Vector3(.32,.08,.16),grime)
+ w.tube(parent,Vector3(-10.8,.08,-13.65),Vector3(-10.6,1.7,-13.65),.016,grime)

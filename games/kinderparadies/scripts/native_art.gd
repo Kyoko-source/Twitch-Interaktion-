@@ -85,7 +85,6 @@ func _models() -> void:
   # Imported chair back points toward -Z; the common chair uses +Z.
   hide_geometry(chair);model(chair,"SchoolChair_01",Vector3.ZERO,.91,PI)
  hide_geometry(w.props.reception_shelves)
- for z in [1.4,2.7]: model(self,"wooden_bookshelf_worn",Vector3(-9.55,.02,z),2.15,PI/2)
  for i in range(5): model(self,"cardboard_box_01",Vector3(-16.5+(i%2)*.55,.02+floori(i/2.0)*.35,-14.1),.34,-.3+i*.4)
  for i in range(4): model(self,"cardboard_box_01",Vector3(-8.25+(i%2)*.5,.02+floori(i/2.0)*.42,-3.4),.41,i*.45)
  model(self,"power_box_01",Vector3(-9.8,1.4,-5.6),.7,PI/2)
@@ -109,10 +108,8 @@ func _models() -> void:
    hide_geometry(body);model(body,"hero/stitched-rabbit",Vector3(0,-.3,0),.63)
   for mesh in body.find_children("*","MeshInstance3D",true,false): mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
  w.balls.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
- # The old flat hanging strips are replaced by tailored mesh folds.
- for child in w.atmosphere.get_children():
-  if child is MeshInstance3D and child.material_override==w.atmosphere.cloth: child.hide()
- for i in range(3): model(self,"hero/torn-drape",Vector3(-6.8+i*3.1,3.0,-2+i*3.0),1.9,.3+i*.2)
+ for mesh in w.find_children("*","MeshInstance3D",true,false):
+  if mesh.has_meta("basic_lamp_shade"): mesh.hide()
  # Swap the hand-built desk lamp's local geometry, leaving its practical light.
  for mesh in w.props.counter.find_children("*","MeshInstance3D",true,false):
   if mesh.position.z>.85 and mesh.position.y>1: mesh.hide()
@@ -122,8 +119,7 @@ func _models() -> void:
  # This model is already placed by the common playground for Windows and Web.
  sources[ExpandedPlayground.CROCODILE_PATH]=load(ExpandedPlayground.CROCODILE_PATH)
  model_count+=1
- for pos in [Vector3(12.4,6.0,11.4),Vector3(15,6.0,-7.6)]: model(self,"hanging_industrial_lamp",pos,.72)
- model(w.props.party_dressing,"wooden_bookshelf_worn",Vector3(17.9,0,-2.3),1.6,PI/2)
+ for pos in [Vector3(12.4,6.0,11.4),Vector3(10.2,6.0,-7)]: model(self,"hanging_industrial_lamp",pos,.72)
 
 func _counter() -> void:
  # Compact 0.96 x 2.9 m reception desk; detailing shares its local frame.
@@ -152,15 +148,18 @@ func _lighting() -> void:
  env.glow_enabled=true;env.glow_intensity=.22;env.glow_hdr_threshold=1.4
  for mesh in w.atmosphere.get_children():
   if mesh is MeshInstance3D and (mesh.material_override==w.atmosphere.mist or (mesh.mesh is SphereMesh and mesh.material_override is StandardMaterial3D and mesh.material_override.roughness<.1)): mesh.hide()
- var strip_mat:=w.mat(Color("b3dfe3"));strip_mat.emission_enabled=true;strip_mat.emission=Color("86cbd7");strip_mat.emission_energy_multiplier=2
+ # The old unsupported cyan strips inside the net have been removed entirely.
+ # Cool fill now comes from a caged wall fixture outside the play structure.
+ var strip_mat:=w.mat(Color("8ba8a7"));strip_mat.emission_enabled=true;strip_mat.emission=Color("8ba8a7");strip_mat.emission_energy_multiplier=.6
  strip_material=strip_mat
- w.tube(self,Vector3(4.4,4.65,1.2),Vector3(4.4,4.65,3.5),.025,strip_mat)
- var cool:=SpotLight3D.new();cool.position=Vector3(4.4,4.5,2.3);cool.rotation.x=-PI/2;cool.light_color=Color("9bc5db");cool.light_energy=3.5;cool.spot_angle=70;cool.spot_range=10;cool.shadow_enabled=true;cool.light_size=.12;cool.shadow_normal_bias=.6;cool.shadow_bias=.025;add_child(cool);spots.append(cool)
- w.tube(self,Vector3(3.4,2.05,2.8),Vector3(5,2.05,2.8),.018,strip_mat)
- var fill:=OmniLight3D.new();fill.position=Vector3(4.3,1.8,2.7);fill.light_color=Color("84b9d5");fill.light_energy=3.0;fill.omni_range=8;fill.shadow_enabled=true;fill.light_size=.16;fill.shadow_normal_bias=.5;fill.shadow_bias=.025;add_child(fill);fill_lights.append(fill)
+ w.box(self,Vector3(19.50,5.4,7.0),Vector3(.16,.28,1.2),w.materials.dark)
+ for z in [6.55,7.45]: w.tube(self,Vector3(19.58,5.4,z),Vector3(19.69,5.4,z),.018,w.materials.metal)
+ w.box(self,Vector3(19.40,5.4,7.0),Vector3(.045,.18,1.06),strip_mat)
+ for z in [6.5,6.75,7.0,7.25,7.5]: w.tube(self,Vector3(19.36,5.25,z),Vector3(19.36,5.55,z),.012,w.materials.metal)
+ var fill:=OmniLight3D.new();fill.position=Vector3(19.1,5.4,7.0);fill.light_color=Color("84a8ad");fill.light_energy=.85;fill.omni_range=10;fill.shadow_enabled=true;add_child(fill);fill_lights.append(fill)
  for z in [-8,0,7]:
   var spot:=SpotLight3D.new();spot.position=Vector3(-5.5,6.02,z);spot.rotation.x=-PI/2;spot.light_color=Color("ffe0ad");spot.light_energy=3.0;spot.spot_range=9;spot.spot_angle=65;spot.spot_angle_attenuation=.8;spot.shadow_enabled=true;spot.light_size=.12;spot.shadow_bias=.025;spot.shadow_normal_bias=.6;spot.light_volumetric_fog_energy=1.3;spot.light_indirect_energy=1.3;add_child(spot);spots.append(spot)
- for pos in [Vector3(12.4,6,11.4),Vector3(15,6,-7.6)]:
+ for pos in [Vector3(12.4,6,11.4),Vector3(10.2,6,-7)]:
   var spot:=SpotLight3D.new();spot.position=pos;spot.rotation.x=-PI/2;spot.light_color=Color("bbcab6") if pos.z>0 else Color("e8c399");spot.light_energy=3;spot.spot_range=11;spot.spot_angle=66;spot.shadow_enabled=true;spot.light_size=.16;spot.shadow_bias=.025;spot.shadow_normal_bias=.6;add_child(spot);spots.append(spot)
  for pos in [Vector3(4.8,3,2.4),Vector3(13.3,3,-5.3)]:
   var probe:=ReflectionProbe.new();probe.position=pos;probe.size=Vector3(29.5,7.1,29) if pos.x<5 else Vector3(12.7,7.1,13.1);probe.box_projection=true;probe.interior=true;probe.intensity=.6;probe.max_distance=30;add_child(probe);probes.append(probe)

@@ -84,7 +84,7 @@ func _kitchen() -> void:
    w.tube(cooker,Vector3(x,.93,z),Vector3(x,.95,z),.17,w.materials.dark)
    for i in range(3): w.tube(cooker,Vector3(x-.13+i*.13,.97,z-.19),Vector3(x-.13+i*.13,.97,z+.19),.015,w.materials.metal)
  for z in [-.33,-.11,.11,.33]: w.sphere(cooker,Vector3(.49,.82,z),.039,w.materials.dark)
- var hood:=w.box(self,Vector3(-13.25,2.8,-19.25),Vector3(1.45,.25,1.5),steel);w.box(self,Vector3(-13.25,3.15,-19.25),Vector3(.5,.5,.55),steel)
+ var hood:=w.box(self,Vector3(-13.25,2.8,-19.25),Vector3(1.45,.25,1.5),steel);w.box(self,Vector3(-13.25,3.24,-19.25),Vector3(.5,.64,.55),steel)
  var pot:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.top_radius=.34;cylinder.bottom_radius=.29;cylinder.height=.37;cylinder.cap_top=false;cylinder.radial_segments=48;pot.mesh=cylinder;pot.material_override=steel;pot.position=Vector3(-13.25,1.16,-19.25);add_child(pot)
  var rim:=TorusMesh.new();rim.inner_radius=.323;rim.outer_radius=.35;rim.rings=48;rim.ring_segments=10;var ring:=MeshInstance3D.new();ring.mesh=rim;ring.material_override=steel;ring.position=Vector3(-13.25,1.35,-19.25);add_child(ring)
  for side in [-1,1]: w.tube(self,Vector3(-13.25+side*.31,1.22,-19.25),Vector3(-13.25+side*.49,1.22,-19.25),.035,steel)
@@ -102,6 +102,8 @@ void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;
  # Racks, dented trays, jars, stacked plates and abandoned ingredients.
  for y in [1.65,2.1]:
   w.box(self,Vector3(-16.8,y,-15),Vector3(.8,.06,2.4),steel)
+  for z in [-15.9,-14.1]:
+   w.tube(self,Vector3(-17.22,y-.32,z),Vector3(-16.45,y-.035,z),.017,steel)
   for i in range(6): w.tube(self,Vector3(-16.7,y+.04,-16+i*.35),Vector3(-16.7,y+.24,-16+i*.35),.08,w.materials.cream if i%2 else w.materials.teal)
  for i in range(9): w.tube(self,Vector3(-16.5,1.08+i*.018,-20.2),Vector3(-16.5,1.092+i*.018,-20.2),.2,enamel)
  w.box(self,Vector3(-11.0,1.0,-21.7),Vector3(1.25,2,.95),enamel,true)
@@ -141,6 +143,8 @@ void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(flo
  for z in [-21.6,-13.9]:
   w.box(self,Vector3(3.35,.3,z),Vector3(.35,.6,.45),w.materials.dark,true)
  var projector:=w.box(self,Vector3(-5.4,2.98,-17.7),Vector3(.6,.32,.45),w.materials.metal)
+ w.box(self,Vector3(-5.4,3.545,-17.7),Vector3(.3,.03,.3),w.materials.metal)
+ w.tube(self,Vector3(-5.4,3.53,-17.7),Vector3(-5.4,3.14,-17.7),.025,w.materials.metal)
  w.tube(self,Vector3(-5.1,2.98,-17.7),Vector3(-5.0,2.98,-17.7),.08,w.materials.dark)
  var beam:=SpotLight3D.new();beam.position=Vector3(-4.95,2.95,-17.7);beam.rotation.y=-PI/2;beam.spot_range=10;beam.spot_angle=22;beam.light_energy=.35;beam.light_color=Color("82919e");beam.shadow_enabled=true;add_child(beam)
  var glow:=w.lamp(Vector3(2.8,2.2,-17.7),Color("91a5a3"),.5,7)
@@ -149,7 +153,7 @@ void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(flo
  for i in range(18):
   var x:=-5.7+fmod(i*2.17,8.2);var z:=-21.7+fmod(i*3.14,7.6)
   if absf(z+17.65)<.8: continue
-  var paper:=w.box(self,Vector3(x,.05,z),Vector3(.2,.008,.28),w.materials.paper);paper.rotation.y=i*.7
+  var paper:=w.box(self,Vector3(x,.036,z),Vector3(.2,.008,.28),w.materials.paper);paper.rotation.y=i*.7
 
 func _audio() -> void:
  for item in [{"file":"stir-pot.wav","pos":Vector3(-13.25,1.2,-19.25),"db":-22.0},{"file":"projector.wav","pos":Vector3(-5.4,2.9,-17.7),"db":-27.0}]:

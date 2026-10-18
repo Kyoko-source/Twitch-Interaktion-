@@ -30,12 +30,16 @@ var title_font: FontVariation
 var save_clock := 0.0
 var transition_shade: ColorRect
 var door_failure: DoorFailure
+var intro: ElevatorIntro
+var intro_pending:=false
 
 func _ready() -> void:
  _actions();_read_settings()
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose()
- _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure);_apply_settings();_main_menu()
+ _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
+ intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
+ _apply_settings();_main_menu()
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
  if "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
@@ -124,6 +128,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
  return column
 
 func _main_menu() -> void:
+ if intro: intro.stop()
  phase="menu"
  player.lamp.visible=false
  var column:=_panel("NACHTWACHE","Kinderparadies")
@@ -146,8 +151,15 @@ func _main_menu() -> void:
  _telemetry()
 
 func _new_shift() -> void:
- state.start();has_session=true;_build_world("none");_save();_resume()
- _announce("Erster Rundgang: Lerne den normalen Zustand kennen.",7)
+ state.start();has_session=true;intro_pending=true;_build_world("none");_begin_intro()
+
+func _begin_intro() -> void:
+ phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
+
+func _intro_finished() -> void:
+ if phase!="intro": return
+ intro_pending=false;_resume();_save()
+ _announce("Erster Rundgang. Verlasse den Fahrstuhl und präge dir den normalen Zustand ein.",7)
 
 func _can_continue() -> bool:
  if has_session and not state.completed: return true
@@ -158,14 +170,19 @@ func _can_continue() -> bool:
  return check.restore(data.get("patrol",{})) and not check.completed
 
 func _continue() -> void:
- if has_session and not state.completed: _resume();return
+ if has_session and not state.completed:
+  if intro_pending: _begin_intro()
+  else: _resume()
+  return
  var data=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
  has_session=true;_build_world(state.current)
+ intro_pending=bool(data.get("intro_pending",false))
+ if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==5 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0))==6 and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p)):
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -191,8 +208,8 @@ func _help(back: String) -> void:
  var column:=_panel("Dienstanweisung","Nachtdienst im Kinderparadies")
  column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
- column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E."))
- column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Bei einem Fehler folgt ein 3D-Schreckmoment und die Serie beginnt bei null. Danach erklärt ein kurzer Hinweis die Veränderung."))
+ column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E. Das Intro kannst du durch gehaltene Leertaste überspringen."))
+ column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
  column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
  column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
@@ -252,10 +269,11 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":5}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":6,"intro_pending":intro_pending}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
+ if phase=="intro": intro.tick(delta)
  if phase=="failure": door_failure.tick(delta)
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
@@ -279,6 +297,7 @@ func _process(delta: float) -> void:
     var object:=player.prop_target()
     if object: prompt.text="G · "+object.title+" aufheben"
   if prompt.text=="" and (world.tubes.near_entry(player.position) or world.tubes.inside): prompt.text="C halten · Ducken und durch die Röhre krabbeln"
+  if prompt.text=="" and OS.has_feature("web") and Input.mouse_mode!=Input.MOUSE_MODE_CAPTURED: prompt.text="Ins Spiel klicken · Maussteuerung aktivieren"
   if notice_time>0: notice_time-=delta;notice.visible=notice_time>0
  telemetry_clock+=delta
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
@@ -300,12 +319,16 @@ func _decide(red: bool) -> void:
  if phase!="play": return
  var result:=state.decide(red)
  if not result.accepted: return
- phase="transition";player.release();last_result=result;_save(true);effect.play();world.open_door(red)
+ phase="transition";player.release();last_result=result;effect.play();world.open_door(red)
+ if result.correct: _save(true)
  if not result.correct:
+  state.start();intro_pending=true;_save()
   phase="failure";hud.hide();player.lamp.hide();door_failure.start(world,player.camera);_telemetry()
   await door_failure.finished
   if phase=="quitting": return
  phase="transition";await _fade(1,.3)
+ if not result.correct:
+  _new_shift();await _fade(0,.35);return
  if result.completed: _won();return
  _build_world(state.current);_resume()
  _announce("Rundgang %d. Bleib aufmerksam."%(state.rounds+1) if result.correct else "Falsche Tür. Serie zurückgesetzt. "+result.detail,3 if result.correct else 6)
@@ -329,6 +352,10 @@ func _announce(value: String, seconds: float=4.0) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("fullscreen"): _fullscreen();get_viewport().set_input_as_handled()
+ if phase=="intro":
+  if event.is_action_pressed("pause"): intro.paused=not intro.paused
+  if event.is_action_pressed("interact"): intro.accept()
+  get_viewport().set_input_as_handled();return
  if event.is_action_pressed("pause"):
   if phase=="play": _pause()
   elif phase=="pause": _resume()
@@ -358,11 +385,14 @@ func _quit() -> void:
   phase="quitting"
   _stop_scene_audio(self)
   var tree:=get_tree()
+  if intro: intro.stop();remove_child(intro);intro.queue_free();intro=null
   if world: remove_child(world);world.queue_free();world=null
   ui.queue_free();player.queue_free();player=null
   await tree.process_frame
   if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
   for frame in range(3): await tree.process_frame
+  # Paused/streamed MP3 decoders retire on the audio mixer, after the scene.
+  await tree.create_timer(.2).timeout
   tree.quit()
 
 func _notification(what: int) -> void:
@@ -385,10 +415,11 @@ func _telemetry() -> void:
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
+  data.intro=intro.snapshot()
   data.layout=qa_layout
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze,"impacts":body.impact_count,"sound_active":body.impact.playing,"sound":body.impact.stream.resource_path})
-  for node in menu.find_children("*","Control",true,false):
+  for node in menu.find_children("*","Control",true,false)+intro.overlay.find_children("*","Control",true,false):
    if node.is_visible_in_tree() and (node is Button or node is HSlider):
     var rect: Rect2=node.get_global_rect()
     data.controls.append({"text":node.text if node is Button else str(node.get_meta("qa_label","")),"kind":"button" if node is Button else "slider","rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y]})

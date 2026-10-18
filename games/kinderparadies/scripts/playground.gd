@@ -138,11 +138,8 @@ func _party_dressing() -> void:
   w.box(gift,Vector3(0,.25,0),Vector3(.075,.012,.53),w.materials.cream)
   w.box(gift,Vector3(0,.25,0),Vector3(.63,.013,.075),w.materials.cream)
   w.tube(gift,Vector3(-.11,.27,0),Vector3(0,.35,0),.02,w.materials.cream);w.tube(gift,Vector3(.11,.27,0),Vector3(0,.35,0),.02,w.materials.cream)
- w.box(party,Vector3(18.8,.9,-4.3),Vector3(.6,1.8,3.5),w.materials.wood,true)
- for z in [-5.4,-4.3,-3.2]:
-  for y in [.35,.95,1.55]:
-   w.box(party,Vector3(18.4,y,z),Vector3(.65,.045,1),w.materials.cream)
-   for i in range(3): w.tube(party,Vector3(18.35+i*.1,y+.025,z),Vector3(18.35+i*.1,y+.18,z),.045,w.materials.paper)
+ for ends in [[Vector3(6.91,4.6,-9.8),Vector3(7.2,4.6,-9.8)],[Vector3(18.86,4.59,-9.8),Vector3(19.51,4.59,-9.8)]]:
+  w.tube(party,ends[0],ends[1],.008,w.materials.stitch)
  for i in range(22):
   var x:=7.2+i*.53;var y:=4.6-sin(i/21.0*PI)*.5
   w.tube(party,Vector3(x,y,-9.8),Vector3(x+.53,y-.01,-9.8),.006,w.materials.stitch)
@@ -174,19 +171,15 @@ func _party_dressing() -> void:
 
 func _hall_dressing() -> void:
  var dressing:=Node3D.new();dressing.name="HallDressing";add_child(dressing)
- # Quiet corners give the larger hall purpose, with adult-size benches beside
- # child-size toys, shoe storage and a gated toddler zone.
- for i in range(4):
-  var x:=-8.7+(i%2)*1.2;var z:=12.3+floori(i/2.0)*1.4
-  w.box(dressing,Vector3(x,.2,z),Vector3(.85,.36,.85),[w.materials.gold,w.materials.blue,w.materials.teal][i%3],true)
-  w.sphere(dressing,Vector3(x,.48,z),.2,w.materials.red)
- for x in [-9.7,-7.0]:
-  for z in [12.2,15.7]:
-   w.tube(dressing,Vector3(x,0,z),Vector3(x,1.05,z),.06,w.materials.wood)
- for i in range(10): w.tube(dressing,Vector3(-9.7+i*.3,.12,15.7),Vector3(-9.7+i*.3,1,15.7),.026,w.materials.wood)
- for y in [.18,.95]: w.tube(dressing,Vector3(-9.7,y,15.7),Vector3(-7,y,15.7),.05,w.materials.wood)
- w.mounted_sign(dressing,"nursery",Vector3(-6.2,3.55,16.97),Vector2(1.65,.75),PI)
- for i in range(3): w.painting(dressing,i,Vector3(-8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
+ # The lift opens into a clear reception route, not the old fenced toddler pen.
+ # Wall pictures stay on the solid wall beside the new aperture.
+ for i in range(3): w.painting(dressing,i,Vector3(-4.8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
+ var seat_mat:=w.mat(Color("4b5b50"),load("res://assets/vinyl.png"),.88)
+ w.box(dressing,Vector3(-9.65,.49,13.5),Vector3(.55,.14,1.9),seat_mat,true)
+ w.box(dressing,Vector3(-9.91,.87,13.5),Vector3(.09,.65,1.9),seat_mat,true)
+ for x in [-9.85,-9.45]:
+  for z in [12.75,14.25]: w.box(dressing,Vector3(x,.22,z),Vector3(.045,.4,.045),w.materials.metal)
+ w.box(dressing,Vector3(-8,.02,16.2),Vector3(1.9,.012,1.35),w.materials.dark)
  for i in range(8):
   var x:=-2.3+i*.55;var pad:=w.box(dressing,Vector3(x,.08,13.3),Vector3(.5,.14,1.3),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
   pad.rotation.y=sin(i)*.1

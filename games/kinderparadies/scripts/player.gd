@@ -24,6 +24,7 @@ var collider: CollisionShape3D
 var stand_clearance: CapsuleShape3D
 var walk_sound: AudioStream
 var crawl_sound: AudioStream
+var look_warmup:=0.0
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -37,8 +38,12 @@ func _ready() -> void:
 
 func capture() -> void:
  active=true
+ look_warmup=.12
  torch_body.show()
- Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if "--render-qa" in OS.get_cmdline_user_args() else Input.MOUSE_MODE_CAPTURED
+ # A long phone call can outlive the browser's user-activation window.
+ # Wait for the next real click instead of issuing a denied pointer-lock request.
+ var can_lock:=not OS.has_feature("web") or bool(JavaScriptBridge.eval("navigator.userActivation?.isActive===true"))
+ Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if "--render-qa" in OS.get_cmdline_user_args() or not can_lock else Input.MOUSE_MODE_CAPTURED
 
 func release() -> void:
  drop_prop()
@@ -50,11 +55,13 @@ func release() -> void:
 func _unhandled_input(event: InputEvent) -> void:
  if active and event.is_action_pressed("jump"): jump_buffer=.14
  if active and event is InputEventMouseMotion and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
+  if look_warmup>0: return
   rotate_y(-event.relative.x*sensitivity)
   camera.rotation.x=clampf(camera.rotation.x-event.relative.y*sensitivity,-1.35,1.35)
 
 func _physics_process(delta: float) -> void:
  if not active: return
+ look_warmup=maxf(0,look_warmup-delta)
  var low:=Input.is_action_pressed("crouch")
  if crouching and not low:
   var query:=PhysicsShapeQueryParameters3D.new();query.shape=stand_clearance;query.transform=Transform3D(global_basis,global_position+Vector3(0,1.39,0));query.collision_mask=1;query.exclude=[get_rid()];query.margin=.005

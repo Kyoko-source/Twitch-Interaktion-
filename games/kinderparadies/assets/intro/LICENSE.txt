@@ -1,0 +1,3 @@
+Phone ringtone and elevator chime: original Aviary project sounds.
+Reproducible with tools/prepare-nachtwache-intro.py.
+The optional chef.mp3 is the separate user-supplied voice recording.

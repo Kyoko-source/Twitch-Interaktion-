@@ -33,6 +33,8 @@ if(-not (Test-Path -LiteralPath (Join-Path $taskTools 'templates/web_nothreads_r
 }
 foreach($taskDir in @('build/windows','build/web','build/qa','build/package')){New-Item -ItemType Directory -Force -Path (Join-Path $taskProject $taskDir) | Out-Null}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/.gdignore'),'',[Text.UTF8Encoding]::new($false))
+$taskChief=Join-Path $taskRepo 'NACHTWACHE INTRO/chef.mp3'
+if(Test-Path -LiteralPath $taskChief){Copy-Item -LiteralPath $taskChief -Destination (Join-Path $taskProject 'assets/intro/chef.mp3') -Force}
 Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--editor','--import','--quit')
 Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--','--self-test')
 $taskExports=@('Windows','Web')
@@ -48,6 +50,9 @@ foreach($taskTarget in @('build/web','build/qa')){
  }
 }
 $taskPackage=Join-Path $taskProject 'build/package'
+New-Item -ItemType Directory -Force -Path (Join-Path $taskPackage 'Intro') | Out-Null
+Copy-Item -LiteralPath (Join-Path $taskRepo 'NACHTWACHE INTRO/LIESMICH.txt') -Destination (Join-Path $taskPackage 'Intro/LIESMICH.txt') -Force
+if(Test-Path -LiteralPath $taskChief){Copy-Item -LiteralPath $taskChief -Destination (Join-Path $taskPackage 'Intro/chef.mp3') -Force}
 Copy-Item -LiteralPath (Join-Path $taskProject 'build/windows/Nachtwache.exe') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'README.md') -Destination (Join-Path $taskPackage 'LIESMICH.md') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/Kenney-Impact-License.txt'),(Join-Path $taskProject 'assets/Oswald-OFL.txt') -Destination $taskPackage -Force
@@ -63,13 +68,13 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.8.0.zip'
-Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
+$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.9.0.zip'
+Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='1.8.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='1.9.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

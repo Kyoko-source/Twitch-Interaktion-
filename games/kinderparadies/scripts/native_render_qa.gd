@@ -6,6 +6,20 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--voice-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.tick(1.3);game.intro.accept()
+  await game.get_tree().create_timer(.4).timeout
+  var loaded: bool=game.intro.recording and game.intro.call_length>1 and game.intro.voice.playing
+  game.intro.paused=true;game.intro.tick(.1);var clock: float=game.intro.clock
+  await game.get_tree().create_timer(.2).timeout
+  var frozen: bool=game.intro.voice.stream_paused and game.intro.clock==clock
+  game.intro.paused=false;game.intro.tick(game.intro.call_length+.1)
+  var hung_up: bool=game.intro.stage=="arrival" and not game.intro.voice.playing
+  var report:={"external_recording":loaded,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
+  var file:=FileAccess.open(output.path_join("voice-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+  print("VOICE QA ",JSON.stringify(report));game._quit();return
+ if "--v190-qa" in OS.get_cmdline_user_args():
+  await v190_views(game,output);game._quit();return
  if "--v180-qa" in OS.get_cmdline_user_args():
   await v180_views(game,output);game._quit();return
  if "--annex-qa" in OS.get_cmdline_user_args():
@@ -20,7 +34,7 @@ func run(game: Node3D) -> void:
   await croc_views(game,output);game._quit();return
  await game.get_tree().create_timer(8).timeout
  await capture(game,output,"menu")
- game._new_shift()
+ game._new_shift();game.intro.skip()
  await game.get_tree().create_timer(6).timeout
  await capture(game,output,"main")
  var start:=Time.get_ticks_usec()
@@ -83,7 +97,7 @@ func capture(game: Node3D, output: String, name: String) -> void:
  assert(error==OK,"Native screenshot failed")
 
 func annex_views(game: Node3D, output: String) -> void:
- game._new_shift()
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"annex-corridor","pos":Vector3(-7.9,0,-13.6),"yaw":0,"pitch":.03},
   {"name":"annex-kitchen","pos":Vector3(-10.8,0,-16.7),"yaw":1.02,"pitch":-.01},
@@ -111,8 +125,37 @@ func annex_views(game: Node3D, output: String) -> void:
  var file:=FileAccess.open(output.path_join("annex-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("ANNEX RENDER QA ",JSON.stringify(report))
 
-func v180_views(game: Node3D, output: String) -> void:
+func v190_views(game: Node3D, output: String) -> void:
  game._new_shift()
+ await game.get_tree().create_timer(2).timeout;await capture(game,output,"intro-ringing")
+ game.intro.accept();await game.get_tree().create_timer(1.2).timeout;await capture(game,output,"intro-call")
+ game.intro.tick(game.intro.call_length)
+ await game.get_tree().create_timer(2.7).timeout;await capture(game,output,"lift-open")
+ var arrived: bool=game.phase=="play" and game.player.position.z>17 and not game.intro_pending
+ Input.action_press("forward");await game.get_tree().create_timer(3.5).timeout;Input.action_release("forward")
+ var walked: bool=game.player.position.z<10.8 and game.player.position.y>-.1
+ var shots: Array[Dictionary]=[
+  {"name":"climbing-frame","pos":Vector3(-2.0,0,7.5),"yaw":-.65,"pitch":.4},
+  {"name":"ceiling-mounts","pos":Vector3(-6.5,0,1),"yaw":-.4,"pitch":.9},
+  {"name":"stocked-shelves","pos":Vector3(-7.3,0,2.1),"yaw":PI/2,"pitch":-.07},
+  {"name":"party-right-wall","pos":Vector3(15.5,0,-4),"yaw":-PI/2,"pitch":.1},
+  {"name":"expanded-kitchen","pos":Vector3(-11.5,0,-17),"yaw":1.0,"pitch":.05},
+  {"name":"kitchen-preparation","pos":Vector3(-14.0,0,-20.3),"yaw":0,"pitch":-.05}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(2).timeout;await capture(game,output,shot.name)
+ game._decide(true)
+ var limit:=0.0
+ while game.phase!="intro" and limit<10:
+  await game.get_tree().process_frame;limit+=game.get_process_delta_time()
+ var restart: bool=game.phase=="intro" and game.state.rounds==0 and game.state.streak==0 and game.intro_pending
+ await game.get_tree().create_timer(1.4).timeout;await capture(game,output,"death-restart")
+ var report:={"renderer":RenderingServer.get_current_rendering_method(),"arrived":arrived,"walked_out":walked,"death_restart":restart,"shelves":game.world.find_children("*","Node3D",true,false).filter(func(node): return node.has_meta("stocked_shelf")).size(),"audit":SceneAudit.inspect(game.world)}
+ var file:=FileAccess.open(output.path_join("v190-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("V190 RENDER QA ",JSON.stringify(report))
+
+func v180_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"reception-pc","pos":Vector3(-9.65,0,5.2),"yaw":-1.87,"pitch":-.32},
   {"name":"torch","pos":Vector3(-6.2,0,7.5),"yaw":-.55,"pitch":-.22},
@@ -147,7 +190,7 @@ func v180_views(game: Node3D, output: String) -> void:
  print("V180 RENDER QA ",JSON.stringify(report))
 
 func tube_views(game: Node3D, output: String) -> void:
- game._new_shift()
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"tubes-exterior","pos":Vector3(-6.8,0,9.8),"yaw":-2.45,"pitch":-.03},
   {"name":"tube-entry","pos":Vector3(-5.5,0,10.9),"yaw":PI,"pitch":-.45},
@@ -163,7 +206,7 @@ func tube_views(game: Node3D, output: String) -> void:
  print("TUBE RENDER QA ",JSON.stringify({"watcher":game.world.tubes.watcher.visible,"ambience":game.world.soundscape.snapshot()}))
 
 func polish_views(game: Node3D, output: String) -> void:
- game._new_shift()
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"reception","pos":Vector3(-6.4,0,6.7),"yaw":1.2,"pitch":.03},
   {"name":"hours","pos":Vector3(-8.1,0,7.4),"yaw":PI/2,"pitch":.14},
@@ -187,7 +230,7 @@ func polish_views(game: Node3D, output: String) -> void:
  print("POLISH RENDER QA ",JSON.stringify(report))
 
 func geometry_views(game: Node3D, output: String) -> void:
- game._new_shift()
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"door-front","pos":Vector3(4.87,0,-5.6),"yaw":-PI/2,"pitch":.16},
   {"name":"door-corner","pos":Vector3(5.4,0,-3.1),"yaw":-.49,"pitch":.1},
@@ -206,7 +249,7 @@ func geometry_views(game: Node3D, output: String) -> void:
  print("GEOMETRY RENDER QA ",JSON.stringify(report))
 
 func croc_views(game: Node3D, output: String) -> void:
- game._new_shift()
+ game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
   {"name":"croc-front","pos":Vector3(3.9,0,11.3),"yaw":-PI/2,"pitch":.12},
   {"name":"croc-three-quarter","pos":Vector3(3.5,0,13.7),"yaw":-1.2,"pitch":.12},

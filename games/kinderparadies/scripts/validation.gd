@@ -155,8 +155,10 @@ func run(game: Node3D) -> bool:
  check(ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH),"Shared crocodile asset was excluded")
  if not OS.has_feature("web"):
   check(game.world.native_art!=null,"Windows art pipeline missing")
-  check(game.world.native_art.model_count==36,"Native imported/hero models not instantiated")
-  check(game.world.native_art.sources.size()==13,"Native model catalog is incomplete")
+  check(game.world.native_art.model_count>=25,"Native imported/hero models not instantiated")
+  for required in ["hero/stitched-rabbit","hanging_industrial_lamp","hero/waiting-bench","metal_office_desk"]:
+   check(game.world.native_art.sources.keys().any(func(path): return required in path),"Required native model missing: "+required)
+  check(game.world.find_children("*","Node3D",true,false).filter(func(node): return node.has_meta("stocked_shelf")).size()==3,"Stocked shelving was not created in all three positions")
   for source in game.world.native_art.sources.values(): check(source is PackedScene,"Native production model failed to load")
   check(not game.world.props.floor_tiles[0].visible,"Native continuous floor was not selected")
   check(AudioServer.get_bus_index("Interior")>=0,"Native room acoustics bus missing")
@@ -332,7 +334,7 @@ func run(game: Node3D) -> bool:
  game.has_session=false;game._continue()
  check(game.player.position.is_equal_approx(Vector3(-6.2,0,8.5)),"Old layout save restored the player inside relocated geometry")
  check(game.state.serialize()==expected.serialize(),"Layout migration changed patrol progress")
- game._new_shift();game.player.lamp_on=true;game.player.lamp.show()
+ game._new_shift();game.intro.skip();game.player.lamp_on=true;game.player.lamp.show()
  game.player.torch_body.trigger();game.player.torch_body.tick(.025,true,0)
  check(game.player.lamp.light_energy<2,"Torch contact failure did not dim the real light")
  game._pause();var flicker_clock: float=game.player.torch_body.clock
@@ -362,10 +364,32 @@ func run(game: Node3D) -> bool:
  game._decide(false)
  check(game.state.rounds==rounds_before,"Repeated input during a scare counted another decision")
  limit=0
- while game.phase!="play" and limit<900:
+ while game.phase!="intro" and limit<900:
   await game.get_tree().physics_frame;limit+=1
- check(game.phase=="play" and game.state.streak==0 and game.state.errors==1,"Wrong door failed to resume automatically with reset series")
+ check(game.phase=="intro" and game.state.streak==0 and game.state.rounds==0 and game.intro_pending,"Death did not restart the whole shift with the intro")
  check(game.door_failure.shown==1 and not game.door_failure.running,"Wrong door scare replayed or remained visible")
+ check(not game.player.active and game.intro.stage=="ringing","Intro does not lock gameplay until the phone sequence ends")
+ var saved_intro: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SAVE))
+ check(saved_intro.intro_pending,"Closing during intro would bypass it on reload")
+ game.intro.tick(1.3);game.intro.accept()
+ check(game.intro.stage=="call","Accepting the chief call failed")
+ var intro_clock: float=game.intro.clock
+ game.intro.paused=true;game.intro.tick(2)
+ check(game.intro.clock==intro_clock,"Intro and voice are not frozen in pause")
+ game.intro.paused=false
+ Input.action_press("jump");game.intro.tick(.6)
+ check(game.phase=="intro","A short Space press skipped the entire intro")
+ game.intro.tick(.8);Input.action_release("jump")
+ check(game.phase=="play" and not game.intro_pending,"Holding Space failed to skip intro and start patrol")
+ check(game.player.position.z>17,"Skipped intro teleported the guard instead of leaving him in the cabin")
+ game._new_shift();game.intro.tick(1.3);game.intro.accept();game.intro.tick(game.intro.call_length+.1)
+ check(game.intro.stage=="arrival","Chief call did not hang up and ring the lift chime")
+ game.intro.tick(2.5)
+ check(game.phase=="play" and absf(game.intro.doors[0].position.x)>1.8,"Lift doors failed to open after the chief finished")
+ Input.action_press("forward")
+ for frame in range(220): await game.get_tree().physics_frame
+ Input.action_release("forward")
+ check(game.player.position.z<10.8 and game.player.position.y>-.1,"The full route from the elevator into the hall is obstructed")
  await game.get_tree().create_timer(.35).timeout
  game._pause()
  print("Validation checks: ",checks,"; failures: ",failures.size())

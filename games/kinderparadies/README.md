@@ -15,7 +15,8 @@ E Tür öffnen, TAB Dienstanweisung, ESC Pause, F11 Vollbild.
 Die erste Runde ist normal und dient als Referenz. Bereiche kannst du freiwillig
 erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
-in Folge gewinnen; ein Fehler setzt die Serie zurück und erklärt die Veränderung.
+in Folge gewinnen. Eine falsche Tür beendet die Schicht und startet wieder das
+Fahrstuhl-Intro. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
 45 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Dichter graugrüner Nebel gehört zur normalen Umgebung. Blutroter Nebel ist eine
@@ -41,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.8.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.9.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -279,3 +280,29 @@ die übersehene Veränderung. Nach 13 richtigen Entscheidungen folgt der Abschlu
 Modelle: `tools/model-nachtwache-props-v180.py` (Blender im Hintergrund).
 Audio und Küchenunterlagen: `tools/prepare-nachtwache-v180.py` (Python/NumPy/Pillow).
 Keine Änderungen an Benutzerkonten, Chickens oder anderen Minispielen.
+
+## v1.9.0 — Fahrstuhl, Chef-Anruf und befestigte Einrichtung
+
+Jede neue Schicht beginnt in einer begehbaren 3D-Fahrstuhlkabine. Das Telefon
+klingelt und wird sichtbar herausgeholt. E oder die Schaltfläche nimmt den
+Chef-Anruf an. Nach dessen Ende folgen Aufzugsgong und sich öffnende Türen;
+der Spieler geht selbst in die Halle. Gehaltene Leertaste (1,35 Sekunden)
+überspringt die Szene, ESC pausiert sie einschließlich Audio und Fortschritt.
+Eine falsche Entscheidungstür bedeutet Tod: Jumpscare, kompletter Neustart
+und erneut das Intro. Auch ein Abbruch während des Todes umgeht den Neustart
+nicht. Ein im Intro gespeicherter Spielstand startet wieder im Fahrstuhl.
+
+Die Chef-Aufnahme ist noch nicht geliefert. Bis dahin stehen Untertitel anstelle
+einer erfundenen Sprecherstimme bereit. Datei unter `NACHTWACHE INTRO/chef.mp3`
+ablegen: Der Build übernimmt sie in Windows und Web, die Aufnahmelänge steuert
+den Ablauf. Windows liest außerdem eine `Intro/chef.mp3` neben der EXE direkt;
+dafür ist kein neuer Build nötig. Die separate MP3 liegt außerhalb von Git.
+Klingeln und Aufzugsgong sind eigene, neu erzeugte Tonsignale.
+
+Die Leuchtstreifen im Klettergerüst und die frei schwebenden Laken entfallen.
+Deckenlampen erhalten Befestigungen bis zur Decke; Träger, Rohrschellen,
+Dunstabzug und Kinoprojektor sind angeschlossen. Neue Regale mit Böden,
+Büchern und Spielzeugkörben ersetzen die leeren Regale. Die Partyraumwand
+erhält eine niedrige Kommode mit Geschirr und Geschenken. Zusätzliche
+Arbeitsflächen, Vorräte, Fliesen, Geschirr und Reinigungsutensilien füllen die
+Küche; die Laufwege und der Vergleichszustand der Anomalien bleiben frei.

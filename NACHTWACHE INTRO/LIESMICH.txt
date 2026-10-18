@@ -1,0 +1,11 @@
+CHEF-ANRUF
+
+Lege hier die Aufnahme unter dem Namen chef.mp3 ab.
+Der nächste Spiele-Build übernimmt die Datei automatisch.
+Die Länge der Aufnahme bestimmt die Länge des Telefonats. Danach legt der Chef auf, der Aufzug macht Pling und öffnet die Türen.
+
+Windows ohne erneuten Build: Im entpackten Spiel den Ordner Intro öffnen und dort chef.mp3 ablegen.
+Solange keine Aufnahme vorliegt, zeigt die Szene die Dienstanweisung als Untertitel ohne erfundene Sprachausgabe.
+
+Textvorschlag:
+Gut, du bist da. Die Nachtschicht gehört dir. Präg dir das Kinderparadies ein. Der erste Rundgang ist dein Vergleich. Keine Veränderung? Grüne Tür. Etwas stimmt nicht? Rote Tür. Dreizehn richtige Entscheidungen in Folge. Eine falsche Tür kostet dich die ganze Schicht. Der Clown rührt am Herd. Kinderstimmen sind hier normal. Verlass dich auf deine Augen. Und wenn dir etwas zu nahe kommt ... bleib nicht stehen. Bis morgen.
