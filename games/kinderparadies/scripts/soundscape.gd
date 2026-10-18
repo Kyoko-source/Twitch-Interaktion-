@@ -28,7 +28,7 @@ func build(world: PlayWorld) -> void:
  for source in beds: (source.stream as AudioStreamOggVorbis).loop=true
  for spec in [{"file":"fridge.wav","pos":Vector3(-11,1,-21.7),"db":-7.0,"range":7.0},{"file":"fly.wav","pos":Vector3(-13.25,1.5,-19.25),"db":-5.0,"range":3.6}]:
   var source:=emitter(NEW_ASSETS+spec.file,spec.pos,spec.db,spec.range);var stream: AudioStreamWAV=source.stream;stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);beds.append(source)
- events.append(emitter("door-creak.ogg",Vector3(6.8,1.8,-5.6),-8,13))
+ events.append(emitter("door-creak.ogg",Vector3(6.8,1.8,-8.7),-8,13))
  events.append(emitter("pipe-knock.wav",Vector3(-7,5,-4),-16,12))
  events.append(emitter("relay-tick.wav",Vector3(1,5.8,0),-21,10))
  events.append(emitter(NEW_ASSETS+"cutlery.wav",Vector3(-16.6,1.2,-18.4),-4,8))

@@ -70,7 +70,7 @@ func run(game: Node3D) -> bool:
  # Inspect the central riding surface, away from the rounded lip/end cap.
  check(slide_normals[504].y>.9,"Slide riding surface normals face into the shell")
  await game.get_tree().physics_frame
- check(cast(game,Vector3(5.8,1.5,-5.6),Vector3(7.4,1.5,-5.6)).is_empty(),"Party doorway is physically obstructed")
+ check(cast(game,Vector3(5.8,1.5,-8.7),Vector3(7.4,1.5,-8.7)).is_empty(),"Party doorway is physically obstructed")
  var play_frame: Node3D=game.world.props.structure
  for body in padded:
   var center: Vector3=body.global_position
@@ -185,11 +185,24 @@ func run(game: Node3D) -> bool:
  for frame in range(135): await game.get_tree().physics_frame
  Input.action_release("forward")
  check(game.player.position.y>4 and game.player.position.z<4.1,"East tower upper ramp is obstructed")
- game.player.position=Vector3(5.8,0,-5.6);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
+ game.player.position=Vector3(5.8,0,-8.7);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
  Input.action_press("forward")
  for frame_index in range(45): await game.get_tree().physics_frame
  Input.action_release("forward")
  check(game.player.position.x>7.3,"Cannot walk through the party doorway")
+ check(game.world.room_horror.panels>100,"Kitchen/cinema have no visible ceiling panels")
+ for p in [Vector3(-13.5,3.3,-18),Vector3(-2,3.3,-18)]: check(not cast(game,p,p+Vector3.UP*.6).is_empty(),"Annex ceiling has no collision")
+ check(game.world.room_horror.creature!=null,"Ceiling dweller mesh is missing")
+ check(game.world.room_horror.music.stream is AudioStreamMP3,"User music-box recording is missing")
+ game.world.room_horror.tick(.1,true)
+ check(game.world.room_horror.music.playing,"Music box never starts")
+ game.world.room_horror.tick(.1,false)
+ check(game.world.room_horror.music.stream_paused,"Music box ignores pause")
+ game.world.room_horror.tick(.1,true)
+ game.world.room_horror.clock=11.75;game.world.room_horror.tick(0,true)
+ check(game.world.room_horror.bulbs[0].light.light_energy<.5,"Bulb contact failure never dims the real light")
+ game.world.room_horror.clock=12.5;game.world.room_horror.tick(0,true)
+ check(game.world.room_horror.bulbs[0].light.light_energy>.5,"Bulb failed to recover after flicker")
  game.player.position=Vector3(4.1,3.01,3.6);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
  Input.action_press("forward")
  for frame_index in range(165): await game.get_tree().physics_frame

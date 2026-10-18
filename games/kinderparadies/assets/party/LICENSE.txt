@@ -1,0 +1,2 @@
+Musicbox.mp3 is the user-provided recording for Aviary's in-game music box.
+The local source is kept in NACHTWACHE MUSIKBOX and supplied to release builds.

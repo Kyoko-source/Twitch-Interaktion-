@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.9.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.9.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -280,6 +280,21 @@ die übersehene Veränderung. Nach 13 richtigen Entscheidungen folgt der Abschlu
 Modelle: `tools/model-nachtwache-props-v180.py` (Blender im Hintergrund).
 Audio und Küchenunterlagen: `tools/prepare-nachtwache-v180.py` (Python/NumPy/Pillow).
 Keine Änderungen an Benutzerkonten, Chickens oder anderen Minispielen.
+
+## v1.9.2 — Spieluhr, Decken und Kino-Gestalt
+
+Der Feierraum ist über einen nach Norden versetzten, freien Eingang erreichbar.
+Auf dem Sideboard steht eine modellierte Spieluhr mit drehender Hasenfigur; sie
+spielt die gelieferte Musikbox.mp3 räumlich und pausiert mit dem Spiel. Die Datei
+liegt für künftige Builds unter NACHTWACHE MUSIKBOX/Musikbox.mp3.
+
+Küche und Kino besitzen sichtbare, gealterte Deckenplatten, Fugen und befestigte
+Schutzleuchten. Kurze, versetzte Wackelkontakte betreffen einzelne Glühbirnen und
+die Pendelleuchten. Die organisch modellierte Kino-Gestalt krallt sich am
+Lüftungsschacht fest: langer S-Hals, verzerrter Pferdeschädel, eingesunkene Augen
+und einzeln geformte Zähne. Spieluhr, Flackern und Gestalt sind normale Umgebung,
+keine neuen Anomalien. Ältere Spielstände behalten die Serie, werden wegen der
+versetzten Tür aber an eine sichere Position gesetzt.
 
 ## v1.9.1 — Aufgenommener Chef-Anruf
 

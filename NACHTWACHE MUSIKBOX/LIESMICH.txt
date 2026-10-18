@@ -1,0 +1,3 @@
+Die Aufnahme Musikbox.mp3 liegt hier als Quelle für die kleine Spieluhr.
+Der Spiele-Build übernimmt sie in die Windows- und Web-Fassung.
+Die Spieluhr spielt räumlich im Feierraum und pausiert zusammen mit dem Spiel.

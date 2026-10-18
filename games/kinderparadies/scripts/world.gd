@@ -26,6 +26,7 @@ var tubes: CrawlTubes
 var soundscape: NightSoundscape
 var encounters: NightEncounters
 var annex: ServiceAnnex
+var room_horror: RoomHorror
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -120,6 +121,7 @@ func build() -> void:
  tubes=CrawlTubes.new();add_child(tubes);tubes.build(self)
  annex=ServiceAnnex.new();add_child(annex);annex.build(self)
  RoomDressing.build(self)
+ room_horror=RoomHorror.new();add_child(room_horror);room_horror.build(self)
  soundscape=NightSoundscape.new();add_child(soundscape);soundscape.build(self)
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
@@ -189,16 +191,16 @@ func _architecture(rubber: Texture2D) -> void:
   for x in [-7.0,4.0,16.0]: tube(self,Vector3(x,7.30,z),Vector3(x,6.9,z),.014,materials.metal)
  for z in [-10,-5,0,5,10,15]: tube(self,Vector3(-7,7.30,z),Vector3(-7,6.72,z),.016,materials.rust if materials.has("rust") else materials.dark)
  # Room divider leaves an actual doorway into the party room.
- box(self,Vector3(6.8,3.7,-9.425),Vector3(.2,7.4,5.25),materials.wall,true)
- box(self,Vector3(6.8,3.7,-1.35),Vector3(.2,7.4,6.1),materials.wall,true)
- box(self,Vector3(6.8,5.2,-5.6),Vector3(.2,4.4,2.4),materials.wall,true)
+ box(self,Vector3(6.8,3.7,-10.975),Vector3(.2,7.4,2.15),materials.wall,true)
+ box(self,Vector3(6.8,3.7,-2.9),Vector3(.2,7.4,9.2),materials.wall,true)
+ box(self,Vector3(6.8,5.2,-8.7),Vector3(.2,4.4,2.4),materials.wall,true)
  box(self,Vector3(13.3,3.7,1.6),Vector3(13,7.4,.2),materials.wall,true)
- var entry:=group("party_entry");entry.position=Vector3(6.8,0,-5.6)
+ var entry:=group("party_entry");entry.position=Vector3(6.8,0,-8.7)
  var timber:=mat(Color("7e705c"),load("res://assets/wood.png"),.85);timber.uv1_triplanar=true;timber.uv1_scale=Vector3.ONE*2
  for side in [-1,1]: box(entry,Vector3(0,1.5,side*1.2),Vector3(.34,3,.12),timber,true)
  box(entry,Vector3(0,3.03,0),Vector3(.34,.14,2.68),timber,true)
  entry.set_meta("clear_opening",AABB(Vector3(-.35,0,-1.14),Vector3(.7,2.96,2.28)))
- mounted_sign(self,"party",Vector3(6.61,3.55,-5.6),Vector2(1.35,.67),-PI/2)
+ mounted_sign(self,"party",Vector3(6.61,3.55,-8.7),Vector2(1.35,.67),-PI/2)
 
 func _play_structure() -> void:
  var structure:=group("structure")
@@ -444,6 +446,7 @@ func tick(delta: float, active: bool) -> void:
  atmosphere.tick(delta,active)
  playground.tick(active)
  if native_art: native_art.tick(delta,active)
+ room_horror.tick(delta,active)
  if not active: return
  clock+=delta
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else .8 if current=="clock_reverse" else -.004)

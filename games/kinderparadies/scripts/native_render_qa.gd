@@ -18,6 +18,8 @@ func run(game: Node3D) -> void:
   var report:={"recording":loaded,"source":game.intro.voice.stream.resource_path,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
   var file:=FileAccess.open(output.path_join("voice-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
   print("VOICE QA ",JSON.stringify(report));game._quit();return
+ if "--v192-qa" in OS.get_cmdline_user_args():
+  await v192_views(game,output);game._quit();return
  if "--v190-qa" in OS.get_cmdline_user_args():
   await v190_views(game,output);game._quit();return
  if "--v180-qa" in OS.get_cmdline_user_args():
@@ -232,7 +234,7 @@ func polish_views(game: Node3D, output: String) -> void:
 func geometry_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
-  {"name":"door-front","pos":Vector3(4.87,0,-5.6),"yaw":-PI/2,"pitch":.16},
+  {"name":"door-front","pos":Vector3(4.87,0,-8.7),"yaw":-PI/2,"pitch":.16},
   {"name":"door-corner","pos":Vector3(5.4,0,-3.1),"yaw":-.49,"pitch":.1},
   {"name":"slide","pos":Vector3(5.9,0,9.7),"yaw":.57,"pitch":.08},
   {"name":"slide-profile","pos":Vector3(5.8,0,4.3),"yaw":PI/2,"pitch":.16},
@@ -247,6 +249,25 @@ func geometry_views(game: Node3D, output: String) -> void:
  var report:=SceneAudit.inspect(game.world);report.renderer=RenderingServer.get_current_rendering_method()
  var file:=FileAccess.open(output.path_join("geometry-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("GEOMETRY RENDER QA ",JSON.stringify(report))
+
+func v192_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip()
+ var shots: Array[Dictionary]=[
+  {"name":"party-entrance","pos":Vector3(4.4,0,-8.7),"yaw":-PI/2,"pitch":.18},
+  {"name":"music-box","pos":Vector3(17.85,0,-2.42),"yaw":-PI/2,"pitch":-.16},
+  {"name":"kitchen-ceiling","pos":Vector3(-11.2,0,-16.5),"yaw":.6,"pitch":.6},
+  {"name":"cinema-ceiling","pos":Vector3(-4.7,0,-17.7),"yaw":-.8,"pitch":.5},
+  {"name":"vent-creature","pos":Vector3(-3.5,0,-17.9),"yaw":-.3,"pitch":.38},
+  {"name":"creature-close","pos":Vector3(-2.9,0,-18.3),"yaw":-.35,"pitch":.55}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
+ game._pause();var paused: Dictionary=game.world.room_horror.snapshot();await game.get_tree().create_timer(.3).timeout
+ var frozen: bool=game.world.room_horror.clock==paused.clock and game.world.room_horror.music.stream_paused
+ game._resume();await game.get_tree().create_timer(.4).timeout
+ var report: Dictionary=game.world.room_horror.snapshot();report.pause=frozen;report.audit=SceneAudit.inspect(game.world)
+ var file:=FileAccess.open(output.path_join("v192-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
+ print("V192 RENDER QA ",JSON.stringify(report))
 
 func croc_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()

@@ -1,0 +1,3 @@
+Vent dweller: original Aviary project sculpture and vertex pigmentation.
+Created with tools/model-nachtwache-cinema-creature.py; no third-party anatomy,
+face photographs or image billboards are included in this model.

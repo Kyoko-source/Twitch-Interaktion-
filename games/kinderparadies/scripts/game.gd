@@ -180,7 +180,7 @@ func _continue() -> void:
  intro_pending=bool(data.get("intro_pending",false))
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==6 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0))==7 and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
@@ -211,7 +211,7 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E. Das Intro kannst du durch gehaltene Leertaste überspringen."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
  column.add_child(_paragraph("Kinderlachen und Weinen in den Krabbelröhren gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
- column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
+ column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Feierraum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
  column.add_child(_button("Zurück",_return_from_panel,true));_telemetry()
@@ -269,7 +269,7 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":6,"intro_pending":intro_pending}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":7,"intro_pending":intro_pending}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -416,6 +416,7 @@ func _telemetry() -> void:
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
+  data.room_horror=world.room_horror.snapshot()
   data.layout=qa_layout
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze,"impacts":body.impact_count,"sound_active":body.impact.playing,"sound":body.impact.stream.resource_path})
