@@ -69,8 +69,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.1.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.1.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
@@ -191,7 +191,8 @@ test('lift intro accepts the chief call, pauses, resumes from a pending save and
  await page.keyboard.press('Space');await page.waitForTimeout(150);expect((await state(page)).phase).toBe('intro');
  await page.waitForTimeout(1400);await page.screenshot({path:join(tmpdir(),'nachtwache-v190-web-intro-ringing.png')});
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).intro.stage).toBe('call');
- await page.keyboard.press('Escape');const clock=(await state(page)).intro.clock;await page.waitForTimeout(500);expect((await state(page)).intro.clock).toBe(clock);
+ const call=(await state(page)).intro;console.log('Chief call recording',call);if(call.recording){expect(call.duration).toBeGreaterThan(1);expect(call.voice_playing).toBe(true);expect(call.caption).toBe('');}
+ await page.keyboard.press('Escape');const clock=(await state(page)).intro.clock;await page.waitForTimeout(500);expect((await state(page)).intro.clock).toBe(clock);if(call.recording)expect((await state(page)).intro.voice_paused).toBe(true);
  await page.keyboard.press('Escape');await page.screenshot({path:join(tmpdir(),'nachtwache-v190-web-intro-call.png')});
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('intro');expect((await state(page)).intro.stage).toBe('ringing');
  await page.waitForTimeout(1300);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).intro.stage).toBe('call');

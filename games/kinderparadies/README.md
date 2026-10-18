@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.9.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.9.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -280,6 +280,14 @@ die übersehene Veränderung. Nach 13 richtigen Entscheidungen folgt der Abschlu
 Modelle: `tools/model-nachtwache-props-v180.py` (Blender im Hintergrund).
 Audio und Küchenunterlagen: `tools/prepare-nachtwache-v180.py` (Python/NumPy/Pillow).
 Keine Änderungen an Benutzerkonten, Chickens oder anderen Minispielen.
+
+## v1.9.1 — Aufgenommener Chef-Anruf
+
+Die vom Nutzer gelieferte Aufnahme ist in Windows und Web eingebunden. Der
+Aufzug wartet auf das Ende der MP3, legt auf und öffnet nach dem Ankunftston die
+Türen. Während der Aufnahme werden keine erfundenen Ersatz-Untertitel gezeigt;
+der Text-Fallback bleibt für Builds ohne Aufnahme erhalten. Pause, Fortsetzen
+und das Überspringen mit gehaltener Leertaste funktionieren auch mit der Stimme.
 
 ## v1.9.0 — Fahrstuhl, Chef-Anruf und befestigte Einrichtung
 

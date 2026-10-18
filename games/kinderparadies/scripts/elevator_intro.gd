@@ -122,7 +122,7 @@ func tick(delta: float) -> void:
   if not ring.playing and fmod(clock,3.3)<.06: ring.play()
  elif stage=="call":
   status.text="CHEF · %02d:%02d"%[int(stage_clock)/60,int(stage_clock)%60]
-  caption.text=LINES[mini(LINES.size()-1,int(stage_clock/maxf(call_length,1)*LINES.size()))]
+  caption.text="" if recording else LINES[mini(LINES.size()-1,int(stage_clock/maxf(call_length,1)*LINES.size()))]
   if stage_clock>=call_length or (recording and stage_clock>.3 and not voice.playing):
    stage="arrival";stage_clock=0;voice.stop();phone_status.text="Anruf\nbeendet";caption.text="";status.text="KINDERPARADIES · 3. STOCK";motor.stop();chime.play()
  elif stage=="arrival":
@@ -145,4 +145,4 @@ func stop() -> void:
  for audio in [ring,voice,motor,chime]: audio.stop()
 
 func snapshot() -> Dictionary:
- return {"stage":stage,"clock":clock,"call_clock":stage_clock,"skip":skip_hold,"paused":paused,"recording":recording,"duration":call_length,"starts":starts}
+ return {"stage":stage,"clock":clock,"call_clock":stage_clock,"skip":skip_hold,"paused":paused,"recording":recording,"duration":call_length,"starts":starts,"voice_playing":voice.playing,"voice_paused":voice.stream_paused,"caption":caption.text}

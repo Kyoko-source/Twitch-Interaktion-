@@ -15,7 +15,7 @@ func run(game: Node3D) -> void:
   var frozen: bool=game.intro.voice.stream_paused and game.intro.clock==clock
   game.intro.paused=false;game.intro.tick(game.intro.call_length+.1)
   var hung_up: bool=game.intro.stage=="arrival" and not game.intro.voice.playing
-  var report:={"external_recording":loaded,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
+  var report:={"recording":loaded,"source":game.intro.voice.stream.resource_path,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
   var file:=FileAccess.open(output.path_join("voice-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
   print("VOICE QA ",JSON.stringify(report));game._quit();return
  if "--v190-qa" in OS.get_cmdline_user_args():
