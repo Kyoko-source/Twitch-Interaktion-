@@ -18,6 +18,10 @@ func run(game: Node3D) -> void:
   var report:={"recording":loaded,"source":game.intro.voice.stream.resource_path,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
   var file:=FileAccess.open(output.path_join("voice-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
   print("VOICE QA ",JSON.stringify(report));game._quit();return
+ if "--v193-qa" in OS.get_cmdline_user_args():
+  await v193_views(game,output);game._quit();return
+ if "--entry-qa" in OS.get_cmdline_user_args():
+  await entry_probe(game,output);game._quit();return
  if "--v192-qa" in OS.get_cmdline_user_args():
   await v192_views(game,output);game._quit();return
  if "--v190-qa" in OS.get_cmdline_user_args():
@@ -249,6 +253,45 @@ func geometry_views(game: Node3D, output: String) -> void:
  var report:=SceneAudit.inspect(game.world);report.renderer=RenderingServer.get_current_rendering_method()
  var file:=FileAccess.open(output.path_join("geometry-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("GEOMETRY RENDER QA ",JSON.stringify(report))
+
+func entry_probe(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip()
+ var frame: Node3D=game.world.props.structure;var results: Array=[]
+ for offset in [-.4,0,.4]:
+  for outward in [true,false]:
+   game.player.position=frame.to_global(Vector3(.2,.31,-1+offset)) if outward else frame.to_global(Vector3(-1.9,0,-1+offset))
+   game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI/2 if outward else -PI/2
+   Input.action_press("forward")
+   for k in range(90): await game.get_tree().physics_frame
+   Input.action_release("forward")
+   var hits: Array=[]
+   for k in range(game.player.get_slide_collision_count()):
+    var hit: KinematicCollision3D=game.player.get_slide_collision(k);hits.append({"body":str(hit.get_collider().get_path()),"normal":str(hit.get_normal())})
+   var local: Vector3=frame.to_local(game.player.position)
+   results.append({"out":outward,"offset":offset,"local":str(local),"passed":local.x< -1.8 if outward else local.x>.8,"hits":hits})
+ print("ENTRY PROBE ",JSON.stringify(results))
+ var file:=FileAccess.open(output.path_join("entry-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(results," "))
+
+func v193_views(game: Node3D, output: String) -> void:
+ await entry_probe(game,output)
+ var shots: Array[Dictionary]=[
+  {"name":"entry-ramp","pos":Vector3(-4.8,0,-1.12),"yaw":-PI/2,"pitch":-.09},
+  {"name":"clown-front","pos":Vector3(-12.4,0,-19.25),"yaw":PI/2,"pitch":.07},
+  {"name":"clown-profile","pos":Vector3(-14.4,0,-17.5),"yaw":0,"pitch":.1},
+  {"name":"stirring-hand","pos":Vector3(-12.2,0,-18.9),"yaw":1.43,"pitch":-.25},
+  {"name":"guard-hand","pos":Vector3(-6.5,0,6.5),"yaw":-.6,"pitch":-.12}]
+ for shot in shots:
+  game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
+  await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
+ game.world.soundscape.cue_steps(game.player)
+ var before: Vector3=game.world.soundscape.ghost.position
+ await game.get_tree().create_timer(.6).timeout
+ var moved: bool=before.distance_to(game.world.soundscape.ghost.position)>.1
+ game._pause();var clock: float=game.world.soundscape.ghost_clock;await game.get_tree().create_timer(.3).timeout
+ var frozen: bool=game.world.soundscape.ghost.stream_paused and game.world.soundscape.ghost_clock==clock
+ game._resume();await game.get_tree().create_timer(.2).timeout
+ var report: Dictionary=game.world.soundscape.snapshot();report.moving_steps=moved;report.pause=frozen;report.audit=SceneAudit.inspect(game.world)
+ var file:=FileAccess.open(output.path_join("v193-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V193 RENDER QA ",JSON.stringify(report))
 
 func v192_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()

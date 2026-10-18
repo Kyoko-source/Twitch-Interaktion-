@@ -85,6 +85,14 @@ func run(game: Node3D) -> bool:
  check(audit.ball_min_distance>.28,"Decorative pit balls intersect each other")
  var threshold: AABB=game.world.props.play_threshold.global_transform*game.world.props.play_threshold.get_aabb()
  check(threshold.end.z<4.78,"Play entrance threshold cuts through the ball pit rim")
+ for offset in [-.4,0,.4]:
+  for outward in [true,false]:
+   game.player.active=true;game.player.position=play_frame.to_global(Vector3(.2,.31,-1+offset)) if outward else play_frame.to_global(Vector3(-1.9,0,-1+offset));game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI/2 if outward else -PI/2
+   Input.action_press("forward")
+   for frame in range(90): await game.get_tree().physics_frame
+   Input.action_release("forward")
+   var local: Vector3=play_frame.to_local(game.player.position)
+   check(local.x< -1.8 if outward else local.x>.8,"Play entrance traps a standing player at offset "+str(offset))
  check(audit.chair_back_dot>.95,"A chair back faces the birthday table")
  check(audit.mounted_art>=20 and audit.floating_labels<=8,"Wall art/signage was not mounted as opaque physical surfaces")
  var normal_fog: Color=game.world.environment.environment.fog_light_color
@@ -356,7 +364,17 @@ func run(game: Node3D) -> bool:
  game._resume()
  for frame in range(50): await game.get_tree().physics_frame
  check(is_equal_approx(game.player.lamp.light_energy,4.2),"Torch failed to recover from a short contact failure")
- check(game.world.soundscape.beds.size()>=5 and game.world.soundscape.events.size()>=7,"New spatial field recordings are missing")
+ check(game.world.soundscape.beds.size()>=6 and game.world.soundscape.events.size()>=11,"New spatial field recordings are missing")
+ game.world.soundscape.ghost_count=0;game.world.soundscape.cue_steps(game.player);var ghost_start: Vector3=game.world.soundscape.ghost.position
+ game.world.soundscape.tick(.7,true,game.player)
+ check(game.world.soundscape.ghost.position.distance_to(ghost_start)>.1,"Invisible footsteps do not move along their aisle")
+ check(game.world.soundscape.ghost_track=="ghost-walk.wav","First phantom walk recording is missing")
+ await game.get_tree().physics_frame
+ game._pause();await game.get_tree().physics_frame;await game.get_tree().process_frame
+ check(game.world.soundscape.ghost.stream_paused,"Invisible footsteps ignore pause")
+ game._resume()
+ game.world.soundscape.cue_steps(game.player)
+ check(game.world.soundscape.ghost_track=="ghost-run.wav","Phantom running variation is missing")
  var sculpt: Node3D=game.world.annex.clown.head
  var head_faces:=0
  for mesh in sculpt.find_children("*","MeshInstance3D",true,false)+([sculpt] if sculpt is MeshInstance3D else []):

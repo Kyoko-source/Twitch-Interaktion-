@@ -1,0 +1,58 @@
+[
+  {
+    "file": "ghost-walk.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/steps-on-a-wooden-floor-4-s1518.html",
+    "original_sha256": "accb0552bf3f9762702507bf53dc76036b93d5832f3e349f3191e3ee5d6777ea",
+    "processing": "Mono 24 kHz, cropped from 2s, 7s maximum, RMS -22dBFS, HP65Hz/LP4300Hz, fades"
+  },
+  {
+    "file": "ghost-run.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/fast-steps-on-concrete-s1319.html",
+    "original_sha256": "e8e5f3ec44b81332cb62de13ec7fdbc57436ab37d3e0395d3b7c010c4c20a1b5",
+    "processing": "Mono 24 kHz, cropped from 3s, 6s maximum, RMS -23dBFS, HP65Hz/LP3800Hz, fades"
+  },
+  {
+    "file": "leak.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/drops-of-water-3-s1386.html",
+    "original_sha256": "7a269cae051356e33c6607b5e7b6ebc2af7ca1f0b559f3d1cb9f8df2c1c01c23",
+    "processing": "Mono 24 kHz, cropped from 0s, 11s maximum, RMS -30dBFS, HP65Hz/LP4000Hz, fades"
+  },
+  {
+    "file": "metal-door.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source": "https://bigsoundbank.com/creaking-metallic-door-s0616.html",
+    "original_sha256": "7095712d8a36ad71890eeac768ddc6dabcfd8894bef70dba20d430e8745c2bdd",
+    "processing": "Mono 24 kHz, cropped from 0s, 5s maximum, RMS -26dBFS, HP65Hz/LP3200Hz, fades"
+  },
+  {
+    "file": "dish-rattle.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source_provenance": "../ambience-v180/provenance.json",
+    "source_file": "cutlery.wav",
+    "processing": "Alternate crop at 2s, filtered quiet edit"
+  },
+  {
+    "file": "duct-stress.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source_provenance": "../ambience-v180/provenance.json",
+    "source_file": "chain.wav",
+    "processing": "Alternate crop at 0.4s, filtered quiet edit"
+  },
+  {
+    "file": "motor-stop.wav",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source_provenance": "../ambience-v180/provenance.json",
+    "source_file": "fridge.wav",
+    "processing": "Alternate crop at 4s, filtered quiet edit"
+  }
+]

@@ -16,6 +16,11 @@ func build(light: SpotLight3D) -> void:
  var scene: PackedScene=load(MODEL);var model:=scene.instantiate();add_child(model)
  model.scale=Vector3.ONE*.78
  position=Vector3(.23,-.245,-.39);rotation=Vector3(-.035,-.09,-.08)
+ var hand: Node3D=(load("res://assets/props/anatomical-grip.glb") as PackedScene).instantiate();hand.name="GuardGrip";hand.position=Vector3(.046,-.025,.04);hand.quaternion=Quaternion(Vector3.UP,-PI/2)*Quaternion(Vector3.BACK,PI);add_child(hand)
+ var cuff: Node3D=(load("res://assets/props/clown-sleeve.glb") as PackedScene).instantiate();cuff.position=Vector3(0,.16,0);cuff.scale=Vector3(.45,.21,.45);hand.add_child(cuff)
+ var fabric:=StandardMaterial3D.new();fabric.albedo_color=Color("293d34");fabric.roughness=.95
+ for mesh in cuff.find_children("*","MeshInstance3D",true,false): mesh.material_override=fabric
+ for mesh in hand.find_children("*","MeshInstance3D",true,false): mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  for mesh in model.find_children("*","MeshInstance3D",true,false):
   mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   if mesh.name=="Emitter":

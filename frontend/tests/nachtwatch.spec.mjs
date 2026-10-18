@@ -69,8 +69,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.2.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.2.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.3.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.3.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
@@ -178,12 +178,34 @@ test('annex corridor, kitchen and cinema have real open routes, persistent saves
 
 
 test('detailed torch flickers briefly, freezes on pause and normal kitchen atmosphere has six extra recordings',async({page})=>{
- await begin(page);expect((await state(page)).ambience.bed_count).toBe(5);expect((await state(page)).ambience.event_count).toBe(7);
+ await begin(page);expect((await state(page)).ambience.bed_count).toBe(6);expect((await state(page)).ambience.event_count).toBe(11);
  await qa(page,{op:'flicker'});await expect.poll(async()=>(await state(page)).flashlight.count).toBe(1);await expect.poll(async()=>(await state(page)).flashlight.strength,{intervals:[20]}).toBeLessThan(1);
  await qa(page,{op:'pause'});const clock=(await state(page)).flashlight.clock;await page.waitForTimeout(400);expect((await state(page)).flashlight.clock).toBe(clock);
  await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).flashlight.strength,{timeout:3000}).toBe(1);
  await page.mouse.click(768,512);
  for(const shot of [{name:'clown-front',x:-12.4,z:-19.25,yaw:Math.PI/2,pitch:.1},{name:'clown-profile',x:-14.4,z:-17.5,yaw:0,pitch:.14},{name:'reception',x:-9.65,z:5.2,yaw:-1.87,pitch:-.32}]){await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'nachtwache-v180-web-'+shot.name+'.png')});}
+});
+
+test('play-frame ramp allows standing entry and exit in the centre and near both edges',async({page})=>{
+ test.setTimeout(90000);await begin(page);
+ for(const offset of [-.4,0,.4]){
+  await qa(page,{op:'warp',x:-1.57,y:.403,z:(-1+offset)*1.12,yaw:Math.PI/2});await page.mouse.click(768,512);
+  await walk(page,'w',s=>s.position[0]<-4.2);await expect.poll(async()=>(await state(page)).grounded).toBe(true);expect((await state(page)).position[1]).toBeLessThan(.06);
+  await qa(page,{op:'warp',x:-3.985,y:0,z:(-1+offset)*1.12,yaw:-Math.PI/2});await walk(page,'w',s=>s.position[0]>-.8);expect((await state(page)).position[1]).toBeGreaterThan(.32);
+ }
+ await qa(page,{op:'warp',x:-4.8,z:-1.12,yaw:-Math.PI/2,pitch:-.09});await page.waitForTimeout(400);await page.screenshot({path:join(tmpdir(),'nachtwache-v193-web-entry.png')});
+});
+
+test('phantom footsteps travel through empty aisles and pause without changing the anomaly',async({page})=>{
+ test.setTimeout(60000);await begin(page);const initial=(await state(page)).anomaly;
+ await expect.poll(async()=>(await state(page)).ambience.ghost_playing,{timeout:18000,intervals:[100]}).toBe(true);
+ const before=(await state(page)).ambience;await page.waitForTimeout(600);const after=(await state(page)).ambience;
+ expect(Math.hypot(...after.ghost_position.map((v,i)=>v-before.ghost_position[i]))).toBeGreaterThan(.1);expect(after.ghost_track).toBe('ghost-walk.wav');expect((await state(page)).anomaly).toBe(initial);
+ await page.keyboard.press('Escape');await page.waitForTimeout(300);const paused=(await state(page)).ambience;expect(paused.ghost_paused).toBe(true);await page.waitForTimeout(400);expect((await state(page)).ambience.ghost_clock).toBe(paused.ghost_clock);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ambience.ghost_paused).toBe(false);
+ for(const shot of [{name:'clown-front',x:-12.4,z:-19.25,yaw:Math.PI/2,pitch:.07},{name:'hand',x:-12.2,z:-18.9,yaw:1.43,pitch:-.25}]){
+  await qa(page,{op:'warp',...shot});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'nachtwache-v193-web-'+shot.name+'.png')});
+ }
 });
 
 test('music box plays its recording, ceiling creature is shared, bulbs flicker and all pause together',async({page})=>{

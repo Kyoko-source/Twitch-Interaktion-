@@ -16,13 +16,18 @@ ALBEDO=c;ALPHA=skin.a;ROUGHNESS=mix(.95,.58,smear);SPECULAR=.18;}
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("face_map",texture);material.set_shader_parameter("stained",stained);return material
 
 static func link(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
- var direction:=b-a;mesh.position=(a+b)*.5;mesh.quaternion=Quaternion(Vector3.UP,direction.normalized());mesh.scale=Vector3(1,direction.length(),1)
+ var direction:=b-a;var radius: float=mesh.get_meta("radius_scale",1.0);mesh.position=(a+b)*.5;mesh.quaternion=Quaternion(Vector3.UP,direction.normalized());mesh.scale=Vector3(radius,direction.length(),radius)
+
+static func sleeve(parent: Node3D, radius: float) -> MeshInstance3D:
+ var scene: Node3D=(load("res://assets/props/clown-sleeve.glb") as PackedScene).instantiate()
+ var mesh:=scene.find_children("*","MeshInstance3D",true,false)[0] as MeshInstance3D
+ mesh.get_parent().remove_child(mesh);scene.free();parent.add_child(mesh);mesh.set_meta("radius_scale",radius/.085);return mesh
 
 static func bone(parent: Node3D, radius: float, material: Material) -> MeshInstance3D:
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load("res://assets/props/kitchen-clown-v2.glb")
+ var scene: PackedScene=load("res://assets/props/kitchen-clown-v3.glb")
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
@@ -33,16 +38,11 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
    if material and material.resource_name=="Cracked greasepaint and blood" and not material.normal_texture:
     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.17;material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*12
  var suit:=w.mat(Color("744a46"),null,.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
- var glove:=w.mat(Color("6b2422"),load("res://assets/aged-plaster.png"),.76)
- var arm:=bone(root,.085,suit);var forearm:=bone(root,.067,suit);var hand:=Node3D.new();root.add_child(hand)
- var palm:=w.sphere(hand,Vector3.ZERO,.047,glove);palm.scale=Vector3(.85,1.25,.55)
- for i in range(4):
-  w.tube(hand,Vector3(-.035+i*.022,-.03,.006),Vector3(-.035+i*.022,-.079,.026),.012,glove)
-  w.tube(hand,Vector3(-.035+i*.022,-.079,.026),Vector3(-.035+i*.022,-.071,.06),.01,glove)
- w.tube(hand,Vector3(.045,.015,0),Vector3(.03,-.025,.05),.016,glove)
+ var arm:=sleeve(root,.085);var forearm:=sleeve(root,.067)
+ var hand: Node3D=(load("res://assets/props/anatomical-grip.glb") as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
  link(arm,Vector3(-.28,1.48,0),Vector3(-.25,1.15,.42))
  link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))
- var idle_arm:=bone(root,.075,suit);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))
+ var idle_arm:=sleeve(root,.075);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))
  var idle:=hand.duplicate();root.add_child(idle);idle.position=Vector3(.32,.9,.08)
  var spoon:=bone(root,.016,w.materials.wood);var bowl:=w.sphere(root,Vector3.ZERO,.058,w.materials.wood);bowl.scale=Vector3(1,.3,1.35)
  return {"root":root,"head":head,"upper":arm,"forearm":forearm,"hand":hand,"spoon":spoon,"bowl":bowl}

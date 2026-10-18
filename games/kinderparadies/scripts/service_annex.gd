@@ -176,7 +176,7 @@ func tick(delta: float, active: bool) -> void:
  if scare or settled: return
  var a:=clock*1.5;var hand:=Vector3(-.05+cos(a)*.12,1.42,1.08+sin(a)*.12);var tip:=Vector3(cos(a)*.12,1.22,1.15+sin(a)*.12)
  HorrorFigures.link(clown.upper,Vector3(-.28,1.48,0),Vector3(-.25,1.18,.42));HorrorFigures.link(clown.forearm,Vector3(-.25,1.18,.42),hand)
- clown.hand.position=hand;HorrorFigures.link(clown.spoon,hand,tip);clown.bowl.position=tip
+ clown.hand.position=hand;clown.hand.quaternion=Quaternion(Vector3.UP,(Vector3(-.25,1.18,.42)-hand).normalized());HorrorFigures.link(clown.spoon,hand,tip);clown.bowl.position=tip
  clown.head.rotation.z=sin(clock*.42)*.025
 
 func safe_pose(pos: Vector3) -> bool:

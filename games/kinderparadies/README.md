@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.9.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.9.3.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -280,6 +280,24 @@ die übersehene Veränderung. Nach 13 richtigen Entscheidungen folgt der Abschlu
 Modelle: `tools/model-nachtwache-props-v180.py` (Blender im Hintergrund).
 Audio und Küchenunterlagen: `tools/prepare-nachtwache-v180.py` (Python/NumPy/Pillow).
 Keine Änderungen an Benutzerkonten, Chickens oder anderen Minispielen.
+
+## v1.9.3 — Freier Gerüst-Ausgang, Schritte und Hände
+
+Der Gerüsteingang besitzt eine durchgehende Rampe mit ebenem Übergang über die
+Netzebene. Die frühere geneigte Box konnte die Kapsel beim Herausgehen an der
+Kante festhalten. Die Prüfung läuft nun mittig und seitlich in beide Richtungen,
+ohne Springen und Ducken.
+
+Sieben zusätzliche Bearbeitungen echter CC0-Aufnahmen ergänzen die Atmosphäre:
+Geh- und Laufschritte, Tropfen, Metallknarzen, Geschirr, Schachtgeräusche und ein
+auslaufender Motor. Schritte bewegen sich als unsichtbare räumliche Quelle in
+den Gängen. Alle Geräusche pausieren mit dem Spiel und sind keine Anomalien.
+Quellen und Bearbeitung stehen in assets/ambience-v193/provenance.json.
+
+Der Küchenclown hat überarbeitete Kopfproportionen, Greasepaint, Schürze und
+gefaltete Ärmel. Modellierte Hände mit Fingergelenken, Daumen, Nägeln und
+Falten ersetzen die einfachen Handschuhe; auch am Taschenlampengriff ist eine
+Hand sichtbar. Die CC-BY-3.0-Attribution der anatomischen Kopfbasis bleibt erhalten.
 
 ## v1.9.2 — Spieluhr, Decken und Kino-Gestalt
 

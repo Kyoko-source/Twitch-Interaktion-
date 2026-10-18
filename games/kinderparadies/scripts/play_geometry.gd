@@ -87,6 +87,21 @@ static func arch(w: PlayWorld, root: Node3D, z: float) -> void:
   var body:=StaticBody3D.new();var collider:=CollisionShape3D.new();var shape:=CapsuleShape3D.new();var direction:=points[i+1]-points[i]
   shape.radius=.11;shape.height=direction.length()+.22;collider.shape=shape;body.position=(points[i]+points[i+1])*.5;body.quaternion=Quaternion(Vector3.UP,direction.normalized());body.add_child(collider);node.add_child(body)
 
+static func entry_ramp(w: PlayWorld, root: Node3D) -> MeshInstance3D:
+ # A flat landing crosses the net plane. The old tilted box left the capsule
+ # below the deck when walking out, so floor snapping caught the edge repeatedly.
+ var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+ var profile: Array[Vector2]=[Vector2(-1.65,-.018),Vector2(-.55,.305),Vector2(.35,.305)]
+ for i in range(2):
+  var a:=Vector3(profile[i].x,profile[i].y,-1.67);var b:=Vector3(profile[i].x,profile[i].y,-.33)
+  var c:=Vector3(profile[i+1].x,profile[i+1].y,-1.67);var d:=Vector3(profile[i+1].x,profile[i+1].y,-.33)
+  triangle(tool,a,c,b,true);triangle(tool,c,d,b,true)
+  for z in [-1.67,-.33]:
+   var p:=Vector3(a.x,a.y,z);var q:=Vector3(c.x,c.y,z)
+   triangle(tool,p,Vector3(p.x,-.06,z),q,z< -1);triangle(tool,q,Vector3(p.x,-.06,z),Vector3(q.x,-.06,z),z< -1)
+ tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.name="ContinuousEntryRamp";mesh.mesh=tool.commit();mesh.material_override=w.materials.red;root.add_child(mesh);mesh.create_trimesh_collision()
+ return mesh
+
 static func slide_height(t: float) -> float:
  return lerpf(2.29,.54,smoothstep(0,1,t))
 
