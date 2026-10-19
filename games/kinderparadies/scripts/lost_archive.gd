@@ -102,9 +102,9 @@ func _paper(id: String, parent: Node3D, pos: Vector3, size: Vector2, turn: Vecto
  for row in range(16):
   for col in range(12):
    for q in [Vector2(col,row),Vector2(col+1,row),Vector2(col,row+1),Vector2(col+1,row),Vector2(col+1,row+1),Vector2(col,row+1)]:
-    var u: float=q.x/12;var v: float=q.y/16;var bend: float=pow(absf(u-.5)*2,5)*.006+sin(v*PI)*.0015
+    var u: float=q.x/12;var v: float=q.y/16;var bend: float=pow(absf(u-.5)*2,5)*.009+sin(v*PI)*.0015+absf(u-.5)*.004+sin(v*9)*.001
     tool.set_uv(Vector2(u,v));tool.add_vertex(Vector3((u-.5)*size.x,(.5-v)*size.y,bend))
- tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit();var material:=w.mat(Color.WHITE,load("res://assets/story/"+id+".png"),.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;mesh.material_override=material;root.add_child(mesh)
+ tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit();var material:=w.mat(Color.WHITE,load("res://assets/story/"+id+".png"),.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;material.alpha_scissor_threshold=.5;mesh.material_override=material;root.add_child(mesh)
  var body:=StaticBody3D.new();body.collision_layer=4;body.collision_mask=0;body.set_meta("interaction","paper:"+id);root.add_child(body)
  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(size.x,size.y,.018);collision.shape=shape;body.add_child(collision);items[id]=root
 

@@ -1,31 +1,49 @@
 {
   "note": {
-    "title": "Vergilbter Zettel", "section": "An der verschlossenen Tür", "headline": "Erinnere dich.", "stage": 0,
+    "title": "Vergilbter Zettel",
+    "section": "An der verschlossenen Tür",
+    "headline": "Erinnere dich.",
+    "stage": 0,
     "body": "„Erinnere dich an den Anfang. Zähle die Verlorenen. Höre ihre Rufe. Vergiss nicht, wie lange wir gewartet haben.“",
-    "footer": "Die Tinte ist verblasst. Unter dem letzten Satz liegt ein alter, dunkler Fingerabdruck."
+    "footer": ""
   },
   "opening": {
-    "title": "Zeitung 1 · Die Eröffnung", "section": "LOKALES · SONDERAUSGABE", "headline": "Happyland eröffnet mit großem Erfolg!", "stage": 3,
+    "title": "Zeitung 1 · Die Eröffnung",
+    "section": "LOKALES · SONDERAUSGABE",
+    "headline": "Happyland eröffnet mit großem Erfolg!",
+    "stage": 3,
     "body": "Mit bunten Girlanden und einer großen Geburtstagsveranstaltung öffnete das neue Kinderparadies Happyland seine Türen. Schon am frühen Nachmittag standen Familien vor dem Eingang.\n\nDie Feier begann am 6. Juni. Insgesamt 13 Kinder waren eingeladen. Für sie waren im Feiersaal Plätze gedeckt; anschließend sollte es gemeinsam ins Bällebad gehen.\n\nDer Betreiber sprach von einem Ort, an dem Kinder die Zeit vergessen dürfen. Für die kommenden Wochen seien weitere Feiern geplant. Ein Mitarbeiter führte die Gäste durch die neuen Krabbeltunnel und das kleine Kino.\n\nAm Ende der Veranstaltung blieb die Eingangstür noch lange geschlossen. Auf Nachfrage hieß es, die Gruppe sei noch nicht vollständig versammelt.",
     "footer": "Der untere Rand wurde abgeschnitten. Der Name des Verfassers fehlt."
   },
   "missing": {
-    "title": "Zeitung 2 · Das Verschwinden", "section": "POLIZEIBERICHT · NACHTRAG", "headline": "Kinder nach Zwischenfall vermisst", "stage": 5,
+    "title": "Zeitung 2 · Das Verschwinden",
+    "section": "POLIZEIBERICHT · NACHTRAG",
+    "headline": "Kinder nach Zwischenfall vermisst",
+    "stage": 5,
     "body": "Nach einem Zwischenfall im Kinderparadies Happyland suchen Einsatzkräfte weiter nach vermissten Kindern. Über den Ablauf des Abends liegen widersprüchliche Angaben vor.\n\nNach Angaben der Polizei konnten zunächst 9 Kinder aus dem Gebäude gebracht werden. Die übrigen blieben verschwunden. In der ursprünglichen Gästeliste waren insgesamt 13 Kinder vermerkt.\n\nAngehörige warteten bis in die Morgenstunden vor dem Eingang. Eine Sprecherin wollte nicht bestätigen, welche Bereiche des Gebäudes bereits vollständig durchsucht worden waren.\n\nDie Leitung verwies auf eine technische Störung. Der Betrieb bleibt vorerst geschlossen. Die Polizei bittet Zeugen, sich zu melden, und warnt davor, das Gebäude eigenständig zu betreten.",
     "footer": "Neben dem Artikel wurde mit Bleistift eine Frage notiert: Wer hat die Liste geändert?"
   },
   "coverup": {
-    "title": "Zeitung 3 · Die Vertuschung", "section": "ERMITTLUNGEN · ZEUGENAUSSAGEN", "headline": "Betreiber widerspricht Zeugenaussagen", "stage": 8,
+    "title": "Zeitung 3 · Die Vertuschung",
+    "section": "ERMITTLUNGEN · ZEUGENAUSSAGEN",
+    "headline": "Betreiber widerspricht Zeugenaussagen",
+    "stage": 8,
     "body": "Neue Aussagen werfen Fragen zum vermuteten Zeitpunkt des Zwischenfalls in Happyland auf. Die Ermittler prüfen die Angaben der Geschäftsführung.\n\nLaut Ermittlungen wählten in jener Nacht zwei Personen unabhängig voneinander den Notruf. Insgesamt wurden 2 Notrufe abgesetzt. Beide Anrufer berichteten von Kindern im Gebäude.\n\nDie Geschäftsführung bestreitet jedoch, dass sich zu diesem Zeitpunkt Kinder im Gebäude befanden. Der Feiersaal sei längst aufgeräumt gewesen, erklärte ein Verantwortlicher.\n\nEin Zeuge widerspricht: Aus Richtung der Küche seien noch Rufe zu hören gewesen. Einen Zugang zu den internen Unterlagen erhielten die Ermittler nach eigenen Angaben erst verspätet.",
     "footer": "Ein breiter Fettfleck verdeckt die letzte Spalte. Der Absatz über die Notrufe ist noch lesbar."
   },
   "closure": {
-    "title": "Zeitung 4 · Die Schließung", "section": "LOKALES · LETZTE MELDUNG", "headline": "Happyland endgültig geschlossen", "stage": 11,
+    "title": "Zeitung 4 · Die Schließung",
+    "section": "LOKALES · LETZTE MELDUNG",
+    "headline": "Happyland endgültig geschlossen",
+    "stage": 11,
     "body": "Das Kinderparadies Happyland wird nicht wieder öffnen. Die Fenster sind verdunkelt, die Spielgeräte bleiben im Gebäude zurück.\n\nNach 8 Monaten Ermittlungen wurden die Untersuchungen ohne abschließendes Ergebnis eingestellt. Für die vermissten Kinder konnte kein bestätigter Verbleib ermittelt werden.\n\nDie Betreiber kündigten an, die Räume zu versiegeln. Unterlagen würden eingelagert. Eine geplante öffentliche Stellungnahme fand nicht statt.\n\nNoch immer legen Angehörige Blumen vor die Tür. Auf einer Karte steht: Wir haben nicht vergessen. Auch nicht, wie lange wir gewartet haben.",
     "footer": "Das Papier riecht nach feuchtem Kunststoff. Jemand hat es tief in den Tunnel geschoben."
   },
   "casefile": {
-    "title": "Die zurückgelassene Akte", "section": "INTERN · NICHT ZUR VERÖFFENTLICHUNG", "headline": "Vier Plätze bleiben leer.", "stage": 0,
+    "title": "Die zurückgelassene Akte",
+    "section": "INTERN · NICHT ZUR VERÖFFENTLICHUNG",
+    "headline": "Vier Plätze bleiben leer.",
+    "stage": 0,
     "body": "An der Rückseite der Gästeliste stehen dreizehn Striche. Neun wurden abgehakt. Die übrigen vier sind immer wieder nachgezogen worden.\n\nIn der Akte liegen Abschriften der beiden Notrufe. Die Stimmen der Anrufer wurden nicht zugeordnet. Beide nennen das Kinderparadies. Beide widersprechen der späteren Aussage der Geschäftsführung.\n\nNach acht Monaten endet die Ablage. Es gibt keine Abschlussmeldung, die den Verbleib der vier Kinder bestätigt. Nur einen Vermerk: Räume geschlossen. Unterlagen verbleiben vor Ort.\n\nZwischen den Seiten liegt ein unbeschriftetes Blatt. Darauf steht derselbe Satz wie an der Tür: Erinnere dich an den Anfang.\n\nDu kannst den Raum wieder verlassen. Deine Nachtschicht ist noch nicht beendet.",
     "footer": "Eine Antwort fehlt weiterhin. Dass niemand mehr gesucht hat, bedeutet nicht, dass niemand mehr hier ist."
   }

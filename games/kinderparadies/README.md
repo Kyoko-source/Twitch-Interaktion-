@@ -41,14 +41,14 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 `prepare-kinderparadies-templates.py` lädt per HTTP-Range ausschließlich die
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
-Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/after-play-windows-v2.0.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
+`build/after-play-windows-v2.1.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
 prüft Logik, Save/Restore, alle Anomalien, Bewegung, Boden und beide Tür-Raycasts.
 Auch die exportierte EXE unterstützt denselben isolierten Testmodus:
-`Nachtwache.exe --headless -- --self-test`. Tests verwenden eigene QA-Spielstände.
+`AfterPlay.exe --headless -- --self-test`. Tests verwenden eigene QA-Spielstände.
 
 Browserprüfungen: eigener lokaler HTTP-Server für `build/qa`, dann im Frontend
 `NACHTWACHE_QA_URL=http://127.0.0.1:4188 npx playwright test nachtwatch.spec.mjs`.
@@ -117,7 +117,7 @@ Die Halle wächst von etwa 460 auf 880 Quadratmeter bei 7,4 Metern Deckenhöhe.
 Der Empfangstresen ist jetzt 96 Zentimeter tief und 2,9 Meter lang, mit passenden
 Requisiten statt einer riesigen Tischplatte. Die erste Kletteranlage wird höher
 und breiter, eine zweite Anlage mit begehbaren Rampen und einer Hängebrücke
-kommt hinzu. Der größere Partyraum besitzt Bastelplätze, Kinderhocker,
+kommt hinzu. Der größere Party Raum besitzt Bastelplätze, Kinderhocker,
 Geschenke, Geschirr und Wandzeichnungen; weitere Spielzonen füllen die Halle.
 
 Ein etwa zehn Meter langes originales aufblasbares Krokodil hat modellierte
@@ -153,7 +153,7 @@ Figur. Prompts und Dateipfade in `art/PROMPTS-CROCODILE.md`.
 
 ## Umgebung 1.6.0
 
-Das Ostgerüst und seine Rampen stehen vollständig vor der Partyraumwand;
+Das Ostgerüst und seine Rampen stehen vollständig vor der Party Raumwand;
 die Brücke verbindet die tatsächlichen Plattformhöhen. Alle sechs Stühle
 zeigen zum Tisch, auch das importierte Windows-Modell. Verschwundene Stühle
 lassen keine unsichtbaren Kollisionen zurück. 360 Bälle sind mit Abstand
@@ -177,7 +177,7 @@ auf. Upstream: https://github.com/godotengine/godot/issues/122498.
 
 ## Spielanlage und Wandmalereien 1.6.0
 
-Der Durchgang zum Partyraum besitzt einen echten 2,4 Meter breiten und drei
+Der Durchgang zum Party Raum besitzt einen echten 2,4 Meter breiten und drei
 Meter hohen Wandausschnitt mit schlankem Holzrahmen. Die Westanlage rückt
 zur Seite; Geburtstagstisch und Stühle geben im Nebenraum mehr Platz frei.
 
@@ -195,7 +195,7 @@ lassen den vorhandenen Putz durchscheinen. Sie sind beleuchtete Wandoberflächen
 keine schwebenden Schriftzüge. Quelle und Prompt: `art/PROMPTS-MURALS.md`.
 
 `scene_audit.gd` prüft zusätzlich Objekte gegen die intakten Netzflächen.
-Die Bewegungstests laufen real durch Partyraumtür, Rutsche und Brücke; Web-QA
+Die Bewegungstests laufen real durch Party Raumtür, Rutsche und Brücke; Web-QA
 prüft die Brücke in beide Richtungen. `--render-qa --geometry-qa` erstellt
 gezielte GPU-Aufnahmen dieser Stellen. Buildfehler und Laufzeit-Skriptfehler
 brechen die Verpackung auch bei einem Engine-Exitcode von null ab.
@@ -301,7 +301,7 @@ Hand sichtbar. Die CC-BY-3.0-Attribution der anatomischen Kopfbasis bleibt erhal
 
 ## v1.9.2 — Spieluhr, Decken und Kino-Gestalt
 
-Der Feierraum ist über einen nach Norden versetzten, freien Eingang erreichbar.
+Der Party Raum ist über einen nach Norden versetzten, freien Eingang erreichbar.
 Auf dem Sideboard steht eine modellierte Spieluhr mit drehender Hasenfigur; sie
 spielt die gelieferte Musikbox.mp3 räumlich und pausiert mit dem Spiel. Die Datei
 liegt für künftige Builds unter NACHTWACHE MUSIKBOX/Musikbox.mp3.
@@ -343,7 +343,7 @@ Klingeln und Aufzugsgong sind eigene, neu erzeugte Tonsignale.
 Die Leuchtstreifen im Klettergerüst und die frei schwebenden Laken entfallen.
 Deckenlampen erhalten Befestigungen bis zur Decke; Träger, Rohrschellen,
 Dunstabzug und Kinoprojektor sind angeschlossen. Neue Regale mit Böden,
-Büchern und Spielzeugkörben ersetzen die leeren Regale. Die Partyraumwand
+Büchern und Spielzeugkörben ersetzen die leeren Regale. Die Party Raumwand
 erhält eine niedrige Kommode mit Geschirr und Geschenken. Zusätzliche
 Arbeitsflächen, Vorräte, Fliesen, Geschirr und Reinigungsutensilien füllen die
 Küche; die Laufwege und der Vergleichszustand der Anomalien bleiben frei.
@@ -413,3 +413,33 @@ Der Raum, seine Tür und Dokumente zählen nicht als Anomalien.
 
 Druckseiten, Texte, Papier, Aktenblätter und Türmaterialien sind eigens
 für das Spiel gestaltet; es werden keine echten Vermisstenfälle verwendet.
+
+
+## v2.1.0 — Die Besucher
+
+20 entfernte Anomalien wurden durch neue Begegnungen ersetzt, verteilt über Empfang, Bällebad/Kletteranlage, Party Raum, Wartungsgang, Küche, Kino und Krabbelröhren. Kurze Verfolgungen respektieren die Raumkollisionen und lassen einen erkennbaren Resthinweis zurück. Bewegung, Animationen, Schreckgeräusche und Verfolgungsschritte pausieren gemeinsam. Die neuen Besucher sind nicht in normalen Runden vorhanden.
+
+Die Gestalt am Dachfenster der Röhre wird unmittelbar nach dem Verlassen ausgeblendet. Auch die neue Tunnelverfolgung und die Fensterhände sind nur im Inneren zu sehen.
+
+Das Kino zeigt eine eigenständig modellierte knöcherne Schachtkreatur mit tiefen Augenhöhlen, beschädigtem Gebiss und einem Wirbelhals. Das Party Raum-Fresko greift vier leere Stühle als wiederkehrendes Motiv auf. Die vier Zeitungen enthalten eigens generierte fiktive Archivfotos, lesbaren Spaltensatz und beschädigte Papierkanten. Im Inventar bleibt zusätzlich eine Lesefassung erhalten.
+
+Bildmotive: eingebautes OpenAI-Bildwerkzeug, Projektdateien `assets/story/archive-photos-v21.png` und `assets/creatures/party-fresco-v21.png`. Die Prompts beschreiben vier fiktive Schwarzweiß-Archivaufnahmen des Happyland sowie ein gealtertes Clown-Theaterfresko mit vier leeren Stühlen. Keine echten Vermisstenfälle oder fremden Zeitungsscans. Die beiden 3D-Modelle werden durch `tools/model-after-play-nightmares.py` in Blender erzeugt.
+
+## Update 2.1.0
+
+Zwanzig bisherige Anomalien wurden durch körperliche Begegnungen, kurze
+Verfolgungen und Schreckmomente in Empfang, Spielhalle, Party Raum,
+Wartungsgang, Küche, Kino und Krabbeltunnel ersetzt. Alte Spielstände werden
+auf die neuen Ereignisse umgestellt. Alle Röhrengestalten sind ausschließlich
+von innen sichtbar. Ein eigenständig modellierter Pferdeschädel hängt an
+seiner langen Wirbelsäule im dunklen Kinoschacht; ein neues originales
+Clownfresko schmückt die Partywand. Die Zeitungen haben fotografische Motive,
+Satzspalten, eingerissene Ränder und gewelltes Papier.
+
+Der Türzettel ist handschriftlich. Die Küchenleuchte hat kurze synchronisierte
+Kontaktfehler; Spülbecken, Schwanenhals-Armatur, Topf und Eimer besitzen echte
+Innenflächen. Das Bällebad nutzt eine vorberechnete unregelmäßige Schüttung
+mit 4 mm Abstand zwischen den Kugeln. Das Krokodil hat einen vollständigen
+Hinterkörper mit Rückenpanzer und langem Schwanz. Der Serverraum besitzt
+Boden, Decke, Wände und einen freien Durchgang; Speicherstände in diesem
+Raum werden fortgesetzt. Geräusche pausieren beim Lesen und im Pausenmenü.

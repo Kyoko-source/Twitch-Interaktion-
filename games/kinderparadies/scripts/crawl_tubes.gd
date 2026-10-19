@@ -10,6 +10,7 @@ var w: PlayWorld
 var watcher: Node3D
 var face: Node3D
 var inside:=false
+var watcher_enabled:=false
 
 static func route(s: float) -> Vector3:
  s=clampf(s,0,LENGTH)
@@ -161,10 +162,11 @@ func _watcher() -> void:
   for finger in range(4): w.tube(watcher,Vector3(side*(.47+finger*.035),.25,.35),Vector3(side*(.47+finger*.037),.45+sin(finger)*.035,.36),.016,skin)
 
 func set_anomaly(id: String) -> void:
- watcher.visible=id=="tube_watcher"
+ watcher_enabled=id=="tube_watcher";watcher.hide()
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  inside=contains(player.position)
+ watcher.visible=watcher_enabled and inside
  if active and watcher.visible:
   var offset:=player.position-route(7.4)
   face.rotation.y=lerpf(face.rotation.y,clampf(offset.x*.15,-.18,.18),delta*2)

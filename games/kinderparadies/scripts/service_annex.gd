@@ -66,16 +66,15 @@ func _kitchen() -> void:
   for col in range(20):
    var tile:=w.box(self,Vector3(-17.23,.45+row*.24,-21.85+col*.4),Vector3(.028,.23,.39),enamel if (row*7+col)%9 else w.materials.rust)
    tile.rotation.x=.012*sin(col*row)
- w.box(self,Vector3(-16.7,.5,-18.0),Vector3(1,.98,5.8),steel,true)
+ w.box(self,Vector3(-16.7,.4,-18.0),Vector3(1,.78,5.8),steel,true)
  for z in [-20,-18.8,-17.6,-16.4]:
   w.box(self,Vector3(-16.16,.48,z),Vector3(.045,.86,1.12),enamel)
   w.tube(self,Vector3(-16.12,.74,z-.22),Vector3(-16.12,.74,z+.22),.018,w.materials.rust)
- w.box(self,Vector3(-16.65,1.03,-18),Vector3(1.14,.08,6.1),steel,true)
- # Sink with a recessed dark bowl and an arched tarnished faucet.
- w.box(self,Vector3(-16.63,1.075,-16.65),Vector3(.78,.04,.92),w.materials.dark)
- for i in range(10):
-  var a: float=i*PI/10;var b: float=(i+1)*PI/10
-  w.tube(self,Vector3(-16.9+sin(a)*.18,1.16+sin(a)*.25,-16.65+cos(a)*.18),Vector3(-16.9+sin(b)*.18,1.16+sin(b)*.25,-16.65+cos(b)*.18),.018,steel)
+ # The counter is cut around the bowl, so no solid slab fills its interior.
+ for segment in [Vector2(-21.05,-17.16),Vector2(-16.14,-14.95)]:
+  w.box(self,Vector3(-16.65,1.03,(segment.x+segment.y)*.5),Vector3(1.14,.08,segment.y-segment.x),steel,true)
+ for x in [-17.165,-16.135]: w.box(self,Vector3(x,1.03,-16.65),Vector3(.11,.08,1.02),steel,true)
+ SurfaceDetails.sink(w,self,steel)
  # Cooker island leaves a complete approach and escape route on every side.
  var cooker:=Node3D.new();cooker.name="Cooker";cooker.position=Vector3(-13.25,0,-19.25);add_child(cooker)
  w.box(cooker,Vector3(0,.46,0),Vector3(.95,.92,1.1),enamel,true)
@@ -86,8 +85,8 @@ func _kitchen() -> void:
    for i in range(3): w.tube(cooker,Vector3(x-.13+i*.13,.97,z-.19),Vector3(x-.13+i*.13,.97,z+.19),.015,w.materials.metal)
  for z in [-.33,-.11,.11,.33]: w.sphere(cooker,Vector3(.49,.82,z),.039,w.materials.dark)
  var hood:=w.box(self,Vector3(-13.25,2.8,-19.25),Vector3(1.45,.25,1.5),steel);w.box(self,Vector3(-13.25,3.24,-19.25),Vector3(.5,.64,.55),steel)
- var pot:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.top_radius=.34;cylinder.bottom_radius=.29;cylinder.height=.37;cylinder.cap_top=false;cylinder.radial_segments=48;pot.mesh=cylinder;pot.material_override=steel;pot.position=Vector3(-13.25,1.16,-19.25);add_child(pot)
- var rim:=TorusMesh.new();rim.inner_radius=.323;rim.outer_radius=.35;rim.rings=48;rim.ring_segments=10;var ring:=MeshInstance3D.new();ring.mesh=rim;ring.material_override=steel;ring.position=Vector3(-13.25,1.35,-19.25);add_child(ring)
+ var interior:=w.mat(Color("4a4a35"),load("res://assets/aged-plaster.png"),.93,.35);interior.uv1_triplanar=true;interior.uv1_scale=Vector3.ONE*5
+ SurfaceDetails.vessel(self,Vector3(-13.25,.975,-19.25),.37,.34,.29,.018,steel,interior,"CookingPot")
  for side in [-1,1]: w.tube(self,Vector3(-13.25+side*.31,1.22,-19.25),Vector3(-13.25+side*.49,1.22,-19.25),.035,steel)
  var shader:=Shader.new();shader.code="""
 shader_type spatial;
@@ -111,7 +110,7 @@ void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;
  for y in [.6,1.4]: w.box(self,Vector3(-11,y,-21.2),Vector3(1.1,.65,.05),steel)
  if OS.has_feature("web"):
   for i in range(4): w.box(self,Vector3(-16.4+(i%2)*.55,.2+floori(i/2.0)*.4,-14.1),Vector3(.5,.38,.5),w.materials.wood,true)
- var key:=w.lamp(Vector3(-13.6,3.2,-18.7),Color("bab97b"),1.25,7);key.shadow_enabled=true
+ var key:=w.lamp(Vector3(-13.6,3.2,-18.7),Color("bab97b"),1.25,7);key.shadow_enabled=true;key.set_meta("kitchen_flicker",true);key.set_meta("base_energy",1.25)
  clown=HorrorFigures.clown(w,self);clown.root.position=clown_origin;clown.root.rotation.y=PI/2
  var collider:=StaticBody3D.new();collider.position=clown_origin+Vector3(0,.85,0);clown_shape=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.32;capsule.height=1.7;clown_shape.shape=capsule;collider.add_child(clown_shape);add_child(collider)
 

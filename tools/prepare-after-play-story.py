@@ -6,7 +6,7 @@ images. The same catalog drives the in-game reader and every printed clipping.
 from pathlib import Path
 import json, random, textwrap
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'games/kinderparadies/assets/story'
@@ -19,7 +19,8 @@ def paper(w=1024,h=1450):
  edge=np.minimum.reduce([x/w,(w-1-x)/w,y/h,(h-1-y)/h])
  fox=np.maximum(0,np.sin(x*.018+np.cos(y*.012))*np.cos(y*.013+x*.009)-.6)*13
  crease=np.exp(-((x-w*.51)/7)**2)*9+np.exp(-((y-h*.48)/5)**2)*8
- age=np.maximum(0,.09-edge)*170+fox+crease
+ water=13*np.exp(-((x-w*.86)/(w*.19))**2-((y-h*.74)/(h*.12))**2)+8*np.exp(-((x-w*.1)/(w*.17))**2-((y-h*.23)/(h*.21))**2)
+ age=np.maximum(0,.09-edge)*230+fox+crease+water
  a=np.stack([222+grain-age,208+grain-age*1.1,171+grain-age*1.4],axis=2).clip(0,255).astype('uint8')
  im=Image.fromarray(a,'RGB');d=ImageDraw.Draw(im)
  rand=random.Random(w+h)
@@ -41,28 +42,50 @@ def paragraph(d,text,x,y,width,face,leading,fill=(45,40,31)):
  return y
 
 paper().save(OUT/'paper.png')
+photos=Image.open(OUT/'archive-photos-v21.png').convert('RGB')
+photo_ids=['opening','missing','coverup','closure']
+captions=['Archivaufnahme: Die gedeckten Plätze im neuen Happyland.','Die Polizei sperrte den Eingang noch in derselben Nacht.','Die Küche blieb trotz widersprüchlicher Aussagen unberührt.','Das versiegelte Gebäude nach dem Ende der Ermittlungen.']
 for id,item in catalog.items():
  im=paper();d=ImageDraw.Draw(im)
  if id=='note':
   d.line((90,120,930,120),fill=(151,126,91),width=2)
-  paragraph(d,item['body'],105,320,810,font(48),77)
+  hand=ImageFont.truetype('C:/Windows/Fonts/Inkfree.ttf',53)
+  d.text((103,185),'Erinnere dich.',font=ImageFont.truetype('C:/Windows/Fonts/Inkfree.ttf',78),fill=(53,44,31))
+  paragraph(d,item['body'],105,360,810,hand,89)
   d.line((120,1210,880,1194),fill=(148,124,89),width=2)
  else:
   d.text((512,38),'STADTBOTE' if id!='casefile' else 'HAPPYLAND · INTERN',font=font(69,True),fill=(34,31,25),anchor='mt')
   d.line((65,130,959,130),fill=(52,45,33),width=4)
   d.text((65,150),item['section'],font=font(20,True),fill=(59,49,35))
   y=paragraph(d,item['headline'],65,205,894,font(52,True),65)
-  y+=22;d.line((65,y,959,y),fill=(68,57,38),width=2);y+=30
+  y+=22;d.line((65,y,959,y),fill=(68,57,38),width=2);y+=22
+  if id in photo_ids:
+   cell=photo_ids.index(id);pw,ph=photos.size
+   photograph=photos.crop(((cell%2)*pw//2,(cell//2)*ph//2,(cell%2+1)*pw//2,(cell//2+1)*ph//2))
+   photograph=ImageOps.fit(photograph,(894,330),method=Image.Resampling.LANCZOS)
+   # Layout compositing of the generated photo atlas, rather than a fake photo.
+   im.paste(photograph,(65,int(y)));d.rectangle((65,y,959,y+330),outline=(63,54,39),width=2);y+=343
+   d.text((65,y),captions[cell],font=font(18),fill=(71,57,37));y+=37
   # Two real typeset columns retain every clue without an unreadable tiny scan.
   face=font(25);lines=wrap(d,item['body'].replace('\n\n','\n'),face,426)
   midpoint=(len(lines)+1)//2
   for col in range(2):
    cy=y
    for line in lines[col*midpoint:(col+1)*midpoint]:
-    d.text((65+col*468,cy),line,font=face,fill=(48,42,32));cy+=35
+    d.text((65+col*468,cy),line,font=face,fill=(48,42,32));cy+=32
   d.line((512,y,512,1308),fill=(134,114,80),width=1)
   d.line((65,1332,959,1332),fill=(68,57,38),width=2)
   paragraph(d,item['footer'],65,1354,894,font(19),25,fill=(97,78,48))
+ if id in photo_ids:
+  # Uneven missing corners and tiny edge tears are printed into an alpha mask;
+  # the actual world prop is also curled and creased geometry.
+  im=im.convert('RGBA');mask=Image.new('L',im.size,255);md=ImageDraw.Draw(mask)
+  edge_rng=random.Random(900+photo_ids.index(id))
+  md.polygon([(0,0),(edge_rng.randint(25,58),0),(0,edge_rng.randint(38,80))],fill=0)
+  md.polygon([(1024,1450),(970,1450),(1024,1376)],fill=0)
+  for yy in range(70,1400,107):
+   depth=edge_rng.randint(3,13);md.polygon([(0,yy),(depth,yy+4),(0,yy+13)],fill=0)
+  im.putalpha(mask)
  im.save(OUT/(id+'.png'))
 
 for record in range(1,5):
@@ -103,5 +126,5 @@ Image.fromarray(a.clip(0,255).astype('uint8'),'RGB').save(OUT/'rust-door.png')
 rough=np.clip(180+paint*50+rng.normal(0,7,(n,n)),0,255).astype('uint8');Image.fromarray(rough,'L').save(OUT/'rust-roughness.png')
 height=paint*.7+rust*.35+noise*.035;dy,dx=np.gradient(height);normal=np.stack([-dx*4,-dy*4,np.ones_like(dx)],axis=2);normal/=np.linalg.norm(normal,axis=2)[:,:,None]
 Image.fromarray(((normal*.5+.5)*255).astype('uint8'),'RGB').save(OUT/'rust-normal.png')
-(OUT/'LICENSE.txt').write_text('Original project-authored fictional articles, page layouts and procedural paper/metal materials. Typography rendered to bitmap using installed system fonts; no font files are redistributed. No real newspaper scans, real missing-person cases or third-party photographs are used.\n',encoding='utf-8')
+(OUT/'LICENSE.txt').write_text('Original project-authored fictional articles, page layouts and procedural paper/metal materials. Four fictional archival photographs generated with the built-in OpenAI image generation tool for this project. Typography rendered to bitmap using installed system fonts; no font files are redistributed. No real newspaper scans, real missing-person cases or third-party photographs are used.\n',encoding='utf-8')
 print('Printed',len(catalog),'original story props and door materials.')

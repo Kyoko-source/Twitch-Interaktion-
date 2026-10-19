@@ -13,7 +13,7 @@ static func build(w: PlayWorld, parent: Node3D) -> void:
  w.box(parent,Vector3(-15.2,3.48,-17),Vector3(.23,.1,2.2),steel)
  var diffuser:=w.mat(Color("9ba995"),null,.42);diffuser.emission_enabled=true;diffuser.emission=Color("b7bd9c");diffuser.emission_energy_multiplier=.45
  w.box(parent,Vector3(-15.2,3.415,-17),Vector3(.17,.035,2.0),diffuser)
- w.lamp(Vector3(-15.0,3.25,-16.9),Color("b7bd9c"),.55,5)
+ var fixture:=w.lamp(Vector3(-15.0,3.25,-16.9),Color("b7bd9c"),.55,5);fixture.set_meta("kitchen_flicker",true);fixture.set_meta("base_energy",.55);fixture.set_meta("diffuser",diffuser)
  w.box(parent,Vector3(-9.51,2.65,-20.6),Vector3(.05,.68,1.35),w.materials.dark)
  for i in range(10): w.box(parent,Vector3(-9.56,2.36+i*.06,-20.6),Vector3(.07,.025,1.27),steel)
  # Exposed brickwork in a damaged plaster patch on the rear wall.

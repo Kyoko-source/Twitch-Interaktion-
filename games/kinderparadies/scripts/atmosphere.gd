@@ -51,7 +51,7 @@ func decal(parent: Node3D, cell: int, pos: Vector3, size: Vector2, rotation_valu
 func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
-   if side<0 and i==0: continue # The archive opening cannot carry a wall decal.
+   if side<0 and i in [0,1,2]: continue # The archive opening cannot carry a wall decal.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  # First segment is now the annex opening; never hang a decal in its doorway.
  for i in range(1,5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
@@ -204,9 +204,11 @@ func _physical_toys() -> void:
  # Hollow-looking bucket built as a cup with a separate floor, stable cylinder collider.
  var bucket:=NightProp.new();bucket.position=Vector3(3.7,.26,8.7);bucket.title="Eimer";bucket.mass=.8;add_child(bucket);loose.append(bucket)
  var shape:=CylinderShape3D.new();shape.radius=.24;shape.height=.45;var collider:=CollisionShape3D.new();collider.shape=shape;bucket.add_child(collider)
- var mesh:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.top_radius=.24;cylinder.bottom_radius=.18;cylinder.height=.43;cylinder.cap_top=false;cylinder.radial_segments=24;mesh.mesh=cylinder;mesh.material_override=w.materials.red;bucket.add_child(mesh)
- w.tube(bucket,Vector3(0,-.215,0),Vector3(0,-.20,0),.18,w.materials.red)
- var rim:=MeshInstance3D.new();var ring:=TorusMesh.new();ring.inner_radius=.221;ring.outer_radius=.244;ring.rings=24;ring.ring_segments=8;rim.mesh=ring;rim.material_override=w.materials.red;rim.position.y=.215;bucket.add_child(rim)
+ var inside:=w.mat(Color("685347"),load("res://assets/aged-plaster.png"),.98);inside.uv1_triplanar=true;inside.uv1_scale=Vector3.ONE*3
+ SurfaceDetails.vessel(bucket,Vector3(0,-.215,0),.43,.24,.18,.018,w.materials.red,inside,"BucketCup")
+ for i in range(24):
+  var a:=i*PI/24;var b:=(i+1)*PI/24
+  w.tube(bucket,Vector3(cos(a)*.23,.12+sin(a)*.3,0),Vector3(cos(b)*.23,.12+sin(b)*.3,0),.009,w.materials.metal)
  bucket.suspend(true)
  var toy:=prop(Vector3(-4.8,.33,7.2),Vector3(.4,.62,.35),w.materials.fabric,"Stoffhase",.65)
  toy.get_child(0).queue_free();plush(toy,Vector3(0,-.29,0),.6)
@@ -238,13 +240,10 @@ void fragment(){vec2 p=local_pos.xz*3.0+vec2(clock*0.035,-clock*0.018);float n=n
  dust.multimesh=mm;dust.material_override=dust_material;dust.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(dust)
 
 func _horror_variants() -> void:
- for id in ["blood_trail","bloody_hands","blood_pool","mural_bleeds"]:
+ for id in ["blood_trail","mural_bleeds"]:
   var node:=Node3D.new();node.name=id;add_child(node);horrors[id]=node;node.visible=false
  for i in range(8):
   decal(horrors.blood_trail,3 if i%3==1 else 0,Vector3(-5.8+sin(i*.8)*.35,.039,2-i*1.4),Vector2(.75+sin(i*2.1)*.2,1.1+(i%3)*.2),Vector3(-PI/2,i*.65,0))
- for i in range(7):
-  decal(horrors.bloody_hands,1,Vector3(-10.015,.8+(i%3)*.4,-4-i*.65),Vector2(.52,.65),Vector3(0,PI/2,(i-3)*.17))
- decal(horrors.blood_pool,3,Vector3(10.2,.034,-7),Vector2(3.1,3.1),Vector3(-PI/2,0,0))
  for i in range(4): decal(horrors.mural_bleeds,0,Vector3(-9.91,1.3,-4+i*.7),Vector2(.8,2.3),Vector3(0,PI/2,0))
 
 func anomaly(id: String) -> void:

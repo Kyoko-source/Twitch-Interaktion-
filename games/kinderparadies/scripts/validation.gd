@@ -101,10 +101,6 @@ func run(game: Node3D) -> bool:
  check(game.world.environment.environment.fog_light_color.r>normal_fog.r and game.world.environment.environment.fog_light_color.g<normal_fog.g,"Fog anomaly must be visibly red, not ordinary dense mist")
  game._build_world("balls_float");game.world.tick(4,true)
  check(SceneAudit.inspect(game.world).ball_min_distance>.28,"Floating ball anomaly causes overlapping balls")
- game._build_world("hours_wrong")
- check(game.world.props.hours.material_override.albedo_texture.resource_path.ends_with("hours-wrong.png"),"Printed opening hours anomaly did not update")
- game._build_world("chairs_missing")
- for collider in game.world.props.chairs.find_children("*","StaticBody3D",true,false): check(collider.collision_layer==0,"Missing chair left an invisible obstruction")
  game._build_world("none")
  # Exercise the real CharacterBody3D movement and collision world.
  game.player.reset_pose();game.player.active=true
@@ -174,7 +170,7 @@ func run(game: Node3D) -> bool:
  var desk: MeshInstance3D=game.world.props.counter_top
  check(desk.get_aabb().size.x<1.1 and desk.get_aabb().size.z<3.1,"Reception desk is oversized")
  check(game.world.props.structure.scale.y>1.2,"Main climbing frame was not enlarged")
- game.player.position=Vector3(12.4,1.2,11.3);game.player.velocity=Vector3.ZERO;game.player.active=true
+ game.player.position=Vector3(10.0,1.2,11.3);game.player.velocity=Vector3.ZERO;game.player.active=true
  for frame in range(30): await game.get_tree().physics_frame
  check(game.player.is_on_floor() and game.player.position.y>.65,"Inflatable bed collision is not walkable")
  check(game.player.bounce_speed>7.5,"Inflatable bed did not provide spring jump")
@@ -268,7 +264,8 @@ func run(game: Node3D) -> bool:
  for frame_index in range(8): await game.get_tree().physics_frame
  check(game.player.crouching and game.world.tubes.contains(game.player.position),"Reloading a tube save restores a standing player inside the roof")
  game._build_world("tube_watcher")
- check(game.world.tubes.watcher.visible,"Window watcher anomaly does not appear")
+ game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);game.world.tubes.tick(0,true,game.player)
+ check(game.world.tubes.watcher.visible,"Window watcher anomaly does not appear inside the tube")
  game._build_world("none")
  check(not game.world.tubes.watcher.visible,"Window watcher is not removed in the next normal round")
  # Normal comparison has no proximity scare. The anomaly requires actual
@@ -295,8 +292,6 @@ func run(game: Node3D) -> bool:
  check(game.world.encounters.finished,"Bunny scare did not finish")
  game.world.encounters.tick(2,true,game.player)
  check(game.world.encounters.attack_time<3,"One-shot scare replayed")
- game._build_world("croc_breathes");game.world.encounters.tick(.8,true,game.player)
- check(game.world.props.inflatable_skin.scale.y>1.04,"Crocodile breathing is static")
  game._build_world("horse_rocks");game.world.encounters.tick(.5,true,game.player)
  check(absf(game.world.atmosphere.horrors.horse.rotation.x)>.1,"Rocking horse anomaly is static")
  game._build_world("croc_snap");game._resume()
@@ -455,6 +450,8 @@ func run(game: Node3D) -> bool:
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
  await load("res://scripts/archive_validation.gd").new().run(game,check)
+ await load("res://scripts/nightmare_validation.gd").new().run(game,check)
+ await load("res://scripts/props_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

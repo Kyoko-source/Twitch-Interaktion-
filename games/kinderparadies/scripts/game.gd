@@ -199,7 +199,7 @@ func _continue() -> void:
  var pose=data.get("pose",[])
  if int(data.get("layout_version",0)) in [7,8] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -224,12 +224,12 @@ func _pause() -> void:
 func _help(back: String) -> void:
  phase="help";return_phase=back
  var column:=_panel("Dienstanweisung","Nachtdienst im Kinderparadies")
- column.add_child(_paragraph("Erkunde Empfang, Bällebad, Partyraum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
+ column.add_child(_paragraph("Erkunde Empfang, Bällebad, Party Raum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
  column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E. Das Intro kannst du durch gehaltene Leertaste überspringen."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
- column.add_child(_paragraph("Kinderlachen, Weinen in den Krabbelröhren und Schritte in leeren Gängen gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
- column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Feierraum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
+ column.add_child(_paragraph("Kinderlachen, Weinen in den Krabbelröhren und Schritte in leeren Gängen gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Party Raum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
+ column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Party Raum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Das große Clownfresko mit vier leeren Stühlen gehört ebenfalls zum normalen Party Raum. Blutroter Nebel, frische Blutspuren sowie zusätzliche Besucher, kriechende Gestalten und greifende Arme sind Anomalien. Der Pferdeschädel hängt normalerweise im Schacht; sein plötzlicher Vorstoß ist eine Anomalie."))
  column.add_child(_paragraph("Alte Zeitungen und der Zettel an der verrosteten Tür sind Fundstücke. Schau sie an und drücke E zum Einsammeln. TAB öffnet dein Inventar; während du liest, pausiert das Spiel. Die Sammlung bleibt innerhalb der Schicht erhalten und wird gespeichert. Bei Tod oder einer neuen Nachtschicht beginnt sie von vorn. Die verrostete Tür und Fundstücke zählen nicht als Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: Fundstücke und Zeitungen · ESC: Pause\nF11: Vollbild"))
@@ -298,7 +298,7 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror,world.archive]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if intro: intro.voice.bus="NightVoice"
@@ -346,8 +346,9 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
+ world.terrors.tick(delta,phase=="play",player)
  world.archive.tick(delta,phase=="play")
- player.fright=world.encounters.shock
+ player.fright=maxf(world.encounters.shock,world.terrors.shock)
  if phase=="play":
   state.seconds+=delta
   save_clock+=delta
@@ -505,6 +506,7 @@ func _telemetry() -> void:
   data.intro=intro.snapshot()
   data.room_horror=world.room_horror.snapshot()
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
+  data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
   data.props=[]

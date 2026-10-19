@@ -1,0 +1,2 @@
+Original project-authored equine ossuary and visitor meshes, authored procedurally in Blender. The long-necked horse-skull motif is inspired by Long Horse; this is an independently modelled creature, not an imported or traced model. Party fresco generated with the built-in OpenAI image generation tool for this project.
+Crocodile v4: original project-authored Blender geometry including continuous shoulders, hindquarters, dorsal scutes and tail. Reuses the original project crocodile vinyl textures. No third-party creature model is redistributed.

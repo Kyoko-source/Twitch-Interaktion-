@@ -49,14 +49,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if id=="clown_lunge":
   _clown(delta,player);return
  var bunny: Node3D=w.atmosphere.horrors.bunny
- if id=="bunny_watches":
-  if player.position.distance_to(bunny.position)<10:
-   bunny.rotation.y=atan2(player.position.x-bunny.position.x,player.position.z-bunny.position.z)
-   bunny.rotation.z=sin(elapsed*1.2)*.045
- elif id=="croc_breathes":
-  w.props.inflatable_skin.scale=Vector3(1+sin(elapsed*1.4)*.018,1+sin(elapsed*1.4)*.085,1)
-  w.playground.set_croc_jaw(sin(elapsed*1.4)*.045)
- elif id=="balloons_follow":
+ if id=="balloons_follow":
   var target:=Vector3(clampf(player.position.x-8.5,-.5,9),0,clampf(player.position.z+8,-1,5))
   w.props.balloons.position=w.props.balloons.position.lerp(target,1-exp(-delta*.35))
  elif id=="horse_rocks":

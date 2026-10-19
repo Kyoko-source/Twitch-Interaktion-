@@ -178,10 +178,6 @@ func quality(value: int) -> void:
  for volume in fog_volumes: volume.visible=value>0
 
 func anomaly(id: String) -> void:
- if id in ["car_moves","car_float","ball_moves","extinguisher_float"]:
-  var animated: Node3D=w.props.car if id.begins_with("car") else w.props.extinguisher if id=="extinguisher_float" else w.props.loose
-  if animated is GeometryInstance3D: animated.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
-  for mesh in animated.find_children("*","MeshInstance3D",true,false): mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
  if id=="heavy_mist" and advanced:
   w.environment.environment.volumetric_fog_albedo=Color("b22629")
  if id=="lights_red":

@@ -2,7 +2,7 @@ class_name RoomHorror
 extends Node3D
 
 const MUSIC:="res://assets/party/musicbox.mp3"
-const CREATURE:="res://assets/creatures/vent-dweller.glb"
+const CREATURE:="res://assets/creatures/vent-ossuary-v21.glb"
 const SHAFT:=Rect2(-2.05,-20.8,1.5,1.7)
 var w: PlayWorld
 var music: AudioStreamPlayer3D
@@ -54,6 +54,10 @@ func _bulbs() -> void:
    w.tube(self,pos+Vector3(0,.11,side*.09),pos+Vector3(0,-.11,side*.09),.007,w.materials.metal)
   var light:=w.lamp(pos+Vector3(0,-.08,0),Color("d0c18b"),.55,4.5);light.shadow_enabled=true
   bulbs.append({"light":light,"emission":glow,"energy":.55})
+
+ # Both the actual kitchen tube and its bounce light share a faulty contact.
+ for fixture in w.practicals:
+  if fixture.get_meta("kitchen_flicker",false): bulbs.append({"light":fixture,"emission":(fixture.get_meta("diffuser") if fixture.has_meta("diffuser") else null),"energy":fixture.get_meta("base_energy"),"kitchen":true})
 
 func _music_box() -> void:
  # An open, brass-trimmed wooden automaton rests on the existing sideboard.
@@ -108,6 +112,11 @@ func _vent_creature() -> void:
  for mesh in creature.find_children("*","MeshInstance3D",true,false):
   for s in range(mesh.mesh.get_surface_count()):
    var material: Material=mesh.get_active_material(s)
+   if material is StandardMaterial3D:
+    material=material.duplicate();mesh.set_surface_override_material(s,material)
+    material.albedo_texture=load("res://assets/aged-plaster.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*3.2
+    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.48
+    material.roughness=.94;material.metallic_specular=.10
    if material is StandardMaterial3D and material.resource_name=="Mottled cadaver skin":
     material.albedo_texture=load("res://assets/creatures/dweller-skin.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*2.2
     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.22
@@ -121,8 +130,11 @@ func tick(delta: float, active: bool) -> void:
  for i in range(bulbs.size()):
   var phase:=fmod(clock+i*3.17,12.7+i*1.9);var amount:=1.0
   if phase>11.7 and phase<12.18: amount=.15 if sin(phase*92+i)>-.1 else .68
+  if bulbs[i].get("kitchen",false):
+   var kitchen_phase:=fmod(clock,8.3)
+   amount=(.06 if sin(kitchen_phase*109)>.05 else .52) if kitchen_phase>6.6 and kitchen_phase<7.12 else 1.0
   bulbs[i].light.light_energy=bulbs[i].energy*amount
-  bulbs[i].emission.emission_energy_multiplier=1.1*amount
+  if bulbs[i].emission: bulbs[i].emission.emission_energy_multiplier=(.45 if bulbs[i].get("kitchen",false) else 1.1)*amount
  # The industrial pendant spots follow their visible lamp's contact failures.
  for i in range(5):
   var phase:=fmod(clock+i*2.31,19.0+i*2.0);var amount:=1.0

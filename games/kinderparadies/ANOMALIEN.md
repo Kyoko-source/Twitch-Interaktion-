@@ -1,77 +1,81 @@
-# Vorhandene Anomalien — After Play 2.0.0
+# Vorhandene Anomalien — After Play 2.1.0
 
-Stand: 19. Oktober 2026. Direkt aus `scripts/patrol.gd` übernommen.
+Stand: 19. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 
-Es gibt **45 Anomalien**. Der erste Rundgang ist immer normal. Danach wird der Katalog gemischt; die nächste Anomalie ist kein festes Level.
+45 Anomalien insgesamt; 20 frühere Varianten wurden ersetzt. Der erste Rundgang ist normal. Der Katalog wird anschließend gemischt, unabhängig vom Zeitungsfundort.
 
-## Empfang (13)
+## Küche (4)
 
-- Die Uhr am Empfang läuft rückwärts. (`clock_reverse`)
-- Die Uhr dreht sich viel zu schnell. (`clock_fast`)
-- Das Spielauto fährt von selbst. (`car_moves`)
-- Das Spielauto ist riesig geworden. (`car_giant`)
-- Das Spielauto schwebt über dem Boden. (`car_float`)
-- Das rote Spielauto am Empfang fehlt. (`car_missing`)
-- Alle Deckenlampen leuchten rot. (`lights_red`)
-- Die Öffnungszeiten am Empfang lauten 03:33–03:33. (`hours_wrong`)
-- Eine frische Blutspur zieht sich durch den Hauptgang. (`blood_trail`)
-- Der Stoffhase hängt kopfüber vor der Decke statt auf seiner Bank zu sitzen. (`bunny_ceiling`)
-- Der Stoffhase springt dich bei Annäherung an und bleibt danach vor seiner Bank liegen. (`bunny_lunge`)
-- Der Stoffhase dreht sich und verfolgt dich mit seinem Blick. (`bunny_watches`)
-- Das verlassene Schaukelpferd schaukelt von alleine. (`horse_rocks`)
+- Der Küchenclown hört auf zu rühren, fährt auf dich zu und beobachtet dich danach. (`clown_lunge`)
+- Lange knöcherne Arme greifen aus dem Schimmeltopf. (`pot_arms`)
+- Neben dem Küchenclown erscheint ein zweiter Besucher und verfolgt dich durch die Küche. (`kitchen_double`)
+- Eine hagere Gestalt lauert vor dem Kühlschrank und beugt sich plötzlich vor. (`fridge_occupant`)
 
-## Bällebad (12)
+## Bällebad (10)
 
 - Eine Gestalt schaut durch das Dachfenster in die Krabbelröhre. (`tube_watcher`)
 - Bälle schweben über dem Bällebad. (`balls_float`)
-- Alle Bälle im Bällebad sind rot. (`balls_red`)
+- Eine verrenkte Gestalt kriecht vom Auslauf der Rutsche auf dich zu. (`slide_crawler`)
 - Ein riesiger Ball steckt im Bällebad. (`ball_giant`)
-- Ein Ball rollt von selbst durch den Gang. (`ball_moves`)
 - Das Bällebad ist leer. (`balls_missing`)
-- Die rote Rutsche ist plötzlich grün. (`slide_green`)
-- Die große rote Rutsche fehlt. (`slide_missing`)
 - Die Sicherheitsnetze an der Kletteranlage fehlen. (`net_missing`)
+- Knöcherne Arme schnellen aus dem Bällebad und bleiben zwischen den Bällen stehen. (`pit_hands`)
 - Der normale graugrüne Nebel ist blutrot geworden. (`heavy_mist`)
-- Das aufblasbare Krokodil atmet wie ein lebendiges Tier. (`croc_breathes`)
+- Eine kriechende Gestalt bewegt sich hinter den Netzen im Klettergerüst. (`frame_stalker`)
 - Das Krokodil bäumt sich mit einem Knall auf und bleibt danach aufgerichtet. (`croc_snap`)
 
-## Partyraum (9)
+## Party Raum (9)
 
 - Die Stühle hängen an der Decke. (`chair_ceiling`)
-- Alle Stühle im Partyraum sind verschwunden. (`chairs_missing`)
-- Die Stühle stehen übereinander. (`chair_stack`)
-- Die Beleuchtung im Partyraum ist ausgefallen. (`party_dark`)
-- Ein ganzer Schwarm Ballons füllt den Partyraum. (`balloons_many`)
+- Unter dem großen Clownfresko steht ein Besucher, der dich durch den Party Raum verfolgt. (`party_portrait`)
+- Die Beleuchtung im Party Raum ist ausgefallen. (`party_dark`)
+- Ein ganzer Schwarm Ballons füllt den Party Raum. (`balloons_many`)
 - Die Ballons hängen nach unten und liegen am Boden. (`balloons_floor`)
-- Eine große Blutlache liegt unter dem Geburtstagstisch. (`blood_pool`)
+- Drei stumme Gestalten stehen um den Geburtstagstisch. (`party_guests`)
+- Zwischen den Kerzen taucht ein ausgezehrtes Gesicht auf und schnappt nach dir. (`cake_mouth`)
 - Die drei Geburtstagsballons folgen dir durch den Raum. (`balloons_follow`)
 - Die Ballons blähen sich bei Annäherung mit einem Knall auf. (`party_burst`)
 
-## Wartungsgang (10)
+## Wartungsgang (6)
 
-- Das Wandbild im Wartungsgang steht auf dem Kopf. (`mural_upside`)
-- Das Wandbild ist gespiegelt: Der Mond steht rechts. (`mural_mirror`)
-- Das Wandbild leuchtet blutrot. (`mural_red`)
+- Aus dem dunklen Wartungsende folgt dir eine langarmige Gestalt. (`service_pursuit`)
+- Ein verdrehter Besucher hängt kopfüber im Wartungsgang und fährt auf dich herab. (`service_ceiling`)
 - Das große Wandbild ist verschwunden. (`mural_missing`)
-- Die Wandsterne stehen auf dem Kopf. (`stars_upside`)
-- Dunkle Fußspuren führen in den Wartungsgang. (`footprints`)
 - Ein übergroßer Stern hängt im Wartungsgang. (`star_giant`)
-- Der Feuerlöscher schwebt an der Wand. (`extinguisher_float`)
-- Blutige Handabdrücke bedecken die Wand im Wartungsgang. (`bloody_hands`)
 - Aus dem Wandbild laufen breite Blutspuren. (`mural_bleeds`)
+- Eine Gestalt schießt quer durch den Wartungsgang und bleibt verrenkt stehen. (`corridor_crossing`)
 
-## Küche (1)
+## Kino (3)
 
-- Der Küchenclown hört auf zu rühren, fährt auf dich zu und beobachtet dich danach. (`clown_lunge`)
+- Eine Gestalt steht vor der Kinoleinwand und läuft auf dich zu. (`screen_visitor`)
+- Hinter der letzten Kinoreihe steht ein Besucher auf und folgt dir durch den Gang. (`cinema_last_row`)
+- Der Pferdeschädel stößt bei Annäherung aus dem Schacht nach unten. (`vent_strike`)
 
-## Kino (0)
+## Empfang (11)
 
-Zurzeit keine eigene Anomalie. Die NO SIGNAL-Leinwand und die Gestalt am Schacht sind normale Raumgestaltung.
+- Eine ausgemergelte Gestalt beugt sich hinter dem Empfang hervor und zuckt auf dich zu. (`reception_peeker`)
+- Die Uhr dreht sich viel zu schnell. (`clock_fast`)
+- Ein langarmiger Besucher verfolgt dich kurz durch den leeren Empfangsgang. (`reception_charge`)
+- Das Spielauto ist riesig geworden. (`car_giant`)
+- Drei reglose Besucher warten mit verdrehten Köpfen vor dem Empfang. (`reception_queue`)
+- Das rote Spielauto am Empfang fehlt. (`car_missing`)
+- Alle Deckenlampen leuchten rot. (`lights_red`)
+- Eine frische Blutspur zieht sich durch den Hauptgang. (`blood_trail`)
+- Der Stoffhase hängt kopfüber vor der Decke statt auf seiner Bank zu sitzen. (`bunny_ceiling`)
+- Der Stoffhase springt dich bei Annäherung an und bleibt danach vor seiner Bank liegen. (`bunny_lunge`)
+- Das verlassene Schaukelpferd schaukelt von alleine. (`horse_rocks`)
 
-## Normalzustand — keine Anomalien
+## Krabbelröhre (2)
 
-Dichter graugrüner Nebel, Kinderlachen und Weinen in Röhren, unsichtbare Schritte, kurze Lampen- und Taschenlampen-Wackelkontakte, der im Topf rührende Küchenclown, die Spieluhr im Partyraum und die Schachtgestalt im Kino gehören zur Umgebung. Nur ihre ausdrücklich aufgelisteten Veränderungen sind Anomalien. Selbst verschobene Physikgegenstände zählen ebenfalls nicht.
+- Eine kriechende Gestalt verfolgt dich kurz im Krabbeltunnel. Nur von innen sichtbar. (`tube_chase`)
+- Lange Finger schlagen von außen gegen ein Röhrenfenster. Nur von innen sichtbar. (`tube_window_hands`)
 
-Der falsche Menüschalter „Jumpscares Off / On“ ist ein einzelner Menü-Schreckmoment. Er verändert weder die Anomalien noch den Spielstand und schaltet keine echten Jumpscares aus.
+## Normaler Vergleich
 
-Die verschlossene Archivtür, der vergilbte Zettel und die im Verlauf erscheinenden Zeitungen sind normale Bestandteile der optionalen Geschichte und keine zusätzlichen Anomalien.
+Dichter graugrüner Nebel, das große Clownfresko mit vier leeren Stühlen, der knöcherne Pferdeschädel im Kinoschacht, der rührende Küchenclown, das NO-SIGNAL-Bild und die Spieluhr gehören zur normalen Umgebung. Auch entfernte Schritte und Röhrenstimmen sind normale Raumgeräusche.
+
+Zusätzliche Besucher und greifende Arme sind Anomalien. Die neuen Begegnungen spielen einen Schreckmoment pro Rundgang; danach bleibt eine sichtbare Gestalt oder Spur zurück. Verfolgungen sind kurz und beenden die Schicht nicht automatisch. Eine falsche Tür bedeutet weiterhin Tod und Neustart.
+
+`tube_watcher`, die Tunnelverfolgung und die Fensterhände sind außerhalb der Röhre unsichtbar. TAB pausiert auch Begegnungen und Geräusche.
+
+Zeitungen, Zettel und Geheimtür sind keine Anomalien. Ihre Fundorte bleiben Rundgang 3, 5, 8 und 11; Code und Archivablauf bleiben erhalten. Ältere Spielstände werden auf die jeweiligen Ersatzanomalien umgesetzt.

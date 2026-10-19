@@ -5,7 +5,7 @@ var w: PlayWorld
 var inflatable: Node3D
 var inflatable_skin: Node3D
 var fan: AudioStreamPlayer3D
-const CROCODILE_PATH := "res://assets/creatures/night-crocodile-v3.glb"
+const CROCODILE_PATH := "res://assets/creatures/night-crocodile-v4.glb"
 var croc_visual: Node3D
 var croc_jaw: Node3D
 var jaw_rest := Vector3.ZERO
@@ -102,6 +102,8 @@ func _crocodile() -> void:
  # A flat compliant surface sits inside the visual PVC bed, with real collision.
  var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,0);deck.set_meta("bounce_speed",8.0);inflatable.add_child(deck)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(3.3,.55,6.6);shape.shape=bounds;deck.add_child(shape)
+ w.box(inflatable,Vector3(0,1.12,-.9),Vector3(3.1,1.9,2.7),pvc,true).hide()
+ w.box(inflatable,Vector3(.1,.6,-3.2),Vector3(1.5,1.1,1.8),pvc,true).hide()
  for side in [-1,1]: w.box(inflatable,Vector3(side*2.1,.65,0),Vector3(.55,1.3,7.4),pvc,true).hide()
  for i in range(3): w.box(inflatable,Vector3(-2.65+i*.28,.1+i*.13,-1.4),Vector3(.32,.2+i*.26,1.4),w.materials.gold,true)
  # Branding belongs on a worn safety plaque, not floating across its mouth.

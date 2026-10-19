@@ -6,6 +6,10 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--props-qa" in OS.get_cmdline_user_args():
+  await props_views(game,output);game._quit();return
+ if "--nightmares-qa" in OS.get_cmdline_user_args():
+  await nightmare_views(game,output);game._quit();return
  if "--archive-qa" in OS.get_cmdline_user_args():
   await archive_views(game,output);game._quit();return
  if "--voice-qa" in OS.get_cmdline_user_args():
@@ -94,8 +98,8 @@ func run(game: Node3D) -> void:
  await capture(game,output,"bunny_jump")
  await game.get_tree().create_timer(1.5).timeout
  report.bunny_finished=game.world.encounters.finished
- game._build_world("croc_breathes");game._resume();game.player.position=Vector3(3.5,0,13.7);game.player.rotation.y=-1.2
- await game.get_tree().create_timer(1.1).timeout;await capture(game,output,"croc_breathes")
+ game._build_world("croc_snap");game._resume();game.player.position=Vector3(3.5,0,13.7);game.player.rotation.y=-1.2
+ await game.get_tree().create_timer(1.1).timeout;await capture(game,output,"croc_snap")
  var file:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("NATIVE RENDER QA ",JSON.stringify(report))
  game._quit()
@@ -297,6 +301,42 @@ func v193_views(game: Node3D, output: String) -> void:
  var report: Dictionary=game.world.soundscape.snapshot();report.moving_steps=moved;report.pause=frozen;report.audit=SceneAudit.inspect(game.world)
  var file:=FileAccess.open(output.path_join("v193-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V193 RENDER QA ",JSON.stringify(report))
 
+func nightmare_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game._build_world("none");game._resume()
+ for shot in [{"name":"ossuary","p":Vector3(-3.7,0,-19.4),"look":Vector3(-1.0,2.0,-19.5)},{"name":"party-fresco","p":Vector3(14.0,0,-6.7),"look":Vector3(19.49,2.6,-6.7)}]:
+  game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
+  await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
+ game.state.streak=2;game._build_world("none");game._resume();game._collect_paper("opening");game._inventory();await game.get_tree().process_frame;await capture(game,output,"newspaper-v21")
+ var reports: Dictionary={}
+ for id in NightTerrors.SCENARIOS:
+  game._build_world(id);game._resume()
+  var t: NightTerrors=game.world.terrors;var mode: String=t.spec.mode
+  var points:={"Empfang":Vector3(-5.5,0,6),"Bällebad":Vector3(3.0,.31,5),"Party Raum":Vector3(13.8,0,-8),"Wartungsgang":Vector3(-6.5,0,-4),"Küche":Vector3(-11.8,0,-17.5),"Kino":Vector3(-5.9,0,-17.7),"Krabbelröhre":CrawlTubes.route(7.4)+Vector3(0,-.72,0)}
+  game.player.position=points[t.spec.zone];game.player.rotation=Vector3.ZERO
+  if id=="screen_visitor": game.player.position=Vector3(-1.3,0,-17.7)
+  if id=="frame_stalker": game.player.position=Vector3(2.0,.4,3.6)
+  if id=="cake_mouth": game.player.position=Vector3(11.8,0,-7.4)
+  if id=="slide_crawler": game.player.position=Vector3(5.6,0,11.5)
+  var target: Vector3=t.actor.position+Vector3(0,1.6,0)
+  if mode=="crawl": target=t.actor.position+Vector3(0,.7,0)
+  if mode in ["hands","mouth"]: target=t.actor.position+Vector3(0,.35,0)
+  if mode=="ceiling": target=t.actor.position-Vector3(0,1.6,0)
+  if mode=="vent": target=game.world.room_horror.creature.position+Vector3(0,-1.5,.7)
+  if mode in ["tube","window"]:
+   Input.action_press("crouch");game.player.set_crouch(true);game.player.camera.position.y=.8
+   game.player.position=CrawlTubes.route(7.0 if mode=="tube" else 11.8)+Vector3(0,-.72,0);target=t.actor.position+Vector3(.1,0,.05) if mode=="window" else t.actor.position+Vector3(0,.35,0)
+  game.player.camera.look_at(target)
+  await game.get_tree().create_timer(1.3).timeout
+  if mode=="crawl": game.player.camera.look_at(t.actor.position+Vector3(0,.65,0))
+  await capture(game,output,id);reports[id]=t.snapshot()
+  if mode in ["tube","window"]: Input.action_release("crouch")
+ game._build_world("tube_watcher");game._resume();game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);Input.action_press("crouch");game.player.set_crouch(true);game.player.camera.position.y=.8;game.player.camera.look_at(game.world.tubes.watcher.position+Vector3(.06,0,.02))
+ await game.get_tree().create_timer(.5).timeout;await capture(game,output,"watcher-inside");var inner: bool=game.world.tubes.watcher.visible
+ Input.action_release("crouch");game.player.position=Vector3(-1.2,0,12.2);game.player.camera.look_at(game.world.tubes.watcher.position+Vector3(.06,0,.02))
+ await game.get_tree().create_timer(.4).timeout;await capture(game,output,"watcher-outside");var outer: bool=game.world.tubes.watcher.visible
+ reports.tube_visibility={"inside":inner,"outside":outer};reports.geometry=game.world.room_horror.creature_geometry()
+ var file:=FileAccess.open(output.path_join("nightmares-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(reports," "));print("AFTER PLAY NIGHTMARES QA ",JSON.stringify(reports))
+
 func archive_views(game: Node3D, output: String) -> void:
  game._main_menu();await game.get_tree().create_timer(.5).timeout;await capture(game,output,"after-play-menu")
  game._new_shift();game.intro.skip()
@@ -383,3 +423,11 @@ func croc_views(game: Node3D, output: String) -> void:
  var report:={"renderer":RenderingServer.get_current_rendering_method(),"shared_mesh":is_instance_valid(game.world.playground.croc_visual),"jaw_triggered":game.world.encounters.triggered,"jaw_finished":game.world.encounters.finished,"jaw_pause":paused,"jaw_angle":game.world.playground.croc_jaw.rotation.x}
  var file:=FileAccess.open(output.path_join("croc-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("CROCODILE QA ",JSON.stringify(report))
+
+func props_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game._build_world("none");game._resume()
+ for shot in [{"name":"croc-body","p":Vector3(17.8,0,15.9),"look":Vector3(13.0,1.3,11.3)},{"name":"croc-front","p":Vector3(5.0,0,14.8),"look":Vector3(10.8,1.55,11.3)},{"name":"kitchen-sink","p":Vector3(-15.25,0,-16.1),"look":Vector3(-16.63,1.13,-16.65)},{"name":"pot-interior","p":Vector3(-12.6,.25,-18.75),"look":Vector3(-13.25,1.22,-19.25)},{"name":"ball-pit","p":Vector3(.2,0,10.7),"look":Vector3(1,.4,6.7)},{"name":"bucket-interior","p":Vector3(3.1,0,9.3),"look":Vector3(3.7,.43,8.7)},{"name":"server-room","p":Vector3(-11.5,0,-5.4),"look":Vector3(-14.4,1.35,-2.65)},{"name":"party-gallery","p":Vector3(13.8,0,-8.7),"look":Vector3(13.8,2.1,-11.96)},{"name":"hall-gallery","p":Vector3(-6.4,0,1),"look":Vector3(-9.96,2.7,.8)}]:
+  game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
+  await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
+ game._collect_paper("note");game._inventory();await game.get_tree().process_frame;await capture(game,output,"handwritten-note")
+ var file:=FileAccess.open(output.path_join("props-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(SceneAudit.inspect(game.world)," "))
