@@ -27,7 +27,7 @@ static func bone(parent: Node3D, radius: float, material: Material) -> MeshInsta
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load("res://assets/props/kitchen-clown-v3.glb")
+ var scene: PackedScene=load("res://assets/props/kitchen-clown-v4.glb")
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")

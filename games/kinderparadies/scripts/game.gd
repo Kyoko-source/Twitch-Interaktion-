@@ -18,7 +18,14 @@ var notice_time := 0.0
 var post: ColorRect
 var room_audio: AudioStreamPlayer
 var effect: AudioStreamPlayer
-var settings := {"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":1 if OS.has_feature("web") else 2,"render_version":2}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"invert_y":false,"crosshair":true,"area_list":true}
+var settings:=DEFAULT_SETTINGS.duplicate()
+var settings_tab:="Bild"
+var menu_camera: Camera3D
+var menu_light: SpotLight3D
+var menu_clock:=0.0
+var menu_scare: DoorFailure
+var crosshair: Label
 var last_result := {}
 var qa_callback
 var telemetry_clock := 0.0
@@ -34,11 +41,15 @@ var intro: ElevatorIntro
 var intro_pending:=false
 
 func _ready() -> void:
+ if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings()
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose()
  _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
  intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
+ menu_camera=Camera3D.new();menu_camera.fov=66;menu_camera.near=.06;menu_camera.far=70;add_child(menu_camera)
+ menu_light=SpotLight3D.new();menu_light.light_color=Color("c8ba95");menu_light.light_energy=2.0;menu_light.spot_range=22;menu_light.spot_angle=42;menu_light.spot_angle_attenuation=1.5;menu_light.position=Vector3(0,.5,0);menu_camera.add_child(menu_light)
+ menu_scare=DoorFailure.new();menu_camera.add_child(menu_scare)
  _apply_settings();_main_menu()
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
@@ -64,6 +75,7 @@ func _build_world(anomaly: String) -> void:
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
+ if room_audio: _apply_settings()
 
 func _stop_scene_audio(root: Node) -> void:
  # Retire paused WAV playbacks before removing a room or closing the game.
@@ -88,7 +100,7 @@ func _ui() -> void:
  brand.add_theme_font_override("font",title_font)
  var subtitle:=_label("Kinderparadies",15,Color("bcc5bf"));subtitle.position=Vector2(31,60);hud.add_child(subtitle)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
- var cross:=_label("+",23,Color(1,1,1,.65));cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
+ crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
  checklist=_label("",15,Color("b7c5bf"));checklist.position=Vector2(30,98);hud.add_child(checklist)
  var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
@@ -129,31 +141,27 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
 
 func _main_menu() -> void:
  if intro: intro.stop()
- phase="menu"
- player.lamp.visible=false
- var column:=_panel("NACHTWACHE","Kinderparadies")
- # The menu remains in the same real 3D scene with an edited translucent scrim.
- var shade:=menu.get_child(menu.get_child_count()-2)
- var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float a=mix(0.96,0.06,smoothstep(0.18,0.68,UV.x));COLOR=vec4(0.015,0.03,0.035,a);}"
- var fade:=ShaderMaterial.new();fade.shader=shader;shade.material=fade
- column.add_child(_paragraph("Dreizehn Rundgänge. Keine zweite Sicherheit.",20))
- column.add_child(_paragraph("Keine Anomalie? Grüne Tür.\nEtwas stimmt nicht? Rote Tür.\nDreizehn richtige Entscheidungen in Folge."))
- var space:=Control.new();space.custom_minimum_size.y=18;column.add_child(space)
- column.add_child(_button("Neue Nachtschicht",_new_shift,true))
- var resume:=_button("Schicht fortsetzen",_continue);resume.disabled=not _can_continue();column.add_child(resume)
- column.add_child(_button("Einstellungen",func():_settings("menu")))
- column.add_child(_button("Dienstanweisung",func():_help("menu")))
- column.add_child(_button("Zur Webseite" if OS.has_feature("web") else "Spiel beenden",_quit))
- column.add_child(_paragraph("WASD bewegen  ·  Maus umsehen  ·  E interagieren",14))
- var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.add_theme_font_size_override("normal_font_size",12)
- credit.text="Anatomiebasis: Infinite von Lee Perry-Smith (bearbeitet)\n[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]Quelle[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]"
- credit.meta_clicked.connect(func(link): OS.shell_open(str(link)));column.add_child(credit)
+ phase="menu";player.lamp.visible=false
+ menu_camera.position=Vector3(-6.5,1.8,10.3);menu_camera.look_at(Vector3(4.5,2,0));menu_camera.current=true;menu_clock=0
+ NightMenus.home(self);room_audio.stream_paused=false
+ if not room_audio.playing: room_audio.play()
  _telemetry()
+
+func _menu_jump() -> void:
+ if phase!="settings": return
+ var previous_camera:=get_viewport().get_camera_3d()
+ phase="menu_scare";menu.hide();menu_scare.start(world,previous_camera);menu_scare.audio.stream=load("res://assets/intro/menu-shock.wav");menu_scare.audio.volume_db=-1.5
+ # This is a nonlethal menu prank. It never changes patrol state or a setting.
+ _telemetry()
+ await menu_scare.finished
+ if phase=="quitting": return
+ phase="settings";NightMenus.settings(self,settings_tab);_telemetry()
 
 func _new_shift() -> void:
  state.start();has_session=true;intro_pending=true;_build_world("none");_begin_intro()
 
 func _begin_intro() -> void:
+ player.camera.current=true
  phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
 
 func _intro_finished() -> void:
@@ -188,6 +196,7 @@ func _continue() -> void:
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
 func _resume() -> void:
+ player.camera.current=true;player.camera.fov=player.base_fov
  phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false
  player.lamp.visible=player.lamp_on
  world.atmosphere.set_active(true)
@@ -222,16 +231,7 @@ func _return_from_panel() -> void:
  else: _main_menu()
 
 func _settings(back: String) -> void:
- phase="settings";return_phase=back
- var column:=_panel("Einstellungen","Wird auf diesem Gerät gespeichert.")
- _slider(column,"Lautstärke",0,1,.05,float(settings.volume),func(v):settings.volume=v;_apply_settings();_write_settings())
- _slider(column,"Helligkeit",.7,1.8,.05,float(settings.brightness),func(v):settings.brightness=v;_apply_settings();_write_settings())
- _slider(column,"Mausempfindlichkeit",.0007,.0045,.0001,float(settings.sensitivity),func(v):settings.sensitivity=v;_apply_settings();_write_settings())
- var motion:=CheckButton.new();motion.text="Kamerabewegung und Filmkorn";motion.button_pressed=bool(settings.motion);motion.custom_minimum_size.y=48;motion.toggled.connect(func(v):settings.motion=v;_apply_settings();_write_settings());column.add_child(motion)
- column.add_child(_label("Grafikqualität",18));var quality:=OptionButton.new();quality.custom_minimum_size.y=48
- for item in ["Leistung","Standard","Hoch"]: quality.add_item(item)
- quality.selected=int(settings.quality);quality.item_selected.connect(func(i):settings.quality=i;_apply_settings();_write_settings());column.add_child(quality)
- column.add_child(_button("Vollbild umschalten",_fullscreen));column.add_child(_button("Zurück",_return_from_panel,true));_telemetry()
+ phase="settings";return_phase=back;NightMenus.settings(self)
 
 func _slider(parent: VBoxContainer, title: String, low: float, high: float, step: float, value: float, change: Callable) -> void:
  parent.add_child(_label(title,18));var slider:=HSlider.new();slider.set_meta("qa_label",title);slider.min_value=low;slider.max_value=high;slider.step=step;slider.value=value;slider.custom_minimum_size=Vector2(420,36);slider.value_changed.connect(change);parent.add_child(slider)
@@ -241,10 +241,34 @@ func _read_settings() -> void:
  var data=JSON.parse_string(FileAccess.get_file_as_string(SETTINGS))
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
+ for key in ["fov","render_scale","ambience","voice"]:
+  var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
+  var high:=100.0 if key=="fov" else 1.0
+  var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
+ for key in ["grain","vsync","invert_y","crosshair","area_list"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
+ settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
  if not OS.has_feature("web") and int(data.get("render_version",0))<2: settings.quality=2
 
 func _apply_settings() -> void:
  AudioServer.set_bus_volume_db(0,linear_to_db(float(settings.volume)) if float(settings.volume)>0 else -80)
+ Engine.max_fps=int(settings.fps)
+ if not OS.has_feature("web"): DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if settings.vsync else DisplayServer.VSYNC_DISABLED)
+ get_viewport().scaling_3d_scale=float(settings.render_scale)
+ player.base_fov=float(settings.fov);player.invert_y=bool(settings.invert_y)
+ if phase=="play": player.camera.fov=player.base_fov
+ if crosshair: crosshair.visible=bool(settings.crosshair)
+ if checklist: checklist.visible=bool(settings.area_list)
+ for bus_name in ["NightAmbience","NightVoice"]:
+  if AudioServer.get_bus_index(bus_name)<0: AudioServer.add_bus();AudioServer.set_bus_name(AudioServer.bus_count-1,bus_name)
+  AudioServer.set_bus_send(AudioServer.get_bus_index(bus_name),"Interior" if bus_name=="NightAmbience" and AudioServer.get_bus_index("Interior")>=0 else "Master")
+  var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
+  AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
+ if world:
+  for branch in [world.soundscape,world.annex,world.room_horror]:
+   if branch:
+    for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
+ if intro: intro.voice.bus="NightVoice"
+ if room_audio: room_audio.bus="NightAmbience"
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
  # Compatibility shadow maps need back-face rendering to avoid diagonal acne
  # on the crocodile and walls. Forward+ keeps its finer native bias.
@@ -253,12 +277,17 @@ func _apply_settings() -> void:
  player.lamp.shadow_bias=.15 if compatibility else .025
  if world: world.quality(int(settings.quality))
  if world: world.brightness(float(settings.brightness))
- if post: post.material.set_shader_parameter("grain",.012 if settings.motion else 0.0)
+ if post: post.material.set_shader_parameter("grain",.012 if settings.grain else 0.0)
  get_viewport().msaa_3d=[Viewport.MSAA_DISABLED,Viewport.MSAA_2X,Viewport.MSAA_4X][int(settings.quality)]
  get_viewport().use_taa=not OS.has_feature("web") and RenderingServer.get_current_rendering_method()=="forward_plus" and int(settings.quality)>0
  if world and world.native_art and world.native_art.advanced:
   player.lamp.light_size=.025;player.lamp.light_volumetric_fog_energy=.45
   player.lamp.spot_angle=27;player.lamp.spot_angle_attenuation=2.3
+
+func _reset_settings() -> void:
+ settings=DEFAULT_SETTINGS.duplicate()
+ if OS.has_feature("web"): settings.quality=1
+ _apply_settings();_write_settings()
 
 func _write_settings() -> void:
  var file:=FileAccess.open(SETTINGS,FileAccess.WRITE)
@@ -273,8 +302,12 @@ func _save(next_round: bool=false) -> void:
 
 func _process(delta: float) -> void:
  if not world or not player: return
+ if menu_light: menu_light.visible=phase=="menu"
  if phase=="intro": intro.tick(delta)
  if phase=="failure": door_failure.tick(delta)
+ if phase=="menu_scare": menu_scare.tick(delta)
+ if phase=="menu":
+  menu_clock+=delta;menu_camera.rotation.y+=cos(menu_clock*.13)*delta*.002
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -351,6 +384,7 @@ func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=value;notice_time=seconds;notice.show()
 
 func _unhandled_input(event: InputEvent) -> void:
+ if phase=="menu_scare": get_viewport().set_input_as_handled();return
  if event.is_action_pressed("fullscreen"): _fullscreen();get_viewport().set_input_as_handled()
  if phase=="intro":
   if event.is_action_pressed("pause"): intro.paused=not intro.paused
@@ -417,6 +451,7 @@ func _telemetry() -> void:
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
   data.room_horror=world.room_horror.snapshot()
+  data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
   data.props=[]
   for body in world.atmosphere.loose: data.props.append({"name":body.title,"position":[body.position.x,body.position.y,body.position.z],"velocity":body.linear_velocity.length(),"frozen":body.freeze,"impacts":body.impact_count,"sound_active":body.impact.playing,"sound":body.impact.stream.resource_path})

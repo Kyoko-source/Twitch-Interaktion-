@@ -25,7 +25,7 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'w',s=>s.position[2]<-8.5);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('help');await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await walk(page,'d',s=>s.position[0]>-4.4);await walk(page,'w',s=>s.position[2]<-9.9);console.log('Door approach',await state(page));await page.screenshot({path:join(tmpdir(),'nachtwache-door-approach.png')});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).streak).toBe(1);await expect.poll(async()=>(await state(page)).phase).toBe('play');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await page.mouse.click(250,550);await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
 });
 
 test('doors advance automatically, a wrong choice triggers one 3D scare and thirteen correct decisions reach the ending',async({page})=>{
@@ -45,7 +45,7 @@ test('pause freezes movement and real settings controls persist volume after rel
  await begin(page);await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  const position=(await state(page)).position;await page.keyboard.down('w');await page.waitForTimeout(400);await page.keyboard.up('w');expect((await state(page)).position).toEqual(position);
  await qa(page,{op:'menu'});await page.waitForTimeout(100);await clickControl(page,'Einstellungen');await expect.poll(async()=>(await state(page)).phase).toBe('settings');await page.waitForTimeout(100);
- await clickControl(page,'Lautstärke');await page.keyboard.press('Home');await expect.poll(async()=>(await state(page)).volume).toBe(0);await page.screenshot({path:join(tmpdir(),'nachtwache-settings-desktop.png')});await clickControl(page,'Zurück');await expect.poll(async()=>(await state(page)).phase).toBe('menu');await page.waitForTimeout(400);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await expect.poll(async()=>(await state(page)).volume).toBe(0);
+ await clickControl(page,'Audio');await clickControl(page,'Lautstärke');await page.keyboard.press('Home');await expect.poll(async()=>(await state(page)).volume).toBe(0);await page.screenshot({path:join(tmpdir(),'nachtwache-settings-desktop.png')});await clickControl(page,'Zurück');await expect.poll(async()=>(await state(page)).phase).toBe('menu');await page.waitForTimeout(400);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await expect.poll(async()=>(await state(page)).volume).toBe(0);
 });
 
 test('space jumps and lands; G physically lifts a toy, mouse throws it, pause freezes props and next world releases references',async({page})=>{
@@ -69,8 +69,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'NACHTWACHE',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.3.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.3.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/nachtwache-windows-v1.9.4.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/nachtwache-windows-v1.9.4.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'NACHTWACHE spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="NACHTWACHE – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
@@ -211,12 +211,12 @@ test('phantom footsteps travel through empty aisles and pause without changing t
 test('music box plays its recording, ceiling creature is shared, bulbs flicker and all pause together',async({page})=>{
  test.setTimeout(90000);await begin(page);
  await expect.poll(async()=>(await state(page)).room_horror.music).toBe(true);
- const room=(await state(page)).room_horror;expect(room.track).toBe('res://assets/party/musicbox.mp3');expect(room.creature).toBe(true);expect(room.panels).toBeGreaterThan(100);
+ const room=(await state(page)).room_horror;expect(room.track).toBe('res://assets/party/musicbox.mp3');expect(room.creature).toBe(true);expect(room.panels).toBeGreaterThan(100);expect(room.creature_geometry.width).toBeLessThan(.8);expect(room.creature_geometry.rear).toBeGreaterThan(-.3);expect(room.creature_geometry.top).toBeGreaterThan(.85);expect(room.shaft_depth).toBeGreaterThan(1);
  await expect.poll(async()=>Math.min(...(await state(page)).room_horror.bulbs),{timeout:15000,intervals:[70]}).toBeLessThan(.5);
  await page.keyboard.press('Escape');await page.waitForTimeout(300);const frozen=(await state(page)).room_horror;expect(frozen.paused).toBe(true);await page.waitForTimeout(400);expect((await state(page)).room_horror.clock).toBe(frozen.clock);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).room_horror.paused).toBe(false);
- for(const shot of [{name:'music-box',x:17.85,z:-2.42,yaw:-Math.PI/2,pitch:-.16},{name:'kitchen-ceiling',x:-11.2,z:-16.5,yaw:.6,pitch:.6},{name:'cinema-creature',x:-3.5,z:-17.9,yaw:-.3,pitch:.38}]){
-  await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'nachtwache-v192-web-'+shot.name+'.png')});
+ for(const shot of [{name:'music-box',x:17.85,z:-2.42,yaw:-Math.PI/2,pitch:-.16},{name:'kitchen-ceiling',x:-11.2,z:-16.5,yaw:.6,pitch:.6},{name:'cinema-creature',x:-4.5,z:-17.6,yaw:-.983,pitch:.345}]){
+  await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'nachtwache-v194-web-'+shot.name+'.png')});
  }
 });
 
@@ -235,4 +235,16 @@ test('lift intro accepts the chief call, pauses, resumes from a pending save and
  await page.screenshot({path:join(tmpdir(),'nachtwache-v190-web-left-lift.png')});
  await qa(page,{op:'audit'});expect((await state(page)).layout.wall_intersections).toEqual([]);
  for(const shot of [{name:'shelves',x:-7.3,z:2.1,yaw:Math.PI/2,pitch:-.07},{name:'party-wall',x:15.5,z:-4,yaw:-Math.PI/2,pitch:.1},{name:'kitchen',x:-11.5,z:-17,yaw:1,pitch:.05}]){await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'nachtwache-v190-web-'+shot.name+'.png')});}
+});
+
+
+test('new menu settings drive FOV and audio, and the fake jumpscare switch scares once without altering the patrol',async({page})=>{
+ test.setTimeout(90000);await begin(page);await page.keyboard.press('Escape');await qa(page,{op:'menu'});await page.waitForTimeout(300);await page.screenshot({path:join(tmpdir(),'nachtwache-v194-web-menu.png')});
+ const before=await state(page);await clickControl(page,'Einstellungen');await clickControl(page,'Audio');await clickControl(page,'Lautstärke');await page.keyboard.press('Home');await expect.poll(async()=>(await state(page)).volume).toBe(0);
+ await clickControl(page,'Bild');await clickControl(page,'Sichtfeld');await page.keyboard.press('End');await expect.poll(async()=>(await state(page)).settings.fov).toBe(100);
+ await clickControl(page,'Spiel');await page.screenshot({path:join(tmpdir(),'nachtwache-v194-web-settings.png')});const options=(await state(page)).settings;
+ await clickControl(page,'Jumpscares  Off / On');await expect.poll(async()=>(await state(page)).phase,{intervals:[30]}).toBe('menu_scare');await page.waitForTimeout(200);await page.screenshot({path:join(tmpdir(),'nachtwache-v194-web-menu-scare.png')});
+ await expect.poll(async()=>(await state(page)).phase).toBe('settings');const after=await state(page);expect(after.settings_tab).toBe('Spiel');expect(after.menu_prank.count).toBe(1);expect(after.menu_prank.running).toBe(false);expect(after.settings).toEqual(options);expect(after.streak).toBe(before.streak);expect(after.rounds).toBe(before.rounds);expect(after.anomaly).toBe(before.anomaly);expect(after.menu_prank.gain).toBeLessThan(-70);
+ await clickControl(page,'Zurück');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).camera_fov).toBe(100);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');expect((await state(page)).settings.fov).toBe(100);expect((await state(page)).volume).toBe(0);expect((await state(page)).menu_prank.count).toBe(0);
 });

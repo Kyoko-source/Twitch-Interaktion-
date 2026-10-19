@@ -3,6 +3,7 @@ extends Node3D
 
 const MUSIC:="res://assets/party/musicbox.mp3"
 const CREATURE:="res://assets/creatures/vent-dweller.glb"
+const SHAFT:=Rect2(-2.05,-20.8,1.5,1.7)
 var w: PlayWorld
 var music: AudioStreamPlayer3D
 var dancer: Node3D
@@ -10,6 +11,20 @@ var creature: Node3D
 var clock:=0.0
 var bulbs: Array[Dictionary]=[]
 var panels:=0
+
+static func outside_shaft(rect: Rect2) -> Array[Rect2]:
+ # Subtract the same physical opening from roof slabs, acoustic tiles and rails.
+ var cut:=rect.intersection(SHAFT)
+ if not cut.has_area(): return [rect]
+ var pieces: Array[Rect2]=[]
+ for part in [Rect2(rect.position,Vector2(cut.position.x-rect.position.x,rect.size.y)),Rect2(Vector2(cut.end.x,rect.position.y),Vector2(rect.end.x-cut.end.x,rect.size.y)),Rect2(Vector2(cut.position.x,rect.position.y),Vector2(cut.size.x,cut.position.y-rect.position.y)),Rect2(Vector2(cut.position.x,cut.end.y),Vector2(cut.size.x,rect.end.y-cut.end.y))]:
+  if part.has_area(): pieces.append(part)
+ return pieces
+
+func _ceiling_piece(rect: Rect2, y: float, thickness: float, material: Material, panel: bool=false) -> void:
+ for part in outside_shaft(rect):
+  var mesh:=w.box(self,Vector3(part.get_center().x,y,part.get_center().y),Vector3(part.size.x,thickness,part.size.y),material)
+  if panel: mesh.set_meta("ceiling_panel",true);panels+=1
 
 func build(world: PlayWorld) -> void:
  w=world;name="RoomHorror"
@@ -22,10 +37,9 @@ func _ceilings() -> void:
   var count:=ceili(float(spec.width)/1.2);var width: float=spec.width/count
   for col in range(count):
    for row in range(8):
-    var panel:=w.box(self,Vector3(spec.x+(col+.5)*width,3.535,-22.4+(row+.5)*1.125),Vector3(width-.025,.045,1.1),spec.material)
-    panel.set_meta("ceiling_panel",true);panels+=1
-  for col in range(count+1): w.box(self,Vector3(spec.x+col*width,3.51,-17.9),Vector3(.025,.035,9),w.materials.metal)
-  for row in range(9): w.box(self,Vector3(spec.x+spec.width*.5,3.51,-22.4+row*1.125),Vector3(spec.width,.035,.025),w.materials.metal)
+    _ceiling_piece(Rect2(spec.x+col*width+.0125,-22.4+row*1.125+.0125,width-.025,1.1),3.535,.045,spec.material,true)
+  for col in range(count+1): _ceiling_piece(Rect2(spec.x+col*width-.0125,-22.4,.025,9),3.51,.035,w.materials.metal)
+  for row in range(9): _ceiling_piece(Rect2(spec.x,-22.4+row*1.125-.0125,spec.width,.025),3.51,.035,w.materials.metal)
 
 func _bulbs() -> void:
  # Visible opal bulbs, sockets, protective cages and supports meet the ceiling.
@@ -75,9 +89,13 @@ func _music_box() -> void:
  if w.native_art: music.bus="Interior"
 
 func _vent_creature() -> void:
- # Ceiling aperture, attached duct, screws and a bent grille explain its perch.
+ # An actual roof opening leads into a deep, unlit duct. The neck starts inside.
  var pos:=Vector3(-1.3,3.40,-20.15)
- w.box(self,Vector3(pos.x,3.505,pos.z+.2),Vector3(1.5,.06,1.7),w.materials.dark)
+ var soot:=w.mat(Color("060706"),null,1)
+ var darkness:=w.mat(Color.BLACK,null,1);darkness.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ var cap:=w.box(self,Vector3(pos.x,4.65,pos.z+.2),Vector3(1.5,.06,1.7),darkness);cap.name="ShaftDarkEnd"
+ for x in [-.77,.77]: w.box(self,Vector3(pos.x+x,4.04,pos.z+.2),Vector3(.04,1.22,1.74),soot)
+ for z in [-.67,1.07]: w.box(self,Vector3(pos.x,4.04,pos.z+z),Vector3(1.5,1.22,.04),soot)
  for x in [-.78,.78]: w.box(self,Vector3(pos.x+x,3.46,pos.z+.2),Vector3(.1,.12,1.85),w.materials.metal)
  for z in [-.72,1.12]: w.box(self,Vector3(pos.x,3.46,pos.z+z),Vector3(1.64,.12,.1),w.materials.metal)
  for x in [-.7,.7]:
@@ -111,10 +129,17 @@ func tick(delta: float, active: bool) -> void:
   if phase>18.25 and phase<18.63: amount=.28 if sin(phase*85)>0 else .76
   w.practicals[i].light_energy=.65*amount
   if w.native_art and i<w.native_art.spots.size(): w.native_art.spots[i].light_energy=3.0*amount
- # Breathing stays attached to the vent; the head/neck never detach.
+ # Subtle breathing stays rooted inside the shaft.
  creature.scale=Vector3(1,1+sin(clock*.65)*.006,1)
 
 func snapshot() -> Dictionary:
  var powers: Array[float]=[]
  for item in bulbs: powers.append(item.light.light_energy)
- return {"clock":clock,"panels":panels,"music":music.playing,"paused":music.stream_paused,"track":music.stream.resource_path,"creature":is_instance_valid(creature),"bulbs":powers}
+ return {"clock":clock,"panels":panels,"music":music.playing,"paused":music.stream_paused,"track":music.stream.resource_path,"creature":is_instance_valid(creature),"creature_geometry":creature_geometry(),"shaft_depth":1.25,"bulbs":powers}
+
+func creature_geometry() -> Dictionary:
+ var bounds:=AABB();var first:=true;var surfaces:=0
+ for mesh in creature.find_children("*","MeshInstance3D",true,false):
+  var local: AABB=(creature.global_transform.affine_inverse()*mesh.global_transform)*mesh.get_aabb()
+  bounds=local if first else bounds.merge(local);first=false;surfaces+=mesh.mesh.get_surface_count()
+ return {"width":bounds.size.x,"rear":bounds.position.z,"top":bounds.end.y,"bottom":bounds.position.y,"surfaces":surfaces}

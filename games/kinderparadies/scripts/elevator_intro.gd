@@ -56,23 +56,16 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  var light:=OmniLight3D.new();light.position=Vector3(0,2.4,.2);light.light_color=Color("d5d4b3");light.light_energy=1.3;light.omni_range=4;light.shadow_enabled=true;cabin.add_child(light)
  w.box(cabin,Vector3(1.30,1.35,-.8),Vector3(.04,.65,.24),trim)
  for y in [1.12,1.32,1.52]: w.tube(cabin,Vector3(1.275,y,-.8),Vector3(1.25,y,-.8),.035,steel)
- # The handset has thickness, bevelled edges, lens, earpiece and physical buttons.
+ _cabin_details(w,cabin,steel,trim)
+ # Bevelled, metre-scale handset with front glass, lenses and physical ports.
  phone=Node3D.new();guard.camera.add_child(phone);phone.position=Vector3(.12,-.16,-.43);phone.rotation=Vector3(-.04,-.12,-.045)
- w.box(phone,Vector3.ZERO,Vector3(.088,.18,.013),trim)
- w.box(phone,Vector3(0,0,.0075),Vector3(.078,.163,.003),w.mat(Color("101b20"),null,.25))
- w.box(phone,Vector3(0,.075,.010),Vector3(.021,.003,.002),steel)
- w.sphere(phone,Vector3(.026,.074,.010),.0025,w.materials.dark)
- w.box(phone,Vector3(.045,.028,0),Vector3(.003,.025,.007),steel)
- phone_status=Label3D.new();phone_status.font=load("res://assets/Oswald.ttf");phone_status.font_size=42;phone_status.pixel_size=.00034;phone_status.position=Vector3(0,.012,.011);phone_status.no_depth_test=false;phone.add_child(phone_status)
- var glove:=w.mat(Color("242b28"),load("res://assets/paint.png"),.92)
- var palm:=w.sphere(phone,Vector3(.04,-.075,-.014),.035,glove);palm.scale=Vector3(.8,1.45,.65)
- w.tube(phone,Vector3(.05,-.11,-.014),Vector3(.12,-.34,.045),.037,w.mat(Color("282e29"),load("res://assets/paint.png"),.95))
- for k in range(4):
-  w.tube(phone,Vector3(.045,-.02-k*.015,-.014),Vector3(.045,-.02-k*.015,.012),.007,glove)
-  w.tube(phone,Vector3(.045,-.02-k*.015,.012),Vector3(.034,-.02-k*.015,.014),.006,glove)
-  w.sphere(phone,Vector3(.034,-.02-k*.015,.014),.006,glove)
- w.tube(phone,Vector3(.035,-.055,.014),Vector3(.012,-.035,.019),.009,glove)
- w.sphere(phone,Vector3(.012,-.035,.019),.009,glove)
+ var handset: Node3D=(load("res://assets/props/guard-phone.glb") as PackedScene).instantiate();phone.add_child(handset)
+ phone_status=Label3D.new();phone_status.font=load("res://assets/Oswald.ttf");phone_status.font_size=42;phone_status.pixel_size=.00027;phone_status.position=Vector3(0,.01,.008);phone_status.no_depth_test=false;phone_status.outline_size=0;phone.add_child(phone_status)
+ var phone_top:=Label3D.new();phone_top.text="03:17       82%";phone_top.font_size=20;phone_top.pixel_size=.00022;phone_top.position=Vector3(0,.061,.008);phone_top.outline_size=0;phone.add_child(phone_top)
+ var phone_bottom:=Label3D.new();phone_bottom.text="ANRUF";phone_bottom.font=load("res://assets/Oswald.ttf");phone_bottom.font_size=24;phone_bottom.pixel_size=.00027;phone_bottom.modulate=Color("8cc6b1");phone_bottom.position=Vector3(0,-.056,.008);phone_bottom.outline_size=0;phone.add_child(phone_bottom)
+ var hand: Node3D=(load("res://assets/props/phone-grip.glb") as PackedScene).instantiate();hand.position=Vector3.ZERO;phone.add_child(hand)
+ var cuff:=w.mat(Color("282e29"),load("res://assets/paint.png"),.95)
+ w.tube(phone,Vector3(.004,-.083,-.018),Vector3(.035,-.32,.03),.028,cuff)
  phone.hide()
  overlay=CanvasLayer.new();overlay.layer=8;add_child(overlay)
  var panel:=VBoxContainer.new();panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);panel.offset_left=160;panel.offset_right=-160;panel.offset_top=-205;panel.offset_bottom=-28;panel.add_theme_constant_override("separation",10);overlay.add_child(panel)
@@ -84,6 +77,36 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  ring=sound("res://assets/intro/ring.wav",-14);chime=sound("res://assets/intro/chime.wav",-9)
  motor=sound("res://assets/ambience/ventilation.ogg",-25);(motor.stream as AudioStreamOggVorbis).loop=true
  voice=sound("",-1.5);overlay.hide()
+
+func _cabin_details(w: PlayWorld, cabin: Node3D, steel: Material, trim: Material) -> void:
+ var brass:=w.mat(Color("7f795e"),null,.48,.8)
+ # Physical skirting, corner channels, handrail brackets and screw heads.
+ for side in [-1,1]:
+  for y in [.12,2.64]: w.box(cabin,Vector3(side*1.315,y,0),Vector3(.035,.09,3.1),trim)
+  for z in [-1.4,1.45]:
+   w.box(cabin,Vector3(side*1.315,1.38,z),Vector3(.04,2.6,.055),trim)
+   for y in [.24,2.5]: w.tube(cabin,Vector3(side*1.28,y,z),Vector3(side*1.32,y,z),.012,brass)
+  for z in [-.72,.24,1.12]:
+   w.tube(cabin,Vector3(side*1.29,.94,z),Vector3(side*1.33,.94,z),.044,steel)
+  for z in [-1.2,-.4,.4,1.2]: w.box(cabin,Vector3(side*1.307,1.42,z),Vector3(.014,2.25,.004),trim)
+ for x in [-1.19,1.19]:
+  w.box(cabin,Vector3(x,1.39,1.53),Vector3(.035,2.64,.04),trim)
+  for y in [.25,2.52]: w.tube(cabin,Vector3(x,y,1.50),Vector3(x,y,1.54),.013,brass)
+ w.tube(cabin,Vector3(-1.17,.94,1.42),Vector3(1.17,.94,1.42),.032,steel)
+ for x in [-1.0,1.0]: w.tube(cabin,Vector3(x,.94,1.42),Vector3(x,.94,1.54),.026,trim)
+ # Recessed threshold grooves stay below the walking surface.
+ for z in [-1.52,-1.45,-1.38]: w.box(cabin,Vector3(0,.015,z),Vector3(2.58,.009,.014),steel)
+ w.box(cabin,Vector3(0,2.57,-1.435),Vector3(.42,.14,.024),trim)
+ var display:=Label3D.new();display.text="03  ▲";display.font=load("res://assets/Oswald.ttf");display.font_size=48;display.pixel_size=.00145;display.position=Vector3(0,2.57,-1.416);display.modulate=Color("d1a46c");display.outline_size=0;cabin.add_child(display)
+ w.box(cabin,Vector3(1.265,1.67,-.8),Vector3(.035,.20,.25),trim)
+ var side_display:=display.duplicate() as Label3D;side_display.position=Vector3(1.241,1.67,-.8);side_display.rotation.y=-PI/2;side_display.pixel_size=.001;cabin.add_child(side_display)
+ for y in [1.80,1.82,1.84,1.86]:
+  for z in [-.85,-.82,-.79,-.76]: w.sphere(cabin,Vector3(1.245,y,z),.0035,w.materials.dark)
+ # A ceiling ventilation grille has an actual frame and recessed slots.
+ w.box(cabin,Vector3(0,2.725,1.12),Vector3(.72,.035,.28),trim)
+ for k in range(13): w.box(cabin,Vector3(-.3+k*.05,2.701,1.12),Vector3(.024,.009,.22),steel)
+ for x in [-.31,.31]:
+  for z in [.26,-.26]: w.sphere(cabin,Vector3(x,2.697,z),.009,brass)
 
 func sound(path: String, db: float) -> AudioStreamPlayer:
  var node:=AudioStreamPlayer.new();node.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;node.volume_db=db
@@ -138,7 +161,7 @@ func skip() -> void:
 func complete() -> void:
  stage="done";paused=false;overlay.hide();accept_button.hide();phone.hide()
  for audio in [ring,voice,motor,chime]: audio.stop()
- guard.camera.fov=75;finished.emit()
+ guard.camera.fov=guard.base_fov;finished.emit()
 
 func stop() -> void:
  stage="idle";overlay.hide();accept_button.hide();phone.hide()

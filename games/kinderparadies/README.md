@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.9.3.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/nachtwache-windows-v1.9.4.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -347,3 +347,39 @@ Büchern und Spielzeugkörben ersetzen die leeren Regale. Die Partyraumwand
 erhält eine niedrige Kommode mit Geschirr und Geschenken. Zusätzliche
 Arbeitsflächen, Vorräte, Fliesen, Geschirr und Reinigungsutensilien füllen die
 Küche; die Laufwege und der Vergleichszustand der Anomalien bleiben frei.
+
+## v1.9.4 — Schachtgestalt, Hauptmenü und Modelle
+
+Die Kinogestalt besteht nur noch aus Kopf und langem Hals. Torso, Arme,
+Beine und Rippen wurden aus dem GLB entfernt. Der Hals beginnt oberhalb
+der Decke in einem 1,25 Meter tiefen, dunklen Luftschacht. Dach,
+Akustikplatten und Tragschienen haben dieselbe ausgeschnittene Öffnung.
+Ein knochiger Pferdeschädel, tiefe Augenhöhlen, ein verdrehter Unterkiefer,
+eingerissene Wangen und unregelmäßige Zähne ersetzen die rundliche Form.
+
+Ein natives Hauptmenü über der echten 3D-Spielwelt ersetzt die alte lange
+Menüspalte. Bild-, Audio-, Steuerungs- und Spieleinstellungen sind getrennt:
+Sichtfeld, Renderauflösung, Bildratenlimit, V-Sync (Windows), Filmkorn,
+Helligkeit, Qualität, Gesamtlautstärke, Raumklang, Chef-Stimme, Maus-Y-Umkehr,
+Empfindlichkeit, Kamerabewegung, Fadenkreuz und Bereichsliste werden
+auf diesem Gerät gespeichert und tatsächlich angewendet. Zurücksetzen
+stellt die Werkseinstellungen wieder her. Im Web begrenzt zusätzlich
+der Browser die mögliche Bildrate.
+
+„Jumpscares Off / On“ ist ein Menü-Prank: ein kurzer 3D-Angriff mit eigenem
+Klang, anschließend Rückkehr zur gleichen Seite. Er ändert weder den
+Spielablauf noch den Fortschritt und überschreibt nie die Gesamtlautstärke.
+
+Der Fahrstuhl hat befestigte Schienen und Handläufe, Verkleidungsfugen,
+Schrauben, Schwellenrillen, Lüftungsgitter und Etagenanzeigen. Das Handy
+ist ein maßstäbliches GLB mit abgerundeten Kanten, Glas, Kameras, Tasten
+und Anschlüssen; Anrufanzeige und Display bleiben echte UI. Eine eigens
+modellierte Hand greift um die Gerätekante.
+
+Der Küchenclown trägt einen neu modellierten zusammenhängenden Rumpf,
+geformte Hosenbeine, Schuhe und eine dicke, genähte Schürze. Die erhaltene
+und weiterhin genannte Scan-Basis hat einen geometrisch geöffneten Mund
+mit unregelmäßigen Zähnen und eingerissenen Mundwinkeln.
+
+Alle 45 vorhandenen Anomalien stehen mit Bereich und interner ID in
+[ANOMALIEN.md](ANOMALIEN.md). Die Schachtgestalt bleibt normale Umgebung.

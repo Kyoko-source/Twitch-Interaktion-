@@ -6,6 +6,8 @@ var lamp: SpotLight3D
 var active := false
 var sensitivity := 0.0022
 var motion := true
+var base_fov:=75.0
+var invert_y:=false
 var walk_clock := 0.0
 var step_clock := 0.0
 var step_player: AudioStreamPlayer
@@ -30,7 +32,7 @@ func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
  var collision:=CollisionShape3D.new();collision.shape=shape;collision.position.y=.85;add_child(collision)
  capsule=shape;collider=collision;stand_clearance=CapsuleShape3D.new();stand_clearance.radius=.28;stand_clearance.height=.65
- camera=Camera3D.new();camera.fov=75;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
+ camera=Camera3D.new();camera.fov=base_fov;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
  torch_body=GuardTorch.new();camera.add_child(torch_body);torch_body.build(lamp)
  step_player=AudioStreamPlayer.new();step_player.stream=load("res://assets/step.ogg");step_player.volume_db=-19;add_child(step_player)
@@ -47,7 +49,7 @@ func capture() -> void:
 
 func release() -> void:
  drop_prop()
- active=false;velocity=Vector3.ZERO;camera.rotation.z=0;camera.fov=75;step_player.stop()
+ active=false;velocity=Vector3.ZERO;camera.rotation.z=0;camera.fov=base_fov;step_player.stop()
  jump_buffer=0;coyote=0
  torch_body.hide()
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
@@ -57,7 +59,7 @@ func _unhandled_input(event: InputEvent) -> void:
  if active and event is InputEventMouseMotion and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
   if look_warmup>0: return
   rotate_y(-event.relative.x*sensitivity)
-  camera.rotation.x=clampf(camera.rotation.x-event.relative.y*sensitivity,-1.35,1.35)
+  camera.rotation.x=clampf(camera.rotation.x-event.relative.y*sensitivity*(-1 if invert_y else 1),-1.35,1.35)
 
 func _physics_process(delta: float) -> void:
  if not active: return
@@ -85,7 +87,7 @@ func _physics_process(delta: float) -> void:
  move_and_slide()
  bounce_speed=6.2
  camera.rotation.z=sin(Time.get_ticks_msec()*.055)*fright*.035 if motion else 0.0
- camera.fov=75+fright*5 if motion else 75.0
+ camera.fov=base_fov+fright*5 if motion else base_fov
  # Close jumping faces otherwise leave the narrow torch cone entirely. The
  # brief spill follows the existing scare pulse and returns to the normal beam.
  torch_body.tick(delta,lamp_on,fright)

@@ -28,7 +28,8 @@ func build(world: PlayWorld) -> void:
  var floor_mat:=w.mat(Color("747b6b"),load("res://assets/floor.png"),.88);floor_mat.uv1_triplanar=true;floor_mat.uv1_scale=Vector3.ONE*.8
  # A four-millimetre step avoids coplanar overlap with the hall's tile lip.
  w.box(self,Vector3(-6.8,-.142,-17.3),Vector3(21.0,.3,10.5),floor_mat,true)
- w.box(self,Vector3(-6.8,3.65,-17.3),Vector3(21,.18,10.5),w.materials.dark,true)
+ for roof in RoomHorror.outside_shaft(Rect2(-17.3,-22.55,21,10.5)):
+  w.box(self,Vector3(roof.get_center().x,3.65,roof.get_center().y),Vector3(roof.size.x,.18,roof.size.y),w.materials.dark,true)
  wall(Vector3(-17.35,1.8,-17.3),Vector3(.2,3.6,10.5));wall(Vector3(3.75,1.8,-17.3),Vector3(.2,3.6,10.5))
  wall(Vector3(-6.8,1.8,-22.55),Vector3(21,3.6,.2))
  wall(Vector3(-13.4,1.8,-13.3),Vector3(7.8,3.6,.18));wall(Vector3(-1.3,1.8,-13.3),Vector3(10.1,3.6,.18))

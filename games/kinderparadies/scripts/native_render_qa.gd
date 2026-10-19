@@ -18,6 +18,8 @@ func run(game: Node3D) -> void:
   var report:={"recording":loaded,"source":game.intro.voice.stream.resource_path,"duration":game.intro.call_length,"pause":frozen,"hang_up":hung_up}
   var file:=FileAccess.open(output.path_join("voice-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
   print("VOICE QA ",JSON.stringify(report));game._quit();return
+ if "--v194-qa" in OS.get_cmdline_user_args():
+  await v194_views(game,output);game._quit();return
  if "--v193-qa" in OS.get_cmdline_user_args():
   await v193_views(game,output);game._quit();return
  if "--entry-qa" in OS.get_cmdline_user_args():
@@ -292,6 +294,23 @@ func v193_views(game: Node3D, output: String) -> void:
  game._resume();await game.get_tree().create_timer(.2).timeout
  var report: Dictionary=game.world.soundscape.snapshot();report.moving_steps=moved;report.pause=frozen;report.audit=SceneAudit.inspect(game.world)
  var file:=FileAccess.open(output.path_join("v193-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V193 RENDER QA ",JSON.stringify(report))
+
+func v194_views(game: Node3D, output: String) -> void:
+ game._main_menu();await game.get_tree().create_timer(1.1).timeout;await capture(game,output,"main-menu")
+ game._settings("menu");await game.get_tree().process_frame;await capture(game,output,"settings-bild")
+ NightMenus.settings(game,"Audio");await game.get_tree().process_frame;await capture(game,output,"settings-audio")
+ NightMenus.settings(game,"Spiel");await game.get_tree().process_frame;await capture(game,output,"settings-spiel")
+ var patrol_before:=JSON.stringify(game.state.serialize());var settings_before:=JSON.stringify(game.settings)
+ game._menu_jump();await game.get_tree().create_timer(.35).timeout;await capture(game,output,"menu-scare")
+ await game.get_tree().create_timer(1).timeout
+ var prank_ok: bool=game.phase=="settings" and not game.menu_scare.running and game.menu_scare.shown==1 and patrol_before==JSON.stringify(game.state.serialize()) and settings_before==JSON.stringify(game.settings)
+ game._new_shift();await game.get_tree().create_timer(1.7).timeout;await capture(game,output,"lift-phone");game.intro.accept()
+ await game.get_tree().create_timer(.6).timeout;await capture(game,output,"lift-call");game.intro.skip()
+ for shot in [{"name":"clown-body","pos":Vector3(-13.1,0,-16.9),"target":Vector3(-14.4,1.14,-19.25)},{"name":"shaft-and-neck","pos":Vector3(-4.5,0,-17.6),"target":Vector3(-1.8,2.8,-19.4)},{"name":"horse-skull","pos":Vector3(-3.7,0,-17.4),"target":Vector3(-2.1,2.03,-18.8)},{"name":"dark-shaft","pos":Vector3(-2.5,0,-18.1),"target":Vector3(-1.3,3.65,-19.95)}]:
+  game.player.position=shot.pos;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.target)
+  await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
+ var report: Dictionary=game.world.room_horror.snapshot();report.audit=SceneAudit.inspect(game.world);report.menu_prank_nonlethal=prank_ok;report.menu_prank_count=game.menu_scare.shown;report.user_fov=game.player.base_fov
+ var file:=FileAccess.open(output.path_join("v194-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V194 RENDER QA ",JSON.stringify(report))
 
 func v192_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()
