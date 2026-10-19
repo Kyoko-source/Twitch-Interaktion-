@@ -51,11 +51,12 @@ func decal(parent: Node3D, cell: int, pos: Vector3, size: Vector2, rotation_valu
 func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
+   if side<0 and i==0: continue # The archive opening cannot carry a wall decal.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  # First segment is now the annex opening; never hang a decal in its doorway.
  for i in range(1,5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
  # A fixed, dried mark belongs to the reference round. New wet marks are anomalies.
- decal(self,0,Vector3(-9.97,1.08,-8.8),Vector2(.9,.55),Vector3(0,PI/2,-.35),Color(.32,.24,.23,.7))
+ decal(self,0,Vector3(-9.97,1.08,-8.25),Vector2(.9,.55),Vector3(0,PI/2,-.35),Color(.32,.24,.23,.7))
  for i in range(18):
   var x:=-8.7+fmod(i*3.73,18.1);var z:=-10.2+fmod(i*5.47,20)
   decal(self,2,Vector3(x,.027,z),Vector2(1.3+(i%3)*.5,.85),Vector3(-PI/2,i*.73,0),Color(.37,.39,.32,.28))

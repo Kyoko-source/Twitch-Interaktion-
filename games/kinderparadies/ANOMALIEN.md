@@ -1,4 +1,4 @@
-# Vorhandene Anomalien — Nachtwache 1.9.4
+# Vorhandene Anomalien — After Play 2.0.0
 
 Stand: 19. Oktober 2026. Direkt aus `scripts/patrol.gd` übernommen.
 
@@ -73,3 +73,5 @@ Zurzeit keine eigene Anomalie. Die NO SIGNAL-Leinwand und die Gestalt am Schacht
 Dichter graugrüner Nebel, Kinderlachen und Weinen in Röhren, unsichtbare Schritte, kurze Lampen- und Taschenlampen-Wackelkontakte, der im Topf rührende Küchenclown, die Spieluhr im Partyraum und die Schachtgestalt im Kino gehören zur Umgebung. Nur ihre ausdrücklich aufgelisteten Veränderungen sind Anomalien. Selbst verschobene Physikgegenstände zählen ebenfalls nicht.
 
 Der falsche Menüschalter „Jumpscares Off / On“ ist ein einzelner Menü-Schreckmoment. Er verändert weder die Anomalien noch den Spielstand und schaltet keine echten Jumpscares aus.
+
+Die verschlossene Archivtür, der vergilbte Zettel und die im Verlauf erscheinenden Zeitungen sind normale Bestandteile der optionalen Geschichte und keine zusätzlichen Anomalien.

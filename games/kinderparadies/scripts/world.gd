@@ -27,6 +27,7 @@ var soundscape: NightSoundscape
 var encounters: NightEncounters
 var annex: ServiceAnnex
 var room_horror: RoomHorror
+var archive: LostArchive
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -126,6 +127,7 @@ func build() -> void:
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
  if native_art: source.bus="Interior"
  encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
+ archive=LostArchive.new();add_child(archive);archive.build(self)
 
 func _wall_paintings() -> void:
  var root:=group("wall_paintings")
@@ -164,7 +166,10 @@ func _architecture(rubber: Texture2D) -> void:
   for i in range(transforms.size()): mm.set_instance_transform(i,transforms[i])
   instance.multimesh=mm;instance.material_override=mat(colors[color_index],rubber,.26,.16);add_child(instance)
   props.floor_tiles.append(instance)
- box(self,Vector3(-10.2,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
+ # A real opening to the archive replaces the western wall behind its door.
+ box(self,Vector3(-10.2,3.7,-11.5),Vector3(.3,7.4,1.6),materials.wall,true)
+ box(self,Vector3(-10.2,3.7,4.0),Vector3(.3,7.4,26.2),materials.wall,true)
+ box(self,Vector3(-10.2,4.95,-9.9),Vector3(.3,4.9,1.6),materials.wall,true)
  box(self,Vector3(19.8,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
  box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
  box(self,Vector3(6.7,3.7,-12.2),Vector3(26.2,7.4,.3),materials.wall,true)
@@ -174,8 +179,9 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
-  box(self,Vector3(x,.12,2.4),Vector3(.08,.23,29.1),materials.dark)
-  box(self,Vector3(x,1.1,2.4),Vector3(.06,.045,29.1),materials.teal)
+  for strip in ([Vector2(-11.5,1.3),Vector2(4.0,26.0)] if x<0 else [Vector2(2.4,29.1)]):
+   box(self,Vector3(x,.12,strip.x),Vector3(.08,.23,strip.y),materials.dark)
+   box(self,Vector3(x,1.1,strip.x),Vector3(.06,.045,strip.y),materials.teal)
  for z in [-10,-5,0,5,10,15]:
   box(self,Vector3(4.8,7.22,z),Vector3(29.8,.16,.14),materials.metal)
   tube(self,Vector3(-10,6.9,z),Vector3(19.6,6.9,z),.035,materials.dark)
@@ -382,7 +388,8 @@ func _details() -> void:
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
  for z in [9.5]:
   mounted_sign(self,"rules",Vector3(-9.96,1.95,z),Vector2(.65,.4),PI/2)
- for y in [1.3,2.5,3.7]:
+ # Keep the cable run above the archive lintel, never across the moving leaf.
+ for y in [3.7]:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
  mounted_sign(self,"duty",Vector3(-5.4,3.4,16.98),Vector2(1.65,.85),PI)

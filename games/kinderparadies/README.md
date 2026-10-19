@@ -1,4 +1,4 @@
-# NACHTWACHE — Kinderparadies
+# After Play — Kinderparadies
 
 Eigenständiges 3D-Anomaliespiel, Godot 4.6.2 / GDScript. Gemeinsames Projekt für
 Windows x86_64 und WebGL 2.0. Die Windows-Fassung läuft offline ohne Browser,
@@ -6,8 +6,8 @@ WebView, Aviary-Konto oder Anmeldung.
 
 ## Spielen
 
-`Nachtwache.exe` aus dem Windows-ZIP entpacken und starten. Im Web auf Aviary
-unter `/#games/nachtwache` öffnen und „Im Web spielen“ wählen.
+`AfterPlay.exe` aus dem Windows-ZIP entpacken und starten. Im Web auf Aviary
+unter `/#games/after-play` öffnen und „Im Web spielen“ wählen.
 
 WASD / Pfeiltasten bewegen, Maus umsehen, Umschalt schneller gehen, Leertaste
 springen, G Gegenstand aufheben/loslassen, linke Maustaste werfen, F Taschenlampe,
@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/Nachtwache.exe`, `build/web/`,
-`build/nachtwache-windows-v1.9.4.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.0.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -383,3 +383,33 @@ mit unregelmäßigen Zähnen und eingerissenen Mundwinkeln.
 
 Alle 45 vorhandenen Anomalien stehen mit Bereich und interner ID in
 [ANOMALIEN.md](ANOMALIEN.md). Die Schachtgestalt bleibt normale Umgebung.
+
+
+## v2.0.0 — After Play und die zurückgelassene Geschichte
+
+Das Spiel heißt in Menü, HUD, Fenster, Web-Seite und Windows-Metadaten
+After Play. Die bisherige Web-Adresse bleibt als Alias erhalten. Der interne
+Speicherordner bleibt absichtlich gleich, damit alte Spielstände und
+Einstellungen durch die Umbenennung erhalten bleiben.
+
+E sammelt den vergilbten Zettel und gefundene Zeitungen ein. TAB öffnet das
+Inventar; die Dienstanweisung bleibt darin erreichbar. Im Leser stehen die
+Artikel als gut lesbarer Text über einer alten Papieroberfläche. TAB oder
+ESC schließt den Leser wieder. Solange er offen ist, pausieren Bewegung,
+Rundgang und Raumgeräusche.
+
+Vier Zeitungsausgaben erscheinen in den Rundgängen 3, 5, 8 und 11.
+Die erste Meldung nennt den 6. Juni. Jede Ausgabe erzählt einen weiteren
+Teil der Geschichte des Happyland. Gesammelte Dokumente bleiben bis zum
+Ende dieser Schicht erhalten und werden zusammen mit dem Spielstand
+gespeichert. Tod und neue Nachtschicht setzen Sammlung und Archiv zurück.
+
+Die stark verrostete Tür im Wartungsbereich hat einen echten Riegel und
+ein vierstelliges Zahlenschloss. Nach dem Fund aller Zeitungen lässt sich
+die Kombination aus den Artikeln erschließen. Der optionale Archivraum
+ist begehbar und wieder verlassbar. Er enthält weitere Unterlagen, löst
+jedoch kein alternatives Ende aus und ersetzt keine der 13 Türentscheidungen.
+Der Raum, seine Tür und Dokumente zählen nicht als Anomalien.
+
+Druckseiten, Texte, Papier, Aktenblätter und Türmaterialien sind eigens
+für das Spiel gestaltet; es werden keine echten Vermisstenfälle verwendet.

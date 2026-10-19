@@ -12,7 +12,7 @@ static func home(g: Node3D) -> void:
  var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float a=mix(.98,.06,smoothstep(.18,.68,UV.x));COLOR=vec4(.012,.018,.016,a);}"
  var material:=ShaderMaterial.new();material.shader=shader;shade.material=material;g.menu.add_child(shade)
  for row in range(2):
-  var heading: Label=g._label("NACHT" if row==0 else "WACHE",120);heading.add_theme_font_override("font",g.title_font);heading.position=Vector2(80,68+row*118);g.menu.add_child(heading)
+  var heading: Label=g._label("AFTER" if row==0 else "PLAY",120);heading.add_theme_font_override("font",g.title_font);heading.position=Vector2(80,68+row*118);g.menu.add_child(heading)
  var subtitle: Label=g._label("Kinderparadies",36);subtitle.add_theme_font_override("font",g.title_font);subtitle.position=Vector2(88,328);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",18,Color("c2c3b7"));lead.position=Vector2(88,400);g.menu.add_child(lead)
  var actions:=VBoxContainer.new();actions.position=Vector2(88,466);actions.add_theme_constant_override("separation",10);g.menu.add_child(actions)
@@ -23,7 +23,7 @@ static func home(g: Node3D) -> void:
   var button: Button=g._button(item[0],item[1]);button.custom_minimum_size=Vector2(406,48);button.add_theme_font_override("font",g.title_font);button.add_theme_font_size_override("font_size",27)
   var plain:=StyleBoxEmpty.new();plain.content_margin_left=8;plain.content_margin_top=6;plain.content_margin_bottom=6;button.add_theme_stylebox_override("normal",plain);actions.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("a3aaa2"));hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=88;hint.offset_right=420;hint.offset_top=-70;hint.offset_bottom=-40;g.menu.add_child(hint)
- var version: Label=g._label("v1.9.4",15,Color("a3aaa2"));version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-70;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v2.0.0",15,Color("a3aaa2"));version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-70;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -57,7 +57,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    slider(g,column,"Mausempfindlichkeit","sensitivity",.0007,.0045,.0001)
    toggle(g,column,"Maus-Y umkehren","invert_y")
    toggle(g,column,"Kamerabewegung","motion")
-   column.add_child(g._paragraph("WASD / Pfeiltasten   Bewegen\nMaus   Umsehen\nUmschalt   Schnell gehen\nLeertaste   Springen / Intro gedrückt überspringen\nC halten   Ducken\nE   Interagieren\nF   Taschenlampe\nG   Aufheben / Loslassen\nLinke Maustaste   Werfen\nTAB   Dienstanweisung\nESC   Pause",18))
+   column.add_child(g._paragraph("WASD / Pfeiltasten   Bewegen\nMaus   Umsehen\nUmschalt   Schnell gehen\nLeertaste   Springen / Intro gedrückt überspringen\nC halten   Ducken\nE   Interagieren\nF   Taschenlampe\nG   Aufheben / Loslassen\nLinke Maustaste   Werfen\nTAB   Fundstücke und Zeitungen\nESC   Pause",18))
   "Spiel":
    toggle(g,column,"Fadenkreuz","crosshair")
    toggle(g,column,"Bereichsliste anzeigen","area_list")
@@ -86,7 +86,7 @@ static func option(g: Node3D, parent: VBoxContainer, title: String, key: String,
 
 static func credits(g: Node3D) -> void:
  g.phase="help";g.return_phase="menu"
- var column: VBoxContainer=g._panel("Mitwirkende","NACHTWACHE · Kinderparadies")
- column.add_child(g._paragraph("Spielwelt, Modelle, Animationen und Spielgestaltung: Aviary / Projekt Nachtwache.\n\nAnatomiebasis des Clownkopfs: Infinite von Lee Perry-Smith, bearbeitet, CC BY 3.0.\n\nUmgebungsaufnahmen: Joseph SARDIN / BigSoundBank, CC0. Weitere Asset-Lizenzen und Quellen liegen der Windows-Fassung bei.",18))
+ var column: VBoxContainer=g._panel("Mitwirkende","After Play · Kinderparadies")
+ column.add_child(g._paragraph("Spielwelt, Modelle, Animationen und Spielgestaltung: Aviary / After Play.\n\nAnatomiebasis des Clownkopfs: Infinite von Lee Perry-Smith, bearbeitet, CC BY 3.0.\n\nUmgebungsaufnahmen: Joseph SARDIN / BigSoundBank, CC0. Weitere Asset-Lizenzen und Quellen liegen der Windows-Fassung bei.",18))
  var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.text="[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]Kopfmodell und Quelle[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]";credit.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(credit)
  column.add_child(g._button("Zurück",g._return_from_panel,true));g._telemetry()

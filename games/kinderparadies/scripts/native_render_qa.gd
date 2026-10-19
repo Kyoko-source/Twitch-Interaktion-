@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--archive-qa" in OS.get_cmdline_user_args():
+  await archive_views(game,output);game._quit();return
  if "--voice-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.tick(1.3);game.intro.accept()
   await game.get_tree().create_timer(.4).timeout
@@ -294,6 +296,32 @@ func v193_views(game: Node3D, output: String) -> void:
  game._resume();await game.get_tree().create_timer(.2).timeout
  var report: Dictionary=game.world.soundscape.snapshot();report.moving_steps=moved;report.pause=frozen;report.audit=SceneAudit.inspect(game.world)
  var file:=FileAccess.open(output.path_join("v193-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V193 RENDER QA ",JSON.stringify(report))
+
+func archive_views(game: Node3D, output: String) -> void:
+ game._main_menu();await game.get_tree().create_timer(.5).timeout;await capture(game,output,"after-play-menu")
+ game._new_shift();game.intro.skip()
+ game.player.position=Vector3(-8.1,0,-9.9);game.player.rotation=Vector3.ZERO;game.player.camera.look_at(Vector3(-10.1,1.6,-9.9))
+ await game.get_tree().create_timer(.5).timeout;await capture(game,output,"rust-door");var note_target: String=game._target();game._collect_paper("note")
+ game._inventory();await game.get_tree().process_frame;await capture(game,output,"note-reader");game._resume()
+ var targets: Dictionary={}
+ for item in [{"id":"opening","level":3,"pos":Vector3(10.2,0,-4.6)},{"id":"missing","level":5,"pos":Vector3(.9,0,-19.9)},{"id":"coverup","level":8,"pos":Vector3(-11.75,0,-18.45)},{"id":"closure","level":11,"pos":Vector3(CrawlTubes.route(7.65).x,.31,15.8)}]:
+  game.state.streak=item.level-1;game._build_world("none");game._resume();game.player.position=item.pos;game.player.rotation=Vector3.ZERO
+  if item.id=="closure": Input.action_press("crouch");game.player.set_crouch(true);game.player.camera.position.y=.8
+  game.player.camera.look_at(game.world.archive.items[item.id].global_position)
+  await game.get_tree().create_timer(.6).timeout;await capture(game,output,"paper-"+item.id);targets[item.id]=game._target();game._collect_paper(item.id)
+  if item.id=="closure": Input.action_release("crouch")
+ game._inventory();await game.get_tree().process_frame;await capture(game,output,"newspaper-reader")
+ game._open_archive_lock();await game.get_tree().process_frame;await capture(game,output,"code-lock")
+ game.archive_input="6428";game._submit_archive_code();await game.get_tree().create_timer(2.2).timeout
+ game.player.position=Vector3(-8.7,0,-9.9);game.player.rotation.y=PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
+ for frame in range(90): await game.get_tree().physics_frame
+ Input.action_release("forward");var entered: bool=game.player.position.x< -11.5
+ game.player.position=Vector3(-12.8,0,-9.9);game.player.camera.look_at(Vector3(-15.15,1.1,-9.9));await game.get_tree().create_timer(.6).timeout;await capture(game,output,"archive-room")
+ game.player.rotation.y=-PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
+ for frame in range(105): await game.get_tree().physics_frame
+ Input.action_release("forward");var exited: bool=game.player.position.x> -9.8
+ var report: Dictionary=game.world.archive.snapshot();report.note_target=note_target;report.paper_targets=targets;report.entered=entered;report.exited=exited;report.audit=SceneAudit.inspect(game.world)
+ var file:=FileAccess.open(output.path_join("archive-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("AFTER PLAY ARCHIVE QA ",JSON.stringify(report))
 
 func v194_views(game: Node3D, output: String) -> void:
  game._main_menu();await game.get_tree().create_timer(1.1).timeout;await capture(game,output,"main-menu")

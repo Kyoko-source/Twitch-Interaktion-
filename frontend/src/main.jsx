@@ -46,7 +46,7 @@ import "./ui/community-theme.css";
 const PeppleSurvivor = lazy(() => import("./survivor/PeppleSurvivor").then((module) => ({ default: module.PeppleSurvivor })));
 const Quatschfarm = lazy(() => import("./farm/Quatschfarm").then((module) => ({ default: module.Quatschfarm })));
 const Nullsignal = lazy(() => import("./nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
-const Nachtwache = lazy(() => import("./nachtwache/Nachtwache").then((module) => ({ default: module.Nachtwache })));
+const AfterPlay = lazy(() => import("./nachtwache/Nachtwache").then((module) => ({ default: module.AfterPlay })));
 
 const nav = [
   { id: "home", label: "Home", icon: Home },
@@ -70,7 +70,7 @@ const gameMeta = {
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Chickens." },
   "quatschfarm": { title: "Quatschfarm", accent: "#f4c76c", text: "Deine Tiere. Deine Stimmen. Dein Chaos." },
   "nullsignal": { title: "NULLSIGNAL", accent: "#ff9c52", text: "Zwei Stimmen. Eine Chance. Entschärft gemeinsam eine echte 3D-Bombe." },
-  "nachtwache": { title: "NACHTWACHE", accent: "#b5b995", text: "Kinderparadies. Dreizehn Rundgänge. Erkenne, was sich verändert hat." },
+  "after-play": { title: "After Play", accent: "#b5b995", text: "Kinderparadies. Dreizehn Rundgänge. Erkenne, was sich verändert hat." },
   dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
 };
 
@@ -656,6 +656,7 @@ function GamesPage({ user }) {
   const gameFromRoute = () => {
     const [, nextGame] = routeParts();
     if (nextGame === "chicken-racer") return "chicken-flipper";
+    if (nextGame === "nachtwache") return "after-play";
     return gameMeta[nextGame] && nextGame !== "dnd" ? nextGame : "chicken-jump";
   };
   const [game, setGameState] = useState(gameFromRoute);
@@ -679,7 +680,7 @@ function GamesPage({ user }) {
     "braincell-survivor": <Suspense fallback={<div className="notice">Lade Pepple Survivor …</div>}><PeppleSurvivor user={user} renderScoreboard={(refreshKey) => <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />} /></Suspense>,
     "quatschfarm": <Suspense fallback={<div className="notice">Dein Bauernhof lädt …</div>}><Quatschfarm key={user?.username || "guest"} user={user} /></Suspense>,
     "nullsignal": <Suspense fallback={<div className="notice">NULLSIGNAL wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>,
-    "nachtwache": <Suspense fallback={<div className="notice">NACHTWACHE wird vorbereitet …</div>}><Nachtwache/></Suspense>,
+    "after-play": <Suspense fallback={<div className="notice">After Play wird vorbereitet …</div>}><AfterPlay/></Suspense>,
   }[game];
 
   return (
@@ -692,7 +693,7 @@ function GamesPage({ user }) {
         </div>
         <Zap size={64} />
       </div>
-      {game !== "quatschfarm" && game !== "nullsignal" && game !== "nachtwache" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
+      {game !== "quatschfarm" && game !== "nullsignal" && game !== "after-play" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => id !== "dnd" && setGame(id)} disabled={id === "dnd"} type="button">

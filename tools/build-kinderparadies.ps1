@@ -48,15 +48,18 @@ foreach($taskPreset in $taskExports){
 foreach($taskTarget in @('build/web','build/qa')){
  $taskHtml=Join-Path $taskProject ($taskTarget+'/index.html')
  if(Test-Path -LiteralPath $taskHtml){
-  $taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" href="data:,">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="NACHTWACHE 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
+  $taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" href="data:,">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="After Play 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
   [IO.File]::WriteAllText($taskHtml,$taskText,[Text.UTF8Encoding]::new($false))
  }
 }
 $taskPackage=Join-Path $taskProject 'build/package'
+ # Retire only the previous generated executable when packaging the renamed game.
+ $taskLegacyExe=Join-Path $taskPackage 'Nachtwache.exe'
+ if(Test-Path -LiteralPath $taskLegacyExe){Remove-Item -LiteralPath $taskLegacyExe -Force}
 New-Item -ItemType Directory -Force -Path (Join-Path $taskPackage 'Intro') | Out-Null
 Copy-Item -LiteralPath (Join-Path $taskRepo 'NACHTWACHE INTRO/LIESMICH.txt') -Destination (Join-Path $taskPackage 'Intro/LIESMICH.txt') -Force
 if(Test-Path -LiteralPath $taskChief){Copy-Item -LiteralPath $taskChief -Destination (Join-Path $taskPackage 'Intro/chef.mp3') -Force}
-Copy-Item -LiteralPath (Join-Path $taskProject 'build/windows/Nachtwache.exe') -Destination $taskPackage -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'build/windows/AfterPlay.exe') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'README.md') -Destination (Join-Path $taskPackage 'LIESMICH.md') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'ANOMALIEN.md') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/Kenney-Impact-License.txt'),(Join-Path $taskProject 'assets/Oswald-OFL.txt') -Destination $taskPackage -Force
@@ -68,6 +71,7 @@ Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v180/LICENSE.txt
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v180/provenance.json') -Destination (Join-Path $taskPackage 'Ambience-v180-Provenance.json') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v193/LICENSE.txt') -Destination (Join-Path $taskPackage 'Ambience-v193-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v193/provenance.json') -Destination (Join-Path $taskPackage 'Ambience-v193-Provenance.json') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/story/LICENSE.txt') -Destination (Join-Path $taskPackage 'Story-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/props/LICENSE.txt') -Destination (Join-Path $taskPackage 'Props-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/props/Head-Attribution.txt'),(Join-Path $taskProject 'assets/props/anatomy-provenance.json') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/creatures/vent-dweller-LICENSE.txt') -Destination (Join-Path $taskPackage 'Vent-Dweller-License.txt') -Force
@@ -75,13 +79,13 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/nachtwache-windows-v1.9.4.zip'
+$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.0.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='1.9.4';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='2.0.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

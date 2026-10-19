@@ -454,6 +454,7 @@ func run(game: Node3D) -> bool:
  var stored_settings: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SETTINGS))
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
+ await load("res://scripts/archive_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

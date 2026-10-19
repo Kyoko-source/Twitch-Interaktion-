@@ -3,6 +3,10 @@ extends Node3D
 var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-save.json"
 var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-settings.json"
 var state := PatrolState.new()
+var archive:=ArchiveState.new()
+var archive_selected:=""
+var inventory_back:="play"
+var archive_input:=""
 var world: PlayWorld
 var player: NightGuard
 var phase := "menu"
@@ -72,6 +76,7 @@ func _build_world(anomaly: String) -> void:
  if world:
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
+ world.archive.sync(archive,state.streak+1)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
@@ -96,13 +101,13 @@ func _ui() -> void:
  var shader:=Shader.new();shader.code="shader_type canvas_item; uniform sampler2D screen_texture:hint_screen_texture,filter_linear;uniform float grain=0.012;void fragment(){vec3 c=texture(screen_texture,SCREEN_UV).rgb;vec2 p=SCREEN_UV-0.5;float v=1.0-smoothstep(0.2,0.78,length(p))*0.32;float n=fract(sin(dot(FRAGCOORD.xy+TIME,vec2(12.9898,78.233)))*43758.5453)-0.5;COLOR=vec4(c*v+n*grain,1.0);}"
  var material:=ShaderMaterial.new();material.shader=shader;post.material=material;root.add_child(post)
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
- var brand:=_label("NACHTWACHE",27);brand.position=Vector2(30,24);hud.add_child(brand)
+ var brand:=_label("AFTER PLAY",27);brand.position=Vector2(30,24);hud.add_child(brand)
  brand.add_theme_font_override("font",title_font)
  var subtitle:=_label("Kinderparadies",15,Color("bcc5bf"));subtitle.position=Vector2(31,60);hud.add_child(subtitle)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
  checklist=_label("",15,Color("b7c5bf"));checklist.position=Vector2(30,98);hud.add_child(checklist)
- var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Notizen  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
+ var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Inventar  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
  notice=_label("",18,Color("eadfc2"));notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP);notice.offset_left=-450;notice.offset_right=450;notice.offset_top=25;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(notice)
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
@@ -158,6 +163,7 @@ func _menu_jump() -> void:
  phase="settings";NightMenus.settings(self,settings_tab);_telemetry()
 
 func _new_shift() -> void:
+ archive.clear();archive_selected="";archive_input=""
  state.start();has_session=true;intro_pending=true;_build_world("none");_begin_intro()
 
 func _begin_intro() -> void:
@@ -184,13 +190,16 @@ func _continue() -> void:
   return
  var data=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
+ var stored_archive=data.get("archive",{})
+ if stored_archive is Dictionary: archive.restore(stored_archive)
+ else: archive.clear()
  has_session=true;_build_world(state.current)
  intro_pending=bool(data.get("intro_pending",false))
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0))==7 and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -221,17 +230,42 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
  column.add_child(_paragraph("Kinderlachen, Weinen in den Krabbelröhren und Schritte in leeren Gängen gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Partyraum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
  column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Feierraum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Blutroter Nebel, frische rote Blutspuren, Handabdrücke oder Blut unter dem Partytisch sind Anomalien."))
+ column.add_child(_paragraph("Alte Zeitungen und der Zettel an der verrosteten Tür sind Fundstücke. Schau sie an und drücke E zum Einsammeln. TAB öffnet dein Inventar; während du liest, pausiert das Spiel. Die Sammlung bleibt innerhalb der Schicht erhalten und wird gespeichert. Bei Tod oder einer neuen Nachtschicht beginnt sie von vorn. Die verrostete Tür und Fundstücke zählen nicht als Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
- column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: diese Notizen · ESC: Pause\nF11: Vollbild"))
+ column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: Fundstücke und Zeitungen · ESC: Pause\nF11: Vollbild"))
  column.add_child(_button("Zurück",_return_from_panel,true));_telemetry()
 
 func _return_from_panel() -> void:
  if return_phase=="play": _resume()
+ elif return_phase=="inventory": _inventory(inventory_back)
  elif return_phase=="pause": phase="play";_pause()
  else: _main_menu()
 
 func _settings(back: String) -> void:
  phase="settings";return_phase=back;NightMenus.settings(self)
+
+func _inventory(back: String="play") -> void:
+ phase="inventory";inventory_back=back;ArchiveUI.inventory(self,archive_selected)
+
+func _archive_back() -> void:
+ if inventory_back=="code": _open_archive_lock()
+ else: _resume()
+
+func _open_archive_lock(message: String="") -> void:
+ if archive.unlocked: _announce("Das Schloss ist offen. Die Tür führt ins Archiv.");return
+ phase="code";ArchiveUI.keypad(self,message)
+
+func _submit_archive_code() -> void:
+ if phase!="code": return
+ if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
+ if not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
+ if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
+ archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
+
+func _collect_paper(id: String) -> void:
+ if phase!="play" or not archive.take(id,state.streak+1): return
+ archive_selected=id;world.archive.take(id);_save()
+ _announce("Eingesammelt: "+str(ArchiveState.document(id).title)+" · TAB zum Lesen",5)
 
 func _slider(parent: VBoxContainer, title: String, low: float, high: float, step: float, value: float, change: Callable) -> void:
  parent.add_child(_label(title,18));var slider:=HSlider.new();slider.set_meta("qa_label",title);slider.min_value=low;slider.max_value=high;slider.step=step;slider.value=value;slider.custom_minimum_size=Vector2(420,36);slider.value_changed.connect(change);parent.add_child(slider)
@@ -264,7 +298,7 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if intro: intro.voice.bus="NightVoice"
@@ -298,7 +332,7 @@ func _save(next_round: bool=false) -> void:
  var file:=FileAccess.open(SAVE,FileAccess.WRITE)
  if file:
   var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"pose":pose,"layout_version":7,"intro_pending":intro_pending}))
+  file.store_string(JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":8,"intro_pending":intro_pending}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -312,6 +346,7 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
+ world.archive.tick(delta,phase=="play")
  player.fright=world.encounters.shock
  if phase=="play":
   state.seconds+=delta
@@ -323,7 +358,10 @@ func _process(delta: float) -> void:
     _refresh_hud();_announce(zone+" kontrolliert",2.5)
   var target:=_target()
   last_target=target
-  prompt.text=("E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")) if target!="" else ""
+  prompt.text=""
+  if target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
+  elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
+  elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
    else:
@@ -336,7 +374,7 @@ func _process(delta: float) -> void:
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
 
 func _refresh_hud() -> void:
- round_label.text="SERIE %02d / 13"%state.streak
+ round_label.text="RUNDGANG %02d / 13"%mini(13,state.streak+1)
  var lines: PackedStringArray=[]
  for zone in PatrolState.ZONES: lines.append(("✓  " if zone in state.visited else "·  ")+zone)
  checklist.text="\n".join(lines)
@@ -355,7 +393,7 @@ func _decide(red: bool) -> void:
  phase="transition";player.release();last_result=result;effect.play();world.open_door(red)
  if result.correct: _save(true)
  if not result.correct:
-  state.start();intro_pending=true;_save()
+  archive.clear();archive_selected="";archive_input="";state.start();intro_pending=true;_save()
   phase="failure";hud.hide();player.lamp.hide();door_failure.start(world,player.camera);_telemetry()
   await door_failure.finished
   if phase=="quitting": return
@@ -383,6 +421,17 @@ func _won() -> void:
 func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=value;notice_time=seconds;notice.show()
 
+func _input(event: InputEvent) -> void:
+ if event.is_action_pressed("pause") and phase in ["inventory","code"]:
+  if phase=="inventory": _archive_back()
+  else: _resume()
+  get_viewport().set_input_as_handled();return
+ # TAB must close the reader before GUI focus navigation consumes it.
+ if event.is_action_pressed("notes") and phase in ["inventory","code"]:
+  if phase=="inventory": _archive_back()
+  else: _inventory("code")
+  get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
  if event.is_action_pressed("fullscreen"): _fullscreen();get_viewport().set_input_as_handled()
@@ -393,6 +442,8 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("pause"):
   if phase=="play": _pause()
   elif phase=="pause": _resume()
+  elif phase=="inventory": _archive_back()
+  elif phase=="code": _resume()
   elif phase in ["help","settings"]: _return_from_panel()
   get_viewport().set_input_as_handled()
  if phase!="play": return
@@ -400,10 +451,12 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("torch"): player.toggle_lamp()
  if event.is_action_pressed("grab"): player.grab_prop();get_viewport().set_input_as_handled()
  if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and is_instance_valid(player.carried): player.drop_prop(true)
- if event.is_action_pressed("notes"): _help("play");get_viewport().set_input_as_handled()
+ if event.is_action_pressed("notes"): _inventory("play");get_viewport().set_input_as_handled()
  if event.is_action_pressed("interact"):
   var target:=_target()
-  if target!="": _decide(target=="red")
+  if target in ["red","green"]: _decide(target=="red")
+  elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
+  elif target in ["archive_door","archive_lock"]: _open_archive_lock()
 
 func _fullscreen() -> void:
  if OS.has_feature("web"): JavaScriptBridge.eval("document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()")
@@ -414,7 +467,7 @@ func _quit() -> void:
  world.soundscape.stop_all()
  _save();_write_settings()
  player.release();room_audio.stop();effect.stop();world.source.stop()
- if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/nachtwache'");_main_menu()
+ if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/after-play'");_main_menu()
  else:
   phase="quitting"
   _stop_scene_audio(self)
@@ -451,6 +504,7 @@ func _telemetry() -> void:
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
   data.room_horror=world.room_horror.snapshot()
+  data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
   data.props=[]
