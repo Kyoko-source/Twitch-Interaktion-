@@ -10,10 +10,12 @@ var leaf: Node3D
 var items: Dictionary={}
 var creak: AudioStreamPlayer3D
 var target_angle:=0.0
+var finale: ArchiveFinale
 
 func build(world: PlayWorld) -> void:
  w=world;name="LostArchive"
  _entrance();_room()
+ finale=ArchiveFinale.new();add_child(finale);finale.build(w)
 
 func _entrance() -> void:
  var frame:=Node3D.new();frame.position=ENTRY;add_child(frame)
@@ -84,7 +86,7 @@ func _room() -> void:
  w.sphere(self,Vector3(-13.9,2.97,-9.9),.075,w.materials.cream)
 
 func sync(value: ArchiveState, round_stage: int) -> void:
- progress=value;stage=round_stage
+ progress=value;stage=round_stage;finale.sync(value)
  for item in items.values(): remove_item(item)
  items.clear()
  if "note" not in progress.collected: _paper("note",leaf,Vector3(.067,1.63,.75),Vector2(.26,.35),Vector3(0,PI/2,.025))
@@ -120,6 +122,7 @@ func open() -> void:
  if "casefile" not in progress.collected and not items.has("casefile"): _paper("casefile",self,Vector3(-15.15,.819,-9.05),Vector2(.34,.43),Vector3(-PI/2,-.12,0))
 
 func tick(delta: float, active: bool) -> void:
+ finale.tick(delta,active)
  if creak.stream_paused==active: creak.stream_paused=not active
  if active: leaf.rotation.y=move_toward(leaf.rotation.y,target_angle,delta*.92)
 
@@ -131,4 +134,4 @@ func snapshot() -> Dictionary:
  for id in items:
   if is_instance_valid(items[id]) and items[id].visible:
    var p: Vector3=items[id].global_position;visible.append({"id":id,"position":[p.x,p.y,p.z]})
- return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"unlocked":progress.unlocked,"collected":progress.collected}
+ return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"unlocked":progress.unlocked,"collected":progress.collected,"creator_access":progress.creator_access,"finale":finale.snapshot()}

@@ -1,0 +1,15 @@
+{
+  "marelle.ogg": {
+    "source_filename": "Horror Audio Marelle.wma",
+    "source_sha256": "c43da71efc901c931272d2ff534d58c0bae48979bd76a74193806d64dcf728bc",
+    "processing": "Full-length WMA decoded to Ogg Vorbis q5. No crop, no pitch/time change. User-supplied game recording."
+  },
+  "cook-scream.wav": {
+    "author": "A New Room",
+    "submitted_by": "qubodup",
+    "license": "CC0-1.0",
+    "source": "https://opengameart.org/content/evil-creature",
+    "archive_sha256": "a9819cbb44d9593291df7ce5c9657e35d2e68ce95b5aaff9657058fe9ac2486d",
+    "processing": "Audacity AU PCM block b00035, crop at 1.723084s; 1.15x pitch/speed, filtering, compression, -14 LUFS / -2 dBTP, short fades."
+  }
+}

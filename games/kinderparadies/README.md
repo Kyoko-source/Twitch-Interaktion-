@@ -42,7 +42,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.1.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.2.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -415,7 +415,7 @@ Druckseiten, Texte, Papier, Aktenblätter und Türmaterialien sind eigens
 für das Spiel gestaltet; es werden keine echten Vermisstenfälle verwendet.
 
 
-## v2.1.0 — Die Besucher
+## v2.2.0 — Die Besucher
 
 20 entfernte Anomalien wurden durch neue Begegnungen ersetzt, verteilt über Empfang, Bällebad/Kletteranlage, Party Raum, Wartungsgang, Küche, Kino und Krabbelröhren. Kurze Verfolgungen respektieren die Raumkollisionen und lassen einen erkennbaren Resthinweis zurück. Bewegung, Animationen, Schreckgeräusche und Verfolgungsschritte pausieren gemeinsam. Die neuen Besucher sind nicht in normalen Runden vorhanden.
 
@@ -443,3 +443,27 @@ mit 4 mm Abstand zwischen den Kugeln. Das Krokodil hat einen vollständigen
 Hinterkörper mit Rückenpanzer und langem Schwanz. Der Serverraum besitzt
 Boden, Decke, Wände und einen freien Durchgang; Speicherstände in diesem
 Raum werden fortgesetzt. Geräusche pausieren beim Lesen und im Pausenmenü.
+
+## Archivfinale und Erstellerzugang (2.2.0)
+
+Der zusätzliche Code `0712` öffnet das Archiv bereits im ersten Rundgang,
+auch ohne Zeitungen. `6428` bleibt die reguläre Lösung und benötigt weiterhin
+alle vier Zeitungen. Der Erstellerzugang wird mit dem Spielstand gespeichert.
+Eine neue Schicht oder Tod setzt ihn zusammen mit der Sammlung zurück.
+
+Im Archiv liegen angekettete erwachsene Skelettreste und ein Kassettengerät.
+E startet die vollständige Aufnahme aus „Horror Audio Marelle.wma“ (etwa 4:40).
+Das Original auf dem Desktop bleibt unangetastet; `assets/finale/marelle.ogg`
+ist die vollständige konvertierte Fassung. Pause, Inventar und Einstellungen
+pausieren die Wiedergabe; Fortsetzen lädt die gespeicherte Audioposition.
+Erst nach dem Ende der Aufnahme und beim anschließenden Umdrehen zur Tür
+erscheint der Küchenclown. Danach folgen Schwarzbild, ENDE und rollende Credits.
+Ein abgeschlossenes Finale setzt beim Fortsetzen direkt bei ENDE/Credits an.
+Leertaste halten überspringt die laufenden Credits und zeigt die Menüauswahl.
+
+Credits: Kyoko – Spielidee, Programmierung und Gestaltung; einsmarello –
+zusätzliche Ideen und Konzeptbeiträge; Testspieler: einsmarello, __jerry__,
+gingerbread, Mozart. Fremdasset-Quellen bleiben unter Mitwirkende und in den
+Lizenzdateien des Windows-Pakets aufgeführt. Der neue bearbeitete Schrei stammt
+von A New Room / OpenGameArt (CC0); Quelle und Verarbeitung stehen in
+`assets/finale/provenance.json`.

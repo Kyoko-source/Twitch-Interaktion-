@@ -43,6 +43,7 @@ var transition_shade: ColorRect
 var door_failure: DoorFailure
 var intro: ElevatorIntro
 var intro_pending:=false
+var end_credits: EndCredits
 
 func _ready() -> void:
  if OS.has_feature("web"): settings.quality=1
@@ -145,6 +146,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
  return column
 
 func _main_menu() -> void:
+ end_credits=null
  if intro: intro.stop()
  phase="menu";player.lamp.visible=false
  menu_camera.position=Vector3(-6.5,1.8,10.3);menu_camera.look_at(Vector3(4.5,2,0));menu_camera.current=true;menu_clock=0
@@ -185,7 +187,8 @@ func _can_continue() -> bool:
 
 func _continue() -> void:
  if has_session and not state.completed:
-  if intro_pending: _begin_intro()
+  if archive.ending=="complete": _show_archive_ending()
+  elif intro_pending: _begin_intro()
   else: _resume()
   return
  var data=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
@@ -195,6 +198,7 @@ func _continue() -> void:
  else: archive.clear()
  has_session=true;_build_world(state.current)
  intro_pending=bool(data.get("intro_pending",false))
+ if archive.ending=="complete": _show_archive_ending();return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
  if int(data.get("layout_version",0)) in [7,8] and pose is Array and pose.size()==5:
@@ -206,7 +210,7 @@ func _continue() -> void:
 
 func _resume() -> void:
  player.camera.current=true;player.camera.fov=player.base_fov
- phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false
+ phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false;world.archive.finale.voice.stream_paused=false
  player.lamp.visible=player.lamp_on
  world.atmosphere.set_active(true)
  if not room_audio.playing: room_audio.play()
@@ -214,7 +218,7 @@ func _resume() -> void:
 
 func _pause() -> void:
  if phase!="play": return
- phase="pause";_save()
+ phase="pause";world.archive.finale.voice.stream_paused=true;_save()
  var column:=_panel("Dienstpause","Der Rundgang steht still. Dein Fortschritt ist gespeichert.")
  column.add_child(_button("Rundgang fortsetzen",_resume,true))
  column.add_child(_button("Einstellungen",func():_settings("pause")))
@@ -258,7 +262,7 @@ func _open_archive_lock(message: String="") -> void:
 func _submit_archive_code() -> void:
  if phase!="code": return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
- if not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
+ if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
  archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
 
@@ -301,6 +305,7 @@ func _apply_settings() -> void:
   for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
+ if world and world.archive: world.archive.finale.voice.bus="NightVoice"
  if intro: intro.voice.bus="NightVoice"
  if room_audio: room_audio.bus="NightAmbience"
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
@@ -338,7 +343,8 @@ func _process(delta: float) -> void:
  if not world or not player: return
  if menu_light: menu_light.visible=phase=="menu"
  if phase=="intro": intro.tick(delta)
- if phase=="failure": door_failure.tick(delta)
+ if phase in ["failure","archive_scare"]: door_failure.tick(delta)
+ if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
  if phase=="menu":
   menu_clock+=delta;menu_camera.rotation.y+=cos(menu_clock*.13)*delta*.002
@@ -361,6 +367,7 @@ func _process(delta: float) -> void:
   last_target=target
   prompt.text=""
   if target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
+  elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
   if target=="":
@@ -411,6 +418,17 @@ func _fade(alpha: float, duration: float) -> void:
  await create_tween().tween_property(transition_shade,"color:a",alpha,duration).finished
  if alpha==0 and is_instance_valid(transition_shade): transition_shade.hide()
 
+func _start_archive_scare() -> void:
+ if phase!="play": return
+ phase="archive_scare";hud.hide();menu.hide();player.release();player.lamp.hide()
+ door_failure.start_archive(world,player.camera);_telemetry()
+ await door_failure.finished
+ if phase=="archive_scare": _show_archive_ending()
+
+func _show_archive_ending() -> void:
+ phase="ending";NightMenus.clear(self);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
+ end_credits=EndCredits.new();menu.add_child(end_credits);end_credits.build(self);_telemetry()
+
 func _won() -> void:
  phase="won";world.environment.environment.ambient_light_energy=.65;world.environment.environment.fog_density=.002
  var column:=_panel("06:00","SCHICHT BEENDET")
@@ -434,6 +452,9 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+ if phase in ["archive_scare","ending"]:
+  if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>4: end_credits.finish_scroll()
+  get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
  if event.is_action_pressed("fullscreen"): _fullscreen();get_viewport().set_input_as_handled()
  if phase=="intro":
@@ -456,6 +477,7 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("interact"):
   var target:=_target()
   if target in ["red","green"]: _decide(target=="red")
+  elif target=="archive_recording": world.archive.finale.interact()
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
 
@@ -506,6 +528,7 @@ func _telemetry() -> void:
   data.intro=intro.snapshot()
   data.room_horror=world.room_horror.snapshot()
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
+  data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
@@ -531,6 +554,10 @@ func _qa_command(args: Array) -> void:
   "voice": world.soundscape.cue_voice(player)
   "flicker": player.torch_body.trigger()
   "audit": qa_layout=SceneAudit.inspect(world)
+  "recording_seek":
+   if archive.ending=="recording":
+    var at:=clampf(float(command.get("time",0)),0,world.archive.finale.duration-.08)
+    archive.recording_position=at;world.archive.finale.voice.seek(at)
   "new": _new_shift()
   "warp": player.drop_prop();player.position=Vector3(command.x,float(command.get("y",0)),command.z);player.velocity=Vector3.ZERO;player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
   "anomaly": state.current=str(command.id);_build_world(state.current);_resume()

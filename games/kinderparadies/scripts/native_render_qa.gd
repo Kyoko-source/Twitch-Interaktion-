@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--finale-qa" in OS.get_cmdline_user_args():
+  await finale_views(game,output);game._quit();return
  if "--props-qa" in OS.get_cmdline_user_args():
   await props_views(game,output);game._quit();return
  if "--nightmares-qa" in OS.get_cmdline_user_args():
@@ -431,3 +433,33 @@ func props_views(game: Node3D, output: String) -> void:
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  game._collect_paper("note");game._inventory();await game.get_tree().process_frame;await capture(game,output,"handwritten-note")
  var file:=FileAccess.open(output.path_join("props-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(SceneAudit.inspect(game.world)," "))
+
+func finale_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game._open_archive_lock();game.archive_input="0712";game._submit_archive_code()
+ await game.get_tree().create_timer(2.3).timeout
+ game.player.position=Vector3(-8.7,0,-9.9);game.player.rotation.y=PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
+ for frame in range(95): await game.get_tree().physics_frame
+ Input.action_release("forward");var entered: bool=game.player.position.x< -11.5
+ game.player.position=Vector3(-11.35,0,-10.3);game.player.rotation=Vector3.ZERO;game.player.camera.look_at(Vector3(-13.15,.16,-8.7))
+ await game.get_tree().create_timer(.7).timeout;await capture(game,output,"archive-remains")
+ game.player.position=Vector3(-11.3,0,-9.9);game.player.camera.look_at(ArchiveFinale.RECORDER+Vector3(0,.07,0))
+ await game.get_tree().create_timer(.4).timeout;await capture(game,output,"recorder")
+ var target: String=game._target();game.world.archive.finale.interact()
+ await game.get_tree().create_timer(.5).timeout;game._pause();await game.get_tree().process_frame
+ var pause_at: float=game.archive.recording_position
+ await game.get_tree().create_timer(.3).timeout;var paused: bool=game.archive.recording_position==pause_at and game.world.archive.finale.voice.stream_paused;game._resume()
+ game.player.camera.look_at(Vector3(-14,1.3,-9.9))
+ if "--fast-finale-qa" in OS.get_cmdline_user_args(): game.world.archive.finale.voice.seek(game.world.archive.finale.duration-.15)
+ var wait_clock:=0.0
+ while game.archive.ending=="recording" and wait_clock<290:
+  await game.get_tree().process_frame;wait_clock+=game.get_process_delta_time()
+ var listened: bool=game.archive.ending=="armed" and game.phase=="play"
+ await game.get_tree().create_timer(.2).timeout
+ game.player.camera.look_at(LostArchive.ENTRY+Vector3(0,1.5,0))
+ await game.get_tree().create_timer(.24).timeout;await capture(game,output,"chef-reveal")
+ await game.get_tree().create_timer(1.1).timeout;await game.get_tree().create_timer(.5).timeout;await capture(game,output,"ende")
+ var word: bool=is_instance_valid(game.end_credits) and game.end_credits.snapshot().end_word
+ game.end_credits.tick(12);await game.get_tree().process_frame;await capture(game,output,"credits-kyoko")
+ game.end_credits.tick(16);await game.get_tree().process_frame;await capture(game,output,"credits-testers")
+ var report:={"entered":entered,"creator_access":game.archive.creator_access,"papers":game.archive.collected,"recorder_target":target,"recording_pause":paused,"duration":game.world.archive.finale.duration,"full_recording": "--fast-finale-qa" not in OS.get_cmdline_user_args(),"listened_seconds":wait_clock,"armed_after_audio":listened,"ending":game.phase,"end_word":word,"credits":game.end_credits.snapshot(),"finale":game.world.archive.finale.snapshot()}
+ var file:=FileAccess.open(output.path_join("finale-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("ARCHIVE FINALE QA ",JSON.stringify(report))
