@@ -71,6 +71,8 @@ Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v180/LICENSE.txt
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v180/provenance.json') -Destination (Join-Path $taskPackage 'Ambience-v180-Provenance.json') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v193/LICENSE.txt') -Destination (Join-Path $taskPackage 'Ambience-v193-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience-v193/provenance.json') -Destination (Join-Path $taskPackage 'Ambience-v193-Provenance.json') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/finale/LICENSE.txt') -Destination (Join-Path $taskPackage 'Finale-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/finale/provenance.json') -Destination (Join-Path $taskPackage 'Finale-Provenance.json') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/story/LICENSE.txt') -Destination (Join-Path $taskPackage 'Story-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/creatures/nightmares-v21-LICENSE.txt') -Destination (Join-Path $taskPackage 'Nightmares-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/props/LICENSE.txt') -Destination (Join-Path $taskPackage 'Props-License.txt') -Force
@@ -80,13 +82,13 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.1.0.zip'
+$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.2.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='2.1.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='2.2.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"
