@@ -256,6 +256,7 @@ func _archive_back() -> void:
  else: _resume()
 
 func _open_archive_lock(message: String="") -> void:
+ if world.archive.playback_locked(): _announce("Verriegelt. Hör die Aufnahme bis zum Ende.");return
  if archive.unlocked: _announce("Das Schloss ist offen. Die Tür führt ins Archiv.");return
  phase="code";ArchiveUI.keypad(self,message)
 
@@ -369,7 +370,7 @@ func _process(delta: float) -> void:
   if target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
-  elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
+  elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
    else:

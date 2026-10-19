@@ -22,8 +22,19 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(finale.duration>279 and finale.duration<281 and finale.snapshot().skeleton_meshes>=2 and finale.snapshot().chains==4,"Narration length, skeletal remains or restraints are missing")
  game.player.camera.look_at(LostArchive.ENTRY+Vector3(0,1.5,0));finale.tick(.1,true)
  verify.call(game.phase=="play" and game.archive.ending=="idle","Looking at the door before listening triggers the ending")
- finale.interact();await game.get_tree().create_timer(.15).timeout
+ game.player.position=Vector3(-9.8,0,-9.9);finale.interact()
+ verify.call(game.archive.ending=="idle" and not game.world.archive.playback_locked(),"Starting the recorder from the hallway locks the listener outside")
+ game.player.position=Vector3(-11.3,0,-9.9);finale.interact();await game.get_tree().create_timer(.15).timeout
  verify.call(game.archive.ending=="recording" and finale.started,"Recorder does not start its actual media stream")
+ verify.call(game.world.archive.playback_locked() and is_zero_approx(game.world.archive.leaf.rotation.y),"The actual archive door stays open while the recording plays")
+ game.world.archive.open();game._open_archive_lock()
+ verify.call(game.phase=="play" and is_zero_approx(game.world.archive.target_angle),"Interacting with the lock bypasses the recording barrier")
+ for crouched in [false,true]:
+  game.player.set_crouch(crouched);game.player.position=Vector3(-11.0,0,-9.9);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
+  for frame in range(45): await game.get_tree().physics_frame
+  Input.action_release("forward")
+  verify.call(game.player.position.x< -10.45,"The guard can leave during the recording, crouching="+str(crouched))
+ game.player.set_crouch(false);game.player.position=Vector3(-11.3,0,-9.9);game.player.velocity=Vector3.ZERO
  game._pause();await game.get_tree().process_frame;await game.get_tree().process_frame
  var position: float=game.archive.recording_position
  await game.get_tree().create_timer(.15).timeout
@@ -32,10 +43,18 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(game.archive.ending=="recording" and game.archive.recording_position>116 and game.archive.recording_position<120,"Narration save loses its playback position: "+JSON.stringify(game.archive.serialize()))
  finale=game.world.archive.finale;await game.get_tree().create_timer(.15).timeout
  verify.call(finale.started and finale.voice.get_playback_position()>116,"Continue restarts the recording instead of resuming: "+JSON.stringify(finale.snapshot()))
+ verify.call(game.world.archive.playback_locked() and is_zero_approx(game.world.archive.leaf.rotation.y),"Loading a playing recording unlocks its door")
+ game.player.position=Vector3(-8.7,0,-9.9);game._pause();game.has_session=false;game._continue()
+ await game.get_tree().create_timer(.15).timeout;finale=game.world.archive.finale
+ verify.call(game.world.archive.safe_pose(game.player.position) and game.player.position.x<LostArchive.ENTRY.x-.3 and finale.started,"An older outside-recording save strands its listener outside the locked room")
  game.player.position=Vector3(-11.3,0,-9.9);game.player.camera.look_at(LostArchive.ENTRY+Vector3(0,1.5,0))
  finale.voice.seek(finale.duration-.08)
  await game.get_tree().create_timer(.3).timeout
  verify.call(game.archive.ending=="armed" and game.phase=="play" and finale.trigger_count==0,"Media end does not arm the reveal or scares before the player turns")
+ verify.call(not game.world.archive.playback_locked() and game.world.archive.target_angle< -1.7,"Finishing the recording fails to release the archive door")
+ game.world.archive.tick(2,true);await game.get_tree().physics_frame;await game.get_tree().physics_frame
+ var ray:=PhysicsRayQueryParameters3D.create(Vector3(-11.3,.9,-9.9),Vector3(-9.5,.9,-9.9),1);ray.exclude=[game.player.get_rid()]
+ verify.call(game.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(),"The released archive door leaves an invisible exit barrier")
  game._pause();finale.tick(.2,false);verify.call(game.phase=="pause" and finale.trigger_count==0,"Ending reveal triggers in the pause menu")
  game._resume();game.player.camera.look_at(Vector3(-14,1.3,-9.9));finale.tick(.1,true)
  verify.call(finale.looked_away and game.phase=="play","The finale cannot register the turn away from the door")

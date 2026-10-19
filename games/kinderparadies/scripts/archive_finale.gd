@@ -70,17 +70,29 @@ func sync(value: ArchiveState) -> void:
 
 func interact() -> void:
  if not progress or not progress.unlocked or progress.ending in ["armed","complete"]: return
+ if progress.ending=="idle" and not _inside():
+  _game()._announce("Geh ganz ins Archiv, um die Aufnahme zu starten.",4)
+  return
  if progress.ending=="idle": progress.ending="recording";progress.recording_position=0
  _play();_game()._save()
- _game()._announce("Die Aufnahme läuft. Hör zu.",4)
+ _game()._announce("Die Tür verriegelt sich. Hör die Aufnahme zu Ende.",4)
+
+func _inside() -> bool:
+ var position: Vector3=_game().player.position
+ return w.archive.safe_pose(position) and position.x<LostArchive.ENTRY.x-.3
 
 func _play() -> void:
  if started: return
+ # Earlier versions allowed saving a playing tape from outside the archive.
+ if not _inside():
+  var player: NightGuard=_game().player
+  player.position=Vector3(-11.3,0,-9.9);player.velocity=Vector3.ZERO;player.rotation=Vector3.ZERO;player.camera.look_at(RECORDER+Vector3(0,.07,0))
+ w.archive.hold_for_recording()
  started=true;voice.stream_paused=false;voice.play(minf(progress.recording_position,maxf(0,duration-.05)))
 
 func _finished_recording() -> void:
  if not progress or progress.ending!="recording": return
- progress.ending="armed";progress.recording_position=duration;looked_away=false;_game()._save()
+ progress.ending="armed";progress.recording_position=duration;looked_away=false;w.archive.open();_game()._save()
 
 func _game() -> Node3D:
  return w.get_parent()

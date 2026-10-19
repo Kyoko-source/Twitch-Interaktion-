@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.2.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.2.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -477,3 +477,12 @@ Fundstück bereits eingesammelt wurde. Die normale Raumkulisse bleibt bestehen.
 Der Anomalie-Beutel und die Zufallsfolge werden für diese Runden nicht verbraucht.
 Alte Spielstände auf einer Zeitungsrunde werden beim Laden auf einen normalen
 Rundgang umgestellt; Fortschritt und Sammlung bleiben erhalten.
+
+## Türsperre während der Archivaufnahme (2.2.2)
+
+Beim Start der Aufnahme schließt und verriegelt sich die echte Archivtür.
+Die Sperre bleibt bei Pause und beim Fortsetzen des Spielstands bestehen.
+Erst das tatsächliche Ende der Aufnahme entriegelt und öffnet die Tür wieder.
+Die Aufnahme lässt sich nur vollständig innerhalb des Raumes starten.
+Ältere Spielstände mit laufender Aufnahme außerhalb des Archivs setzen den
+Spieler beim Fortsetzen sicher zum Aufnahmegerät in den Raum zurück.

@@ -96,7 +96,7 @@ func sync(value: ArchiveState, round_stage: int) -> void:
   if id=="closure": point.y=.322
   _paper(id,self,point,Vector2(.24,.19) if id=="coverup" else Vector2(.34,.43),Vector3(-PI/2,.13,0))
  if progress.unlocked and "casefile" not in progress.collected: _paper("casefile",self,Vector3(-15.15,.819,-9.05),Vector2(.34,.43),Vector3(-PI/2,-.12,0))
- target_angle=-1.76 if progress.unlocked else 0.0;leaf.rotation.y=target_angle
+ target_angle=-1.76 if progress.unlocked and not playback_locked() else 0.0;leaf.rotation.y=target_angle
 
 func _paper(id: String, parent: Node3D, pos: Vector3, size: Vector2, turn: Vector3) -> void:
  var root:=Node3D.new();root.name="Story_"+id;root.position=pos;root.rotation=turn;parent.add_child(root)
@@ -118,11 +118,21 @@ func take(id: String) -> void:
  if items.has(id): remove_item(items[id]);items.erase(id)
 
 func open() -> void:
+ if playback_locked(): return
  target_angle=-1.76;creak.play()
  if "casefile" not in progress.collected and not items.has("casefile"): _paper("casefile",self,Vector3(-15.15,.819,-9.05),Vector2(.34,.43),Vector3(-PI/2,-.12,0))
 
+func playback_locked() -> bool:
+ return progress!=null and progress.unlocked and progress.ending=="recording"
+
+func hold_for_recording() -> void:
+ if not playback_locked(): return
+ # Shut the real leaf and its collider together; no invisible exit barrier.
+ target_angle=0.0;leaf.rotation.y=0.0;creak.play()
+
 func tick(delta: float, active: bool) -> void:
  finale.tick(delta,active)
+ if playback_locked(): target_angle=0.0
  if creak.stream_paused==active: creak.stream_paused=not active
  if active: leaf.rotation.y=move_toward(leaf.rotation.y,target_angle,delta*.92)
 
@@ -134,4 +144,4 @@ func snapshot() -> Dictionary:
  for id in items:
   if is_instance_valid(items[id]) and items[id].visible:
    var p: Vector3=items[id].global_position;visible.append({"id":id,"position":[p.x,p.y,p.z]})
- return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"unlocked":progress.unlocked,"collected":progress.collected,"creator_access":progress.creator_access,"finale":finale.snapshot()}
+ return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"target_angle":target_angle,"recording_locked":playback_locked(),"unlocked":progress.unlocked,"collected":progress.collected,"creator_access":progress.creator_access,"finale":finale.snapshot()}
