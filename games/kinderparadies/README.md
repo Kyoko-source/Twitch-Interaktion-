@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.2.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.3.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -486,3 +486,19 @@ Erst das tatsächliche Ende der Aufnahme entriegelt und öffnet die Tür wieder.
 Die Aufnahme lässt sich nur vollständig innerhalb des Raumes starten.
 Ältere Spielstände mit laufender Aufnahme außerhalb des Archivs setzen den
 Spieler beim Fortsetzen sicher zum Aufnahmegerät in den Raum zurück.
+
+## 16:9, Partywand und Abspannmusik (2.3.0)
+
+Die logische Bildfläche beträgt 1920 × 1080. Windows startet im 1600 × 900-
+Fenster; bei anderen Fensterformaten bleiben korrekte Proportionen mit schwarzen
+Rändern erhalten. Auch die Web-Einbettung hält 16:9 im Fenster und Vollbild ein.
+Der Sicherungskasten hängt im Serverraum an der Westwand, außerhalb der Tür.
+Das große Clownfresko befindet sich an der anschließenden freien Südwand des
+Party Raums; der zugehörige Anomalie-Besucher steht ebenfalls unter dem Bild.
+Die originale Musikbox.mp3 aus dem Party Raum begleitet die rollenden Credits,
+wird sanft eingeblendet und endet beim Überspringen bzw. Verlassen des Abspanns.
+Die Gesamtlautstärke gilt weiterhin. Die Originaldatei wurde nicht verändert.
+Im Web werden Spielstand und Einstellungen zusätzlich unmittelbar lokal
+gesichert, damit selbst ein Neuladen direkt nach Pause die jüngste Audioposition
+behält. Bestehende Browser-Spielstände werden weiterhin übernommen; die
+isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.

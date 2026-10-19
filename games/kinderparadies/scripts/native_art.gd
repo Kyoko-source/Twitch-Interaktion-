@@ -11,6 +11,7 @@ var probes: Array[ReflectionProbe]=[]
 var elapsed := 0.0
 var strip_material: StandardMaterial3D
 var fill_lights: Array[OmniLight3D]=[]
+var power_box: Node3D
 
 func build(world: PlayWorld) -> void:
  w=world
@@ -87,7 +88,8 @@ func _models() -> void:
  hide_geometry(w.props.reception_shelves)
  for i in range(5): model(self,"cardboard_box_01",Vector3(-16.5+(i%2)*.55,.02+floori(i/2.0)*.35,-14.1),.34,-.3+i*.4)
  for i in range(4): model(self,"cardboard_box_01",Vector3(-8.25+(i%2)*.5,.02+floori(i/2.0)*.42,-3.4),.41,i*.45)
- model(self,"power_box_01",Vector3(-9.8,1.4,-5.6),.7,PI/2)
+ power_box=model(self,"power_box_01",Vector3(-16.11,1.1,-3.85),.7,PI/2)
+ power_box.name="WallMountedPowerBox"
  model(self,"metal_office_desk",Vector3(-7.9,.02,-21.5),.85)
  model(w.props.counter,"rubber_duck_toy",Vector3(.12,1.0,.45),.13,.5)
  model(w.props.party_table,"rubber_duck_toy",Vector3(8.8,.87,-7.3),.12,-.8)

@@ -4,17 +4,31 @@ import {tmpdir} from 'node:os';
 const URL=process.env.NACHTWACHE_QA_URL;
 test.skip(!URL,'Set NACHTWACHE_QA_URL to the isolated local Godot QA export.');
 if(URL&&!['127.0.0.1','localhost'].includes(new globalThis.URL(URL).hostname))throw new Error('Godot QA must be local.');
-test.use({viewport:{width:1536,height:1024},launchOptions:{args:['--enable-unsafe-swiftshader']}});
+test.use({viewport:{width:1920,height:1080},launchOptions:{args:['--enable-unsafe-swiftshader']}});
 const state=page=>page.evaluate(()=>{window.nachtwacheQA?.(JSON.stringify({op:'state'}));return window.nachtwacheStatus;});
 async function skipIntro(page){await expect.poll(async()=>(await state(page)).phase).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
 async function qa(page,command){await page.evaluate(command=>window.nachtwacheQA(JSON.stringify(command)),command);if(command.op==='new')await skipIntro(page);}
 async function clickControl(page,text){const control=(await state(page)).controls.find(c=>c.text===text);expect(control).toBeTruthy();const [x,y,w,h]=control.rect;await page.mouse.click(x+w/2,y+h/2);}
-async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu'&&typeof window.nachtwacheQA==='function',{timeout:45000});const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);}
+async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu'&&typeof window.nachtwacheQA==='function',{timeout:45000});const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);expect(exported.presentation.logical_size).toEqual([1920,1080]);}
 async function begin(page){await load(page);await clickControl(page,'Neue Nachtschicht');await skipIntro(page);await expect.poll(async()=>(await state(page)).phase).toBe('play');}
 async function walk(page,key,predicate){await page.keyboard.down(key);try{await expect.poll(async()=>predicate(await state(page)),{timeout:18000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page));throw error;}finally{await page.keyboard.up(key);await page.waitForTimeout(180);}}
 const errors=[];
 test.beforeEach(async({page})=>{errors.length=0;page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});});
 test.afterEach(()=>expect(errors).toEqual([]));
+
+test('standalone 16:9 stays proportional at 4:3 and 16:10; the fresco and its visitor share the new right-hand wall',async({page})=>{
+ test.setTimeout(90000);await load(page);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-menu.png')});
+ for(const viewport of [{width:1280,height:960},{width:1536,height:1024}]){
+  await page.setViewportSize(viewport);await expect.poll(async()=>(await state(page)).presentation.logical_size).toEqual([1920,1080]);
+  await expect.poll(async()=>{const [w,h]=(await state(page)).presentation.render_size;return Math.abs(w/h-16/9);}).toBeLessThan(.004);
+  await page.screenshot({path:join(tmpdir(),`after-play-v230-web-letterbox-${viewport.width}.png`)});
+ }
+ await page.setViewportSize({width:1920,height:1080});await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ const fresco=(await state(page)).presentation.fresco;expect(fresco[0]).toBeCloseTo(13.3);expect(fresco[2]).toBeCloseTo(1.485);
+ await qa(page,{op:'warp',x:13.3,z:-4.4,yaw:Math.PI,pitch:.18});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-right-wall.png')});
+ await qa(page,{op:'anomaly',id:'party_portrait'});await qa(page,{op:'warp',x:13.3,z:-1.5,yaw:Math.PI,pitch:0});
+ await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.position[0]).toBeGreaterThan(12);expect((await state(page)).terrors.position[2]).toBeLessThan(1.485);
+});
 
 test('actual WASD patrol visits all areas, collides with floor, operates flashlight, pauses and chooses the real green door',async({page})=>{
  test.setTimeout(180000);await load(page);await page.screenshot({path:join(tmpdir(),'nachtwache-menu-desktop.png')});await page.mouse.click(250,490);await skipIntro(page);await expect.poll(async()=>(await state(page)).phase).toBe('play');
@@ -69,11 +83,13 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'After Play',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.2.2.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.2.2.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.3.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.3.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'After Play spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="After Play – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
+ for(const viewport of [{width:1920,height:1080},{width:1280,height:960},{width:1536,height:1024}]){await page.setViewportSize(viewport);await expect.poll(async()=>{const box=await page.locator('.nightGameStage iframe').boundingBox();return Math.abs(box.width/box.height-16/9);}).toBeLessThan(.002);const box=await page.locator('.nightGameStage iframe').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(43);expect(box.x+box.width).toBeLessThanOrEqual(viewport.width+.1);expect(box.y+box.height).toBeLessThanOrEqual(viewport.height+.1);}
+ await page.getByRole('button',{name:'Spiel im Vollbild öffnen'}).click();await page.waitForFunction(()=>Boolean(document.fullscreenElement));await expect.poll(async()=>{const box=await page.locator('.nightGameStage iframe').boundingBox();return Math.abs(box.width/box.height-16/9);}).toBeLessThan(.002);await page.evaluate(()=>document.exitFullscreen());
  await page.getByRole('button',{name:'Zurück zur Webseite',exact:true}).click();await expect(page.locator('.nightGameWindow')).toHaveCount(0);expect(await page.locator('.communityApp').evaluate(e=>e.inert)).toBe(false);
 });
 
@@ -292,7 +308,7 @@ test('new visitors pursue once, freeze with their sounds in TAB and pause, respe
  await qa(page,{op:'anomaly',id:'tube_watcher'});await qa(page,{op:'warp',x:-1.227433,y:.31,z:15.8,yaw:0,pitch:1.3});await page.keyboard.down('c');await expect.poll(async()=>(await state(page)).watcher).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v21-web-watcher-inside.png')});await page.keyboard.up('c');await qa(page,{op:'warp',x:-1.2,y:0,z:12.2,yaw:0,pitch:.6});await expect.poll(async()=>(await state(page)).watcher).toBe(false);await page.screenshot({path:join(tmpdir(),'after-play-v21-web-watcher-outside.png')});
  for(const id of ['tube_chase','tube_window_hands']){await qa(page,{op:'anomaly',id});await qa(page,{op:'warp',x:-1.227433,y:.31,z:15.8,yaw:0,pitch:0});await page.keyboard.down('c');await expect.poll(async()=>(await state(page)).terrors.visible).toBe(true);await page.keyboard.up('c');await qa(page,{op:'warp',x:-1.2,y:0,z:12.2,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).terrors.visible).toBe(false);}
  await qa(page,{op:'anomaly',id:'none'});expect((await state(page)).terrors.id).toBe('none');expect((await state(page)).terrors.visible).toBe(false);
- await aim([14,0,-6.7],[19.49,2.6,-6.7]);await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v21-web-fresco.png')});
+ await aim([13.3,0,-4.4],[13.3,2.6,1.485]);await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v21-web-fresco.png')});
 });
 
 test('server room has a walkable threshold in both directions and continues from its saved interior',async({page})=>{
@@ -328,13 +344,13 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
 
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const at=(await state(page)).archive.finale.position;await page.waitForTimeout(400);expect((await state(page)).archive.finale.position).toBe(at);expect((await state(page)).archive.finale.paused).toBe(true);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');await qa(page,{op:'recording_seek',time:117});await expect.poll(async()=>(await state(page)).archive.finale.position).toBeGreaterThan(117);
- await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('after-play:qa-nachtwache-save.json')).archive.recording_position)).toBeGreaterThan(117);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).archive.creator_access).toBe(true);await expect.poll(async()=>(await state(page)).archive.finale.position).toBeGreaterThan(117);expect((await state(page)).archive.finale.position).toBeLessThan(123);expect((await state(page)).archive.recording_locked).toBe(true);expect((await state(page)).archive.angle).toBe(0);
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await qa(page,{op:'recording_seek',time:(await state(page)).archive.finale.duration-.12});await expect.poll(async()=>(await state(page)).archive.finale.state).toBe('armed');expect((await state(page)).phase).toBe('play');expect((await state(page)).archive.recording_locked).toBe(false);await expect.poll(async()=>(await state(page)).archive.angle).toBeLessThan(-1.7);
  await aim([-11.3,0,-9.9],[-14,1.3,-9.9]);await expect.poll(async()=>(await state(page)).archive.finale.looked_away).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-remains.png')});
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await expect.poll(async()=>(await state(page)).phase,{intervals:[20]}).toBe('archive_scare');await page.waitForTimeout(180);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-chef-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('ending');await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-ende.png')});
- expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');const credits=(await state(page)).ending_credits;expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
+ expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/party/musicbox.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done).toBe(true);}finally{await page.keyboard.up('Space');}
  await clickControl(page,'Hauptmenü');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(1);
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);

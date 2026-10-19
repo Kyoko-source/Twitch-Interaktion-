@@ -177,10 +177,27 @@ func _intro_finished() -> void:
  intro_pending=false;_resume();_save()
  _announce("Erster Rundgang. Verlasse den Fahrstuhl und präge dir den normalen Zustand ein.",7)
 
+func _persistent_text(path: String) -> String:
+ if OS.has_feature("web"):
+  var key:=JSON.stringify("after-play:"+path.get_file())
+  var cached=JavaScriptBridge.eval("(()=>{try{const raw=localStorage.getItem("+key+");const value=raw&&JSON.parse(raw);return value&&typeof value==='object'&&!Array.isArray(value)?raw:'';}catch(_){return '';}})()")
+  if cached is String and not cached.is_empty(): return cached
+ return FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+
+func _write_persistent_text(path: String, content: String) -> void:
+ var file:=FileAccess.open(path,FileAccess.WRITE)
+ if file: file.store_string(content);file.close()
+ # Godot's IndexedDB sync is asynchronous. Mirror the small JSON immediately
+ # so a reload directly after pausing cannot revive the previous save.
+ if OS.has_feature("web"):
+  var key:=JSON.stringify("after-play:"+path.get_file())
+  JavaScriptBridge.eval("(()=>{try{localStorage.setItem("+key+","+JSON.stringify(content)+");}catch(_){}})()")
+
 func _can_continue() -> bool:
  if has_session and not state.completed: return true
- if not FileAccess.file_exists(SAVE): return false
- var data=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+ var saved:=_persistent_text(SAVE)
+ if saved.is_empty(): return false
+ var data=JSON.parse_string(saved)
  if not data is Dictionary: return false
  var check:=PatrolState.new()
  return check.restore(data.get("patrol",{})) and not check.completed
@@ -191,7 +208,7 @@ func _continue() -> void:
   elif intro_pending: _begin_intro()
   else: _resume()
   return
- var data=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+ var data=JSON.parse_string(_persistent_text(SAVE))
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
  var stored_archive=data.get("archive",{})
  if stored_archive is Dictionary: archive.restore(stored_archive)
@@ -276,8 +293,9 @@ func _slider(parent: VBoxContainer, title: String, low: float, high: float, step
  parent.add_child(_label(title,18));var slider:=HSlider.new();slider.set_meta("qa_label",title);slider.min_value=low;slider.max_value=high;slider.step=step;slider.value=value;slider.custom_minimum_size=Vector2(420,36);slider.value_changed.connect(change);parent.add_child(slider)
 
 func _read_settings() -> void:
- if not FileAccess.file_exists(SETTINGS): return
- var data=JSON.parse_string(FileAccess.get_file_as_string(SETTINGS))
+ var saved:=_persistent_text(SETTINGS)
+ if saved.is_empty(): return
+ var data=JSON.parse_string(saved)
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
  for key in ["fov","render_scale","ambience","voice"]:
@@ -330,15 +348,12 @@ func _reset_settings() -> void:
  _apply_settings();_write_settings()
 
 func _write_settings() -> void:
- var file:=FileAccess.open(SETTINGS,FileAccess.WRITE)
- if file: file.store_string(JSON.stringify(settings))
+ _write_persistent_text(SETTINGS,JSON.stringify(settings))
 
 func _save(next_round: bool=false) -> void:
  if not has_session: return
- var file:=FileAccess.open(SAVE,FileAccess.WRITE)
- if file:
-  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
-  file.store_string(JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":8,"intro_pending":intro_pending}))
+ var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":8,"intro_pending":intro_pending}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -518,6 +533,9 @@ func _telemetry() -> void:
   data.anomaly=state.current;data.controls=[]
   data.encounter={"triggered":world.encounters.triggered,"finished":world.encounters.finished,"time":world.encounters.attack_time,"shock":world.encounters.shock}
   data.renderer=RenderingServer.get_current_rendering_method()
+  var screen_size:=get_viewport().get_visible_rect().size
+  var fresco:=world.find_child("TheFourEmptyChairs",true,false) as Node3D
+  data.presentation={"logical_size":[screen_size.x,screen_size.y],"render_size":[get_viewport().get_texture().get_width(),get_viewport().get_texture().get_height()],"fresco":[fresco.global_position.x,fresco.global_position.y,fresco.global_position.z]}
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x

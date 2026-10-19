@@ -9,7 +9,7 @@ const SCENARIOS:={
  "pit_hands":{"p":Vector3(3.6,.3,7.1),"mode":"hands","zone":"Bällebad"},
  "frame_stalker":{"p":Vector3(2.0,.31,2.2),"mode":"crawl","zone":"Bällebad"},
  "slide_crawler":{"p":Vector3(3.7,0,10.9),"mode":"crawl","zone":"Bällebad"},
- "party_portrait":{"p":Vector3(18.7,0,-6.7),"mode":"pursuit","zone":"Party Raum"},
+ "party_portrait":{"p":Vector3(13.3,0,.65),"mode":"pursuit","zone":"Party Raum"},
  "party_guests":{"p":Vector3(11.5,0,-6.9),"mode":"queue","zone":"Party Raum"},
  "cake_mouth":{"p":Vector3(10.2,.87,-7.0),"mode":"mouth","zone":"Party Raum"},
  "corridor_crossing":{"p":Vector3(-6.1,0,-6.6),"mode":"crossing","zone":"Wartungsgang"},

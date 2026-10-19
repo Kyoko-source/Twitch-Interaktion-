@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--presentation-qa" in OS.get_cmdline_user_args():
+  await presentation_views(game,output);game._quit();return
  if "--finale-qa" in OS.get_cmdline_user_args():
   await finale_views(game,output);game._quit();return
  if "--props-qa" in OS.get_cmdline_user_args():
@@ -305,7 +307,7 @@ func v193_views(game: Node3D, output: String) -> void:
 
 func nightmare_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game._build_world("none");game._resume()
- for shot in [{"name":"ossuary","p":Vector3(-3.7,0,-19.4),"look":Vector3(-1.0,2.0,-19.5)},{"name":"party-fresco","p":Vector3(14.0,0,-6.7),"look":Vector3(19.49,2.6,-6.7)}]:
+ for shot in [{"name":"ossuary","p":Vector3(-3.7,0,-19.4),"look":Vector3(-1.0,2.0,-19.5)},{"name":"party-fresco","p":Vector3(13.3,0,-4.4),"look":Vector3(13.3,2.6,1.485)}]:
   game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  game.state.streak=2;game._build_world("none");game._resume();game._collect_paper("opening");game._inventory();await game.get_tree().process_frame;await capture(game,output,"newspaper-v21")
@@ -433,6 +435,27 @@ func props_views(game: Node3D, output: String) -> void:
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  game._collect_paper("note");game._inventory();await game.get_tree().process_frame;await capture(game,output,"handwritten-note")
  var file:=FileAccess.open(output.path_join("props-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(SceneAudit.inspect(game.world)," "))
+
+func presentation_views(game: Node3D, output: String) -> void:
+ await game.get_tree().create_timer(.7).timeout;await capture(game,output,"menu-16x9")
+ var report:={"logical":game.get_viewport().get_visible_rect().size,"window":DisplayServer.window_get_size(),"render":game.get_viewport().get_texture().get_size()}
+ game._new_shift();game.intro.skip();game.player.position=Vector3(-8.7,0,-5.4);game.player.rotation.y=PI/2;game.player.camera.rotation=Vector3.ZERO
+ await game.get_tree().create_timer(.7).timeout;await capture(game,output,"server-doorway")
+ Input.action_press("forward")
+ for frame in range(75): await game.get_tree().physics_frame
+ Input.action_release("forward");report.server_entered=game.world.server_room.safe_pose(game.player.position)
+ game.player.position=Vector3(-14.1,0,-4.6);game.player.rotation=Vector3.ZERO;game.player.camera.look_at(Vector3(-16.11,1.5,-3.85))
+ await game.get_tree().create_timer(.6).timeout;await capture(game,output,"mounted-power-box")
+ game.player.position=Vector3(13.3,0,-4.4);game.player.rotation=Vector3.ZERO;game.player.camera.look_at(Vector3(13.3,2.7,1.485))
+ await game.get_tree().create_timer(.8).timeout;await capture(game,output,"party-right-wall")
+ DisplayServer.window_set_size(Vector2i(960,720));await game.get_tree().create_timer(.5).timeout
+ report.resized_window=DisplayServer.window_get_size();report.resized_render=game.get_viewport().get_texture().get_size();report.resized_logical=game.get_viewport().get_visible_rect().size
+ await capture(game,output,"4x3-letterbox-content")
+ DisplayServer.window_set_size(Vector2i(1280,720));await game.get_tree().create_timer(.3).timeout
+ game._show_archive_ending();await game.get_tree().create_timer(.8).timeout;report.title_music=game.end_credits.music.playing;await capture(game,output,"ende")
+ await game.get_tree().create_timer(4).timeout;game.end_credits.tick(13);await game.get_tree().process_frame;await capture(game,output,"credits-music")
+ report.credits=game.end_credits.snapshot();var song: AudioStreamPlayer=game.end_credits.music;game._main_menu();report.music_stopped_on_exit=not song.playing
+ var file:=FileAccess.open(output.path_join("presentation-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("PRESENTATION QA ",JSON.stringify(report))
 
 func finale_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game._open_archive_lock();game.archive_input="0712";game._submit_archive_code()

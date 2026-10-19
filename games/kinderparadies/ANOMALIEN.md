@@ -1,8 +1,23 @@
-# Vorhandene Anomalien — After Play 2.1.0
+# Vorhandene Anomalien — After Play 2.3.0
 
 Stand: 19. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 
-45 Anomalien insgesamt; 20 frühere Varianten wurden ersetzt. Der erste Rundgang ist normal. Der Katalog wird anschließend gemischt, unabhängig vom Zeitungsfundort.
+45 Anomalien insgesamt; 20 frühere Varianten wurden ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
+
+## Zeitungen und Runden
+
+Gemeint ist der angezeigte Rundgang innerhalb der 13er-Serie.
+
+| Rundgang | Zeitung | Fundort |
+|---|---|---|
+| 3 | Die Eröffnung | Party Raum, auf dem Geburtstagstisch |
+| 5 | Das Verschwinden | Kino, auf einem vorderen Sitz |
+| 8 | Die Vertuschung | Küche, auf dem Herd |
+| 11 | Die Schließung | Im Krabbeltunnel; mit C hineinkrabbeln |
+
+Alle vier Zeitungsrunden sind vollständig anomaliefrei, auch nach dem Einsammeln
+und beim Laden. Dort ist die grüne Tür richtig. Die Sammlung bleibt innerhalb
+der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
 ## Küche (4)
 
@@ -78,4 +93,4 @@ Zusätzliche Besucher und greifende Arme sind Anomalien. Die neuen Begegnungen s
 
 `tube_watcher`, die Tunnelverfolgung und die Fensterhände sind außerhalb der Röhre unsichtbar. TAB pausiert auch Begegnungen und Geräusche.
 
-Zeitungen, Zettel und Geheimtür sind keine Anomalien. Ihre Fundorte bleiben Rundgang 3, 5, 8 und 11; Code und Archivablauf bleiben erhalten. Ältere Spielstände werden auf die jeweiligen Ersatzanomalien umgesetzt.
+Zeitungen, Zettel und Geheimtür sind keine Anomalien. Auch die Schreckmomente bei einer falschen Tür, im Archivfinale und beim absichtlichen Betätigen des Jumpscare-Schalters im Menü gehören nicht zum zufälligen Anomalie-Katalog. Ältere Anomalie-Spielstände werden auf die Ersatzanomalien bzw. in Zeitungsrunden auf einen normalen Rundgang umgesetzt.
