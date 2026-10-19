@@ -14,6 +14,11 @@ static func document(id: String) -> Dictionary:
  if catalog.is_empty(): catalog=JSON.parse_string(FileAccess.get_file_as_string("res://assets/story/catalog.json"))
  return catalog.get(id,{})
 
+static func is_newspaper_round(stage: int) -> bool:
+ for id in PAPERS:
+  if int(document(id).stage)==stage: return true
+ return false
+
 func clear() -> void:
  collected.clear();unlocked=false;creator_access=false;ending="idle";recording_position=0.0
 

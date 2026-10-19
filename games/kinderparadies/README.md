@@ -19,6 +19,8 @@ in Folge gewinnen. Eine falsche Tür beendet die Schicht und startet wieder das
 Fahrstuhl-Intro. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
 45 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
+Die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal: keine Anomalien und
+keine Anomalie-Jumpscares. Dort ist die grüne Tür die richtige Entscheidung.
 Dichter graugrüner Nebel gehört zur normalen Umgebung. Blutroter Nebel ist eine
 Anomalie; die frühere reine Dichte-Anomalie wurde ersetzt.
 
@@ -42,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.2.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.2.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -467,3 +469,11 @@ gingerbread, Mozart. Fremdasset-Quellen bleiben unter Mitwirkende und in den
 Lizenzdateien des Windows-Pakets aufgeführt. Der neue bearbeitete Schrei stammt
 von A New Room / OpenGameArt (CC0); Quelle und Verarbeitung stehen in
 `assets/finale/provenance.json`.
+
+## Ruhige Zeitungsrunden (2.2.1)
+
+Die vier Runden mit Zeitungen bleiben immer anomaliefrei, auch wenn das
+Fundstück bereits eingesammelt wurde. Die normale Raumkulisse bleibt bestehen.
+Der Anomalie-Beutel und die Zufallsfolge werden für diese Runden nicht verbraucht.
+Alte Spielstände auf einer Zeitungsrunde werden beim Laden auf einen normalen
+Rundgang umgestellt; Fortschritt und Sammlung bleiben erhalten.

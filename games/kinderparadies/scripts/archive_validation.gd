@@ -1,6 +1,23 @@
 extends RefCounted
 
 func run(game: Node3D, verify: Callable) -> void:
+ for seed_value in range(1,17):
+  var patrol:=PatrolState.new();patrol.start(seed_value)
+  for stage in range(1,14):
+   if stage in [3,5,8,11]: verify.call(patrol.current=="none","Newspaper round has an anomaly: seed %d, round %d"%[seed_value,stage])
+   var before:=patrol.serialize().duplicate(true)
+   patrol.decide(patrol.current!="none")
+   if stage+1 in [3,5,8,11]:
+    verify.call(patrol.bag==before.bag and patrol.deck==before.deck and str(patrol.rng.state)==before.rng,"Newspaper round consumes a random event")
+ for stage in [3,5,8,11]:
+  var previous:=PatrolState.new();previous.start(42);previous.streak=stage-1;previous.current="clown_lunge"
+  var saved:=previous.serialize().duplicate(true)
+  var migrated:=PatrolState.new()
+  verify.call(migrated.restore(JSON.parse_string(JSON.stringify(saved))) and migrated.current=="none" and migrated.streak==stage-1,"Old newspaper save keeps its anomaly or loses progress")
+  verify.call(migrated.decide(false).correct,"Green door is not correct on a restored newspaper round")
+ var ordinary:=PatrolState.new();ordinary.start(42);ordinary.streak=3;ordinary.current="clown_lunge"
+ var ordinary_restore:=PatrolState.new()
+ verify.call(ordinary_restore.restore(ordinary.serialize()) and ordinary_restore.current=="clown_lunge","Ordinary round loses its saved anomaly")
  var story:=ArchiveState.new()
  verify.call(not story.try_code("6428"),"Knowing the code must not skip the four newspapers")
  verify.call(story.take("note",1) and not story.take("note",1),"The note must be collectible exactly once")

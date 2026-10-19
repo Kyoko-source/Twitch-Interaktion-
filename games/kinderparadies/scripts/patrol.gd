@@ -77,6 +77,9 @@ func _shuffle(items: Array[String]) -> void:
 
 func _next() -> void:
  visited.clear()
+ if ArchiveState.is_newspaper_round(streak+1):
+  current="none"
+  return
  if deck.is_empty():
   deck.assign(["normal","normal","normal","normal","anomaly","anomaly","anomaly","anomaly","anomaly"])
   _shuffle(deck)
@@ -138,4 +141,6 @@ func restore(data: Dictionary) -> bool:
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
  visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==GOAL
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
+ # Old saves may contain an anomaly on a now-protected newspaper round.
+ if not completed and ArchiveState.is_newspaper_round(streak+1): current="none"
  return true
