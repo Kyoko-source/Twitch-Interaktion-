@@ -1,0 +1,269 @@
+{
+  "author": "Kenney; edited mixes by After Play",
+  "license": "CC0-1.0",
+  "source": "https://kenney.nl/assets/impact-sounds",
+  "download": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+  "archive_sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+  "files": [
+    {
+      "file": "footstep_carpet_000.ogg",
+      "source_path": "Audio/footstep_carpet_000.ogg",
+      "sha256": "b9524658b52a99a20590f8feefc103088637fd13ea8ec35811aee785e1f2f330"
+    },
+    {
+      "file": "footstep_carpet_001.ogg",
+      "source_path": "Audio/footstep_carpet_001.ogg",
+      "sha256": "9af3c3f76705107339e72036e4053bdca3eaa50ad31c8c929f42ce8d40e5d781"
+    },
+    {
+      "file": "footstep_carpet_002.ogg",
+      "source_path": "Audio/footstep_carpet_002.ogg",
+      "sha256": "9af3c3f76705107339e72036e4053bdca3eaa50ad31c8c929f42ce8d40e5d781"
+    },
+    {
+      "file": "footstep_carpet_003.ogg",
+      "source_path": "Audio/footstep_carpet_003.ogg",
+      "sha256": "4ae7454338d57c7d102145919ae653c7d010eb542797c4f25a1c7470be3a7e4c"
+    },
+    {
+      "file": "footstep_carpet_004.ogg",
+      "source_path": "Audio/footstep_carpet_004.ogg",
+      "sha256": "4ae7454338d57c7d102145919ae653c7d010eb542797c4f25a1c7470be3a7e4c"
+    },
+    {
+      "file": "footstep_concrete_000.ogg",
+      "source_path": "Audio/footstep_concrete_000.ogg",
+      "sha256": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe"
+    },
+    {
+      "file": "footstep_concrete_001.ogg",
+      "source_path": "Audio/footstep_concrete_001.ogg",
+      "sha256": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d"
+    },
+    {
+      "file": "footstep_concrete_002.ogg",
+      "source_path": "Audio/footstep_concrete_002.ogg",
+      "sha256": "b21fa546d74941196b25da8a20b7010abd8c05c4fcf93545d1f344e66a664e13"
+    },
+    {
+      "file": "footstep_concrete_003.ogg",
+      "source_path": "Audio/footstep_concrete_003.ogg",
+      "sha256": "8b513c2f0316324060b9174b8f28df6c2147418c506e6a53b77f18e149a5547b"
+    },
+    {
+      "file": "footstep_concrete_004.ogg",
+      "source_path": "Audio/footstep_concrete_004.ogg",
+      "sha256": "24dd8db2413e5b81ad181e1205c12a1c7801da5f85715d471b92a4b2f632e45e"
+    },
+    {
+      "file": "footstep_grass_000.ogg",
+      "source_path": "Audio/footstep_grass_000.ogg",
+      "sha256": "9d49497777405d78d7cf7f2888e28277f3a23192300cfd1d79d54876b20f479f"
+    },
+    {
+      "file": "footstep_grass_001.ogg",
+      "source_path": "Audio/footstep_grass_001.ogg",
+      "sha256": "fb28781bd22b2eefdc14077f1adf5c94d7fe9c3a130194633b55f3e0d39d9f04"
+    },
+    {
+      "file": "footstep_grass_002.ogg",
+      "source_path": "Audio/footstep_grass_002.ogg",
+      "sha256": "73a520139f5be716a403bfe9c80e0e94d1e61d8e9de04a354b336392164b53dc"
+    },
+    {
+      "file": "footstep_grass_003.ogg",
+      "source_path": "Audio/footstep_grass_003.ogg",
+      "sha256": "0546e1d8ab2def714425701a18bd34c5ee2794b12e858e5b595aabcf38a34137"
+    },
+    {
+      "file": "footstep_grass_004.ogg",
+      "source_path": "Audio/footstep_grass_004.ogg",
+      "sha256": "086fd4ab3546a507ea5f5c759a9a10e535c95ade13705c238bc0eeffd7d4e8ba"
+    },
+    {
+      "file": "footstep_snow_000.ogg",
+      "source_path": "Audio/footstep_snow_000.ogg",
+      "sha256": "c05fa4a9dc9a7aabc04996466fb589537e49af76de9998d8f9e6270ec92dcef7"
+    },
+    {
+      "file": "footstep_snow_001.ogg",
+      "source_path": "Audio/footstep_snow_001.ogg",
+      "sha256": "980fb9a1c9227aed7995067b0357f373053337f2416316db8ea0438418542fb4"
+    },
+    {
+      "file": "footstep_snow_002.ogg",
+      "source_path": "Audio/footstep_snow_002.ogg",
+      "sha256": "db52bafdc66304f3b999f2c29227826c65993916e630ac2ffbca17d07b263178"
+    },
+    {
+      "file": "footstep_snow_003.ogg",
+      "source_path": "Audio/footstep_snow_003.ogg",
+      "sha256": "68272e3f1cabcabd02d328fd344454d7c04cb58b5a86972fcdd858f845e3d007"
+    },
+    {
+      "file": "footstep_snow_004.ogg",
+      "source_path": "Audio/footstep_snow_004.ogg",
+      "sha256": "7fe9ce5f5732aaa0a50ef02bb1ac162c27f6bd85214e86aaea6e13e7a41dbc00"
+    },
+    {
+      "file": "footstep_wood_000.ogg",
+      "source_path": "Audio/footstep_wood_000.ogg",
+      "sha256": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e"
+    },
+    {
+      "file": "footstep_wood_001.ogg",
+      "source_path": "Audio/footstep_wood_001.ogg",
+      "sha256": "e4f68e1c9fd55b4dc8ca89ed2bbab6f200171bc54bdc18aa96b80d8e7336f462"
+    },
+    {
+      "file": "footstep_wood_002.ogg",
+      "source_path": "Audio/footstep_wood_002.ogg",
+      "sha256": "9ff095b05cee5eec40b081defe3f0eef7232bb16d4865ce03b9f6dbab875cfdd"
+    },
+    {
+      "file": "footstep_wood_003.ogg",
+      "source_path": "Audio/footstep_wood_003.ogg",
+      "sha256": "2a68a083daa9eda08fed0ea5da5280dfbe0de226196c576be02f95259dd139d9"
+    },
+    {
+      "file": "footstep_wood_004.ogg",
+      "source_path": "Audio/footstep_wood_004.ogg",
+      "sha256": "b33e0854e2b3f6b6492e25c25ef8f90447a332f7c6bb25dd02edced9581d3441"
+    },
+    {
+      "file": "footstep_metal_000.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_000.ogg",
+        "Audio/impactMetal_light_000.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=4600[step];[1:a]lowpass=f=4600[layer];[step][layer]amix=inputs=2:weights=1 0.28:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "7f72b0df203f8f5d0287e1c967d4c5c86ce53d4d5d11b042445542a9d6a9f9a0"
+    },
+    {
+      "file": "footstep_metal_001.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_001.ogg",
+        "Audio/impactMetal_light_001.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=4600[step];[1:a]lowpass=f=4600[layer];[step][layer]amix=inputs=2:weights=1 0.28:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "2dc0189c79bd78f91503105ee6539514c7f598089542dcd1d8b98697da509e5f"
+    },
+    {
+      "file": "footstep_metal_002.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_002.ogg",
+        "Audio/impactMetal_light_002.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=4600[step];[1:a]lowpass=f=4600[layer];[step][layer]amix=inputs=2:weights=1 0.28:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "999e6f670ea0fe783a97a92faaab73b343687e28e2aadbf6ab9970cc50c27e4a"
+    },
+    {
+      "file": "footstep_metal_003.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_003.ogg",
+        "Audio/impactMetal_light_003.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=4600[step];[1:a]lowpass=f=4600[layer];[step][layer]amix=inputs=2:weights=1 0.28:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "10d7a434d58cd700c55f0b5db44e9f1f41b14f8c5a7258ca4887913768e8ede0"
+    },
+    {
+      "file": "footstep_metal_004.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_004.ogg",
+        "Audio/impactMetal_light_004.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=4600[step];[1:a]lowpass=f=4600[layer];[step][layer]amix=inputs=2:weights=1 0.28:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "2708287da8dc7aaa9e3b3f8005fa40ca0bd9bea91a0b53c973b8582ca8e3e3fb"
+    },
+    {
+      "file": "footstep_rubber_000.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_000.ogg",
+        "Audio/impactSoft_medium_000.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=950[step];[1:a]lowpass=f=950[layer];[step][layer]amix=inputs=2:weights=1 0.65:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "7e4e0c3d45b2dc7a9dd1921d813aabe2401f084fd0871c55692bd80549229a29"
+    },
+    {
+      "file": "footstep_rubber_001.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_001.ogg",
+        "Audio/impactSoft_medium_001.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=950[step];[1:a]lowpass=f=950[layer];[step][layer]amix=inputs=2:weights=1 0.65:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "c1239265597c9e267fa0c260cd20570d4c40e95a12485c9a372dc5f46a595f3e"
+    },
+    {
+      "file": "footstep_rubber_002.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_002.ogg",
+        "Audio/impactSoft_medium_002.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=950[step];[1:a]lowpass=f=950[layer];[step][layer]amix=inputs=2:weights=1 0.65:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "99bd9f431f43e94d77d9263c8f8d8ed6353b22c3b9b68b4cce2507e886eb9559"
+    },
+    {
+      "file": "footstep_rubber_003.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_003.ogg",
+        "Audio/impactSoft_medium_003.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=950[step];[1:a]lowpass=f=950[layer];[step][layer]amix=inputs=2:weights=1 0.65:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "2e63c9167af4f23ceb0baa1c70697c3c467f65447fa2603b213ef09e10d5cdc8"
+    },
+    {
+      "file": "footstep_rubber_004.ogg",
+      "source_paths": [
+        "Audio/footstep_concrete_004.ogg",
+        "Audio/impactSoft_medium_004.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=950[step];[1:a]lowpass=f=950[layer];[step][layer]amix=inputs=2:weights=1 0.65:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "70141c67ed9f6fef0d6604566e1b23e3d067a715ce0f7338fc48821dc6b31eb3"
+    },
+    {
+      "file": "footstep_plastic_000.ogg",
+      "source_paths": [
+        "Audio/footstep_wood_000.ogg",
+        "Audio/impactPlank_medium_000.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=2400[step];[1:a]lowpass=f=2400[layer];[step][layer]amix=inputs=2:weights=1 0.22:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "12ddd646930231a45ef9396d0f313742b8c89a12b28539d42784a6b6b2fac99a"
+    },
+    {
+      "file": "footstep_plastic_001.ogg",
+      "source_paths": [
+        "Audio/footstep_wood_001.ogg",
+        "Audio/impactPlank_medium_001.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=2400[step];[1:a]lowpass=f=2400[layer];[step][layer]amix=inputs=2:weights=1 0.22:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "70e42b3aaf39a09981ddcec3f8b8ce2a68747efa9abe80db418e196184ca2d55"
+    },
+    {
+      "file": "footstep_plastic_002.ogg",
+      "source_paths": [
+        "Audio/footstep_wood_002.ogg",
+        "Audio/impactPlank_medium_002.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=2400[step];[1:a]lowpass=f=2400[layer];[step][layer]amix=inputs=2:weights=1 0.22:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "67f5d961998e044e00a70b20b86e2aaf5f536bb3c50159b2d3b873ba8c3d1c99"
+    },
+    {
+      "file": "footstep_plastic_003.ogg",
+      "source_paths": [
+        "Audio/footstep_wood_003.ogg",
+        "Audio/impactPlank_medium_003.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=2400[step];[1:a]lowpass=f=2400[layer];[step][layer]amix=inputs=2:weights=1 0.22:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "d9a853be68f274dfc1112386ca25438a0747eae00f644e5381c2882817466662"
+    },
+    {
+      "file": "footstep_plastic_004.ogg",
+      "source_paths": [
+        "Audio/footstep_wood_004.ogg",
+        "Audio/impactPlank_medium_004.ogg"
+      ],
+      "processing": "[0:a]lowpass=f=2400[step];[1:a]lowpass=f=2400[layer];[step][layer]amix=inputs=2:weights=1 0.22:normalize=0,afade=t=out:st=0.32:d=0.16,alimiter=limit=0.85",
+      "sha256": "ea4a1f6a3b10a5c904b2ab0f1a74fc00759aa17cd5d4cd01ca8805ce7010fff4"
+    }
+  ]
+}

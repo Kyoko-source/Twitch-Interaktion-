@@ -116,7 +116,7 @@ void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;
 
 func _cinema() -> void:
  var carpet:=w.mat(Color("40262b"),load("res://assets/floor.png"),.98);carpet.uv1_triplanar=true;carpet.uv1_scale=Vector3.ONE
- w.box(self,Vector3(-1.3,.022,-17.85),Vector3(9.95,.016,8.6),carpet)
+ var carpet_mesh:=w.box(self,Vector3(-1.3,.0095,-17.85),Vector3(9.95,.002,8.6),carpet);carpet_mesh.name="CinemaCarpet"
  var seat_mat:=w.mat(Color("642f35"),load("res://assets/aged-plaster.png"),.94)
  for x in [-4.7,-3.2,-1.7,-.2]:
   for z in [-21.0,-19.9,-18.8,-16.6,-15.5,-14.4]:
@@ -139,7 +139,7 @@ void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(flo
  # Torn velvet side curtains have sewn folds and uneven hems.
  for side in [-1,1]:
   for i in range(9):
-   var z: float=-17.7+side*(3.45+i*.07);var curtain:=w.sphere(self,Vector3(3.33,1.85,z),.12,seat_mat);curtain.scale=Vector3(.7,13,1)
+   var z: float=-17.7+side*(3.45+i*.07);var curtain:=w.sphere(self,Vector3(3.33,1.85,z),.12,seat_mat);curtain.name="LegacyCurtainFold";curtain.scale=Vector3(.7,13,1)
  for z in [-21.6,-13.9]:
   w.box(self,Vector3(3.35,.3,z),Vector3(.35,.6,.45),w.materials.dark,true)
  var projector:=w.box(self,Vector3(-5.4,2.98,-17.7),Vector3(.6,.32,.45),w.materials.metal)

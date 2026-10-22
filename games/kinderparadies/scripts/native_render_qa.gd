@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--polish-v240-qa" in OS.get_cmdline_user_args():
+  await polish_v240_views(game,output);game._quit();return
  if "--presentation-qa" in OS.get_cmdline_user_args():
   await presentation_views(game,output);game._quit();return
  if "--finale-qa" in OS.get_cmdline_user_args():
@@ -113,6 +115,27 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
+
+func polish_v240_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.tick(1.5)
+ await game.get_tree().create_timer(.7).timeout;await capture(game,output,"phone-incoming")
+ game.intro.accept();await game.get_tree().create_timer(.7).timeout;await capture(game,output,"phone-connected")
+ game.intro.skip()
+ var shots: Array[Dictionary]=[
+  {"name":"mascot-corner","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)},
+  {"name":"mascot-close","p":Vector3(15.8,0,14.5),"look":Vector3(18,3.0,15.35)},
+  {"name":"workshop","p":Vector3(-11.3,0,-4.55),"look":Vector3(-15.8,1.6,-5.6)},
+  {"name":"server-racks","p":Vector3(-12.2,0,-5.8),"look":Vector3(-14.4,1.4,-2.65)},
+  {"name":"maintenance","p":Vector3(-6.8,0,-7.4),"look":Vector3(-9.9,2.0,-6.4)},
+  {"name":"cinema-wide","p":Vector3(-5.6,0,-17.65),"look":Vector3(2.0,1.8,-17.65)},
+  {"name":"cinema-back","p":Vector3(1.4,0,-17.65),"look":Vector3(-5.8,1.6,-14.5)}]
+ for shot in shots:
+  game.player.position=shot.p;game.player.velocity=Vector3.ZERO;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
+  await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
+ var report:={"audit":SceneAudit.inspect(game.world),"floor":{},"renderer":RenderingServer.get_current_rendering_method()}
+ for sample in [{"p":Vector3(-6,0,8),"type":"concrete"},{"p":Vector3(-3,0,-17.65),"type":"carpet"},{"p":Vector3(-12.2,0,-4.6),"type":"metal"},{"p":CrawlTubes.route(6)-Vector3.UP*.72,"type":"plastic"}]:
+  game.player.active=false;game.player.position=sample.p;await game.get_tree().physics_frame;report.floor[sample.type]=FootSurfaces.at(game.player)
+ var file:=FileAccess.open(output.path_join("polish-v240-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("POLISH V240 QA ",JSON.stringify(report))
 
 func annex_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()

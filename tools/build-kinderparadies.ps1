@@ -62,6 +62,7 @@ if(Test-Path -LiteralPath $taskChief){Copy-Item -LiteralPath $taskChief -Destina
 Copy-Item -LiteralPath (Join-Path $taskProject 'build/windows/AfterPlay.exe') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'README.md') -Destination (Join-Path $taskPackage 'LIESMICH.md') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'ANOMALIEN.md') -Destination $taskPackage -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'ITCH-SEITE.md') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/Kenney-Impact-License.txt'),(Join-Path $taskProject 'assets/Oswald-OFL.txt') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/PolyHaven-CC0.txt'),(Join-Path $taskProject 'assets/polyhaven-provenance.json') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/ambience/LICENSE.txt') -Destination (Join-Path $taskPackage 'Ambience-License.txt') -Force
@@ -76,19 +77,24 @@ Copy-Item -LiteralPath (Join-Path $taskProject 'assets/finale/provenance.json') 
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/story/LICENSE.txt') -Destination (Join-Path $taskPackage 'Story-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/creatures/nightmares-v21-LICENSE.txt') -Destination (Join-Path $taskPackage 'Nightmares-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/props/LICENSE.txt') -Destination (Join-Path $taskPackage 'Props-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/surfaces/LICENSE.txt') -Destination (Join-Path $taskPackage 'Footsteps-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/surfaces/provenance.json') -Destination (Join-Path $taskPackage 'Footsteps-Provenance.json') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/polish-v240/LICENSE.txt') -Destination (Join-Path $taskPackage 'Polish-v240-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/props/Head-Attribution.txt'),(Join-Path $taskProject 'assets/props/anatomy-provenance.json') -Destination $taskPackage -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/creatures/vent-dweller-LICENSE.txt') -Destination (Join-Path $taskPackage 'Vent-Dweller-License.txt') -Force
 foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.3.0.zip'
+$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.4.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
+$taskWebZip=Join-Path $taskProject 'build/after-play-web-v2.4.0.zip'
+Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath (Join-Path $taskProject 'build/web') -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskWebZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
-Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='2.3.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+Copy-Item -LiteralPath $taskZip,$taskWebZip -Destination $taskDownloads -Force
+$taskManifest=[ordered]@{version='2.4.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

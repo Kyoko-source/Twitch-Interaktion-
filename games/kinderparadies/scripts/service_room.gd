@@ -5,7 +5,7 @@ func build(w: PlayWorld) -> void:
  name="ServerRoom"
  var steel:=w.mat(Color("3b4846"),load("res://assets/paint.png"),.8,.4)
  var floor_mat:=w.mat(Color("42483e"),load("res://assets/floor.png"),.94);floor_mat.uv1_triplanar=true
- w.box(self,Vector3(-13.3,-.138,-4.45),Vector3(6.2,.3,4.9),floor_mat,true)
+ var floor_mesh:=w.box(self,Vector3(-13.3,-.138,-4.45),Vector3(6.2,.3,4.9),floor_mat,true);floor_mesh.name="ServiceFloor"
  w.box(self,Vector3(-13.3,3.18,-4.45),Vector3(6.2,.2,4.9),w.materials.dark,true)
  for z in [-6.95,-1.95]: w.box(self,Vector3(-13.3,1.5,z),Vector3(6.3,3,.2),w.materials.wall,true).set_meta("architecture_wall",true)
  w.box(self,Vector3(-16.45,1.5,-4.45),Vector3(.2,3,5.2),w.materials.wall,true).set_meta("architecture_wall",true)
@@ -36,7 +36,7 @@ func build(w: PlayWorld) -> void:
  var light:=w.lamp(Vector3(-13.35,2.89,-4.4),Color("819d88"),.65,6);light.shadow_enabled=true
  var glow:=w.mat(Color("929c85"),null,.6);glow.emission_enabled=true;glow.emission=Color("91a18c");glow.emission_energy_multiplier=.5
  w.box(self,Vector3(-13.35,2.99,-4.4),Vector3(.96,.025,.13),glow)
- w.mounted_sign(self,"maintenance",Vector3(-16.325,2.1,-4.7),Vector2(.9,.45),PI/2)
+ w.mounted_sign(self,"maintenance",Vector3(-16.325,2.1,-3.85),Vector2(.9,.45),PI/2)
  for z in [-6.45,-4.7,-2.45]:
   w.box(self,Vector3(-16.31,.12,z),Vector3(.08,.2,1.45),w.materials.dark)
  for y in [.4,2.65]: w.tube(self,Vector3(-16.27,y,-6.7),Vector3(-16.27,y,-2.2),.022,w.materials.rust)

@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.3.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.4.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -502,3 +502,16 @@ Im Web werden Spielstand und Einstellungen zusätzlich unmittelbar lokal
 gesichert, damit selbst ein Neuladen direkt nach Pause die jüngste Audioposition
 behält. Bestehende Browser-Spielstände werden weiterhin übernommen; die
 isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
+
+## Kollisionsprüfung, Maskottchen und Raumgestaltung (2.4.0)
+
+- Physische Boxen sind Kinder ihrer sichtbaren Geometrie. Positions-, Drehungs- und Skalierungsänderungen bewegen die Kollision zuverlässig mit. Der Tresen besitzt eine physische obere Platte. Importierte Kartons erhalten passende konvexe Formen; die Windows-Stühle verwenden ihre echte Modellgeometrie anstelle der alten Platzhalterkollisionen.
+- Ein über fünf Meter hoher, deformierter Stoffhase steht mit genähten Reparaturen, fehlendem Knopfauge, offenen Nähten, Blutflecken und geometrischen Fellbüscheln in der hinteren Hallenecke. Die Figur ist Teil der normalen Umgebung. Die Lichtaufhängung reicht bis zur Decke; Laufwege und Krabbeltunnel bleiben frei.
+- Der Server-/Wartungsraum enthält nun eine Werkbank, Werkzeuge, Reparaturteile, Kabelrollen, Unterlagen und einen rostigen Metallboden. Der Wartungsgang erhält angeschlossene Leitungen und montierte Hinweisschilder.
+- Das Kino erhält echten verschmutzten Teppich, montierte Akustikpaneele, einen Projektionsarbeitstisch mit Filmspulen, Plakate, Gangmarkierungen, Sitzdetails und gefaltete, zerrissene Vorhänge mit physischer Aufhängung.
+- Schritte werden über einen tatsächlichen Strahl auf den Untergrund ausgewählt: Beton, Teppich, Metall, Holz, Gummipolster und Kunststoff. Fünf Varianten pro Oberfläche vermeiden direkte Wiederholungen; Tempo, Landung und Krabbeln beeinflussen die Wiedergabe. Grundlage sind Kenneys CC0-Aufnahmen, einschließlich dokumentierter Mischungen für Metall, Kunststoff und Polster.
+- Das Intro zeigt ein physisches Handy mit einer eigenen hochauflösenden Anrufoberfläche, Live-Gesprächszeit, feinerem Griffmodell und vernähtem Ärmelabschluss. Die originale Chef-Aufnahme bleibt unverändert.
+- Neue CC0-Materialien von Poly Haven: Curly Teddy Natural, Dirty Carpet, Metal Grate Rusty. Alle Herkunftsangaben und Prüfsummen sind in `assets/polyhaven-provenance.json` dokumentiert; die Originalaufnahmen zusätzlich in `assets/surfaces/provenance.json`.
+- Der Build erstellt zusätzlich `build/after-play-web-v2.4.0.zip` mit `index.html` im Hauptverzeichnis. `ITCH-SEITE.md` enthält die Veröffentlichungsvorbereitung und den Seitentext. Die itch.io-Seite selbst wird dadurch nicht veröffentlicht.
+- `--self-test --polish-only` prüft die neuen realen Laufwege, Materialwechsel, Modellabstände und Telefonzustände. Die vollständige Validierung enthält diese Prüfungen ebenfalls.
+- Ein verspätetes synthetisches Mausereignis beim Aktivieren der Maussteuerung wird verworfen; nachfolgende echte Mausbewegungen bleiben wirksam. Die HUD-Markierung verwendet ein im eingebetteten Font verfügbares Pluszeichen.

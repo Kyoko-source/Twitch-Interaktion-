@@ -23,7 +23,7 @@ static func home(g: Node3D) -> void:
   var button: Button=g._button(item[0],item[1]);button.custom_minimum_size=Vector2(406,48);button.add_theme_font_override("font",g.title_font);button.add_theme_font_size_override("font_size",27)
   var plain:=StyleBoxEmpty.new();plain.content_margin_left=8;plain.content_margin_top=6;plain.content_margin_bottom=6;button.add_theme_stylebox_override("normal",plain);actions.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("a3aaa2"));hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=88;hint.offset_right=420;hint.offset_top=-70;hint.offset_bottom=-40;g.menu.add_child(hint)
- var version: Label=g._label("v2.3.0",15,Color("a3aaa2"));version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-70;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v2.4.0",15,Color("a3aaa2"));version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-70;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

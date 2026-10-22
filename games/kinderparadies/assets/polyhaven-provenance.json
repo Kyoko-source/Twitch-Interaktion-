@@ -444,5 +444,83 @@
         "bytes": 735249
       }
     ]
+  },
+  {
+    "id": "curly_teddy_natural",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/curly_teddy_natural",
+    "files": [
+      {
+        "path": "pbr/curly_teddy_natural/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/curly_teddy_natural/curly_teddy_natural_diff_2k.jpg",
+        "sha256": "512aa3bf7839190eb805f5d095860622c84417449929dd8c5370880d4989b7c6",
+        "bytes": 2266933
+      },
+      {
+        "path": "pbr/curly_teddy_natural/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/curly_teddy_natural/curly_teddy_natural_nor_gl_2k.jpg",
+        "sha256": "b3cfafe1e053c704b022bafb919889e465723db03da4d91494a7c5472805935f",
+        "bytes": 1952612
+      },
+      {
+        "path": "pbr/curly_teddy_natural/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/curly_teddy_natural/curly_teddy_natural_rough_2k.jpg",
+        "sha256": "501cab3f6882f5e74d9026f6b3ddf0c53b533cf07e32027236e581864c1b61d7",
+        "bytes": 2896347
+      }
+    ]
+  },
+  {
+    "id": "dirty_carpet",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/dirty_carpet",
+    "files": [
+      {
+        "path": "pbr/dirty_carpet/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_carpet/dirty_carpet_diff_2k.jpg",
+        "sha256": "6337d3ef1a11ca8bea2d31b86da15a65f10ae92c7f3345fae62924bae194f6c0",
+        "bytes": 3818108
+      },
+      {
+        "path": "pbr/dirty_carpet/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_carpet/dirty_carpet_nor_gl_2k.jpg",
+        "sha256": "b59b74a4aa2ef9389704019d376cdca1f5f799490632a6aca8583bb3280b9117",
+        "bytes": 4376244
+      },
+      {
+        "path": "pbr/dirty_carpet/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_carpet/dirty_carpet_rough_2k.jpg",
+        "sha256": "7e06b98f11a304a433916c847be2cbf6308b12a5372fe9961924e70127a833d4",
+        "bytes": 1856051
+      }
+    ]
+  },
+  {
+    "id": "metal_grate_rusty",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_grate_rusty",
+    "files": [
+      {
+        "path": "pbr/metal_grate_rusty/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_grate_rusty/metal_grate_rusty_diff_2k.jpg",
+        "sha256": "7ba7b58b5e743d9bd5892551cf087c60239d0aefdf06156f08e0da15010aec60",
+        "bytes": 3835427
+      },
+      {
+        "path": "pbr/metal_grate_rusty/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_grate_rusty/metal_grate_rusty_nor_gl_2k.jpg",
+        "sha256": "5f9137f941c7c4c5c5b5f7a78baa6d44a70809f73f6937e9741af28c0772ee37",
+        "bytes": 3253442
+      },
+      {
+        "path": "pbr/metal_grate_rusty/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_grate_rusty/metal_grate_rusty_rough_2k.jpg",
+        "sha256": "45a8a52a6471a5b9af07e726c6ceaa96ee9819b362e1b35fa45723643b444819",
+        "bytes": 3549020
+      }
+    ]
   }
 ]

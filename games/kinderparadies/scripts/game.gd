@@ -400,7 +400,7 @@ func _process(delta: float) -> void:
 func _refresh_hud() -> void:
  round_label.text="RUNDGANG %02d / 13"%mini(13,state.streak+1)
  var lines: PackedStringArray=[]
- for zone in PatrolState.ZONES: lines.append(("✓  " if zone in state.visited else "·  ")+zone)
+ for zone in PatrolState.ZONES: lines.append(("+  " if zone in state.visited else "·  ")+zone)
  checklist.text="\n".join(lines)
 
 func _target() -> String:
@@ -537,6 +537,7 @@ func _telemetry() -> void:
   var fresco:=world.find_child("TheFourEmptyChairs",true,false) as Node3D
   data.presentation={"logical_size":[screen_size.x,screen_size.y],"render_size":[get_viewport().get_texture().get_width(),get_viewport().get_texture().get_height()],"fresco":[fresco.global_position.x,fresco.global_position.y,fresco.global_position.z]}
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
+  data.polish={"floor":FootSurfaces.at(player),"last_surface":player.surface_name,"steps":player.footstep_count,"step_track":player.step_player.stream.resource_path,"step_playing":player.step_player.playing,"phone_state":intro.display.state_label.text,"phone_timer":intro.display.timer_label.text,"mascot":is_instance_valid(world.polish.mascot),"fur":ResourceLoader.exists("res://assets/pbr/curly_teddy_natural/albedo.jpg")}
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()

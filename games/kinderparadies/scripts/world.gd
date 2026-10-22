@@ -30,6 +30,7 @@ var room_horror: RoomHorror
 var archive: LostArchive
 var terrors: NightTerrors
 var server_room: ServiceRoom
+var polish: AfterPlayPolish
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -65,7 +66,8 @@ func box(parent: Node3D, pos: Vector3, size: Vector3, material: Material, solid:
  var mesh:=MeshInstance3D.new();mesh.mesh=bevel(size);mesh.material_override=material;mesh.position=pos;parent.add_child(mesh)
  if solid and parent==self and material==materials.get("wall"): mesh.set_meta("architecture_wall",true)
  if solid:
-  var body:=StaticBody3D.new();var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=size;shape.shape=bounds;body.position=pos;body.add_child(shape);parent.add_child(body)
+  var body:=StaticBody3D.new();body.name="Solid";var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=size;shape.shape=bounds;body.add_child(shape);mesh.add_child(body)
+  mesh.set_meta("solid_visual",true)
  return mesh
 
 func tube(parent: Node3D, a: Vector3, b: Vector3, radius: float, material: Material) -> MeshInstance3D:
@@ -132,6 +134,8 @@ func build() -> void:
  if native_art: source.bus="Interior"
  encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
  archive=LostArchive.new();add_child(archive);archive.build(self)
+ polish=AfterPlayPolish.new();add_child(polish);polish.build(self)
+ FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
  var root:=group("wall_paintings")
@@ -264,7 +268,8 @@ func _play_structure() -> void:
 func _reception() -> void:
  var counter:=group("counter");counter.position=Vector3(-8.85,0,5.8)
  props.counter_base=box(counter,Vector3(0,.46,0),Vector3(.82,.92,2.7),materials.cream,true)
- props.counter_top=box(counter,Vector3(0,.96,0),Vector3(.96,.08,2.9),materials.wood)
+ props.counter_top=box(counter,Vector3(0,.96,0),Vector3(.96,.08,2.9),materials.wood,true)
+ props.counter_top.set_meta("foot_surface","wood")
  # Staff stand behind the narrow counter on its west side. The screen, stand,
  # keyboard and cables share that orientation and all rest on the actual top.
  var pc:=Node3D.new();pc.name="ReceptionPC";pc.position=Vector3(0,1.025,-.35);pc.rotation.y=-PI/2;counter.add_child(pc)

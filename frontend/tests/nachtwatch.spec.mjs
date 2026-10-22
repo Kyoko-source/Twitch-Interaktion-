@@ -16,6 +16,22 @@ const errors=[];
 test.beforeEach(async({page})=>{errors.length=0;page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});});
 test.afterEach(()=>expect(errors).toEqual([]));
 
+test('v2.4 recorded footsteps follow six actual floors; the furred mascot renders and the phone display follows the call',async({page})=>{
+ test.setTimeout(120000);await load(page);await clickControl(page,'Neue Nachtschicht');
+ await expect.poll(async()=>(await state(page)).polish.phone_state).toBe('Eingehender Anruf');await page.waitForTimeout(1500);await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).polish.phone_state).toBe('Verbunden');await page.screenshot({path:join(tmpdir(),'after-play-v240-web-phone.png')});await skipIntro(page);
+ const samples=[{floor:'concrete',x:-6,z:8,y:0,yaw:0},{floor:'carpet',x:-5,z:-17.65,y:0,yaw:-Math.PI/2},{floor:'metal',x:-12.1,z:-4.5,y:0,yaw:Math.PI/2},{floor:'rubber',x:-.65,z:-5.04,y:.39,yaw:Math.PI},{floor:'plastic',x:-2.63,z:15.8,y:.31,yaw:-Math.PI/2},{floor:'wood',x:7.5,z:3.6,y:2.44,yaw:-Math.PI/2}];
+ for(const sample of samples){
+  await qa(page,{op:'warp',...sample});if(sample.floor==='plastic')await page.keyboard.down('c');
+  await expect.poll(async()=>(await state(page)).polish.floor).toBe(sample.floor);const before=(await state(page)).polish.steps;
+  await walk(page,'w',s=>s.polish.steps>before);expect((await state(page)).polish.last_surface).toBe(sample.floor);
+  expect((await state(page)).polish.step_track).toContain(sample.floor==='plastic'?'/ambience/crawl-contact.wav':`/surfaces/footstep_${sample.floor}_`);
+  await page.keyboard.up('c');
+ }
+ await qa(page,{op:'warp',x:13.9,z:14.7,yaw:-1.67,pitch:.20});await page.waitForTimeout(700);expect((await state(page)).polish.mascot).toBe(true);expect((await state(page)).polish.fur).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v240-web-mascot.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect((await state(page)).polish.step_playing).toBe(false);
+});
+
 test('standalone 16:9 stays proportional at 4:3 and 16:10; the fresco and its visitor share the new right-hand wall',async({page})=>{
  test.setTimeout(90000);await load(page);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-menu.png')});
  for(const viewport of [{width:1280,height:960},{width:1536,height:1024}]){
@@ -83,8 +99,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'After Play',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.3.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.3.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.4.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.4.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'After Play spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="After Play – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);

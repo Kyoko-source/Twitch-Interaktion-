@@ -24,9 +24,13 @@ var crouching:=false
 var capsule: CapsuleShape3D
 var collider: CollisionShape3D
 var stand_clearance: CapsuleShape3D
-var walk_sound: AudioStream
 var crawl_sound: AudioStream
 var look_warmup:=0.0
+var capture_motion_pending:=false
+var surface_sounds: Dictionary={}
+var surface_name:="concrete"
+var last_step_variant:=-1
+var footstep_count:=0
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -35,12 +39,17 @@ func _ready() -> void:
  camera=Camera3D.new();camera.fov=base_fov;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
  torch_body=GuardTorch.new();camera.add_child(torch_body);torch_body.build(lamp)
- step_player=AudioStreamPlayer.new();step_player.stream=load("res://assets/step.ogg");step_player.volume_db=-19;add_child(step_player)
- walk_sound=step_player.stream;crawl_sound=load("res://assets/ambience/crawl-contact.wav")
+ step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=load(FootSurfaces.ROOT+"footstep_concrete_000.ogg");step_player.volume_db=-19;add_child(step_player)
+ crawl_sound=load("res://assets/ambience/crawl-contact.wav")
+ for surface in FootSurfaces.TYPES:
+  var sounds: Array[AudioStream]=[]
+  for i in range(5): sounds.append(load(FootSurfaces.ROOT+"footstep_"+surface+"_%03d.ogg"%i))
+  surface_sounds[surface]=sounds
 
 func capture() -> void:
  active=true
  look_warmup=.12
+ capture_motion_pending=true
  torch_body.show()
  # A long phone call can outlive the browser's user-activation window.
  # Wait for the next real click instead of issuing a denied pointer-lock request.
@@ -57,9 +66,15 @@ func release() -> void:
 func _unhandled_input(event: InputEvent) -> void:
  if active and event.is_action_pressed("jump"): jump_buffer=.14
  if active and event is InputEventMouseMotion and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
-  if look_warmup>0: return
-  rotate_y(-event.relative.x*sensitivity)
-  camera.rotation.x=clampf(camera.rotation.x-event.relative.y*sensitivity*(-1 if invert_y else 1),-1.35,1.35)
+  apply_mouse_look(event.relative)
+
+func apply_mouse_look(relative: Vector2) -> void:
+ # Pointer lock can dispatch its first synthetic recenter after a slow WebGL
+ # frame, once the time-based warmup has elapsed. Never turn on that event.
+ if capture_motion_pending: capture_motion_pending=false;return
+ if look_warmup>0: return
+ rotate_y(-relative.x*sensitivity)
+ camera.rotation.x=clampf(camera.rotation.x-relative.y*sensitivity*(-1 if invert_y else 1),-1.35,1.35)
 
 func _physics_process(delta: float) -> void:
  if not active: return
@@ -70,8 +85,6 @@ func _physics_process(delta: float) -> void:
   low=not get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
  set_crouch(low)
  var eye_height:=.8 if crouching else 1.65
- var sound:=crawl_sound if crouching else walk_sound
- if step_player.stream!=sound: step_player.stop();step_player.stream=sound
  var direction:=Input.get_vector("left","right","forward","back")
  var aim:=transform.basis*Vector3(direction.x,0,direction.y)
  var speed:=1.35 if crouching else 4.5 if Input.is_action_pressed("sprint") else 2.8
@@ -98,7 +111,7 @@ func _physics_process(delta: float) -> void:
    var push: Vector3=-hit.get_normal();push.y=0
    body.apply_central_impulse(push*minf(body.mass,1.8)*speed*delta*10)
  if was_airborne and is_on_floor():
-  landing_offset=-.075 if motion else 0.0;step_player.pitch_scale=.65;step_player.play()
+  landing_offset=-.075 if motion else 0.0;play_step(true)
  was_airborne=not is_on_floor();landing_offset=lerpf(landing_offset,0,delta*9)
  if is_instance_valid(carried):
   var origin:=camera.global_position;var destination:=origin-camera.global_basis.z*1.6
@@ -112,7 +125,7 @@ func _physics_process(delta: float) -> void:
   step_clock+=delta
   camera.position.y=lerpf(camera.position.y,eye_height+landing_offset+(sin(walk_clock)*(.009 if crouching else .018) if motion else 0.0),delta*12)
   if step_clock>(.75 if crouching else .32 if speed>3 else .48):
-   step_clock=0;step_player.pitch_scale=randf_range(.78,1.05);step_player.play()
+   step_clock=0;play_step()
  else:
   camera.position.y=lerpf(camera.position.y,eye_height+landing_offset,delta*12)
 
@@ -122,6 +135,16 @@ func prop_target() -> NightProp:
  query.exclude=[get_rid()]
  var hit:=get_world_3d().direct_space_state.intersect_ray(query)
  return hit.collider as NightProp if hit and hit.collider is NightProp else null
+
+func play_step(landing: bool=false) -> void:
+ surface_name=FootSurfaces.at(self)
+ var variant:=randi_range(0,3)
+ if variant>=last_step_variant: variant+=1
+ last_step_variant=variant;footstep_count+=1
+ step_player.stream=crawl_sound if crouching and surface_name=="plastic" else surface_sounds[surface_name][variant]
+ step_player.volume_db=(-23 if crouching else -16 if landing else -20)+(-2 if surface_name=="metal" else 0)
+ step_player.pitch_scale=randf_range(.88,.97) if landing else randf_range(.96,1.05)
+ step_player.play()
 
 func grab_prop() -> void:
  if is_instance_valid(carried): drop_prop();return

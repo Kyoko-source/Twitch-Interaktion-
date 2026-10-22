@@ -31,6 +31,7 @@ var paused:=false
 var recording:=false
 var call_length:=33.0
 var starts:=0
+var display: GuardPhoneDisplay
 
 func build(w: PlayWorld, player: NightGuard) -> void:
  guard=player;name="ElevatorIntro"
@@ -59,11 +60,13 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  _cabin_details(w,cabin,steel,trim)
  # Bevelled, metre-scale handset with front glass, lenses and physical ports.
  phone=Node3D.new();guard.camera.add_child(phone);phone.position=Vector3(.12,-.16,-.43);phone.rotation=Vector3(-.04,-.12,-.045)
- var handset: Node3D=(load("res://assets/props/guard-phone.glb") as PackedScene).instantiate();phone.add_child(handset)
+ var handset: Node3D=(load("res://assets/polish-v240/guard-phone.glb") as PackedScene).instantiate();phone.add_child(handset)
  phone_status=Label3D.new();phone_status.font=load("res://assets/Oswald.ttf");phone_status.font_size=42;phone_status.pixel_size=.00027;phone_status.position=Vector3(0,.01,.008);phone_status.no_depth_test=false;phone_status.outline_size=0;phone.add_child(phone_status)
  var phone_top:=Label3D.new();phone_top.text="03:17       82%";phone_top.font_size=20;phone_top.pixel_size=.00022;phone_top.position=Vector3(0,.061,.008);phone_top.outline_size=0;phone.add_child(phone_top)
  var phone_bottom:=Label3D.new();phone_bottom.text="ANRUF";phone_bottom.font=load("res://assets/Oswald.ttf");phone_bottom.font_size=24;phone_bottom.pixel_size=.00027;phone_bottom.modulate=Color("8cc6b1");phone_bottom.position=Vector3(0,-.056,.008);phone_bottom.outline_size=0;phone.add_child(phone_bottom)
- var hand: Node3D=(load("res://assets/props/phone-grip.glb") as PackedScene).instantiate();hand.position=Vector3.ZERO;phone.add_child(hand)
+ phone_status.hide();phone_top.hide();phone_bottom.hide()
+ display=GuardPhoneDisplay.new();phone.add_child(display);display.build()
+ var hand: Node3D=(load("res://assets/polish-v240/phone-hand.glb") as PackedScene).instantiate();hand.position=Vector3.ZERO;phone.add_child(hand)
  var cuff:=w.mat(Color("282e29"),load("res://assets/paint.png"),.95)
  w.tube(phone,Vector3(.004,-.083,-.018),Vector3(.035,-.32,.03),.028,cuff)
  phone.hide()
@@ -136,6 +139,8 @@ func tick(delta: float) -> void:
   if audio.stream_paused!=paused: audio.stream_paused=paused
  if paused: status.text="PAUSE · ESC ZUM FORTSETZEN";return
  clock+=delta;stage_clock+=delta
+ display.update_call(stage,stage_clock)
+ phone.rotation.z=-.045+(sin(clock*1.3)*.009 if guard.motion else 0.0)
  if guard.motion: guard.camera.position.y=1.65+sin(clock*18)*.0015
  skip_hold=minf(1.35,skip_hold+delta) if Input.is_action_pressed("jump") else 0.0;skip_bar.value=skip_hold
  if skip_hold>=1.35: skip();return

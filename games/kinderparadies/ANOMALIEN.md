@@ -1,6 +1,6 @@
-# Vorhandene Anomalien — After Play 2.3.0
+# Vorhandene Anomalien — After Play 2.4.0
 
-Stand: 19. Oktober 2026. Katalog aus `scripts/patrol.gd`.
+Stand: 22. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 
 45 Anomalien insgesamt; 20 frühere Varianten wurden ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
 
@@ -86,6 +86,8 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Lange Finger schlagen von außen gegen ein Röhrenfenster. Nur von innen sichtbar. (`tube_window_hands`)
 
 ## Normaler Vergleich
+
+Der riesige deformierte, blutverschmierte Stoffhase in der hinteren Hallenecke ist ein festes Maskottchen, keine Anomalie. Auch die eingerichtete Werkstatt, die Kinovorhänge und die unterschiedlichen Schritte je Bodenmaterial gehören zum normalen Zustand.
 
 Dichter graugrüner Nebel, das große Clownfresko mit vier leeren Stühlen, der knöcherne Pferdeschädel im Kinoschacht, der rührende Küchenclown, das NO-SIGNAL-Bild und die Spieluhr gehören zur normalen Umgebung. Auch entfernte Schritte und Röhrenstimmen sind normale Raumgeräusche.
 
