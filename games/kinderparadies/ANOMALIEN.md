@@ -1,4 +1,4 @@
-# Vorhandene Anomalien — After Play 2.4.0
+# Vorhandene Anomalien — After Play 2.5.0
 
 Stand: 22. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 

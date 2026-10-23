@@ -1,0 +1,8 @@
+After Play main-menu music
+Creator-supplied file: Abandoned Arcade.mp3, copied unchanged from the creator's Desktop.
+Embedded title: Abandoned Arcade. Embedded artist: turbulentmicrogenres466.
+Duration: 143.6135 seconds.
+SHA256: 194981a9fd337d608a6df3a28d426a3f3bc3aae24d1074feb9091dc08c61a96a
+This supplied music is not designated CC0 or relicensed by this project.
+Menu playback loops independently of ambience; the party music box and credits
+continue to use the separate creator-supplied Musikbox.mp3 recording.

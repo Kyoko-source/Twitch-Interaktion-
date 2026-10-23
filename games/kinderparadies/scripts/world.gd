@@ -135,6 +135,7 @@ func build() -> void:
  encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
  archive=LostArchive.new();add_child(archive);archive.build(self)
  polish=AfterPlayPolish.new();add_child(polish);polish.build(self)
+ if native_art: native_art.finish()
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -342,7 +343,7 @@ func _party_room() -> void:
 
 func _service() -> void:
  props.mural=painting(self,0,Vector3(-9.96,2.2,-2.3),Vector2(3.8,2.55),PI/2)
- var extinguisher:=group("extinguisher");extinguisher.position=Vector3(-9.9,.65,-4.3)
+ var extinguisher:=group("extinguisher");extinguisher.position=Vector3(-9.89,.85,-7.5)
  tube(extinguisher,Vector3(0,0,0),Vector3(0,.5,0),.11,materials.red);tube(extinguisher,Vector3(0,.5,0),Vector3(.13,.5,0),.025,materials.dark)
  var stars:=group("stars")
  for i in range(7):
@@ -450,7 +451,7 @@ func brightness(value: float) -> void:
 func quality(value: int) -> void:
  atmosphere.quality(value)
  if native_art: native_art.quality(value)
- for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.position.distance_to(Vector3(-5.5,4,0))<.1)
+ for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:
  var leaf: Node3D=props["door_red" if red else "door_green"]

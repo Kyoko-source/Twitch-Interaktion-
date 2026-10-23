@@ -21,8 +21,9 @@ var notice: Label
 var notice_time := 0.0
 var post: ColorRect
 var room_audio: AudioStreamPlayer
+var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"invert_y":false,"crosshair":true,"area_list":true}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"area_list":true}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var menu_camera: Camera3D
@@ -44,6 +45,7 @@ var door_failure: DoorFailure
 var intro: ElevatorIntro
 var intro_pending:=false
 var end_credits: EndCredits
+var memories: ArchiveMemories
 
 func _ready() -> void:
  if OS.has_feature("web"): settings.quality=1
@@ -92,6 +94,8 @@ func _audio() -> void:
  if not OS.has_feature("web"): player.step_player.bus="Interior"
  room_audio=AudioStreamPlayer.new();room_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;var stream: AudioStreamOggVorbis=load("res://assets/ambience/ventilation.ogg");stream.loop=true;room_audio.stream=stream;room_audio.volume_db=-26;add_child(room_audio)
  effect=AudioStreamPlayer.new();effect.stream=load("res://assets/door.ogg");effect.volume_db=-12;add_child(effect)
+ menu_music=AudioStreamPlayer.new();menu_music.name="AbandonedArcadeMenuMusic";menu_music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
+ var tune: AudioStreamMP3=load("res://assets/menu/abandoned-arcade.mp3").duplicate();tune.loop=true;menu_music.stream=tune;add_child(menu_music)
 
 func _ui() -> void:
  ui=CanvasLayer.new();add_child(ui)
@@ -111,6 +115,7 @@ func _ui() -> void:
  var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Inventar  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
  notice=_label("",18,Color("eadfc2"));notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP);notice.offset_left=-450;notice.offset_right=450;notice.offset_top=25;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(notice)
+ memories=ArchiveMemories.new();root.add_child(memories);memories.build()
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
  transition_shade=ColorRect.new();transition_shade.color=Color(0,0,0,0);transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);transition_shade.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(transition_shade);transition_shade.hide()
 
@@ -125,9 +130,9 @@ func _style(color: Color,border: Color) -> StyleBoxFlat:
 
 func _button(value: String, action: Callable, primary: bool=false) -> Button:
  var button:=Button.new();button.text=value;button.custom_minimum_size=Vector2(420,48);button.alignment=HORIZONTAL_ALIGNMENT_LEFT
- button.add_theme_stylebox_override("normal",_style(Color("e7dcc1") if primary else Color(0.03,.07,.08,.65),Color("9f9a84") if primary else Color("536664")))
- button.add_theme_stylebox_override("hover",_style(Color("f7e7bf") if primary else Color("213b3d"),Color("e7dcc1")))
- button.add_theme_stylebox_override("pressed",_style(Color("bbad8b") if primary else Color("2b4b4b"),Color("e7dcc1")))
+ button.add_theme_stylebox_override("normal",_style(Color("b6a16d") if primary else Color(.045,.059,.049,.8),Color("b6a16d") if primary else Color("575643")))
+ button.add_theme_stylebox_override("hover",_style(Color("e8e1c8") if primary else Color("2c3021"),Color("b6a16d")))
+ button.add_theme_stylebox_override("pressed",_style(Color("958354") if primary else Color("383c29"),Color("e8e1c8")))
  button.add_theme_stylebox_override("focus",_style(Color(0,0,0,0),Color("d5d0af")))
  button.add_theme_color_override("font_color",Color("172627") if primary else Color("eee7d6"));button.add_theme_color_override("font_hover_color",Color("172627") if primary else Color.WHITE);button.add_theme_color_override("font_pressed_color",Color("172627") if primary else Color.WHITE)
  button.pressed.connect(action);return button
@@ -149,8 +154,9 @@ func _main_menu() -> void:
  end_credits=null
  if intro: intro.stop()
  phase="menu";player.lamp.visible=false
- menu_camera.position=Vector3(-6.5,1.8,10.3);menu_camera.look_at(Vector3(4.5,2,0));menu_camera.current=true;menu_clock=0
+ menu_camera.position=Vector3(13.9,2.2,14.7);menu_camera.fov=60;menu_camera.look_at(Vector3(18.4,2.4,13.4));menu_camera.current=true;menu_clock=0
  NightMenus.home(self);room_audio.stream_paused=false
+ if not menu_music.playing: menu_music.play()
  if not room_audio.playing: room_audio.play()
  _telemetry()
 
@@ -169,6 +175,7 @@ func _new_shift() -> void:
  state.start();has_session=true;intro_pending=true;_build_world("none");_begin_intro()
 
 func _begin_intro() -> void:
+ menu_music.stop()
  player.camera.current=true
  phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
 
@@ -226,12 +233,24 @@ func _continue() -> void:
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
 func _resume() -> void:
+ menu_music.stop()
  player.camera.current=true;player.camera.fov=player.base_fov
  phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false;world.archive.finale.voice.stream_paused=false
  player.lamp.visible=player.lamp_on
  world.atmosphere.set_active(true)
  if not room_audio.playing: room_audio.play()
  _refresh_hud();_telemetry()
+ if archive.ending=="recording": _show_recording_memories()
+
+func _show_recording_memories() -> void:
+ player.release();player.lamp.hide();hud.hide();Input.mouse_mode=Input.MOUSE_MODE_HIDDEN
+ memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
+
+func _end_recording_memories() -> void:
+ memories.hide()
+ if phase=="play":
+  hud.show();player.capture();player.lamp.visible=player.lamp_on
+  if OS.has_feature("web") and Input.mouse_mode!=Input.MOUSE_MODE_CAPTURED: _announce("Aufnahme beendet. Klicke ins Spiel, um dich wieder umzusehen.",7)
 
 func _pause() -> void:
  if phase!="play": return
@@ -250,7 +269,7 @@ func _help(back: String) -> void:
  column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E. Das Intro kannst du durch gehaltene Leertaste überspringen."))
  column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
  column.add_child(_paragraph("Kinderlachen, Weinen in den Krabbelröhren und Schritte in leeren Gängen gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Party Raum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
- column.add_child(_paragraph("Der große Stoffhase sitzt auf der Bank. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Party Raum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Das große Clownfresko mit vier leeren Stühlen gehört ebenfalls zum normalen Party Raum. Blutroter Nebel, frische Blutspuren sowie zusätzliche Besucher, kriechende Gestalten und greifende Arme sind Anomalien. Der Pferdeschädel hängt normalerweise im Schacht; sein plötzlicher Vorstoß ist eine Anomalie."))
+ column.add_child(_paragraph("Der kleine Stoffhase sitzt auf der Bank. Der riesige, blutige Stoffhase in der hinteren Hallenecke gehört ebenfalls zum normalen Zustand. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Party Raum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Das große Clownfresko mit vier leeren Stühlen gehört ebenfalls zum normalen Party Raum. Blutroter Nebel, frische Blutspuren sowie zusätzliche Besucher, kriechende Gestalten und greifende Arme sind Anomalien. Der Pferdeschädel hängt normalerweise im Schacht; sein plötzlicher Vorstoß ist eine Anomalie."))
  column.add_child(_paragraph("Alte Zeitungen und der Zettel an der verrosteten Tür sind Fundstücke. Schau sie an und drücke E zum Einsammeln. TAB öffnet dein Inventar; während du liest, pausiert das Spiel. Die Sammlung bleibt innerhalb der Schicht erhalten und wird gespeichert. Bei Tod oder einer neuen Nachtschicht beginnt sie von vorn. Die verrostete Tür und Fundstücke zählen nicht als Anomalien."))
  column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
  column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: Fundstücke und Zeitungen · ESC: Pause\nF11: Vollbild"))
@@ -298,7 +317,7 @@ func _read_settings() -> void:
  var data=JSON.parse_string(saved)
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
- for key in ["fov","render_scale","ambience","voice"]:
+ for key in ["fov","render_scale","ambience","voice","menu_music"]:
   var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
   var high:=100.0 if key=="fov" else 1.0
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
@@ -327,6 +346,7 @@ func _apply_settings() -> void:
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
  if intro: intro.voice.bus="NightVoice"
  if room_audio: room_audio.bus="NightAmbience"
+ if menu_music: menu_music.bus="Master";menu_music.volume_db=linear_to_db(float(settings.menu_music))-9 if float(settings.menu_music)>0 else -80
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
  # Compatibility shadow maps need back-face rendering to avoid diagonal acne
  # on the crocodile and walls. Forward+ keeps its finer native bias.
@@ -363,13 +383,19 @@ func _process(delta: float) -> void:
  if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
  if phase=="menu":
-  menu_clock+=delta;menu_camera.rotation.y+=cos(menu_clock*.13)*delta*.002
+  menu_clock+=delta
+  var travel: float=sin(menu_clock*.075)*.18 if settings.motion else 0.0
+  menu_camera.position=Vector3(13.9,2.2,14.7+travel);menu_camera.look_at(Vector3(18.4,2.4,13.4))
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.archive.tick(delta,phase=="play")
+ if archive.ending=="recording" and phase in ["play","pause","inventory","settings","help"]:
+  memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
+  if phase=="play": player.active=false;hud.hide()
+ else: memories.hide()
  player.fright=maxf(world.encounters.shock,world.terrors.shock)
  if phase=="play":
   state.seconds+=delta
@@ -442,6 +468,7 @@ func _start_archive_scare() -> void:
  if phase=="archive_scare": _show_archive_ending()
 
 func _show_archive_ending() -> void:
+ menu_music.stop()
  phase="ending";NightMenus.clear(self);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
  end_credits=EndCredits.new();menu.add_child(end_credits);end_credits.build(self);_telemetry()
 
@@ -485,6 +512,7 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase in ["help","settings"]: _return_from_panel()
   get_viewport().set_input_as_handled()
  if phase!="play": return
+ if archive.ending=="recording" and memories.visible: get_viewport().set_input_as_handled();return
  if event is InputEventMouseButton and event.pressed and Input.mouse_mode!=Input.MOUSE_MODE_CAPTURED: player.capture()
  if event.is_action_pressed("torch"): player.toggle_lamp()
  if event.is_action_pressed("grab"): player.grab_prop();get_viewport().set_input_as_handled()
@@ -538,6 +566,7 @@ func _telemetry() -> void:
   data.presentation={"logical_size":[screen_size.x,screen_size.y],"render_size":[get_viewport().get_texture().get_width(),get_viewport().get_texture().get_height()],"fresco":[fresco.global_position.x,fresco.global_position.y,fresco.global_position.z]}
   data.native_assets=ResourceLoader.exists("res://assets/models/SchoolChair_01/SchoolChair_01.gltf")
   data.polish={"floor":FootSurfaces.at(player),"last_surface":player.surface_name,"steps":player.footstep_count,"step_track":player.step_player.stream.resource_path,"step_playing":player.step_player.playing,"phone_state":intro.display.state_label.text,"phone_timer":intro.display.timer_label.text,"mascot":is_instance_valid(world.polish.mascot),"fur":ResourceLoader.exists("res://assets/pbr/curly_teddy_natural/albedo.jpg")}
+  data.memories=memories.snapshot()
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()

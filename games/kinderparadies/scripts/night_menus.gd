@@ -6,29 +6,40 @@ static func clear(g: Node3D) -> void:
  for child in g.menu.get_children(): g.menu.remove_child(child);child.queue_free()
  g.menu.show();g.hud.hide();g.player.release();g.world.atmosphere.set_active(false)
 
+static func menu_font(weight: int=500, spacing: int=0) -> FontVariation:
+ var font:=FontVariation.new();font.base_font=load("res://assets/presentation-v250/BodoniModa.ttf");font.variation_opentype={"wght":weight,"opsz":72};font.spacing_glyph=spacing;return font
+
+static func backdrop(g: Node3D, darken: bool=false) -> void:
+ # The visible backdrop is the actual playable 3D room and mascot. Only the
+ # navigation edge is shaded; no idealised illustration promises other assets.
+ var edge:=ColorRect.new();edge.name="CinematicMenuBackground";edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);edge.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(edge)
+ var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float edge=1.0-smoothstep(.18,.60,UV.x);COLOR=vec4(vec3(.012,.017,.014),edge*.94);}"
+ var material:=ShaderMaterial.new();material.shader=shader;edge.material=material
+ if darken:
+  var shade:=ColorRect.new();shade.color=Color(.025,.033,.028,.94);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(shade)
+
+static func nav_style(selected: bool, hovered: bool=false) -> StyleBoxFlat:
+ var style:=StyleBoxFlat.new();style.bg_color=Color(.21,.17,.09,.45) if selected or hovered else Color.TRANSPARENT;style.border_width_left=3 if selected or hovered else 0;style.border_color=Color("b6a16d");style.content_margin_left=27;style.content_margin_right=20;style.content_margin_top=5;style.content_margin_bottom=5;return style
+
 static func home(g: Node3D) -> void:
- clear(g)
- var shade:=ColorRect.new();shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float a=mix(.98,.06,smoothstep(.18,.68,UV.x));COLOR=vec4(.012,.018,.016,a);}"
- var material:=ShaderMaterial.new();material.shader=shader;shade.material=material;g.menu.add_child(shade)
- for row in range(2):
-  var heading: Label=g._label("AFTER" if row==0 else "PLAY",120);heading.add_theme_font_override("font",g.title_font);heading.position=Vector2(80,68+row*118);g.menu.add_child(heading)
- var subtitle: Label=g._label("Kinderparadies",36);subtitle.add_theme_font_override("font",g.title_font);subtitle.position=Vector2(88,328);g.menu.add_child(subtitle)
- var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",18,Color("c2c3b7"));lead.position=Vector2(88,400);g.menu.add_child(lead)
- var actions:=VBoxContainer.new();actions.position=Vector2(88,466);actions.add_theme_constant_override("separation",10);g.menu.add_child(actions)
- var start: Button=g._button("Neue Nachtschicht",g._new_shift,true);start.custom_minimum_size=Vector2(406,62);start.add_theme_font_override("font",g.title_font);start.add_theme_font_size_override("font_size",27);actions.add_child(start)
- var resume: Button=g._button("Schicht fortsetzen",g._continue);resume.disabled=not g._can_continue();resume.custom_minimum_size=Vector2(406,62);resume.add_theme_font_override("font",g.title_font);resume.add_theme_font_size_override("font_size",27);actions.add_child(resume)
- var gap:=Control.new();gap.custom_minimum_size.y=12;actions.add_child(gap)
- for item in [["Einstellungen",func():g._settings("menu")],["Dienstanweisung",func():g._help("menu")],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]:
-  var button: Button=g._button(item[0],item[1]);button.custom_minimum_size=Vector2(406,48);button.add_theme_font_override("font",g.title_font);button.add_theme_font_size_override("font_size",27)
-  var plain:=StyleBoxEmpty.new();plain.content_margin_left=8;plain.content_margin_top=6;plain.content_margin_bottom=6;button.add_theme_stylebox_override("normal",plain);actions.add_child(button)
- var hint: Label=g._label("WASD · Maus · E",15,Color("a3aaa2"));hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=88;hint.offset_right=420;hint.offset_top=-70;hint.offset_bottom=-40;g.menu.add_child(hint)
- var version: Label=g._label("v2.4.0",15,Color("a3aaa2"));version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-70;version.offset_bottom=-35;g.menu.add_child(version)
+ clear(g);backdrop(g)
+ var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
+ var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
+ var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
+ var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
+ var items: Array=[["Neue Nachtschicht",g._new_shift],["Schicht fortsetzen",g._continue],["Einstellungen",func():g._settings("menu")],["Dienstanweisung",func():g._help("menu")],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ for i in range(items.size()):
+  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,512+i*66);button.custom_minimum_size=Vector2(540,62);button.size=Vector2(540,62);button.disabled=i==1 and not g._can_continue();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",33)
+  button.add_theme_stylebox_override("normal",nav_style(i==0));button.add_theme_stylebox_override("hover",nav_style(true,true));button.add_theme_stylebox_override("pressed",nav_style(true,true));button.add_theme_stylebox_override("disabled",nav_style(false));button.add_theme_stylebox_override("focus",nav_style(false,true))
+  for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
+  button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
+ var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
+ var version: Label=g._label("v2.5.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
- var shade:=ColorRect.new();shade.color=Color(.018,.028,.025,.96);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.menu.add_child(shade)
- var title: Label=g._label("Einstellungen",62);title.add_theme_font_override("font",g.title_font);title.position=Vector2(75,55);g.menu.add_child(title)
+ backdrop(g,true)
+ var title: Label=g._label("Einstellungen",62);title.add_theme_font_override("font",menu_font());title.position=Vector2(75,55);g.menu.add_child(title)
  var note: Label=g._label("Deine Nachtschicht. Dein Spielgefühl.",17,Color("a3aaa2"));note.position=Vector2(78,140);g.menu.add_child(note)
  var nav:=VBoxContainer.new();nav.position=Vector2(75,218);nav.add_theme_constant_override("separation",14);g.menu.add_child(nav)
  for category in ["Bild","Audio","Steuerung","Spiel"]:
@@ -50,6 +61,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    column.add_child(g._button("Vollbild umschalten",g._fullscreen))
   "Audio":
    slider(g,column,"Lautstärke","volume",0,1,.05)
+   slider(g,column,"Menümusik","menu_music",0,1,.05)
    slider(g,column,"Raumklang & entfernte Geräusche","ambience",0,1,.05)
    slider(g,column,"Chef-Anruf","voice",0,1,.05)
    column.add_child(g._paragraph("Alle Tonquellen bleiben an die Gesamtlautstärke gebunden. ESC pausiert auch räumliche Geräusche und den Anruf.",16))

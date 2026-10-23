@@ -17,9 +17,14 @@ func pbr(id: String, tint: Color, scale_value: float=1) -> StandardMaterial3D:
  material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*scale_value
  return material
 
+func blood_mark(parent: Node3D, pos: Vector3, size: Vector2, rotation_value: Vector3) -> void:
+ var mesh:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=size;mesh.mesh=quad;mesh.position=pos;mesh.rotation=rotation_value;mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ var material:=ShaderMaterial.new();material.shader=load("res://assets/presentation-v250/blood-surface.gdshader");material.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));material.set_shader_parameter("dryness",.82);mesh.material_override=material;parent.add_child(mesh)
+
 func _mascot() -> void:
  var root:=Node3D.new();root.name="MascotCorner";root.position=MASCOT_POS;root.rotation.y=-1.9;root.set_meta("foot_surface","carpet");add_child(root)
- mascot=(load("res://assets/polish-v240/mascot-rabbit.glb") as PackedScene).instantiate();mascot.name="GiantDeformedMascot";root.add_child(mascot)
+ var edition:="web" if OS.has_feature("web") else "native"
+ mascot=(load("res://assets/mascot-v250/mascot-"+edition+".glb") as PackedScene).instantiate();mascot.name="GiantDeformedMascot";root.add_child(mascot)
  for mesh in mascot.find_children("*","MeshInstance3D",true,false):
   mesh.set_meta("mascot_mesh",true)
   for s in range(mesh.mesh.get_surface_count()):
@@ -27,6 +32,10 @@ func _mascot() -> void:
    if material and material.resource_name.begins_with("CC0 teddy fur"):
     var fur:=pbr("curly_teddy_natural",Color.WHITE,2.1);fur.vertex_color_use_as_albedo=true;fur.cull_mode=BaseMaterial3D.CULL_DISABLED;fur.normal_scale=.7
     mesh.set_surface_override_material(s,fur)
+   elif material and material.resource_name=="Mascot Fur Fibres":
+    var fibre:=material.duplicate() as StandardMaterial3D;fibre.vertex_color_use_as_albedo=true;fibre.albedo_color=Color.WHITE;fibre.roughness=.87;fibre.anisotropy_enabled=true;fibre.anisotropy=.35;fibre.rim_enabled=true;fibre.rim=.24;fibre.rim_tint=.10;mesh.set_surface_override_material(s,fibre)
+   elif material and material.resource_name=="Mascot wet blood conforming film":
+    var blood:=ShaderMaterial.new();blood.shader=load("res://assets/presentation-v250/blood-surface.gdshader");blood.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));mesh.set_surface_override_material(s,blood)
  # Separate fitted shapes preserve open space around the arms and ears.
  for piece in [{"p":Vector3(0,1.45,0),"size":Vector3(1.8,2.7,1.25)},{"p":Vector3(-.72,.35,.64),"size":Vector3(1.1,.66,1.6)},{"p":Vector3(.72,.35,.64),"size":Vector3(1.1,.66,1.6)}]:
   var body:=StaticBody3D.new();body.name="MascotSolid";var collider:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=piece.size;collider.shape=shape;body.position=piece.p;body.add_child(collider);root.add_child(body)
@@ -48,7 +57,7 @@ func _mascot() -> void:
  w.box(root,Vector3(-1.7,5.6,2.65),Vector3(.23,.15,.12),w.materials.dark)
  w.tube(root,Vector3(-1.7,5.68,2.65),Vector3(-1.7,7.27,2.65),.018,w.materials.rust)
  w.box(root,Vector3(-1.7,7.27,2.65),Vector3(.18,.04,.18),w.materials.dark)
- w.atmosphere.decal(self,0,Vector3(17.5,.033,15.1),Vector2(1.35,1.1),Vector3(-PI/2,.2,0),Color(.55,.25,.22,.8))
+ blood_mark(self,Vector3(17.5,.033,15.1),Vector2(1.35,1.1),Vector3(-PI/2,.2,0))
  for i in range(7):
   var cotton:=w.sphere(root,Vector3(-.5+i*.14,.07,1.23+sin(i)*.19),.10,w.materials.fabric);cotton.scale=Vector3(1,.45,.7)
 
@@ -77,7 +86,7 @@ func _workshop() -> void:
  SurfaceDetails.vessel(workbench,Vector3(.34,.899,.0),.14,.10,.13,.009,steel,w.materials.dark,"BloodiedPartsTray")
  for i in range(6): w.tube(workbench,Vector3(.24+i*.025,.91,-.04),Vector3(.27+i*.025,.92,.06),.008,w.materials.rust)
  var rag:=w.box(workbench,Vector3(-.22,.91,.08),Vector3(.43,.016,.31),w.materials.fabric);rag.rotation.y=.18
- w.atmosphere.decal(workbench,0,Vector3(-.22,.922,.08),Vector2(.37,.25),Vector3(-PI/2,0,0),Color(.7,.27,.21,.9))
+ blood_mark(workbench,Vector3(-.22,.922,.08),Vector2(.37,.25),Vector3(-PI/2,0,0))
  w.artwork(root,Vector3(-13.0,2.2,-6.835),Vector2(1.55,.75),load("res://assets/polish-v240/maintenance-board.png"))
  # Cable coils and strapped pipes are attached to actual walls/rack anchors.
  for i in range(3):
@@ -154,8 +163,8 @@ func _maintenance_hall() -> void:
  var root:=Node3D.new();root.name="MaintenancePipework";add_child(root)
  # Wall-hugging infrastructure leaves both archive/server doors and main lane clear.
  for z in [-7.8,-6.5,-4.3,-3.0]:
-  w.box(root,Vector3(-9.97,2.8,z),Vector3(.08,.32,.12),w.materials.rust)
- for y in [2.72,2.9]:
+  w.box(root,Vector3(-9.97,4.19,z),Vector3(.08,.32,.12),w.materials.rust)
+ for y in [4.1,4.28]:
   w.tube(root,Vector3(-9.91,y,-8.0),Vector3(-9.91,y,-2.9),.045,w.materials.rust)
   for z in [-7.8,-6.5,-4.3,-3]: w.tube(root,Vector3(-9.99,y,z),Vector3(-9.85,y,z),.015,w.materials.metal)
  w.artwork(root,Vector3(-9.975,2.0,-7.55),Vector2(.75,.7),load("res://assets/polish-v240/maintenance-board.png"),PI/2)

@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.4.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.5.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -515,3 +515,14 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Der Build erstellt zusätzlich `build/after-play-web-v2.4.0.zip` mit `index.html` im Hauptverzeichnis. `ITCH-SEITE.md` enthält die Veröffentlichungsvorbereitung und den Seitentext. Die itch.io-Seite selbst wird dadurch nicht veröffentlicht.
 - `--self-test --polish-only` prüft die neuen realen Laufwege, Materialwechsel, Modellabstände und Telefonzustände. Die vollständige Validierung enthält diese Prüfungen ebenfalls.
 - Ein verspätetes synthetisches Mausereignis beim Aktivieren der Maussteuerung wird verworfen; nachfolgende echte Mausbewegungen bleiben wirksam. Die HUD-Markierung verwendet ein im eingebetteten Font verfügbares Pluszeichen.
+
+## Hauptmenü, Fell und bebilderte Archivaufnahme (2.5.0)
+
+- Neues Hauptmenü mit einer langsamen Kamerafahrt vor dem echten 3D-Maskottchen, schmaler Bodoni-Moda-Typografie, deutlichem Hover-/Tastaturfokus und echtem Fortsetzen-Zustand. Alle sechs Aktionen sind native Controls. Das frühere idealisierte KI-Menümotiv wird nicht mehr angezeigt. „Abandoned Arcade.mp3“ läuft in einer Schleife; unter Audio lässt sich die Menümusik separat regeln oder stummschalten. Die Originaldatei liegt unverändert im Ordner `AFTER PLAY MENUMUSIK` im Repository-Hauptverzeichnis. Party-Spieluhr und Abspann behalten ihre eigene Musik.
+- Die Windows-Fassung erhält feinere Rauigkeits- und Normaloberflächen auf Metall, korrodierte statt holzgemaserte Rostteile, glänzende PVC-Polster und gewebte Kinobezüge. Gerichtetes Projektorlicht, kühlere Leinwandreflexion, besser abgegrenzte indirekte Beleuchtung und Kontaktverschattung geben mehr Tiefe. Nebel bleibt im normalen Rundgang vorhanden, verdeckt aber weniger Details. Schatten der Küchenlampe, Werkstattbeleuchtung und Leinwandbeleuchtung folgen nun der tatsächlichen Grafikqualität.
+- Der riesige Hase trägt gebogenes geometrisches Fell: rund 56.000 Fasern in der Windows-Fassung und 14.000 in der Web-Fassung. Eine projizierte Blutauflage folgt der echten Körperoberfläche; geronnene Bereiche, feuchte Glanzstellen und verklebte Fasern ersetzen die bisherigen großen roten Farbflächen. Neue Bluttexturen werden auch auf dem Werkstatttuch und am Maskottchenboden verwendet.
+- Zwei Kabel verliefen sichtbar durch die Wartungstür; ihre Abschnitte enden jetzt neben den Rahmen. Wartungsleitungen wurden oberhalb der Bilder verlegt und der Feuerlöscher hängt mit Abstand zu Tür und Wandbild. `SceneAudit.placement` prüft sichtbare Dekoration an Türen, den Fahrstuhl, beide Entscheidungstüren und überlappende Wandkunst; der geöffnete Archivdurchgang wird zusätzlich geprüft.
+- Die vollständige, unveränderte Marelle-Aufnahme steuert eine Rückblende aus elf KI-generierten Szenen mit langsamer Kamerabewegung und Überblendungen. Die Zeitmarken stammen aus einer lokalen Transkription und wurden den erzählten Ereignissen zugeordnet. Details: `art-direction/v250/NARRATION.md` und `assets/presentation-v250/memories.json`.
+- Während der Aufnahme bleibt der Spieler in der Rückblende; ESC pausiert Ton und Bild. Speichern und Fortsetzen stellen die tatsächliche Audioposition samt passendem Bild wieder her. Nach der Aufnahme kehren Archiv und Steuerung zurück; Umdrehen, Koch-Schreckmoment, ENDE und Credits behalten ihren Ablauf.
+- `--self-test --v250-only` prüft Menü, Öffnungen, Bilddateien, Zeitmarken, Audiobindung, Bewegungssperre, Pause und Wiederaufnahme. `--render-qa --v250-qa` erstellt native Aufnahmen aller elf Erinnerungen sowie der überarbeiteten Räume und des Hauptmenüs.
+- Windows- und Web-Pakete enthalten nur die passende Fell-Fassung. Generierungs-Prompts, Prüfsummen, Herkunft und OFL-Schriftlizenz werden mitgeliefert. Die Menü-Konzeptbilder werden als Entwicklungsunterlagen behalten und nicht ins Spielpaket exportiert.

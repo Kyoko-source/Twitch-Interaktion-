@@ -1,0 +1,10 @@
+AFTER PLAY — Hauptmenümusik
+
+Lege die gewünschte MP3 unter dem Namen Abandoned Arcade.mp3 in diesen Ordner.
+tools/build-kinderparadies.ps1 übernimmt sie beim nächsten Build unverändert.
+Die Desktop-Originaldatei wird nicht verändert. Die fertigen Windows- und
+Web-Fassungen enthalten den Song bereits; Spieler müssen nichts kopieren.
+
+Im Spiel: Einstellungen > Audio > Menümusik. Die Gesamtlautstärke gilt ebenfalls.
+Die Spieluhr im Party Raum und der Abspann behalten Musikbox.mp3.
+Musikdateien sind wie Intro und Spieluhr nicht Teil des öffentlichen Git-Repos.

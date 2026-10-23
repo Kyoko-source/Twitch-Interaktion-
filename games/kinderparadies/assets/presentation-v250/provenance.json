@@ -1,0 +1,64 @@
+{
+  "tool": "Built-in imagegen; original AI-created presentation images and blood texture, not photographs of real events.",
+  "narration": {
+    "source_filename": "Horror Audio Marelle.wma",
+    "source_sha256": "c43da71efc901c931272d2ff534d58c0bae48979bd76a74193806d64dcf728bc",
+    "processing": "Full-length WMA decoded to Ogg Vorbis q5. No crop, no pitch/time change. User-supplied game recording."
+  },
+  "images": {
+    "01-recorder.png": {
+      "sha256": "b2525337a5cb178bf974e2e28eea73719eb9a3f1b21bdc96327476296d75c825",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "02-birthday.png": {
+      "sha256": "f5d43b7a42fe091818dbcec29819b99ff32fba05b76d66471f4c29673bedad7e",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "03-showkitchen.png": {
+      "sha256": "879cc13b5f24ec86b298b6f01bfcf752f37703abee478ce657ee7f1049f6e70c",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "04-the-soup.png": {
+      "sha256": "e840349bf81a0b88bd7265d4f18e8cfdcd7adf93e7741d6db93f6b5c670b08c9",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "05-emergency-call.png": {
+      "sha256": "d984d7c15cd46308a086ca3c223b55d2d38f294d81380354acff3ed8507ce8ae",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "06-locked-exit.png": {
+      "sha256": "c97cb828c4aa96ede0ecc5ed847a6c0f0eddda9953a1c23f1dabcac31bec9bb4",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "07-the-archive.png": {
+      "sha256": "6fa544737c6af124b0cbbdccfebf0fb58d350e036ebe3b1c4de037ec0c2db9dc",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "08-the-return.png": {
+      "sha256": "d6b84f1890007cf3f38cebccf3652b2819d111ca7b5ed5e3799de095dcbecb21",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "09-the-pot.png": {
+      "sha256": "5048183bfc47cd2f8f8ab208ebb6108a3465d2d9136125954572f92053925df3",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "10-abandoned.png": {
+      "sha256": "8551d997a890f39549324b2258eedda0e357cb0526cbdcbf023546eba36d0848",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "11-warning.png": {
+      "sha256": "14037bb58904b64ef792d7c68eab145bc62141b61d7882cdadc0da0b46e08bb5",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "blood-texture.png": {
+      "sha256": "99078ec55c59e077bbf1eedd4357af3491216376efcaa38c316d3491096cbd65",
+      "kind": "AI-generated fictional illustration or VFX texture"
+    },
+    "main-menu-background.png": {
+      "sha256": "e2141044b76d008f2b7ec815132dbf5765e840434792c218df1c4a740040d157",
+      "kind": "Unused AI art-direction reference; excluded from releases. The menu now shows the real playable 3D scene."
+    }
+  },
+  "prompts": "generation-prompts.json",
+  "font": "Bodoni Moda, SIL OFL; font-provenance.json and BodoniModa-OFL.txt"
+}

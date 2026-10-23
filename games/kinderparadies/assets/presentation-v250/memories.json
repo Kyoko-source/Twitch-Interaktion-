@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "source_recording": "Horror Audio Marelle.wma",
+  "clock": "actual AudioStreamPlayer playback position; seconds",
+  "analysis": "Local faster-whisper small transcription, checked and selected narrative beats. Original audio is unchanged.",
+  "shots": [
+    {
+      "image": "01-recorder.png",
+      "start": 0,
+      "description": "Florians letzte Aufnahme"
+    },
+    {
+      "image": "02-birthday.png",
+      "start": 22.2,
+      "description": "Ein Geburtstag mit dreizehn Kindern"
+    },
+    {
+      "image": "03-showkitchen.png",
+      "start": 50.6,
+      "description": "Marelle und ihre Suppe"
+    },
+    {
+      "image": "04-the-soup.png",
+      "start": 87.4,
+      "description": "Etwas in der Suppe; Florians verzweifelter Versuch"
+    },
+    {
+      "image": "05-emergency-call.png",
+      "start": 105.1,
+      "description": "Der Notruf"
+    },
+    {
+      "image": "06-locked-exit.png",
+      "start": 133.3,
+      "description": "Die verschlossene Tür; neun Kinder entkommen"
+    },
+    {
+      "image": "07-the-archive.png",
+      "start": 160.6,
+      "description": "Florian wird im Hinterraum angekettet"
+    },
+    {
+      "image": "08-the-return.png",
+      "start": 191.3,
+      "description": "Marelle kommt zurück"
+    },
+    {
+      "image": "09-the-pot.png",
+      "start": 206.4,
+      "description": "Die Küche und das Geräusch des Löffels"
+    },
+    {
+      "image": "10-abandoned.png",
+      "start": 222.9,
+      "description": "Zurückgelassen mit dem Sprachrekorder"
+    },
+    {
+      "image": "11-warning.png",
+      "start": 255.9,
+      "description": "Die letzte Warnung"
+    }
+  ],
+  "source_sha256": "c43da71efc901c931272d2ff534d58c0bae48979bd76a74193806d64dcf728bc"
+}

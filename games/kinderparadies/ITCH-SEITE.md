@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.4.0
+# After Play — Veröffentlichungsvorbereitung 2.5.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.4.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.4.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v2.5.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v2.5.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -28,6 +28,7 @@ Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland.
 - Räumliche Geräusche und Schritte passend zu Beton, Teppich, Metall, Holz, Kunststoff und Polstern.
 - Windows-Grafik mit indirekter Beleuchtung, Schatten und dichtem Nebel.
 - Deutsche Texte und deutsche Sprachaufnahmen.
+- Eine bebilderte Rückblende zur letzten Archivaufnahme, mit elf an die Stimme gebundenen Erinnerungen.
 - Speichern und Fortsetzen innerhalb der laufenden Nachtschicht.
 
 ### Steuerung
@@ -47,6 +48,8 @@ Zusätzliche Ideen: **einsmarello**.
 Testspieler: **einsmarello**, **__jerry__**, **gingerbread**, **Mozart**.
 
 Quellen und Lizenzen für verwendete Fremdmaterialien liegen dem Download bei, insbesondere Poly Haven (CC0), Kenney (CC0), der bearbeitete Lee-Perry-Smith-Kopfscan (CC BY), Oswald (OFL) und Godot (MIT).
+
+Die Rückblendenbilder und die neue Bluttextur wurden für das Spiel mit KI-Bildgenerierung erstellt. Sie stellen erfundene Szenen dar. Das Hauptmenü zeigt die tatsächliche räumliche Spielszene mit ihren echten Modellen; Menütexte und Schaltflächen bleiben bedienbare Elemente. Bodoni Moda wird unter der SIL Open Font License mitgeliefert. Die separat regelbare Menümusik „Abandoned Arcade“ wurde vom Ersteller bereitgestellt; die ursprüngliche Musikbox begleitet weiterhin den Abspann.
 
 ## Einrichtung auf itch.io
 

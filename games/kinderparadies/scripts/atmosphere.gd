@@ -117,7 +117,8 @@ func _reception_details() -> void:
   for line in range(4): w.tube(self,Vector3(-9.94,y-.15+line*.09,z-.12),Vector3(-9.94,y-.1+line*.09,z+.13),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
  # Large original mural inset in reception, plus bent cable runs.
  var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.8,.6);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(-8.426,.49,5.8);mural.rotation.y=PI/2;add_child(mural)
- for y in [.34,.38]: w.tube(self,Vector3(-9.97,y,-7),Vector3(-9.97,y,3),.014,w.materials.dark)
+ for y in [.34,.38]:
+  for span in [Vector2(-7,-6.42),Vector2(-4.38,3)]: w.tube(self,Vector3(-9.97,y,span.x),Vector3(-9.97,y,span.y),.014,w.materials.dark)
  # An abandoned rocking horse gives the long wall a recognizable, organic prop.
  var horse:=Node3D.new();horse.position=Vector3(-8.95,0,-1.8);horse.rotation.y=-.7;add_child(horse);horrors.horse=horse
  var torso:=w.sphere(horse,Vector3(0,.65,0),.32,w.materials.wood);torso.scale=Vector3(.65,.8,1.4)
@@ -229,7 +230,7 @@ void fragment(){vec2 p=local_pos.xz*3.0+vec2(clock*0.035,-clock*0.018);float n=n
  mist=ShaderMaterial.new();mist.shader=shader
  # Soft ellipsoid clouds have no hard horizontal plane intersections on walls.
  for pos in [Vector3(-5.4,.22,-7),Vector3(-5,.25,-1),Vector3(-4.7,.18,5),Vector3(2,.26,7.5),Vector3(8.5,.25,-7)]:
-  var cloud:=w.sphere(self,pos,1,mist);cloud.scale=Vector3(3.9,.35,2.7);cloud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  var cloud:=w.sphere(self,pos,1,mist);cloud.scale=Vector3(3.9,.35,2.7);cloud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;cloud.set_meta("nonblocking_atmosphere",true)
  var dust_shader:=Shader.new();dust_shader.code="shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled,shadows_disabled;uniform float clock=0.0;void vertex(){VERTEX.x+=sin(clock*0.24+INSTANCE_CUSTOM.x*20.0)*0.14;VERTEX.y+=sin(clock*0.3+INSTANCE_CUSTOM.y*14.0)*0.16;}void fragment(){float d=length(UV-0.5);ALBEDO=vec3(0.25,0.3,0.27);ALPHA=(1.0-smoothstep(0.15,0.5,d))*0.17;}"
  var dust_material:=ShaderMaterial.new();dust_material.shader=dust_shader
  dust=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_custom_data=true;var quad:=QuadMesh.new();quad.size=Vector2(.014,.014);mm.mesh=quad;mm.instance_count=100

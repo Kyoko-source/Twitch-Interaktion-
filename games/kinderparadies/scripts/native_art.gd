@@ -35,7 +35,8 @@ func _materials() -> void:
   var tint: Color=material.albedo_color
   surface(material,"fabric_leather_01",tint.lightened(.22),2.5)
   material.albedo_texture=load("res://assets/vinyl.png");material.albedo_color=tint.lightened(.12)
-  material.normal_scale=.24;material.roughness=.85
+  material.normal_scale=.18;material.roughness=.62
+  material.clearcoat_enabled=true;material.clearcoat=.20;material.clearcoat_roughness=.42
  surface(w.materials.fabric,"fabric_pattern_07",Color("9d9582"),4)
  # A continuous worn floor replaces the repeated checkerboard only on PC.
  for tile in w.props.floor_tiles: tile.hide()
@@ -137,16 +138,58 @@ func _play_details() -> void:
  var rubber:=w.mat(Color("b2b6ab"));surface(rubber,"rubberized_track",Color("b2b6ab"),1.2)
  w.props.play_threshold.material_override=rubber
 
+func finish() -> void:
+ # Apply after the annex/workshop exist. Shared source materials keep their
+ # identity, so anomaly tint changes and every physical collider still agree.
+ var noise:=FastNoiseLite.new();noise.seed=250;noise.frequency=.075;noise.fractal_octaves=3
+ var rough:=NoiseTexture2D.new();rough.width=512;rough.height=512;rough.noise=noise;rough.seamless=true
+ var ramp:=Gradient.new();ramp.set_color(0,Color(.24,.24,.24));ramp.set_color(1,Color(.83,.83,.83));rough.color_ramp=ramp
+ var normal:=NoiseTexture2D.new();normal.width=512;normal.height=512;normal.noise=noise;normal.seamless=true;normal.as_normal_map=true;normal.bump_strength=.5
+ var patina:=NoiseTexture2D.new();patina.width=512;patina.height=512;patina.noise=noise;patina.seamless=true
+ var rust:=Gradient.new();rust.set_color(0,Color("a0a29a"));rust.add_point(.53,Color("81715a"));rust.set_color(1,Color("493225"));patina.color_ramp=rust
+ var done: Dictionary={}
+ for mesh in w.find_children("*","MeshInstance3D",true,false):
+  if mesh.has_meta("native_model"): continue # Retain authored imported PBR maps.
+  var material:=mesh.material_override as StandardMaterial3D
+  if not material or material.metallic<.35 or done.has(material.get_instance_id()): continue
+  done[material.get_instance_id()]=true
+  material.normal_enabled=true;material.normal_texture=normal;material.normal_scale=.12
+  material.roughness_texture=rough;material.roughness_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED;material.roughness=.80
+  material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*2.1
+  if material==w.materials.rust: material.albedo_texture=patina;material.albedo_color=Color("b7a08c");material.metallic=.55
+ # Upholstery uses the same physically scaled weave as the sewn curtains.
+ var seat_fabric:=w.polish.pbr("fabric_pattern_07",Color("792e39"),3.2)
+ seat_fabric.normal_scale=.38;seat_fabric.roughness=.90
+ for seat in w.annex.get_children():
+  if not str(seat.name).begins_with("CinemaSeat"): continue
+  for mesh in seat.find_children("*","MeshInstance3D",true,false):
+   var material:=mesh.material_override as StandardMaterial3D
+   if material and material.metallic==0 and material.albedo_color.r>material.albedo_color.g*1.6: mesh.material_override=seat_fabric
+ if not advanced: return
+ # Screen bounce comes from the screen plane, not an unexplained room fill.
+ for light in w.practicals:
+  if light.position.distance_to(Vector3(2.8,2.2,-17.7))<.1:
+   light.light_energy=.88;light.light_color=Color("a6c0cf");light.omni_range=7;light.omni_attenuation=1.8;light.set_meta("shadow_practical",true)
+  elif light.position.distance_to(Vector3(-13.35,2.89,-4.4))<.1:
+   light.light_energy=1.1;light.light_color=Color("a6c0b1");light.set_meta("shadow_practical",true)
+ var projector:=w.annex.get_children().filter(func(n):return n is SpotLight3D)
+ for light in projector:
+  light.light_energy=.75;light.light_volumetric_fog_energy=2.2;light.light_size=.018
+  light.spot_angle=19;light.spot_attenuation=1.4
+ for mesh in w.server_room.get_children():
+  if mesh is MeshInstance3D and mesh.position.distance_to(Vector3(-13.35,2.99,-4.4))<.1:
+   (mesh.material_override as StandardMaterial3D).emission_energy_multiplier=2.8
+
 func _lighting() -> void:
  var env:=w.environment.environment
- env.ambient_light_energy=.15;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
- env.fog_density=.007;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.065
+ env.ambient_light_energy=.10;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
+ env.fog_density=.004;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.046
  env.volumetric_fog_albedo=Color("99adae");env.volumetric_fog_length=45;env.volumetric_fog_anisotropy=.4
  env.volumetric_fog_ambient_inject=.12;env.volumetric_fog_gi_inject=.35
  env.volumetric_fog_temporal_reprojection_amount=.75
- env.sdfgi_cascades=4;env.sdfgi_min_cell_size=.2;env.sdfgi_use_occlusion=true;env.sdfgi_read_sky_light=false;env.sdfgi_energy=.65
- env.ssao_enabled=true;env.ssao_radius=.7;env.ssao_intensity=1.3
- env.ssil_radius=2.5;env.ssil_intensity=.55
+ env.sdfgi_cascades=4;env.sdfgi_min_cell_size=.2;env.sdfgi_use_occlusion=true;env.sdfgi_read_sky_light=false;env.sdfgi_energy=.85
+ env.ssao_enabled=true;env.ssao_radius=.85;env.ssao_intensity=1.5;env.ssao_detail=.7
+ env.ssil_radius=2.5;env.ssil_intensity=.7
  env.glow_enabled=true;env.glow_intensity=.22;env.glow_hdr_threshold=1.4
  for mesh in w.atmosphere.get_children():
   if mesh is MeshInstance3D and (mesh.material_override==w.atmosphere.mist or (mesh.mesh is SphereMesh and mesh.material_override is StandardMaterial3D and mesh.material_override.roughness<.1)): mesh.hide()
@@ -180,6 +223,9 @@ func quality(value: int) -> void:
  for volume in fog_volumes: volume.visible=value>0
 
 func anomaly(id: String) -> void:
+ # Common Web fog is deliberately dense. Forward+ already has participating
+ # fog; stacking the full Web fog over it flattened every material and shadow.
+ if advanced: w.environment.environment.fog_density=.009
  if id=="heavy_mist" and advanced:
   w.environment.environment.volumetric_fog_albedo=Color("b22629")
  if id=="lights_red":

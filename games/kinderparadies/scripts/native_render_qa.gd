@@ -6,7 +6,14 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--menu-only" in OS.get_cmdline_user_args():
+  await game.get_tree().create_timer(5).timeout;await capture(game,output,"main-menu");game._quit();return
+ if "--v250-qa" in OS.get_cmdline_user_args():
+  await v250_views(game,output);game._quit();return
+ if "--placement-only" in OS.get_cmdline_user_args():
+  print("PLACEMENT AUDIT ",JSON.stringify(SceneAudit.placement(game.world)));game._quit();return
  if "--polish-v240-qa" in OS.get_cmdline_user_args():
+  await capture(game,output,"main-menu-v250")
   await polish_v240_views(game,output);game._quit();return
  if "--presentation-qa" in OS.get_cmdline_user_args():
   await presentation_views(game,output);game._quit();return
@@ -116,12 +123,30 @@ func capture(game: Node3D, output: String, name: String) -> void:
  var error:=image.save_png(output.path_join(name+".png"))
  assert(error==OK,"Native screenshot failed")
 
+func v250_views(game: Node3D, output: String) -> void:
+ game._main_menu();await game.get_tree().create_timer(.3).timeout;await capture(game,output,"main-menu")
+ game._settings("menu");await game.get_tree().process_frame;await capture(game,output,"settings")
+ await polish_v240_views(game,output)
+ game.archive.try_code("0712");game.world.archive.open();game.world.archive.tick(3,true)
+ game.player.position=Vector3(-11.3,0,-9.9);game.player.velocity=Vector3.ZERO;game.player.camera.look_at(ArchiveFinale.RECORDER)
+ var finale: ArchiveFinale=game.world.archive.finale;finale.interact()
+ var views: Array=[]
+ for shot in game.memories.shots:
+  finale.voice.seek(float(shot.start)+2.0);await game.get_tree().create_timer(.35).timeout
+  await capture(game,output,"memory-"+str(shot.image).trim_suffix(".png"));views.append(game.memories.snapshot())
+ game._pause();await game.get_tree().process_frame;await capture(game,output,"memory-paused")
+ var report:={"memories":views,"audit":SceneAudit.inspect(game.world),"renderer":RenderingServer.get_current_rendering_method()}
+ var file:=FileAccess.open(output.path_join("v250-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("V250 VISUAL QA ",JSON.stringify(report))
+
 func polish_v240_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.tick(1.5)
  await game.get_tree().create_timer(.7).timeout;await capture(game,output,"phone-incoming")
  game.intro.accept();await game.get_tree().create_timer(.7).timeout;await capture(game,output,"phone-connected")
  game.intro.skip()
  var shots: Array[Dictionary]=[
+  {"name":"hall-finish","p":Vector3(-5.5,0,10.3),"look":Vector3(3.8,2.2,-1.2)},
+  {"name":"party-finish","p":Vector3(7.2,0,-9.0),"look":Vector3(12.4,1.7,-4.3)},
+  {"name":"kitchen-finish","p":Vector3(-10.6,0,-17.4),"look":Vector3(-14.8,1.7,-19.8)},
   {"name":"mascot-corner","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)},
   {"name":"mascot-close","p":Vector3(15.8,0,14.5),"look":Vector3(18,3.0,15.35)},
   {"name":"workshop","p":Vector3(-11.3,0,-4.55),"look":Vector3(-15.8,1.6,-5.6)},

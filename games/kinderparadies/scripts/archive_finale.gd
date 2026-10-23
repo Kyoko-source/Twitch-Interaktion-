@@ -89,10 +89,12 @@ func _play() -> void:
   player.position=Vector3(-11.3,0,-9.9);player.velocity=Vector3.ZERO;player.rotation=Vector3.ZERO;player.camera.look_at(RECORDER+Vector3(0,.07,0))
  w.archive.hold_for_recording()
  started=true;voice.stream_paused=false;voice.play(minf(progress.recording_position,maxf(0,duration-.05)))
+ _game()._show_recording_memories()
 
 func _finished_recording() -> void:
  if not progress or progress.ending!="recording": return
  progress.ending="armed";progress.recording_position=duration;looked_away=false;w.archive.open();_game()._save()
+ _game()._end_recording_memories()
 
 func _game() -> Node3D:
  return w.get_parent()
