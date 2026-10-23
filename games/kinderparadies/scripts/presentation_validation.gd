@@ -5,7 +5,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(ProjectSettings.get_setting("display/window/size/window_width_override")==1600 and ProjectSettings.get_setting("display/window/size/window_height_override")==900 and ProjectSettings.get_setting("display/window/stretch/aspect")=="keep","Window proportions stretch instead of preserving 16:9")
  game._new_shift();game.intro.skip()
  var fresco:=game.world.find_child("TheFourEmptyChairs",true,false) as Node3D
- verify.call(fresco.global_position.distance_to(Vector3(13.3,2.85,1.485))<.01 and fresco.global_basis.z.dot(Vector3.FORWARD)>.99,"Party fresco is not mounted on the free wall to the right")
+ verify.call(fresco.global_position.distance_to(Vector3(12.0,2.85,1.485))<.01 and fresco.global_basis.z.dot(Vector3.FORWARD)>.99,"Party fresco is not mounted clear of the right-hand mascot")
  var visitor: Vector3=NightTerrors.SCENARIOS.party_portrait.p
  verify.call(absf(visitor.x-fresco.global_position.x)<.1 and visitor.z<fresco.global_position.z and visitor.z>0,"Portrait visitor was left behind on the old wall")
  if game.world.native_art:

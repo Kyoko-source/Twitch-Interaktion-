@@ -1,0 +1,16 @@
+After Play 2.5.1 — tailored giant cloth mascot
+
+Original project-authored geometry derived from the existing small stitched
+rabbit in tools/model-nachtwache-heroes.py. New actual cloth opening, lining,
+frayed edges, attached thread loops and irregular cotton stuffing were authored
+in tools/model-after-play-mascot-v251.py. No external character model was added.
+
+The existing project plush-fur.png texture is reused unchanged from the small
+rabbit. Woven cloth colour and normal photographs: Poly Haven Fabric Pattern 07,
+CC0 1.0, as recorded in ../polyhaven-provenance.json and ../PolyHaven-CC0.txt.
+Godot-generated embedded texture copies retain those source notices.
+
+The 2.5.0 long-fibre mascot is retained only in project history and excluded
+from this release. Blood marks outside the mascot retain their existing
+presentation-v250 provenance and notices. No new generated raster image is
+used for the 2.5.1 mascot.

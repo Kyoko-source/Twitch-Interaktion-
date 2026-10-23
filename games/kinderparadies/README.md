@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.5.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.5.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -526,3 +526,11 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Während der Aufnahme bleibt der Spieler in der Rückblende; ESC pausiert Ton und Bild. Speichern und Fortsetzen stellen die tatsächliche Audioposition samt passendem Bild wieder her. Nach der Aufnahme kehren Archiv und Steuerung zurück; Umdrehen, Koch-Schreckmoment, ENDE und Credits behalten ihren Ablauf.
 - `--self-test --v250-only` prüft Menü, Öffnungen, Bilddateien, Zeitmarken, Audiobindung, Bewegungssperre, Pause und Wiederaufnahme. `--render-qa --v250-qa` erstellt native Aufnahmen aller elf Erinnerungen sowie der überarbeiteten Räume und des Hauptmenüs.
 - Windows- und Web-Pakete enthalten nur die passende Fell-Fassung. Generierungs-Prompts, Prüfsummen, Herkunft und OFL-Schriftlizenz werden mitgeliefert. Die Menü-Konzeptbilder werden als Entwicklungsunterlagen behalten und nicht ins Spielpaket exportiert.
+
+
+## Stoffmaskottchen und dichterer Nebel (2.5.1)
+
+- Die großen Figuren sind jetzt vom vorhandenen kleinen Stoffhasen abgeleitet: dieselben texturierten Plüsch- und Stoffoberflächen, dünne anliegende Nähte und ein echter Riss durch den Bauchflicken. Dunkles Innenfutter, ausgefranste Stoffränder und unregelmäßige Füllwatte ersetzen die alte aufgesetzte Wunde und die langen, stacheligen Fellfasern. Die Originalfigur auf der Bank bleibt erhalten.
+- Ein zusätzlicher großer Hase steht rechts nach dem Betreten des Party Raums. Beide großen Hasen gehören zur normalen Umgebung und sind keine Anomalien. Das Wandbild wurde etwas nach links verschoben und verkleinert; sein Anomalie-Auslöser folgt ihm. Regal und Sideboard lassen Abstand zu den Pfoten und zu den Laufwegen.
+- Windows verwendet etwas dichteren beleuchteten Volumen- und Bodennebel. Der Grundnebel der Web-Fassung ist ebenfalls leicht erhöht. Normale Nebelfarbe, Zeitungsrunden und Anomalie-Regeln bleiben gleich.
+- Menümusik, Archivaufnahme, Erstellercode 0712 und Credits bleiben erhalten. Modelle und Bildnachweise: assets/mascot-v251/LICENSE.txt; reproduzierbare Geometrie: tools/model-after-play-mascot-v251.py.

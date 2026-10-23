@@ -60,19 +60,28 @@ func run(game: Node3D, verify: Callable) -> void:
    var position: float=game.player.position[route.axis]
    verify.call(position>route.limit if route.greater else position<route.limit,"Standing player is trapped at "+route.name+" offset "+str(offset)+" ended at "+str(game.player.position))
    verify.call(game.player.position.y>-.05,"Door threshold drops the player below the floor: "+route.name)
- var bounds:=AABB();var first:=true;var fur:=false
- for mesh in w.polish.mascot.find_children("*","MeshInstance3D",true,false):
-  var box: AABB=mesh.global_transform*mesh.get_aabb();bounds=box if first else bounds.merge(box);first=false
-  for i in range(mesh.mesh.get_surface_count()):
-   var material:=mesh.get_active_material(i) as StandardMaterial3D
-   if material and material.albedo_texture and material.albedo_texture.resource_path.contains("curly_teddy_natural"): fur=true
- verify.call(bounds.size.y>4.5 and bounds.end.y<7.3 and bounds.end.x<19.7 and bounds.end.z<17.05 and fur,"Furred mascot intersects the hall shell or its material is absent: "+str(bounds))
- var corner:=w.polish.get_node("MascotCorner") as Node3D
- for point in [Vector3(-.22,3.12,.2),Vector3(-1.04,1.48,.1),Vector3(1.04,1.48,.1)]:
-  var query:=PhysicsRayQueryParameters3D.create(corner.to_global(point+Vector3(0,0,1)),corner.to_global(point-Vector3(0,0,1)),1)
-  query.exclude=[game.player.get_rid()]
-  var contact:=game.get_world_3d().direct_space_state.intersect_ray(query)
-  verify.call(not contact.is_empty() and corner.is_ancestor_of(contact.collider),"Mascot head/arm has no matching collision at "+str(point))
+ var party_bounds:=AABB()
+ for visual in [w.polish.mascot,w.polish.party_mascot]:
+  var bounds:=AABB();var first:=true;var textile:=false
+  for mesh in visual.find_children("*","MeshInstance3D",true,false):
+   var box: AABB=mesh.global_transform*mesh.get_aabb();bounds=box if first else bounds.merge(box);first=false
+   for i in range(mesh.mesh.get_surface_count()):
+    var material:=mesh.get_active_material(i) as StandardMaterial3D
+    if material and material.albedo_texture and material.resource_name.begins_with("Worn oatmeal") and material.roughness>.9: textile=true
+  verify.call(bounds.size.y>4.5 and bounds.end.y<7.3 and bounds.end.x<19.65 and bounds.end.z<17.05 and textile,"Sewn mascot exceeds the room or is missing its approved plush surface: "+str(bounds))
+  var corner:=visual.get_parent() as Node3D
+  for point in [Vector3(.055,2.92,.091),Vector3(-1.0,1.28,.036),Vector3(1.0,1.28,.036)]:
+   var query:=PhysicsRayQueryParameters3D.create(corner.to_global(point+Vector3(0,0,1)),corner.to_global(point-Vector3(0,0,1)),1)
+   query.exclude=[game.player.get_rid()]
+   var contact:=game.get_world_3d().direct_space_state.intersect_ray(query)
+   verify.call(not contact.is_empty() and corner.is_ancestor_of(contact.collider),"Mascot head/arm has no matching collision at "+str(point))
+  if visual==w.polish.party_mascot: party_bounds=bounds
+ verify.call(w.polish.party_mascot.get_parent().position.distance_to(AfterPlayPolish.PARTY_MASCOT_POS)<.01,"Party mascot is not against the right-hand wall")
+ for unit in w.find_children("*","Node3D",true,false):
+  if str(unit.name) not in ["StockedShelf","PartySideboard"]: continue
+  for mesh in unit.find_children("*","MeshInstance3D",true,false):
+   if not mesh.is_visible_in_tree(): continue
+   verify.call(not party_bounds.grow(.03).intersects(mesh.global_transform*mesh.get_aabb()),"Party mascot overlaps a real shelf or sideboard: "+str(mesh.get_path()))
  verify.call(w.polish.get_node("MaintenancePipework").get_child_count()>10 and w.annex.get_node("CinemaRestoration").get_child_count()>25,"Expanded maintenance/cinema dressing failed to build")
  game._new_shift();game.intro.tick(1.4);await game.get_tree().process_frame
  verify.call(game.intro.display.viewport.size==Vector2i(360,760) and game.intro.display.state_label.text=="Eingehender Anruf","Phone does not show a legible live incoming-call interface")

@@ -6,7 +6,7 @@ static func build(w: PlayWorld) -> void:
  # The same stocked furniture is used in both editions, with real shelf boards.
  w.props.reception_shelves.hide()
  for z in [1.4,2.8]: shelf(w,root,Vector3(-9.64,.016,z),PI/2)
- shelf(w,root,Vector3(18.99,.016,-1.1),-PI/2)
+ shelf(w,root,Vector3(18.99,.016,-1.65),-PI/2)
  party_sideboard(w,root)
  elevator_landing(w,root)
 
@@ -35,7 +35,7 @@ static func shelf(w: PlayWorld, parent: Node3D, pos: Vector3, yaw: float) -> voi
  unit.set_meta("stocked_shelf",true)
 
 static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
- var unit:=Node3D.new();unit.name="PartySideboard";unit.position=Vector3(19.12,.016,-3.7);unit.rotation.y=-PI/2;parent.add_child(unit)
+ var unit:=Node3D.new();unit.name="PartySideboard";unit.position=Vector3(19.12,.016,-3.9);unit.rotation.y=-PI/2;parent.add_child(unit)
  var timber:=w.mat(Color("827057"),load("res://assets/wood.png"),.9)
  for x in [-1.35,1.35]:
   for z in [-.25,.25]: w.box(unit,Vector3(x,.1,z),Vector3(.09,.2,.09),w.materials.dark)
@@ -50,18 +50,18 @@ static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
   w.box(gift,Vector3(0,0,.163),Vector3(.035,.245+(.08 if k%2 else 0),.008),w.materials.cream)
   w.box(gift,Vector3(0,.123+(.04 if k%2 else 0),0),Vector3(.035,.008,.32),w.materials.cream)
  # Wall board and pennants share a mounting rail, not empty air.
- var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(13.3,2.85,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
- var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(8.8,3.8);painting.mesh=canvas
+ var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(12.0,2.85,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
+ var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(7.6,3.8);painting.mesh=canvas
  var paint:=w.mat(Color("c6beaa"),load("res://assets/creatures/party-fresco-v21.png"),.99)
  paint.normal_enabled=true;paint.normal_texture=w.atmosphere.micro_normal;paint.normal_scale=.16;painting.material_override=paint;fresco.add_child(painting)
  # A cracked toy-theatre cornice is fixed to the wall above the mural.
- w.box(fresco,Vector3(0,1.98,-.005),Vector3(9,.10,.12),timber)
- for x in [-4.25,0,4.25]:
+ w.box(fresco,Vector3(0,1.98,-.005),Vector3(7.8,.10,.12),timber)
+ for x in [-3.65,0,3.65]:
   w.box(fresco,Vector3(x,1.88,-.025),Vector3(.08,.28,.11),w.materials.rust)
   w.sphere(fresco,Vector3(x,1.88,.035),.018,w.materials.metal)
- w.tube(parent,Vector3(19.51,3.15,-5.2),Vector3(19.51,3.15,-2.2),.018,w.materials.stitch)
+ w.tube(parent,Vector3(19.51,3.15,-5.4),Vector3(19.51,3.15,-2.4),.018,w.materials.stitch)
  for k in range(10):
-  var flag:=w.box(parent,Vector3(19.50,3.02,-5.06+k*.29),Vector3(.014,.25,.19),w.materials.gold if k%2 else w.materials.red);flag.rotation.x=.11 if k%2 else -.11
+  var flag:=w.box(parent,Vector3(19.50,3.02,-5.26+k*.29),Vector3(.014,.25,.19),w.materials.gold if k%2 else w.materials.red);flag.rotation.x=.11 if k%2 else -.11
 
 static func elevator_landing(w: PlayWorld, parent: Node3D) -> void:
  # A genuine opening through the south wall connects the cabin to the hall.

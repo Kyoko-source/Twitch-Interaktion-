@@ -2,8 +2,10 @@ class_name AfterPlayPolish
 extends Node3D
 
 const MASCOT_POS:=Vector3(18.0,.016,15.10)
+const PARTY_MASCOT_POS:=Vector3(17.9,.016,.38)
 var w: PlayWorld
 var mascot: Node3D
+var party_mascot: Node3D
 var detail_count:=0
 
 func build(world: PlayWorld) -> void:
@@ -22,44 +24,58 @@ func blood_mark(parent: Node3D, pos: Vector3, size: Vector2, rotation_value: Vec
  var material:=ShaderMaterial.new();material.shader=load("res://assets/presentation-v250/blood-surface.gdshader");material.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));material.set_shader_parameter("dryness",.82);mesh.material_override=material;parent.add_child(mesh)
 
 func _mascot() -> void:
- var root:=Node3D.new();root.name="MascotCorner";root.position=MASCOT_POS;root.rotation.y=-1.9;root.set_meta("foot_surface","carpet");add_child(root)
- var edition:="web" if OS.has_feature("web") else "native"
- mascot=(load("res://assets/mascot-v250/mascot-"+edition+".glb") as PackedScene).instantiate();mascot.name="GiantDeformedMascot";root.add_child(mascot)
- for mesh in mascot.find_children("*","MeshInstance3D",true,false):
+ mascot=_mascot_at(MASCOT_POS,-1.9,"MascotCorner")
+ party_mascot=_mascot_at(PARTY_MASCOT_POS,PI,"PartyMascotCorner")
+
+func _mascot_at(pos: Vector3, yaw: float, id: String) -> Node3D:
+ var root:=Node3D.new();root.name=id;root.position=pos;root.rotation.y=yaw;root.set_meta("giant_mascot",true);add_child(root)
+ var visual: Node3D=(load("res://assets/mascot-v251/mascot-rabbit.glb") as PackedScene).instantiate();visual.name="TailoredGiantMascot";root.add_child(visual)
+ for mesh in visual.find_children("*","MeshInstance3D",true,false):
   mesh.set_meta("mascot_mesh",true)
   for s in range(mesh.mesh.get_surface_count()):
-   var material:=mesh.get_active_material(s) as StandardMaterial3D
-   if material and material.resource_name.begins_with("CC0 teddy fur"):
-    var fur:=pbr("curly_teddy_natural",Color.WHITE,2.1);fur.vertex_color_use_as_albedo=true;fur.cull_mode=BaseMaterial3D.CULL_DISABLED;fur.normal_scale=.7
-    mesh.set_surface_override_material(s,fur)
-   elif material and material.resource_name=="Mascot Fur Fibres":
-    var fibre:=material.duplicate() as StandardMaterial3D;fibre.vertex_color_use_as_albedo=true;fibre.albedo_color=Color.WHITE;fibre.roughness=.87;fibre.anisotropy_enabled=true;fibre.anisotropy=.35;fibre.rim_enabled=true;fibre.rim=.24;fibre.rim_tint=.10;mesh.set_surface_override_material(s,fibre)
-   elif material and material.resource_name=="Mascot wet blood conforming film":
-    var blood:=ShaderMaterial.new();blood.shader=load("res://assets/presentation-v250/blood-surface.gdshader");blood.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));mesh.set_surface_override_material(s,blood)
+   var source:=mesh.get_active_material(s) as StandardMaterial3D
+   if not source: continue
+   var material:=source.duplicate() as StandardMaterial3D
+   material.vertex_color_use_as_albedo=true;material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+   if material.resource_name.begins_with("Worn oatmeal"):
+    material.uv1_scale=Vector3(10.8,10.8,1);material.normal_scale=.26;material.roughness=.97;material.metallic_specular=.13
+   elif material.resource_name.begins_with("Vintage sewn"):
+    material.uv1_scale=Vector3(5,5,1);material.normal_scale=.30;material.roughness=.99;material.metallic_specular=.10
+   elif material.resource_name.begins_with("Dirty irregular"):
+    material.albedo_texture=null;material.albedo_color=Color("d6d0bd");material.uv1_scale=Vector3(5,5,1);material.normal_scale=.50;material.roughness=1.0;material.metallic_specular=.03
+   elif material.resource_name.begins_with("Loose cotton"):
+    material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.metallic_specular=.03
+   mesh.set_surface_override_material(s,material)
  # Separate fitted shapes preserve open space around the arms and ears.
- for piece in [{"p":Vector3(0,1.45,0),"size":Vector3(1.8,2.7,1.25)},{"p":Vector3(-.72,.35,.64),"size":Vector3(1.1,.66,1.6)},{"p":Vector3(.72,.35,.64),"size":Vector3(1.1,.66,1.6)}]:
+ for piece in [{"p":Vector3(0,1.27,0),"size":Vector3(1.88,2.35,1.35)},{"p":Vector3(-.62,.38,.47),"size":Vector3(1.08,.72,1.60)},{"p":Vector3(.62,.38,.47),"size":Vector3(1.08,.72,1.60)}]:
   var body:=StaticBody3D.new();body.name="MascotSolid";var collider:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=piece.size;collider.shape=shape;body.position=piece.p;body.add_child(collider);root.add_child(body)
- var head_body:=StaticBody3D.new();head_body.name="MascotHeadSolid";head_body.position=Vector3(-.22,3.12,.20);root.add_child(head_body)
- var head_shape:=CollisionShape3D.new();var skull:=SphereShape3D.new();skull.radius=.76;head_shape.shape=skull;head_body.add_child(head_shape)
+ var head_body:=StaticBody3D.new();head_body.name="MascotHeadSolid";head_body.position=Vector3(.055,2.92,.091);root.add_child(head_body)
+ var head_shape:=CollisionShape3D.new();var skull:=SphereShape3D.new();skull.radius=.83;head_shape.shape=skull;head_body.add_child(head_shape)
  for side in [-1,1]:
-  var arm:=StaticBody3D.new();arm.name="MascotArmSolid";arm.position=Vector3(side*1.04,1.48,.10);root.add_child(arm)
-  var shape:=CollisionShape3D.new();var bounds:=CapsuleShape3D.new();bounds.radius=.34;bounds.height=1.7;shape.shape=bounds;arm.add_child(shape)
- for ends in [[Vector3(-.65,3.57,.09),Vector3(-.90,4.6,-.02)],[Vector3(-.90,4.6,-.02),Vector3(-.39,4.86,.4)],[Vector3(.2,3.66,.04),Vector3(.63,4.32,.05)],[Vector3(.63,4.32,.05),Vector3(1.02,3.83,.46)]]:
-  var body:=StaticBody3D.new();body.name="MascotEarSolid";body.position=(ends[0]+ends[1])*.5;body.quaternion=Quaternion(Vector3.UP,(ends[1]-ends[0]).normalized());root.add_child(body)
-  var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.16;capsule.height=ends[0].distance_to(ends[1])+.32;shape.shape=capsule;body.add_child(shape)
- var sign:=Node3D.new();sign.name="MascotSafetyPlaque";sign.position=Vector3(-1.0,.0,1.65);sign.rotation.x=-.12;root.add_child(sign)
- w.box(sign,Vector3(0,.23,0),Vector3(.68,.46,.055),w.materials.rust,true)
- w.artwork(sign,Vector3(0,.23,.035),Vector2(.61,.39),load("res://assets/polish-v240/mascot-sign.png"))
- for x in [-.22,.22]: w.tube(sign,Vector3(x,.012,0),Vector3(x,.2,0),.017,w.materials.dark)
- var key:=SpotLight3D.new();key.position=Vector3(-1.7,5.6,2.65);root.add_child(key);key.look_at(root.to_global(Vector3(0,2.4,0)))
- key.light_color=Color("dfbb83");key.light_energy=1.8;key.spot_range=7;key.spot_angle=36;key.shadow_enabled=true
+  var arm:=StaticBody3D.new();arm.name="MascotArmSolid";arm.position=Vector3(side*1.0,1.28,.036);root.add_child(arm)
+  var shape:=CollisionShape3D.new();var bounds:=CapsuleShape3D.new();bounds.radius=.37;bounds.height=1.75;shape.shape=bounds;arm.add_child(shape)
+ for side in [-1,1]:
+  var points: Array[Vector3]=[Vector3(side*.13,.94,0),Vector3(side*.21,1.35,-.015),Vector3(side*.33,1.45,.08),Vector3(side*.35,1.18 if side<0 else 1.34,.2)]
+  for i in range(4):
+   var ends: Array[Vector3]=[]
+   for t in [i/4.0,(i+1)/4.0]:
+    var p: Vector3=pow(1-t,3)*points[0]+3*pow(1-t,2)*t*points[1]+3*(1-t)*t*t*points[2]+pow(t,3)*points[3];p.y+=.03;ends.append(p*3.65)
+   var body:=StaticBody3D.new();body.name="MascotEarSolid";body.position=(ends[0]+ends[1])*.5;body.quaternion=Quaternion(Vector3.UP,(ends[1]-ends[0]).normalized());root.add_child(body)
+   var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.18;capsule.height=ends[0].distance_to(ends[1])+.36;shape.shape=capsule;body.add_child(shape)
+ if id=="MascotCorner":
+  var sign:=Node3D.new();sign.name="MascotSafetyPlaque";sign.position=Vector3(-1.0,.0,1.65);sign.rotation.x=-.12;root.add_child(sign)
+  w.box(sign,Vector3(0,.23,0),Vector3(.68,.46,.055),w.materials.rust,true)
+  w.artwork(sign,Vector3(0,.23,.035),Vector2(.61,.39),load("res://assets/polish-v240/mascot-sign.png"))
+  for x in [-.22,.22]: w.tube(sign,Vector3(x,.012,0),Vector3(x,.2,0),.017,w.materials.dark)
+ var lamp_x:=-1.5 if id=="PartyMascotCorner" else -1.7
+ var key:=SpotLight3D.new();key.position=Vector3(lamp_x,5.6,2.65);root.add_child(key);key.look_at(root.to_global(Vector3(0,2.4,0)))
+ key.light_color=Color("dfbb83");key.light_energy=1.2;key.light_size=.12;key.spot_range=7;key.spot_angle=36;key.shadow_enabled=true
  # The light really sits on a bracket, not unsupported in the room.
- w.box(root,Vector3(-1.7,5.6,2.65),Vector3(.23,.15,.12),w.materials.dark)
- w.tube(root,Vector3(-1.7,5.68,2.65),Vector3(-1.7,7.27,2.65),.018,w.materials.rust)
- w.box(root,Vector3(-1.7,7.27,2.65),Vector3(.18,.04,.18),w.materials.dark)
- blood_mark(self,Vector3(17.5,.033,15.1),Vector2(1.35,1.1),Vector3(-PI/2,.2,0))
- for i in range(7):
-  var cotton:=w.sphere(root,Vector3(-.5+i*.14,.07,1.23+sin(i)*.19),.10,w.materials.fabric);cotton.scale=Vector3(1,.45,.7)
+ w.box(root,Vector3(lamp_x,5.6,2.65),Vector3(.23,.15,.12),w.materials.dark)
+ w.tube(root,Vector3(lamp_x,5.68,2.65),Vector3(lamp_x,7.27,2.65),.018,w.materials.rust)
+ w.box(root,Vector3(lamp_x,7.27,2.65),Vector3(.18,.04,.18),w.materials.dark)
+ if id=="MascotCorner": blood_mark(self,Vector3(17.5,.033,15.1),Vector2(.75,.65),Vector3(-PI/2,.2,0))
+ return visual
 
 func _workshop() -> void:
  var root:=Node3D.new();root.name="MaintenanceWorkshop";w.server_room.add_child(root)

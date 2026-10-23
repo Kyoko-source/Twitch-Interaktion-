@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.5.0
+# After Play — Veröffentlichungsvorbereitung 2.5.1
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.5.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.5.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v2.5.1.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v2.5.1.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 

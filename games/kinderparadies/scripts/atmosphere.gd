@@ -250,7 +250,7 @@ func _horror_variants() -> void:
 func anomaly(id: String) -> void:
  if horrors.has(id) and horrors[id] is Node3D: horrors[id].show()
  if id=="bunny_ceiling": horrors.bunny.position=Vector3(-4.3,3.7,-8.5);horrors.bunny.rotation.z=PI
- w.environment.environment.fog_density=.07
+ w.environment.environment.fog_density=.08
  if id=="heavy_mist":
   mist.set_shader_parameter("fog_tint",Vector3(.55,.045,.06))
   w.environment.environment.fog_light_color=Color("9c2834")

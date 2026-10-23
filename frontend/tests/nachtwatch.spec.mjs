@@ -32,6 +32,15 @@ test('v2.4 recorded footsteps follow six actual floors; the furred mascot render
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect((await state(page)).polish.step_playing).toBe(false);
 });
 
+test('v2.5.1 sewn party mascot is on the right, has a solid approach and leaves the withdrawal route clear',async({page})=>{
+ test.setTimeout(90000);await begin(page);
+ const current=await state(page);expect(current.polish.party_mascot).toBe(true);for(const [i,value] of [17.9,.016,.38].entries())expect(current.polish.party_position[i]).toBeCloseTo(value,4);expect(current.fog.density).toBeCloseTo(.08);
+ await qa(page,{op:'warp',x:17.9,z:-3.0,yaw:Math.PI,pitch:.18});await walk(page,'w',s=>s.position[2]>-1.7);
+ await page.keyboard.down('w');await page.waitForTimeout(550);await page.keyboard.up('w');const blocked=(await state(page)).position;expect(blocked[2]).toBeLessThan(-.95);expect(blocked[2]).toBeGreaterThan(-1.8);expect(blocked[1]).toBeGreaterThan(-.1);
+ await walk(page,'s',s=>s.position[2]<-2.6);await page.screenshot({path:join(tmpdir(),'after-play-v251-web-party-mascot.png')});
+ await qa(page,{op:'audit'});const audit=(await state(page)).layout;expect(audit.door_obstructions).toEqual([]);expect(audit.art_overlaps).toEqual([]);expect(audit.furniture_wall_intrusions).toEqual([]);
+});
+
 test('v2.5 cinematic menu and eleven narration images follow the actual tape, pause and restore the archive',async({page})=>{
  test.setTimeout(150000);await load(page);
  const menuControls=(await state(page)).controls.filter(c=>['Neue Nachtschicht','Schicht fortsetzen','Einstellungen','Dienstanweisung','Mitwirkende','Zur Webseite'].includes(c.text));expect(menuControls).toHaveLength(6);
@@ -57,10 +66,10 @@ test('standalone 16:9 stays proportional at 4:3 and 16:10; the fresco and its vi
   await page.screenshot({path:join(tmpdir(),`after-play-v230-web-letterbox-${viewport.width}.png`)});
  }
  await page.setViewportSize({width:1920,height:1080});await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
- const fresco=(await state(page)).presentation.fresco;expect(fresco[0]).toBeCloseTo(13.3);expect(fresco[2]).toBeCloseTo(1.485);
- await qa(page,{op:'warp',x:13.3,z:-4.4,yaw:Math.PI,pitch:.18});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-right-wall.png')});
- await qa(page,{op:'anomaly',id:'party_portrait'});await qa(page,{op:'warp',x:13.3,z:-1.5,yaw:Math.PI,pitch:0});
- await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.position[0]).toBeGreaterThan(12);expect((await state(page)).terrors.position[2]).toBeLessThan(1.485);
+ const fresco=(await state(page)).presentation.fresco;expect(fresco[0]).toBeCloseTo(12.0);expect(fresco[2]).toBeCloseTo(1.485);
+ await qa(page,{op:'warp',x:12.0,z:-4.4,yaw:Math.PI,pitch:.18});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-right-wall.png')});
+ await qa(page,{op:'anomaly',id:'party_portrait'});await qa(page,{op:'warp',x:12.0,z:-1.5,yaw:Math.PI,pitch:0});
+ await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.position[0]).toBeGreaterThan(10.5);expect((await state(page)).terrors.position[2]).toBeLessThan(1.485);
 });
 
 test('actual WASD patrol visits all areas, collides with floor, operates flashlight, pauses and chooses the real green door',async({page})=>{
@@ -116,8 +125,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'After Play',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.5.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.5.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.5.1.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.5.1.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'After Play spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="After Play – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);

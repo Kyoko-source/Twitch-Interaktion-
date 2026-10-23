@@ -418,7 +418,9 @@ func set_anomaly(id: String) -> void:
  elif id=="car_missing": props.car.visible=false
  elif id=="lights_red":
   for light in practicals: light.light_color=Color("e22c28")
- elif id=="party_dark": party_light.light_energy=0
+ elif id=="party_dark":
+  party_light.light_energy=0
+  for light in polish.party_mascot.get_parent().find_children("*","SpotLight3D",true,false): light.light_energy=0
  elif id=="balloons_many":
   for i in range(17):
    var balloon: Node3D=props.balloons.get_child(i%3).duplicate();balloon.position=Vector3(7.3+(i%4)*.7,1.8+(i%3)*.55,-9.8+floori(i/4.0)*.8);props.balloons.add_child(balloon)

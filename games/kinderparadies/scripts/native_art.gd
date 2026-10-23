@@ -183,7 +183,7 @@ func finish() -> void:
 func _lighting() -> void:
  var env:=w.environment.environment
  env.ambient_light_energy=.10;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
- env.fog_density=.004;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.046
+ env.fog_density=.004;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.058
  env.volumetric_fog_albedo=Color("99adae");env.volumetric_fog_length=45;env.volumetric_fog_anisotropy=.4
  env.volumetric_fog_ambient_inject=.12;env.volumetric_fog_gi_inject=.35
  env.volumetric_fog_temporal_reprojection_amount=.75
@@ -211,7 +211,7 @@ func _lighting() -> void:
  # Low fog banks use participating-media density and react to light/shadow.
  for pos in [Vector3(-5,.2,-4),Vector3(2,.2,7.5),Vector3(12.4,.2,12.5),Vector3(14,.2,-6)]:
   var volume:=FogVolume.new();volume.position=pos;volume.size=Vector3(8,.8,5);volume.shape=RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID
-  var material:=FogMaterial.new();material.density=.035;material.albedo=Color("8c9b96");volume.material=material;add_child(volume);fog_volumes.append(volume)
+  var material:=FogMaterial.new();material.density=.045;material.albedo=Color("8c9b96");volume.material=material;add_child(volume);fog_volumes.append(volume)
 
 func quality(value: int) -> void:
  if not advanced: return
