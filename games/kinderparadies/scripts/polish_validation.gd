@@ -61,7 +61,8 @@ func run(game: Node3D, verify: Callable) -> void:
    verify.call(position>route.limit if route.greater else position<route.limit,"Standing player is trapped at "+route.name+" offset "+str(offset)+" ended at "+str(game.player.position))
    verify.call(game.player.position.y>-.05,"Door threshold drops the player below the floor: "+route.name)
  var party_bounds:=AABB()
- for visual in [w.polish.mascot,w.polish.party_mascot]:
+ verify.call(w.polish.find_children("*MascotCorner","Node3D",true,false).size()==1 and not w.polish.has_node("MascotCorner"),"Giant rabbit must exist only once, in the party room")
+ for visual in [w.polish.party_mascot]:
   var bounds:=AABB();var first:=true;var textile:=false
   for mesh in visual.find_children("*","MeshInstance3D",true,false):
    var box: AABB=mesh.global_transform*mesh.get_aabb();bounds=box if first else bounds.merge(box);first=false

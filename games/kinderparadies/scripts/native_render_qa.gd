@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v260-qa" in OS.get_cmdline_user_args():
+  await v260_views(game,output);game._quit();return
  if "--menu-only" in OS.get_cmdline_user_args():
   await game.get_tree().create_timer(5).timeout;await capture(game,output,"main-menu");game._quit();return
  if "--v250-qa" in OS.get_cmdline_user_args():
@@ -537,3 +539,23 @@ func finale_views(game: Node3D, output: String) -> void:
  game.end_credits.tick(16);await game.get_tree().process_frame;await capture(game,output,"credits-testers")
  var report:={"entered":entered,"creator_access":game.archive.creator_access,"papers":game.archive.collected,"recorder_target":target,"recording_pause":paused,"duration":game.world.archive.finale.duration,"full_recording": "--fast-finale-qa" not in OS.get_cmdline_user_args(),"listened_seconds":wait_clock,"armed_after_audio":listened,"ending":game.phase,"end_word":word,"credits":game.end_credits.snapshot(),"finale":game.world.archive.finale.snapshot()}
  var file:=FileAccess.open(output.path_join("finale-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("ARCHIVE FINALE QA ",JSON.stringify(report))
+
+func v260_views(game: Node3D, output: String) -> void:
+ await game.get_tree().create_timer(2).timeout;await capture(game,output,"main-menu-v260")
+ game._help("menu");await game.get_tree().process_frame;await capture(game,output,"instructions-v260")
+ game._new_shift();game.intro.skip();game._build_world("none");game._resume();game.player.active=false
+ for shot in [{"name":"kitchen-v260","p":Vector3(-10.5,0,-17.3),"look":Vector3(-15.1,1.1,-19.0)},{"name":"kitchen-oven-v260","p":Vector3(-11.3,0,-18.3),"look":Vector3(-13.25,.75,-19.25)},{"name":"kitchen-cabinet-v260","p":Vector3(-14.9,0,-17.3),"look":Vector3(-16.6,.85,-18.3)},{"name":"party-only-rabbit-v260","p":Vector3(13.2,0,-6.8),"look":Vector3(17.9,2.5,.38)},{"name":"hall-without-rabbit-v260","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)}]:
+  game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
+  await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
+ print("V260 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
+ game.state.streak=13;game.state.completed=true;game._won();game.player.active=false
+ await game.get_tree().create_timer(.8).timeout;await capture(game,output,"patrol-hint-floor-v260")
+ game._collect_paper("patrol_hint");game._inventory();await game.get_tree().process_frame;await capture(game,output,"patrol-hint-reader-v260")
+ for spec in [{"id":"reception_overhead","p":Vector3(-4.8,0,8.5)},{"id":"cinema_aisle_rush","p":Vector3(-1.0,0,-17.65)},{"id":"kitchen_floor_crawler","p":Vector3(-12.9,0,-15.5)}]:
+  game._build_world(spec.id);game._resume();game.player.active=false
+  game.player.position=spec.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(game.world.terrors.focus_point())
+  await game.get_tree().create_timer(1.1).timeout;await capture(game,output,spec.id+"-v260")
+ game._show_archive_ending();await game.get_tree().process_frame;await game.get_tree().process_frame
+ var note: Label=game.end_credits.roll.find_child("KyokoNote",true,false)
+ game.end_credits.clock=4+(1120+note.position.y-160)/38
+ await game.get_tree().create_timer(.2).timeout;await capture(game,output,"kyoko-note-v260")

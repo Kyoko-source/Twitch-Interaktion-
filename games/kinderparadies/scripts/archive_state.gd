@@ -1,7 +1,7 @@
 class_name ArchiveState
 extends RefCounted
 
-const ORDER: Array[String]=["note","opening","missing","coverup","closure","casefile"]
+const ORDER: Array[String]=["note","opening","missing","coverup","closure","casefile","patrol_hint"]
 const PAPERS: Array[String]=["opening","missing","coverup","closure"]
 static var catalog: Dictionary={}
 var collected: Array[String]=[]
@@ -31,6 +31,7 @@ func take(id: String, stage: int) -> bool:
  if id not in ORDER or id in collected: return false
  if id in PAPERS and int(document(id).stage)!=stage: return false
  if id=="casefile" and not unlocked: return false
+ if id=="patrol_hint" and stage!=14: return false
  collected.append(id);return true
 
 func try_code(value: String) -> bool:

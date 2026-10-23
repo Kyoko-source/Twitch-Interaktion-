@@ -95,15 +95,18 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
  $taskLicense=Join-Path $taskPackage ('Godot-'+$taskFile)
  if(-not (Test-Path -LiteralPath $taskLicense)){Invoke-WebRequest -UseBasicParsing -Uri ('https://raw.githubusercontent.com/godotengine/godot/4.6.2-stable/'+$taskFile) -OutFile $taskLicense}
 }
-$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.5.1.zip'
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/kitchen-v260/LICENSE.txt') -Destination (Join-Path $taskPackage 'Kitchen-v260-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/scares-v260/LICENSE.txt') -Destination (Join-Path $taskPackage 'Scares-v260-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/scares-v260/provenance.json') -Destination (Join-Path $taskPackage 'Scares-v260-Provenance.json') -Force
+$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.6.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
-$taskWebZip=Join-Path $taskProject 'build/after-play-web-v2.5.1.zip'
+$taskWebZip=Join-Path $taskProject 'build/after-play-web-v2.6.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath (Join-Path $taskProject 'build/web') -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskWebZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip,$taskWebZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='2.5.1';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='2.6.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

@@ -46,5 +46,13 @@
     "stage": 0,
     "body": "An der Rückseite der Gästeliste stehen dreizehn Striche. Neun wurden abgehakt. Die übrigen vier sind immer wieder nachgezogen worden.\n\nIn der Akte liegen Abschriften der beiden Notrufe. Die Stimmen der Anrufer wurden nicht zugeordnet. Beide nennen das Kinderparadies. Beide widersprechen der späteren Aussage der Geschäftsführung.\n\nNach acht Monaten endet die Ablage. Es gibt keine Abschlussmeldung, die den Verbleib der vier Kinder bestätigt. Nur einen Vermerk: Räume geschlossen. Unterlagen verbleiben vor Ort.\n\nZwischen den Seiten liegt ein unbeschriftetes Blatt. Darauf steht derselbe Satz wie an der Tür: Erinnere dich an den Anfang.\n\nDu kannst den Raum wieder verlassen. Deine Nachtschicht ist noch nicht beendet.",
     "footer": "Eine Antwort fehlt weiterhin. Dass niemand mehr gesucht hat, bedeutet nicht, dass niemand mehr hier ist."
+  },
+  "patrol_hint": {
+    "title": "Zeitung · Zurück am Anfang",
+    "section": "DREIZEHN RUNDGÄNGE SPÄTER",
+    "headline": "Du bist wieder hier.",
+    "stage": 14,
+    "body": "Du denkst also nur weil du 13 mal durch den selben Raum läufst wird das Geheimnis gelüftet? schau dich in den Runden 3, 5, 8 und 11 nochmal genauer um...",
+    "footer": ""
   }
 }

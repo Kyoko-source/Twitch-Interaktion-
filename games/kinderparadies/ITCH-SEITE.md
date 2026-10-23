@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.5.1
+# After Play — Veröffentlichungsvorbereitung 2.6.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.5.1.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.5.1.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v2.6.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v2.6.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -17,7 +17,7 @@ Nachts gehört das verlassene Happyland dir. Dein Chef hat eine einfache Aufgabe
 
 Keine Veränderung? Nimm die grüne Tür. Eine Anomalie? Nimm die rote Tür. Triff dreizehn richtige Entscheidungen in Folge. Eine falsche Tür beendet deine Nachtschicht.
 
-Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 45 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
+Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 58 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
 
 Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland. Wer ihre Hinweise versteht, findet einen zusätzlichen Raum und ein verborgenes Ende.
 

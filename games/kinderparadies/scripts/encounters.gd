@@ -22,7 +22,7 @@ func build(world: PlayWorld) -> void:
  w=world
  baseline_bunny=w.atmosphere.horrors.bunny.position
  baseline_balloon=w.props.balloons.position
- audio=AudioStreamPlayer3D.new();audio.max_distance=25;audio.unit_size=6;audio.volume_db=-8;add_child(audio)
+ audio=AudioStreamPlayer3D.new();audio.max_distance=25;audio.unit_size=6;audio.volume_db=-4;add_child(audio)
  audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
  if w.native_art: audio.bus="Interior"
  face=Node3D.new();w.atmosphere.horrors.bunny.add_child(face);face.hide()
@@ -61,7 +61,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   if visible_to(player,target,proximity):
    triggered=true;origin=bunny.global_position;attack_time=0;shock=1
    audio.global_position=target
-   audio.stream=load("res://assets/"+("rabbit-scare.wav" if id=="bunny_lunge" else "croc-snap.wav" if id=="croc_snap" else "party-burst.wav"));audio.play()
+   audio.stream=load("res://assets/"+("scares-v260/gasp-snap.wav" if id=="bunny_lunge" else "scares-v260/bass-roar.wav" if id=="croc_snap" else "scares-v260/crowd-burst.wav"));audio.play()
    if id=="bunny_lunge":
     end=player.camera.global_position-player.camera.global_basis.z*.62-Vector3(0,.64,0);face.show()
    elif id=="party_burst": w.props.balloons.scale=Vector3.ONE*1.8
@@ -91,7 +91,7 @@ func _clown(delta: float, player: NightGuard) -> void:
  if not triggered and elapsed>1 and visible_to(player,actor.global_position+Vector3(0,1.95,0),3):
   triggered=true;w.annex.scare=true;clown_origin=actor.position;clown_rotation=actor.rotation.y;attack_time=0
   clown_end=player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0)
-  audio.global_position=actor.global_position+Vector3(0,1.7,0);audio.stream=load("res://assets/annex/clown-sting.wav");audio.volume_db=-11;audio.play()
+  audio.global_position=actor.global_position+Vector3(0,1.7,0);audio.stream=load("res://assets/scares-v260/ragged-scream.wav");audio.volume_db=-4;audio.play()
  if not triggered or finished: return
  attack_time+=delta
  if attack_time<.48:

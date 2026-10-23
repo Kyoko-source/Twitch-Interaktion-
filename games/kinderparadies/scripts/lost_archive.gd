@@ -89,6 +89,8 @@ func sync(value: ArchiveState, round_stage: int) -> void:
  progress=value;stage=round_stage;finale.sync(value)
  for item in items.values(): remove_item(item)
  items.clear()
+ if stage==14 and "patrol_hint" not in progress.collected:
+  _paper("patrol_hint",self,Vector3(-6.2,.038,7.0),Vector2(.52,.69),Vector3(-PI/2,.06,0))
  if "note" not in progress.collected: _paper("note",leaf,Vector3(.067,1.63,.75),Vector2(.26,.35),Vector3(0,PI/2,.025))
  for id in ArchiveState.PAPERS:
   if int(ArchiveState.document(id).stage)!=stage or id in progress.collected: continue
@@ -106,9 +108,22 @@ func _paper(id: String, parent: Node3D, pos: Vector3, size: Vector2, turn: Vecto
    for q in [Vector2(col,row),Vector2(col+1,row),Vector2(col,row+1),Vector2(col+1,row),Vector2(col+1,row+1),Vector2(col,row+1)]:
     var u: float=q.x/12;var v: float=q.y/16;var bend: float=pow(absf(u-.5)*2,5)*.009+sin(v*PI)*.0015+absf(u-.5)*.004+sin(v*9)*.001
     tool.set_uv(Vector2(u,v));tool.add_vertex(Vector3((u-.5)*size.x,(.5-v)*size.y,bend))
- tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit();var material:=w.mat(Color.WHITE,load("res://assets/story/"+id+".png"),.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;material.alpha_scissor_threshold=.5;mesh.material_override=material;root.add_child(mesh)
+ tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit()
+ var texture: Texture2D=_hint_front(root) if id=="patrol_hint" else load("res://assets/story/"+id+".png")
+ var material:=w.mat(Color.WHITE,texture,.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;material.alpha_scissor_threshold=.5;mesh.material_override=material;root.add_child(mesh)
  var body:=StaticBody3D.new();body.collision_layer=4;body.collision_mask=0;body.set_meta("interaction","paper:"+id);root.add_child(body)
  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(size.x,size.y,.018);collision.shape=shape;body.add_child(collision);items[id]=root
+
+func _hint_front(parent: Node3D) -> Texture2D:
+ # Render real typeset text onto the aged sheet, including the world pickup.
+ var page:=SubViewport.new();page.name="FinalPatrolNewspaper";page.size=Vector2i(600,800);page.disable_3d=true;page.render_target_update_mode=SubViewport.UPDATE_ONCE;parent.add_child(page)
+ var background:=TextureRect.new();background.texture=load("res://assets/story/paper.png");background.size=Vector2(600,800);background.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;page.add_child(background)
+ var column:=VBoxContainer.new();column.position=Vector2(42,40);column.size.x=516;column.add_theme_constant_override("separation",20);page.add_child(column)
+ for entry in [["HAPPYLAND NACHRICHTEN",31],["SONDERAUSGABE · NACHTSCHICHT 13",16],["Du bist wieder hier.",42],[ArchiveState.document("patrol_hint").body,27]]:
+  var line:=Label.new();line.text=entry[0];line.add_theme_font_size_override("font_size",entry[1]);line.add_theme_color_override("font_color",Color("29261e"));line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(line)
+ var archive_photo:=AtlasTexture.new();archive_photo.atlas=load("res://assets/story/archive-photos-v21.png");var source_size:=archive_photo.atlas.get_size();archive_photo.region=Rect2(source_size*.5,source_size*.5)
+ var photo:=TextureRect.new();photo.texture=archive_photo;photo.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;photo.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;photo.custom_minimum_size=Vector2(516,240);photo.modulate=Color("aaa18b");column.add_child(photo)
+ return page.get_texture()
 
 func remove_item(item: Node3D) -> void:
  for collider in item.find_children("*","StaticBody3D",true,false): collider.collision_layer=0

@@ -18,7 +18,7 @@ func start(world: PlayWorld, camera: Camera3D) -> void:
  figure=HorrorFigures.clown(world,self);figure.root.position=Vector3(0,-1.96,-3.8)
  # An actual lit model approaches the camera; no full-screen face image.
  fill=OmniLight3D.new();fill.position=Vector3(.32,-.12,-.15);fill.light_color=Color("dfaa88");fill.light_energy=.9;fill.omni_range=5;add_child(fill)
- audio=AudioStreamPlayer.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.stream=load("res://assets/ambience-v180/door-shock.wav");audio.volume_db=-5;add_child(audio)
+ audio=AudioStreamPlayer.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.stream=load("res://assets/scares-v260/dry-impact.wav");audio.volume_db=-5;add_child(audio)
  clock=0;running=true;shown+=1;show()
 
 func start_archive(world: PlayWorld, camera: Camera3D) -> void:

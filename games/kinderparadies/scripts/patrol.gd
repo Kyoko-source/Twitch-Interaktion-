@@ -5,6 +5,19 @@ const GOAL := 13
 const REPLACEMENTS := {"clock_reverse":"reception_peeker","car_moves":"reception_charge","car_float":"reception_queue","hours_wrong":"pit_hands","bunny_watches":"frame_stalker","balls_red":"slide_crawler","ball_moves":"party_portrait","slide_green":"party_guests","slide_missing":"cake_mouth","croc_breathes":"corridor_crossing","chairs_missing":"service_pursuit","chair_stack":"service_ceiling","blood_pool":"fridge_occupant","mural_upside":"pot_arms","mural_mirror":"kitchen_double","mural_red":"screen_visitor","stars_upside":"cinema_last_row","footprints":"vent_strike","extinguisher_float":"tube_chase","bloody_hands":"tube_window_hands"}
 const ZONES := ["Empfang", "Bällebad", "Party Raum", "Wartungsgang", "Küche", "Kino"]
 const ANOMALIES := [
+ {"id":"reception_counter_burst","name":"Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu.","zone":"Empfang"},
+ {"id":"reception_overhead","name":"Über dem Empfangsgang fällt eine kopfüber hängende Gestalt herab.","zone":"Empfang"},
+ {"id":"pit_runner","name":"Am Rand des Bällebads rast eine entstellte Gestalt auf dich zu.","zone":"Bällebad"},
+ {"id":"frame_drop","name":"Im Klettergerüst sackt ein kopfüber hängender Körper plötzlich nach unten.","zone":"Bällebad"},
+ {"id":"party_mascot_guest","name":"Neben dem großen Stoffhasen taucht ein Gast auf und schießt auf dich zu.","zone":"Party Raum"},
+ {"id":"party_under_table","name":"Eine verdrehte Gestalt kriecht am Geburtstagstisch hervor.","zone":"Party Raum"},
+ {"id":"maintenance_blackout","name":"Im Wartungsgang tritt ein Besucher plötzlich aus dem Dunkeln und greift nach dir.","zone":"Wartungsgang"},
+ {"id":"server_rush","name":"Zwischen den Wartungsregalen schießt ein Besucher durch den Serverraum auf dich zu.","zone":"Wartungsgang"},
+ {"id":"kitchen_cupboard_face","name":"Aus dem offenen Küchenschrank fährt dir ein verzerrter Kopf entgegen.","zone":"Küche"},
+ {"id":"kitchen_floor_crawler","name":"Vor der Küchenarbeitsplatte kriecht eine Gestalt auf allen Vieren auf dich zu.","zone":"Küche"},
+ {"id":"cinema_aisle_rush","name":"Eine Gestalt rennt im Mittelgang des Kinos direkt auf dich zu.","zone":"Kino"},
+ {"id":"cinema_seat_ambush","name":"Zwischen den Kinositzen erhebt sich plötzlich ein Besucher und stürzt nach vorn.","zone":"Kino"},
+ {"id":"tube_burst","name":"Im Krabbeltunnel fährt eine kriechende Gestalt auf dich zu. Nur von innen sichtbar.","zone":"Krabbelröhre"},
  {"id":"clown_lunge","name":"Der Küchenclown hört auf zu rühren, fährt auf dich zu und beobachtet dich danach.","zone":"Küche"},
  {"id":"tube_watcher","name":"Eine Gestalt schaut durch das Dachfenster in die Krabbelröhre.","zone":"Bällebad"},
  {"id":"chair_ceiling","name":"Die Stühle hängen an der Decke.","zone":"Party Raum"},
@@ -108,7 +121,8 @@ func decide(red: bool) -> Dictionary:
  completed=streak==GOAL
  var result := {"accepted":true,"correct":correct,"anomaly":anomaly,"detail":detail,"streak":streak,"completed":completed}
  history.append({"anomaly":current,"red":red,"correct":correct})
- if not completed: _next()
+ if completed: current="none"
+ else: _next()
  return result
 
 static func describe(id: String) -> String:
@@ -141,6 +155,7 @@ func restore(data: Dictionary) -> bool:
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
  visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==GOAL
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
+ if completed: current="none"
  # Old saves may contain an anomaly on a now-protected newspaper round.
  if not completed and ArchiveState.is_newspaper_round(streak+1): current="none"
  return true

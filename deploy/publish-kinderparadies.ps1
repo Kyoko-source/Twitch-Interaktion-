@@ -4,11 +4,11 @@ $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskBuild=Join-Path $taskRepo 'games/kinderparadies/build'
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
-foreach($taskFile in @('web/index.html','web/index.pck','web/index.wasm','after-play-windows-v2.5.1.zip','after-play-web-v2.5.1.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-$taskStage=Join-Path $taskBuild 'release-stage-v2.5.1'
+foreach($taskFile in @('web/index.html','web/index.pck','web/index.wasm','after-play-windows-v2.6.0.zip','after-play-web-v2.6.0.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
+$taskStage=Join-Path $taskBuild 'release-stage-v2.6.0'
 New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'web'),(Join-Path $taskStage 'downloads') | Out-Null
 Copy-Item -Path (Join-Path $taskBuild 'web/*') -Destination (Join-Path $taskStage 'web') -Force
-Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v2.5.1.zip'),(Join-Path $taskBuild 'after-play-web-v2.5.1.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
+Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v2.6.0.zip'),(Join-Path $taskBuild 'after-play-web-v2.6.0.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
 $taskRows=Get-ChildItem -LiteralPath $taskStage -Recurse -File | Where-Object {$_.Name -ne 'SHA256SUMS'} | ForEach-Object {
  $taskRelative=$_.FullName.Substring($taskStage.Length+1).Replace('\','/')
  (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()+'  '+$taskRelative
@@ -18,7 +18,7 @@ $taskBundle=Join-Path $taskBuild 'publish.tgz'
 & tar -czf $taskBundle -C $taskStage .
 if($LASTEXITCODE -ne 0){throw 'Release archive failed'}
 $taskDigest=(Get-FileHash -LiteralPath $taskBundle -Algorithm SHA256).Hash.ToLowerInvariant()
-$taskRelease='v2.5.1-'+$taskDigest.Substring(0,12)
+$taskRelease='v2.6.0-'+$taskDigest.Substring(0,12)
 & scp -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $taskBundle "${SshTarget}:/tmp/kinderparadies-$taskDigest.tgz"
 if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
 $taskRemote=@'

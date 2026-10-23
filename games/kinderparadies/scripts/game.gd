@@ -79,7 +79,7 @@ func _build_world(anomaly: String) -> void:
  if world:
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
- world.archive.sync(archive,state.streak+1)
+ world.archive.sync(archive,14 if state.completed else state.streak+1)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
@@ -154,7 +154,7 @@ func _main_menu() -> void:
  end_credits=null
  if intro: intro.stop()
  phase="menu";player.lamp.visible=false
- menu_camera.position=Vector3(13.9,2.2,14.7);menu_camera.fov=60;menu_camera.look_at(Vector3(18.4,2.4,13.4));menu_camera.current=true;menu_clock=0
+ menu_camera.position=Vector3(13.8,2.1,-6.2);menu_camera.fov=60;menu_camera.look_at(Vector3(17.2,2.3,.2));menu_camera.current=true;menu_clock=0
  NightMenus.home(self);room_audio.stream_paused=false
  if not menu_music.playing: menu_music.play()
  if not room_audio.playing: room_audio.play()
@@ -201,16 +201,16 @@ func _write_persistent_text(path: String, content: String) -> void:
   JavaScriptBridge.eval("(()=>{try{localStorage.setItem("+key+","+JSON.stringify(content)+");}catch(_){}})()")
 
 func _can_continue() -> bool:
- if has_session and not state.completed: return true
+ if has_session: return true
  var saved:=_persistent_text(SAVE)
  if saved.is_empty(): return false
  var data=JSON.parse_string(saved)
  if not data is Dictionary: return false
  var check:=PatrolState.new()
- return check.restore(data.get("patrol",{})) and not check.completed
+ return check.restore(data.get("patrol",{}))
 
 func _continue() -> void:
- if has_session and not state.completed:
+ if has_session:
   if archive.ending=="complete": _show_archive_ending()
   elif intro_pending: _begin_intro()
   else: _resume()
@@ -220,7 +220,7 @@ func _continue() -> void:
  var stored_archive=data.get("archive",{})
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
- has_session=true;_build_world(state.current)
+ has_session=true;_build_world("none" if state.completed else state.current)
  intro_pending=bool(data.get("intro_pending",false))
  if archive.ending=="complete": _show_archive_ending();return
  if intro_pending: _begin_intro();return
@@ -263,16 +263,8 @@ func _pause() -> void:
 
 func _help(back: String) -> void:
  phase="help";return_phase=back
- var column:=_panel("Dienstanweisung","Nachtdienst im Kinderparadies")
- column.add_child(_paragraph("Erkunde Empfang, Bällebad, Party Raum, Wartungsgang, Küche und Kino in deinem eigenen Tempo. Du entscheidest selbst, wann du eine Tür wählst. Die Liste oben links dient nur zur Orientierung."))
- column.add_child(_paragraph("Präge dir den ersten Rundgang gut ein: Er ist garantiert normal. Genau dieser Zustand ist dein Vergleich für alle weiteren Runden."))
- column.add_child(_paragraph("Keine Veränderung entdeckt: GRÜNE TÜR.\nMindestens eine Anomalie entdeckt: ROTE TÜR.\nNähere dich der Tür, schaue sie an und drücke E. Das Intro kannst du durch gehaltene Leertaste überspringen."))
- column.add_child(_paragraph("13 richtige Entscheidungen in Folge beenden die Nachtschicht. Eine Türwahl führt direkt in den nächsten Rundgang. Eine falsche Tür bedeutet Tod: Nach dem 3D-Schreckmoment beginnt die ganze Schicht wieder mit dem Fahrstuhl-Intro."))
- column.add_child(_paragraph("Kinderlachen, Weinen in den Krabbelröhren und Schritte in leeren Gängen gehören zur normalen Atmosphäre und sind keine Anomalien. Der Küchenclown rührt normalerweise im Topf. Auch die flackernde NO SIGNAL-Leinwand und gelegentliche Wackelkontakte deiner Taschenlampe sind normal. Achte auf sichtbare Veränderungen.\n\nNormal: buntes Bällebad, rote Rutsche, drei Ballons und sechs Stühle im Party Raum, rotes Spielauto am Empfang, Wandbild mit Mond links, Öffnungszeiten 10:00–18:00."))
- column.add_child(_paragraph("Der kleine Stoffhase sitzt auf der Bank. Die großen beschädigten Stoffhasen in der Hallenecke und rechts im Party Raum gehören ebenfalls zum normalen Zustand. Dichter graugrüner Nebel und der einzelne alte, dunkle Fleck an der Wartungswand gehören zum normalen Zustand. Auch die Spieluhr im Party Raum, kurze Lampen-Wackelkontakte und die Gestalt am Lüftungsschacht im Kino gehören zur normalen Umgebung. Das große Clownfresko mit vier leeren Stühlen gehört ebenfalls zum normalen Party Raum. Blutroter Nebel, frische Blutspuren sowie zusätzliche Besucher, kriechende Gestalten und greifende Arme sind Anomalien. Der Pferdeschädel hängt normalerweise im Schacht; sein plötzlicher Vorstoß ist eine Anomalie."))
- column.add_child(_paragraph("Alte Zeitungen und der Zettel an der verrosteten Tür sind Fundstücke. Schau sie an und drücke E zum Einsammeln. TAB öffnet dein Inventar; während du liest, pausiert das Spiel. Die Sammlung bleibt innerhalb der Schicht erhalten und wird gespeichert. Bei Tod oder einer neuen Nachtschicht beginnt sie von vorn. Die verrostete Tür und Fundstücke zählen nicht als Anomalien."))
- column.add_child(_paragraph("Lose Bälle, Holzklötze, Eimer und der kleine Stoffhase reagieren auf Physik. Selbst verschobene Gegenstände zählen nicht als Anomalie. Mit G aufheben/loslassen, mit der linken Maustaste werfen. Zu Beginn jeder neuen Runde liegen sie wieder am ursprünglichen Ort."))
- column.add_child(_paragraph("WASD / Pfeiltasten: bewegen\nMaus: umsehen · Umschalt: schneller gehen\nLEERTASTE: springen · G: aufheben/loslassen\nLinke Maustaste: gehaltenen Gegenstand werfen\nF: Taschenlampe · E: Tür öffnen\nTAB: Fundstücke und Zeitungen · ESC: Pause\nF11: Vollbild"))
+ var column:=_panel("Dienstanweisung")
+ column.add_child(_paragraph("13 Rundgänge. 13 mal der gleiche Raum...oder?...\n\nGeräusche und vom Spieler selbst verschobene Gegenstände zählen natürlich nicht zu den Anomalien.\n\nSterueung\n\nWASD / Pfeiltasten: bewegen\nMaus: umsehen\nLeertaste: springen\nUmschalt: rennen\nG: aufheben/loslassen\nF: Taschenlampe\nE: interagieren\nTAB: Inventar\nF11: Vollbild",22))
  column.add_child(_button("Zurück",_return_from_panel,true));_telemetry()
 
 func _return_from_panel() -> void:
@@ -304,7 +296,7 @@ func _submit_archive_code() -> void:
  archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
 
 func _collect_paper(id: String) -> void:
- if phase!="play" or not archive.take(id,state.streak+1): return
+ if phase!="play" or not archive.take(id,14 if state.completed else state.streak+1): return
  archive_selected=id;world.archive.take(id);_save()
  _announce("Eingesammelt: "+str(ArchiveState.document(id).title)+" · TAB zum Lesen",5)
 
@@ -385,7 +377,7 @@ func _process(delta: float) -> void:
  if phase=="menu":
   menu_clock+=delta
   var travel: float=sin(menu_clock*.075)*.18 if settings.motion else 0.0
-  menu_camera.position=Vector3(13.9,2.2,14.7+travel);menu_camera.look_at(Vector3(18.4,2.4,13.4))
+  menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -408,7 +400,8 @@ func _process(delta: float) -> void:
   var target:=_target()
   last_target=target
   prompt.text=""
-  if target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
+  if state.completed and target in ["red","green"]: prompt.text="E · Erneut nach den Spuren suchen"
+  elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
@@ -424,7 +417,9 @@ func _process(delta: float) -> void:
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
 
 func _refresh_hud() -> void:
- round_label.text="RUNDGANG %02d / 13"%mini(13,state.streak+1)
+ round_label.offset_left=-440 if state.completed else -275
+ round_label.text="13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1)
+ checklist.visible=bool(settings.area_list) and not state.completed
  var lines: PackedStringArray=[]
  for zone in PatrolState.ZONES: lines.append(("+  " if zone in state.visited else "·  ")+zone)
  checklist.text="\n".join(lines)
@@ -438,6 +433,10 @@ func _target() -> String:
 
 func _decide(red: bool) -> void:
  if phase!="play": return
+ if state.completed:
+  # The completed patrol is a real, saved room. A door starts another search
+  # without deleting documents already found during this surviving shift.
+  state.start();_build_world("none");_resume();_save();return
  var result:=state.decide(red)
  if not result.accepted: return
  phase="transition";player.release();last_result=result;effect.play();world.open_door(red)
@@ -473,11 +472,8 @@ func _show_archive_ending() -> void:
  end_credits=EndCredits.new();menu.add_child(end_credits);end_credits.build(self);_telemetry()
 
 func _won() -> void:
- phase="won";world.environment.environment.ambient_light_energy=.65;world.environment.environment.fog_density=.002
- var column:=_panel("06:00","SCHICHT BEENDET")
- column.add_child(_label("Dreizehn richtige Entscheidungen.",29));column.add_child(_paragraph("Die Türen sind wieder offen. Das Kinderparadies bleibt zurück. Du hast deine Nachtschicht überstanden."))
- column.add_child(_paragraph("Kontrollgänge: %d\nFehler: %d\nDienstzeit: %d:%02d"%[state.rounds,state.errors,int(state.seconds)/60,int(state.seconds)%60]))
- column.add_child(_button("Neue Nachtschicht",_new_shift,true));column.add_child(_button("Hauptmenü",_main_menu));_telemetry()
+ _build_world("none");player.camera.rotation.x=-.58;_resume();_save()
+ _announce("Dreizehn Rundgänge. Vor dir liegt eine Zeitung.",7)
  await _fade(0,.4)
 
 func _announce(value: String, seconds: float=4.0) -> void:
@@ -559,6 +555,11 @@ func _telemetry() -> void:
  data.rounds=state.rounds
  if OS.has_feature("qa"):
   data.anomaly=state.current;data.controls=[]
+  data.completed=state.completed
+  data.instructions=[]
+  if phase=="help":
+   for line in menu.find_children("*","Label",true,false): data.instructions.append(line.text)
+  data.giant_mascots=world.find_children("*","Node3D",true,false).filter(func(n):return n.get_meta("giant_mascot",false)).size()
   data.encounter={"triggered":world.encounters.triggered,"finished":world.encounters.finished,"time":world.encounters.attack_time,"shock":world.encounters.shock}
   data.renderer=RenderingServer.get_current_rendering_method()
   var screen_size:=get_viewport().get_visible_rect().size

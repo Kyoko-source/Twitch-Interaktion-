@@ -1,0 +1,258 @@
+{
+  "ragged-scream.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -13.49,
+    "layers": [
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 0.78,
+        "delay": 0,
+        "gain": 1,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.13,
+        "delay": 0.037,
+        "gain": 0.35,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\chain.wav",
+        "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+        "speed": 1.4,
+        "delay": 0.01,
+        "gain": 0.45,
+        "reversed": false
+      }
+    ]
+  },
+  "metal-shriek.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -15.9,
+    "layers": [
+      {
+        "source": "ambience-v193\\duct-stress.wav",
+        "source_sha256": "722f9ef38d1112b303b48a80e16796e2dd7e7ada1f14e3657d90d778dfff92f2",
+        "speed": 1.4,
+        "delay": 0,
+        "gain": 0.7,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.37,
+        "delay": 0.035,
+        "gain": 1,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\chain.wav",
+        "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+        "speed": 0.7,
+        "delay": 0.06,
+        "gain": 0.35,
+        "reversed": false
+      }
+    ]
+  },
+  "gasp-snap.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -14.65,
+    "layers": [
+      {
+        "source": "ambience-v180\\breathing.wav",
+        "source_sha256": "ff9eecaf237dfcf8307384408921f851a6f4b3517b09ef12082932604e0f079e",
+        "speed": 2.4,
+        "delay": 0,
+        "gain": 0.4,
+        "reversed": true
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.0,
+        "delay": 0.04,
+        "gain": 1,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v193\\dish-rattle.wav",
+        "source_sha256": "dc574e24dc0aa6cd8c2280442120ca04d2dca4b45638d352b340e6a40f5f3474",
+        "speed": 1.8,
+        "delay": 0,
+        "gain": 0.55,
+        "reversed": false
+      }
+    ]
+  },
+  "crawl-scream.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -12.04,
+    "layers": [
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 0.58,
+        "delay": 0,
+        "gain": 1,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\chain.wav",
+        "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+        "speed": 0.85,
+        "delay": 0,
+        "gain": 0.7,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\breathing.wav",
+        "source_sha256": "ff9eecaf237dfcf8307384408921f851a6f4b3517b09ef12082932604e0f079e",
+        "speed": 1.2,
+        "delay": 0.08,
+        "gain": 0.45,
+        "reversed": false
+      }
+    ]
+  },
+  "window-hit.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -17.0,
+    "layers": [
+      {
+        "source": "ambience-v193\\dish-rattle.wav",
+        "source_sha256": "dc574e24dc0aa6cd8c2280442120ca04d2dca4b45638d352b340e6a40f5f3474",
+        "speed": 0.8,
+        "delay": 0,
+        "gain": 0.9,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.55,
+        "delay": 0.02,
+        "gain": 0.8,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v193\\duct-stress.wav",
+        "source_sha256": "722f9ef38d1112b303b48a80e16796e2dd7e7ada1f14e3657d90d778dfff92f2",
+        "speed": 1.8,
+        "delay": 0.03,
+        "gain": 0.4,
+        "reversed": false
+      }
+    ]
+  },
+  "crowd-burst.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -13.98,
+    "layers": [
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 0.73,
+        "delay": 0,
+        "gain": 0.65,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.15,
+        "delay": 0.045,
+        "gain": 0.7,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.4,
+        "delay": 0.13,
+        "gain": 0.6,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\chain.wav",
+        "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+        "speed": 1.8,
+        "delay": 0,
+        "gain": 0.45,
+        "reversed": false
+      }
+    ]
+  },
+  "bass-roar.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -11.52,
+    "layers": [
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 0.46,
+        "delay": 0,
+        "gain": 0.8,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 0.91,
+        "delay": 0.02,
+        "gain": 0.8,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v193\\motor-stop.wav",
+        "source_sha256": "b6d077be8039fdfaca9a8e8662d379a46c9714d10ec2de0b35b88fc5b4175360",
+        "speed": 1.5,
+        "delay": 0,
+        "gain": 0.45,
+        "reversed": false
+      }
+    ]
+  },
+  "dry-impact.wav": {
+    "duration": 2.4,
+    "peak_dbfs": -1.5,
+    "rms_dbfs": -13.08,
+    "layers": [
+      {
+        "source": "ambience-v193\\motor-stop.wav",
+        "source_sha256": "b6d077be8039fdfaca9a8e8662d379a46c9714d10ec2de0b35b88fc5b4175360",
+        "speed": 2.0,
+        "delay": 0,
+        "gain": 0.75,
+        "reversed": false
+      },
+      {
+        "source": "ambience-v180\\chain.wav",
+        "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+        "speed": 1.1,
+        "delay": 0,
+        "gain": 0.75,
+        "reversed": false
+      },
+      {
+        "source": "finale\\cook-scream.wav",
+        "source_sha256": "cce18a4c29318ea20d9f2e394767749a1833b80769acd6a991a543dc707148c8",
+        "speed": 1.2,
+        "delay": 0.02,
+        "gain": 0.9,
+        "reversed": false
+      }
+    ]
+  }
+}

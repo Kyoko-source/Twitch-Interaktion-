@@ -15,7 +15,7 @@ static func inventory(g: Node3D, selected: String="") -> void:
   if id in g.archive.collected: found+=1
  list.add_child(g._label("ZEITUNGEN   %d / 4"%found,20,Color("c6b68d")))
  for id in ArchiveState.ORDER:
-  if id=="casefile" and id not in g.archive.collected: continue
+  if id in ["casefile","patrol_hint"] and id not in g.archive.collected: continue
   var chosen: String=id;var owned: bool=id in g.archive.collected
   var title: String=ArchiveState.document(id).title if owned else "Zettel · nicht gefunden" if id=="note" else "Zeitung %d · nicht gefunden"%(ArchiveState.PAPERS.find(id)+1)
   var button: Button=g._button(title,func():g.archive_selected=chosen;inventory(g,chosen),selected==id);button.custom_minimum_size=Vector2(345,56);button.disabled=not owned;button.add_theme_font_size_override("font_size",17);list.add_child(button)

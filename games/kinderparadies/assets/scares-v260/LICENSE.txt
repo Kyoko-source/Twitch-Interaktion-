@@ -1,0 +1,4 @@
+Original After Play layered sound edits. Source recordings CC0 1.0.
+Creature voice: A New Room, submitted by qubodup: https://opengameart.org/content/evil-creature
+Field recordings: Joseph SARDIN / BigSoundBank. See assets/ambience-v180/provenance.json and assets/ambience-v193/provenance.json for original URLs and hashes.
+See provenance.json for exact local input hashes, edits, measured peak and RMS.

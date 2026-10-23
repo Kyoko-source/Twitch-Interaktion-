@@ -17,7 +17,7 @@ erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen. Eine falsche Tür beendet die Schicht und startet wieder das
 Fahrstuhl-Intro. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
-45 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
+58 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal: keine Anomalien und
 keine Anomalie-Jumpscares. Dort ist die grüne Tür die richtige Entscheidung.
@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.5.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.6.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -383,7 +383,7 @@ geformte Hosenbeine, Schuhe und eine dicke, genähte Schürze. Die erhaltene
 und weiterhin genannte Scan-Basis hat einen geometrisch geöffneten Mund
 mit unregelmäßigen Zähnen und eingerissenen Mundwinkeln.
 
-Alle 45 vorhandenen Anomalien stehen mit Bereich und interner ID in
+Alle 58 vorhandenen Anomalien stehen mit Bereich und interner ID in
 [ANOMALIEN.md](ANOMALIEN.md). Die Schachtgestalt bleibt normale Umgebung.
 
 
@@ -534,3 +534,15 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Ein zusätzlicher großer Hase steht rechts nach dem Betreten des Party Raums. Beide großen Hasen gehören zur normalen Umgebung und sind keine Anomalien. Das Wandbild wurde etwas nach links verschoben und verkleinert; sein Anomalie-Auslöser folgt ihm. Regal und Sideboard lassen Abstand zu den Pfoten und zu den Laufwegen.
 - Windows verwendet etwas dichteren beleuchteten Volumen- und Bodennebel. Der Grundnebel der Web-Fassung ist ebenfalls leicht erhöht. Normale Nebelfarbe, Zeitungsrunden und Anomalie-Regeln bleiben gleich.
 - Menümusik, Archivaufnahme, Erstellercode 0712 und Credits bleiben erhalten. Modelle und Bildnachweise: assets/mascot-v251/LICENSE.txt; reproduzierbare Geometrie: tools/model-after-play-mascot-v251.py.
+
+
+## Rückkehr, Küche und Schreckmomente (2.6.0)
+
+- Nur ein großer Stoffhase, ausschließlich rechts im Party Raum. Die kleine Bankfigur bleibt. Das reale 3D-Menü zeigt den Party Raum.
+- Die Dienstanweisung enthält die vom Autor gewünschte kurze Einleitung und Tastenliste, ohne Rätsel- oder Anomalieauflösung.
+- Neue modellierte Küchenschränke, Arbeitsplatten, Herd und Kühlschrank mit versenkten Fronten, Dichtungen, Scharnieren, Griffen, Brennerringen, Ofenfenster und Gebrauchsspuren. Kollisionsformen folgen den Möbelmaßen; das Spülbecken bleibt ausgespart.
+- 58 mögliche Anomalien, darunter 13 neue Begegnungen in sieben Bereichen. Acht neue Soundmischungen nutzen die vorhandenen CC0-Kreaturen- und Feldaufnahmen. Einzelne Auslöser, Pause, sichtbare Restspuren und die normalen Zeitungsrunden bleiben erhalten.
+- Nach der 13. richtigen Tür führt das Spiel zurück in den normalen Startraum. Eine lesbare Zeitung liegt direkt auf dem Boden. E nimmt sie auf, TAB liest sie. Der abgeschlossene Rundgang und die Zeitung werden gespeichert. Über eine weitere Entscheidungstür beginnt eine neue Suche, ohne bereits überlebte Fundstücke zu verlieren. Tod und eine ausdrücklich neue Nachtschicht setzen sie zurück.
+- Das Archivende bleibt bestehen. Am Ende der Credits folgt die vollständige „Notiz von Kyoko“, mit größerer Leseschrift und langsamerem Bildlauf. Musikbox.mp3 begleitet weiterhin den Abspann.
+- Reproduzierbare Quellen: tools/model-after-play-kitchen-v260.py und tools/create-after-play-scares-v260.py. Lizenz- und Soundbearbeitungsnachweise liegen in assets/kitchen-v260 und assets/scares-v260.
+- Zusätzliche Prüfungen: --self-test --v260-only und --render-qa --v260-qa.

@@ -1,7 +1,6 @@
 class_name AfterPlayPolish
 extends Node3D
 
-const MASCOT_POS:=Vector3(18.0,.016,15.10)
 const PARTY_MASCOT_POS:=Vector3(17.9,.016,.38)
 var w: PlayWorld
 var mascot: Node3D
@@ -24,8 +23,8 @@ func blood_mark(parent: Node3D, pos: Vector3, size: Vector2, rotation_value: Vec
  var material:=ShaderMaterial.new();material.shader=load("res://assets/presentation-v250/blood-surface.gdshader");material.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));material.set_shader_parameter("dryness",.82);mesh.material_override=material;parent.add_child(mesh)
 
 func _mascot() -> void:
- mascot=_mascot_at(MASCOT_POS,-1.9,"MascotCorner")
  party_mascot=_mascot_at(PARTY_MASCOT_POS,PI,"PartyMascotCorner")
+ mascot=party_mascot
 
 func _mascot_at(pos: Vector3, yaw: float, id: String) -> Node3D:
  var root:=Node3D.new();root.name=id;root.position=pos;root.rotation.y=yaw;root.set_meta("giant_mascot",true);add_child(root)
@@ -62,19 +61,13 @@ func _mascot_at(pos: Vector3, yaw: float, id: String) -> Node3D:
     var p: Vector3=pow(1-t,3)*points[0]+3*pow(1-t,2)*t*points[1]+3*(1-t)*t*t*points[2]+pow(t,3)*points[3];p.y+=.03;ends.append(p*3.65)
    var body:=StaticBody3D.new();body.name="MascotEarSolid";body.position=(ends[0]+ends[1])*.5;body.quaternion=Quaternion(Vector3.UP,(ends[1]-ends[0]).normalized());root.add_child(body)
    var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.18;capsule.height=ends[0].distance_to(ends[1])+.36;shape.shape=capsule;body.add_child(shape)
- if id=="MascotCorner":
-  var sign:=Node3D.new();sign.name="MascotSafetyPlaque";sign.position=Vector3(-1.0,.0,1.65);sign.rotation.x=-.12;root.add_child(sign)
-  w.box(sign,Vector3(0,.23,0),Vector3(.68,.46,.055),w.materials.rust,true)
-  w.artwork(sign,Vector3(0,.23,.035),Vector2(.61,.39),load("res://assets/polish-v240/mascot-sign.png"))
-  for x in [-.22,.22]: w.tube(sign,Vector3(x,.012,0),Vector3(x,.2,0),.017,w.materials.dark)
- var lamp_x:=-1.5 if id=="PartyMascotCorner" else -1.7
+ var lamp_x:=-1.5
  var key:=SpotLight3D.new();key.position=Vector3(lamp_x,5.6,2.65);root.add_child(key);key.look_at(root.to_global(Vector3(0,2.4,0)))
  key.light_color=Color("dfbb83");key.light_energy=1.2;key.light_size=.12;key.spot_range=7;key.spot_angle=36;key.shadow_enabled=true
  # The light really sits on a bracket, not unsupported in the room.
  w.box(root,Vector3(lamp_x,5.6,2.65),Vector3(.23,.15,.12),w.materials.dark)
  w.tube(root,Vector3(lamp_x,5.68,2.65),Vector3(lamp_x,7.27,2.65),.018,w.materials.rust)
  w.box(root,Vector3(lamp_x,7.27,2.65),Vector3(.18,.04,.18),w.materials.dark)
- if id=="MascotCorner": blood_mark(self,Vector3(17.5,.033,15.1),Vector2(.75,.65),Vector3(-PI/2,.2,0))
  return visual
 
 func _workshop() -> void:

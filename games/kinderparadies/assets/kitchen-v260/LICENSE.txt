@@ -1,0 +1,5 @@
+Original industrial kitchen geometry for After Play, authored for Kyoko.
+Reproducible source: tools/model-after-play-kitchen-v260.py (Blender 4.5).
+No third-party model or paid content. Runtime micro surface maps reuse the
+existing paint/micro-normal originals and CC0 Poly Haven roughness map;
+see assets/PolyHaven-CC0.txt and assets/polyhaven-provenance.json.
