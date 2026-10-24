@@ -15,8 +15,8 @@ E Tür öffnen, TAB Dienstanweisung, ESC Pause, F11 Vollbild.
 Die erste Runde ist normal und dient als Referenz. Bereiche kannst du freiwillig
 erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
-in Folge gewinnen. Eine falsche Tür beendet die Schicht und startet wieder das
-Fahrstuhl-Intro. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
+in Folge gewinnen. Eine falsche Tür löst im Flur einen tödlichen Angriff aus, zeigt die überlebten
+Runden und lässt dich ohne neuen Chef-Anruf im Startfahrstuhl erwachen. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
 61 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal: keine Anomalien und
@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.7.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.8.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -560,3 +560,27 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Reproduzierbare Modelle und Schlüsselklang: tools/model-after-play-backstage-v270.py; Lizenz und Herkunft: assets/backstage-v270. Prüfungen: --self-test --v270-only sowie --render-qa --v270-qa.
 
 - Reduziertes HUD: Rundgang rechts oben, Fadenkreuz und situationsabhängige Hinweise. Bereichsliste, permanente Tastenlegende, Spieltitel und „kontrolliert“-Einblendungen entfallen im Spiel. TAB → Meine Kontrollliste zeigt ein handschriftliches Blatt mit den im aktuellen Rundgang besuchten Bereichen. Es pausiert das Spiel, wird mit dem Rundgang gespeichert und erzwingt keine Route. Die Dienstanweisung bleibt unverändert. Die lokal mitgelieferte Schrift [Caveat](https://github.com/google/fonts/tree/main/ofl/caveat) steht unter SIL OFL 1.1; Lizenz und Herkunft liegen in assets/backstage-v270.
+
+## Version 2.8
+
+Die Entscheidungstüren liegen an der Südwand rechts der Krabbelröhre. E öffnet
+sie, Betreten des Flurs bindet die Wahl. Beide Flure haben echte Kollisionen,
+Decken, Beleuchtung und einen Aufzug. Wer die richtige Wahl trifft, steigt ein;
+die Türen schließen und öffnen sich direkt im ursprünglichen Startfahrstuhl.
+Die falsche Wahl löst einen eigenen 3D-Angriff mit Schrei aus. Auf Schwarz steht
+„X Runden überlebt“, dann beginnt Runde 1 im Fahrstuhl ohne wiederholten Anruf.
+Neue Schichten beginnen weiterhin mit dem vollständigen Intro. Tod löscht die
+Zeitungssammlung; die Zeitungsrunden 3/5/8/11 bleiben anomaliefrei.
+
+Der Kostümraum ist eine Reparaturwerkstatt: Nähmaschine mit Faden und Nadel,
+Schnittmuster, Werkzeuge, Ersatzköpfe, Garnrollen, Stoffbahnen, offene Truhe und
+handschriftliche Reparaturnotizen. Der freie Gang zum Bühnenausgang bleibt erhalten.
+Spielstände speichern Position und verbindliche Flurwahl; unterbrochene Ankunft
+oder Tod werden im Startfahrstuhl fortgesetzt. Native Render-QA verwendet einen
+eigenen Speicherpfad, getrennt von den Logikprüfungen.
+
+Der neue Flurangreifer verwendet einen verformten 3D-Kopfscan von Lee Perry-Smith
+(CC BY 3.0), mit ausgearbeiteten Augen-/Mundhöhlen und unregelmäßigen Zähnen.
+Quelle, Bearbeitungen und Lizenz: assets/passage-v280; reproduzierbar über
+tools/model-after-play-passage-v280.py. Schrei und Angriff respektieren die
+eingestellte Gesamtlautstärke.

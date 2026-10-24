@@ -15,14 +15,14 @@ func run(game: Node3D, verify: Callable) -> void:
  # Finish the real final decision, keeping an already found story paper.
  game.archive.collected.append("opening")
  for i in range(12): game.state.decide(game.state.current!="none")
- game._decide(game.state.current!="none")
+ await PassageChecks.travel(game,game.state.current!="none")
  var timeout:=0
  while game.phase!="play" and timeout<300: await game.get_tree().physics_frame;timeout+=1
  game.player.active=false
  verify.call(game.state.completed and game.state.streak==13 and game.phase=="play","The thirteenth door does not return to a playable room")
- verify.call(game.player.position.distance_to(Vector3(-6.2,0,8.5))<.15 and game.world.current=="none","Patrol completion does not restore the normal starting room")
+ verify.call(game.player.position.distance_to(Vector3(-8,0,19.35))<.15 and game.world.current=="none","Patrol completion does not restore the normal starting room")
  verify.call(game.world.archive.items.has("patrol_hint"),"The final hint newspaper is missing from the floor")
- game.player.camera.look_at(Vector3(-6.2,.038,7.0));await game.get_tree().physics_frame
+ game.player.camera.look_at(Vector3(-8,.038,17.95));await game.get_tree().physics_frame
  verify.call(game._target()=="paper:patrol_hint","The final floor newspaper cannot be collected with the real interaction ray")
  var spawned: Vector3=game.world.archive.items.patrol_hint.global_position
  verify.call(spawned.y>.02 and spawned.y<.08 and spawned.distance_to(game.player.position)<2,"The ending newspaper floats or is out of reach")
@@ -33,7 +33,7 @@ func run(game: Node3D, verify: Callable) -> void:
  var reader:=""
  for line in game.menu.find_children("*","RichTextLabel",true,false): reader+=line.text
  verify.call(reader==ArchiveState.document("patrol_hint").body and "3, 5, 8 und 11" in reader,"The final newspaper does not display the exact requested hint")
- game._archive_back();game._decide(false);game.player.active=false
+ game._archive_back();await PassageChecks.travel(game,false);game.player.active=false
  verify.call(not game.state.completed and game.state.streak==0 and "opening" in game.archive.collected and "patrol_hint" in game.archive.collected,"A new search deletes the surviving shift's papers")
  # Every new placement must have an actual sightline that activates its sting.
  for id in NightTerrors.SCENARIOS:

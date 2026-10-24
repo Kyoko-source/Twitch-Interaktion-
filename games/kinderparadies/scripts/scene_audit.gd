@@ -74,8 +74,8 @@ static func placement(w: PlayWorld) -> Dictionary:
   {"name":"Nebenraum-Flur","box":AABB(Vector3(-9.0,.09,-12.64),Vector3(2.2,2.25,.88))},
   {"name":"Fahrstuhl","box":AABB(Vector3(-9.12,.09,16.76),Vector3(2.24,2.25,.88))},
   {"name":"Archiv-Vorbereich","box":AABB(Vector3(-9.75,.09,-10.5),Vector3(1.0,2.25,1.2))},
-  {"name":"Grüne Tür","box":AABB(Vector3(-4.95,.09,-11.52),Vector3(1.3,2.25,1.2))},
-  {"name":"Rote Tür","box":AABB(Vector3(-2.80,.09,-11.52),Vector3(1.3,2.25,1.2))}]
+  {"name":"Grüne Tür","box":AABB(Vector3(6.60,.09,16.3),Vector3(1.2,2.25,.65))},
+  {"name":"Rote Tür","box":AABB(Vector3(9.70,.09,16.3),Vector3(1.2,2.25,.65))}]
  if w.archive.leaf.rotation.y< -1.5: passages.append({"name":"Offene Archivtür","box":AABB(Vector3(-10.62,.09,-10.58),Vector3(.84,2.25,1.36))})
  if w.backstage.exit_leaf.rotation.y>1.45: passages.append({"name":"Lieferausgang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
  var blocked: Array[String]=[];var art: Array[MeshInstance3D]=[];var furniture: Array[String]=[];var walls: Array[AABB]=[]

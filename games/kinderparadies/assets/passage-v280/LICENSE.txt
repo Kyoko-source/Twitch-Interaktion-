@@ -1,0 +1,5 @@
+Passage head: derivative of Infinite, 3D Head Scan by Lee Perry-Smith (CC BY 3.0).
+Source: https://www.triplegangers.com/ and https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith
+License: https://creativecommons.org/licenses/by/3.0/
+Changes for After Play: distorted lower face, excavated eye and mouth cavities, original teeth and vertex-painted wounds. No portrait textures used.
+Original attribution and source hashes are also included in Head-Attribution.txt and anatomy-provenance.json.

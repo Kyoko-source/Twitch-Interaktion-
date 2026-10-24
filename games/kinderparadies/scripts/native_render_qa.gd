@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v280-qa" in OS.get_cmdline_user_args():
+  await v280_views(game,output);game._quit();return
  if "--v270-qa" in OS.get_cmdline_user_args():
   await v270_views(game,output);game._quit();return
  if "--v260-qa" in OS.get_cmdline_user_args():
@@ -122,6 +124,7 @@ func run(game: Node3D) -> void:
  game._quit()
 
 func capture(game: Node3D, output: String, name: String) -> void:
+ await game.get_tree().process_frame
  await RenderingServer.frame_post_draw
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))
@@ -589,3 +592,18 @@ func v260_views(game: Node3D, output: String) -> void:
  var note: Label=game.end_credits.roll.find_child("KyokoNote",true,false)
  game.end_credits.clock=4+(1120+note.position.y-160)/38
  await game.get_tree().create_timer(.2).timeout;await capture(game,output,"kyoko-note-v260")
+
+func v280_views(game: Node3D, output: String) -> void:
+ await game.get_tree().create_timer(1).timeout;await capture(game,output,"menu-v280")
+ game._new_shift();game.intro.skip();game.player.active=false
+ for shot in [
+  {"name":"costume-workshop","p":Vector3(17.6,.2,-13.5),"look":Vector3(13.2,1.7,-16.1)},
+  {"name":"sewing-bench","p":Vector3(15.6,.2,-14.9),"look":Vector3(13.3,1.3,-13.1)},
+  {"name":"decision-doors","p":Vector3(8.7,0,14.3),"look":Vector3(8.7,1.9,17.2)}]:
+  game.player.position=shot.p;game.player.camera.look_at(shot.look);await game.get_tree().create_timer(.8).timeout;await capture(game,output,shot.name)
+ game._decide(false);game.player.position=Vector3(7.2,0,19.9);game.player.rotation.y=PI;game.player.camera.rotation=Vector3.ZERO
+ await game.get_tree().create_timer(1).timeout;await capture(game,output,"green-corridor")
+ print("V280 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
+ game.phase="pause";game.hud.hide();game.player.release();game.player.lamp.hide();game.player.camera.rotation=Vector3.ZERO;game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.tick(.43)
+ await capture(game,output,"corridor-attacker");game.door_failure.hide();game.door_failure.running=false;game.door_failure.audio.stop()
+ print("V280 RENDER COMPLETE")

@@ -147,6 +147,7 @@ func _costume_room() -> void:
  for i in range(3): w.box(vanity,Vector3(-.6+i*.42,.94,.02),Vector3(.26,.14,.22),w.materials.red if i%2 else w.materials.cream)
  costume_light=fixture(room,Vector3(16.1,3.49,-15.5),Color("a4c7b7"),.95,6)
  fixture(room,Vector3(12.7,3.49,-15.3),Color("b2a790"),.40,3.8)
+ CostumeWorkshop.build(self,room)
 
 func _maintenance_story() -> void:
  var root:=Node3D.new();root.name="MaintenanceEvidence";w.server_room.add_child(root)

@@ -32,6 +32,7 @@ var terrors: NightTerrors
 var server_room: ServiceRoom
 var polish: AfterPlayPolish
 var backstage: BackstageExpansion
+var passages: PatrolPassage
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -138,6 +139,7 @@ func build() -> void:
  polish=AfterPlayPolish.new();add_child(polish);polish.build(self)
  if native_art: native_art.finish()
  backstage=BackstageExpansion.new();add_child(backstage);backstage.build(self)
+ passages=PatrolPassage.new();add_child(passages);passages.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -194,7 +196,9 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(17.3,5.2,-12.2),Vector3(1.7,4.4,.3),materials.wall,true)
  box(self,Vector3(-7.9,5.05,-12.2),Vector3(3,4.7,.3),materials.wall,true)
  box(self,Vector3(-9.75,3.7,17.2),Vector3(.9,7.4,.3),materials.wall,true)
- box(self,Vector3(6.55,3.7,17.2),Vector3(26.5,7.4,.3),materials.wall,true)
+ for span in [Vector2(-6.7,6.35),Vector2(8.05,9.45),Vector2(11.15,19.8)]:
+  box(self,Vector3((span.x+span.y)*.5,3.7,17.2),Vector3(span.y-span.x,7.4,.3),materials.wall,true)
+ for x in PatrolPassage.CENTERS: box(self,Vector3(x,5.2,17.2),Vector3(1.7,4.4,.3),materials.wall,true)
  box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
@@ -366,20 +370,7 @@ func _service() -> void:
   mesh.position=Vector3(-8.7+i*1.75,4.25,-12.0);stars.add_child(mesh)
 
 func _doors() -> void:
- for i in range(2):
-  var x:=-4.3+i*2.15;var red:=i==1;var color:=Color("bd4940") if red else Color("499a73")
-  var body:=StaticBody3D.new();body.position=Vector3(x,1.45,-11.98);body.set_meta("interaction","red" if red else "green");add_child(body)
-  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(1.5,2.9,.14);collision.shape=shape;body.add_child(collision)
-  var leaf:=Node3D.new();leaf.position.x=-.75;body.add_child(leaf);props["door_red" if red else "door_green"]=leaf
-  box(leaf,Vector3(.75,0,0),Vector3(1.5,2.9,.13),mat(color*.55,null,.4,.25))
-  for dx in [-.8,.8]: box(body,Vector3(dx,0,.04),Vector3(.11,3.05,.2),materials.dark)
-  box(body,Vector3(0,1.52,.04),Vector3(1.7,.13,.2),materials.dark)
-  box(leaf,Vector3(.75,.15,.08),Vector3(.28,1.2,.015),materials.metal)
-  box(leaf,Vector3(1.25,-.2,.12),Vector3(.23,.06,.1),materials.metal)
-  var glow:=mat(color);glow.emission_enabled=true;glow.emission=color;glow.emission_energy_multiplier=1.7
-  box(body,Vector3(0,1.85,0),Vector3(1.6,.38,.12),glow)
-  mounted_sign(body,"red" if red else "green",Vector3(0,1.85,.09),Vector2(1.4,.29))
-  lamp(Vector3(x,3.6,-11),color,1.1,4)
+ pass # Built after the material and dressing passes.
 
 func _details() -> void:
  # Plaques, paper forms, bins, inspection marks and handrails give scale.
@@ -466,8 +457,7 @@ func quality(value: int) -> void:
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:
- var leaf: Node3D=props["door_red" if red else "door_green"]
- create_tween().tween_property(leaf,"rotation:y",-1.15,.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+ passages.open(red)
 
 func _enlarge_climbing_frame() -> void:
  for id in ["structure","nets","slide"]:

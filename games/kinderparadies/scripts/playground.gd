@@ -186,10 +186,10 @@ func _hall_dressing() -> void:
   var x:=-2.3+i*.55;var pad:=w.box(dressing,Vector3(x,.08,13.3),Vector3(.5,.14,1.3),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
   pad.rotation.y=sin(i)*.1
  for i in range(6):
-  var x:=5+i*.35
+  var x:=4.7+i*.29
   w.tube(dressing,Vector3(x,.05,16.25),Vector3(x,1.3,16.25),.055,w.materials.gold)
   w.sphere(dressing,Vector3(x,1.3,16.25),.1,w.materials.red)
- w.mounted_sign(dressing,"pickup",Vector3(5.8,3.4,16.97),Vector2(2.1,.8),PI)
+ w.mounted_sign(dressing,"pickup",Vector3(4.9,3.4,16.97),Vector2(2.1,.8),PI)
  for i in range(6):
   var z:=.5+i*2.8
   w.box(dressing,Vector3(19.59,.7,z),Vector3(.15,1.35,2.5),[w.materials.blue,w.materials.gold,w.materials.teal][i%3])

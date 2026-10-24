@@ -90,7 +90,7 @@ func sync(value: ArchiveState, round_stage: int) -> void:
  for item in items.values(): remove_item(item)
  items.clear()
  if stage==14 and "patrol_hint" not in progress.collected:
-  _paper("patrol_hint",self,Vector3(-6.2,.038,7.0),Vector2(.52,.69),Vector3(-PI/2,.06,0))
+  _paper("patrol_hint",self,Vector3(-8,.038,17.95),Vector2(.52,.69),Vector3(-PI/2,.06,0))
  if "note" not in progress.collected: _paper("note",leaf,Vector3(.067,1.63,.75),Vector2(.26,.35),Vector3(0,PI/2,.025))
  for id in ArchiveState.PAPERS:
   if int(ArchiveState.document(id).stage)!=stage or id in progress.collected: continue

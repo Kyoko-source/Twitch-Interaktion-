@@ -1,7 +1,7 @@
 extends Node3D
 
-var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-save.json"
-var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://nachtwache-settings.json"
+var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-save.json" if "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-save.json"
+var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-settings.json" if "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-settings.json"
 var state := PatrolState.new()
 var archive:=ArchiveState.new()
 var archive_selected:=""
@@ -43,6 +43,10 @@ var transition_shade: ColorRect
 var door_failure: DoorFailure
 var intro: ElevatorIntro
 var intro_pending:=false
+var wake_pending:=false
+var arrival_pending:=false
+var survived:=0
+var death_label: Label
 var end_credits: EndCredits
 var memories: ArchiveMemories
 
@@ -78,6 +82,7 @@ func _build_world(anomaly: String) -> void:
  if world:
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
+ world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
@@ -112,6 +117,7 @@ func _ui() -> void:
  memories=ArchiveMemories.new();root.add_child(memories);memories.build()
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
  transition_shade=ColorRect.new();transition_shade.color=Color(0,0,0,0);transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);transition_shade.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(transition_shade);transition_shade.hide()
+ death_label=_label("",70);death_label.add_theme_font_override("font",title_font);death_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER);death_label.offset_left=-600;death_label.offset_right=600;death_label.offset_top=-60;death_label.offset_bottom=80;death_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;death_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;root.add_child(death_label);death_label.hide()
 
 func _label(value: String, size: int=18, color: Color=Color("eee7d6")) -> Label:
  var label:=Label.new();label.text=value;label.add_theme_font_size_override("font_size",size);label.add_theme_color_override("font_color",color);return label
@@ -166,7 +172,7 @@ func _menu_jump() -> void:
 
 func _new_shift() -> void:
  archive.clear();archive_selected="";archive_input=""
- state.start();has_session=true;intro_pending=true;_build_world("none");_begin_intro()
+ state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false;_build_world("none");_begin_intro()
 
 func _begin_intro() -> void:
  menu_music.stop()
@@ -174,6 +180,10 @@ func _begin_intro() -> void:
  phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
 
 func _intro_finished() -> void:
+ if phase=="arrival":
+  wake_pending=false;arrival_pending=false;_resume();_save()
+  if state.completed: _announce("Dreizehn Rundgänge. Vor dir liegt eine Zeitung.",7)
+  return
  if phase!="intro": return
  intro_pending=false;_resume();_save()
  _announce("Erster Rundgang. Verlasse den Fahrstuhl und präge dir den normalen Zustand ein.",7)
@@ -206,6 +216,7 @@ func _can_continue() -> bool:
 func _continue() -> void:
  if has_session:
   if archive.ending=="complete": _show_archive_ending()
+  elif wake_pending or arrival_pending: _arrival(wake_pending)
   elif intro_pending: _begin_intro()
   else: _resume()
   return
@@ -215,14 +226,16 @@ func _continue() -> void:
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
- world.backstage.restore(data.get("backstage",{}))
+ world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}))
+ wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if archive.ending=="complete": _show_archive_ending();return
+ if wake_pending or arrival_pending: _arrival(wake_pending);return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0)) in [7,8,9] and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8,9,10] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -359,12 +372,12 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session: return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":9,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":10,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
  if menu_light: menu_light.visible=phase=="menu"
- if phase=="intro": intro.tick(delta)
+ if phase in ["intro","arrival"]: intro.tick(delta)
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
  if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
@@ -372,6 +385,7 @@ func _process(delta: float) -> void:
   menu_clock+=delta
   var travel: float=sin(menu_clock*.075)*.18 if settings.motion else 0.0
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
+ world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -425,27 +439,44 @@ func _target() -> String:
  return ""
 
 func _decide(red: bool) -> void:
+ if phase!="play" or world.passages.closing: return
+ world.open_door(red);effect.play();_save()
+
+func _board_lift(_red: bool) -> void:
  if phase!="play": return
- if state.completed:
-  # The completed patrol is a real, saved room. A door starts another search
-  # without deleting documents already found during this surviving shift.
-  state.start();_build_world("none");_resume();_save();return
- var result:=state.decide(red)
- if not result.accepted: return
- phase="transition";player.release();last_result=result;effect.play();world.open_door(red)
- if result.correct: _save(true)
- if not result.correct:
-  archive.clear();archive_selected="";archive_input="";state.start();intro_pending=true;_save()
-  phase="failure";hud.hide();player.lamp.hide();door_failure.start(world,player.camera);_telemetry()
-  await door_failure.finished
-  if phase=="quitting": return
- phase="transition";await _fade(1,.3)
- if not result.correct:
-  _new_shift();await _fade(0,.35);return
- if result.completed: _won();return
- _build_world(state.current);_resume()
- _announce("Rundgang %d. Bleib aufmerksam."%(state.rounds+1) if result.correct else "Falsche Tür. Serie zurückgesetzt. "+result.detail,3 if result.correct else 6)
- await _fade(0,.25)
+ phase="lift";player.release();hud.hide();player.lamp.show()
+ # Face the sliding doors before returning in the matching entrance cabin.
+ player.rotation.y=wrapf(player.rotation.y,-PI,PI)
+ create_tween().tween_property(player,"rotation:y",0,.35)
+ create_tween().tween_property(player.camera,"rotation:x",0,.35)
+ _save();_telemetry()
+
+func _finish_lift(red: bool) -> void:
+ if phase!="lift": return
+ if state.completed: state.start();last_result={"correct":true,"completed":false}
+ else: last_result=state.decide(red)
+ if not last_result.get("correct",false): _door_death(red);return
+ arrival_pending=true;_save(true)
+ _build_world(state.current);_arrival(false)
+
+func _arrival(wake: bool) -> void:
+ intro_pending=false;arrival_pending=not wake;wake_pending=wake
+ phase="arrival";menu.hide();hud.hide();player.camera.current=true;intro.start_return(wake);_telemetry()
+
+func _door_death(red: bool) -> void:
+ if phase not in ["play","lift"]: return
+ survived=state.streak;last_result=state.decide(red)
+ phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
+ archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
+ door_failure.start_patrol(world,player.camera);_telemetry()
+ await door_failure.finished
+ if phase=="quitting": return
+ phase="death";await _fade(1,.15)
+ death_label.text="%d Runden überlebt"%survived;death_label.modulate.a=0;death_label.show()
+ await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
+ await get_tree().create_timer(1.65).timeout
+ if phase=="quitting": return
+ death_label.hide();_build_world("none");_arrival(true);await _fade(0,.7)
 
 func _fade(alpha: float, duration: float) -> void:
  transition_shade.show()
@@ -484,7 +515,7 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
- if phase in ["archive_scare","ending"]:
+ if phase in ["archive_scare","ending","failure","death","lift","arrival"]:
   if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>4: end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
@@ -590,7 +621,7 @@ func _telemetry() -> void:
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
-  data.backstage=world.backstage.snapshot()
+  data.backstage=world.backstage.snapshot();data.passage=world.passages.snapshot();data.survived=survived;data.death_text=death_label.text if death_label.visible else ""
   data.hud_labels=[]
   for label in hud.find_children("*","Label",true,false):
    if label.is_visible_in_tree(): data.hud_labels.append(label.text)
@@ -630,7 +661,10 @@ func _qa_command(args: Array) -> void:
   "inspect":
    for zone in PatrolState.ZONES: state.inspect(zone)
    _refresh_hud()
-  "choose": _decide(bool(command.red))
+  "choose":
+   var red:=bool(command.red);_decide(red)
+   player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,26.4)
+   world.passages.tick(.01,true,player,state.current!="none",state.completed)
   "pause": _pause()
   "resume": _resume()
   "menu": _main_menu()

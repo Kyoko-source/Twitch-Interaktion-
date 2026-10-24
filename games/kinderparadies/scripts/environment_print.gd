@@ -29,6 +29,23 @@ func _draw() -> void:
   var lines:=["03.06.  Lüftung gereinigt. Geruch bleibt.","05.06.  Kostümraum: Haken nachziehen.","07.06.  Spind 04 von innen verformt.","08.06.  Schlüssel eingezogen. Keine Freigabe.","", "Keine Ursache im Bericht angeben.","Rückfragen ausschließlich an die Leitung."]
   for i in range(lines.size()): draw_string(font,Vector2(46,135+i*47),lines[i],HORIZONTAL_ALIGNMENT_LEFT,-1,23,Color("772f27") if i==5 else ink)
   draw_line(Vector2(47,330),Vector2(711,330),Color("8a342b"),3)
+ elif kind=="pattern":
+  draw_string(font,Vector2(45,67),"HAPPYLAND / KOSTÜMWERKSTATT",HORIZONTAL_ALIGNMENT_LEFT,-1,28,ink)
+  draw_string(font,Vector2(45,107),"SCHNITTMUSTER 04 · NICHT IN DER MASCHINE WASCHEN",HORIZONTAL_ALIGNMENT_LEFT,-1,17,ink)
+  var outline:=PackedVector2Array([Vector2(180,170),Vector2(245,190),Vector2(290,280),Vector2(259,302),Vector2(235,255),Vector2(240,420),Vector2(195,460),Vector2(160,390),Vector2(125,460),Vector2(80,420),Vector2(90,255),Vector2(67,302),Vector2(36,280),Vector2(80,190),Vector2(145,170),Vector2(180,170)])
+  draw_polyline(outline,ink,3,true);draw_line(Vector2(160,190),Vector2(160,380),ink,2)
+  draw_circle(Vector2(470,260),100,ink,false,3);draw_circle(Vector2(398,175),39,ink,false,3);draw_circle(Vector2(542,175),39,ink,false,3)
+  for x in [434,506]: draw_circle(Vector2(x,246),18,ink,false,3)
+  draw_arc(Vector2(470,270),53,0,PI,24,ink,3,true)
+  draw_string(font,Vector2(340,435),"FUTTER NACH AUSSEN WENDEN",HORIZONTAL_ALIGNMENT_LEFT,-1,19,ink)
+  draw_string(font,Vector2(53,526),"Vor jeder Vorstellung auf Risse kontrollieren.",HORIZONTAL_ALIGNMENT_LEFT,-1,24,ink)
+ elif kind=="costume_log":
+  draw_string(font,Vector2(48,74),"REPARATUR 04",HORIZONTAL_ALIGNMENT_LEFT,-1,41,ink)
+  for i in range(6):
+   draw_line(Vector2(46,145+i*50),Vector2(745,145+i*50),Color(.2,.25,.2,.3),1)
+  var note:=load("res://assets/backstage-v270/Caveat.ttf") as Font
+  var lines:=["Futter aufgetrennt.","Reißverschluss ersetzt.","Geruch bleibt.","", "Den Kopf nachts", "nicht aufsetzen."]
+  for i in range(lines.size()): draw_string(note,Vector2(52,137+i*60),lines[i],HORIZONTAL_ALIGNMENT_LEFT,-1,51,Color("613d32"))
  elif kind=="badge":
   draw_rect(Rect2(19,19,size.x-38,83),Color("365951"))
   draw_string(font,Vector2(45,75),"HAPPYLAND",HORIZONTAL_ALIGNMENT_LEFT,-1,38,Color("d9c59a"))
@@ -39,6 +56,8 @@ func _draw() -> void:
   for i in range(51): draw_rect(Rect2(215+i*7,338,2 if i%3 else 4,72),ink)
   draw_string(font,Vector2(45,487),"EIGENTUM VON HAPPYLAND",HORIZONTAL_ALIGNMENT_LEFT,-1,24,ink)
   draw_string(font,Vector2(45,531),"Bitte nach Schichtende zurückgeben.",HORIZONTAL_ALIGNMENT_LEFT,-1,22,ink)
+ elif kind=="lift":
+  draw_string(font,Vector2(64,340),"03  /  AUFZUG",HORIZONTAL_ALIGNMENT_LEFT,-1,90,ink)
  elif kind=="torch_tag":
   draw_string(font,Vector2(90,410),"013",HORIZONTAL_ALIGNMENT_LEFT,-1,350,ink)
   draw_string(font,Vector2(105,520),"NACHTDIENST",HORIZONTAL_ALIGNMENT_LEFT,-1,70,ink)

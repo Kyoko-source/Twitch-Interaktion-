@@ -133,12 +133,23 @@ func accept() -> void:
  stage="call";stage_clock=0;ring.stop();accept_button.hide();phone_status.text="CHEF\n\nVerbunden";status.text="CHEF · VERBUNDEN"
  if recording: voice.play()
 
+func start_return(wake: bool=false) -> void:
+ stop();stage="return";clock=0;stage_clock=0;paused=false
+ guard.release();guard.position=Vector3(-8,0,19.35);guard.rotation=Vector3.ZERO;guard.camera.rotation=Vector3(-.22 if wake else 0,0,0);guard.camera.fov=guard.base_fov
+ for i in range(2): doors[i].position.x=(-.65 if i==0 else .65)
+ chime.play()
+
 func tick(delta: float) -> void:
  if stage in ["idle","done"]: return
  for audio in [ring,voice,motor,chime]:
   if audio.stream_paused!=paused: audio.stream_paused=paused
  if paused: status.text="PAUSE · ESC ZUM FORTSETZEN";return
  clock+=delta;stage_clock+=delta
+ if stage=="return":
+  for i in range(2): doors[i].position.x=(-1 if i==0 else 1)*(.65+smoothstep(.12,1.05,stage_clock)*1.24)
+  guard.camera.rotation.x=lerpf(guard.camera.rotation.x,0,delta*3)
+  if stage_clock>1.15: complete()
+  return
  display.update_call(stage,stage_clock)
  phone.rotation.z=-.045+(sin(clock*1.3)*.009 if guard.motion else 0.0)
  if guard.motion: guard.camera.position.y=1.65+sin(clock*18)*.0015

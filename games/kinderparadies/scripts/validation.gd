@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--v280-only" in OS.get_cmdline_user_args():
+  await PassageChecks.new().run(game,check)
+  print("V280 checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--v270-only" in OS.get_cmdline_user_args():
   await load("res://scripts/v270_validation.gd").new().run(game,check)
   print("V270 checks: ",checks,"; failures: ",failures.size())
@@ -126,10 +130,10 @@ func run(game: Node3D) -> bool:
  Input.action_release("forward");game.player.release()
  check(game.player.position.z<initial.z-.5,"WASD movement did not move player")
  check(game.player.position.y>-.2,"Player fell through floor")
- game.player.position=Vector3(-4.3,0,-10.1);game.player.rotation.y=0;game.player.camera.rotation.x=0
+ game.player.position=Vector3(7.2,0,15.5);game.player.rotation.y=PI;game.player.camera.rotation.x=0
  await game.get_tree().physics_frame
  check(game._target()=="green","Green door raycast failed")
- game.player.position.x=-2.15
+ game.player.position.x=10.3
  await game.get_tree().physics_frame
  check(game._target()=="red","Red door raycast failed")
  # Real jump input, airborne re-press, landing, spring carry, impulse throw and pause.
@@ -403,25 +407,23 @@ func run(game: Node3D) -> bool:
    var material:=mesh.get_active_material(surface) as StandardMaterial3D
    check(material!=null and material.albedo_texture==null,"Clown head still uses a portrait texture")
  check(head_faces>20000,"Clown head lacks real sculpted geometry")
- game._decide(false)
- check(game.phase=="transition" and game.state.streak==1,"Correct door did not begin an automatic transition")
- var limit:=0
- while game.phase!="play" and limit<900:
-  await game.get_tree().physics_frame;limit+=1
- check(game.phase=="play" and game.state.rounds==1,"Correct door still needs a confirmation")
- game._decide(game.state.current=="none")
+ await PassageChecks.travel(game,false)
+ check(game.phase=="play" and game.state.rounds==1,"Correct lift did not return automatically")
+ var wrong: bool=game.state.current=="none"
+ game._decide(wrong);game.player.position=Vector3(PatrolPassage.CENTERS[1 if wrong else 0],0,20)
+ game.world.passages.tick(.01,true,game.player,game.state.current!="none",false)
  check(game.phase=="failure" and game.door_failure.running and not game.player.active,"Wrong door failed to start the real 3D scare")
  var rounds_before: int=game.state.rounds
  game._decide(false)
  check(game.state.rounds==rounds_before,"Repeated input during a scare counted another decision")
- limit=0
- while game.phase!="intro" and limit<900:
+ var limit:=0
+ while game.phase!="play" and limit<900:
   await game.get_tree().physics_frame;limit+=1
- check(game.phase=="intro" and game.state.streak==0 and game.state.rounds==0 and game.intro_pending,"Death did not restart the whole shift with the intro")
+ check(game.phase=="play" and game.state.streak==0 and game.state.rounds==0 and not game.intro_pending,"Death did not wake in a fresh shift")
  check(game.door_failure.shown==1 and not game.door_failure.running,"Wrong door scare replayed or remained visible")
- check(not game.player.active and game.intro.stage=="ringing","Intro does not lock gameplay until the phone sequence ends")
+ game._new_shift()
  var saved_intro: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SAVE))
- check(saved_intro.intro_pending,"Closing during intro would bypass it on reload")
+ check(saved_intro.intro_pending,"Closing during new-shift intro would bypass it on reload")
  game.intro.tick(1.3);game.intro.accept()
  check(game.intro.stage=="call","Accepting the chief call failed")
  var intro_clock: float=game.intro.clock
@@ -474,6 +476,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/v250_validation.gd").new().run(game,check)
  await load("res://scripts/v260_validation.gd").new().run(game,check)
  await load("res://scripts/v270_validation.gd").new().run(game,check)
+ await PassageChecks.new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

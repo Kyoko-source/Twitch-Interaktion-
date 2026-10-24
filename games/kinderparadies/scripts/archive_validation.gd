@@ -82,10 +82,10 @@ func run(game: Node3D, verify: Callable) -> void:
  game.player.position=Vector3(-12.8,0,-9.9);game.player.rotation.y=-PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
  for frame in range(105): await game.get_tree().physics_frame
  Input.action_release("forward");verify.call(game.player.position.x> -9.8,"The archive exit traps the guard")
- game.state.current="none";await game._decide(true)
- verify.call(game.phase=="intro" and game.archive.collected.is_empty() and not game.archive.unlocked and game.state.streak==0,"Death does not reset the lore collection together with the shift")
+ game.state.current="none";await PassageChecks.travel(game,true)
+ verify.call(game.phase=="play" and game.archive.collected.is_empty() and not game.archive.unlocked and game.state.streak==0,"Death does not reset the lore collection together with the shift")
  var saved: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SAVE))
- verify.call(saved.archive.collected.is_empty() and not saved.archive.unlocked and saved.intro_pending,"A death save resurrects collected newspapers or skips the intro")
+ verify.call(saved.archive.collected.is_empty() and not saved.archive.unlocked and not saved.intro_pending,"A death save resurrects collected newspapers or restores the old shift")
  game.intro.skip();game._pause()
 
 func cast(game: Node3D, a: Vector3, b: Vector3) -> Dictionary:
