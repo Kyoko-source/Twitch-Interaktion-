@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--v270-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/v270_validation.gd").new().run(game,check)
+  print("V270 checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--v260-only" in OS.get_cmdline_user_args():
   await load("res://scripts/v260_validation.gd").new().run(game,check)
   print("V260 checks: ",checks,"; failures: ",failures.size())
@@ -469,6 +473,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/polish_validation.gd").new().run(game,check)
  await load("res://scripts/v250_validation.gd").new().run(game,check)
  await load("res://scripts/v260_validation.gd").new().run(game,check)
+ await load("res://scripts/v270_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

@@ -15,7 +15,6 @@ var ui: CanvasLayer
 var menu: Control
 var hud: Control
 var round_label: Label
-var checklist: Label
 var prompt: Label
 var notice: Label
 var notice_time := 0.0
@@ -23,7 +22,7 @@ var post: ColorRect
 var room_audio: AudioStreamPlayer
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"area_list":true}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var menu_camera: Camera3D
@@ -106,13 +105,8 @@ func _ui() -> void:
  var shader:=Shader.new();shader.code="shader_type canvas_item; uniform sampler2D screen_texture:hint_screen_texture,filter_linear;uniform float grain=0.012;void fragment(){vec3 c=texture(screen_texture,SCREEN_UV).rgb;vec2 p=SCREEN_UV-0.5;float v=1.0-smoothstep(0.2,0.78,length(p))*0.32;float n=fract(sin(dot(FRAGCOORD.xy+TIME,vec2(12.9898,78.233)))*43758.5453)-0.5;COLOR=vec4(c*v+n*grain,1.0);}"
  var material:=ShaderMaterial.new();material.shader=shader;post.material=material;root.add_child(post)
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
- var brand:=_label("AFTER PLAY",27);brand.position=Vector2(30,24);hud.add_child(brand)
- brand.add_theme_font_override("font",title_font)
- var subtitle:=_label("Kinderparadies",15,Color("bcc5bf"));subtitle.position=Vector2(31,60);hud.add_child(subtitle)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
- checklist=_label("",15,Color("b7c5bf"));checklist.position=Vector2(30,98);hud.add_child(checklist)
- var controls:=_label("WASD Bewegen  ·  LEER Springen  ·  C Ducken  ·  G Aufheben  ·  LMB Werfen  ·  F Licht  ·  TAB Inventar  ·  ESC Pause",14,Color("b7c5bf"));controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);controls.offset_left=30;controls.offset_top=-38;controls.offset_right=1200;hud.add_child(controls)
  prompt=_label("",19);prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);prompt.offset_left=-330;prompt.offset_right=330;prompt.offset_top=-100;prompt.offset_bottom=-65;prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(prompt)
  notice=_label("",18,Color("eadfc2"));notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP);notice.offset_left=-450;notice.offset_right=450;notice.offset_top=25;notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(notice)
  memories=ArchiveMemories.new();root.add_child(memories);memories.build()
@@ -221,13 +215,14 @@ func _continue() -> void:
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
+ world.backstage.restore(data.get("backstage",{}))
  intro_pending=bool(data.get("intro_pending",false))
  if archive.ending=="complete": _show_archive_ending();return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0)) in [7,8] and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8,9] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -313,7 +308,7 @@ func _read_settings() -> void:
   var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
   var high:=100.0 if key=="fov" else 1.0
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
- for key in ["grain","vsync","invert_y","crosshair","area_list"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
+ for key in ["grain","vsync","invert_y","crosshair"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
  settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
  if not OS.has_feature("web") and int(data.get("render_version",0))<2: settings.quality=2
 
@@ -325,7 +320,6 @@ func _apply_settings() -> void:
  player.base_fov=float(settings.fov);player.invert_y=bool(settings.invert_y)
  if phase=="play": player.camera.fov=player.base_fov
  if crosshair: crosshair.visible=bool(settings.crosshair)
- if checklist: checklist.visible=bool(settings.area_list)
  for bus_name in ["NightAmbience","NightVoice"]:
   if AudioServer.get_bus_index(bus_name)<0: AudioServer.add_bus();AudioServer.set_bus_name(AudioServer.bus_count-1,bus_name)
   AudioServer.set_bus_send(AudioServer.get_bus_index(bus_name),"Interior" if bus_name=="NightAmbience" and AudioServer.get_bus_index("Interior")>=0 else "Master")
@@ -365,7 +359,7 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session: return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":8,"intro_pending":intro_pending}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":9,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -383,12 +377,13 @@ func _process(delta: float) -> void:
  world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
+ world.backstage.tick(delta,phase=="play",player)
  world.archive.tick(delta,phase=="play")
  if archive.ending=="recording" and phase in ["play","pause","inventory","settings","help"]:
   memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
   if phase=="play": player.active=false;hud.hide()
  else: memories.hide()
- player.fright=maxf(world.encounters.shock,world.terrors.shock)
+ player.fright=maxf(maxf(world.encounters.shock,world.terrors.shock),world.backstage.shock)
  if phase=="play":
   state.seconds+=delta
   save_clock+=delta
@@ -396,7 +391,7 @@ func _process(delta: float) -> void:
   for zone in world.zones:
    var p: Vector3=world.zones[zone]
    if Vector2(player.position.x-p.x,player.position.z-p.z).length()<2.1 and state.inspect(zone):
-    _refresh_hud();_announce(zone+" kontrolliert",2.5)
+    _refresh_hud()
   var target:=_target()
   last_target=target
   prompt.text=""
@@ -405,6 +400,8 @@ func _process(delta: float) -> void:
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
+  elif target=="delivery_exit": prompt.text="E · Liefertür "+("schließen" if world.backstage.exit_open else "öffnen")
+  elif target.begins_with("story:"): prompt.text="E · "+str(BackstageExpansion.DOCS[target.trim_prefix("story:")].title)+" lesen"
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
    else:
@@ -419,10 +416,6 @@ func _process(delta: float) -> void:
 func _refresh_hud() -> void:
  round_label.offset_left=-440 if state.completed else -275
  round_label.text="13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1)
- checklist.visible=bool(settings.area_list) and not state.completed
- var lines: PackedStringArray=[]
- for zone in PatrolState.ZONES: lines.append(("+  " if zone in state.visited else "·  ")+zone)
- checklist.text="\n".join(lines)
 
 func _target() -> String:
  var origin:=player.camera.global_position;var end:=origin-player.camera.global_transform.basis.z*2.7
@@ -520,6 +513,23 @@ func _unhandled_input(event: InputEvent) -> void:
   elif target=="archive_recording": world.archive.finale.interact()
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
+  elif target=="delivery_exit": world.backstage.interact_exit(player)
+  elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
+
+func _environment_note(id: String) -> void:
+ if not BackstageExpansion.DOCS.has(id): return
+ phase="help";return_phase="play"
+ var doc: Dictionary=BackstageExpansion.DOCS[id]
+ var column:=_panel(doc.title)
+ column.add_child(_paragraph(doc.text,24))
+ column.add_child(_button("Zurück zum Rundgang",_return_from_panel,true));_telemetry()
+
+func _equipment_card() -> void:
+ phase="help";return_phase="inventory"
+ var column:=_panel("Meine Ausrüstung")
+ var card:=TextureRect.new();card.name="GuardDutyBadge";card.texture=player.equipment.badge;card.custom_minimum_size=Vector2(600,450);card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(card)
+ column.add_child(_paragraph("Dienstausweis 013 · Taschenlampe mit Reparaturband · Dienstschlüssel · Handy\n\nDie Schlüssel gehören zum Dienst. Das Zahlenschloss am Archiv öffnen sie nicht.",21))
+ column.add_child(_button("Zurück zu den Fundstücken",_return_from_panel,true));_telemetry()
 
 func _fullscreen() -> void:
  if OS.has_feature("web"): JavaScriptBridge.eval("document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()")
@@ -580,6 +590,12 @@ func _telemetry() -> void:
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
+  data.backstage=world.backstage.snapshot()
+  data.hud_labels=[]
+  for label in hud.find_children("*","Label",true,false):
+   if label.is_visible_in_tree(): data.hud_labels.append(label.text)
+  var notebook:=menu.find_child("PatrolNotebook",true,false) as PatrolNotebook
+  data.notebook={"visible":is_instance_valid(notebook) and notebook.is_visible_in_tree(),"visited":notebook.visited if is_instance_valid(notebook) else [],"round":notebook.round_number if is_instance_valid(notebook) else 0}
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
   data.props=[]

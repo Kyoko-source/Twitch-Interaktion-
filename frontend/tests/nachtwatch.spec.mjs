@@ -41,6 +41,46 @@ test('v2.6.0 sewn party mascot is on the right, has a solid approach and leaves 
  await qa(page,{op:'audit'});const audit=(await state(page)).layout;expect(audit.door_obstructions).toEqual([]);expect(audit.art_overlaps).toEqual([]);expect(audit.furniture_wall_intrusions).toEqual([]);
 });
 
+test('v2.7 stage ramp and backstage are walkable both ways; E reads maintenance history and TAB opens the duty badge',async({page})=>{
+ test.setTimeout(150000);await begin(page);expect((await state(page)).backstage.costumes).toBe(7);
+ expect((await state(page)).hud_labels.some(t=>t.includes('Empfang')||t.includes('WASD'))).toBe(false);expect((await state(page)).hud_labels).toContain('RUNDGANG 01 / 13');
+ await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).notebook.visible).toBe(true);expect((await state(page)).notebook.round).toBe(1);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-notebook.png')});await page.keyboard.press('Escape');
+ await qa(page,{op:'warp',x:17.3,z:-8.2,yaw:0});await walk(page,'w',s=>s.position[2]<-14.0);
+ expect((await state(page)).polish.floor).toBe('wood');await page.screenshot({path:join(tmpdir(),'after-play-v270-web-costumes.png')});
+ await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[2]).toBeLessThan(-13.9);
+ await walk(page,'s',s=>s.position[2]>-8.7);expect((await state(page)).position[1]).toBeGreaterThan(-.1);
+ for(const doc of [{id:'plan',x:-14.1,y:1.94,text:'Bestandsplan'},{id:'repairs',x:-12.55,y:1.82,text:'Wartungsbuch'}]){
+  await qa(page,{op:'warp',x:doc.x,z:-5.17,yaw:0,pitch:Math.atan2(doc.y-1.62,1.65)});await expect.poll(async()=>(await state(page)).target).toBe('story:'+doc.id);
+  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('help');expect((await state(page)).instructions.join(' ')).toContain(doc.text);
+  const before=(await state(page)).position;await page.keyboard.down('w');await page.waitForTimeout(250);await page.keyboard.up('w');expect((await state(page)).position).toEqual(before);await clickControl(page,'Zurück zum Rundgang');
+ }
+ await page.keyboard.press('Tab');await clickControl(page,'Meine Kontrollliste');expect((await state(page)).notebook.visited).toEqual((await state(page)).visited);await clickControl(page,'Meine Ausrüstung');await expect.poll(async()=>(await state(page)).phase).toBe('help');expect((await state(page)).instructions.join(' ')).toContain('Dienstausweis 013');
+ await page.screenshot({path:join(tmpdir(),'after-play-v270-web-equipment.png')});await clickControl(page,'Zurück zu den Fundstücken');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');await page.keyboard.press('Escape');
+ await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.art_overlaps).toEqual([]);
+});
+
+test('v2.7 false exit changes once, pauses and preserves the decayed corridor and return path after reload',async({page})=>{
+ test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await qa(page,{op:'anomaly',id:'false_exit'});await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:-.20});await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_started).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(true);
+ await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');const paused=(await state(page)).backstage.exit_clock;await page.waitForTimeout(500);expect((await state(page)).backstage.exit_clock).toBe(paused);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).backstage.exit_finished,{timeout:12000}).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(false);
+ await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBe(0);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
+ await walk(page,'w',s=>s.position[0]<-12.3);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-exit.png')});
+ await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ expect((await state(page)).backstage.exit_finished).toBe(true);expect((await state(page)).backstage.exit_open).toBe(true);expect((await state(page)).position[0]).toBeLessThan(-12.2);await walk(page,'s',s=>s.position[0]>-9.8);
+});
+
+test('v2.7 hanging costume and seated guest react in 3D; the costume remains changed when the shift resumes',async({page})=>{
+ test.setTimeout(120000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await qa(page,{op:'anomaly',id:'costume_wakes'});await qa(page,{op:'warp',x:16.15,y:.2,z:-15.1,yaw:0,pitch:.15});await expect.poll(async()=>(await state(page)).backstage.costume_triggered).toBe(true);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const frozen=(await state(page)).backstage.costume_attack;await page.waitForTimeout(400);expect((await state(page)).backstage.costume_attack).toBe(frozen);
+ expect((await state(page)).backstage.costume_paused).toBe(true);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ expect((await state(page)).backstage.costume_triggered).toBe(true);expect((await state(page)).backstage.costume_audio).toBe(false);
+ await qa(page,{op:'anomaly',id:'throne_guest'});await qa(page,{op:'warp',x:13.4,y:.2,z:-8.6,yaw:0,pitch:.10});await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-throne-guest.png')});
+});
+
 test('v2.5 cinematic menu and eleven narration images follow the actual tape, pause and restore the archive',async({page})=>{
  test.setTimeout(150000);await load(page);
  const menuControls=(await state(page)).controls.filter(c=>['Neue Nachtschicht','Schicht fortsetzen','Einstellungen','Dienstanweisung','Mitwirkende','Zur Webseite'].includes(c.text));expect(menuControls).toHaveLength(6);
@@ -135,8 +175,8 @@ test('space jumps and lands; G physically lifts a toy, mouse throws it, pause fr
 test('website offers a real Windows ZIP and opens the release game without any QA commands',async({page,request})=>{
  await page.route('**/api/**',route=>route.fulfill({json:route.request().url().includes('/auth/me')?{user:null}:[]}));
  await page.goto('http://127.0.0.1:4186/#games/nachtwache');await expect(page.getByRole('heading',{name:'After Play',exact:true})).toBeVisible();
- const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.6.0.zip');
- const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.6.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
+ const link=page.getByRole('link',{name:'Für Windows herunterladen',exact:true});await expect(link).toHaveAttribute('href','/downloads/after-play-windows-v2.7.0.zip');
+ const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.7.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'After Play spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="After Play – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
  const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);

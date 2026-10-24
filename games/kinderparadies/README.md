@@ -17,7 +17,7 @@ erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen. Eine falsche Tür beendet die Schicht und startet wieder das
 Fahrstuhl-Intro. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
-58 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
+61 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal: keine Anomalien und
 keine Anomalie-Jumpscares. Dort ist die grüne Tür die richtige Entscheidung.
@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.6.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.7.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
@@ -546,3 +546,17 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Das Archivende bleibt bestehen. Am Ende der Credits folgt die vollständige „Notiz von Kyoko“, mit größerer Leseschrift und langsamerem Bildlauf. Musikbox.mp3 begleitet weiterhin den Abspann.
 - Reproduzierbare Quellen: tools/model-after-play-kitchen-v260.py und tools/create-after-play-scares-v260.py. Lizenz- und Soundbearbeitungsnachweise liegen in assets/kitchen-v260 und assets/scares-v260.
 - Zusätzliche Prüfungen: --self-test --v260-only und --render-qa --v260-qa.
+
+
+## Bühne, Kostümraum und Spuren der Nachtschicht (2.7.0)
+
+- Begehbare Geburtstagsbühne mit gepolstertem, geschnitztem Thron, Vorhängen und fest montiertem Bühnenlicht. Eine flache Rampe und ein breiter Durchgang führen in einen vollständigen Kostümraum mit sieben aufgehängten Stoffanzügen, Masken und Schminktisch. Das große Stoffmaskottchen bleibt ausschließlich rechts im Party Raum.
+- Der Wartungsraum enthält einen lesbaren Bestandsplan, ein Wartungsbuch und einen von innen eingedrückten Personalspind. E öffnet die Dokumente; beim Lesen pausiert das Spiel. Die Dokumente ergänzen die Geschichte und sind keine zusätzlichen Codehinweise.
+- Der Dienstausweis 013 ist unter TAB → Meine Ausrüstung lesbar. Reparaturband und Inventarnummer an der Taschenlampe, ein beweglicher Dienstschlüsselbund mit dezentem aufgenommenem Klang und Gebrauchsspuren am Handy machen die Ausrüstung persönlicher.
+- Party Raum: verblichenes Rosé und warmes Bühnenlicht. Küche: kränkliches Gelbgrün. Kino: gedämpfte Pflaumen-/Blautöne. Wartung: kühles Petrol. Backstage: altes Mint. Physische Lampen und lokale Materialien statt eines Bildschirmfilters.
+- Neuer verriegelter Lieferflur westlich des Hauptsaals. Die innere Tür lässt sich mit E öffnen und schließen; die Außentür bleibt verschlossen. Keine zusätzliche Entscheidungstür. Die Bewegungssperre verhindert ein Einklemmen an der schwenkenden Tür.
+- Drei neue Anomalien, insgesamt 61: ein auf dem Thron sitzender Besucher, ein erwachendes Hängekostüm und ein kurzzeitig sauberer Lieferflur, der nach Lichtausfall verfällt. Entdeckte Kostüm- und Flurzustände bleiben beim Fortsetzen erhalten. Normale Zustände und die vier Zeitungsrunden bleiben frei von diesen Effekten.
+- Kollisionsprüfung mit echter Spielerkapsel durch Bühnenrampe, Kostümtür und Lieferflur in beide Richtungen. Alte Wanddekoration wurde aus dem neuen Durchgang entfernt. Speichern, Wiederaufnahme, Pause, sichtbare Türen und Wandkunst werden geprüft.
+- Reproduzierbare Modelle und Schlüsselklang: tools/model-after-play-backstage-v270.py; Lizenz und Herkunft: assets/backstage-v270. Prüfungen: --self-test --v270-only sowie --render-qa --v270-qa.
+
+- Reduziertes HUD: Rundgang rechts oben, Fadenkreuz und situationsabhängige Hinweise. Bereichsliste, permanente Tastenlegende, Spieltitel und „kontrolliert“-Einblendungen entfallen im Spiel. TAB → Meine Kontrollliste zeigt ein handschriftliches Blatt mit den im aktuellen Rundgang besuchten Bereichen. Es pausiert das Spiel, wird mit dem Rundgang gespeichert und erzwingt keine Route. Die Dienstanweisung bleibt unverändert. Die lokal mitgelieferte Schrift [Caveat](https://github.com/google/fonts/tree/main/ofl/caveat) steht unter SIL OFL 1.1; Lizenz und Herkunft liegen in assets/backstage-v270.

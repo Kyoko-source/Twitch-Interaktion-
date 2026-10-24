@@ -28,6 +28,12 @@ func build() -> void:
  var green:=StyleBoxFlat.new();green.bg_color=Color("2d8861");green.corner_radius_top_left=32;green.corner_radius_top_right=32;green.corner_radius_bottom_left=32;green.corner_radius_bottom_right=32;accept.add_theme_stylebox_override("panel",green);root.add_child(accept)
  var handset:=Line2D.new();handset.width=5;handset.default_color=Color("eff8ed");handset.points=PackedVector2Array([Vector2(20,20),Vector2(16,27),Vector2(23,37),Vector2(34,45),Vector2(43,41)]);accept.add_child(handset)
  var swipe:=ColorRect.new();swipe.position=Vector2(122,727);swipe.size=Vector2(116,4);swipe.color=Color("a4b7b1");root.add_child(swipe)
+ # Fine abrasions in the screen protector, away from the caller and controls.
+ for i in range(11):
+  var scratch:=Line2D.new();scratch.width=.8;scratch.default_color=Color(.78,.85,.80,.13)
+  var start:=Vector2(18+i*4,488+i*12)
+  scratch.points=PackedVector2Array([start,start+Vector2(16+i%3*8,-24)]);root.add_child(scratch)
+ var crack:=Line2D.new();crack.width=1.4;crack.default_color=Color(.75,.83,.78,.24);crack.points=PackedVector2Array([Vector2(354,755),Vector2(326,706),Vector2(343,668),Vector2(323,645)]);root.add_child(crack)
  var face:=MeshInstance3D.new();face.name="OLEDGlassSurface";var quad:=QuadMesh.new();quad.size=Vector2(.068,.144);face.mesh=quad;face.position=Vector3(0,-.002,.0082)
  var glass:=StandardMaterial3D.new();glass.albedo_texture=viewport.get_texture();glass.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;glass.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR;face.material_override=glass;add_child(face)
 

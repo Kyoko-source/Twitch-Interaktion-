@@ -1,8 +1,8 @@
-# Vorhandene Anomalien — After Play 2.6.0
+# Vorhandene Anomalien — After Play 2.7.0
 
 Stand: 23. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 
-58 Anomalien insgesamt; 13 zusätzliche Begegnungen mit acht neuen Schrecksound-Mischungen. 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
+61 Anomalien insgesamt; neu sind Throngast, Hängekostüm und falscher Lieferausgang. 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
 
 ## Zeitungen und Runden
 
@@ -19,8 +19,9 @@ Alle vier Zeitungsrunden sind vollständig anomaliefrei, auch nach dem Einsammel
 und beim Laden. Dort ist die grüne Tür richtig. Die Sammlung bleibt innerhalb
 der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
-## Empfang (13)
+## Empfang (14)
 
+- Hinter dem Lieferausgang erscheint ein unversehrter heller Flur. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
 - Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu. (`reception_counter_burst`)
 - Über dem Empfangsgang fällt eine kopfüber hängende Gestalt herab. (`reception_overhead`)
 - Eine ausgemergelte Gestalt beugt sich hinter dem Empfang hervor und zuckt auf dich zu. (`reception_peeker`)
@@ -50,8 +51,10 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Eine kriechende Gestalt bewegt sich hinter den Netzen im Klettergerüst. (`frame_stalker`)
 - Das Krokodil bäumt sich mit einem Knall auf und bleibt danach aufgerichtet. (`croc_snap`)
 
-## Party Raum (11)
+## Party Raum (13)
 
+- Auf dem Geburtstagsthron sitzt ein verdrehter Gast und schnellt dir entgegen. (`throne_guest`)
+- Ein leer aufgehängtes Kostüm hebt den Kopf und schlägt nach vorn. (`costume_wakes`)
 - Neben dem großen Stoffhasen taucht ein Gast auf und schießt auf dich zu. (`party_mascot_guest`)
 - Eine verdrehte Gestalt kriecht am Geburtstagstisch hervor. (`party_under_table`)
 - Die Stühle hängen an der Decke. (`chair_ceiling`)
@@ -99,6 +102,8 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Lange Finger schlagen von außen gegen ein Röhrenfenster. Nur von innen sichtbar. (`tube_window_hands`)
 
 ## Normaler Vergleich
+
+Der leere Geburtstagsthron, die reglos aufgehängten Kostüme, die lesbaren Wartungsunterlagen, der beschädigte Spind und der verfallene Lieferflur sind normal. Die Außentür ist verschlossen. Die innere Liefertür ist keine rote/grüne Entscheidungstür. Dienstausweis, Schlüsselgeräusch und lokale Lichtfarben sind keine Anomalien.
 
 Der große beschädigte Stoffhase ausschließlich rechts im Party Raum ist ein festes Maskottchen, keine Anomalie. Auch die eingerichtete Werkstatt, die Kinovorhänge und die unterschiedlichen Schritte je Bodenmaterial gehören zum normalen Zustand.
 

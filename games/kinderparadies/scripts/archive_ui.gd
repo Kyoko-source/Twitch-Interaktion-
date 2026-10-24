@@ -9,7 +9,9 @@ static func background(g: Node3D, title: String, subtitle: String) -> void:
 
 static func inventory(g: Node3D, selected: String="") -> void:
  background(g,"Fundstücke","TAB / ESC schließen · Während du liest, steht die Nachtschicht still.")
- var list:=VBoxContainer.new();list.position=Vector2(65,180);list.add_theme_constant_override("separation",12);g.menu.add_child(list)
+ var list_scroll:=ScrollContainer.new();list_scroll.position=Vector2(65,180);list_scroll.size=Vector2(370,675);list_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;g.menu.add_child(list_scroll)
+ var list:=VBoxContainer.new();list.custom_minimum_size.x=345;list.add_theme_constant_override("separation",12);list_scroll.add_child(list)
+ var checklist: Button=g._button("Meine Kontrollliste",func():g.archive_selected="checklist";inventory(g,"checklist"),selected=="checklist");checklist.custom_minimum_size=Vector2(345,56);checklist.add_theme_font_size_override("font_size",17);list.add_child(checklist)
  var found:=0
  for id in ArchiveState.PAPERS:
   if id in g.archive.collected: found+=1
@@ -20,6 +22,7 @@ static func inventory(g: Node3D, selected: String="") -> void:
   var title: String=ArchiveState.document(id).title if owned else "Zettel · nicht gefunden" if id=="note" else "Zeitung %d · nicht gefunden"%(ArchiveState.PAPERS.find(id)+1)
   var button: Button=g._button(title,func():g.archive_selected=chosen;inventory(g,chosen),selected==id);button.custom_minimum_size=Vector2(345,56);button.disabled=not owned;button.add_theme_font_size_override("font_size",17);list.add_child(button)
  var gap:=Control.new();gap.custom_minimum_size.y=20;list.add_child(gap)
+ var equipment: Button=g._button("Meine Ausrüstung",func():g._equipment_card());equipment.custom_minimum_size.x=345;list.add_child(equipment)
  var help: Button=g._button("Dienstanweisung",func():g._help("inventory"));help.custom_minimum_size.x=345;list.add_child(help)
  var back: Button=g._button("Zurück zum Zahlenschloss" if g.inventory_back=="code" else "Zurück ins Spiel",g._archive_back);back.custom_minimum_size.x=345;list.add_child(back)
  var panel:=PanelContainer.new();panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);panel.offset_left=455;panel.offset_top=170;panel.offset_right=-65;panel.offset_bottom=-45
@@ -27,10 +30,10 @@ static func inventory(g: Node3D, selected: String="") -> void:
  var scroll:=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
  var article:=VBoxContainer.new();article.add_theme_constant_override("separation",22);article.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(article)
  var current:=selected
- if current not in g.archive.collected: current=g.archive.collected[0] if not g.archive.collected.is_empty() else ""
- if current=="":
-  var empty: Label=g._label("Noch keine Fundstücke",34,Color("3d392d"));empty.add_theme_font_override("font",g.title_font);article.add_child(empty)
-  var text: Label=g._paragraph("Halte nach alten Zeitungen und losen Zetteln Ausschau. Schau ein Fundstück an und drücke E, um es einzusammeln. Hier kannst du es anschließend erneut lesen.",22);text.custom_minimum_size.x=0;text.add_theme_color_override("font_color",Color("514b38"));article.add_child(text)
+ if current!="checklist" and current not in g.archive.collected: current=g.archive.collected[0] if not g.archive.collected.is_empty() else "checklist"
+ if current=="checklist":
+  g.archive_selected="checklist"
+  var notebook:=PatrolNotebook.new();notebook.name="PatrolNotebook";notebook.visited.assign(g.state.visited);notebook.round_number=mini(13,g.state.streak+1);notebook.finished=g.state.completed;notebook.custom_minimum_size=Vector2(900,760);notebook.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(notebook)
  else:
   g.archive_selected=current
   var doc:=ArchiveState.document(current)

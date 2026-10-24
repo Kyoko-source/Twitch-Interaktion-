@@ -31,6 +31,7 @@ var surface_sounds: Dictionary={}
 var surface_name:="concrete"
 var last_step_variant:=-1
 var footstep_count:=0
+var equipment: GuardEquipment
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -39,6 +40,7 @@ func _ready() -> void:
  camera=Camera3D.new();camera.fov=base_fov;camera.near=.06;camera.far=70;camera.position.y=1.65;add_child(camera)
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
  torch_body=GuardTorch.new();camera.add_child(torch_body);torch_body.build(lamp)
+ equipment=GuardEquipment.new();add_child(equipment);equipment.build(self)
  step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=load(FootSurfaces.ROOT+"footstep_concrete_000.ogg");step_player.volume_db=-19;add_child(step_player)
  crawl_sound=load("res://assets/ambience/crawl-contact.wav")
  for surface in FootSurfaces.TYPES:
@@ -61,6 +63,7 @@ func release() -> void:
  active=false;velocity=Vector3.ZERO;camera.rotation.z=0;camera.fov=base_fov;step_player.stop()
  jump_buffer=0;coyote=0
  torch_body.hide()
+ equipment.stop()
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -104,6 +107,7 @@ func _physics_process(delta: float) -> void:
  # Close jumping faces otherwise leave the narrow torch cone entirely. The
  # brief spill follows the existing scare pulse and returns to the normal beam.
  torch_body.tick(delta,lamp_on,fright)
+ equipment.tick(self,delta)
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
   if hit.get_normal().y>.6 and body.has_meta("bounce_speed"): bounce_speed=float(body.get_meta("bounce_speed"))
@@ -145,6 +149,7 @@ func play_step(landing: bool=false) -> void:
  step_player.volume_db=(-23 if crouching else -16 if landing else -20)+(-2 if surface_name=="metal" else 0)
  step_player.pitch_scale=randf_range(.88,.97) if landing else randf_range(.96,1.05)
  step_player.play()
+ if active: equipment.step(Vector2(velocity.x,velocity.z).length()>3.0,landing)
 
 func grab_prop() -> void:
  if is_instance_valid(carried): drop_prop();return

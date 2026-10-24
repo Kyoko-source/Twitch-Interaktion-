@@ -31,6 +31,7 @@ var archive: LostArchive
 var terrors: NightTerrors
 var server_room: ServiceRoom
 var polish: AfterPlayPolish
+var backstage: BackstageExpansion
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -136,6 +137,7 @@ func build() -> void:
  archive=LostArchive.new();add_child(archive);archive.build(self)
  polish=AfterPlayPolish.new();add_child(polish);polish.build(self)
  if native_art: native_art.finish()
+ backstage=BackstageExpansion.new();add_child(backstage);backstage.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -179,18 +181,24 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-10.2,3.7,-11.5),Vector3(.3,7.4,1.6),materials.wall,true)
  box(self,Vector3(-10.2,3.7,-7.675),Vector3(.3,7.4,2.85),materials.wall,true)
  box(self,Vector3(-10.2,4.95,-5.4),Vector3(.3,4.9,1.7),materials.wall,true)
- box(self,Vector3(-10.2,3.7,6.275),Vector3(.3,7.4,21.65),materials.wall,true)
+ # Real delivery corridor opening, separate from the decision doors.
+ box(self,Vector3(-10.2,3.7,1.975),Vector3(.3,7.4,13.05),materials.wall,true)
+ box(self,Vector3(-10.2,3.7,13.7),Vector3(.3,7.4,6.8),materials.wall,true)
+ box(self,Vector3(-10.2,5.1,9.4),Vector3(.3,4.6,1.8),materials.wall,true)
  box(self,Vector3(-10.2,4.95,-9.9),Vector3(.3,4.9,1.6),materials.wall,true)
  box(self,Vector3(19.8,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
  box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
- box(self,Vector3(6.7,3.7,-12.2),Vector3(26.2,7.4,.3),materials.wall,true)
+ box(self,Vector3(.2,3.7,-12.2),Vector3(13.2,7.4,.3),materials.wall,true)
+ box(self,Vector3(11.625,3.7,-12.2),Vector3(9.65,7.4,.3),materials.wall,true)
+ box(self,Vector3(18.975,3.7,-12.2),Vector3(1.65,7.4,.3),materials.wall,true)
+ box(self,Vector3(17.3,5.2,-12.2),Vector3(1.7,4.4,.3),materials.wall,true)
  box(self,Vector3(-7.9,5.05,-12.2),Vector3(3,4.7,.3),materials.wall,true)
  box(self,Vector3(-9.75,3.7,17.2),Vector3(.9,7.4,.3),materials.wall,true)
  box(self,Vector3(6.55,3.7,17.2),Vector3(26.5,7.4,.3),materials.wall,true)
  box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
-  for strip in ([Vector2(-11.5,1.3),Vector2(-7.675,2.85),Vector2(6.275,21.65)] if x<0 else [Vector2(2.4,29.1)]):
+  for strip in ([Vector2(-11.5,1.3),Vector2(-7.675,2.85),Vector2(1.975,13.05),Vector2(13.7,6.8)] if x<0 else [Vector2(2.4,29.1)]):
    box(self,Vector3(x,.12,strip.x),Vector3(.08,.23,strip.y),materials.dark)
    box(self,Vector3(x,1.1,strip.x),Vector3(.06,.045,strip.y),materials.teal)
  for z in [-10,-5,0,5,10,15]:
@@ -375,7 +383,7 @@ func _doors() -> void:
 
 func _details() -> void:
  # Plaques, paper forms, bins, inspection marks and handrails give scale.
- for z in [-8,-2,4,9]:
+ for z in [-8,-2,4,10.6]:
   box(self,Vector3(-9.99,2.9,z),Vector3(.045,.28,.14),materials.metal)
   lamp(Vector3(-9.75,2.9,z),Color("e8cf9b"),.35,3.5)
  for z in [2,6]:
@@ -390,7 +398,7 @@ func _details() -> void:
  for i in range(4): tube(counter,Vector3(.18+i*.02,1.05,.68),Vector3(.18+i*.02,1.25,.68),.005,materials.gold if i%2 else materials.red)
  tube(self,Vector3(-8.1,0,8.7),Vector3(-8.1,.55,8.7),.23,materials.dark)
  var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
- for z in [9.5]:
+ for z in [14.7]:
   mounted_sign(self,"rules",Vector3(-9.96,1.95,z),Vector2(.65,.4),PI/2)
  # Keep the cable run above the archive lintel, never across the moving leaf.
  for y in [3.7]:
@@ -407,6 +415,7 @@ func set_anomaly(id: String) -> void:
  atmosphere.anomaly(id)
  encounters.configure(id)
  terrors.configure(id)
+ backstage.configure(id)
  if native_art: native_art.anomaly(id)
  # Fresh world per round means every normal state starts from the exact same layout.
  if id=="chair_ceiling":
@@ -453,6 +462,7 @@ func brightness(value: float) -> void:
 func quality(value: int) -> void:
  atmosphere.quality(value)
  if native_art: native_art.quality(value)
+ backstage.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:

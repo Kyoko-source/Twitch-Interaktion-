@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.6.0
+# After Play — Veröffentlichungsvorbereitung 2.7.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.6.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.6.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v2.7.0.zip`. Enthält `AfterPlay.exe`, Intro-Aufnahme, Anleitung und Quellen-/Lizenzhinweise. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v2.7.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -17,14 +17,17 @@ Nachts gehört das verlassene Happyland dir. Dein Chef hat eine einfache Aufgabe
 
 Keine Veränderung? Nimm die grüne Tür. Eine Anomalie? Nimm die rote Tür. Triff dreizehn richtige Entscheidungen in Folge. Eine falsche Tür beendet deine Nachtschicht.
 
-Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 58 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
+Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 61 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
 
 Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland. Wer ihre Hinweise versteht, findet einen zusätzlichen Raum und ein verborgenes Ende.
 
 ### Merkmale
 
 - Ego-Horror mit frei begehbarer 3D-Umgebung, Springen, Krabbeln und physischen Spielzeugen.
-- Zufällige Anomalien, kurze Verfolgungen und Schreckmomente.
+- 61 zufällige Anomalien, kurze Verfolgungen und Schreckmomente.
+- Eine verlassene Geburtstagsbühne, ein begehbarer Kostümraum und lesbare Wartungsberichte.
+- Persönliche Nachtdienst-Ausrüstung und unterschiedliche Lichtstimmungen pro Raum.
+- Zurückhaltendes HUD; handschriftliche Kontrollliste im pausierbaren Inventar.
 - Räumliche Geräusche und Schritte passend zu Beton, Teppich, Metall, Holz, Kunststoff und Polstern.
 - Windows-Grafik mit indirekter Beleuchtung, Schatten und dichtem Nebel.
 - Deutsche Texte und deutsche Sprachaufnahmen.

@@ -1,0 +1,15 @@
+{
+  "keys.wav": {
+    "source": "https://bigsoundbank.com/heavy-chain-s0359.html",
+    "author": "Joseph SARDIN",
+    "license": "CC0-1.0",
+    "source_file": "assets/ambience-v180/chain.wav",
+    "source_sha256": "244fdf75676494bfca8408c079ca99dd01adcbc5ef4e96d27b1742a9866241fb",
+    "sha256": "43d3461fc9b9dffdca7e40993c302c85aa65d2359fc9950f99290d4add4e101a",
+    "processing": {
+      "start_seconds": 0.14,
+      "length_seconds": 0.25,
+      "ffmpeg_filter": "asetrate=70400,aresample=32000,highpass=f=1600,lowpass=f=9500,afade=t=out:st=0.10:d=0.06,volume=0.6"
+    }
+  }
+}

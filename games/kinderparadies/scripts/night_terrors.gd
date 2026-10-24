@@ -3,6 +3,7 @@ extends Node3D
 
 # Every encounter has a distinct physical anchor and a bounded, one-shot timeline.
 const SCENARIOS:={
+ "throne_guest":{"p":Vector3(13.4,.20,-10.97),"mode":"throne","zone":"Party Raum","sound":"crowd-burst"},
  "reception_counter_burst":{"p":Vector3(-6.9,0,2.8),"mode":"ambush","zone":"Empfang","sound":"gasp-snap"},
  "reception_overhead":{"p":Vector3(-4.8,3.2,6.7),"mode":"drop","zone":"Empfang","sound":"metal-shriek"},
  "pit_runner":{"p":Vector3(5.2,.31,6.2),"mode":"rush","zone":"Bällebad","sound":"bass-roar"},
@@ -73,7 +74,7 @@ func configure(value: String) -> void:
  var track: String=spec.get("sound","window-hit" if spec.mode in ["hands","window"] else "gasp-snap" if spec.mode in ["peek","mouth"] else "metal-shriek" if spec.mode in ["ceiling","vent"] else "crowd-burst" if spec.mode=="queue" else "crawl-scream" if spec.mode in ["crawl","tube"] else "ragged-scream")
  audio.stream=load("res://assets/scares-v260/"+track+".wav");audio.pitch_scale=1.0
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
- visual=(load("res://assets/creatures/night-visitor-v21.glb") as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
+ visual=(load("res://assets/backstage-v270/seated-visitor.glb" if spec.mode=="throne" else "res://assets/creatures/night-visitor-v21.glb") as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
  for mesh in visual.find_children("*","MeshInstance3D",true,false):
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for surface in range(mesh.mesh.get_surface_count()):
@@ -107,6 +108,8 @@ func configure(value: String) -> void:
   visual.rotation.z=PI;shape.disabled=true
   tether=w.tube(self,Vector3(origin.x,7.29,origin.z),origin,.007,w.materials.dark)
  if spec.mode=="ambush": actor.hide()
+ if spec.mode=="throne":
+  shape.disabled=true
  if spec.mode in ["ambush","rush","drop"]:
   warning_light=OmniLight3D.new();warning_light.light_color=Color("bba788");warning_light.light_energy=0;warning_light.omni_range=2.8;warning_light.position=Vector3(0,1.6,.8);actor.add_child(warning_light)
  if spec.mode=="queue":
@@ -159,6 +162,7 @@ func focus_point() -> Vector3:
  if spec.mode=="window": target=actor.position
  if spec.mode in ["ceiling","drop"]: target=actor.position-Vector3(0,1.6,0)
  if spec.mode=="vent": target=w.room_horror.creature.position+Vector3(0,-1.5,.7)
+ if spec.mode=="throne": target=actor.position+Vector3(0,1.87,0)
  return target
 
 func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
@@ -180,6 +184,11 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
    finished=true
    # Hold the contorted visitor as an unmistakable clue, never replay the sting.
    visual.rotation.z=.17;visual.position.y-=.12
+ elif spec.mode=="throne":
+  var pulse:=sin(clampf(attack/.75,0,1)*PI)
+  visual.position.z=pulse*.47;visual.rotation.x=pulse*.32;visual.rotation.z=.18*clampf(attack,0,1)
+  for arm in arms: arm.rotation.x=-pulse*.8
+  if attack>1.3: finished=true
  elif spec.mode=="drop":
   # A quick fall followed by a crooked suspended pose; no player overlap.
   var pulse:=sin(clampf(attack/.72,0,1)*PI*.5)

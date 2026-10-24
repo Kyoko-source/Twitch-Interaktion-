@@ -51,7 +51,7 @@ func decal(parent: Node3D, cell: int, pos: Vector3, size: Vector2, rotation_valu
 func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
-   if side<0 and i in [0,1,2]: continue # The archive opening cannot carry a wall decal.
+   if side<0 and i in [0,1,2,6]: continue # Archive and delivery openings cannot carry wall decals.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  # First segment is now the annex opening; never hang a decal in its doorway.
  for i in range(1,5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
@@ -176,9 +176,9 @@ func _plush_corner() -> void:
  for y in [.8,1.05]: w.box(bench,Vector3(0,y,.26),Vector3(3,.12,.065),w.materials.wood)
  var bunny:=plush(self,Vector3(-3.35,.62,4.85),1.08);bunny.rotation.y=-PI/2;horrors.bunny=bunny
  # Dried plant with curled individual leaves.
- w.tube(self,Vector3(-9.1,.05,8.9),Vector3(-9.1,.5,8.9),.27,w.materials.rust)
+ w.tube(self,Vector3(-9.3,.05,15.3),Vector3(-9.3,.5,15.3),.27,w.materials.rust)
  for i in range(13):
-  var a:=i*2.4;var start:=Vector3(-9.1,.45,8.9);var end:=start+Vector3(sin(a)*.48,.5+(i%4)*.12,cos(a)*.48)
+  var a:=i*2.4;var start:=Vector3(-9.3,.45,15.3);var end:=start+Vector3(sin(a)*.48,.5+(i%4)*.12,cos(a)*.48)
   w.tube(self,start,end,.008,w.materials.wood)
   var leaf:=w.sphere(self,end,.12,w.materials.fabric);leaf.scale=Vector3(.35,1.7,.12);leaf.rotation.z=sin(a)*.8
 

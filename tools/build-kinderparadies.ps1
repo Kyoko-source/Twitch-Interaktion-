@@ -98,15 +98,22 @@ foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/kitchen-v260/LICENSE.txt') -Destination (Join-Path $taskPackage 'Kitchen-v260-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/scares-v260/LICENSE.txt') -Destination (Join-Path $taskPackage 'Scares-v260-License.txt') -Force
 Copy-Item -LiteralPath (Join-Path $taskProject 'assets/scares-v260/provenance.json') -Destination (Join-Path $taskPackage 'Scares-v260-Provenance.json') -Force
-$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.6.0.zip'
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/backstage-v270/LICENSE.txt') -Destination (Join-Path $taskPackage 'Backstage-v270-License.txt') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/backstage-v270/provenance.json') -Destination (Join-Path $taskPackage 'Backstage-v270-Provenance.json') -Force
+Copy-Item -LiteralPath (Join-Path $taskProject 'assets/backstage-v270/Caveat-OFL.txt'),(Join-Path $taskProject 'assets/backstage-v270/Caveat-source.json') -Destination $taskPackage -Force
+$taskZip=Join-Path $taskProject 'build/after-play-windows-v2.7.0.zip'
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPackage | Select-Object -ExpandProperty FullName) -DestinationPath $taskZip -Force
-$taskWebZip=Join-Path $taskProject 'build/after-play-web-v2.6.0.zip'
+$taskWebZip=Join-Path $taskProject 'build/after-play-web-v2.7.0.zip'
+# Carry the same standalone licenses and provenance into the browser package.
+# Keep walkthroughs and development documentation out of the public Web root.
+$taskNotices=Get-ChildItem -LiteralPath $taskPackage -File | Where-Object {$_.Extension -in @('.txt','.json')}
+foreach($taskTarget in @('build/web','build/qa')){Copy-Item -LiteralPath $taskNotices.FullName -Destination (Join-Path $taskProject $taskTarget) -Force}
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath (Join-Path $taskProject 'build/web') -File | Select-Object -ExpandProperty FullName) -DestinationPath $taskWebZip -Force
 $taskWeb=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 New-Item -ItemType Directory -Force -Path $taskWeb,$taskDownloads | Out-Null
 Copy-Item -Path (Join-Path $taskProject 'build/web/*') -Destination $taskWeb -Force
 Copy-Item -LiteralPath $taskZip,$taskWebZip -Destination $taskDownloads -Force
-$taskManifest=[ordered]@{version='2.6.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version='2.7.0';engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskWeb 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskWeb 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskProject 'build/release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Built native Windows and Web releases: $taskZip"

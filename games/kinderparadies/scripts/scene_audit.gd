@@ -66,6 +66,7 @@ static func placement(w: PlayWorld) -> Dictionary:
  # Actual visible mesh bounds, including purely decorative geometry. Floors,
  # door frames and the interactive door leaves sit outside these swept volumes.
  var passages: Array[Dictionary]=[
+  {"name":"Kostümraum","box":AABB(Vector3(16.67,.30,-12.63),Vector3(1.26,2.25,.86))},
   {"name":"Party Raum","box":AABB(Vector3(6.39,.09,-9.43),Vector3(.82,2.25,1.46))},
   {"name":"Wartungsraum","box":AABB(Vector3(-10.62,.09,-6.12),Vector3(.84,2.25,1.44))},
   {"name":"Küche","box":AABB(Vector3(-9.81,.09,-18.40),Vector3(.82,2.25,1.50))},
@@ -76,6 +77,7 @@ static func placement(w: PlayWorld) -> Dictionary:
   {"name":"Grüne Tür","box":AABB(Vector3(-4.95,.09,-11.52),Vector3(1.3,2.25,1.2))},
   {"name":"Rote Tür","box":AABB(Vector3(-2.80,.09,-11.52),Vector3(1.3,2.25,1.2))}]
  if w.archive.leaf.rotation.y< -1.5: passages.append({"name":"Offene Archivtür","box":AABB(Vector3(-10.62,.09,-10.58),Vector3(.84,2.25,1.36))})
+ if w.backstage.exit_leaf.rotation.y>1.45: passages.append({"name":"Lieferausgang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
  var blocked: Array[String]=[];var art: Array[MeshInstance3D]=[];var furniture: Array[String]=[];var walls: Array[AABB]=[]
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   if mesh.has_meta("architecture_wall"): walls.append(mesh.global_transform*mesh.get_aabb())

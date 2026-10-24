@@ -1,0 +1,10 @@
+After Play 2.7.0 backstage props
+Original geometry created for Kyoko / After Play, including the seated adaptation of the original night visitor.
+Reproducible with tools/model-after-play-backstage-v270.py (Blender 4.5 and ffmpeg).
+Runtime materials reuse the project original textures and its attributed CC0 Poly Haven maps.
+No third-party mesh, trademark or character was used.
+
+keys.wav: derivative of Heavy Chain by Joseph SARDIN / BigSoundBank, CC0-1.0.
+https://bigsoundbank.com/heavy-chain-s0359.html
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Processed to a short, quiet keyring sound; provenance and hashes in provenance.json.

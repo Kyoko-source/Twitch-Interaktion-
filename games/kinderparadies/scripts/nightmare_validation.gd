@@ -4,7 +4,7 @@ func run(game: Node3D, verify: Callable) -> void:
  var ids: Array[String]=[];var zones: Dictionary={}
  for anomaly in PatrolState.ANOMALIES:
   ids.append(anomaly.id);zones[anomaly.zone]=zones.get(anomaly.zone,0)+1
- verify.call(ids.size()==58 and NightTerrors.SCENARIOS.size()==33,"Expanded catalog must provide 58 anomalies including 33 distinct encounter placements")
+ verify.call(ids.size()==61 and NightTerrors.SCENARIOS.size()==34,"Expanded catalog must provide 61 anomalies including 34 visitor placements")
  verify.call(zones.size()==7 and zones["Küche"]>=3 and zones["Kino"]>=3 and zones["Krabbelröhre"]>=2,"New encounters are not spread across the annex and tunnel")
  var legacy:=PatrolState.new();legacy.start(21)
  for retired in PatrolState.REPLACEMENTS:

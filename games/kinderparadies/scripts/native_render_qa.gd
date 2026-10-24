@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v270-qa" in OS.get_cmdline_user_args():
+  await v270_views(game,output);game._quit();return
  if "--v260-qa" in OS.get_cmdline_user_args():
   await v260_views(game,output);game._quit();return
  if "--menu-only" in OS.get_cmdline_user_args():
@@ -539,6 +541,34 @@ func finale_views(game: Node3D, output: String) -> void:
  game.end_credits.tick(16);await game.get_tree().process_frame;await capture(game,output,"credits-testers")
  var report:={"entered":entered,"creator_access":game.archive.creator_access,"papers":game.archive.collected,"recorder_target":target,"recording_pause":paused,"duration":game.world.archive.finale.duration,"full_recording": "--fast-finale-qa" not in OS.get_cmdline_user_args(),"listened_seconds":wait_clock,"armed_after_audio":listened,"ending":game.phase,"end_word":word,"credits":game.end_credits.snapshot(),"finale":game.world.archive.finale.snapshot()}
  var file:=FileAccess.open(output.path_join("finale-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("ARCHIVE FINALE QA ",JSON.stringify(report))
+
+func v270_views(game: Node3D, output: String) -> void:
+ await game.get_tree().create_timer(1).timeout;await capture(game,output,"menu-v270")
+ game._new_shift();game.intro.skip();game._build_world("none");game._resume();game.player.active=false
+ for shot in [
+  {"name":"birthday-stage","p":Vector3(14.0,0,-6.1),"look":Vector3(14.2,2.2,-11.3)},
+  {"name":"throne-close","p":Vector3(13.4,.2,-8.9),"look":Vector3(13.4,1.95,-11.0)},
+  {"name":"backstage-door","p":Vector3(17.3,0,-8.6),"look":Vector3(17.3,1.5,-14.9)},
+  {"name":"costume-room","p":Vector3(17.3,.2,-13.3),"look":Vector3(14.5,1.9,-17.7)},
+  {"name":"maintenance-story","p":Vector3(-12.9,0,-4.4),"look":Vector3(-13.55,1.8,-6.8)},
+  {"name":"dented-locker","p":Vector3(-11.9,0,-4.6),"look":Vector3(-11.45,1.25,-2.5)},
+  {"name":"kitchen-palette","p":Vector3(-10.5,0,-17.3),"look":Vector3(-15.1,1.1,-19.0)},
+  {"name":"cinema-palette","p":Vector3(-5.5,0,-17.65),"look":Vector3(2.6,1.7,-17.65)},
+  {"name":"delivery-door","p":Vector3(-7.9,0,9.4),"look":Vector3(-10.2,1.6,9.4)}]:
+  game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
+  await game.get_tree().create_timer(.75).timeout;await capture(game,output,shot.name)
+ print("V270 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
+ game.archive_selected="checklist";game._inventory();await game.get_tree().process_frame;await capture(game,output,"handwritten-notebook")
+ game._equipment_card();await game.get_tree().process_frame;await capture(game,output,"personal-equipment")
+ game._build_world("false_exit");game._resume();game.player.active=false
+ game.player.position=Vector3(-8.8,0,9.4);game.player.camera.look_at(Vector3(-14,1.5,9.4));game.world.backstage.interact_exit(game.player)
+ await game.get_tree().create_timer(1.2).timeout;await capture(game,output,"impossible-clean-exit")
+ await game.get_tree().create_timer(3.6).timeout;game.world.backstage.interact_exit(game.player)
+ await game.get_tree().create_timer(1.2).timeout;await capture(game,output,"decayed-exit")
+ for spec in [{"id":"throne_guest","p":Vector3(13.4,.2,-8.6),"target":Vector3(13.4,2.15,-10.75)},{"id":"costume_wakes","p":Vector3(16.1,.2,-15.1),"target":Vector3(16.18,2.26,-18.02)}]:
+  game._build_world(spec.id);game._resume();game.player.active=false;game.player.position=spec.p;game.player.camera.look_at(spec.target)
+  await game.get_tree().create_timer(1.15).timeout;await capture(game,output,spec.id)
+ print("V270 RENDER COMPLETE")
 
 func v260_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(2).timeout;await capture(game,output,"main-menu-v260")

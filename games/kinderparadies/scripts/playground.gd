@@ -135,7 +135,7 @@ func _party_dressing() -> void:
   var page:=w.box(party,Vector3(x,.7,z+.15),Vector3(.25,.006,.2),w.materials.paper);page.rotation.y=i*.32
   for j in range(3): w.tube(party,Vector3(x-.09+j*.06,.715,z+.1),Vector3(x-.03+j*.06,.715,z+.2),.004,[w.materials.gold,w.materials.blue,w.materials.red][j])
  for i in range(7):
-  var pos:=Vector3(17.2+(i%2)*.8,.25+floori(i/6.0)*.48,-10.3+(i%3)*.56)
+  var pos:=Vector3(18.72+(i%2)*.55,.25+floori(i/6.0)*.48,-9.1+(i%3)*.56)
   var gift:=w.box(party,pos,Vector3(.62,.48,.52),[w.materials.blue,w.materials.gold,w.materials.red][i%3],true)
   w.box(gift,Vector3(0,.25,0),Vector3(.075,.012,.53),w.materials.cream)
   w.box(gift,Vector3(0,.25,0),Vector3(.63,.013,.075),w.materials.cream)
@@ -146,7 +146,7 @@ func _party_dressing() -> void:
   var x:=7.2+i*.53;var y:=4.6-sin(i/21.0*PI)*.5
   w.tube(party,Vector3(x,y,-9.8),Vector3(x+.53,y-.01,-9.8),.006,w.materials.stitch)
   var flag:=w.box(party,Vector3(x,y-.16,-9.8),Vector3(.32,.32,.012),[w.materials.red,w.materials.gold,w.materials.teal][i%3]);flag.rotation.z=sin(i)*.2
- w.mounted_sign(party,"birthday",Vector3(14,3.6,-11.95),Vector2(2.5,1.05))
+ w.mounted_sign(party,"birthday",Vector3(13.4,4.75,-11.95),Vector2(2.5,.85))
  # A second, lower activity table with child-sized stools gives the wider room
  # a distinct craft corner rather than merely stretching its walls.
  w.tube(party,Vector3(13.7,.58,-3.8),Vector3(13.7,.66,-3.8),1.1,w.materials.cream)
@@ -161,8 +161,8 @@ func _party_dressing() -> void:
   var x:=13.1+(i%3)*.45;var z:=-4.2+(i/3)*.5
   var page:=w.box(party,Vector3(x,.67,z),Vector3(.28,.005,.32),w.materials.paper);page.rotation.y=i*.47
   w.tube(party,Vector3(x-.1,.68,z-.08),Vector3(x+.1,.68,z+.1),.008,w.materials.red)
- for i in range(5):
-  w.painting(party,(i+1)%4,Vector3(10.6+i*1.75,2.1,-11.95),Vector2(1.15,.95))
+ # The stage owns the north wall; no old frames cover the new opening.
+ w.painting(party,2,Vector3(10.15,2.1,-11.95),Vector2(1.05,.95))
  # Layered table runner and rounded serving trays give the preparation area purpose.
  w.box(party,Vector3(15,.695,-7.6),Vector3(.7,.014,1.23),w.materials.fabric)
  for z in [-8,-7.25]:
