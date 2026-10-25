@@ -159,4 +159,4 @@ func snapshot() -> Dictionary:
  for id in items:
   if is_instance_valid(items[id]) and items[id].visible:
    var p: Vector3=items[id].global_position;visible.append({"id":id,"position":[p.x,p.y,p.z]})
- return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"target_angle":target_angle,"recording_locked":playback_locked(),"unlocked":progress.unlocked,"collected":progress.collected,"creator_access":progress.creator_access,"finale":finale.snapshot()}
+ return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"target_angle":target_angle,"recording_locked":playback_locked(),"unlocked":progress.unlocked,"collected":progress.collected,"finale":finale.snapshot()}

@@ -4,10 +4,10 @@ $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskBuild=Join-Path $taskRepo 'games/kinderparadies/build'
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
-foreach($taskFile in @('web/index.html','web/index.pck','web/index.wasm','after-play-windows-v2.8.0.zip','after-play-web-v2.8.0.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-$taskStage=Join-Path $taskBuild 'release-stage-v2.8.0'
+foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm','after-play-windows-v2.8.0.zip','after-play-web-v2.8.0.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
+$taskStage=Join-Path $taskBuild ('release-stage-v2.8.0-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'web'),(Join-Path $taskStage 'downloads') | Out-Null
-Copy-Item -Path (Join-Path $taskBuild 'web/*') -Destination (Join-Path $taskStage 'web') -Force
+Copy-Item -Path (Join-Path $taskBuild 'browser-package/*') -Destination (Join-Path $taskStage 'web') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v2.8.0.zip'),(Join-Path $taskBuild 'after-play-web-v2.8.0.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
 $taskRows=Get-ChildItem -LiteralPath $taskStage -Recurse -File | Where-Object {$_.Name -ne 'SHA256SUMS'} | ForEach-Object {
  $taskRelative=$_.FullName.Substring($taskStage.Length+1).Replace('\','/')

@@ -134,7 +134,7 @@ func v250_views(game: Node3D, output: String) -> void:
  game._main_menu();await game.get_tree().create_timer(.3).timeout;await capture(game,output,"main-menu")
  game._settings("menu");await game.get_tree().process_frame;await capture(game,output,"settings")
  await polish_v240_views(game,output)
- game.archive.try_code("0712");game.world.archive.open();game.world.archive.tick(3,true)
+ game.archive.collected.assign(ArchiveState.PAPERS);game.archive.try_code("6428");game.world.archive.open();game.world.archive.tick(3,true)
  game.player.position=Vector3(-11.3,0,-9.9);game.player.velocity=Vector3.ZERO;game.player.camera.look_at(ArchiveFinale.RECORDER)
  var finale: ArchiveFinale=game.world.archive.finale;finale.interact()
  var views: Array=[]
@@ -516,7 +516,7 @@ func presentation_views(game: Node3D, output: String) -> void:
  var file:=FileAccess.open(output.path_join("presentation-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("PRESENTATION QA ",JSON.stringify(report))
 
 func finale_views(game: Node3D, output: String) -> void:
- game._new_shift();game.intro.skip();game._open_archive_lock();game.archive_input="0712";game._submit_archive_code()
+ game._new_shift();game.intro.skip();game.archive.collected.assign(ArchiveState.PAPERS);game._open_archive_lock();game.archive_input="6428";game._submit_archive_code()
  await game.get_tree().create_timer(2.3).timeout
  game.player.position=Vector3(-8.7,0,-9.9);game.player.rotation.y=PI/2;game.player.camera.rotation=Vector3.ZERO;Input.action_press("forward")
  for frame in range(95): await game.get_tree().physics_frame
@@ -542,7 +542,7 @@ func finale_views(game: Node3D, output: String) -> void:
  var word: bool=is_instance_valid(game.end_credits) and game.end_credits.snapshot().end_word
  game.end_credits.tick(12);await game.get_tree().process_frame;await capture(game,output,"credits-kyoko")
  game.end_credits.tick(16);await game.get_tree().process_frame;await capture(game,output,"credits-testers")
- var report:={"entered":entered,"creator_access":game.archive.creator_access,"papers":game.archive.collected,"recorder_target":target,"recording_pause":paused,"duration":game.world.archive.finale.duration,"full_recording": "--fast-finale-qa" not in OS.get_cmdline_user_args(),"listened_seconds":wait_clock,"armed_after_audio":listened,"ending":game.phase,"end_word":word,"credits":game.end_credits.snapshot(),"finale":game.world.archive.finale.snapshot()}
+ var report:={"entered":entered,"papers":game.archive.collected,"recorder_target":target,"recording_pause":paused,"duration":game.world.archive.finale.duration,"full_recording": "--fast-finale-qa" not in OS.get_cmdline_user_args(),"listened_seconds":wait_clock,"armed_after_audio":listened,"ending":game.phase,"end_word":word,"credits":game.end_credits.snapshot(),"finale":game.world.archive.finale.snapshot()}
  var file:=FileAccess.open(output.path_join("finale-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("ARCHIVE FINALE QA ",JSON.stringify(report))
 
 func v270_views(game: Node3D, output: String) -> void:

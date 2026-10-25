@@ -1,0 +1,33 @@
+AFTER PLAY - Autoren und Lizenzen
+
+Spiel und eigene Inhalte: Kyoko / After Play.
+Die folgenden Lizenzen gelten jeweils für die genannten Bestandteile, nicht pauschal für das gesamte Spiel.
+
+ENGINE
+Godot Engine 4.6.2: MIT-Lizenz. Vollständiger Lizenztext und Hinweise auf enthaltene Bibliotheken: Godot-LICENSE.txt und Godot-COPYRIGHT.txt.
+
+3D-MODELLE UND OBERFLÄCHEN
+Infinite, 3D Head Scan: Lee Perry-Smith / triplegangers.com, Creative Commons Attribution 3.0 Unported.
+https://creativecommons.org/licenses/by/3.0/
+Der Scan und seine Normalmap wurden für Figuren in diesem Spiel bearbeitet: veränderte Proportionen, Ausschnitte, deformierte Gesichtszüge, Mund- und Augenhöhlen, eigene Farbgebung und zusätzliche Geometrie. Weitere Originalangaben: Lee-Perry-Smith.txt.
+
+Modelle und fotografische Oberflächen von Poly Haven: CC0 1.0.
+https://polyhaven.com/license
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Einzelne Quellen stehen in Quellen.txt. Weitere Geometrie und Materialien wurden für dieses Projekt erstellt.
+
+GERÄUSCHE
+Kenney Impact Sounds: Kenney, CC0. Originalhinweise: Kenney.txt.
+Aufnahmen von BigSoundBank: Joseph SARDIN; Türgeräusche teilweise mit Axeline T. CC0 1.0.
+Kreaturengeräusche: A New Room, veröffentlicht von qubodup, CC0 1.0.
+https://opengameart.org/content/evil-creature
+Die Aufnahmen wurden für das Spiel teilweise geschnitten, gefiltert, in Tonhöhe und Lautstärke angepasst und gemischt. Quellen: Quellen.txt.
+
+SCHRIFTEN
+Oswald, Bodoni Moda und Caveat: SIL Open Font License 1.1.
+Vollständige Copyright- und Lizenztexte: Oswald-OFL.txt, BodoniModa-OFL.txt, Caveat-OFL.txt.
+
+MUSIK, SPRACHE UND BILDER
+Hauptmenü: Abandoned Arcade, Künstlerangabe in der bereitgestellten Aufnahme: turbulentmicrogenres466.
+Musik und Sprachaufnahmen wurden vom Spieleersteller zur Verwendung in After Play bereitgestellt. Sie werden durch die obigen CC0-Lizenzen nicht freigegeben.
+Illustrationen, fiktive Archivbilder und einzelne Effekttexturen wurden für dieses Projekt mit KI-Werkzeugen erstellt. Sie zeigen keine dokumentierten realen Ereignisse.

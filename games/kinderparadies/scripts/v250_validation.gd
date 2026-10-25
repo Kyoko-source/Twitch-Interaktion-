@@ -19,7 +19,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(layout.doors.is_empty(),"Decorative geometry crosses a real door opening: "+str(layout.doors))
  verify.call(layout.art.is_empty(),"Wall pictures overlap: "+str(layout.art))
  verify.call(layout.furniture.is_empty(),"Freestanding furniture intersects an architectural wall: "+str(layout.furniture))
- game.archive.try_code("0712");game.world.archive.open();game.world.archive.tick(3,true)
+ game.archive.collected.assign(ArchiveState.PAPERS);game.archive.try_code("6428");game.world.archive.open();game.world.archive.tick(3,true)
  layout=SceneAudit.placement(game.world)
  verify.call(layout.doors.is_empty(),"The open archive doorway is obstructed: "+str(layout.doors))
  var memories: ArchiveMemories=game.memories

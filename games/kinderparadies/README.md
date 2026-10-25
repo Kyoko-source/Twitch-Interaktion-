@@ -47,10 +47,21 @@ Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
 `build/after-play-windows-v2.8.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
+Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
+erstellt. Windows enthält ausschließlich `AfterPlay.exe`, `STARTEN.txt` und
+`Lizenzen/`. Die Aufnahme ist in der EXE eingebettet. Interne Anomalienlisten,
+Veröffentlichungsentwürfe, Prompts und technische Provenienzdateien bleiben im
+Projekt. Das öffentliche Web-Paket wird aus einer festen Liste der benötigten
+Engine-Dateien aufgebaut; auch dort liegen Nachweise nur in `Lizenzen/`.
+Für Deployment und Browser-ZIP ist `build/browser-package/` maßgeblich, nicht
+der rohe Exportordner `build/web/`. Jeder Paketlauf leert nur die dafür
+vorgesehenen generierten Ausgabeverzeichnisse und lehnt Verzeichnislinks ab.
+
 `Godot_v4.6.2-stable_win64_console.exe --headless --path games/kinderparadies -- --self-test`
 prüft Logik, Save/Restore, alle Anomalien, Bewegung, Boden und beide Tür-Raycasts.
-Auch die exportierte EXE unterstützt denselben isolierten Testmodus:
-`AfterPlay.exe --headless -- --self-test`. Tests verwenden eigene QA-Spielstände.
+Tests verwenden eigene QA-Spielstände. Die öffentliche EXE enthält keine
+Testskripte und ignoriert die früheren Test-Startargumente. Für die gezielte
+Archivprüfung im Editor-Binary zusätzlich `--release-only` verwenden.
 
 Browserprüfungen: eigener lokaler HTTP-Server für `build/qa`, dann im Frontend
 `NACHTWACHE_QA_URL=http://127.0.0.1:4188 npx playwright test nachtwatch.spec.mjs`.
@@ -448,10 +459,8 @@ Raum werden fortgesetzt. Geräusche pausieren beim Lesen und im Pausenmenü.
 
 ## Archivfinale und Erstellerzugang (2.2.0)
 
-Der zusätzliche Code `0712` öffnet das Archiv bereits im ersten Rundgang,
-auch ohne Zeitungen. `6428` bleibt die reguläre Lösung und benötigt weiterhin
-alle vier Zeitungen. Der Erstellerzugang wird mit dem Spielstand gespeichert.
-Eine neue Schicht oder Tod setzt ihn zusammen mit der Sammlung zurück.
+Der frühere Erstellerzugang ist seit der bereinigten Spielerfassung entfernt.
+Das Archiv benötigt die vier Zeitungen und den regulären Rätselcode.
 
 Im Archiv liegen angekettete erwachsene Skelettreste und ein Kassettengerät.
 E startet die vollständige Aufnahme aus „Horror Audio Marelle.wma“ (etwa 4:40).
@@ -533,7 +542,7 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Die großen Figuren sind jetzt vom vorhandenen kleinen Stoffhasen abgeleitet: dieselben texturierten Plüsch- und Stoffoberflächen, dünne anliegende Nähte und ein echter Riss durch den Bauchflicken. Dunkles Innenfutter, ausgefranste Stoffränder und unregelmäßige Füllwatte ersetzen die alte aufgesetzte Wunde und die langen, stacheligen Fellfasern. Die Originalfigur auf der Bank bleibt erhalten.
 - Ein zusätzlicher großer Hase steht rechts nach dem Betreten des Party Raums. Beide großen Hasen gehören zur normalen Umgebung und sind keine Anomalien. Das Wandbild wurde etwas nach links verschoben und verkleinert; sein Anomalie-Auslöser folgt ihm. Regal und Sideboard lassen Abstand zu den Pfoten und zu den Laufwegen.
 - Windows verwendet etwas dichteren beleuchteten Volumen- und Bodennebel. Der Grundnebel der Web-Fassung ist ebenfalls leicht erhöht. Normale Nebelfarbe, Zeitungsrunden und Anomalie-Regeln bleiben gleich.
-- Menümusik, Archivaufnahme, Erstellercode 0712 und Credits bleiben erhalten. Modelle und Bildnachweise: assets/mascot-v251/LICENSE.txt; reproduzierbare Geometrie: tools/model-after-play-mascot-v251.py.
+- Menümusik, Archivaufnahme, Credits und der reguläre Archivzugang bleiben erhalten. Modelle und Bildnachweise: assets/mascot-v251/LICENSE.txt; reproduzierbare Geometrie: tools/model-after-play-mascot-v251.py.
 
 
 ## Rückkehr, Küche und Schreckmomente (2.6.0)
@@ -584,3 +593,7 @@ Der neue Flurangreifer verwendet einen verformten 3D-Kopfscan von Lee Perry-Smit
 Quelle, Bearbeitungen und Lizenz: assets/passage-v280; reproduzierbar über
 tools/model-after-play-passage-v280.py. Schrei und Angriff respektieren die
 eingestellte Gesamtlautstärke.
+
+## Bereinigte Spielerfassung (2.8.0)
+
+Der frühere Erstellercode ist entfernt. Das Archiv benötigt ausschließlich die vier Zeitungen und den regulären Rätselcode. Alte Spielstände, die nur per Erstellercode geöffnet wurden, gewähren keinen Zugang mehr. Kommandozeilen-Testhelfer sind auf Editor und QA-Builds begrenzt. Entwicklungsunterlagen bleiben im Repository und gehören nicht in Spieler-Downloads.

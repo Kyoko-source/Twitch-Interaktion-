@@ -1,0 +1,25 @@
+AFTER PLAY
+
+1. Das gesamte ZIP-Archiv in einen eigenen Ordner entpacken.
+2. AfterPlay.exe doppelklicken.
+
+Windows 64 Bit. Das Spiel funktioniert nach dem Download auch offline.
+Musik, Stimmen und Spieldaten sind bereits in der EXE enthalten.
+Einstellungen und Spielstand werden automatisch in deinem Windows-Benutzerprofil gespeichert.
+
+STEUERUNG
+WASD / Pfeiltasten: bewegen
+Maus: umsehen
+Leertaste: springen / im Intro gedrückt halten zum Überspringen
+Umschalt: rennen
+C: ducken
+G: aufheben / loslassen
+Linke Maustaste: gehaltenen Gegenstand werfen
+F: Taschenlampe
+E: interagieren
+TAB: Inventar
+ESC: Pause und Einstellungen
+F11: Vollbild
+
+Ein Spiel von Kyoko.
+Autoren- und Lizenznachweise findest du im Ordner Lizenzen.

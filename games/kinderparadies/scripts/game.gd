@@ -1,7 +1,8 @@
 extends Node3D
 
-var SAVE := "user://qa-nachtwache-save.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-save.json" if "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-save.json"
-var SETTINGS := "user://qa-nachtwache-settings.json" if "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-settings.json" if "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-settings.json"
+var AUTHOR_TOOLS := OS.has_feature("editor") or OS.has_feature("qa")
+var SAVE := "user://qa-nachtwache-save.json" if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-save.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-save.json"
+var SETTINGS := "user://qa-nachtwache-settings.json" if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-settings.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-settings.json"
 var state := PatrolState.new()
 var archive:=ArchiveState.new()
 var archive_selected:=""
@@ -63,8 +64,8 @@ func _ready() -> void:
  _apply_settings();_main_menu()
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
- if "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
- if "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
+ if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
+ if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
 
 func _actions() -> void:
  if not InputMap.has_action("crouch"):
@@ -299,7 +300,7 @@ func _open_archive_lock(message: String="") -> void:
 func _submit_archive_code() -> void:
  if phase!="code": return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
- if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
+ if not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
  archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
 
@@ -588,7 +589,7 @@ func _quit() -> void:
 
 func _notification(what: int) -> void:
  if what==NOTIFICATION_WM_CLOSE_REQUEST: _quit()
- if what==NOTIFICATION_APPLICATION_FOCUS_OUT and phase=="play" and "--render-qa" not in OS.get_cmdline_user_args(): _pause()
+ if what==NOTIFICATION_APPLICATION_FOCUS_OUT and phase=="play" and not (AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args()): _pause()
 
 func _telemetry() -> void:
  if not OS.has_feature("web"): return
@@ -643,6 +644,7 @@ func _install_qa() -> void:
  if window: window.nachtwacheQA=qa_callback
 
 func _qa_command(args: Array) -> void:
+ if not AUTHOR_TOOLS: return
  if args.is_empty(): return
  var command=JSON.parse_string(str(args[0]))
  if not command is Dictionary: return
@@ -671,6 +673,7 @@ func _qa_command(args: Array) -> void:
  _telemetry()
 
 func _self_test() -> void:
+ if not AUTHOR_TOOLS: return
  var validation=load("res://scripts/validation.gd").new()
  var passed: bool=await validation.run(self)
  validation=null
@@ -682,4 +685,5 @@ func _self_test() -> void:
  get_tree().quit(0 if passed else 1)
 
 func _render_qa() -> void:
+ if not AUTHOR_TOOLS: return
  await load("res://scripts/native_render_qa.gd").new().run(self)
