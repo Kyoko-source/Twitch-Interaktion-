@@ -134,6 +134,8 @@ test('v2.8 real corridors return through the entrance elevator; death shows the 
  test.setTimeout(300000);await begin(page);
  expect((await state(page)).visited).toEqual([]);
  await qa(page,{op:'warp',x:-4.3,z:-10.5,yaw:0});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');
+ await page.waitForTimeout(750);await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);
+ await page.screenshot({path:join(tmpdir(),'after-play-v291-web-open-green.png')});
  expect((await state(page)).streak).toBe(0);await walk(page,'w',s=>s.position[2]<-15.1);
  const position=(await state(page)).position;expect((await state(page)).passage.chosen).toBe(0);
  await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');

@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.9.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.9.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
@@ -635,3 +635,17 @@ und der sehr leise, räumlich begrenzte Automatenlüfter pausieren mit dem Spiel
 Der Lüfter folgt dem Ambiente-Regler. Die Einrichtung verändert keine Anomalien
 und keine Zeitungstermine. Kollisionen folgen den Schränken, Glasflächen und
 größeren Wagen; Türdurchgänge werden im Geometrie-Audit mit geprüft.
+
+## Freie Durchgänge und Platzierung (2.9.1)
+
+Der alte importierte Bürotisch ist aus dem verlängerten Nebenraum-Flur entfernt.
+Die nativen Küchenkartons folgen nun ebenfalls der nach Norden versetzten Küche.
+Unter dem Hinweis zum technischen Dienst hängt ein zusammenhängendes Schlüsselbrett
+mit Haken und Schlüsseln statt zweier isolierter, schalterähnlicher Kästchen.
+
+Die Schmutzflächen an der Nordwand liegen ausschließlich auf den festen Wandteilen.
+Sie überspannten zuvor die offenen Entscheidungstüren wie eine durchsichtige Wand.
+SceneAudit prüft jetzt die vollständigen Flure einschließlich dekorativer Geometrie
+und transparenter Overlays. Regressionstests schleusen absichtlich eine Schmutzfläche
+und einen nicht kollidierenden Tisch ein und prüfen, ob der Audit beide erkennt.
+Zusätzlich werden offene Türflügel und die Bodenunterstützung importierter Kartons geprüft.

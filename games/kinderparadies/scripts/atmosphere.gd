@@ -53,8 +53,10 @@ func _weathering() -> void:
   for i in range(7):
    if side<0 and i in [0,1,2,6]: continue # Archive and delivery openings cannot carry wall decals.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
- # First segment is now the annex opening; never hang a decal in its doorway.
- for i in range(1,5): decal(self,2,Vector3(-8+i*3.6,1.6,-12.035),Vector2(2.5,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
+ # Weathering belongs to the solid piers, never across the service/decision
+ # openings. These overlays remain visible even though they have no collider.
+ for patch in [Vector2(-5.78,.82),Vector2(.2,2.1),Vector2(3.7,2.1)]:
+  decal(self,2,Vector3(patch.x,1.6,-12.035),Vector2(patch.y,3.2),Vector3.ZERO,Color(.65,.7,.65,.5))
  # A fixed, dried mark belongs to the reference round. New wet marks are anomalies.
  decal(self,0,Vector3(-9.97,1.08,-8.25),Vector2(.9,.55),Vector3(0,PI/2,-.35),Color(.32,.24,.23,.7))
  for i in range(18):

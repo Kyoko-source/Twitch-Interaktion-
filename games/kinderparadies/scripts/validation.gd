@@ -188,7 +188,7 @@ func run(game: Node3D) -> bool:
  if not OS.has_feature("web"):
   check(game.world.native_art!=null,"Windows art pipeline missing")
   check(game.world.native_art.model_count>=25,"Native imported/hero models not instantiated")
-  for required in ["hero/stitched-rabbit","hanging_industrial_lamp","hero/waiting-bench","metal_office_desk"]:
+  for required in ["hero/stitched-rabbit","hanging_industrial_lamp","hero/waiting-bench","cardboard_box_01"]:
    check(game.world.native_art.sources.keys().any(func(path): return required in path),"Required native model missing: "+required)
   check(game.world.find_children("*","Node3D",true,false).filter(func(node): return node.has_meta("stocked_shelf")).size()==3,"Stocked shelving was not created in all three positions")
   for source in game.world.native_art.sources.values(): check(source is PackedScene,"Native production model failed to load")

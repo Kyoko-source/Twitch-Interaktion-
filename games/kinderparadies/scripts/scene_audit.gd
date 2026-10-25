@@ -71,11 +71,11 @@ static func placement(w: PlayWorld) -> Dictionary:
   {"name":"Wartungsraum","box":AABB(Vector3(-10.62,.09,-6.12),Vector3(.84,2.25,1.44))},
   {"name":"Küche","box":AABB(Vector3(-9.81,.09,-18.40)+ServiceAnnex.OFFSET,Vector3(.82,2.25,1.50))},
   {"name":"Kino","box":AABB(Vector3(-6.81,.09,-18.40)+ServiceAnnex.OFFSET,Vector3(.82,2.25,1.50))},
-  {"name":"Nebenraum-Flur","box":AABB(Vector3(-9.0,.09,-12.64),Vector3(2.2,2.25,.88))},
+  {"name":"Nebenraum-Flur","box":AABB(Vector3(-9.0,.09,-24.15),Vector3(2.2,2.25,12.8))},
   {"name":"Fahrstuhl","box":AABB(Vector3(-9.12,.09,16.76),Vector3(2.24,2.25,.88))},
   {"name":"Archiv-Vorbereich","box":AABB(Vector3(-9.75,.09,-10.5),Vector3(1.0,2.25,1.2))},
-  {"name":"Grüne Tür","box":AABB(Vector3(PatrolPassage.CENTERS[0]-.6,.09,PatrolPassage.ENTRY_Z+.25),Vector3(1.2,2.25,.65))},
-  {"name":"Rote Tür","box":AABB(Vector3(PatrolPassage.CENTERS[1]-.6,.09,PatrolPassage.ENTRY_Z+.25),Vector3(1.2,2.25,.65))}]
+  {"name":"Grüner Flur","box":AABB(Vector3(PatrolPassage.CENTERS[0]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))},
+  {"name":"Roter Flur","box":AABB(Vector3(PatrolPassage.CENTERS[1]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))}]
  if w.archive.leaf.rotation.y< -1.5: passages.append({"name":"Offene Archivtür","box":AABB(Vector3(-10.62,.09,-10.58),Vector3(.84,2.25,1.36))})
  if w.backstage.exit_leaf.rotation.y>1.45: passages.append({"name":"Lieferausgang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
  var blocked: Array[String]=[];var art: Array[MeshInstance3D]=[];var furniture: Array[String]=[];var walls: Array[AABB]=[]
@@ -84,9 +84,16 @@ static func placement(w: PlayWorld) -> Dictionary:
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   if not mesh.is_visible_in_tree() or mesh.has_meta("nonblocking_atmosphere"): continue
   var bounds: AABB=mesh.global_transform*mesh.get_aabb()
+  # A deliberately closed decision door is allowed; wall overlays, decorative
+  # props and open leaves must never occupy its entire walkable corridor.
+  var closed_door:=false;var ancestor: Node=mesh.get_parent()
+  while ancestor!=null and ancestor!=w:
+   if str(ancestor.name)=="DecisionDoor" and absf(ancestor.rotation.y)<1.55: closed_door=true;break
+   ancestor=ancestor.get_parent()
   for passage in passages:
+   if closed_door and passage.name in ["Grüner Flur","Roter Flur"]: continue
    if bounds.intersects(passage.box): blocked.append(passage.name+": "+str(mesh.get_path())+" at "+str(bounds))
-  var furnishing: bool=mesh.get_meta("native_model","")=="cardboard_box_01"
+  var furnishing: bool=mesh.get_meta("native_model","") in ["cardboard_box_01","metal_office_desk"]
   var cursor: Node=mesh.get_parent()
   while cursor!=null and cursor!=w:
    if cursor.get_meta("environment_dressing",false) or cursor in [w.props.counter,w.props.party_table,w.props.chairs] or str(cursor.name) in ["StockedShelf","PartySideboard","ProjectionWorktable","GroundedRepairBench","MountedServerRack","MascotCorner","PartyMascotCorner"]: furnishing=true;break

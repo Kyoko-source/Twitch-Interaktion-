@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--layout-qa" in OS.get_cmdline_user_args():
+  await layout_views(game,output);game._quit();return
  if "--details-qa" in OS.get_cmdline_user_args():
   await details_views(game,output);game._quit();return
  if "--v280-qa" in OS.get_cmdline_user_args():
@@ -609,6 +611,19 @@ func v280_views(game: Node3D, output: String) -> void:
  game.phase="pause";game.hud.hide();game.player.release();game.player.lamp.hide();game.player.camera.rotation=Vector3.ZERO;game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.tick(.43)
  await capture(game,output,"corridor-attacker");game.door_failure.hide();game.door_failure.running=false;game.door_failure.audio.stop()
  print("V280 RENDER COMPLETE")
+
+func layout_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game.player.active=false
+ for view in [
+  {"id":"service-approach","p":Vector3(-7.9,0,-23),"look":Vector3(-7.9,1.5,-15)},
+  {"id":"service-notice","p":Vector3(-7.6,0,-18),"look":Vector3(-9.29,1.6,-18)},
+  {"id":"green-open","p":Vector3(-4.3,0,-10.2),"look":Vector3(-4.3,1.5,-21)},
+  {"id":"red-open","p":Vector3(-2.15,0,-10.2),"look":Vector3(-2.15,1.5,-21)}]:
+  if view.id.ends_with("-open"):
+   game.world.passages.restore({"chosen":-1,"open":[view.id=="green-open",view.id=="red-open"]})
+  game.player.position=view.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(view.look)
+  await game.get_tree().create_timer(.7).timeout;await capture(game,output,view.id)
+ print("LAYOUT AUDIT ",JSON.stringify(SceneAudit.placement(game.world)))
 
 func details_views(game: Node3D, output: String) -> void:
  await capture(game,output,"main-menu-details")

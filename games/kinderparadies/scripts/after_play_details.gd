@@ -260,9 +260,18 @@ func _service_hall() -> void:
  var notice:=cluster(self,"ServiceApproachNotice",Vector3(-9.295,0,-18.0),PI/2)
  w.box(notice,Vector3(0,1.9,0),Vector3(1.45,.52,.045),timber)
  label(notice,"maintenance",Vector3(0,1.9,.026),Vector2(1.34,.335))
- for side in [-1,1]:
-  w.box(notice,Vector3(side*.62,1.25,.03),Vector3(.12,.18,.06),steel)
-  ring(notice,Vector3(side*.62,1.28,.08),.035,steel,Vector3(PI/2,0,0),.006)
+ var board:=Node3D.new();board.name="ServiceKeyBoard";board.position=Vector3(0,1.32,.045);notice.add_child(board)
+ w.box(board,Vector3.ZERO,Vector3(.86,.35,.045),timber)
+ var brass:=w.mat(Color("98845c"),load("res://assets/paint.png"),.48,.7)
+ for x in [-.27,0,.27]:
+  for y in [-.125,.125]: w.sphere(board,Vector3(x,y,.027),.008,steel)
+  w.tube(board,Vector3(x,.07,.026),Vector3(x,.07,.10),.009,steel)
+  w.tube(board,Vector3(x,.07,.10),Vector3(x,.09,.10),.009,steel)
+  if x==0: continue # One missing key leaves an actual empty hook.
+  ring(board,Vector3(x,.052,.104),.038,steel,Vector3(PI/2,0,0),.005)
+  ring(board,Vector3(x,.012,.11),.023,brass,Vector3(PI/2,0,0),.006)
+  w.box(board,Vector3(x,-.06,.11),Vector3(.013,.105,.014),brass)
+  for y in [-.075,-.105]: w.box(board,Vector3(x+.014,y,.11),Vector3(.027,.013,.014),brass)
 
 func tick(delta: float, active: bool) -> void:
  hum.stream_paused=not active
