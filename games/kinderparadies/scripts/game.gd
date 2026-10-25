@@ -227,15 +227,18 @@ func _continue() -> void:
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
- world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}))
+ world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if archive.ending=="complete": _show_archive_ending();return
  if wake_pending or arrival_pending: _arrival(wake_pending);return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0)) in [7,8,9,10] and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8,9,10,11] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
+  if int(data.get("layout_version",0))<11:
+   if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
+   elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
@@ -373,7 +376,7 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session: return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":10,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":11,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -448,7 +451,7 @@ func _board_lift(_red: bool) -> void:
  phase="lift";player.release();hud.hide();player.lamp.show()
  # Face the sliding doors before returning in the matching entrance cabin.
  player.rotation.y=wrapf(player.rotation.y,-PI,PI)
- create_tween().tween_property(player,"rotation:y",0,.35)
+ create_tween().tween_property(player,"rotation:y",PI,.35)
  create_tween().tween_property(player.camera,"rotation:x",0,.35)
  _save();_telemetry()
 
@@ -665,7 +668,7 @@ func _qa_command(args: Array) -> void:
    _refresh_hud()
   "choose":
    var red:=bool(command.red);_decide(red)
-   player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,26.4)
+   player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,PatrolPassage.ENTRY_Z-9.2)
    world.passages.tick(.01,true,player,state.current!="none",state.completed)
   "pause": _pause()
   "resume": _resume()

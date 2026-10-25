@@ -197,5 +197,5 @@ func _collision_repairs() -> void:
 
 func surface_at(point: Vector3) -> String:
  # Called only for an actual downward floor hit; the carpet is a thin overlay.
- if absf(point.y-.008)<.04 and Rect2(-6.275,-22.15,9.95,8.6).has_point(Vector2(point.x,point.z)): return "carpet"
+ if absf(point.y-.008)<.04 and Rect2(-6.275,-22.15,9.95,8.6).has_point(Vector2(point.x,point.z-ServiceAnnex.OFFSET.z)): return "carpet"
  return "concrete"

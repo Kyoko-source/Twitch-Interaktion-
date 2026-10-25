@@ -134,10 +134,10 @@ func run(game: Node3D) -> bool:
  Input.action_release("forward");game.player.release()
  check(game.player.position.z<initial.z-.5,"WASD movement did not move player")
  check(game.player.position.y>-.2,"Player fell through floor")
- game.player.position=Vector3(7.2,0,15.5);game.player.rotation.y=PI;game.player.camera.rotation.x=0
+ game.player.position=Vector3(PatrolPassage.CENTERS[0],0,PatrolPassage.ENTRY_Z+1.7);game.player.rotation.y=0;game.player.camera.rotation.x=0
  await game.get_tree().physics_frame
  check(game._target()=="green","Green door raycast failed")
- game.player.position.x=10.3
+ game.player.position.x=PatrolPassage.CENTERS[1]
  await game.get_tree().physics_frame
  check(game._target()=="red","Red door raycast failed")
  # Real jump input, airborne re-press, landing, spring carry, impulse throw and pause.
@@ -219,12 +219,12 @@ func run(game: Node3D) -> bool:
  Input.action_release("forward")
  check(game.player.position.x>7.3,"Cannot walk through the party doorway")
  check(game.world.room_horror.panels>100,"Kitchen/cinema have no visible ceiling panels")
- for p in [Vector3(-13.5,3.3,-18),Vector3(-2,3.3,-18)]: check(not cast(game,p,p+Vector3.UP*.6).is_empty(),"Annex ceiling has no collision")
+ for p in [(Vector3(-13.5,3.3,-18)+ServiceAnnex.OFFSET),(Vector3(-2,3.3,-18)+ServiceAnnex.OFFSET)]: check(not cast(game,p,p+Vector3.UP*.6).is_empty(),"Annex ceiling has no collision")
  check(game.world.room_horror.creature!=null,"Ceiling dweller mesh is missing")
  var dweller: Dictionary=game.world.room_horror.creature_geometry()
  check(dweller.width<.8 and dweller.rear>-.3,"Ceiling dweller still has a torso or spread limbs")
  check(dweller.top>.85 and dweller.bottom< -1.7,"Pendant neck must start inside the shaft and hang into the room")
- check(cast(game,Vector3(-1.3,3.3,-19.95),Vector3(-1.3,4.4,-19.95)).is_empty(),"Roof slab blocks the actual ventilation shaft opening")
+ check(cast(game,(Vector3(-1.3,3.3,-19.95)+ServiceAnnex.OFFSET),(Vector3(-1.3,4.4,-19.95)+ServiceAnnex.OFFSET)).is_empty(),"Roof slab blocks the actual ventilation shaft opening")
  var ceiling_area:=0.0
  for part in RoomHorror.outside_shaft(Rect2(-17.3,-22.55,21,10.5)):
   check(not part.intersection(RoomHorror.SHAFT).has_area(),"Ceiling patch crosses the shaft aperture")
@@ -333,9 +333,9 @@ func run(game: Node3D) -> bool:
  check(game.world.encounters.finished and is_equal_approx(game.world.playground.croc_jaw.rotation.x,.12),"Crocodile jaw failed to settle after snap")
  # Walk the new annex through both real doorways, never through geometry.
  game._build_world("none");game._resume();game.player.position=Vector3(-7.9,0,-10.3);game.player.velocity=Vector3.ZERO
- for destination in [Vector3(-7.9,0,-17.65),Vector3(-12.0,0,-17.65),Vector3(-7.9,0,-17.65),Vector3(1.7,0,-17.65)]:
+ for destination in [(Vector3(-7.9,0,-17.65)+ServiceAnnex.OFFSET),(Vector3(-12.0,0,-17.65)+ServiceAnnex.OFFSET),(Vector3(-7.9,0,-17.65)+ServiceAnnex.OFFSET),(Vector3(1.7,0,-17.65)+ServiceAnnex.OFFSET)]:
   Input.action_press("forward")
-  for frame in range(500):
+  for frame in range(650):
    var direction: Vector3=destination-game.player.position;direction.y=0
    if direction.length()<.16: break
    game.player.rotation.y=atan2(-direction.x,-direction.z)
@@ -352,10 +352,10 @@ func run(game: Node3D) -> bool:
  check(game.world.annex.sources.all(func(source): return source.stream_paused),"Annex audio continues in pause")
  game._resume()
  # Both new rooms must support a real persisted save, not only main-hall bounds.
- for pose in [Vector3(-12,0,-17.65),Vector3(1.7,0,-17.65)]:
+ for pose in [(Vector3(-12,0,-17.65)+ServiceAnnex.OFFSET),(Vector3(1.7,0,-17.65)+ServiceAnnex.OFFSET)]:
   game.state.start(1700);game.has_session=true;game.player.position=pose;game._save();game.has_session=false;game._continue()
   check(game.player.position.distance_to(pose)<.1,"Annex saved position was discarded")
- game._build_world("clown_lunge");game._resume();game.player.position=Vector3(-12.2,0,-18);game.player.rotation.y=-2.0;game.player.camera.rotation.x=.09
+ game._build_world("clown_lunge");game._resume();game.player.position=(Vector3(-12.2,0,-18)+ServiceAnnex.OFFSET);game.player.rotation.y=-2.0;game.player.camera.rotation.x=.09
  await game.get_tree().physics_frame;game.world.encounters.tick(2,true,game.player)
  check(not game.world.encounters.triggered,"Clown triggered behind player")
  game.player.rotation.y=1.1
@@ -384,6 +384,7 @@ func run(game: Node3D) -> bool:
  check(game.player.position.is_equal_approx(Vector3(-6.2,0,8.5)),"Old layout save restored the player inside relocated geometry")
  check(game.state.serialize()==expected.serialize(),"Layout migration changed patrol progress")
  game._new_shift();game.intro.skip();game.player.lamp_on=true;game.player.lamp.show()
+ game.player.torch_body.wait=1000;game.player.torch_body.burst=-1
  game.player.torch_body.trigger();game.player.torch_body.tick(.025,true,0)
  check(game.player.lamp.light_energy<2,"Torch contact failure did not dim the real light")
  game._pause();var flicker_clock: float=game.player.torch_body.clock
@@ -414,7 +415,7 @@ func run(game: Node3D) -> bool:
  await PassageChecks.travel(game,false)
  check(game.phase=="play" and game.state.rounds==1,"Correct lift did not return automatically")
  var wrong: bool=game.state.current=="none"
- game._decide(wrong);game.player.position=Vector3(PatrolPassage.CENTERS[1 if wrong else 0],0,20)
+ game._decide(wrong);game.player.position=Vector3(PatrolPassage.CENTERS[1 if wrong else 0],0,PatrolPassage.ENTRY_Z-2.8)
  game.world.passages.tick(.01,true,game.player,game.state.current!="none",false)
  check(game.phase=="failure" and game.door_failure.running and not game.player.active,"Wrong door failed to start the real 3D scare")
  var rounds_before: int=game.state.rounds

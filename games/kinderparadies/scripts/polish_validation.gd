@@ -21,7 +21,7 @@ func run(game: Node3D, verify: Callable) -> void:
  probe.queue_free();await game.get_tree().physics_frame
  var samples: Array[Dictionary]=[
   {"p":Vector3(-6,0,8),"type":"concrete"},
-  {"p":Vector3(-3,0,-17.65),"type":"carpet"},
+  {"p":(Vector3(-3,0,-17.65)+ServiceAnnex.OFFSET),"type":"carpet"},
   {"p":Vector3(-12.2,0,-4.6),"type":"metal"},
   {"p":w.props.structure.to_global(Vector3(1,.3,-4.5)),"type":"rubber"},
   {"p":CrawlTubes.route(6.0)-Vector3.UP*.72,"type":"plastic"},
@@ -45,10 +45,10 @@ func run(game: Node3D, verify: Callable) -> void:
  var routes: Array[Dictionary]=[
   {"p":Vector3(5.8,0,-8.7),"yaw":-PI/2,"axis":0,"limit":7.4,"greater":true,"name":"party entry"},
   {"p":Vector3(7.8,0,-8.7),"yaw":PI/2,"axis":0,"limit":6.0,"greater":false,"name":"party exit"},
-  {"p":Vector3(-8.0,0,-17.65),"yaw":PI/2,"axis":0,"limit":-10.4,"greater":false,"name":"kitchen entry"},
-  {"p":Vector3(-10.5,0,-17.65),"yaw":-PI/2,"axis":0,"limit":-8.6,"greater":true,"name":"kitchen exit"},
-  {"p":Vector3(-7.7,0,-17.65),"yaw":-PI/2,"axis":0,"limit":-5.5,"greater":true,"name":"cinema entry"},
-  {"p":Vector3(-5.0,0,-17.65),"yaw":PI/2,"axis":0,"limit":-7.3,"greater":false,"name":"cinema exit"},
+  {"p":(Vector3(-8.0,0,-17.65)+ServiceAnnex.OFFSET),"yaw":PI/2,"axis":0,"limit":-10.4,"greater":false,"name":"kitchen entry"},
+  {"p":(Vector3(-10.5,0,-17.65)+ServiceAnnex.OFFSET),"yaw":-PI/2,"axis":0,"limit":-8.6,"greater":true,"name":"kitchen exit"},
+  {"p":(Vector3(-7.7,0,-17.65)+ServiceAnnex.OFFSET),"yaw":-PI/2,"axis":0,"limit":-5.5,"greater":true,"name":"cinema entry"},
+  {"p":(Vector3(-5.0,0,-17.65)+ServiceAnnex.OFFSET),"yaw":PI/2,"axis":0,"limit":-7.3,"greater":false,"name":"cinema exit"},
   {"p":Vector3(-8.8,0,-5.4),"yaw":PI/2,"axis":0,"limit":-11.3,"greater":false,"name":"server entry"},
   {"p":Vector3(-11.7,0,-5.4),"yaw":-PI/2,"axis":0,"limit":-9.6,"greater":true,"name":"server exit"}]
  for route in routes:

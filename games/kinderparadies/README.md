@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.8.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.8.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
@@ -597,3 +597,21 @@ eingestellte Gesamtlautstärke.
 ## Bereinigte Spielerfassung (2.8.0)
 
 Der frühere Erstellercode ist entfernt. Das Archiv benötigt ausschließlich die vier Zeitungen und den regulären Rätselcode. Alte Spielstände, die nur per Erstellercode geöffnet wurden, gewähren keinen Zugang mehr. Kommandozeilen-Testhelfer sind auf Editor und QA-Builds begrenzt. Entwicklungsunterlagen bleiben im Repository und gehören nicht in Spieler-Downloads.
+
+
+## Entscheidungstüren und Rückkehr (2.8.1)
+
+Rot und Grün stehen wieder nebeneinander an der ursprünglichen Nordwand
+(x = -4,3 / -2,15). Beide Türen haben echte Wandöffnungen und führen durch
+getrennte Flure in Fahrstühle. Eine richtige Wahl zählt genau einen Rundgang
+und öffnet anschließend den ursprünglichen Startfahrstuhl. Eine falsche Wahl
+löst den schreienden 3D-Angreifer aus, zeigt die überlebten Runden und startet
+im Startfahrstuhl bei 0; das Telefonintro wird dabei nicht wiederholt.
+
+Die südlichen Ersatzöffnungen sind wieder geschlossen. Küche und Kino liegen
+zwölf Meter weiter nördlich, damit die Entscheidungsflure physisch Platz haben.
+Der Nebenraum-Flur ist entsprechend verlängert. Decken, Figuren, Lichtquellen,
+Geräusche, Laufoberflächen und die beiden Zeitungen folgen den Räumen.
+Speicherlayout 11 übernimmt ältere Positionen aus Küche/Kino und setzt alte
+Positionen aus den südlichen Entscheidungsfluren sicher in den Startfahrstuhl.
+Die bereinigte Paketstruktur und die Entfernung des Erstellercodes bleiben erhalten.

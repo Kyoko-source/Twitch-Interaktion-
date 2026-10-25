@@ -70,7 +70,9 @@ func build(world: PlayWorld) -> void:
 func configure(value: String) -> void:
  id=value
  if not SCENARIOS.has(id): return
- spec=SCENARIOS[id];origin=spec.p;vent_origin=w.room_horror.creature.position
+ spec=SCENARIOS[id];origin=spec.p
+ if spec.zone in ["Küche","Kino"]: origin+=ServiceAnnex.OFFSET
+ vent_origin=w.room_horror.creature.position
  var track: String=spec.get("sound","window-hit" if spec.mode in ["hands","window"] else "gasp-snap" if spec.mode in ["peek","mouth"] else "metal-shriek" if spec.mode in ["ceiling","vent"] else "crowd-burst" if spec.mode=="queue" else "crawl-scream" if spec.mode in ["crawl","tube"] else "ragged-scream")
  audio.stream=load("res://assets/scares-v260/"+track+".wav");audio.pitch_scale=1.0
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
@@ -161,7 +163,7 @@ func focus_point() -> Vector3:
  if spec.mode=="crawl": target=actor.position+Vector3(0,.70,0)
  if spec.mode=="window": target=actor.position
  if spec.mode in ["ceiling","drop"]: target=actor.position-Vector3(0,1.6,0)
- if spec.mode=="vent": target=w.room_horror.creature.position+Vector3(0,-1.5,.7)
+ if spec.mode=="vent": target=w.room_horror.creature.global_position+Vector3(0,-1.5,.7)
  if spec.mode=="throne": target=actor.position+Vector3(0,1.87,0)
  return target
 

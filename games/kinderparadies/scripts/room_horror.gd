@@ -28,7 +28,14 @@ func _ceiling_piece(rect: Rect2, y: float, thickness: float, material: Material,
 
 func build(world: PlayWorld) -> void:
  w=world;name="RoomHorror"
- _ceilings();_bulbs();_music_box();_vent_creature()
+ var first_light:=w.practicals.size()
+ _ceilings();_bulbs();_vent_creature()
+ var detail:=Node3D.new();detail.name="AnnexCeilingDetails"
+ var children:=get_children();add_child(detail)
+ for child in children: child.reparent(detail)
+ detail.position=ServiceAnnex.OFFSET
+ for i in range(first_light,w.practicals.size()): w.practicals[i].position+=ServiceAnnex.OFFSET
+ _music_box()
 
 func _ceilings() -> void:
  var plaster:=w.mat(Color("aaa990"),load("res://assets/aged-plaster.png"),.99)

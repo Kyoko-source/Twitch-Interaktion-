@@ -153,7 +153,7 @@ func polish_v240_views(game: Node3D, output: String) -> void:
  var shots: Array[Dictionary]=[
   {"name":"hall-finish","p":Vector3(-5.5,0,10.3),"look":Vector3(3.8,2.2,-1.2)},
   {"name":"party-finish","p":Vector3(7.2,0,-9.0),"look":Vector3(12.4,1.7,-4.3)},
-  {"name":"kitchen-finish","p":Vector3(-10.6,0,-17.4),"look":Vector3(-14.8,1.7,-19.8)},
+  {"name":"kitchen-finish","p":(Vector3(-10.6,0,-17.4)+ServiceAnnex.OFFSET),"look":(Vector3(-14.8,1.7,-19.8)+ServiceAnnex.OFFSET)},
   {"name":"mascot-corner","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)},
   {"name":"mascot-close","p":Vector3(15.8,0,14.5),"look":Vector3(18,3.0,15.35)},
   {"name":"party-mascot","p":Vector3(13.2,0,-6.8),"look":Vector3(17.9,2.5,.38)},
@@ -162,30 +162,30 @@ func polish_v240_views(game: Node3D, output: String) -> void:
   {"name":"workshop","p":Vector3(-11.3,0,-4.55),"look":Vector3(-15.8,1.6,-5.6)},
   {"name":"server-racks","p":Vector3(-12.2,0,-5.8),"look":Vector3(-14.4,1.4,-2.65)},
   {"name":"maintenance","p":Vector3(-6.8,0,-7.4),"look":Vector3(-9.9,2.0,-6.4)},
-  {"name":"cinema-wide","p":Vector3(-5.6,0,-17.65),"look":Vector3(2.0,1.8,-17.65)},
-  {"name":"cinema-back","p":Vector3(1.4,0,-17.65),"look":Vector3(-5.8,1.6,-14.5)}]
+  {"name":"cinema-wide","p":(Vector3(-5.6,0,-17.65)+ServiceAnnex.OFFSET),"look":(Vector3(2.0,1.8,-17.65)+ServiceAnnex.OFFSET)},
+  {"name":"cinema-back","p":(Vector3(1.4,0,-17.65)+ServiceAnnex.OFFSET),"look":(Vector3(-5.8,1.6,-14.5)+ServiceAnnex.OFFSET)}]
  for shot in shots:
   game.player.position=shot.p;game.player.velocity=Vector3.ZERO;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
  var report:={"audit":SceneAudit.inspect(game.world),"floor":{},"renderer":RenderingServer.get_current_rendering_method()}
- for sample in [{"p":Vector3(-6,0,8),"type":"concrete"},{"p":Vector3(-3,0,-17.65),"type":"carpet"},{"p":Vector3(-12.2,0,-4.6),"type":"metal"},{"p":CrawlTubes.route(6)-Vector3.UP*.72,"type":"plastic"}]:
+ for sample in [{"p":Vector3(-6,0,8),"type":"concrete"},{"p":(Vector3(-3,0,-17.65)+ServiceAnnex.OFFSET),"type":"carpet"},{"p":Vector3(-12.2,0,-4.6),"type":"metal"},{"p":CrawlTubes.route(6)-Vector3.UP*.72,"type":"plastic"}]:
   game.player.active=false;game.player.position=sample.p;await game.get_tree().physics_frame;report.floor[sample.type]=FootSurfaces.at(game.player)
  var file:=FileAccess.open(output.path_join("polish-v240-report.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "));print("POLISH V240 QA ",JSON.stringify(report))
 
 func annex_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip()
  var shots: Array[Dictionary]=[
-  {"name":"annex-corridor","pos":Vector3(-7.9,0,-13.6),"yaw":0,"pitch":.03},
-  {"name":"annex-kitchen","pos":Vector3(-10.8,0,-16.7),"yaw":1.02,"pitch":-.01},
-  {"name":"annex-clown","pos":Vector3(-12.2,0,-18.0),"yaw":1.1,"pitch":.09},
-  {"name":"annex-pot","pos":Vector3(-12.2,0,-18.6),"yaw":1.03,"pitch":-.36},
-  {"name":"annex-cinema","pos":Vector3(-4.6,0,-17.65),"yaw":-PI/2,"pitch":.1},
+  {"name":"annex-corridor","pos":(Vector3(-7.9,0,-13.6)+ServiceAnnex.OFFSET),"yaw":0,"pitch":.03},
+  {"name":"annex-kitchen","pos":(Vector3(-10.8,0,-16.7)+ServiceAnnex.OFFSET),"yaw":1.02,"pitch":-.01},
+  {"name":"annex-clown","pos":(Vector3(-12.2,0,-18.0)+ServiceAnnex.OFFSET),"yaw":1.1,"pitch":.09},
+  {"name":"annex-pot","pos":(Vector3(-12.2,0,-18.6)+ServiceAnnex.OFFSET),"yaw":1.03,"pitch":-.36},
+  {"name":"annex-cinema","pos":(Vector3(-4.6,0,-17.65)+ServiceAnnex.OFFSET),"yaw":-PI/2,"pitch":.1},
   {"name":"crocodile-v3","pos":Vector3(4.8,0,13.8),"yaw":-1.25,"pitch":.13},
   {"name":"crocodile-profile","pos":Vector3(8.3,0,7.4),"yaw":-2.35,"pitch":.11}]
  for shot in shots:
   game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
   await game.get_tree().create_timer(2.5).timeout;await capture(game,output,shot.name)
- game._build_world("clown_lunge");game._resume();game.player.position=Vector3(-12.2,0,-18);game.player.rotation.y=1.1;game.player.camera.rotation.x=.09
+ game._build_world("clown_lunge");game._resume();game.player.position=(Vector3(-12.2,0,-18)+ServiceAnnex.OFFSET);game.player.rotation.y=1.1;game.player.camera.rotation.x=.09
  var wait:=0.0
  while not game.world.encounters.triggered and wait<4:
   await game.get_tree().process_frame;wait+=game.get_process_delta_time()
@@ -215,8 +215,8 @@ func v190_views(game: Node3D, output: String) -> void:
   {"name":"ceiling-mounts","pos":Vector3(-6.5,0,1),"yaw":-.4,"pitch":.9},
   {"name":"stocked-shelves","pos":Vector3(-7.3,0,2.1),"yaw":PI/2,"pitch":-.07},
   {"name":"party-right-wall","pos":Vector3(15.5,0,-4),"yaw":-PI/2,"pitch":.1},
-  {"name":"expanded-kitchen","pos":Vector3(-11.5,0,-17),"yaw":1.0,"pitch":.05},
-  {"name":"kitchen-preparation","pos":Vector3(-14.0,0,-20.3),"yaw":0,"pitch":-.05}]
+  {"name":"expanded-kitchen","pos":(Vector3(-11.5,0,-17)+ServiceAnnex.OFFSET),"yaw":1.0,"pitch":.05},
+  {"name":"kitchen-preparation","pos":(Vector3(-14.0,0,-20.3)+ServiceAnnex.OFFSET),"yaw":0,"pitch":-.05}]
  for shot in shots:
   game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
   await game.get_tree().create_timer(2).timeout;await capture(game,output,shot.name)
@@ -235,9 +235,9 @@ func v180_views(game: Node3D, output: String) -> void:
  var shots: Array[Dictionary]=[
   {"name":"reception-pc","pos":Vector3(-9.65,0,5.2),"yaw":-1.87,"pitch":-.32},
   {"name":"torch","pos":Vector3(-6.2,0,7.5),"yaw":-.55,"pitch":-.22},
-  {"name":"kitchen","pos":Vector3(-10.8,0,-17),"yaw":1.0,"pitch":.04},
-  {"name":"clown-front","pos":Vector3(-12.4,0,-19.25),"yaw":PI/2,"pitch":.1},
-  {"name":"clown-profile","pos":Vector3(-14.4,0,-17.5),"yaw":0,"pitch":.14}]
+  {"name":"kitchen","pos":(Vector3(-10.8,0,-17)+ServiceAnnex.OFFSET),"yaw":1.0,"pitch":.04},
+  {"name":"clown-front","pos":(Vector3(-12.4,0,-19.25)+ServiceAnnex.OFFSET),"yaw":PI/2,"pitch":.1},
+  {"name":"clown-profile","pos":(Vector3(-14.4,0,-17.5)+ServiceAnnex.OFFSET),"yaw":0,"pitch":.14}]
  for shot in shots:
   game.player.position=shot.pos;game.player.velocity=Vector3.ZERO;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
   await game.get_tree().create_timer(2.3).timeout;await capture(game,output,shot.name)
@@ -346,9 +346,9 @@ func v193_views(game: Node3D, output: String) -> void:
  await entry_probe(game,output)
  var shots: Array[Dictionary]=[
   {"name":"entry-ramp","pos":Vector3(-4.8,0,-1.12),"yaw":-PI/2,"pitch":-.09},
-  {"name":"clown-front","pos":Vector3(-12.4,0,-19.25),"yaw":PI/2,"pitch":.07},
-  {"name":"clown-profile","pos":Vector3(-14.4,0,-17.5),"yaw":0,"pitch":.1},
-  {"name":"stirring-hand","pos":Vector3(-12.2,0,-18.9),"yaw":1.43,"pitch":-.25},
+  {"name":"clown-front","pos":(Vector3(-12.4,0,-19.25)+ServiceAnnex.OFFSET),"yaw":PI/2,"pitch":.07},
+  {"name":"clown-profile","pos":(Vector3(-14.4,0,-17.5)+ServiceAnnex.OFFSET),"yaw":0,"pitch":.1},
+  {"name":"stirring-hand","pos":(Vector3(-12.2,0,-18.9)+ServiceAnnex.OFFSET),"yaw":1.43,"pitch":-.25},
   {"name":"guard-hand","pos":Vector3(-6.5,0,6.5),"yaw":-.6,"pitch":-.12}]
  for shot in shots:
   game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
@@ -365,7 +365,7 @@ func v193_views(game: Node3D, output: String) -> void:
 
 func nightmare_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game._build_world("none");game._resume()
- for shot in [{"name":"ossuary","p":Vector3(-3.7,0,-19.4),"look":Vector3(-1.0,2.0,-19.5)},{"name":"party-fresco","p":Vector3(13.3,0,-4.4),"look":Vector3(13.3,2.6,1.485)}]:
+ for shot in [{"name":"ossuary","p":(Vector3(-3.7,0,-19.4)+ServiceAnnex.OFFSET),"look":(Vector3(-1.0,2.0,-19.5)+ServiceAnnex.OFFSET)},{"name":"party-fresco","p":Vector3(13.3,0,-4.4),"look":Vector3(13.3,2.6,1.485)}]:
   game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  game.state.streak=2;game._build_world("none");game._resume();game._collect_paper("opening");game._inventory();await game.get_tree().process_frame;await capture(game,output,"newspaper-v21")
@@ -373,9 +373,9 @@ func nightmare_views(game: Node3D, output: String) -> void:
  for id in NightTerrors.SCENARIOS:
   game._build_world(id);game._resume()
   var t: NightTerrors=game.world.terrors;var mode: String=t.spec.mode
-  var points:={"Empfang":Vector3(-5.5,0,6),"Bällebad":Vector3(3.0,.31,5),"Party Raum":Vector3(13.8,0,-8),"Wartungsgang":Vector3(-6.5,0,-4),"Küche":Vector3(-11.8,0,-17.5),"Kino":Vector3(-5.9,0,-17.7),"Krabbelröhre":CrawlTubes.route(7.4)+Vector3(0,-.72,0)}
+  var points:={"Empfang":Vector3(-5.5,0,6),"Bällebad":Vector3(3.0,.31,5),"Party Raum":Vector3(13.8,0,-8),"Wartungsgang":Vector3(-6.5,0,-4),"Küche":(Vector3(-11.8,0,-17.5)+ServiceAnnex.OFFSET),"Kino":(Vector3(-5.9,0,-17.7)+ServiceAnnex.OFFSET),"Krabbelröhre":CrawlTubes.route(7.4)+Vector3(0,-.72,0)}
   game.player.position=points[t.spec.zone];game.player.rotation=Vector3.ZERO
-  if id=="screen_visitor": game.player.position=Vector3(-1.3,0,-17.7)
+  if id=="screen_visitor": game.player.position=(Vector3(-1.3,0,-17.7)+ServiceAnnex.OFFSET)
   if id=="frame_stalker": game.player.position=Vector3(2.0,.4,3.6)
   if id=="cake_mouth": game.player.position=Vector3(11.8,0,-7.4)
   if id=="slide_crawler": game.player.position=Vector3(5.6,0,11.5)
@@ -406,7 +406,7 @@ func archive_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(.5).timeout;await capture(game,output,"rust-door");var note_target: String=game._target();game._collect_paper("note")
  game._inventory();await game.get_tree().process_frame;await capture(game,output,"note-reader");game._resume()
  var targets: Dictionary={}
- for item in [{"id":"opening","level":3,"pos":Vector3(10.2,0,-4.6)},{"id":"missing","level":5,"pos":Vector3(.9,0,-19.9)},{"id":"coverup","level":8,"pos":Vector3(-11.75,0,-18.45)},{"id":"closure","level":11,"pos":Vector3(CrawlTubes.route(7.65).x,.31,15.8)}]:
+ for item in [{"id":"opening","level":3,"pos":Vector3(10.2,0,-4.6)},{"id":"missing","level":5,"pos":(Vector3(.9,0,-19.9)+ServiceAnnex.OFFSET)},{"id":"coverup","level":8,"pos":(Vector3(-11.75,0,-18.45)+ServiceAnnex.OFFSET)},{"id":"closure","level":11,"pos":Vector3(CrawlTubes.route(7.65).x,.31,15.8)}]:
   game.state.streak=item.level-1;game._build_world("none");game._resume();game.player.position=item.pos;game.player.rotation=Vector3.ZERO
   if item.id=="closure": Input.action_press("crouch");game.player.set_crouch(true);game.player.camera.position.y=.8
   game.player.camera.look_at(game.world.archive.items[item.id].global_position)
@@ -436,7 +436,7 @@ func v194_views(game: Node3D, output: String) -> void:
  var prank_ok: bool=game.phase=="settings" and not game.menu_scare.running and game.menu_scare.shown==1 and patrol_before==JSON.stringify(game.state.serialize()) and settings_before==JSON.stringify(game.settings)
  game._new_shift();await game.get_tree().create_timer(1.7).timeout;await capture(game,output,"lift-phone");game.intro.accept()
  await game.get_tree().create_timer(.6).timeout;await capture(game,output,"lift-call");game.intro.skip()
- for shot in [{"name":"clown-body","pos":Vector3(-13.1,0,-16.9),"target":Vector3(-14.4,1.14,-19.25)},{"name":"shaft-and-neck","pos":Vector3(-4.5,0,-17.6),"target":Vector3(-1.8,2.8,-19.4)},{"name":"horse-skull","pos":Vector3(-3.7,0,-17.4),"target":Vector3(-2.1,2.03,-18.8)},{"name":"dark-shaft","pos":Vector3(-2.5,0,-18.1),"target":Vector3(-1.3,3.65,-19.95)}]:
+ for shot in [{"name":"clown-body","pos":(Vector3(-13.1,0,-16.9)+ServiceAnnex.OFFSET),"target":(Vector3(-14.4,1.14,-19.25)+ServiceAnnex.OFFSET)},{"name":"shaft-and-neck","pos":(Vector3(-4.5,0,-17.6)+ServiceAnnex.OFFSET),"target":(Vector3(-1.8,2.8,-19.4)+ServiceAnnex.OFFSET)},{"name":"horse-skull","pos":(Vector3(-3.7,0,-17.4)+ServiceAnnex.OFFSET),"target":(Vector3(-2.1,2.03,-18.8)+ServiceAnnex.OFFSET)},{"name":"dark-shaft","pos":(Vector3(-2.5,0,-18.1)+ServiceAnnex.OFFSET),"target":(Vector3(-1.3,3.65,-19.95)+ServiceAnnex.OFFSET)}]:
   game.player.position=shot.pos;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.target)
   await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
  var report: Dictionary=game.world.room_horror.snapshot();report.audit=SceneAudit.inspect(game.world);report.menu_prank_nonlethal=prank_ok;report.menu_prank_count=game.menu_scare.shown;report.user_fov=game.player.base_fov
@@ -447,10 +447,10 @@ func v192_views(game: Node3D, output: String) -> void:
  var shots: Array[Dictionary]=[
   {"name":"party-entrance","pos":Vector3(4.4,0,-8.7),"yaw":-PI/2,"pitch":.18},
   {"name":"music-box","pos":Vector3(17.85,0,-2.42),"yaw":-PI/2,"pitch":-.16},
-  {"name":"kitchen-ceiling","pos":Vector3(-11.2,0,-16.5),"yaw":.6,"pitch":.6},
-  {"name":"cinema-ceiling","pos":Vector3(-4.7,0,-17.7),"yaw":-.8,"pitch":.5},
-  {"name":"vent-creature","pos":Vector3(-3.5,0,-17.9),"yaw":-.3,"pitch":.38},
-  {"name":"creature-close","pos":Vector3(-2.9,0,-18.3),"yaw":-.35,"pitch":.55}]
+  {"name":"kitchen-ceiling","pos":(Vector3(-11.2,0,-16.5)+ServiceAnnex.OFFSET),"yaw":.6,"pitch":.6},
+  {"name":"cinema-ceiling","pos":(Vector3(-4.7,0,-17.7)+ServiceAnnex.OFFSET),"yaw":-.8,"pitch":.5},
+  {"name":"vent-creature","pos":(Vector3(-3.5,0,-17.9)+ServiceAnnex.OFFSET),"yaw":-.3,"pitch":.38},
+  {"name":"creature-close","pos":(Vector3(-2.9,0,-18.3)+ServiceAnnex.OFFSET),"yaw":-.35,"pitch":.55}]
  for shot in shots:
   game.player.position=shot.pos;game.player.rotation.y=shot.yaw;game.player.camera.rotation.x=shot.pitch
   await game.get_tree().create_timer(1.3).timeout;await capture(game,output,shot.name)
@@ -488,7 +488,7 @@ func croc_views(game: Node3D, output: String) -> void:
 
 func props_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game._build_world("none");game._resume()
- for shot in [{"name":"croc-body","p":Vector3(17.8,0,15.9),"look":Vector3(13.0,1.3,11.3)},{"name":"croc-front","p":Vector3(5.0,0,14.8),"look":Vector3(10.8,1.55,11.3)},{"name":"kitchen-sink","p":Vector3(-15.25,0,-16.1),"look":Vector3(-16.63,1.13,-16.65)},{"name":"pot-interior","p":Vector3(-12.6,.25,-18.75),"look":Vector3(-13.25,1.22,-19.25)},{"name":"ball-pit","p":Vector3(.2,0,10.7),"look":Vector3(1,.4,6.7)},{"name":"bucket-interior","p":Vector3(3.1,0,9.3),"look":Vector3(3.7,.43,8.7)},{"name":"server-room","p":Vector3(-11.5,0,-5.4),"look":Vector3(-14.4,1.35,-2.65)},{"name":"party-gallery","p":Vector3(13.8,0,-8.7),"look":Vector3(13.8,2.1,-11.96)},{"name":"hall-gallery","p":Vector3(-6.4,0,1),"look":Vector3(-9.96,2.7,.8)}]:
+ for shot in [{"name":"croc-body","p":Vector3(17.8,0,15.9),"look":Vector3(13.0,1.3,11.3)},{"name":"croc-front","p":Vector3(5.0,0,14.8),"look":Vector3(10.8,1.55,11.3)},{"name":"kitchen-sink","p":(Vector3(-15.25,0,-16.1)+ServiceAnnex.OFFSET),"look":(Vector3(-16.63,1.13,-16.65)+ServiceAnnex.OFFSET)},{"name":"pot-interior","p":(Vector3(-12.6,.25,-18.75)+ServiceAnnex.OFFSET),"look":(Vector3(-13.25,1.22,-19.25)+ServiceAnnex.OFFSET)},{"name":"ball-pit","p":Vector3(.2,0,10.7),"look":Vector3(1,.4,6.7)},{"name":"bucket-interior","p":Vector3(3.1,0,9.3),"look":Vector3(3.7,.43,8.7)},{"name":"server-room","p":Vector3(-11.5,0,-5.4),"look":Vector3(-14.4,1.35,-2.65)},{"name":"party-gallery","p":Vector3(13.8,0,-8.7),"look":Vector3(13.8,2.1,-11.96)},{"name":"hall-gallery","p":Vector3(-6.4,0,1),"look":Vector3(-9.96,2.7,.8)}]:
   game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  game._collect_paper("note");game._inventory();await game.get_tree().process_frame;await capture(game,output,"handwritten-note")
@@ -555,8 +555,8 @@ func v270_views(game: Node3D, output: String) -> void:
   {"name":"costume-room","p":Vector3(17.3,.2,-13.3),"look":Vector3(14.5,1.9,-17.7)},
   {"name":"maintenance-story","p":Vector3(-12.9,0,-4.4),"look":Vector3(-13.55,1.8,-6.8)},
   {"name":"dented-locker","p":Vector3(-11.9,0,-4.6),"look":Vector3(-11.45,1.25,-2.5)},
-  {"name":"kitchen-palette","p":Vector3(-10.5,0,-17.3),"look":Vector3(-15.1,1.1,-19.0)},
-  {"name":"cinema-palette","p":Vector3(-5.5,0,-17.65),"look":Vector3(2.6,1.7,-17.65)},
+  {"name":"kitchen-palette","p":(Vector3(-10.5,0,-17.3)+ServiceAnnex.OFFSET),"look":(Vector3(-15.1,1.1,-19.0)+ServiceAnnex.OFFSET)},
+  {"name":"cinema-palette","p":(Vector3(-5.5,0,-17.65)+ServiceAnnex.OFFSET),"look":(Vector3(2.6,1.7,-17.65)+ServiceAnnex.OFFSET)},
   {"name":"delivery-door","p":Vector3(-7.9,0,9.4),"look":Vector3(-10.2,1.6,9.4)}]:
   game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(.75).timeout;await capture(game,output,shot.name)
@@ -577,14 +577,14 @@ func v260_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(2).timeout;await capture(game,output,"main-menu-v260")
  game._help("menu");await game.get_tree().process_frame;await capture(game,output,"instructions-v260")
  game._new_shift();game.intro.skip();game._build_world("none");game._resume();game.player.active=false
- for shot in [{"name":"kitchen-v260","p":Vector3(-10.5,0,-17.3),"look":Vector3(-15.1,1.1,-19.0)},{"name":"kitchen-oven-v260","p":Vector3(-11.3,0,-18.3),"look":Vector3(-13.25,.75,-19.25)},{"name":"kitchen-cabinet-v260","p":Vector3(-14.9,0,-17.3),"look":Vector3(-16.6,.85,-18.3)},{"name":"party-only-rabbit-v260","p":Vector3(13.2,0,-6.8),"look":Vector3(17.9,2.5,.38)},{"name":"hall-without-rabbit-v260","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)}]:
+ for shot in [{"name":"kitchen-v260","p":(Vector3(-10.5,0,-17.3)+ServiceAnnex.OFFSET),"look":(Vector3(-15.1,1.1,-19.0)+ServiceAnnex.OFFSET)},{"name":"kitchen-oven-v260","p":(Vector3(-11.3,0,-18.3)+ServiceAnnex.OFFSET),"look":(Vector3(-13.25,.75,-19.25)+ServiceAnnex.OFFSET)},{"name":"kitchen-cabinet-v260","p":(Vector3(-14.9,0,-17.3)+ServiceAnnex.OFFSET),"look":(Vector3(-16.6,.85,-18.3)+ServiceAnnex.OFFSET)},{"name":"party-only-rabbit-v260","p":Vector3(13.2,0,-6.8),"look":Vector3(17.9,2.5,.38)},{"name":"hall-without-rabbit-v260","p":Vector3(13.9,0,14.7),"look":Vector3(18,2.7,15.35)}]:
   game.player.position=shot.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(shot.look)
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  print("V260 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
  game.state.streak=13;game.state.completed=true;game._won();game.player.active=false
  await game.get_tree().create_timer(.8).timeout;await capture(game,output,"patrol-hint-floor-v260")
  game._collect_paper("patrol_hint");game._inventory();await game.get_tree().process_frame;await capture(game,output,"patrol-hint-reader-v260")
- for spec in [{"id":"reception_overhead","p":Vector3(-4.8,0,8.5)},{"id":"cinema_aisle_rush","p":Vector3(-1.0,0,-17.65)},{"id":"kitchen_floor_crawler","p":Vector3(-12.9,0,-15.5)}]:
+ for spec in [{"id":"reception_overhead","p":Vector3(-4.8,0,8.5)},{"id":"cinema_aisle_rush","p":(Vector3(-1.0,0,-17.65)+ServiceAnnex.OFFSET)},{"id":"kitchen_floor_crawler","p":(Vector3(-12.9,0,-15.5)+ServiceAnnex.OFFSET)}]:
   game._build_world(spec.id);game._resume();game.player.active=false
   game.player.position=spec.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(game.world.terrors.focus_point())
   await game.get_tree().create_timer(1.1).timeout;await capture(game,output,spec.id+"-v260")
@@ -599,9 +599,9 @@ func v280_views(game: Node3D, output: String) -> void:
  for shot in [
   {"name":"costume-workshop","p":Vector3(17.6,.2,-13.5),"look":Vector3(13.2,1.7,-16.1)},
   {"name":"sewing-bench","p":Vector3(15.6,.2,-14.9),"look":Vector3(13.3,1.3,-13.1)},
-  {"name":"decision-doors","p":Vector3(8.7,0,14.3),"look":Vector3(8.7,1.9,17.2)}]:
+  {"name":"decision-doors","p":Vector3(-3.2,0,-8.0),"look":Vector3(-3.2,1.9,PatrolPassage.ENTRY_Z)}]:
   game.player.position=shot.p;game.player.camera.look_at(shot.look);await game.get_tree().create_timer(.8).timeout;await capture(game,output,shot.name)
- game._decide(false);game.player.position=Vector3(7.2,0,19.9);game.player.rotation.y=PI;game.player.camera.rotation=Vector3.ZERO
+ game._decide(false);game.player.position=Vector3(PatrolPassage.CENTERS[0],0,PatrolPassage.ENTRY_Z-2.7);game.player.rotation.y=0;game.player.camera.rotation=Vector3.ZERO
  await game.get_tree().create_timer(1).timeout;await capture(game,output,"green-corridor")
  print("V280 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
  game.phase="pause";game.hud.hide();game.player.release();game.player.lamp.hide();game.player.camera.rotation=Vector3.ZERO;game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.tick(.43)

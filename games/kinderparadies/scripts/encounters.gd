@@ -90,13 +90,13 @@ func _clown(delta: float, player: NightGuard) -> void:
  var actor: Node3D=w.annex.clown.root
  if not triggered and elapsed>1 and visible_to(player,actor.global_position+Vector3(0,1.95,0),3):
   triggered=true;w.annex.scare=true;clown_origin=actor.position;clown_rotation=actor.rotation.y;attack_time=0
-  clown_end=player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0)
+  clown_end=w.annex.to_local(player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0))
   audio.global_position=actor.global_position+Vector3(0,1.7,0);audio.stream=load("res://assets/scares-v260/ragged-scream.wav");audio.volume_db=-4;audio.play()
  if not triggered or finished: return
  attack_time+=delta
  if attack_time<.48:
   var t:=attack_time/.48;actor.position=clown_origin.lerp(clown_end,1-pow(1-t,3))+Vector3.UP*sin(t*PI)*.22
-  actor.rotation.y=atan2(player.position.x-actor.position.x,player.position.z-actor.position.z);shock=maxf(shock,sin(t*PI)*.9)
+  actor.rotation.y=atan2(player.position.x-actor.global_position.x,player.position.z-actor.global_position.z);shock=maxf(shock,sin(t*PI)*.9)
  elif attack_time<.7: actor.position=clown_end
  elif attack_time<1.6:
   actor.position=clown_end.lerp(clown_origin,(attack_time-.7)/.9)

@@ -24,7 +24,7 @@ func run(game: Node3D, verify: Callable) -> void:
    var horizontal:=Vector3(vertices[i].x,0,vertices[i].z)
    if horizontal.dot(normals[i])<-.01: inward+=1
   verify.call(inward>100 and mesh.material_override.albedo_texture!=null,"Cup has no textured inward-facing wall: "+str(cup.name))
- var cut:=PhysicsRayQueryParameters3D.create(Vector3(-16.63,1.6,-16.65),Vector3(-16.63,.88,-16.65),1)
+ var cut:=PhysicsRayQueryParameters3D.create((Vector3(-16.63,1.6,-16.65)+ServiceAnnex.OFFSET),(Vector3(-16.63,.88,-16.65)+ServiceAnnex.OFFSET),1)
  verify.call(game.get_world_3d().direct_space_state.intersect_ray(cut).is_empty(),"Countertop collision fills the recessed sink")
  var kitchen: Array=[]
  for bulb in game.world.room_horror.bulbs:

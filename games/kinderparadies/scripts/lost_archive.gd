@@ -95,6 +95,7 @@ func sync(value: ArchiveState, round_stage: int) -> void:
  for id in ArchiveState.PAPERS:
   if int(ArchiveState.document(id).stage)!=stage or id in progress.collected: continue
   var point: Vector3=PAPERS[id] if PAPERS.has(id) else CrawlTubes.route(8.7)
+  if id in ["missing","coverup"]: point+=ServiceAnnex.OFFSET
   if id=="closure": point.y=.322
   _paper(id,self,point,Vector2(.24,.19) if id=="coverup" else Vector2(.34,.43),Vector3(-PI/2,.13,0))
  if progress.unlocked and "casefile" not in progress.collected: _paper("casefile",self,Vector3(-15.15,.819,-9.05),Vector2(.34,.43),Vector3(-PI/2,-.12,0))

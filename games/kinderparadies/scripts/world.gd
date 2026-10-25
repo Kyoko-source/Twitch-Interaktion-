@@ -140,6 +140,7 @@ func build() -> void:
  if native_art: native_art.finish()
  backstage=BackstageExpansion.new();add_child(backstage);backstage.build(self)
  passages=PatrolPassage.new();add_child(passages);passages.build(self)
+ for zone in ["Küche","Kino"]: zones[zone]+=ServiceAnnex.OFFSET
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -190,15 +191,15 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-10.2,4.95,-9.9),Vector3(.3,4.9,1.6),materials.wall,true)
  box(self,Vector3(19.8,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
  box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
- box(self,Vector3(.2,3.7,-12.2),Vector3(13.2,7.4,.3),materials.wall,true)
+ for span in [Vector2(-6.4,-5.15),Vector2(-3.45,-3.0),Vector2(-1.3,6.8)]:
+  box(self,Vector3((span.x+span.y)*.5,3.7,-12.2),Vector3(span.y-span.x,7.4,.3),materials.wall,true)
+ for x in PatrolPassage.CENTERS: box(self,Vector3(x,5.2,-12.2),Vector3(1.7,4.4,.3),materials.wall,true)
  box(self,Vector3(11.625,3.7,-12.2),Vector3(9.65,7.4,.3),materials.wall,true)
  box(self,Vector3(18.975,3.7,-12.2),Vector3(1.65,7.4,.3),materials.wall,true)
  box(self,Vector3(17.3,5.2,-12.2),Vector3(1.7,4.4,.3),materials.wall,true)
  box(self,Vector3(-7.9,5.05,-12.2),Vector3(3,4.7,.3),materials.wall,true)
  box(self,Vector3(-9.75,3.7,17.2),Vector3(.9,7.4,.3),materials.wall,true)
- for span in [Vector2(-6.7,6.35),Vector2(8.05,9.45),Vector2(11.15,19.8)]:
-  box(self,Vector3((span.x+span.y)*.5,3.7,17.2),Vector3(span.y-span.x,7.4,.3),materials.wall,true)
- for x in PatrolPassage.CENTERS: box(self,Vector3(x,5.2,17.2),Vector3(1.7,4.4,.3),materials.wall,true)
+ box(self,Vector3(6.55,3.7,17.2),Vector3(26.5,7.4,.3),materials.wall,true)
  box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:

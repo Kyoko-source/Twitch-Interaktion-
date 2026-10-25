@@ -168,7 +168,7 @@ func finish() -> void:
  if not advanced: return
  # Screen bounce comes from the screen plane, not an unexplained room fill.
  for light in w.practicals:
-  if light.position.distance_to(Vector3(2.8,2.2,-17.7))<.1:
+  if light.position.distance_to(Vector3(2.8,2.2,-17.7)+ServiceAnnex.OFFSET)<.1:
    light.light_energy=.88;light.light_color=Color("a6c0cf");light.omni_range=7;light.omni_attenuation=1.8;light.set_meta("shadow_practical",true)
   elif light.position.distance_to(Vector3(-13.35,2.89,-4.4))<.1:
    light.light_energy=1.1;light.light_color=Color("a6c0b1");light.set_meta("shadow_practical",true)

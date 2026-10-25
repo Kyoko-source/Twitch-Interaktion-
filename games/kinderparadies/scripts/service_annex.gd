@@ -1,6 +1,7 @@
 class_name ServiceAnnex
 extends Node3D
 
+const OFFSET:=Vector3(0,0,-12)
 var w: PlayWorld
 var clown: Dictionary
 var clown_origin:=Vector3(-14.4,0,-19.25)
@@ -23,7 +24,8 @@ func doorway(x: float) -> void:
  w.box(self,Vector3(x,2.55,-17.65),Vector3(.28,.12,2.12),w.materials.rust,true)
 
 func build(world: PlayWorld) -> void:
- w=world;name="ServiceAnnex"
+ w=world;name="ServiceAnnex";position=OFFSET
+ var first_light:=w.practicals.size()
  # North-wall opening continues into a small corridor with opposite doors.
  var floor_mat:=w.mat(Color("747b6b"),load("res://assets/floor.png"),.88);floor_mat.uv1_triplanar=true;floor_mat.uv1_scale=Vector3.ONE*.8
  # A four-millimetre step avoids coplanar overlap with the hall's tile lip.
@@ -47,6 +49,8 @@ func build(world: PlayWorld) -> void:
  plaque("KÜCHE",Vector3(-9.23,2.9,-17.65),PI/2)
  plaque("LICHTSPIEL",Vector3(-6.57,2.9,-17.65),-PI/2)
  _kitchen();KitchenDressing.build(w,self);_cinema();_audio()
+ for i in range(first_light,w.practicals.size()): w.practicals[i].position+=OFFSET
+ _approach()
  # Wall damp lives on physical plaster, away from door apertures and the screen.
  for z in [-21.0,-18.0,-14.9]:
   w.atmosphere.decal(self,2,Vector3(-17.235,2.15,z),Vector2(1.8,2.7),Vector3(0,PI/2,0),Color(.46,.53,.35,.8))
@@ -163,4 +167,18 @@ func tick(delta: float, active: bool) -> void:
  clown.head.rotation.z=sin(clock*.42)*.025
 
 func safe_pose(pos: Vector3) -> bool:
+ pos-=OFFSET
+ if pos.x> -9.25 and pos.x< -6.55 and pos.z> -12.25 and pos.z<.15 and pos.y>-.2 and pos.y<3.3: return true
  return pos.y>-.2 and pos.y<3.3 and pos.x> -17.15 and pos.x<3.55 and pos.z> -22.35 and pos.z< -12.05
+
+func _approach() -> void:
+ # Extend the service approach beside, never through, the decision corridors.
+ var floor:=w.box(self,Vector3(-7.9,-.142,-6.12),Vector3(3,.3,12.25),w.materials.dark,true)
+ floor.set_meta("foot_surface","concrete")
+ for x in [-9.4,-6.4]: wall(Vector3(x,1.8,-6.12),Vector3(.18,3.6,12.25))
+ w.box(self,Vector3(-7.9,3.65,-6.12),Vector3(3.18,.18,12.25),w.materials.dark,true)
+ for z in [-2.0,-6.0,-10.0]:
+  w.box(self,Vector3(-7.9,3.5,z),Vector3(.7,.1,.3),w.materials.metal)
+  var glow:=w.mat(Color("a5b4a0"));glow.emission_enabled=true;glow.emission=Color("a5b4a0")
+  w.box(self,Vector3(-7.9,3.44,z),Vector3(.6,.02,.24),glow)
+  w.lamp(Vector3(-7.9,3.25,z)+OFFSET,Color("91aaa1"),.5,5)

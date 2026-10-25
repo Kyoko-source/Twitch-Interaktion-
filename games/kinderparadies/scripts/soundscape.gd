@@ -26,7 +26,7 @@ var ghost_to:=Vector3.ZERO
 var ghost_track:=""
 
 func emitter(file: String, pos: Vector3, db: float, range_value: float) -> AudioStreamPlayer3D:
- var source:=AudioStreamPlayer3D.new();source.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;source.stream=load(file if file.begins_with("res://") else ASSETS+file);source.position=pos;source.volume_db=db;source.unit_size=2;source.max_distance=range_value;source.attenuation_filter_cutoff_hz=3300;add_child(source);return source
+ var source:=AudioStreamPlayer3D.new();source.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;source.stream=load(file if file.begins_with("res://") else ASSETS+file);source.position=pos+ServiceAnnex.OFFSET if pos.z< -12.2 and pos.x<4 else pos;source.volume_db=db;source.unit_size=2;source.max_distance=range_value;source.attenuation_filter_cutoff_hz=3300;add_child(source);return source
 
 func build(world: PlayWorld) -> void:
  w=world;rng.randomize()
@@ -61,6 +61,8 @@ func cue_steps(player: NightGuard) -> void:
  # Sound-only paths stay in real aisles. They do not instantiate a person and
  # never consume the anomaly generator's randomness or change the correct door.
  var paths: Array[Vector3]=[Vector3(-5.5,.15,3),Vector3(-5.5,.15,10),Vector3(5.8,.15,-10),Vector3(5.8,.15,-5.8),Vector3(-7.9,.15,-14),Vector3(-7.9,.15,-21.5),Vector3(13,.15,-10.4),Vector3(17,.15,-10.4)]
+ for i in range(paths.size()):
+  if paths[i].z< -12.2: paths[i]+=ServiceAnnex.OFFSET
  var nearest:=0;var distance:=1000.0
  for i in range(0,paths.size(),2):
   var d:=((paths[i]+paths[i+1])*.5).distance_to(player.position)
