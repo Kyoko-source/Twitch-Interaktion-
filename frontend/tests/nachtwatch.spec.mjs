@@ -468,3 +468,25 @@ test('v2.6 exact Dienstanweisung, party-only mascot and manufactured kitchen ren
  await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.sound).toContain('/scares-v260/bass-roar.wav');
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const scare=(await state(page)).terrors;await page.waitForTimeout(350);expect((await state(page)).terrors.position).toEqual(scare.position);expect((await state(page)).terrors.attack).toBe(scare.attack);expect(!scare.audio||scare.paused).toBe(true);
 });
+
+
+test('v2.9 environmental dressing has solid arcade cabinets, stable reference rooms, paused CRTs and a working green-door trip',async({page})=>{
+ test.setTimeout(120000);await begin(page);await page.mouse.click(768,512);
+ expect((await state(page)).details.groups).toBeGreaterThanOrEqual(17);expect((await state(page)).details.screens).toBe(2);
+ await qa(page,{op:'warp',x:7.5,z:14.6,yaw:Math.PI,pitch:0});
+ await page.keyboard.down('w');try{await page.waitForTimeout(1800);}finally{await page.keyboard.up('w');}
+ const p=(await state(page)).position;expect(p[2]).toBeGreaterThan(15.2);expect(p[2]).toBeLessThan(16.3);
+ await page.screenshot({path:join(tmpdir(),'after-play-v290-web-arcade.png')});
+ await qa(page,{op:'pause'});const frozen=(await state(page)).details.clock;await page.waitForTimeout(350);expect((await state(page)).details.clock).toBe(frozen);
+ await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).details.clock).toBeGreaterThan(frozen);
+ for(const shot of [{name:'lost-property',x:1.8,z:-8,yaw:0,pitch:.12},{name:'birthday',x:11.4,z:-4,yaw:.38,pitch:.15}]){
+  await qa(page,{op:'warp',...shot});await page.waitForTimeout(250);await page.screenshot({path:join(tmpdir(),'after-play-v290-web-'+shot.name+'.png')});
+ }
+ await qa(page,{op:'audit'});const layout=(await state(page)).layout;expect(layout.door_obstructions).toEqual([]);expect(layout.furniture_wall_intrusions).toEqual([]);
+ await doorTrip(page,false);expect((await state(page)).streak).toBe(1);expect((await state(page)).details.groups).toBeGreaterThanOrEqual(17);
+ await qa(page,{op:'anomaly',id:'none'});
+ await page.evaluate(()=>{window.nachtwacheQA(JSON.stringify({op:'warp',x:7.5,z:16.4,yaw:0}));window.nachtwacheQA(JSON.stringify({op:'pause'}));});
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ const continued=await state(page);expect(continued.streak).toBe(1);expect(continued.position[0]).toBeCloseTo(-6.2,1);expect(continued.position[2]).toBeCloseTo(8.5,1);
+
+});

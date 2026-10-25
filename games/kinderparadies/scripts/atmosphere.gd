@@ -140,14 +140,15 @@ func _party_details() -> void:
  var ceramic:=w.mat(Color("c2bba4"),load("res://assets/paint.png"),.36)
  # Round layered cake replaces the rectangular placeholder.
  for i in range(3): w.tube(w.props.party_table,Vector3(8.5,.85+i*.07,-7),Vector3(8.5,.92+i*.07,-7),.32-i*.008,w.materials.cream if i%2==0 else w.materials.red)
+ var legacy:=Node3D.new();legacy.name="LegacyPartyTableware";w.props.party_table.add_child(legacy)
  for i in range(6):
   var z:=-8.1+(i%3)*1.1;var x:=7.9 if i<3 else 9.1
-  w.tube(w.props.party_table,Vector3(x,.85,z),Vector3(x,.865,z),.19,ceramic)
-  w.tube(w.props.party_table,Vector3(x+.12,.86,z+.22),Vector3(x+.12,1.02,z+.22),.058,ceramic)
-  w.tube(w.props.party_table,Vector3(x+.12,1.02,z+.22),Vector3(x+.12,1.025,z+.22),.048,w.materials.dark)
-  w.box(w.props.party_table,Vector3(x-.17,.88,z),Vector3(.025,.018,.22),w.materials.metal)
+  w.tube(legacy,Vector3(x,.85,z),Vector3(x,.865,z),.19,ceramic)
+  w.tube(legacy,Vector3(x+.12,.86,z+.22),Vector3(x+.12,1.02,z+.22),.058,ceramic)
+  w.tube(legacy,Vector3(x+.12,1.02,z+.22),Vector3(x+.12,1.025,z+.22),.048,w.materials.dark)
+  w.box(legacy,Vector3(x-.17,.88,z),Vector3(.025,.018,.22),w.materials.metal)
  for i in range(4):
-  var strip:=w.box(w.props.party_table,Vector3(8.1+i*.38,.873,-7.2),Vector3(.18,.007,.2),w.materials.paper);strip.rotation.y=i*.6
+  var strip:=w.box(legacy,Vector3(8.1+i*.38,.873,-7.2),Vector3(.18,.007,.2),w.materials.paper);strip.rotation.y=i*.6
 
 func plush(parent: Node3D, pos: Vector3, scale_value: float=1.0) -> Node3D:
  var bunny:=Node3D.new();bunny.position=pos;bunny.scale=Vector3.ONE*scale_value;parent.add_child(bunny)

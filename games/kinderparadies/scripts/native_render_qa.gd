@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--details-qa" in OS.get_cmdline_user_args():
+  await details_views(game,output);game._quit();return
  if "--v280-qa" in OS.get_cmdline_user_args():
   await v280_views(game,output);game._quit();return
  if "--v270-qa" in OS.get_cmdline_user_args():
@@ -607,3 +609,19 @@ func v280_views(game: Node3D, output: String) -> void:
  game.phase="pause";game.hud.hide();game.player.release();game.player.lamp.hide();game.player.camera.rotation=Vector3.ZERO;game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.tick(.43)
  await capture(game,output,"corridor-attacker");game.door_failure.hide();game.door_failure.running=false;game.door_failure.audio.stop()
  print("V280 RENDER COMPLETE")
+
+func details_views(game: Node3D, output: String) -> void:
+ await capture(game,output,"main-menu-details")
+ game._new_shift();game.intro.skip();game.player.active=false
+ for view in [
+  {"id":"lost-property","p":Vector3(1.8,0,-8.0),"look":Vector3(2.7,1.1,-11.7)},
+  {"id":"arcade","p":Vector3(7.8,0,13.0),"look":Vector3(9.0,1.1,16.5)},
+  {"id":"reception","p":Vector3(-6.5,0,13.4),"look":Vector3(-9.5,1.05,14.2)},
+  {"id":"party","p":Vector3(13,0,-4),"look":Vector3(16.4,.9,-7.2)},
+  {"id":"birthday-table","p":Vector3(11.4,0,-4),"look":Vector3(10.2,.9,-7)},
+  {"id":"kitchen","p":Vector3(-13.2,0,-16)+ServiceAnnex.OFFSET,"look":Vector3(-16.5,1.3,-15.5)+ServiceAnnex.OFFSET},
+  {"id":"cinema","p":Vector3(.9,0,-17)+ServiceAnnex.OFFSET,"look":Vector3(2.05,1,-14.35)+ServiceAnnex.OFFSET},
+  {"id":"maintenance","p":Vector3(-11.2,0,-3.9),"look":Vector3(-13.5,1.1,-6.2)},
+  {"id":"service-hall","p":Vector3(-7.9,0,-15.5),"look":Vector3(-9.2,1.8,-18.0)}]:
+  game.player.position=view.p;game.player.camera.look_at(view.look);await game.get_tree().create_timer(.5).timeout;await capture(game,output,view.id)
+ print("DETAILS AUDIT ",JSON.stringify(SceneAudit.placement(game.world))," COUNTS ",JSON.stringify(game.world.details.snapshot()))

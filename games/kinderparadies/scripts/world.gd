@@ -32,6 +32,7 @@ var terrors: NightTerrors
 var server_room: ServiceRoom
 var polish: AfterPlayPolish
 var backstage: BackstageExpansion
+var details: AfterPlayDetails
 var passages: PatrolPassage
 
 func bevel(size: Vector3) -> ArrayMesh:
@@ -141,6 +142,7 @@ func build() -> void:
  backstage=BackstageExpansion.new();add_child(backstage);backstage.build(self)
  passages=PatrolPassage.new();add_child(passages);passages.build(self)
  for zone in ["Küche","Kino"]: zones[zone]+=ServiceAnnex.OFFSET
+ details=AfterPlayDetails.new();add_child(details);details.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -436,6 +438,7 @@ func set_anomaly(id: String) -> void:
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
 
 func tick(delta: float, active: bool) -> void:
+ details.tick(delta,active)
  annex.tick(delta,active)
  atmosphere.tick(delta,active)
  playground.tick(active)

@@ -89,7 +89,7 @@ static func placement(w: PlayWorld) -> Dictionary:
   var furnishing: bool=mesh.get_meta("native_model","")=="cardboard_box_01"
   var cursor: Node=mesh.get_parent()
   while cursor!=null and cursor!=w:
-   if cursor in [w.props.counter,w.props.party_table,w.props.chairs] or str(cursor.name) in ["StockedShelf","PartySideboard","ProjectionWorktable","GroundedRepairBench","MountedServerRack","MascotCorner","PartyMascotCorner"]: furnishing=true;break
+   if cursor.get_meta("environment_dressing",false) or cursor in [w.props.counter,w.props.party_table,w.props.chairs] or str(cursor.name) in ["StockedShelf","PartySideboard","ProjectionWorktable","GroundedRepairBench","MountedServerRack","MascotCorner","PartyMascotCorner"]: furnishing=true;break
    cursor=cursor.get_parent()
   if furnishing:
    for wall in walls:

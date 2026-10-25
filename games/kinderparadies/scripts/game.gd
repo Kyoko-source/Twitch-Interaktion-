@@ -240,7 +240,8 @@ func _continue() -> void:
    if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
    elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
-   player.position=p;player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
+   if world.details.clear_pose(p): player.position=p
+   player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
@@ -343,7 +344,7 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
@@ -625,6 +626,7 @@ func _telemetry() -> void:
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
+  data.details=world.details.snapshot()
   data.backstage=world.backstage.snapshot();data.passage=world.passages.snapshot();data.survived=survived;data.death_text=death_label.text if death_label.visible else ""
   data.hud_labels=[]
   for label in hud.find_children("*","Label",true,false):

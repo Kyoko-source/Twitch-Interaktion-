@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.8.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.9.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
@@ -615,3 +615,23 @@ Geräusche, Laufoberflächen und die beiden Zeitungen folgen den Räumen.
 Speicherlayout 11 übernimmt ältere Positionen aus Küche/Kino und setzt alte
 Positionen aus den südlichen Entscheidungsfluren sicher in den Startfahrstuhl.
 Die bereinigte Paketstruktur und die Entfernung des Erstellercodes bleiben erhalten.
+
+
+## Einrichtung und Gebrauchsspuren (2.9.0)
+
+17 neue, dauerhaft gleich platzierte Objektgruppen geben dem Happyland mehr
+Alltagsspuren. Dazu zählen zwei geformte Arcade-Automaten mit animierten CRTs,
+eine verglaste Preisvitrine, Fundfächer, ein abgestellter Kinderwagen, eine
+vergessene Tasche und Schuhe auf/an der vorhandenen Wartebank, eine Garderobe,
+Eintrittsbänder, gedeckte Geburtstagsplätze, ein Servierwagen, Küchenflaschen,
+Abtropfgeschirr, eine Gemüsekiste, ein Popcornwagen sowie Reinigungs- und
+Ersatzteilutensilien. Die Tischplätze ersetzen die alten einfachen Teller und
+Becher, damit keine doppelte Geometrie ineinanderliegt.
+
+AfterPlayDetails erstellt die Geometrie aus wiederverwendeten Projektmaterialien;
+DressingPrint zeichnet eigene, deckende Druckflächen auf die Modelle. Es werden
+keine zusätzlichen externen Assets oder Lizenzen benötigt. Bildschirmbewegung
+und der sehr leise, räumlich begrenzte Automatenlüfter pausieren mit dem Spiel.
+Der Lüfter folgt dem Ambiente-Regler. Die Einrichtung verändert keine Anomalien
+und keine Zeitungstermine. Kollisionen folgen den Schränken, Glasflächen und
+größeren Wagen; Türdurchgänge werden im Geometrie-Audit mit geprüft.
