@@ -130,7 +130,8 @@ func _cinema() -> void:
  var top:=w.box(desk,Vector3(0,.83,0),Vector3(1.05,.065,.56),w.materials.wood,true);top.set_meta("foot_surface","wood")
  for x in [-.43,.43]:
   for z in [-.2,.2]: w.box(desk,Vector3(x,.4,z),Vector3(.045,.8,.045),w.materials.metal,true)
- for i in range(3): reel(desk,Vector3(-.25+i*.25,.89,.04),.13,i*.35)
+ # The left-hand reel is the actual collectible built by CinemaFilm.
+ for i in range(2): reel(desk,Vector3(.02+i*.27,.868,.04),.12,i*.35)
  w.artwork(root,Vector3(-6.265,2.23,-14.55),Vector2(1.25,1.35),load("res://assets/polish-v240/cinema-poster.png"),PI/2)
  w.artwork(root,Vector3(-6.265,2.23,-20.9),Vector2(1.15,1.35),load("res://assets/polish-v240/cinema-poster.png"),PI/2)
  # Worn seat seams, cupholders, torn patches and small abandoned paper cups.

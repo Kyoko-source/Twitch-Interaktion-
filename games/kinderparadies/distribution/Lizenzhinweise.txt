@@ -31,3 +31,8 @@ MUSIK, SPRACHE UND BILDER
 Hauptmenü: Abandoned Arcade, Künstlerangabe in der bereitgestellten Aufnahme: turbulentmicrogenres466.
 Musik und Sprachaufnahmen wurden vom Spieleersteller zur Verwendung in After Play bereitgestellt. Sie werden durch die obigen CC0-Lizenzen nicht freigegeben.
 Illustrationen, fiktive Archivbilder und einzelne Effekttexturen wurden für dieses Projekt mit KI-Werkzeugen erstellt. Sie zeigen keine dokumentierten realen Ereignisse.
+
+Der fiktive Happyland-Werbefilm zeigt bewegte Aufnahmen der Spielumgebung. Schnitt,
+Texteinblendungen, Jahrmarktmelodie und Alterungseffekte wurden für After Play erstellt.
+Die deutsche Ansage wurde lokal mit Microsoft Hedda Desktop als Sprachausgabe erzeugt.
+Die bestehenden Lizenzen der sichtbaren Spielobjekte und Schriften gelten weiter.

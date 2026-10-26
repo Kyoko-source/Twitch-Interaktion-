@@ -85,6 +85,7 @@ func _build_world(anomaly: String) -> void:
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
+ world.film.sync(archive.film_found)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
@@ -94,6 +95,7 @@ func _stop_scene_audio(root: Node) -> void:
  # Retire paused WAV playbacks before removing a room or closing the game.
  for source in root.find_children("*","AudioStreamPlayer",true,false)+root.find_children("*","AudioStreamPlayer3D",true,false):
   source.stop();source.stream=null
+ for video in root.find_children("*","VideoStreamPlayer",true,false): video.stop();video.stream=null
 
 func _audio() -> void:
  if not OS.has_feature("web"): player.step_player.bus="Interior"
@@ -304,7 +306,7 @@ func _open_archive_lock(message: String="") -> void:
 func _submit_archive_code() -> void:
  if phase!="code": return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
- if not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
+ if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
  archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
 
@@ -344,7 +346,7 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
@@ -391,6 +393,7 @@ func _process(delta: float) -> void:
   var travel: float=sin(menu_clock*.075)*.18 if settings.motion else 0.0
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
  world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
+ world.film.tick(delta,phase=="play")
  world.tick(delta,phase=="play")
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -416,6 +419,8 @@ func _process(delta: float) -> void:
   prompt.text=""
   if state.completed and target in ["red","green"]: prompt.text="E · Erneut nach den Spuren suchen"
   elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
+  elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
+  elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
@@ -546,6 +551,12 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("interact"):
   var target:=_target()
   if target in ["red","green"]: _decide(target=="red")
+  elif target=="film_reel":
+   archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
+  elif target=="cinema_projector":
+   if world.film.playing: world.film.stop()
+   elif not archive.film_found: _announce("Auf dem Projektionstisch liegt eine alte Filmrolle.",4)
+   elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
   elif target=="archive_recording": world.archive.finale.interact()
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
@@ -627,6 +638,7 @@ func _telemetry() -> void:
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
   data.details=world.details.snapshot()
+  data.film=world.film.snapshot()
   data.backstage=world.backstage.snapshot();data.passage=world.passages.snapshot();data.survived=survived;data.death_text=death_label.text if death_label.visible else ""
   data.hud_labels=[]
   for label in hud.find_children("*","Label",true,false):

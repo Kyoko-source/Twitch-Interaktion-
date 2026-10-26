@@ -44,7 +44,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.9.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.10.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
@@ -649,3 +649,37 @@ SceneAudit prüft jetzt die vollständigen Flure einschließlich dekorativer Geo
 und transparenter Overlays. Regressionstests schleusen absichtlich eine Schmutzfläche
 und einen nicht kollidierenden Tisch ein und prüfen, ob der Audit beide erkennt.
 Zusätzlich werden offene Türflügel und die Bodenunterstützung importierter Kartons geprüft.
+
+## Happyland-Film und offizieller Trailer (2.10.0)
+
+Die Kinositze besitzen jeweils einen zusammenhängenden, an den Ecken abgeschrägten
+Kollisionskörper. Der seitliche Gang ist breiter; alle fünf Gänge werden mit
+echter Spielerbewegung in beiden Richtungen geprüft. Der Erstellerzugang `0712`
+bleibt auf Wunsch aktiv und über Fortsetzen gespeichert. Der reguläre Code
+benötigt weiterhin alle vier Zeitungen. Anleitung für die vorbereiteten itch-App-
+Updates: [ITCH-UPDATES.md](ITCH-UPDATES.md).
+
+Im Kino liegt auf dem Projektionstisch eine beschriftete, mit E einsammelbare
+Filmrolle. Die Wandbedienung neben dem Tisch legt sie in den Deckenprojektor ein
+oder stoppt die Vorführung. Der freiwillige Film gehört zur normalen Umgebung;
+er verändert weder die Anomalie noch die Rundenzahl. Der Spieler kann frei
+weiterlaufen. Die Rolle bleibt während der Schicht und in gespeicherten Spielständen
+erhalten; eine neue Schicht oder Tod setzt den Fund zurück.
+
+Das 34-Sekunden-Video zeigt bewegte Aufnahmen derselben Räume in einem helleren,
+aufgeräumten Zustand. Absichtlich reduzierte Farbigkeit, Körnung, Filmschrammen,
+eine eigene Jahrmarktmelodie und eine lokal erzeugte deutsche Ansage ergeben
+einen alten Happyland-Werbefilm. Die 4:3-Projektion behält auf der breiten Leinwand
+ihr Seitenverhältnis. Ton kommt räumlich aus dem Kino und folgt dem Ambiente-Regler.
+Pause und Inventar halten Bild, Ton und die beiden Filmspulen an. Am natürlichen
+Ende sowie beim Stoppen kehrt die Leinwand zu NO SIGNAL zurück. Der Videodecoder
+wird erst beim Einlegen geladen; gespeicherte Schichten starten keine laufende
+Vorführung ungefragt neu.
+
+Der separate Trailer dauert genau 75 Sekunden: 1920 × 1080, 30 FPS, H.264/AAC,
+deutsche Titel, native Spielszenen und Musik/Sounddesign. Das geheime Ende bleibt
+ausgespart. `tools/build-after-play-media.py` erstellt die Masterdatei, den alten
+Werbefilm, Vorschaubilder und Medienmetadaten aus der privaten Aufnahmeszene
+`art-direction/media_capture.tscn`. Der Trailer wird separat als MP4 veröffentlicht
+und gehört nicht in den Spiel-Download. Auf der Spielseite lädt er erst nach
+Betätigung der Videosteuerung; beim Start des Web-Spiels pausiert er.

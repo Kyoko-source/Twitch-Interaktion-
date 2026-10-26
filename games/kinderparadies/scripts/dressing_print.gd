@@ -14,6 +14,9 @@ func _draw() -> void:
   draw_rect(Rect2(8,8,624,144),gold,false,3)
   var title:="STAR HOPPER" if kind=="arcade" else "LUNAR ORBIT" if kind=="orbit" else "HAPPYLAND / PREISE"
   draw_string(font,Vector2(38,105),title,HORIZONTAL_ALIGNMENT_LEFT,-1,67 if kind!="prizes" else 54,gold)
+ elif kind=="film":
+  draw_string(font,Vector2(28,76),"HAPPYLAND / FILM",HORIZONTAL_ALIGNMENT_LEFT,-1,48,ink)
+  draw_string(font,Vector2(28,126),"Ein Tag voller Abenteuer",HORIZONTAL_ALIGNMENT_LEFT,-1,27,ink)
  elif kind=="found":
   draw_string(font,Vector2(28,72),"HAPPYLAND / FUNDSTÜCKE",HORIZONTAL_ALIGNMENT_LEFT,-1,42,ink)
   draw_string(font,Vector2(28,123),"Vermisst jemand noch etwas?",HORIZONTAL_ALIGNMENT_LEFT,-1,29,ink)

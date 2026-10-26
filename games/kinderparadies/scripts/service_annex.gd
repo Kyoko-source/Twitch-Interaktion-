@@ -6,6 +6,7 @@ var w: PlayWorld
 var clown: Dictionary
 var clown_origin:=Vector3(-14.4,0,-19.25)
 var screen: ShaderMaterial
+var screen_surface: MeshInstance3D
 var food: ShaderMaterial
 var clock:=0.0
 var scare:=false
@@ -105,18 +106,27 @@ func _cinema() -> void:
  var carpet:=w.mat(Color("40262b"),load("res://assets/floor.png"),.98);carpet.uv1_triplanar=true;carpet.uv1_scale=Vector3.ONE
  var carpet_mesh:=w.box(self,Vector3(-1.3,.0095,-17.85),Vector3(9.95,.002,8.6),carpet);carpet_mesh.name="CinemaCarpet"
  var seat_mat:=w.mat(Color("642f35"),load("res://assets/aged-plaster.png"),.94)
- for x in [-4.7,-3.2,-1.7,-.2]:
+ # Leave a full walking aisle beside the projection desk. Separate tilted
+ # cushion/arm colliders used to catch the capsule at their overlapping edges.
+ for x in [-4.3,-2.8,-1.3,.2]:
   for z in [-21.0,-19.9,-18.8,-16.6,-15.5,-14.4]:
    var seat:=Node3D.new();seat.name="CinemaSeat";seat.position=Vector3(x,0,z);seat.rotation.y=PI/2;add_child(seat)
-   w.box(seat,Vector3(0,.46,0),Vector3(.63,.18,.64),seat_mat,true)
-   var back:=Node3D.new();back.position=Vector3(0,.87,-.27);back.rotation.x=-.12;seat.add_child(back);w.box(back,Vector3.ZERO,Vector3(.66,.82,.16),seat_mat,true)
+   w.box(seat,Vector3(0,.46,0),Vector3(.63,.18,.64),seat_mat)
+   var back:=Node3D.new();back.position=Vector3(0,.87,-.27);back.rotation.x=-.12;seat.add_child(back);w.box(back,Vector3.ZERO,Vector3(.66,.82,.16),seat_mat)
    for side in [-1,1]:
-    w.box(seat,Vector3(side*.37,.68,.02),Vector3(.09,.1,.62),w.materials.dark,true)
+    w.box(seat,Vector3(side*.37,.68,.02),Vector3(.09,.1,.62),w.materials.dark)
     w.tube(seat,Vector3(side*.28,.05,0),Vector3(side*.28,.45,0),.04,w.materials.metal)
    if int(absf(x*10+z))%4==0: w.box(seat,Vector3(.13,.56,.1),Vector3(.16,.009,.13),w.materials.rust)
+   var body:=StaticBody3D.new();body.name="SeatCollision";seat.add_child(body)
+   var shape:=CollisionShape3D.new();var hull:=ConvexPolygonShape3D.new();var points:=PackedVector3Array()
+   # One bevelled hull per seat: no seams, sharp corner hooks or hidden legs.
+   for y in [.05,1.30]:
+    for p in [Vector2(-.33,-.40),Vector2(.33,-.40),Vector2(.41,-.32),Vector2(.41,.25),Vector2(.33,.33),Vector2(-.33,.33),Vector2(-.41,.25),Vector2(-.41,-.32)]:
+     points.append(Vector3(p.x,y,p.y))
+   hull.points=points;shape.shape=hull;body.add_child(shape)
  var frame:=Node3D.new();frame.position=Vector3(3.48,1.9,-17.7);frame.rotation.y=-PI/2;add_child(frame)
  w.box(frame,Vector3(0,0,-.035),Vector3(7,2.9,.08),w.materials.dark)
- var mesh:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(6.8,2.7);mesh.mesh=quad;mesh.position.z=.015;frame.add_child(mesh)
+ var mesh:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(6.8,2.7);mesh.mesh=quad;mesh.position.z=.015;frame.add_child(mesh);screen_surface=mesh
  var shader:=Shader.new();shader.code="""
 shader_type spatial;render_mode unshaded;
 uniform sampler2D lettering:source_color;uniform float clock=0.0;

@@ -492,3 +492,40 @@ test('v2.9 environmental dressing has solid arcade cabinets, stable reference ro
  const continued=await state(page);expect(continued.streak).toBe(1);expect(continued.position[0]).toBeCloseTo(-6.2,1);expect(continued.position[2]).toBeCloseTo(8.5,1);
 
 });
+
+test('cinema aisles are walkable forwards and backwards without seat snags',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ for(const x of [-5.15,-3.55,-.55]){
+  await qa(page,{op:'warp',x,z:-26.0,yaw:0,pitch:0});
+  await walk(page,'w',s=>s.position[2]<-33.6);
+  expect((await state(page)).position[0]).toBeCloseTo(x,1);
+  await walk(page,'s',s=>s.position[2]>-26.2);
+  expect((await state(page)).position[0]).toBeCloseTo(x,1);
+ }
+ await qa(page,{op:'warp',x:-5.15,z:-29.7,yaw:-Math.PI/2,pitch:0});
+ await walk(page,'w',s=>s.position[0]>1.2);await walk(page,'s',s=>s.position[0]<-5.0);
+ await page.screenshot({path:join(tmpdir(),'after-play-v2100-web-cinema-aisle.png')});
+});
+
+test('Happyland film can be collected, projected with synchronized sound, paused, replayed and retained across rounds',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ const aim=async(x,z,tx,ty,tz)=>qa(page,{op:'warp',x,z,yaw:Math.atan2(-(tx-x),-(tz-z)),pitch:Math.atan2(ty-1.65,Math.hypot(tx-x,tz-z))});
+ expect((await state(page)).film.owned).toBe(false);
+ await aim(-5.15,-26.1,-5.88,.92,-26.27);await expect.poll(async()=>(await state(page)).target).toBe('film_reel');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).film.owned).toBe(true);
+ await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');await page.keyboard.press('Escape');
+ await aim(-5.05,-27.83,-6.17,1.27,-27.83);await expect.poll(async()=>(await state(page)).target).toBe('cinema_projector');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).film.position,{timeout:10000}).toBeGreaterThan(1);
+ let film=(await state(page)).film;expect(film.playing&&film.screen).toBe(true);expect(Math.abs(film.position-film.audio_position)).toBeLessThan(.35);
+ await aim(-2.8,-29.7,3.48,1.9,-29.7);await page.waitForTimeout(1400);await page.screenshot({path:join(tmpdir(),'after-play-v2100-web-film.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');await page.waitForTimeout(100);
+ const before=(await state(page)).film.position;await page.waitForTimeout(400);film=(await state(page)).film;expect(Math.abs(film.position-before)).toBeLessThan(.05);expect(film.audio_paused).toBe(true);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).film.position).toBeGreaterThan(before+.2);
+ await expect.poll(async()=>(await state(page)).film.playing,{timeout:45000,intervals:[250]}).toBe(false);
+ expect((await state(page)).film.screen).toBe(false);expect((await state(page)).anomaly).toBe('none');
+ await aim(-5.05,-27.83,-6.17,1.27,-27.83);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).film.playing).toBe(true);
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).film.playing).toBe(false);
+ await qa(page,{op:'pause'});await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');expect((await state(page)).film.owned).toBe(true);
+ await qa(page,{op:'anomaly',id:'none'});expect((await state(page)).film.owned).toBe(true);expect((await state(page)).film.playing).toBe(false);
+ await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.art_overlaps).toEqual([]);
+});

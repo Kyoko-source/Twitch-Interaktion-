@@ -1,4 +1,4 @@
-param([string]$Version='2.9.1')
+param([string]$Version='2.10.0')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
@@ -88,6 +88,10 @@ Reset-PlayerOutput $taskPublic
 Copy-Item -LiteralPath (Get-ChildItem -LiteralPath $taskBrowser).FullName -Destination $taskPublic -Recurse
 New-Item -ItemType Directory -Path $taskDownloads -Force | Out-Null
 Copy-Item -LiteralPath $taskZip,$taskWebZip -Destination $taskDownloads -Force
+foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p.mp4';'Happyland-Alter-Werbefilm.mp4'='after-play-happyland-werbefilm.mp4'}.GetEnumerator()){
+ $taskMediaSource=Join-Path $taskBuild ('trailer/'+$taskMedia.Key)
+ if(Test-Path -LiteralPath $taskMediaSource){Copy-Item -LiteralPath $taskMediaSource -Destination (Join-Path $taskDownloads $taskMedia.Value) -Force}
+}
 $taskManifest=[ordered]@{version=$Version;packaging_revision=2;engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskBuild 'release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Player packages ready: $taskZip"

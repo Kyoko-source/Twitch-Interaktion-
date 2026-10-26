@@ -2,19 +2,22 @@ extends RefCounted
 
 func run(game: Node3D, verify: Callable) -> void:
  var progress:=ArchiveState.new()
- verify.call(not progress.try_code("6428") and not progress.try_code("0712") and not progress.unlocked,"Codes bypass the four newspapers")
+ verify.call(not progress.try_code("6428") and not progress.unlocked,"The story code bypasses the four newspapers")
+ verify.call(progress.try_code("0712") and progress.unlocked and progress.creator_access,"Creator access no longer works without newspapers")
  var restored:=ArchiveState.new()
  var old_creator:={"version":2,"collected":[],"unlocked":true,"creator_access":true,"ending":"armed","recording_position":100.0}
- verify.call(not restored.restore(old_creator) and not restored.unlocked and restored.ending=="idle","Legacy creator save still bypasses the newspapers")
+ verify.call(restored.restore(old_creator) and restored.unlocked and restored.creator_access and restored.ending=="armed","Creator narration progress no longer restores")
+ progress.clear()
  progress.collected.assign(ArchiveState.PAPERS)
- verify.call(not progress.try_code("0712") and progress.try_code("6428"),"Only the genuine code should unlock the collected story")
+ verify.call(progress.try_code("6428") and not progress.creator_access,"The story code fails with all newspapers")
  verify.call(restored.restore(JSON.parse_string(JSON.stringify(progress.serialize()))) and restored.unlocked,"Genuine archive progress does not restore")
  var corrupt:=progress.serialize();corrupt.recording_position=-1
  verify.call(not restored.restore(corrupt),"Negative narration position is accepted")
  var legacy:={"version":1,"collected":["note","opening","missing","coverup","closure"],"unlocked":true}
  verify.call(restored.restore(legacy) and restored.unlocked and restored.ending=="idle","Existing genuine archive progress no longer restores")
  game._new_shift();game.intro.skip();game._open_archive_lock();game.archive_input="0712";game._submit_archive_code()
- verify.call(not game.archive.unlocked,"Actual lock UI still accepts the creator code")
+ verify.call(game.phase=="play" and game.archive.unlocked and game.archive.creator_access and game.archive.collected.is_empty(),"Actual lock UI rejects the creator code without newspapers")
+ game._new_shift();game.intro.skip();game._open_archive_lock()
  game.archive.collected.assign(ArchiveState.PAPERS);game.archive_input="6428";game._submit_archive_code()
  verify.call(game.phase=="play" and game.archive.unlocked,"Actual lock UI rejects the genuine code with all newspapers")
  game.world.archive.tick(2,true)
@@ -75,4 +78,4 @@ func run(game: Node3D, verify: Callable) -> void:
  game._main_menu();game.has_session=false;game._continue()
  verify.call(game.phase=="ending" and game.world.archive.finale.trigger_count==0,"Continuing a completed finale replays the scare")
  game._new_shift();game.intro.skip()
- verify.call(not game.archive.unlocked and game.archive.ending=="idle" and game.archive.recording_position==0,"New shift retains archive access or the prior ending")
+ verify.call(not game.archive.unlocked and not game.archive.creator_access and game.archive.ending=="idle" and game.archive.recording_position==0,"New shift retains archive access or the prior ending")

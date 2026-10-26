@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--film-qa" in OS.get_cmdline_user_args():
+  await film_views(game,output);game._quit();return
  if "--layout-qa" in OS.get_cmdline_user_args():
   await layout_views(game,output);game._quit();return
  if "--details-qa" in OS.get_cmdline_user_args():
@@ -611,6 +613,23 @@ func v280_views(game: Node3D, output: String) -> void:
  game.phase="pause";game.hud.hide();game.player.release();game.player.lamp.hide();game.player.camera.rotation=Vector3.ZERO;game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.tick(.43)
  await capture(game,output,"corridor-attacker");game.door_failure.hide();game.door_failure.running=false;game.door_failure.audio.stop()
  print("V280 RENDER COMPLETE")
+
+func film_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game.player.active=false
+ var film: CinemaFilm=game.world.film
+ game.player.position=Vector3(-4.85,0,-14.1)+ServiceAnnex.OFFSET;game.player.camera.look_at(film.reel.global_position+Vector3(0,.04,0))
+ await game.get_tree().create_timer(.6).timeout;await capture(game,output,"film-reel")
+ game.archive.film_found=true;film.sync(true);assert(film.start())
+ game.player.position=Vector3(-2.8,0,-17.7)+ServiceAnnex.OFFSET;game.player.camera.look_at(Vector3(3.48,1.9,-17.7)+ServiceAnnex.OFFSET)
+ await game.get_tree().create_timer(3).timeout;await capture(game,output,"happyland-projection")
+ film.viewport.get_texture().get_image().save_png(output.path_join("projected-video-frame.png"))
+ game._pause();await game.get_tree().create_timer(.1).timeout;var before: float=film.video.stream_position
+ await game.get_tree().create_timer(.4).timeout;assert(absf(film.video.stream_position-before)<.04);game._resume();game.player.active=false
+ await game.get_tree().create_timer(9).timeout;await capture(game,output,"happyland-projection-playground")
+ await game.get_tree().create_timer(23).timeout
+ assert(not film.playing and film.screen.material_override==film.original,"Film did not naturally finish and restore NO SIGNAL")
+ await capture(game,output,"projection-finished")
+ print("FILM NATIVE QA ",JSON.stringify({"film":film.snapshot(),"placement":SceneAudit.placement(game.world),"complete_playback":true}))
 
 func layout_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game.player.active=false

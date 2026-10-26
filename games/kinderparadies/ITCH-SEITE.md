@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.9.1
+# After Play — Veröffentlichungsvorbereitung 2.10.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.9.1.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.9.1.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v2.10.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v2.10.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -57,7 +57,7 @@ Die Rückblendenbilder und die neue Bluttextur wurden für das Spiel mit KI-Bild
 ## Einrichtung auf itch.io
 
 1. Ein neues Spielprojekt unter dem eigenen itch.io-Konto anlegen. Für Windows allein den Projekttyp „Downloadable“ wählen. Für beide Fassungen „HTML Game“ wählen und zusätzlich das Windows-ZIP hochladen.
-2. Das Windows-ZIP als Windows-Download markieren. Das Web-ZIP zum Spielen im Browser markieren. Den QA-Export niemals hochladen.
+2. Für Updates über die itch-App die fertigen Spielerordner mit `tools/publish-after-play-itch.ps1` in die dauerhaft gleich benannten Kanäle `windows` und `web` laden. Die genaue Einrichtung für **KyokoHauntedGames** steht in [ITCH-UPDATES.md](ITCH-UPDATES.md). Das Skript führt zunächst nur eine lokale Vorschau aus; `-Upload` startet den tatsächlichen Upload. Windows als Windows-Download und Web zum Spielen im Browser markieren. Den QA-Export niemals hochladen.
 3. Beim Web-Spiel „Click to Play“ und Vollbild verwenden; alternativ ein 16:9-Fenster wie 1280 × 720. Mobile-Unterstützung nicht aktivieren: das Spiel verlangt Maus und Tastatur.
 4. Deutsche Sprache und passende Horror-/Ego-/3D-/Anomalie-Tags eintragen. Preis und Sichtbarkeit selbst festlegen.
 5. Echte Spielscreenshots aus der finalen Version verwenden. Vor dem öffentlichen Start einen vollständigen Durchgang auf einem weiteren Windows-PC spielen lassen.
@@ -72,3 +72,8 @@ flimmernde Arcade-Monitore, eine alte Preisvitrine, Garderobe, Fundfächer,
 Kinderwagen, Geburtstagsgeschirr, Servier- und Reinigungswagen sowie weitere
 Küchenutensilien. Sie gehören zum normalen Referenzzustand des Spieleparadieses.
 Die Arcade-Geräte sind atmosphärische Kulisse, keine separat spielbaren Minispiele.
+
+Version 2.10 enthält zusätzlich einen freiwillig einlegbaren Happyland-Werbefilm
+im Kino. Die beschriftete Rolle liegt auf dem Projektionstisch. Der separate
+offizielle Trailer liegt unter `build/trailer/After-Play-Trailer-1080p.mp4`
+(75 Sekunden, 1080p, 16:9); er ist kein Bestandteil des Spieler-ZIPs.

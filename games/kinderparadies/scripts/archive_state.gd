@@ -6,8 +6,10 @@ const PAPERS: Array[String]=["opening","missing","coverup","closure"]
 static var catalog: Dictionary={}
 var collected: Array[String]=[]
 var unlocked:=false
+var creator_access:=false
 var ending:="idle"
 var recording_position:=0.0
+var film_found:=false
 
 static func document(id: String) -> Dictionary:
  if catalog.is_empty(): catalog=JSON.parse_string(FileAccess.get_file_as_string("res://assets/story/catalog.json"))
@@ -19,7 +21,7 @@ static func is_newspaper_round(stage: int) -> bool:
  return false
 
 func clear() -> void:
- collected.clear();unlocked=false;ending="idle";recording_position=0.0
+ collected.clear();unlocked=false;creator_access=false;ending="idle";recording_position=0.0;film_found=false
 
 func has_all_papers() -> bool:
  for id in PAPERS:
@@ -34,15 +36,17 @@ func take(id: String, stage: int) -> bool:
  collected.append(id);return true
 
 func try_code(value: String) -> bool:
+ if value=="0712": creator_access=true;unlocked=true;return true
  if not has_all_papers() or value!="6428": return false
  unlocked=true;return true
 
 func serialize() -> Dictionary:
- return {"version":2,"collected":collected.duplicate(),"unlocked":unlocked,"ending":ending,"recording_position":recording_position}
+ return {"version":2,"collected":collected.duplicate(),"unlocked":unlocked,"creator_access":creator_access,"ending":ending,"recording_position":recording_position,"film_found":film_found}
 
 func restore(data: Dictionary) -> bool:
  clear()
  if (data.get("version")!=1 and data.get("version")!=2) or not data.get("collected") is Array or not data.get("unlocked") is bool: return false
+ if not data.get("film_found",false) is bool: return false
  var finale: String=str(data.get("ending","idle")) if data.version==2 else "idle"
  var position=data.get("recording_position",0.0) if data.version==2 else 0.0
  if not data.get("creator_access",false) is bool or finale not in ["idle","recording","armed","complete"]: return false
@@ -52,7 +56,7 @@ func restore(data: Dictionary) -> bool:
   if not id is String or id not in ORDER or id in ids: return false
   ids.append(id)
  collected=ids
- if data.unlocked and not has_all_papers(): clear();return false
+ if data.unlocked and not has_all_papers() and not data.get("creator_access",false): clear();return false
  if "casefile" in collected and not data.unlocked: clear();return false
  if finale!="idle" and not data.unlocked: clear();return false
- unlocked=data.unlocked;ending=finale;recording_position=float(position);return true
+ unlocked=data.unlocked;creator_access=data.get("creator_access",false);ending=finale;recording_position=float(position);film_found=data.get("film_found",false);return true

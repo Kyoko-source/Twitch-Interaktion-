@@ -34,6 +34,7 @@ var polish: AfterPlayPolish
 var backstage: BackstageExpansion
 var details: AfterPlayDetails
 var passages: PatrolPassage
+var film: CinemaFilm
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -143,6 +144,7 @@ func build() -> void:
  passages=PatrolPassage.new();add_child(passages);passages.build(self)
  for zone in ["Küche","Kino"]: zones[zone]+=ServiceAnnex.OFFSET
  details=AfterPlayDetails.new();add_child(details);details.build(self)
+ film=CinemaFilm.new();add_child(film);film.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:

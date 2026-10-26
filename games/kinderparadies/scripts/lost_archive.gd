@@ -2,7 +2,7 @@ class_name LostArchive
 extends Node3D
 
 const ENTRY:=Vector3(-10.2,0,-9.9)
-const PAPERS:={"opening":Vector3(10.2,.853,-6.05),"missing":Vector3(-.2,.558,-19.9),"coverup":Vector3(-12.94,.991,-18.84)}
+const PAPERS:={"opening":Vector3(10.2,.853,-6.05),"missing":Vector3(.2,.558,-19.9),"coverup":Vector3(-12.94,.991,-18.84)}
 var w: PlayWorld
 var progress: ArchiveState
 var stage:=1
@@ -160,4 +160,4 @@ func snapshot() -> Dictionary:
  for id in items:
   if is_instance_valid(items[id]) and items[id].visible:
    var p: Vector3=items[id].global_position;visible.append({"id":id,"position":[p.x,p.y,p.z]})
- return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"target_angle":target_angle,"recording_locked":playback_locked(),"unlocked":progress.unlocked,"collected":progress.collected,"finale":finale.snapshot()}
+ return {"stage":stage,"spawned":visible,"angle":leaf.rotation.y,"target_angle":target_angle,"recording_locked":playback_locked(),"unlocked":progress.unlocked,"creator_access":progress.creator_access,"collected":progress.collected,"finale":finale.snapshot()}

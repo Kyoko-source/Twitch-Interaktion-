@@ -22,6 +22,9 @@ static func inventory(g: Node3D, selected: String="") -> void:
   var title: String=ArchiveState.document(id).title if owned else "Zettel · nicht gefunden" if id=="note" else "Zeitung %d · nicht gefunden"%(ArchiveState.PAPERS.find(id)+1)
   var button: Button=g._button(title,func():g.archive_selected=chosen;inventory(g,chosen),selected==id);button.custom_minimum_size=Vector2(345,56);button.disabled=not owned;button.add_theme_font_size_override("font_size",17);list.add_child(button)
  var gap:=Control.new();gap.custom_minimum_size.y=20;list.add_child(gap)
+ if g.archive.film_found:
+  list.add_child(g._label("FILMROLLE · HAPPYLAND",19,Color("c6b68d")))
+  var film_note: Label=g._paragraph("Ein Tag voller Abenteuer.\nAm Projektor im Kino abspielbar.",17);film_note.custom_minimum_size.x=340;list.add_child(film_note)
  var equipment: Button=g._button("Meine Ausrüstung",func():g._equipment_card());equipment.custom_minimum_size.x=345;list.add_child(equipment)
  var help: Button=g._button("Dienstanweisung",func():g._help("inventory"));help.custom_minimum_size.x=345;list.add_child(help)
  var back: Button=g._button("Zurück zum Zahlenschloss" if g.inventory_back=="code" else "Zurück ins Spiel",g._archive_back);back.custom_minimum_size.x=345;list.add_child(back)

@@ -17,6 +17,7 @@ frontend/public/standalone/kinderparadies/
 frontend/public/downloads/kinderparadies-*.zip
 frontend/public/downloads/nachtwache-*.zip
 frontend/public/downloads/after-play-*.zip
+frontend/public/downloads/after-play-*.mp4
 game-releases/
 tools/blender-portable/
 tools/art-source/

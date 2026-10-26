@@ -39,7 +39,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert sum(i.file_size for i in z.infolist()) < 500 * 1024**2
             assert max(i.file_size for i in z.infolist()) < 200 * 1024**2
             pck = z.read('index.pck')
-            for required in [b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json']:
+            for required in [b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json', b'assets/cinema-film/happyland-advert.ogv', b'assets/cinema-film/happyland-advert.ogg']:
                 assert required in pck, required
             private_files = [str(p.relative_to(ROOT / 'games/kinderparadies')).replace('\\', '/').encode()
                              for p in (ROOT / 'games/kinderparadies/assets').rglob('*.json')
@@ -54,7 +54,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                 cursor += 4
                 packed_names.add(pck[cursor:cursor + length].rstrip(b'\0'))
                 cursor += length + 36
-            for private in private_files + [b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd']:
+            for private in private_files + [b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/film_validation.gd', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
                 assert not any(private in name for name in packed_names), private
             assert hashlib.sha256(pck).hexdigest() == manifest['web_pck_sha256']
             public = ROOT / 'frontend/public/standalone/kinderparadies'
