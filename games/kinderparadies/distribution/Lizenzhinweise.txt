@@ -41,3 +41,7 @@ Fotoautomat: Der fiktive Fotostreifen wurde für After Play mit OpenAI-Bildgener
 erstellt und korrigiert. Die abgebildete erwachsene Person ist erfunden.
 Automatenbrummen, Kompressor, Kondenswassertropfen und WC-Luftgeräusch sind
 projektintern synthetisierte Aufnahmen, keine externen Feldaufnahmen.
+
+Die vier fiktiven historischen Fotografien an der Geburtstagswand wurden für
+After Play mit OpenAI image_gen erstellt. Alle dargestellten Personen sind erfunden.
+Fotomontage, Beschriftungen, Kamerasystem und CCTV-Bildeffekte sind Projektarbeit.

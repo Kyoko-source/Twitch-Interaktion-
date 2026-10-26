@@ -19,6 +19,33 @@ async function doorTrip(page,red,{wrong=false}={}){
 }
 async function walk(page,key,predicate){await page.keyboard.down(key);try{await expect.poll(async()=>predicate(await state(page)),{timeout:18000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page));throw error;}finally{await page.keyboard.up(key);await page.waitForTimeout(180);}}
 const errors=[];
+
+test('reception memories and live CCTV remain voluntary; physical pit balls react and pause',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ await qa(page,{op:'warp',x:-7.4,y:.02,z:5.45,yaw:Math.PI/2,pitch:-.24});
+ await expect.poll(async()=>(await state(page)).target).toBe('reception_cctv');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('surveillance');
+ expect((await state(page)).watch.world_shared).toBe(true);expect((await state(page)).watch.count).toBe(7);
+ const position=(await state(page)).position;await page.keyboard.down('w');await page.waitForTimeout(250);await page.keyboard.up('w');expect((await state(page)).position).toEqual(position);
+ for(let i=0;i<7;i++){
+  await clickControl(page,`Kamera 0${i+1}`);await expect.poll(async()=>(await state(page)).watch.feed).toBe(i);
+ }
+ await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-cctv.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).watch.opened).toBe(false);expect((await state(page)).watch.updates).toBe(0);
+ await qa(page,{op:'warp',x:1.2,y:.02,z:14.7,yaw:Math.PI,pitch:.43});await expect.poll(async()=>(await state(page)).target).toBe('memory_wall');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('help');expect((await state(page)).instructions.join(' ')).toContain('Die Geburtstage von damals');await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-photos.png')});await clickControl(page,'Zurück zum Rundgang');
+ await qa(page,{op:'warp',x:1.1,y:.03,z:7.8,yaw:0,pitch:-.55});await page.keyboard.down('w');
+ await expect.poll(async()=>(await state(page)).ball_pit.kicks,{timeout:12000}).toBeGreaterThan(0);await page.keyboard.up('w');
+ expect((await state(page)).ball_pit.count).toBe(360);await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-ball-physics.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect((await state(page)).ball_pit.running).toBe(false);
+ await clickControl(page,'Rundgang fortsetzen');await expect.poll(async()=>(await state(page)).ball_pit.running).toBe(true);
+ for(const encounter of [{id:'wc_stall_watcher',x:23.5,z:7,yaw:Math.PI,pitch:0},{id:'wc_ceiling_guest',x:22.4,z:7.1,yaw:-Math.PI/2,pitch:-.12},{id:'snackbar_visitor',x:17.2,z:11.9,yaw:Math.PI,pitch:0}]){
+  await qa(page,{op:'anomaly',id:encounter.id});await qa(page,{op:'warp',...encounter,y:.03});
+  await expect.poll(async()=>(await state(page)).terrors.triggered,{timeout:12000}).toBe(true);
+ }
+ await qa(page,{op:'anomaly',id:'balls_missing'});expect((await state(page)).ball_pit.running).toBe(false);
+ await qa(page,{op:'anomaly',id:'balls_float'});await expect.poll(async()=>(await state(page)).ball_pit.floating).toBe(120);
+});
 test.beforeEach(async({page})=>{errors.length=0;page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});});
 test.afterEach(()=>expect(errors).toEqual([]));
 

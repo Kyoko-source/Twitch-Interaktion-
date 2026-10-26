@@ -54,9 +54,9 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                 cursor += 4
                 packed_names.add(pck[cursor:cursor + length].rstrip(b'\0'))
                 cursor += length + 36
-            for required in [b'assets/life-v2110/photostrip-v2.png', b'assets/life-v2110/compressor.wav', b'assets/life-v2110/water-film.gdshader']:
+            for required in [b'assets/reception-v2120/birthday-memories.png', b'assets/reception-v2120/cctv.gdshader', b'scripts/ball_pit_physics.gd', b'scripts/reception_watch.gd', b'assets/life-v2110/photostrip-v2.png', b'assets/life-v2110/compressor.wav', b'assets/life-v2110/water-film.gdshader']:
                 assert any(required in name for name in packed_names), required
-            for private in private_files + [b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/film_validation.gd', b'scripts/life_validation.gd', b'assets/life-v2110/image-generation-provenance.json', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
+            for private in private_files + [b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/film_validation.gd', b'scripts/life_validation.gd', b'scripts/watch_validation.gd', b'assets/life-v2110/image-generation-provenance.json', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
                 assert not any(private in name for name in packed_names), private
             assert hashlib.sha256(pck).hexdigest() == manifest['web_pck_sha256']
             public = ROOT / 'frontend/public/standalone/kinderparadies'

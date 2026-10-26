@@ -36,6 +36,8 @@ var details: AfterPlayDetails
 var passages: PatrolPassage
 var film: CinemaFilm
 var life: HappylandLife
+var watch: ReceptionWatch
+var pit_physics: BallPitPhysics
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -147,6 +149,8 @@ func build() -> void:
  details=AfterPlayDetails.new();add_child(details);details.build(self)
  film=CinemaFilm.new();add_child(film);film.build(self)
  life=HappylandLife.new();add_child(life);life.build(self)
+ watch=ReceptionWatch.new();add_child(watch);watch.build(self)
+ pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -414,6 +418,7 @@ func set_anomaly(id: String) -> void:
  annex.configure(id)
  tubes.set_anomaly(id)
  current=id;clock=0
+ pit_physics.configure()
  atmosphere.anomaly(id)
  encounters.configure(id)
  terrors.configure(id)
@@ -456,9 +461,6 @@ func tick(delta: float, active: bool) -> void:
  if not active: return
  clock+=delta
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else -.004)
- if current=="balls_float":
-  for i in range(0,360,3):
-   var t:=ball_transforms[i];t.origin.y+=1.0+sin(clock*.7)*.25;ball_render_transforms[i]=t;balls.multimesh.set_instance_transform(i,t)
 
 func brightness(value: float) -> void:
  environment.environment.tonemap_exposure=value

@@ -3,10 +3,13 @@ extends Node3D
 
 # Every encounter has a distinct physical anchor and a bounded, one-shot timeline.
 const SCENARIOS:={
+ "wc_stall_watcher":{"p":Vector3(23.5,.02,8.85),"mode":"peek","zone":"Kinder-WC","sound":"gasp-snap"},
+ "wc_ceiling_guest":{"p":Vector3(24.0,3.03,7.15),"mode":"ceiling","zone":"Kinder-WC","ceiling":3.11,"sound":"metal-shriek"},
+ "snackbar_visitor":{"p":Vector3(17.2,.02,14.8),"mode":"ambush","zone":"Empfang","sound":"ragged-scream"},
  "throne_guest":{"p":Vector3(13.4,.20,-10.97),"mode":"throne","zone":"Party Raum","sound":"crowd-burst"},
  "reception_counter_burst":{"p":Vector3(-6.9,0,2.8),"mode":"ambush","zone":"Empfang","sound":"gasp-snap"},
  "reception_overhead":{"p":Vector3(-4.8,3.2,6.7),"mode":"drop","zone":"Empfang","sound":"metal-shriek"},
- "pit_runner":{"p":Vector3(5.2,.31,6.2),"mode":"rush","zone":"Bällebad","sound":"bass-roar"},
+ "pit_runner":{"p":Vector3(5.52,.02,6.2),"mode":"rush","zone":"Bällebad","sound":"bass-roar"},
  "frame_drop":{"p":Vector3(1.8,3.9,1.8),"mode":"drop","zone":"Bällebad","sound":"dry-impact"},
  "party_mascot_guest":{"p":Vector3(16.0,0,-.8),"mode":"ambush","zone":"Party Raum","sound":"crowd-burst"},
  "party_under_table":{"p":Vector3(10.5,0,-5.4),"mode":"crawl","zone":"Party Raum","sound":"crawl-scream"},
@@ -17,14 +20,14 @@ const SCENARIOS:={
  "cinema_aisle_rush":{"p":Vector3(1.2,0,-17.65),"mode":"rush","zone":"Kino","sound":"bass-roar"},
  "cinema_seat_ambush":{"p":Vector3(-2.2,0,-14.35),"mode":"ambush","zone":"Kino","sound":"crowd-burst"},
  "tube_burst":{"p":Vector3.ZERO,"mode":"tube","zone":"Krabbelröhre","sound":"window-hit"},
- "reception_peeker":{"p":Vector3(-8.4,0,4.2),"mode":"peek","zone":"Empfang"},
+ "reception_peeker":{"p":Vector3(-8.0,.02,4.05),"mode":"peek","zone":"Empfang"},
  "reception_charge":{"p":Vector3(-5.7,0,1.0),"mode":"pursuit","zone":"Empfang"},
- "reception_queue":{"p":Vector3(-8.2,0,7.2),"mode":"queue","zone":"Empfang"},
+ "reception_queue":{"p":Vector3(-6.8,.02,7.4),"mode":"queue","zone":"Empfang"},
  "pit_hands":{"p":Vector3(3.6,.3,7.1),"mode":"hands","zone":"Bällebad"},
  "frame_stalker":{"p":Vector3(2.0,.31,2.2),"mode":"crawl","zone":"Bällebad"},
  "slide_crawler":{"p":Vector3(3.7,0,10.9),"mode":"crawl","zone":"Bällebad"},
  "party_portrait":{"p":Vector3(12.0,0,.65),"mode":"pursuit","zone":"Party Raum"},
- "party_guests":{"p":Vector3(11.5,0,-6.9),"mode":"queue","zone":"Party Raum"},
+ "party_guests":{"p":Vector3(12.4,.02,-5.5),"mode":"queue","zone":"Party Raum"},
  "cake_mouth":{"p":Vector3(10.2,.87,-7.0),"mode":"mouth","zone":"Party Raum"},
  "corridor_crossing":{"p":Vector3(-6.1,0,-6.6),"mode":"crossing","zone":"Wartungsgang"},
  "service_pursuit":{"p":Vector3(-7.7,0,-8.1),"mode":"pursuit","zone":"Wartungsgang"},
@@ -96,7 +99,7 @@ func configure(value: String) -> void:
   if head_rig: head_rig.rotation.x=-1.25
  elif spec.mode=="ceiling":
   visual.rotation.z=PI;shape.disabled=true
-  w.tube(self,Vector3(origin.x,7.29,origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
+  w.tube(self,Vector3(origin.x,float(spec.get("ceiling",7.29)),origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
  elif spec.mode in ["hands","window"]:
   for child in visual.find_children("*","MeshInstance3D",true,false): child.visible=child.name.begins_with("Arm")
   visual.rotation.z=PI;visual.position.y=1.0;shape.disabled=true
@@ -115,7 +118,8 @@ func configure(value: String) -> void:
  if spec.mode in ["ambush","rush","drop"]:
   warning_light=OmniLight3D.new();warning_light.light_color=Color("bba788");warning_light.light_energy=0;warning_light.omni_range=2.8;warning_light.position=Vector3(0,1.6,.8);actor.add_child(warning_light)
  if spec.mode=="queue":
-  for offset in [Vector3(.9,0,.8),Vector3(-.8,0,1.15)]:
+  var offsets: Array=[Vector3(0,0,1.05),Vector3(0,0,2.10)] if id=="reception_queue" else [Vector3(0,0,-1.4),Vector3(-.9,0,1.0)]
+  for offset in offsets:
    var echo:=visual.duplicate() as Node3D;echo.position=origin+offset;add_child(echo);echo.rotation.y=.7+echo.position.x;echoes.append(echo)
  if spec.mode in ["tube","window"]:
   path_s=9.8 if id=="tube_burst" else 5.0 if spec.mode=="tube" else 11.8
@@ -130,7 +134,7 @@ func configure(value: String) -> void:
  for k in range(5):
   var a:=Vector3(-.18+k*.075,.026,-.1);w.tube(marker,a,a+Vector3(.035,0,.5+sin(k)*.1),.009,stain)
  if spec.mode in ["ceiling","drop"]: marker.position.y=0
- if spec.mode=="vent": marker.position=Vector3(-1.3,.025,-20.15)
+ if spec.mode=="vent": marker.position=Vector3(-1.3,.025,-20.15)+ServiceAnnex.OFFSET
  if spec.mode in ["tube","window"]: marker.position=CrawlTubes.route(path_s)+Vector3(0,-.74,0);marker.hide()
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:

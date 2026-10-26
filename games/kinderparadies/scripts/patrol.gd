@@ -5,6 +5,9 @@ const GOAL := 13
 const REPLACEMENTS := {"clock_reverse":"reception_peeker","car_moves":"reception_charge","car_float":"reception_queue","hours_wrong":"pit_hands","bunny_watches":"frame_stalker","balls_red":"slide_crawler","ball_moves":"party_portrait","slide_green":"party_guests","slide_missing":"cake_mouth","croc_breathes":"corridor_crossing","chairs_missing":"service_pursuit","chair_stack":"service_ceiling","blood_pool":"fridge_occupant","mural_upside":"pot_arms","mural_mirror":"kitchen_double","mural_red":"screen_visitor","stars_upside":"cinema_last_row","footprints":"vent_strike","extinguisher_float":"tube_chase","bloody_hands":"tube_window_hands"}
 const ZONES := ["Empfang", "Bällebad", "Party Raum", "Wartungsgang", "Küche", "Kino"]
 const ANOMALIES := [
+ {"id":"wc_stall_watcher","name":"In der offenen WC-Kabine wartet eine verdrehte Gestalt und schnellt nach vorn.","zone":"Kinder-WC"},
+ {"id":"wc_ceiling_guest","name":"Über dem Abfluss hängt ein Besucher kopfüber und fährt von der niedrigen WC-Decke herab.","zone":"Kinder-WC"},
+ {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Empfang"},
  {"id":"throne_guest","name":"Auf dem Geburtstagsthron sitzt ein verdrehter Gast und schnellt dir entgegen.","zone":"Party Raum"},
  {"id":"costume_wakes","name":"Ein leer aufgehängtes Kostüm hebt den Kopf und schlägt nach vorn.","zone":"Party Raum"},
  {"id":"false_exit","name":"Hinter dem Lieferausgang erscheint ein unversehrter heller Flur. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert.","zone":"Empfang"},

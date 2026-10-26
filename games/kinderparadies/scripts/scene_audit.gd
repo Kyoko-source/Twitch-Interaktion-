@@ -22,9 +22,9 @@ static func inspect(w: PlayWorld) -> Dictionary:
  # CPU checks inspect the exact submitted transforms; GPU/Web QA reads them back.
  var headless:=DisplayServer.get_name()=="headless"
  for i in range(w.balls.multimesh.instance_count):
-  var point: Vector3=w.ball_render_transforms[i].origin if headless else w.balls.multimesh.get_instance_transform(i).origin
+  var point: Vector3=w.balls.to_global(w.ball_render_transforms[i].origin if headless else w.balls.multimesh.get_instance_transform(i).origin)
   for j in range(i):
-   var other: Vector3=w.ball_render_transforms[j].origin if headless else w.balls.multimesh.get_instance_transform(j).origin
+   var other: Vector3=w.balls.to_global(w.ball_render_transforms[j].origin if headless else w.balls.multimesh.get_instance_transform(j).origin)
    minimum=minf(minimum,point.distance_to(other))
  var chair_back_dot:=1.0
  for chair in w.props.chairs.get_children():

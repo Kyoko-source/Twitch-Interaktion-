@@ -175,7 +175,7 @@ func _hall_dressing() -> void:
  var dressing:=Node3D.new();dressing.name="HallDressing";add_child(dressing)
  # The lift opens into a clear reception route, not the old fenced toddler pen.
  # Wall pictures stay on the solid wall beside the new aperture.
- for i in range(3): w.painting(dressing,i,Vector3(-4.8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
+ for i in range(2): w.painting(dressing,i,Vector3(-4.8+i*2.15,2.15,16.97),Vector2(1.1,.9),PI)
  var seat_mat:=w.mat(Color("4b5b50"),load("res://assets/vinyl.png"),.88)
  w.box(dressing,Vector3(-9.65,.49,13.5),Vector3(.55,.14,1.9),seat_mat,true)
  w.box(dressing,Vector3(-9.91,.87,13.5),Vector3(.09,.65,1.9),seat_mat,true)

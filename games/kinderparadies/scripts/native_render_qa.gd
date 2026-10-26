@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--watch-qa" in OS.get_cmdline_user_args():
+  await watch_views(game,output);game._quit();return
  if "--life-qa" in OS.get_cmdline_user_args():
   await life_views(game,output);game._quit();return
  if "--film-qa" in OS.get_cmdline_user_args():
@@ -679,3 +681,35 @@ func life_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(.5).timeout;await capture(game,output,"last-look")
  game.end_credits.tick(7);await capture(game,output,"last-lights");game.end_credits.tick(7)
  print("LAST LOOK QA ",JSON.stringify(game.end_credits.snapshot()))
+
+func watch_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game.player.active=false
+ game.player.position=Vector3(.4,0,13.65);game.player.camera.look_at(ReceptionWatch.WALL)
+ await game.get_tree().create_timer(.8).timeout;await capture(game,output,"memories-wall")
+ game._show_memory_wall();await game.get_tree().create_timer(.3).timeout;await capture(game,output,"memories-reader");game._return_from_panel();game.player.active=false
+ game.player.position=Vector3(-7.25,0,5.6);game.player.camera.look_at(game.world.watch.display.global_position)
+ await game.get_tree().create_timer(.5).timeout;await capture(game,output,"reception-crt")
+ game._open_watch()
+ for i in range(ReceptionWatch.FEEDS.size()):
+  game.world.watch._select(i)
+  game.menu.find_child("CCTVCameraLabel",true,false).text=ReceptionWatch.FEEDS[i].label
+  await game.get_tree().create_timer(.5).timeout;await capture(game,output,"cctv-%02d"%(i+1))
+ game._close_watch();game.player.active=false
+ game.player.position=Vector3(.9,0,9.6);game.player.camera.look_at(Vector3(.9,.2,6.9))
+ await game.get_tree().create_timer(1.5).timeout;await capture(game,output,"physical-ball-pit")
+ print("WATCH AUDIT ",JSON.stringify(SceneAudit.placement(game.world))," PHYSICS ",JSON.stringify(game.world.pit_physics.snapshot()))
+ game.player.position=Vector3(1.1,.03,7.8);game.player.rotation=Vector3.ZERO;game.player.camera.rotation=Vector3(-.45,0,0);game.player.active=true
+ Input.action_press("forward")
+ await game.get_tree().create_timer(.65).timeout;Input.action_release("forward");game.player.active=false;game.player.velocity=Vector3.ZERO
+ await capture(game,output,"balls-after-walking")
+ assert(game.world.pit_physics.kicks>0,"Native guard never displaces a ball")
+ print("BALL WALK ",JSON.stringify(game.world.pit_physics.snapshot()))
+ game._build_world("chair_ceiling");game.player.active=false;game._open_watch(2)
+ await game.get_tree().create_timer(.6).timeout;await capture(game,output,"cctv-real-anomaly");game._close_watch();game.player.active=false
+ for id in ["wc_stall_watcher","wc_ceiling_guest","snackbar_visitor"]:
+  game._build_world(id);game.player.active=false
+  var terror: NightTerrors=game.world.terrors
+  game.player.position=Vector3(23.5,.03,7.0) if id=="wc_stall_watcher" else Vector3(22.4,.03,7.1) if id=="wc_ceiling_guest" else Vector3(17.2,.03,11.9)
+  game.player.camera.look_at(terror.focus_point())
+  await game.get_tree().create_timer(1.1).timeout;await capture(game,output,id)
+  assert(terror.triggered,"New native encounter cannot trigger: "+id)

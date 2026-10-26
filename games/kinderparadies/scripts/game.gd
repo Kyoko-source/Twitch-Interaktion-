@@ -142,7 +142,7 @@ func _button(value: String, action: Callable, primary: bool=false) -> Button:
 
 func _panel(title: String, subtitle: String="") -> VBoxContainer:
  for child in menu.get_children(): child.queue_free()
- menu.show();hud.hide();player.release();world.atmosphere.set_active(false)
+ menu.show();hud.hide();player.release();world.atmosphere.set_active(false);world.pit_physics.tick(false,player)
  var shade:=ColorRect.new();shade.color=Color(.015,.03,.035,.9);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
  var margin:=MarginContainer.new();margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.offset_left=65;margin.offset_top=65;margin.offset_right=-65;margin.offset_bottom=-45;menu.add_child(margin)
  var scroll:=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.custom_minimum_size.x=480;margin.add_child(scroll)
@@ -253,6 +253,7 @@ func _resume() -> void:
  phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false;world.archive.finale.voice.stream_paused=false
  player.lamp.visible=player.lamp_on
  world.atmosphere.set_active(true)
+ world.pit_physics.tick(true,player)
  if not room_audio.playing: room_audio.play()
  _refresh_hud();_telemetry()
  if archive.ending=="recording": _show_recording_memories()
@@ -394,7 +395,8 @@ func _process(delta: float) -> void:
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
  world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
  world.film.tick(delta,phase=="play")
- world.tick(delta,phase=="play")
+ world.tick(delta,phase in ["play","surveillance"])
+ world.pit_physics.tick(phase=="play",player)
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
@@ -423,6 +425,8 @@ func _process(delta: float) -> void:
   elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
   elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
   elif target=="life:photo": prompt.text="E · Alten Fotostreifen ansehen"
+  elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
+  elif target=="reception_cctv": prompt.text="E · Kontrollmonitor bedienen"
   elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
@@ -542,6 +546,7 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase=="pause": _resume()
   elif phase=="inventory": _archive_back()
   elif phase=="code": _resume()
+  elif phase=="surveillance": _close_watch()
   elif phase in ["help","settings"]: _return_from_panel()
   get_viewport().set_input_as_handled()
  if phase!="play": return
@@ -562,11 +567,40 @@ func _unhandled_input(event: InputEvent) -> void:
    elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
   elif target=="archive_recording": world.archive.finale.interact()
   elif target=="life:photo": _show_booth_photo()
+  elif target=="memory_wall": _show_memory_wall()
+  elif target=="reception_cctv": _open_watch()
   elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
   elif target=="delivery_exit": world.backstage.interact_exit(player)
   elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
+
+func _show_memory_wall() -> void:
+ phase="help";return_phase="play"
+ var column:=_panel("Die Geburtstage von damals", "Verblasste Erinnerungen. Zwei Abzüge fehlen.")
+ var row:=HBoxContainer.new();row.add_theme_constant_override("separation",24);column.add_child(row)
+ for cell in [1,3]:
+  var region:=AtlasTexture.new();region.atlas=load(ReceptionWatch.ROOT+"birthday-memories.png");var edge:=region.atlas.get_width()/2
+  region.region=Rect2((cell%2)*edge,(cell/2)*edge,edge,edge)
+  var image:=TextureRect.new();image.texture=region;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.custom_minimum_size=Vector2(460,460);row.add_child(image)
+ column.add_child(_paragraph("Geburtstage im Happyland / Unser Team, Sommer 1998",20))
+ column.add_child(_button("Zurück zum Rundgang",_return_from_panel,true));_telemetry()
+
+func _open_watch(index: int=0) -> void:
+ phase="surveillance";return_phase="play"
+ var column:=_panel("Kontrollmonitor", "Alte Kameras. Begrenzte Sichtfelder. Geräusche und Bildrauschen sind keine Anomalien.")
+ world.watch.open(index)
+ var image:=TextureRect.new();image.name="LiveCCTVPicture";image.texture=world.watch.viewport.get_texture();image.material=world.watch.glass;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.custom_minimum_size=Vector2(960,540);column.add_child(image)
+ var caption:=_label(ReceptionWatch.FEEDS[index].label,23);caption.name="CCTVCameraLabel";column.add_child(caption)
+ var cameras:=HBoxContainer.new();cameras.add_theme_constant_override("separation",8);column.add_child(cameras)
+ for i in range(ReceptionWatch.FEEDS.size()):
+  var button:=_button("Kamera %02d"%(i+1),func():
+   world.watch._select(i);caption.text=ReceptionWatch.FEEDS[i].label
+  );button.custom_minimum_size=Vector2(125,46);cameras.add_child(button)
+ column.add_child(_button("Monitor verlassen · ESC",_close_watch,true));_telemetry()
+
+func _close_watch() -> void:
+ world.watch.close();_resume()
 
 func _show_booth_photo() -> void:
  phase="help";return_phase="play"
@@ -651,6 +685,7 @@ func _telemetry() -> void:
   data.details=world.details.snapshot()
   data.film=world.film.snapshot()
   data.life=world.life.snapshot()
+  data.watch=world.watch.snapshot();data.ball_pit=world.pit_physics.snapshot()
   data.backstage=world.backstage.snapshot();data.passage=world.passages.snapshot();data.survived=survived;data.death_text=death_label.text if death_label.visible else ""
   data.hud_labels=[]
   for label in hud.find_children("*","Label",true,false):

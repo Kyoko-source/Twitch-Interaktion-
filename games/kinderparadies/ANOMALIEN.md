@@ -1,8 +1,10 @@
-# Vorhandene Anomalien — After Play 2.7.0
+# Vorhandene Anomalien — After Play 2.12.0
 
-Stand: 23. Oktober 2026. Katalog aus `scripts/patrol.gd`.
+Stand: 26. Oktober 2026. Katalog aus `scripts/patrol.gd`.
 
-61 Anomalien insgesamt; neu sind Throngast, Hängekostüm und falscher Lieferausgang. 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
+64 Anomalien insgesamt. Neu in 2.12: `wc_stall_watcher` (Gestalt in der offenen WC-Kabine), `wc_ceiling_guest` (kopfüber hängender Besucher im WC) und `snackbar_visitor` (Angriff vor der Snackbar). 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
+
+Geburtstagsfotos, Kamerabildrauschen und physikalisch vom Spieler bewegte Bälle sind normale Umgebung. Der freiwillige Kontrollmonitor beobachtet dieselbe Welt. Er verändert weder die gezogene Anomalie noch löst er entfernte Annäherungsangriffe aus. Die Kameras haben bewusst begrenzte Sichtfelder.
 
 ## Zeitungen und Runden
 
@@ -19,7 +21,9 @@ Alle vier Zeitungsrunden sind vollständig anomaliefrei, auch nach dem Einsammel
 und beim Laden. Dort ist die grüne Tür richtig. Die Sammlung bleibt innerhalb
 der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
-## Empfang (14)
+## Empfang (15)
+
+- Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor. (`snackbar_visitor`)
 
 - Hinter dem Lieferausgang erscheint ein unversehrter heller Flur. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
 - Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu. (`reception_counter_burst`)
@@ -100,6 +104,11 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Im Krabbeltunnel fährt eine kriechende Gestalt auf dich zu. Nur von innen sichtbar. (`tube_burst`)
 - Eine kriechende Gestalt verfolgt dich kurz im Krabbeltunnel. Nur von innen sichtbar. (`tube_chase`)
 - Lange Finger schlagen von außen gegen ein Röhrenfenster. Nur von innen sichtbar. (`tube_window_hands`)
+
+## Kinder-WC (2)
+
+- In der offenen WC-Kabine wartet eine verdrehte Gestalt und schnellt nach vorn. (`wc_stall_watcher`)
+- Über dem Abfluss hängt ein Besucher kopfüber und fährt von der niedrigen WC-Decke herab. (`wc_ceiling_guest`)
 
 ## Normaler Vergleich
 

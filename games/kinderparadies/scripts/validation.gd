@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--watch-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/watch_validation.gd").new().run(game,check)
+  print("Watch checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--life-only" in OS.get_cmdline_user_args():
   await load("res://scripts/life_validation.gd").new().run(game,check)
   print("Life checks: ",checks,"; failures: ",failures.size())
@@ -118,7 +122,7 @@ func run(game: Node3D) -> bool:
  check(not cast(game,play_frame.to_global(Vector3(2,1,-5)),play_frame.to_global(Vector3(2,1,-5.9))).is_empty(),"Intact rear safety net does not block passage")
  check(cast(game,play_frame.to_global(Vector3(3.65,3.2,3.4)),play_frame.to_global(Vector3(3.65,3.2,4.3))).is_empty(),"Slide opening has an invisible net or beam")
  check(cast(game,play_frame.to_global(Vector3(5.3,3,3.2)),play_frame.to_global(Vector3(5.8,3,3.2))).is_empty(),"Bridge opening has an invisible net or beam")
- check(audit.ball_min_distance>.28,"Decorative pit balls intersect each other")
+ check(audit.ball_min_distance>.268,"Physical pit balls interpenetrate beyond the contact solver tolerance")
  var threshold: AABB=game.world.props.play_threshold.global_transform*game.world.props.play_threshold.get_aabb()
  check(threshold.end.z<4.78,"Play entrance threshold cuts through the ball pit rim")
  for offset in [-.4,0,.4]:
@@ -136,7 +140,8 @@ func run(game: Node3D) -> bool:
  game._build_world("heavy_mist")
  check(game.world.environment.environment.fog_light_color.r>normal_fog.r and game.world.environment.environment.fog_light_color.g<normal_fog.g,"Fog anomaly must be visibly red, not ordinary dense mist")
  game._build_world("balls_float");game.world.tick(4,true)
- check(SceneAudit.inspect(game.world).ball_min_distance>.28,"Floating ball anomaly causes overlapping balls")
+ game.world.pit_physics.tick(true,game.player)
+ check(SceneAudit.inspect(game.world).ball_min_distance>.268,"Floating ball anomaly causes overlapping balls")
  game._build_world("none")
  # Exercise the real CharacterBody3D movement and collision world.
  game.player.reset_pose();game.player.active=true
@@ -496,6 +501,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/details_validation.gd").new().run(game,check)
  await load("res://scripts/film_validation.gd").new().run(game,check)
  await load("res://scripts/life_validation.gd").new().run(game,check)
+ await load("res://scripts/watch_validation.gd").new().run(game,check)
  await PassageChecks.new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

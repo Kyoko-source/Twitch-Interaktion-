@@ -1,5 +1,45 @@
 # After Play — Kinderparadies
 
+## Fotowand, Kontrollmonitor und physisches Bällebad (2.12.0)
+
+Über der Krabbelröhre an der Südwand hängen sechs vergilbte, schief beklebte
+Polaroids, zwei fehlende Abzüge und ein gerahmtes Foto des ehemaligen Teams.
+E zeigt die Geburtstags- und Mitarbeiteraufnahmen vergrößert. Die erfundenen
+Fotografien wurden mit dem eingebauten OpenAI image_gen erzeugt; der genaue
+Prompt liegt privat in `assets/reception-v2120/image-generation-provenance.json`.
+Die erwachsenen Mitarbeiter halten die Kostümköpfe mit den daran befestigten
+Ohren im Arm; ihre menschlichen Köpfe tragen keine zusätzlichen Tierohren.
+
+Der CRT am Empfang ist von der Besucherseite mit E bedienbar. Sieben Kameras
+zeigen dieselbe aktuelle 3D-Welt, einschließlich vorhandener sichtbarer
+Anomalien. Kamera 1–7 schalten die Ansichten, ESC beendet die Bedienung.
+Keine Kontrollpflicht, keine entfernten Annäherungsangriffe. Bildrauschen
+gehört zur normalen Atmosphäre. Nur ein 640×360-Viewport wird eingeschaltet;
+beim Schließen wird dessen Renderer vollständig abgeschaltet. Die echten
+Kameragehäuse sind an Wand oder Decke befestigt und blenden die eigene Linse
+nicht in die Aufnahme ein.
+
+Alle 360 Bälle besitzen kugelförmige RigidBody-Kollisionen mit Schwerkraft,
+Reibung, Rückprall und gegenseitigem Kontakt. Eine gemeinsame MultiMesh zeichnet
+die tatsächlichen Körperpositionen. Schritte und Sprünge verdrängen die Bälle,
+ohne dass ihre Kollisionen den Spieler festhalten. Pause friert die Körper
+mitsamt ihren Geschwindigkeiten ein. Bei `balls_missing` verschwinden auch die
+Kollisionen; `balls_float` hebt ein Drittel der echten Körper kontrolliert an.
+Spielerbewegungen bleiben ausdrücklich keine Anomalie.
+
+Neu: `wc_stall_watcher`, `wc_ceiling_guest` und `snackbar_visitor` (64 insgesamt).
+Startkollisionen bei `pit_runner`, `reception_peeker`, `reception_queue` und
+`party_guests` wurden beseitigt; die Warteschlangen stehen frei von Theke,
+Stühlen und Abfalleimer. Der bleibende Hinweis bei `vent_strike` berücksichtigt
+jetzt den Kino-Offset. Alle 37 Besucher-Szenarien werden zusätzlich auf reale
+Startkollisionen, begehbare Sichtpunkte und echte Annäherungsauslöser geprüft.
+Der Gesamtlauf bestand 1.520 Prüfungen; nach der abschließenden Kameraplatzierung
+bestanden weitere 130 gezielte Prüfungen und sechs echte Web-Abläufe.
+Native-Render-QA und Playwright prüfen Bedienung, Ansichten und Physik.
+Browser plugin not available: Web-Tests laufen
+im vorhandenen Playwright-/Edge-Aufbau. Entwicklercode `0712` bleibt erhalten;
+Zeitungsrunden 3, 5, 8 und 11 bleiben vollständig anomaliefrei.
+
 ## Umgebung und Schlussaufnahme (2.11.0)
 
 An der südlichen Wand neben den Arcade-Automaten stehen ein geschlossener
@@ -55,7 +95,7 @@ erkunden; beide Türen sind jederzeit wählbar. Keine Anomalie: grüne Tür.
 Anomalie: rote Tür. 13 richtige Entscheidungen
 in Folge gewinnen. Eine falsche Tür löst im Flur einen tödlichen Angriff aus, zeigt die überlebten
 Runden und lässt dich ohne neuen Chef-Anruf im Startfahrstuhl erwachen. E nimmt den Chef-Anruf an; gehaltene Leertaste überspringt das Intro.
-61 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
+64 Anomalien, ohne Wiederholung innerhalb des Anomalie-Beutels. Normale und
 veränderte Runden werden unabhängig vom gewählten Türtyp gemischt.
 Die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal: keine Anomalien und
 keine Anomalie-Jumpscares. Dort ist die grüne Tür die richtige Entscheidung.
@@ -82,7 +122,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.11.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.12.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
