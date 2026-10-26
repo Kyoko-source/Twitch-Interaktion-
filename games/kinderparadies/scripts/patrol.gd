@@ -100,7 +100,11 @@ func _next() -> void:
   current="none"
   return
  if deck.is_empty():
-  deck.assign(["normal","normal","normal","normal","anomaly","anomaly","anomaly","anomaly","anomaly"])
+  # A full shift has eight random slots: round one and the four newspaper
+  # rounds are already normal. Six anomalies here yield six versus seven
+  # over all thirteen rounds, with no fixed order or adjacent three scares.
+  # Restored decks keep their order so updates never reroll a saved shift.
+  deck.assign(["normal","normal","anomaly","anomaly","anomaly","anomaly","anomaly","anomaly"])
   _shuffle(deck)
  if deck.pop_back()=="normal":
   current="none"

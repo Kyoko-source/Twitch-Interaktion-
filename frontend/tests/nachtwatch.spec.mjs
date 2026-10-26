@@ -188,9 +188,13 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  await expect.poll(async()=>(await state(page)).death_text,{intervals:[30]}).toBe('2 Runden überlebt');await page.screenshot({path:join(tmpdir(),'after-play-v280-web-death.png')});
  await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).streak).toBe(0);expect((await state(page)).rounds).toBe(0);expect((await state(page)).intro.stage).toBe('done');
  expect((await state(page)).failure.count).toBe(1);await page.screenshot({path:join(tmpdir(),'after-play-v280-web-wake.png')});
+ let anomalyRounds=0;
  for(let i=0;i<13;i++){
-  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
+  const anomalous=(await state(page)).anomaly!=='none';anomalyRounds+=Number(anomalous);
+  if([1,3,5,8,11].includes(i+1))expect(anomalous).toBe(false);
+  await qa(page,{op:'choose',red:anomalous});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
  }
+ expect(anomalyRounds).toBe(6);
  expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
  await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1.png')});
  await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/party/musicbox.mp3');

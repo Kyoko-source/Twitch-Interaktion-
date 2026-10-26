@@ -1,5 +1,33 @@
 # After Play — Kinderparadies
 
+## Ausgeglichene Rundgänge (2.12.2)
+
+Eine frisch begonnene, erfolgreiche Schicht hat **6 Anomalierunden und 7 normale
+Runden**. Die erste Runde und die Zeitungsrunden 3, 5, 8 und 11 bleiben garantiert
+normal. Auf die acht übrigen Plätze werden sechs Anomalien und zwei weitere
+normale Runden zufällig verteilt; alle 28 Anordnungen sind möglich. Dadurch
+folgen höchstens zwei Anomalierunden aufeinander. Die 64 Ereignisse stammen
+weiter aus einem eigenen gemischten Beutel und wiederholen sich innerhalb
+einer erfolgreichen Schicht nicht. Geräusche und gewöhnliche Bewegung bleiben
+Atmosphäre und ändern die Türentscheidung nicht.
+
+Die bisherige Mischung von fünf Anomalien zu vier normalen Zufallsereignissen
+berücksichtigte die fünf zusätzlich garantierten normalen Runden nicht: Eine
+vollständige Schicht hatte im Mittel nur 4,44 Anomalien (34,2 Prozent).
+Jetzt beträgt der Anteil über alle Rundgänge 46,2 Prozent. Bestehende
+Spielstände behalten ihre bereits gespeicherte Ereignisreihenfolge; die neue
+Mischung gilt ab einer neuen Schicht. Die Zeitungsrunden verbrauchen weiterhin
+weder Ereignisse noch Zufallszahlen. Fortsetzen würfelt nichts neu.
+
+`--self-test --balance-only` simuliert 2.048 vollständige Schichten, prüft
+Schutzrunden, Gesamtverteilung, alle Anordnungen, individuelle Rundenhäufigkeiten,
+alle 64 Ereignisse, Wiederherstellung in jeder Rundenart und ältere Spielstände.
+Validierung: 18 gezielte Prüfungen, 1.566 Prüfungen im vollständigen nativen
+Gesamtlauf sowie beide Web-Abläufe (Kino-Zeitung und kompletter Rundgang samt
+Tod/Neustart, 6:7-Verhältnis, Ende 1 und Credits) ohne Fehler bestanden.
+Windows-/Web-Paketgrenzen und die lokale itch-Upload-Vorbereitung sind geprüft;
+es wurde nichts auf itch.io veröffentlicht.
+
 ## Kino-Zeitung und zwei Abschlüsse (2.12.1)
 
 Die 13. richtige Entscheidung endet jetzt mit `ENDE 1/2` und dem vollständigen
@@ -152,7 +180,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.12.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.12.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten

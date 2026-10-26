@@ -4,11 +4,11 @@ $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskBuild=Join-Path $taskRepo 'games/kinderparadies/build'
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
-foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm','after-play-windows-v2.12.1.zip','after-play-web-v2.12.1.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-$taskStage=Join-Path $taskBuild ('release-stage-v2.12.1-'+[Guid]::NewGuid().ToString('N'))
+foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm','after-play-windows-v2.12.2.zip','after-play-web-v2.12.2.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
+$taskStage=Join-Path $taskBuild ('release-stage-v2.12.2-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'web'),(Join-Path $taskStage 'downloads') | Out-Null
 Copy-Item -Path (Join-Path $taskBuild 'browser-package/*') -Destination (Join-Path $taskStage 'web') -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v2.12.1.zip'),(Join-Path $taskBuild 'after-play-web-v2.12.1.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
+Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v2.12.2.zip'),(Join-Path $taskBuild 'after-play-web-v2.12.2.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
 foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p.mp4';'Happyland-Alter-Werbefilm.mp4'='after-play-happyland-werbefilm.mp4'}.GetEnumerator()){
  $taskMediaSource=Join-Path $taskBuild ('trailer/'+$taskMedia.Key)
  if(Test-Path -LiteralPath $taskMediaSource){Copy-Item -LiteralPath $taskMediaSource -Destination (Join-Path $taskStage ('downloads/'+$taskMedia.Value)) -Force}
@@ -22,7 +22,7 @@ $taskBundle=Join-Path $taskBuild 'publish.tgz'
 & tar -czf $taskBundle -C $taskStage .
 if($LASTEXITCODE -ne 0){throw 'Release archive failed'}
 $taskDigest=(Get-FileHash -LiteralPath $taskBundle -Algorithm SHA256).Hash.ToLowerInvariant()
-$taskRelease='v2.12.1-'+$taskDigest.Substring(0,12)
+$taskRelease='v2.12.2-'+$taskDigest.Substring(0,12)
 & scp -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $taskBundle "${SshTarget}:/tmp/kinderparadies-$taskDigest.tgz"
 if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
 $taskRemote=@'
