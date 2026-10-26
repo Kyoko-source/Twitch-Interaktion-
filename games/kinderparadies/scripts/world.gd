@@ -149,6 +149,7 @@ func build() -> void:
  details=AfterPlayDetails.new();add_child(details);details.build(self)
  film=CinemaFilm.new();add_child(film);film.build(self)
  life=HappylandLife.new();add_child(life);life.build(self)
+ annex.finish_interaction_geometry()
  watch=ReceptionWatch.new();add_child(watch);watch.build(self)
  pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
  FootSurfaces.tag(self)

@@ -2,7 +2,7 @@ class_name LostArchive
 extends Node3D
 
 const ENTRY:=Vector3(-10.2,0,-9.9)
-const PAPERS:={"opening":Vector3(10.2,.853,-6.05),"missing":Vector3(.2,.558,-19.9),"coverup":Vector3(-12.94,.991,-18.84)}
+const PAPERS:={"opening":Vector3(10.2,.853,-6.05),"missing":Vector3(.2,.521,-19.9),"coverup":Vector3(-12.94,.991,-18.84)}
 var w: PlayWorld
 var progress: ArchiveState
 var stage:=1
@@ -108,12 +108,17 @@ func _paper(id: String, parent: Node3D, pos: Vector3, size: Vector2, turn: Vecto
   for col in range(12):
    for q in [Vector2(col,row),Vector2(col+1,row),Vector2(col,row+1),Vector2(col+1,row),Vector2(col+1,row+1),Vector2(col,row+1)]:
     var u: float=q.x/12;var v: float=q.y/16;var bend: float=pow(absf(u-.5)*2,5)*.009+sin(v*PI)*.0015+absf(u-.5)*.004+sin(v*9)*.001
+    if id=="missing":
+     var radius_squared: float=pow((u-.5)*size.x,2)+pow((v-.5)*size.y,2)
+     bend=.037*(1.-exp(-radius_squared*30.))+sin(v*PI)*.0015+sin(v*9)*.001
     tool.set_uv(Vector2(u,v));tool.add_vertex(Vector3((u-.5)*size.x,(.5-v)*size.y,bend))
  tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit()
  var texture: Texture2D=_hint_front(root) if id=="patrol_hint" else load("res://assets/story/"+id+".png")
  var material:=w.mat(Color.WHITE,texture,.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;material.alpha_scissor_threshold=.5;mesh.material_override=material;root.add_child(mesh)
  var body:=StaticBody3D.new();body.collision_layer=4;body.collision_mask=0;body.set_meta("interaction","paper:"+id);root.add_child(body)
- var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(size.x,size.y,.018);collision.shape=shape;body.add_child(collision);items[id]=root
+ var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(size.x,size.y,.06 if id=="missing" else .018);collision.shape=shape
+ if id=="missing": collision.position.z=.015
+ body.add_child(collision);items[id]=root
 
 func _hint_front(parent: Node3D) -> Texture2D:
  # Render real typeset text onto the aged sheet, including the world pickup.

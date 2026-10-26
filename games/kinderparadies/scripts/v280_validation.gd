@@ -6,6 +6,7 @@ static func travel(game: Node3D, red: bool) -> void:
  game.player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,PatrolPassage.ENTRY_Z-9.2)
  game.world.passages.tick(.01,true,game.player,game.state.current!="none",game.state.completed)
  for frame in range(900):
+  if game.phase=="ending": break
   if game.phase=="play" and game.world.passages.chosen<0: break
   await game.get_tree().physics_frame
 

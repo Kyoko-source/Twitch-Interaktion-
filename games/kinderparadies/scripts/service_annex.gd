@@ -102,6 +102,19 @@ void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;
  clown=HorrorFigures.clown(w,self);clown.root.position=clown_origin;clown.root.rotation.y=PI/2
  var collider:=StaticBody3D.new();collider.position=clown_origin+Vector3(0,.85,0);clown_shape=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.32;capsule.height=1.7;clown_shape.shape=capsule;collider.add_child(clown_shape);add_child(collider)
 
+func finish_interaction_geometry() -> void:
+ # Keep one smooth hull for walking, but let interaction rays reach objects
+ # resting below the armrests. Only ray queries see layer 8, never the guard.
+ var shapes: Dictionary={}
+ for seat in get_children():
+  if not str(seat.name).begins_with("CinemaSeat"): continue
+  var surface:=StaticBody3D.new();surface.name="SeatInteractionSurface";surface.collision_layer=8;surface.collision_mask=0;seat.add_child(surface)
+  for mesh in seat.find_children("*","MeshInstance3D",true,false):
+   if not mesh.is_visible_in_tree(): continue
+   var key: int=mesh.mesh.get_instance_id()
+   if not shapes.has(key): shapes[key]=mesh.mesh.create_trimesh_shape()
+   var shape:=CollisionShape3D.new();shape.shape=shapes[key];surface.add_child(shape);shape.transform=seat.global_transform.affine_inverse()*mesh.global_transform
+
 func _cinema() -> void:
  var carpet:=w.mat(Color("40262b"),load("res://assets/floor.png"),.98);carpet.uv1_triplanar=true;carpet.uv1_scale=Vector3.ONE
  var carpet_mesh:=w.box(self,Vector3(-1.3,.0095,-17.85),Vector3(9.95,.002,8.6),carpet);carpet_mesh.name="CinemaCarpet"
@@ -110,14 +123,14 @@ func _cinema() -> void:
  # cushion/arm colliders used to catch the capsule at their overlapping edges.
  for x in [-4.3,-2.8,-1.3,.2]:
   for z in [-21.0,-19.9,-18.8,-16.6,-15.5,-14.4]:
-   var seat:=Node3D.new();seat.name="CinemaSeat";seat.position=Vector3(x,0,z);seat.rotation.y=PI/2;add_child(seat)
+   var seat:=Node3D.new();seat.name="CinemaSeat_%d_%d"%[roundi(x*10),roundi(z*10)];seat.set_meta("cinema_seat",true);seat.position=Vector3(x,0,z);seat.rotation.y=PI/2;add_child(seat)
    w.box(seat,Vector3(0,.46,0),Vector3(.63,.18,.64),seat_mat)
    var back:=Node3D.new();back.position=Vector3(0,.87,-.27);back.rotation.x=-.12;seat.add_child(back);w.box(back,Vector3.ZERO,Vector3(.66,.82,.16),seat_mat)
    for side in [-1,1]:
     w.box(seat,Vector3(side*.37,.68,.02),Vector3(.09,.1,.62),w.materials.dark)
     w.tube(seat,Vector3(side*.28,.05,0),Vector3(side*.28,.45,0),.04,w.materials.metal)
    if int(absf(x*10+z))%4==0: w.box(seat,Vector3(.13,.56,.1),Vector3(.16,.009,.13),w.materials.rust)
-   var body:=StaticBody3D.new();body.name="SeatCollision";seat.add_child(body)
+   var body:=StaticBody3D.new();body.name="SeatCollision";body.set_meta("movement_hull",true);seat.add_child(body)
    var shape:=CollisionShape3D.new();var hull:=ConvexPolygonShape3D.new();var points:=PackedVector3Array()
    # One bevelled hull per seat: no seams, sharp corner hooks or hidden legs.
    for y in [.05,1.30]:

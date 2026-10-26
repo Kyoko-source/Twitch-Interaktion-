@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--endings-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/endings_validation.gd").new().run(game,check)
+  print("Endings checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--watch-only" in OS.get_cmdline_user_args():
   await load("res://scripts/watch_validation.gd").new().run(game,check)
   print("Watch checks: ",checks,"; failures: ",failures.size())
@@ -493,6 +497,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/nightmare_validation.gd").new().run(game,check)
  await load("res://scripts/props_validation.gd").new().run(game,check)
  await load("res://scripts/finale_validation.gd").new().run(game,check)
+ await load("res://scripts/endings_validation.gd").new().run(game,check)
  await load("res://scripts/presentation_validation.gd").new().run(game,check)
  await load("res://scripts/polish_validation.gd").new().run(game,check)
  await load("res://scripts/v250_validation.gd").new().run(game,check)

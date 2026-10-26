@@ -20,6 +20,19 @@ async function doorTrip(page,red,{wrong=false}={}){
 async function walk(page,key,predicate){await page.keyboard.down(key);try{await expect.poll(async()=>predicate(await state(page)),{timeout:18000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page));throw error;}finally{await page.keyboard.up(key);await page.waitForTimeout(180);}}
 const errors=[];
 
+test('round 5 cinema newspaper can be collected with E from the aisle and stays in the saved inventory',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ for(let i=0;i<4;i++){
+  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');
+ }
+ expect((await state(page)).streak).toBe(4);expect((await state(page)).anomaly).toBe('none');expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(true);
+ await qa(page,{op:'warp',x:1.2,y:.03,z:-31.90,yaw:Math.PI/2,pitch:-.85});await expect.poll(async()=>(await state(page)).target).toBe('paper:missing');
+ await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-cinema-newspaper.png')});await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).archive.collected.includes('missing')).toBe(true);
+ expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(false);await page.keyboard.press('Tab');expect((await state(page)).archive_reader).toBe('missing');await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-newspaper-reader.png')});await page.keyboard.press('Escape');
+ await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ expect((await state(page)).streak).toBe(4);expect((await state(page)).archive.collected).toContain('missing');expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(false);
+});
+
 test('reception memories and live CCTV remain voluntary; physical pit balls react and pause',async({page})=>{
  test.setTimeout(150000);await begin(page);
  await qa(page,{op:'warp',x:-7.4,y:.02,z:5.45,yaw:Math.PI/2,pitch:-.24});
@@ -157,7 +170,7 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
 });
 
-test('v2.8 real corridors return through the entrance elevator; death shows the count and wakes without the phone; thirteen rounds preserve the hint',async({page})=>{
+test('v2.8 real corridors return through the entrance elevator; death resets; thirteen rounds finish at ending 1 with credits',async({page})=>{
  test.setTimeout(300000);await begin(page);
  expect((await state(page)).visited).toEqual([]);
  await qa(page,{op:'warp',x:-4.3,z:-10.5,yaw:0});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');
@@ -176,13 +189,16 @@ test('v2.8 real corridors return through the entrance elevator; death shows the 
  await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).streak).toBe(0);expect((await state(page)).rounds).toBe(0);expect((await state(page)).intro.stage).toBe('done');
  expect((await state(page)).failure.count).toBe(1);await page.screenshot({path:join(tmpdir(),'after-play-v280-web-wake.png')});
  for(let i=0;i<13;i++){
-  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).streak).toBe(i+1);
+  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
  }
- expect((await state(page)).completed).toBe(true);expect((await state(page)).anomaly).toBe('none');expect((await state(page)).archive.spawned.some(p=>p.id==='patrol_hint')).toBe(true);
- await qa(page,{op:'warp',x:-8,z:19.35,yaw:0,pitch:-.82});await expect.poll(async()=>(await state(page)).target).toBe('paper:patrol_hint');await page.keyboard.press('e');
- await expect.poll(async()=>(await state(page)).archive.collected.includes('patrol_hint')).toBe(true);await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).archive_reader).toBe('patrol_hint');await page.keyboard.press('Escape');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');expect((await state(page)).completed).toBe(true);
- await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).completed).toBe(false);expect((await state(page)).streak).toBe(0);expect((await state(page)).archive.collected).toContain('patrol_hint');
+ expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
+ await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1.png')});
+ await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/party/musicbox.mp3');
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
+ expect((await state(page)).phase).toBe('ending');expect((await state(page)).streak).toBe(13);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1-clue.png')});
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).ending_credits.ending).toBe(1);expect((await state(page)).streak).toBe(13);
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
+ await clickControl(page,'Neue Nachtschicht');await skipIntro(page);expect((await state(page)).streak).toBe(0);expect((await state(page)).completed).toBe(false);
 });
 
 test('pause freezes movement and real settings controls persist volume after reload',async({page})=>{
@@ -480,6 +496,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
  await aim([-11.3,0,-9.9],[-14,1.3,-9.9]);await expect.poll(async()=>(await state(page)).archive.finale.looked_away).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-remains.png')});
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await expect.poll(async()=>(await state(page)).phase,{intervals:[20]}).toBe('archive_scare');await page.waitForTimeout(180);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-chef-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('ending');await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-ende.png')});
+ expect((await state(page)).ending_credits.title).toBe('ENDE 2/2');expect((await state(page)).ending_credits.second_end_hint).toBe('');
  expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/party/musicbox.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:10000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
  await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.5);

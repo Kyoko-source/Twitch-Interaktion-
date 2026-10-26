@@ -219,6 +219,7 @@ func _can_continue() -> bool:
 func _continue() -> void:
  if has_session:
   if archive.ending=="complete": _show_archive_ending()
+  elif state.completed and archive.ending=="idle": _show_patrol_ending()
   elif wake_pending or arrival_pending: _arrival(wake_pending)
   elif intro_pending: _begin_intro()
   else: _resume()
@@ -233,6 +234,7 @@ func _continue() -> void:
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if archive.ending=="complete": _show_archive_ending();return
+ if state.completed and archive.ending=="idle": _show_patrol_ending();return
  if wake_pending or arrival_pending: _arrival(wake_pending);return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
@@ -451,8 +453,15 @@ func _refresh_hud() -> void:
 func _target() -> String:
  var origin:=player.camera.global_position;var end:=origin-player.camera.global_transform.basis.z*2.7
  var query:=PhysicsRayQueryParameters3D.create(origin,end);query.exclude=[player.get_rid()]
- var hit:=get_world_3d().direct_space_state.intersect_ray(query)
- if hit and hit.collider.has_meta("interaction"): return str(hit.collider.get_meta("interaction"))
+ # A chair's smooth movement hull extends above its cushion. Interaction uses
+ # the exact visible seat surfaces instead, preserving occlusion by its back.
+ for attempt in range(8):
+  var hit:=get_world_3d().direct_space_state.intersect_ray(query)
+  if hit.is_empty(): break
+  if hit.collider.get_meta("movement_hull",false):
+   var excluded:=query.exclude;excluded.append(hit.collider.get_rid());query.exclude=excluded;continue
+  if hit.collider.has_meta("interaction"): return str(hit.collider.get_meta("interaction"))
+  break
  return ""
 
 func _decide(red: bool) -> void:
@@ -470,9 +479,10 @@ func _board_lift(_red: bool) -> void:
 
 func _finish_lift(red: bool) -> void:
  if phase!="lift": return
- if state.completed: state.start();last_result={"correct":true,"completed":false}
- else: last_result=state.decide(red)
+ if state.completed: _show_patrol_ending();return
+ last_result=state.decide(red)
  if not last_result.get("correct",false): _door_death(red);return
+ if state.completed: _show_patrol_ending();return
  arrival_pending=true;_save(true)
  _build_world(state.current);_arrival(false)
 
@@ -508,14 +518,19 @@ func _start_archive_scare() -> void:
  if phase=="archive_scare": _show_archive_ending()
 
 func _show_archive_ending() -> void:
+ _show_ending(2)
+
+func _show_patrol_ending() -> void:
+ _show_ending(1)
+
+func _show_ending(number: int) -> void:
  menu_music.stop()
- phase="ending";NightMenus.clear(self);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
- end_credits=EndCredits.new();menu.add_child(end_credits);end_credits.build(self);_telemetry()
+ intro_pending=false;wake_pending=false;arrival_pending=false
+ phase="ending";NightMenus.clear(self);world.watch.close();world.pit_physics.tick(false,player);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
+ end_credits=EndCredits.new();menu.add_child(end_credits);end_credits.build(self,number);_telemetry()
 
 func _won() -> void:
- _build_world("none");player.camera.rotation.x=-.58;_resume();_save()
- _announce("Dreizehn Rundgänge. Vor dir liegt eine Zeitung.",7)
- await _fade(0,.4)
+ _show_patrol_ending()
 
 func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=value;notice_time=seconds;notice.show()

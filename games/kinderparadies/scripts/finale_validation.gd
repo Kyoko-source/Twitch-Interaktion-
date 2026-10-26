@@ -71,7 +71,7 @@ func run(game: Node3D, verify: Callable) -> void:
  game.door_failure.tick(1.0);await game.get_tree().process_frame
  verify.call(game.phase=="ending" and is_instance_valid(game.end_credits),"Chef scare fails to enter the black ending")
  game.end_credits.tick(1)
- verify.call(game.end_credits.snapshot().end_word and game.end_credits.word.text=="ENDE","The ending omits the centred ENDE title")
+ verify.call(game.end_credits.snapshot().end_word and game.end_credits.word.text=="ENDE 2/2" and game.end_credits.snapshot().second_end_hint=="","The archive ending omits ENDE 2/2 or repeats the first ending's hint")
  game.end_credits.tick(4)
  verify.call(game.end_credits.snapshot().stage=="credits" and EndCredits.AUTHOR=="Kyoko" and EndCredits.IDEA=="einsmarello" and EndCredits.TESTERS==["einsmarello","__jerry__","gingerbread","Mozart"],"Rolling credits omit or misspell a requested contributor")
  game.end_credits.finish_scroll();game.end_credits.tick(17);verify.call(game.end_credits.done and game.end_credits.actions.visible,"Credits leave no way to return to the menu or start again")

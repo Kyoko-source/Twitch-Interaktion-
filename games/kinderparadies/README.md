@@ -1,5 +1,35 @@
 # After Play — Kinderparadies
 
+## Kino-Zeitung und zwei Abschlüsse (2.12.1)
+
+Die 13. richtige Entscheidung endet jetzt mit `ENDE 1/2` und dem vollständigen
+Abspann zur Spieluhr. Das Archiv-Ende zeigt `ENDE 2/2` und denselben Abspann.
+Ende 1 enthält die Notiz „schau dich für Ende 2 nochmal genauer um in Runde
+3,5,8 und 11“ im Bildlauf und nach dem Überspringen bei den Abschlussaktionen.
+Es beginnt keine neue Schicht automatisch. Fortsetzen öffnet den erreichten
+Abschluss wieder, auch bei älteren gespeicherten 13er-Serien. Ein vollständig
+abgeschlossenes Archiv hat bei der Wiederherstellung Vorrang vor Ende 1.
+Erst die ausdrückliche Aktion „Neue Nachtschicht“ setzt die Sammlung zurück.
+Bereits begonnene Archivaufnahmen aus älteren 13er-Spielständen bleiben dagegen
+fortsetzbar; ihr Aufnahmefortschritt und der vorbereitete Abschluss gehen nicht verloren.
+
+Die Zeitung aus Rundgang 5 folgt der leicht eingedrückten Sitzfläche. Der
+begehbare, abgerundete Sitzkörper bleibt unverändert; E prüft stattdessen die
+tatsächlichen sichtbaren Sitzflächen über einen eigenen Abfrage-Layer. So
+blockiert der grobe Laufkörper das Einsammeln nicht mehr, während Rücken- und
+Armlehnen weiterhin den Blick auf verdeckte Gegenstände versperren. Alle 24
+Sitze besitzen eindeutige Namen, identische Polsterbehandlung und genaue
+Interaktionsflächen. Eine Namenskollision hatte die frühere Polsterbehandlung
+auf den ersten Sitz beschränkt.
+
+`--self-test --endings-only` prüft den echten E-Strahl vor/hinter dem Sitz,
+stehendes und geducktes Einsammeln, gespeicherte Funde, beide Farben der letzten
+richtigen Tür, Endkarten, Musik, Hinweis und beide Abschlüsse nach Fortsetzen.
+`--render-qa --endings-qa` liefert native Ansichten der Zeitung und beider Enden.
+Validierung: 1.547 Prüfungen im Gesamtlauf, 30 abschließende gezielte Prüfungen
+und vier Web-Abläufe (Zeitung samt Speicherung, 13-Runden-Ende, vollständiges
+Archiv-Ende und alle Kino-Gänge in beide Richtungen) bestanden.
+
 ## Fotowand, Kontrollmonitor und physisches Bällebad (2.12.0)
 
 Über der Krabbelröhre an der Südwand hängen sechs vergilbte, schief beklebte
@@ -122,7 +152,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.12.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.12.1.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten
@@ -629,7 +659,7 @@ isolierte Web-Prüffassung verwendet eigene Speicherschlüssel.
 - Die Dienstanweisung enthält die vom Autor gewünschte kurze Einleitung und Tastenliste, ohne Rätsel- oder Anomalieauflösung.
 - Neue modellierte Küchenschränke, Arbeitsplatten, Herd und Kühlschrank mit versenkten Fronten, Dichtungen, Scharnieren, Griffen, Brennerringen, Ofenfenster und Gebrauchsspuren. Kollisionsformen folgen den Möbelmaßen; das Spülbecken bleibt ausgespart.
 - 58 mögliche Anomalien, darunter 13 neue Begegnungen in sieben Bereichen. Acht neue Soundmischungen nutzen die vorhandenen CC0-Kreaturen- und Feldaufnahmen. Einzelne Auslöser, Pause, sichtbare Restspuren und die normalen Zeitungsrunden bleiben erhalten.
-- Nach der 13. richtigen Tür führt das Spiel zurück in den normalen Startraum. Eine lesbare Zeitung liegt direkt auf dem Boden. E nimmt sie auf, TAB liest sie. Der abgeschlossene Rundgang und die Zeitung werden gespeichert. Über eine weitere Entscheidungstür beginnt eine neue Suche, ohne bereits überlebte Fundstücke zu verlieren. Tod und eine ausdrücklich neue Nachtschicht setzen sie zurück.
+- Historisches Verhalten dieser Version: Nach der 13. richtigen Tür führte das Spiel zurück in den normalen Startraum zu einer Hinweiszeitung. Seit 2.12.1 ersetzt ENDE 1/2 mit Credits und Notiz diesen Ablauf.
 - Das Archivende bleibt bestehen. Am Ende der Credits folgt die vollständige „Notiz von Kyoko“, mit größerer Leseschrift und langsamerem Bildlauf. Musikbox.mp3 begleitet weiterhin den Abspann.
 - Reproduzierbare Quellen: tools/model-after-play-kitchen-v260.py und tools/create-after-play-scares-v260.py. Lizenz- und Soundbearbeitungsnachweise liegen in assets/kitchen-v260 und assets/scares-v260.
 - Zusätzliche Prüfungen: --self-test --v260-only und --render-qa --v260-qa.

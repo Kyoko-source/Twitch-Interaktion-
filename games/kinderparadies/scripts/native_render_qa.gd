@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--endings-qa" in OS.get_cmdline_user_args():
+  await endings_views(game,output);game._quit();return
  if "--watch-qa" in OS.get_cmdline_user_args():
   await watch_views(game,output);game._quit();return
  if "--life-qa" in OS.get_cmdline_user_args():
@@ -592,8 +594,8 @@ func v260_views(game: Node3D, output: String) -> void:
   await game.get_tree().create_timer(.7).timeout;await capture(game,output,shot.name)
  print("V260 PLACEMENT ",JSON.stringify(SceneAudit.placement(game.world)))
  game.state.streak=13;game.state.completed=true;game._won();game.player.active=false
- await game.get_tree().create_timer(.8).timeout;await capture(game,output,"patrol-hint-floor-v260")
- game._collect_paper("patrol_hint");game._inventory();await game.get_tree().process_frame;await capture(game,output,"patrol-hint-reader-v260")
+ await game.get_tree().create_timer(.8).timeout;await capture(game,output,"patrol-ending-v260")
+ game.end_credits.tick(35);await game.get_tree().process_frame;await capture(game,output,"patrol-ending-credits-v260")
  for spec in [{"id":"reception_overhead","p":Vector3(-4.8,0,8.5)},{"id":"cinema_aisle_rush","p":(Vector3(-1.0,0,-17.65)+ServiceAnnex.OFFSET)},{"id":"kitchen_floor_crawler","p":(Vector3(-12.9,0,-15.5)+ServiceAnnex.OFFSET)}]:
   game._build_world(spec.id);game._resume();game.player.active=false
   game.player.position=spec.p;game.player.rotation=Vector3.ZERO;game.player.camera.look_at(game.world.terrors.focus_point())
@@ -663,6 +665,24 @@ func details_views(game: Node3D, output: String) -> void:
   {"id":"service-hall","p":Vector3(-7.9,0,-15.5),"look":Vector3(-9.2,1.8,-18.0)}]:
   game.player.position=view.p;game.player.camera.look_at(view.look);await game.get_tree().create_timer(.5).timeout;await capture(game,output,view.id)
  print("DETAILS AUDIT ",JSON.stringify(SceneAudit.placement(game.world))," COUNTS ",JSON.stringify(game.world.details.snapshot()))
+
+func endings_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game.player.active=false;game.state.streak=4;game._build_world("none");game._resume();game.player.active=false
+ game.player.position=Vector3(1.2,.03,-31.9);game.player.camera.look_at(game.world.archive.items.missing.global_position)
+ await game.get_tree().create_timer(.6).timeout;await capture(game,output,"cinema-newspaper")
+ assert(game._target()=="paper:missing","Real native ray cannot collect cinema newspaper")
+ var event:=InputEventAction.new();event.action="interact";event.pressed=true;game._unhandled_input(event)
+ assert("missing" in game.archive.collected,"E cannot collect native newspaper")
+ for i in range(2):
+  if i==0: game.state.completed=true;game.state.streak=13;game._show_patrol_ending()
+  else: game.archive.creator_access=true;game.archive.unlocked=true;game.archive.ending="complete";game._show_archive_ending()
+  game.end_credits.tick(.8)
+  await game.get_tree().create_timer(.1).timeout;await capture(game,output,"end-%d-title"%(i+1))
+  game.end_credits.tick(35)
+  await game.get_tree().create_timer(.1).timeout;await capture(game,output,"end-%d-credits"%(i+1))
+  game.end_credits.finish_scroll();game.end_credits.tick(17)
+  await game.get_tree().create_timer(.2).timeout;await capture(game,output,"end-%d-finished"%(i+1))
+  print("NUMBERED END ",JSON.stringify(game.end_credits.snapshot()))
 
 func life_views(game: Node3D, output: String) -> void:
  game._new_shift();game.intro.skip();game.player.active=false
