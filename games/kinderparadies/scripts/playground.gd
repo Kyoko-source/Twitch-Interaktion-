@@ -192,6 +192,7 @@ func _hall_dressing() -> void:
  w.mounted_sign(dressing,"pickup",Vector3(4.9,3.4,16.97),Vector2(2.1,.8),PI)
  for i in range(6):
   var z:=.5+i*2.8
+  if z>5 and z<10: continue # Keep the east-wall WC opening clear.
   w.box(dressing,Vector3(19.59,.7,z),Vector3(.15,1.35,2.5),[w.materials.blue,w.materials.gold,w.materials.teal][i%3])
   w.tube(dressing,Vector3(19.48,.15,z-1.1),Vector3(19.48,1.25,z-1.1),.012,w.materials.stitch)
  w.lamp(Vector3(-4.5,5.8,13.5),Color("8aa8aa"),.6,10)

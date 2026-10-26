@@ -1,4 +1,4 @@
-param([string]$Version='2.10.0')
+param([string]$Version='2.11.0')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'

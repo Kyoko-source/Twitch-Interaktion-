@@ -36,3 +36,8 @@ Der fiktive Happyland-Werbefilm zeigt bewegte Aufnahmen der Spielumgebung. Schni
 Texteinblendungen, Jahrmarktmelodie und Alterungseffekte wurden für After Play erstellt.
 Die deutsche Ansage wurde lokal mit Microsoft Hedda Desktop als Sprachausgabe erzeugt.
 Die bestehenden Lizenzen der sichtbaren Spielobjekte und Schriften gelten weiter.
+
+Fotoautomat: Der fiktive Fotostreifen wurde für After Play mit OpenAI-Bildgenerierung
+erstellt und korrigiert. Die abgebildete erwachsene Person ist erfunden.
+Automatenbrummen, Kompressor, Kondenswassertropfen und WC-Luftgeräusch sind
+projektintern synthetisierte Aufnahmen, keine externen Feldaufnahmen.

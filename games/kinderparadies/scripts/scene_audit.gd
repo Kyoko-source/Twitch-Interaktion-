@@ -66,6 +66,7 @@ static func placement(w: PlayWorld) -> Dictionary:
  # Actual visible mesh bounds, including purely decorative geometry. Floors,
  # door frames and the interactive door leaves sit outside these swept volumes.
  var passages: Array[Dictionary]=[
+  {"name":"Kinder-WC","box":AABB(Vector3(19.4,.09,7.16),Vector3(.9,2.2,1.28))},
   {"name":"Kostümraum","box":AABB(Vector3(16.67,.30,-12.63),Vector3(1.26,2.25,.86))},
   {"name":"Party Raum","box":AABB(Vector3(6.39,.09,-9.43),Vector3(.82,2.25,1.46))},
   {"name":"Wartungsraum","box":AABB(Vector3(-10.62,.09,-6.12),Vector3(.84,2.25,1.44))},

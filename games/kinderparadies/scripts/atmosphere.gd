@@ -52,6 +52,7 @@ func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
    if side<0 and i in [0,1,2,6]: continue # Archive and delivery openings cannot carry wall decals.
+   if side>0 and absf(-10+i*3.15-7.8)<1.95: continue # WC opening.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  # Weathering belongs to the solid piers, never across the service/decision
  # openings. These overlays remain visible even though they have no collider.
@@ -95,6 +96,7 @@ func _softplay_details() -> void:
   w.tube(details,Vector3(x,1.73,z),Vector3(x,1.76,z),.186,w.materials.stitch)
  # Padded wall panels have seams, straps and individual sagging surfaces.
  for i in range(5):
+  if absf(3+i*1.35-7.8)<1.55: continue
   var pad:=w.box(self,Vector3(19.59,.65,3+i*1.35),Vector3(.1,1.2,1.24),[w.materials.blue,w.materials.gold,w.materials.red][i%3])
   w.tube(pad,Vector3(-.061,-.47,-.5),Vector3(-.061,.47,-.5),.009,w.materials.stitch)
   w.tube(pad,Vector3(-.061,-.47,.5),Vector3(-.061,.47,.5),.009,w.materials.stitch)

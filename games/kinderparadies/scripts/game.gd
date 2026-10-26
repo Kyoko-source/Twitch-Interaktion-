@@ -241,8 +241,8 @@ func _continue() -> void:
   if int(data.get("layout_version",0))<11:
    if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
    elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
-  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
-   if world.details.clear_pose(p): player.position=p
+  if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or world.life.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
+   if world.details.clear_pose(p) and world.life.clear_pose(p): player.position=p
    player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -346,7 +346,7 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film,world.life]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
@@ -395,6 +395,7 @@ func _process(delta: float) -> void:
  world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
  world.film.tick(delta,phase=="play")
  world.tick(delta,phase=="play")
+ world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
@@ -421,6 +422,8 @@ func _process(delta: float) -> void:
   elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
   elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
+  elif target=="life:photo": prompt.text="E · Alten Fotostreifen ansehen"
+  elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
@@ -558,10 +561,18 @@ func _unhandled_input(event: InputEvent) -> void:
    elif not archive.film_found: _announce("Auf dem Projektionstisch liegt eine alte Filmrolle.",4)
    elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
   elif target=="archive_recording": world.archive.finale.interact()
+  elif target=="life:photo": _show_booth_photo()
+  elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
   elif target=="delivery_exit": world.backstage.interact_exit(player)
   elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
+
+func _show_booth_photo() -> void:
+ phase="help";return_phase="play"
+ var column:=_panel("Vier Aufnahmen für zwei Mark.","Ein alter Fotostreifen vom Happyland-Fotoautomaten.")
+ var photo:=TextureRect.new();photo.name="BoothPhotoReader";photo.texture=load(HappylandLife.ROOT+"photostrip-v2.png");photo.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;photo.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;photo.custom_minimum_size=Vector2(420,680);column.add_child(photo)
+ column.add_child(_button("Zurück zum Rundgang",_return_from_panel,true));_telemetry()
 
 func _environment_note(id: String) -> void:
  if not BackstageExpansion.DOCS.has(id): return
@@ -639,6 +650,7 @@ func _telemetry() -> void:
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
   data.details=world.details.snapshot()
   data.film=world.film.snapshot()
+  data.life=world.life.snapshot()
   data.backstage=world.backstage.snapshot();data.passage=world.passages.snapshot();data.survived=survived;data.death_text=death_label.text if death_label.visible else ""
   data.hud_labels=[]
   for label in hud.find_children("*","Label",true,false):

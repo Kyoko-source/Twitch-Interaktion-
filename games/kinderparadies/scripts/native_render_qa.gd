@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--life-qa" in OS.get_cmdline_user_args():
+  await life_views(game,output);game._quit();return
  if "--film-qa" in OS.get_cmdline_user_args():
   await film_views(game,output);game._quit();return
  if "--layout-qa" in OS.get_cmdline_user_args():
@@ -659,3 +661,21 @@ func details_views(game: Node3D, output: String) -> void:
   {"id":"service-hall","p":Vector3(-7.9,0,-15.5),"look":Vector3(-9.2,1.8,-18.0)}]:
   game.player.position=view.p;game.player.camera.look_at(view.look);await game.get_tree().create_timer(.5).timeout;await capture(game,output,view.id)
  print("DETAILS AUDIT ",JSON.stringify(SceneAudit.placement(game.world))," COUNTS ",JSON.stringify(game.world.details.snapshot()))
+
+func life_views(game: Node3D, output: String) -> void:
+ game._new_shift();game.intro.skip();game.player.active=false
+ for view in [
+  {"id":"snackbar","p":Vector3(16.4,0,12.8),"look":Vector3(16.8,1.4,16.4)},
+  {"id":"photo-booth","p":Vector3(12.8,0,13.8),"look":Vector3(13,1.25,16.25)},
+  {"id":"photo-strip","p":Vector3(12.7,0,15.0),"look":HappylandLife.PHOTO},
+  {"id":"wc-entrance","p":Vector3(17.7,0,7.8),"look":Vector3(23,1.4,7.8)},
+  {"id":"washbasins","p":Vector3(22.4,0,7.2),"look":Vector3(23.1,.9,5.6)},
+  {"id":"cubicles","p":Vector3(24.0,0,6.3),"look":Vector3(24.8,1.1,9.4)},
+  {"id":"condensation","p":Vector3(25.3,0,7.6),"look":Vector3(26.2,.85,6.3)}]:
+  game.player.position=view.p;game.player.camera.look_at(view.look);await game.get_tree().create_timer(.6).timeout;await capture(game,output,view.id)
+ print("LIFE AUDIT ",JSON.stringify(SceneAudit.placement(game.world))," STATE ",JSON.stringify(game.world.life.snapshot()))
+ game._show_booth_photo();await game.get_tree().create_timer(.4).timeout;await capture(game,output,"photo-reader");game._return_from_panel()
+ game._show_archive_ending();game.end_credits.tick(5);game.end_credits.finish_scroll();game.end_credits.tick(3)
+ await game.get_tree().create_timer(.5).timeout;await capture(game,output,"last-look")
+ game.end_credits.tick(7);await capture(game,output,"last-lights");game.end_credits.tick(7)
+ print("LAST LOOK QA ",JSON.stringify(game.end_credits.snapshot()))

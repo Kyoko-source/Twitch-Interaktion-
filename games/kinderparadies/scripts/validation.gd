@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--life-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/life_validation.gd").new().run(game,check)
+  print("Life checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--film-only" in OS.get_cmdline_user_args():
   await load("res://scripts/film_validation.gd").new().run(game,check)
   print("Film checks: ",checks,"; failures: ",failures.size())
@@ -491,6 +495,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/v270_validation.gd").new().run(game,check)
  await load("res://scripts/details_validation.gd").new().run(game,check)
  await load("res://scripts/film_validation.gd").new().run(game,check)
+ await load("res://scripts/life_validation.gd").new().run(game,check)
  await PassageChecks.new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()

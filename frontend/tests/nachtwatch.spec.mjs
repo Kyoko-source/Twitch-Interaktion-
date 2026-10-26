@@ -454,8 +454,12 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await expect.poll(async()=>(await state(page)).phase,{intervals:[20]}).toBe('archive_scare');await page.waitForTimeout(180);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-chef-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('ending');await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-ende.png')});
  expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/party/musicbox.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
- await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done).toBe(true);}finally{await page.keyboard.up('Space');}
- await clickControl(page,'Hauptmenü');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(1);
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:10000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
+ await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.5);
+ expect((await state(page)).ending_credits.music).toBe(true);expect((await state(page)).life.hum).toBe(false);
+ await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-last-look.png')});
+ await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);expect((await state(page)).ending_credits.music).toBe(false);
+ await clickControl(page,'Hauptmenü');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);
 });
 
@@ -528,4 +532,24 @@ test('Happyland film can be collected, projected with synchronized sound, paused
  await qa(page,{op:'pause'});await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');expect((await state(page)).film.owned).toBe(true);
  await qa(page,{op:'anomaly',id:'none'});expect((await state(page)).film.owned).toBe(true);expect((await state(page)).film.playing).toBe(false);
  await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.art_overlaps).toEqual([]);
+});
+
+test('washroom is walkable and saved; ordinary ambience pauses and the corrected booth photo can be inspected',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ await qa(page,{op:'warp',x:18.3,z:7.8,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>21.2);
+ expect((await state(page)).position[2]).toBeCloseTo(7.8,1);expect((await state(page)).anomaly).toBe('none');
+ await page.keyboard.press('Escape');await page.waitForTimeout(100);const stopped=(await state(page)).life.clock;
+ await page.waitForTimeout(400);expect((await state(page)).life.clock).toBe(stopped);expect((await state(page)).life.paused).toBe(true);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ expect((await state(page)).position[0]).toBeGreaterThan(21.1);expect((await state(page)).position[2]).toBeCloseTo(7.8,1);
+ await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-washroom.png')});await walk(page,'s',s=>s.position[0]<18.5);
+ await qa(page,{op:'warp',x:25.7,z:6.8,yaw:Math.PI,pitch:0});await expect.poll(async()=>(await state(page)).target).toBe('life:locked_wc');
+ await page.keyboard.press('e');expect((await state(page)).phase).toBe('play');await page.keyboard.down('w');await page.waitForTimeout(900);await page.keyboard.up('w');expect((await state(page)).position[2]).toBeLessThan(7.73);
+ await expect.poll(async()=>(await state(page)).life.compressors,{timeout:10000}).toBeGreaterThan(0);expect((await state(page)).life.drips).toBeGreaterThan(0);
+ const pitch=Math.atan2(.548-1.65,16.32-14.95);
+ await qa(page,{op:'warp',x:12.69,z:14.95,yaw:Math.PI,pitch});await expect.poll(async()=>(await state(page)).target).toBe('life:photo');
+ await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-booth.png')});await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('help');
+ expect((await state(page)).controls.some(c=>c.text==='Zurück zum Rundgang')).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-photo-reader.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).anomaly).toBe('none');expect((await state(page)).streak).toBe(0);
+ await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.art_overlaps).toEqual([]);expect((await state(page)).layout.furniture_wall_intrusions).toEqual([]);
 });

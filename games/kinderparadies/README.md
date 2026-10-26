@@ -1,5 +1,43 @@
 # After Play — Kinderparadies
 
+## Umgebung und Schlussaufnahme (2.11.0)
+
+An der südlichen Wand neben den Arcade-Automaten stehen ein geschlossener
+Snackbar-Tresen und ein alter Fotoautomat. Hinter dessen teilweise geöffnetem
+Vorhang liegt ein mit E ansehbarer Fotostreifen. Das korrigierte Bild zeigt den
+Mitarbeiter ohne Ohren am menschlichen Kopf; die Ohren gehören zum abgenommenen
+Kostümkopf. Beide abgeschnittenen Kabelenden des trotzdem summenden Automaten
+sind sichtbar. Der Vorhang bewegt sich leicht durch die Lüftung.
+
+Ein echter Durchgang in der Ostwand führt zum Kinder-WC mit eigener Decke,
+grünlichen Fliesen, drei niedrigen Waschbecken, beschädigten Seifenspendern,
+offener und verriegelter Kabine sowie Kondenswasser, das in einen Metalleimer
+tropft. Dort erhalten Schritte einen eigenen kleinen Raumhall. Fortsetzen
+behält die Position im neuen Raum. Verkleidung, Schmutzflächen und die alten
+Schaumstoffklötze wurden am Zugang entfernt bzw. versetzt.
+
+Kompressor, Automatenbrummen, Luft und Tropfen sind normale Atmosphäre und
+verändern keine Anomalie oder Entscheidung. Bewegung und Audio pausieren mit
+dem Spiel. Schallquellen benutzen den vorhandenen Umgebungslautstärke-Regler.
+Die Snackbar hat zwei verschmutzte Slush-Maschinen, eine vergilbte DM-Speisekarte,
+altes Essen unter dem Tresen und einen verschimmelten Getränkebecher.
+
+Nasse Flächen haben weiche Ränder, geringe Rauigkeit und Glanz im Taschenlampenlicht.
+An Halterungen sitzen Rostspuren; die Kinositze besitzen eine eingedrückte,
+geschlossene Polsteroberfläche bei unveränderten glatten Kollisionskörpern.
+Nach den Credits folgt eine 16 Sekunden lange ruhige Aufnahme des normalen,
+leeren Hauptraums. Nur die bereitgestellte Spieluhr läuft, die Beleuchtung erlischt
+und das Bild blendet schwarz aus. Danach erscheinen die Abschlussaktionen.
+Gehaltene Leertaste kann auch diese Aufnahme überspringen. Licht und Kamera
+werden beim Verlassen wieder korrekt hergestellt.
+
+Der Fotostreifen wurde mit dem eingebauten Bildwerkzeug erzeugt und gezielt
+korrigiert. Asset: `assets/life-v2110/photostrip-v2.png`. Die beiden verwendeten
+Prompts stehen in `assets/life-v2110/image-generation-provenance.json`; diese
+Entwicklerdatei wird nicht mit dem Spielerpaket exportiert. Die vier neuen
+Geräuschdateien sind projektintern synthetisiert; reproduzierbar mit
+`tools/build-after-play-life-audio.py`. `0712` bleibt als Erstellerzugang aktiv.
+
 Eigenständiges 3D-Anomaliespiel, Godot 4.6.2 / GDScript. Gemeinsames Projekt für
 Windows x86_64 und WebGL 2.0. Die Windows-Fassung läuft offline ohne Browser,
 WebView, Aviary-Konto oder Anmeldung.
@@ -44,7 +82,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.10.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v2.11.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten

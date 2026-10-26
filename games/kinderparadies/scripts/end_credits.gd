@@ -13,11 +13,13 @@ var roll: VBoxContainer
 var actions: VBoxContainer
 var done:=false
 var music: AudioStreamPlayer
+var black: ColorRect
+var afterglow: EndingAfterglow
 
 func build(game: Node3D) -> void:
  g=game;name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  music=AudioStreamPlayer.new();music.name="CreditsMusicBox";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(RoomHorror.MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
- var black:=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(black)
+ black=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(black)
  word=g._label("ENDE",128);word.add_theme_font_override("font",g.title_font);word.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;word.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;word.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);word.modulate.a=0;add_child(word)
  roll=VBoxContainer.new();roll.position=Vector2(312,1120);roll.size.x=1296;roll.add_theme_constant_override("separation",22);add_child(roll)
  _line("AFTER PLAY",88);_line("Ein Spiel von",21,Color("b4aa90"));_line(AUTHOR,61)
@@ -43,6 +45,12 @@ func _gap(height: float) -> void:
 func tick(delta: float) -> void:
  clock+=delta
  if done: return
+ if afterglow:
+  afterglow.tick(delta);black.color.a=afterglow.shade_alpha()
+  music.volume_db=-9-51*smoothstep(12.,16.,afterglow.clock)
+  hold=hold+delta if Input.is_action_pressed("jump") and afterglow.clock>2 else 0.0
+  if afterglow.finished or hold>=1.3: _finish_afterglow()
+  return
  word.modulate.a=clampf((clock-.22)/.38,0,1)*clampf((4.0-clock)/.6,0,1)
  if clock<4: return
  if not music.playing: music.play()
@@ -53,12 +61,18 @@ func tick(delta: float) -> void:
  if roll.position.y+roll.size.y< -80 or hold>=1.3: finish_scroll()
 
 func finish_scroll() -> void:
- done=true;roll.hide();word.text="AFTER PLAY";word.modulate.a=1;word.show();word.offset_bottom=-390;actions.show();get_node("SkipHint").hide()
- if music.playing:
-  var fade:=create_tween();fade.tween_property(music,"volume_db",-60,.4);fade.tween_callback(music.stop)
+ if done or afterglow: return
+ roll.hide();word.hide();get_node("SkipHint").hide();hold=0
+ afterglow=EndingAfterglow.new();afterglow.build(g)
+ if not music.playing: music.play()
+
+func _finish_afterglow() -> void:
+ afterglow.dispose();done=true;black.color.a=1;music.stop()
+ word.text="AFTER PLAY";word.modulate.a=1;word.show();word.offset_bottom=-390;actions.show()
 
 func _exit_tree() -> void:
+ if afterglow: afterglow.dispose()
  if is_instance_valid(music): music.stop()
 
 func snapshot() -> Dictionary:
- return {"clock":clock,"stage":"complete" if done else "credits" if clock>=4 else "title" if clock>=.22 else "blackout","end_word":word.text=="ENDE" and word.is_visible_in_tree() and word.modulate.a>.05,"author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db}
+ return {"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=4 else "title" if clock>=.22 else "blackout","end_word":word.text=="ENDE" and word.is_visible_in_tree() and word.modulate.a>.05,"author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"afterglow":afterglow.snapshot() if afterglow else {}}

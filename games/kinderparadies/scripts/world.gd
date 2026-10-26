@@ -35,6 +35,7 @@ var backstage: BackstageExpansion
 var details: AfterPlayDetails
 var passages: PatrolPassage
 var film: CinemaFilm
+var life: HappylandLife
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -145,6 +146,7 @@ func build() -> void:
  for zone in ["Küche","Kino"]: zones[zone]+=ServiceAnnex.OFFSET
  details=AfterPlayDetails.new();add_child(details);details.build(self)
  film=CinemaFilm.new();add_child(film);film.build(self)
+ life=HappylandLife.new();add_child(life);life.build(self)
  FootSurfaces.tag(self)
 
 func _wall_paintings() -> void:
@@ -193,7 +195,10 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-10.2,3.7,13.7),Vector3(.3,7.4,6.8),materials.wall,true)
  box(self,Vector3(-10.2,5.1,9.4),Vector3(.3,4.6,1.8),materials.wall,true)
  box(self,Vector3(-10.2,4.95,-9.9),Vector3(.3,4.9,1.6),materials.wall,true)
- box(self,Vector3(19.8,3.7,2.4),Vector3(.3,7.4,29.4),materials.wall,true)
+ # Genuine WC opening in the east wall; geometry and trim use the same gap.
+ box(self,Vector3(19.8,3.7,-2.7),Vector3(.3,7.4,19.2),materials.wall,true)
+ box(self,Vector3(19.8,3.7,12.9),Vector3(.3,7.4,8.4),materials.wall,true)
+ box(self,Vector3(19.8,4.95,7.8),Vector3(.3,4.9,1.8),materials.wall,true)
  box(self,Vector3(-9.8,3.7,-12.2),Vector3(.8,7.4,.3),materials.wall,true)
  for span in [Vector2(-6.4,-5.15),Vector2(-3.45,-3.0),Vector2(-1.3,6.8)]:
   box(self,Vector3((span.x+span.y)*.5,3.7,-12.2),Vector3(span.y-span.x,7.4,.3),materials.wall,true)
@@ -207,7 +212,7 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-8.0,5.05,17.2),Vector3(2.6,4.7,.3),materials.wall,true)
  box(self,Vector3(4.8,7.4,2.4),Vector3(30,.2,29.4),mat(Color("343a3b")),true)
  for x in [-10.01,19.61]:
-  for strip in ([Vector2(-11.5,1.3),Vector2(-7.675,2.85),Vector2(1.975,13.05),Vector2(13.7,6.8)] if x<0 else [Vector2(2.4,29.1)]):
+  for strip in ([Vector2(-11.5,1.3),Vector2(-7.675,2.85),Vector2(1.975,13.05),Vector2(13.7,6.8)] if x<0 else [Vector2(-2.625,19.05),Vector2(12.825,8.25)]):
    box(self,Vector3(x,.12,strip.x),Vector3(.08,.23,strip.y),materials.dark)
    box(self,Vector3(x,1.1,strip.x),Vector3(.06,.045,strip.y),materials.teal)
  for z in [-10,-5,0,5,10,15]:
@@ -401,7 +406,8 @@ func _details() -> void:
   tube(self,Vector3(-9.85,y,-10.5),Vector3(-9.85,y,-8.7),.018,materials.metal)
   box(self,Vector3(-9.85,y,-9.6),Vector3(.2,.08,.4),materials.dark)
  mounted_sign(self,"duty",Vector3(-5.4,3.4,16.98),Vector2(1.65,.85),PI)
- for i in range(3): box(self,Vector3(18.8,.23,8.4-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
+ # Foam blocks sit beside the wall, clear of the new WC approach.
+ for i in range(3): box(self,Vector3(18.8,.23,6.0-i*.55),Vector3(.5,.45,.5),[materials.blue,materials.red,materials.gold][i],true)
 
 func set_anomaly(id: String) -> void:
  id=PatrolState.REPLACEMENTS.get(id,id)
@@ -440,6 +446,7 @@ func set_anomaly(id: String) -> void:
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
 
 func tick(delta: float, active: bool) -> void:
+ life.tick(delta,active)
  details.tick(delta,active)
  annex.tick(delta,active)
  atmosphere.tick(delta,active)
@@ -460,6 +467,7 @@ func quality(value: int) -> void:
  atmosphere.quality(value)
  if native_art: native_art.quality(value)
  backstage.quality(value)
+ life.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:
