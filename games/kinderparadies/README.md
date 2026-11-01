@@ -1,5 +1,26 @@
 # After Play — Kinderparadies
 
+## Sitz der Clownaugen und Zähne (3.1.1)
+
+Die Augen liegen wieder in den gescannten Lidern statt oberhalb davon.
+Augäpfel, Iris und Pupillen besitzen eine gemeinsame, zurückgesetzte Oberfläche.
+Die kleineren Zahnkronen folgen einem Zahnbogen hinter den Lippen; die untere
+Reihe wird größtenteils von der Unterlippe verdeckt. Individuelle Formen und
+gealterte Schmelzfarben ersetzen die zwei gleichmäßigen, vorstehenden Reihen.
+
+UV-Nähte des Scans werden vor dem Modellieren verschweißt. Augen- und Mundpartien
+werden direkt im dichten Netz geöffnet und ihre Ränder geglättet. Drei geometrische
+Strahlprüfungen stellen beim Erstellen sicher, dass die Öffnungen wirklich frei
+sind. Front-, Seiten- und Spielansichten dienen der visuellen Prüfung.
+Windows und Web verwenden dasselbe korrigierte Modell und die bisherigen Texturen.
+
+Validierung 3.1.1: 120 gezielte native Prüfungen ohne Fehler. Der reale
+Browser-Ablauf für Küche, Kino, Fortsetzen, Pause und den einmaligen Clownangriff
+besteht. Die drei nativen Spielansichten zeigen das finale Modell. Windows- und
+Webpaket bestehen Datei-, Lizenz- und Prüfsummenprüfung; die gepackte Windows-EXE
+startet ohne Skriptfehler oder fehlende Ressourcen. Beide itch-Kanäle bestehen
+den lokalen Probelauf ohne Upload.
+
 ## Clown, Kino und Spiellounge (3.1.0)
 
 Der Kopf des Küchenclowns wird aus dem attribuierten Gesichts-Scan neu aufgebaut.

@@ -4,7 +4,7 @@ func run(game: Node3D,output: String) -> void:
  var author=load("res://art-direction/itch_capture.gd").new()
  game._new_shift();game.intro.skip();game.player.active=false;game.player.set_physics_process(false);game.notice.hide();game.notice_time=0
  game.get_window().content_scale_size=Vector2i(1920,1080);game.get_window().size=Vector2i(1920,1080)
- for view in [
+ var views: Array[Dictionary]=[
   {"id":"01-clown-face","p":Vector3(-13.55,0,-31.1),"look":Vector3(-14.4,1.88,-31.25)},
   {"id":"02-clown-body","p":Vector3(-11.9,0,-29.6),"look":Vector3(-14.4,1.3,-31.25)},
   {"id":"03-cinema","p":Vector3(-5.35,0,-29.5),"look":Vector3(2.8,1.5,-30.4)},
@@ -12,7 +12,13 @@ func run(game: Node3D,output: String) -> void:
   {"id":"05-arcade","p":Vector3(8.0,0,13.8),"look":Vector3(8.4,1.65,16.4)},
   {"id":"06-croc-clearance","p":Vector3(17.8,0,14.2),"look":Vector3(12.4,1.9,10.4)},
   {"id":"07-hall","p":Vector3(-5.0,0,15.0),"look":Vector3(9.0,3.2,7.5)},
-  {"id":"08-extinguisher","p":Vector3(-8.9,0,-7.2),"look":Vector3(-9.89,1.16,-7.5)}]:
+  {"id":"08-extinguisher","p":Vector3(-8.9,0,-7.2),"look":Vector3(-9.89,1.16,-7.5)}]
+ if "--clown-fit-qa" in OS.get_cmdline_user_args():
+  views=[
+   {"id":"01-face-front","p":Vector3(-13.85,.23,-31.25),"look":Vector3(-14.4,1.88,-31.25)},
+   {"id":"02-face-angle","p":Vector3(-13.75,.23,-30.9),"look":Vector3(-14.4,1.88,-31.25)},
+   {"id":"03-clown-in-game","p":Vector3(-11.9,0,-29.6),"look":Vector3(-14.4,1.3,-31.25)}]
+ for view in views:
   author.pose(game,view.p,view.look);await author.settle(game);author.save(game,output,view.id)
  var bounds:=AABB();var first:=true
  for mesh in game.world.playground.croc_visual.find_children("*","MeshInstance3D",true,false):
