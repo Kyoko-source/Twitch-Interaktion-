@@ -26,7 +26,10 @@ gegeneinander; ein absichtlich nachgestellter Überlappungsfehler muss anschlage
 Private Werkzeuge: tools/prepare-after-play-v330-audio.py,
 --self-test --arrival-only, --render-qa --v330-qa.
 
-Validierung 3.3.0: 22 gezielte native Prüfungen für Eingang, Glastür,
+Validierung 3.3.0: Der vollständige native Spieltest besteht 2.096 Prüfungen
+ohne Fehler, einschließlich aller Anomalien, beider nummerierter Enden und des
+zusätzlichen geheimen Ausgangs. Der Balancetest simuliert 2.048 Schichten.
+22 gezielte native Prüfungen für Eingang, Glastür,
 Speicherpositionen und das dritte Ende bestehen. Die 111 Grafik-/Akustikprüfungen
 und 55 bisherigen Bühnen-/Eingangsprüfungen bestehen ebenfalls. Vier echte
 Browser-Abläufe prüfen den geheimen Ausgang mit Credits/Fortsetzen, den gesamten

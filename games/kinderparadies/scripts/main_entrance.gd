@@ -61,4 +61,3 @@ static func build(b: Node3D) -> void:
   w.tube(root,Vector3(x,.03,-6.55),Vector3(x,.82,-6.55),.06,w.materials.metal)
   w.tube(root,Vector3(x,.58,-6.55),Vector3(x,.65,-6.55),.064,w.materials.gold)
  w.box(root,Vector3(0,2.96,-6.25),Vector3(.65,.026,.25),w.materials.cream)
-
