@@ -24,7 +24,7 @@ func build(world: PlayWorld) -> void:
   m.normal_enabled=true;m.normal_texture=w.atmosphere.micro_normal;m.normal_scale=.18
  _reception();_lost_property();_arcade();_party();_kitchen();_cinema();_maintenance();_service_hall()
  hum=AudioStreamPlayer3D.new();hum.name="ArcadeIdleHum";hum.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
- var loop: AudioStreamOggVorbis=load("res://assets/ambience/ventilation.ogg").duplicate();loop.loop=true;hum.stream=loop;hum.position=Vector3(8.5,1,16.2)
+ var loop: AudioStreamOggVorbis=load("res://assets/ambience/ventilation.ogg").duplicate();loop.loop=true;hum.stream=loop;hum.position=Vector3(7.5,1,16.2)
  hum.volume_db=-38;hum.max_distance=3;hum.unit_size=.7;hum.bus="Interior" if w.native_art else "Master";add_child(hum)
  for group in clusters:
   for shape in group.find_children("*","CollisionShape3D",true,false):
@@ -113,9 +113,9 @@ func _jacket(parent: Node3D, pos: Vector3) -> void:
  w.tube(root,Vector3(0,-.07,.08),Vector3(0,-.62,.08),.005,steel)
 
 func _arcade() -> void:
- _cabinet(Vector3(7.5,.016,16.50),PI,"arcade",w.materials.teal)
- _cabinet(Vector3(9.0,.016,16.50),PI,"orbit",w.materials.red)
- var prize:=cluster(self,"ArcadePrizeCabinet",Vector3(11.0,.016,16.50),PI)
+ _cabinet(Vector3(6.0,.016,16.50),PI,"arcade",w.materials.teal)
+ _cabinet(Vector3(7.5,.016,16.50),PI,"orbit",w.materials.red)
+ var prize:=cluster(self,"ArcadePrizeCabinet",Vector3(9.5,.016,16.50),PI)
  w.box(prize,Vector3(0,.36,0),Vector3(1.22,.72,.79),w.materials.gold,true)
  w.box(prize,Vector3(0,1.42,-.34),Vector3(1.22,1.38,.10),steel,true)
  for side in [-1,1]:

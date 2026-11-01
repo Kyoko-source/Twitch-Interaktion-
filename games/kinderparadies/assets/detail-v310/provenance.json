@@ -1,0 +1,7 @@
+{
+  "tool": "built-in image_gen",
+  "prompt": "Convert the supplied purple tangent-space normal map to a realistic diffuse albedo UV texture for the identical scanned adult male head, keeping the flattened UV layout and anatomical positions exactly unchanged. Texture creation for a 3D theater character. Ivory theatrical clown greasepaint on realistically aged male skin, fine pores, stubble, wrinkles, uneven thin flaking makeup, dark charcoal smudged eye makeup around the closed eyelids, faded burgundy lipstick. Somber eerie stage makeup, grounded physical materials, neutral diffuse flat lighting. NO blood, NO injuries, NO wounds, NO violence. NO portrait, no lighting or cast shadows, no background, no text, no objects. Square edge-to-edge flattened head UV texture: ears left and right, eyes at 40% and 58% horizontally and 33% vertically, nose center at 40% vertically, lips center at 48%, neck in the lower third. Preserve all feature placement from the reference, no blue or purple normal map colors. This is a game texture, not an illustration.",
+  "generated_source": "01a13ead-15b6-78f1-bc15-d0fb38b4edf7/exec-736e2359-b14b-4d07-84af-9bd892a2d958.png",
+  "normal_source": "Lee Perry-Smith scan; existing Head-Attribution.txt retained",
+  "geometry": "Original head derivative by tools/model-after-play-v310.py; source facial UV origin corrected."
+}

@@ -1,5 +1,55 @@
 # After Play — Kinderparadies
 
+## Clown, Kino und Spiellounge (3.1.0)
+
+Der Kopf des Küchenclowns wird aus dem attribuierten Gesichts-Scan neu aufgebaut.
+Die bisherige grobe Vertex-Bemalung wurde durch eine fotografisch wirkende Haut-
+und Schminktextur ersetzt. Die UV-Ausrichtung ist korrigiert; echte Öffnungen,
+zurückgesetzte dunkle Augen, einzelne kleinere Zähne und spärliche Haarsträhnen
+gehören zum Modell. Verschiedene Blutreste wirken über Farbe, Glanz und Rauheit.
+Die Schürze zeigt gealtertes Leinen statt des großen roten Karomusters.
+Das gemeinsame Modell und seine Texturen werden auch im Browser verwendet.
+
+Im Kino sitzen 48 Getränkehalter an den Armlehnen, mit zurückgelassenen Bechern,
+Sitznummern und Taschen auf den Rückenlehnen. Hinzu kommen eine gerahmte Erinnerung
+an die letzte Vorstellung, Lautsprechergitter, gefasste niedrige Leuchten,
+Filmdosen, Projektoroptik und Bedienelemente, ein Abfalleimer sowie örtliche
+Ansammlungen von Eintrittskarten, Verpackungen und Popcorn. Laufkorridor und
+Zeitung werden durch diese Teile nicht belegt.
+
+Die Automaten stehen in einem zusammenhängenden Bereich außerhalb der
+Krabbelröhre, mit Jetonwechsler, Bodenbelag, befestigtem Baldachin und alter
+Beschriftung. Der Saal erhält Deckenlüftung mit Aufhängungen, eine alte Messlatte,
+vergessene Taschen und kleine Bodenreste. Die frühere Reihe einfacher Pfosten
+entfällt. Der Baustrahler besitzt jetzt einen Standfuß, Gehäuse und Schutzgitter.
+Der Feuerlöscher erhält Halterung, Ventil, Griffe, Druckanzeige, Schlauch und Etikett.
+
+Das Krokodil wird auf 72 Prozent verkleinert und auf z=11,6 versetzt. Die tatsächliche
+sichtbare Ausdehnung liegt nun bei x=8,764–16,972 und z=9,303–13,897. Das Gerüst endet
+vor diesem Bereich; der Weg zum Fotoautomaten bleibt frei. Schlauch, Gebläse und
+Geräuschquelle folgen demselben Attraktionsknoten und dem tatsächlich modellierten
+Einlass. Die Sprungfläche bleibt funktionsfähig. Alte Speicherpositionen werden
+auch gegen den neuen Jetonwechsler geprüft.
+
+120 gezielte Prüfungen kontrollieren Ausstattung, Geometriegrenzen, sichtbare
+Kollisionen, Gesichtsmaterialien und Durchgänge. Die normale Atmosphäre bleibt
+in jeder Runde identisch und ändert die Anomalieentscheidung nicht.
+Die Textur wurde mit dem eingebauten image_gen-Werkzeug erstellt:
+assets/detail-v310/clown-skin-albedo.png. Der genaue verwendete Prompt und die
+Quelle der Normal Map stehen privat in assets/detail-v310/provenance.json.
+Die bestehende Lee-Perry-Smith-Attribution bleibt im Spielerpaket erhalten.
+
+Validierung 3.1.0: Der vollständige Durchlauf mit 1.962 Prüfungen fand eine
+Messlatte im Schwenkbereich der geöffneten Liefertür. Nach dem Versetzen bestehen
+237 gezielte native Prüfungen ohne Fehler, einschließlich geöffneter Türen,
+Kollisionen, Kinogeräten und beider Enden. Sieben Browser-Abläufe bestanden vor
+dieser letzten Wandkorrektur; danach wurden Bühnenzugang, Automatenbereich und
+der falsche Ausgang erneut erfolgreich geprüft. Eine zu kurze Wartefrist im
+Browser-Test wurde an die bereits verwendete Fahrstuhlfrist angepasst.
+Echte Forward+-Spielaufnahmen wurden visuell geprüft. Die Windows- und
+Browserpakete bestehen Datei-, Prüfsummen- und Lizenzkontrollen; die gepackte
+Windows-EXE startet ohne fehlende Ressourcen oder Skriptfehler.
+
 ## Klang, Materialien und räumlicher Ausbau (3.0.0)
 
 Die Schreckeffekte stammen jetzt aus zehn eigenständigen Kreaturenaufnahmen
@@ -239,7 +289,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v3.0.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v3.1.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten

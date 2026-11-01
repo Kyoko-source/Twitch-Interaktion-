@@ -32,7 +32,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(details.screens.size()==2 and details.clusters.size()>=17,"Detailed arcade and room groups failed to build")
  verify.call(not details.clear_pose(Vector3(7.5,0,16.4)),"Old saves can spawn inside a new arcade cabinet")
  verify.call(details.clear_pose(Vector3(-6.2,0,8.5)) and details.clear_pose(Vector3(-8,0,19.35)),"Safe patrol/elevator saves are rejected")
- for x in [7.5,9.0,11.0]:
+ for x in [6.0,7.5,9.5]:
   var ray:=PhysicsRayQueryParameters3D.create(Vector3(x,1.2,14.5),Vector3(x,1.2,16.8),1)
   verify.call(not game.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(),"Arcade cabinet/glass has no collision at "+str(x))
  var crate: Node3D=game.world.annex.find_child("KitchenProduceCrate",true,false)

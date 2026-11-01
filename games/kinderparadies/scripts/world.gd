@@ -39,6 +39,7 @@ var life: HappylandLife
 var watch: ReceptionWatch
 var pit_physics: BallPitPhysics
 var revamp: RevampWorld
+var venue: VenueDetails
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -151,6 +152,7 @@ func build() -> void:
  film=CinemaFilm.new();add_child(film);film.build(self)
  life=HappylandLife.new();add_child(life);life.build(self)
  revamp=RevampWorld.new();add_child(revamp);revamp.build(self)
+ venue=VenueDetails.new();add_child(venue);venue.build(self)
  annex.finish_interaction_geometry()
  watch=ReceptionWatch.new();add_child(watch);watch.build(self)
  pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
@@ -373,7 +375,7 @@ func _party_room() -> void:
 func _service() -> void:
  props.mural=painting(self,0,Vector3(-9.96,2.2,-2.3),Vector2(3.8,2.55),PI/2)
  var extinguisher:=group("extinguisher");extinguisher.position=Vector3(-9.89,.85,-7.5)
- tube(extinguisher,Vector3(0,0,0),Vector3(0,.5,0),.11,materials.red);tube(extinguisher,Vector3(0,.5,0),Vector3(.13,.5,0),.025,materials.dark)
+ VenueDetails.extinguisher(self,extinguisher)
  var stars:=group("stars")
  for i in range(7):
   var mesh:=MeshInstance3D.new();var points:=PackedVector3Array();var angles:=[]

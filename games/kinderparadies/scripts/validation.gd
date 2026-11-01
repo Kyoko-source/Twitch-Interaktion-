@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--venue-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/venue_validation.gd").new().run(game,check)
+  print("Venue checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--revamp-only" in OS.get_cmdline_user_args():
   await load("res://scripts/revamp_validation.gd").new().run(game,check)
   print("Revamp checks: ",checks,"; failures: ",failures.size())
@@ -223,9 +227,9 @@ func run(game: Node3D) -> bool:
  var desk: MeshInstance3D=game.world.props.counter_top
  check(desk.get_aabb().size.x<1.1 and desk.get_aabb().size.z<3.1,"Reception desk is oversized")
  check(game.world.props.structure.scale.y>1.2,"Main climbing frame was not enlarged")
- game.player.position=Vector3(10.0,1.2,11.3);game.player.velocity=Vector3.ZERO;game.player.active=true
+ game.player.position=game.world.props.inflatable.to_global(Vector3(0,1.8,1.5));game.player.velocity=Vector3.ZERO;game.player.active=true
  for frame in range(30): await game.get_tree().physics_frame
- check(game.player.is_on_floor() and game.player.position.y>.65,"Inflatable bed collision is not walkable")
+ check(game.player.is_on_floor() and game.player.position.y>game.world.props.inflatable.to_global(Vector3(0,.72,1.5)).y,"Inflatable bed collision is not walkable")
  check(game.player.bounce_speed>7.5,"Inflatable bed did not provide spring jump")
  jump.pressed=true;Input.parse_input_event(jump);var bounce_peak: float=game.player.position.y
  for frame in range(70):
@@ -438,8 +442,9 @@ func run(game: Node3D) -> bool:
  for mesh in sculpt.find_children("*","MeshInstance3D",true,false)+([sculpt] if sculpt is MeshInstance3D else []):
   head_faces+=mesh.mesh.get_faces().size()
   for surface in range(mesh.mesh.get_surface_count()):
-   var material:=mesh.get_active_material(surface) as StandardMaterial3D
-   check(material!=null and material.albedo_texture==null,"Clown head still uses a portrait texture")
+   var material: Material=mesh.get_active_material(surface)
+   check(mesh.mesh is ArrayMesh and mesh.get_aabb().size.z>.001,"Clown facial detail is a flat portrait plane")
+   check(material is StandardMaterial3D or (material is ShaderMaterial and material.shader.resource_path.ends_with("clown_skin.gdshader")),"Clown has an unexpected face material")
  check(head_faces>20000,"Clown head lacks real sculpted geometry")
  await PassageChecks.travel(game,false)
  check(game.phase=="play" and game.state.rounds==1,"Correct lift did not return automatically")
@@ -501,6 +506,7 @@ func run(game: Node3D) -> bool:
  var stored_settings: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SETTINGS))
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
+ await load("res://scripts/venue_validation.gd").new().run(game,check)
  await load("res://scripts/revamp_validation.gd").new().run(game,check)
  await load("res://scripts/balance_validation.gd").new().run(game,check)
  await load("res://scripts/archive_validation.gd").new().run(game,check)

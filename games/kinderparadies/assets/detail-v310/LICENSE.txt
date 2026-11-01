@@ -1,0 +1,6 @@
+After Play 3.1: original venue dressing, materials and model derivatives.
+Clown anatomical base and normal map: Lee Perry-Smith, CC BY 3.0.
+Existing complete attribution: assets/props/Head-Attribution.txt.
+Albedo: AI-generated theatrical skin texture using the built-in image tool.
+Its authoring prompt is retained privately in provenance.json.
+Blood texture and textile materials retain their existing project notices.

@@ -124,7 +124,7 @@ test('v2.7 stage ramp and backstage are walkable both ways; E reads maintenance 
 });
 
 test('v2.7 false exit changes once, pauses and preserves the decayed corridor and return path after reload',async({page})=>{
- test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');
  await qa(page,{op:'anomaly',id:'false_exit'});await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:-.20});await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_started).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(true);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');const paused=(await state(page)).backstage.exit_clock;await page.waitForTimeout(500);expect((await state(page)).backstage.exit_clock).toBe(paused);

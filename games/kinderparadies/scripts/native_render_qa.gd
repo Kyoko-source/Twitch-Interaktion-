@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v310-qa" in OS.get_cmdline_user_args():
+  await load("res://art-direction/v310_capture.gd").new().run(game,output);game._quit();return
  if "--v300-actors" in OS.get_cmdline_user_args():
   await load("res://art-direction/v300_capture.gd").new().actors(game,output);game._quit();return
  if "--v300-qa" in OS.get_cmdline_user_args():

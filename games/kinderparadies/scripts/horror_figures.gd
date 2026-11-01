@@ -30,7 +30,7 @@ static func bone(parent: Node3D, radius: float, material: Material) -> MeshInsta
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load("res://assets/props/kitchen-clown-v4.glb" if OS.has_feature("web") else "res://assets/revamp-v300/kitchen-clown-v300.glb")
+ var scene: PackedScene=load("res://assets/detail-v310/clown-v310.glb")
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
@@ -38,8 +38,11 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for surface in range(mesh.mesh.get_surface_count()):
    var material:=mesh.get_active_material(surface) as StandardMaterial3D
-   if material and material.resource_name=="Cracked greasepaint and blood" and not material.normal_texture:
-    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.17;material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*12
+   if material and material.resource_name=="Photographic clown complexion":
+    var skin:=ShaderMaterial.new();skin.shader=load("res://assets/detail-v310/clown_skin.gdshader")
+    skin.set_shader_parameter("skin",load("res://assets/detail-v310/clown-skin-albedo.png"));skin.set_shader_parameter("pores",load("res://assets/detail-v310/clown-normal.jpg"));skin.set_shader_parameter("residue",load("res://assets/presentation-v250/blood-texture.png"));mesh.set_surface_override_material(surface,skin)
+   if material and material.resource_name=="Cracked greasepaint and blood":
+    var neck:=w.mat(Color("79614e"),null,.78);neck.normal_enabled=true;neck.normal_texture=w.atmosphere.micro_normal;neck.normal_scale=.18;mesh.set_surface_override_material(surface,neck)
    if material and material.resource_name in ["Blood stained woven costume","Dirty pleated linen"]:
     var cloth:=ShaderMaterial.new();cloth.shader=load(ScareBank.ROOT+"soaked_cloth.gdshader")
     cloth.set_shader_parameter("textile",load("res://assets/pbr/fabric_pattern_07/albedo.jpg"));cloth.set_shader_parameter("fibres",load("res://assets/pbr/fabric_pattern_07/normal.jpg"))

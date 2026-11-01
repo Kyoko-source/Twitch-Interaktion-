@@ -79,7 +79,7 @@ func strand(transforms: Array[Transform3D], a: Vector3, b: Vector3) -> void:
  transforms.append(Transform3D(Basis(Quaternion(Vector3.UP,difference.normalized()))*Basis.from_scale(Vector3(1,difference.length(),1)),(a+b)*.5))
 
 func _crocodile() -> void:
- inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,10.0);inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
+ inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,11.6);inflatable.scale=Vector3.ONE*.72;inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
  inflatable_skin=Node3D.new();inflatable.add_child(inflatable_skin);w.props.inflatable_skin=inflatable_skin
  # Both renderers use the authored mesh, UV skin and outward-facing normals.
  # The old Web approximation had no upper jaw and coplanar eye decorations.
@@ -108,16 +108,19 @@ func _crocodile() -> void:
  for i in range(3): w.box(inflatable,Vector3(-2.65+i*.28,.1+i*.13,-1.4),Vector3(.32,.2+i*.26,1.4),w.materials.gold,true)
  # Branding belongs on a worn safety plaque, not floating across its mouth.
  w.mounted_sign(inflatable,"croc",Vector3(-2.45,.34,3.2),Vector2(.65,.35))
- w.tube(self,Vector3(16.1,.4,12.8),Vector3(17.2,.4,12.8),.19,w.materials.dark)
- w.box(self,Vector3(17.5,.35,12.8),Vector3(.65,.7,.65),w.materials.gold,true)
- w.mounted_sign(self,"blower",Vector3(17.5,.55,13.18),Vector2(.54,.28))
- fan=AudioStreamPlayer3D.new();var stream: AudioStreamWAV=load("res://assets/fan.wav");stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);fan.stream=stream;fan.position=Vector3(17.5,.5,12.8);fan.volume_db=-25;fan.max_distance=18;fan.unit_size=3;add_child(fan)
+ # The hose runs to the actual inlet and blower, all in attraction-local space.
+ var blower:=Node3D.new();blower.name="ConnectedInflationBlower";blower.position=Vector3(1.45,.02,-5.1);inflatable.add_child(blower)
+ var hose:=PackedVector3Array([Vector3(1.45,.4,-3.80),Vector3(1.45,.35,-4.05),Vector3(1.45,.30,-4.40),Vector3(1.45,.30,-4.88)])
+ for i in range(hose.size()-1): w.tube(inflatable,hose[i],hose[i+1],.12,w.materials.dark)
+ for i in range(9):
+  var t:=i/8.;var point:=hose[0].lerp(hose[1],t);w.tube(inflatable,point,point+Vector3(0,0,-.012),.128,w.materials.metal)
+ w.box(blower,Vector3(0,.26,0),Vector3(.51,.52,.43),w.materials.gold,true)
+ for i in range(7):w.box(blower,Vector3(-.256,.1+i*.047,0),Vector3(.012,.014,.30),w.materials.dark)
+ for side in [-1,1]:w.tube(blower,Vector3(side*.17,.01,-.12),Vector3(side*.17,.06,-.12),.025,w.materials.dark)
+ w.mounted_sign(blower,"blower",Vector3(0,.28,-.223),Vector2(.35,.18),PI)
+ fan=AudioStreamPlayer3D.new();var stream: AudioStreamWAV=load("res://assets/fan.wav");stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);fan.stream=stream;fan.position=blower.global_position;fan.volume_db=-25;fan.max_distance=18;fan.unit_size=3;add_child(fan)
  w.lamp(Vector3(12.4,5.8,12.5),Color("a6b49a"),1.0,12)
- # A floor inspection light rakes the snout and reveals the material wear.
- var worklight:=Node3D.new();worklight.position=Vector3(5.7,0,14.8);add_child(worklight)
- for side in [-1,1]: w.tube(worklight,Vector3(side*.3,.02,.18),Vector3(0,.9,0),.025,w.materials.metal)
- w.box(worklight,Vector3(0,.95,0),Vector3(.35,.24,.14),w.materials.dark)
- w.lamp(Vector3(5.8,1.15,14.65),Color("b9c8af"),.8,8)
+ VenueDetails.work_light(w,self)
 
 func set_croc_jaw(angle: float) -> void:
  croc_jaw.rotation=jaw_rest+Vector3(angle,0,0)
@@ -185,11 +188,6 @@ func _hall_dressing() -> void:
  for i in range(8):
   var x:=-2.3+i*.55;var pad:=w.box(dressing,Vector3(x,.08,13.3),Vector3(.5,.14,1.3),[w.materials.red,w.materials.blue,w.materials.gold][i%3],true)
   pad.rotation.y=sin(i)*.1
- for i in range(6):
-  var x:=4.7+i*.29
-  w.tube(dressing,Vector3(x,.05,16.25),Vector3(x,1.3,16.25),.055,w.materials.gold)
-  w.sphere(dressing,Vector3(x,1.3,16.25),.1,w.materials.red)
- w.mounted_sign(dressing,"pickup",Vector3(4.9,3.4,16.97),Vector2(2.1,.8),PI)
  for i in range(6):
   var z:=.5+i*2.8
   if z>5 and z<10: continue # Keep the east-wall WC opening clear.
