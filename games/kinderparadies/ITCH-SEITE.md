@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 3.3.0
+# After Play — Veröffentlichungsvorbereitung 3.4.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v3.3.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v3.3.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v3.4.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v3.4.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -26,7 +26,10 @@ Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland.
 - Ego-Horror mit frei begehbarer 3D-Umgebung, Springen, Krabbeln und physischen Spielzeugen.
 - 64 zufällige Anomalien, kurze Verfolgungen und Schreckmomente.
 - Zehn Klangfamilien mit 30 Schreckeffekten und räumlichen Vorzeichen.
-- Ausgebautes Kino mit Sitzdetails und Projektor, eine eingerichtete Spiellounge und eine verlassene Küche.
+- Kino mit Musterteppich, Samtvorhang am Eingang, beleuchtetem Vorstellungskasten, Kartenkontrolle und einem gemeinsamen Bühnenrahmen.
+- Verschlissener Gummiboden am Klettergerüst, lokale Fettspuren auf Küchenfliesen und flache Materialübergänge.
+- Abgenutzte Küchenfronten, unterschiedliche Ersatzgriffe und polierte Arbeitsflächen.
+- Lichtinseln am Geburtstagstisch, Projektor und Ausgang; zurückgesetzte Schaukästen und platzierte Alltagsspuren.
 - Gealterte Materialien, ein neu aufgebautes Clowngesicht und unterschiedliche Besucherformen.
 - Eine verlassene Geburtstagsbühne, ein begehbarer Kostümraum und lesbare Wartungsberichte.
 - Persönliche Nachtdienst-Ausrüstung und unterschiedliche Lichtstimmungen pro Raum.

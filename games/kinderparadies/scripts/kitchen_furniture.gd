@@ -2,7 +2,7 @@ class_name KitchenFurniture
 extends RefCounted
 
 static func build(w: PlayWorld, parent: Node3D) -> void:
- var kit: Node3D=(load("res://assets/kitchen-v260/industrial-kitchen.glb") as PackedScene).instantiate();kit.name="ManufacturedKitchen";parent.add_child(kit)
+ var kit: Node3D=(load("res://assets/craft-v340/industrial-kitchen.glb") as PackedScene).instantiate();kit.name="ManufacturedKitchen";parent.add_child(kit)
  for mesh in kit.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var material:=mesh.get_active_material(i) as StandardMaterial3D

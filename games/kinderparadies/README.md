@@ -1,5 +1,51 @@
 # After Play — Kinderparadies
 
+## Materialien, Kinofassade und Lichtinseln (3.4.0)
+
+Drei eigens geschriebene Bodenoberflächen unterscheiden abgetretenen
+Kino-Musterteppich mit Randborte, lokal fettige Küchenfliesen und eine eingepasste
+Gummifläche am Klettergerüst. Alle verwenden vorhandene Texturquellen und neue
+prozedurale Abnutzung. Dünne Schwellen und Randprofile sind rein visuelle
+Oberflächen ohne zusätzliche Stolperkollisionen. Die Schrittzuordnung folgt
+auch der neuen Gummifläche; die physischen Grundböden behalten ihre Höhe.
+
+Der Kinoeingang erhält zwei zurückgezogene Samtvorhänge und eine befestigte
+Blende. Das bestehende Plakat wird zum beleuchteten, zurückgesetzten Programm-
+kasten umgebaut; darunter steht eine schmale Kartenkontrolle mit Eintrittskarten
+und Entwerter. Ein gemeinsamer Bühnenrahmen fasst Leinwand und genähte Vorhänge
+ein. Doppelte Vorhanggeometrie entfällt, die Lautsprecher sind auf die Zuschauer
+ausgerichtet und mit dem Rahmen verbunden. Sitzgänge, Projektorbedienung und
+Zeitungsfund bleiben frei.
+
+Das vorhandene Küchenmodell wird mit den gleichen Außenmaßen neu gebaut.
+Seine alten Schrankgriffe werden tatsächlich entfernt, die Türfronten und
+Arbeitsflächen erhalten getrennte Materialien. Fünf unterschiedliche Ersatz-
+griffe, beschädigte Unterkanten, örtliche Feuchte, poliertes Metall und Fett an
+der Haube ergänzen es. Der alte Küchenexport bleibt eine private Quelldatei
+und wird nicht zusätzlich in die Spielerpakete gepackt.
+
+Eine warme, gezielte Geburtstagsbeleuchtung, kaltes Projektorlicht und schwaches
+Grün im Haupteingang ersetzen breite Lichtfüllung. Die neuen Leuchten beachten
+Qualitätsstufen, rote Beleuchtung und die Dunkel-Anomalie des Partyraums.
+Eingefasste Schaukästen und wandgebundene Stützen schaffen räumliche Tiefe.
+Frühere zufällig verstreute Kinoreste werden durch kleine Ansammlungen unter
+Sitzen und neben dem Abfall ersetzt. Diese Ausstattung ist normaler Raumzustand.
+
+Private Werkzeuge: tools/model-after-play-kitchen-v340.py,
+--self-test --craft-only und --render-qa --v340-qa.
+
+Validiert mit 83 gezielten nativen Prüfungen, vier betroffenen Browserabläufen
+(Böden und Übergänge, Kinozeitung samt Fortsetzen, Küchenbegegnung, Sitzgänge)
+und dem normalen Web-Spielerstart mit echten Maus-/Tastatureingaben. Nach der
+Korrektur der Kartenkontrolle wurden ihr Laufweg und der echte Start-Kollisions-
+körper des Besuchers erneut geprüft. Desktop und mobile Download-Seite wurden
+visuell kontrolliert; Browser plugin not available, daher Edge/Playwright.
+Windows- und Webpakete bestehen Datei-, Hash-, Lizenz- und Datenschutzgrenzen;
+die exportierte Windows-EXE startet ohne Ressourcen- oder Skriptfehler. Zehn
+aktuelle Windows-Ansichten in 1920×1080 liegen unter build/v340-views.
+Die vollständige native Suite besteht 2.179 Prüfungen ohne Fehler, einschließlich
+aller Begegnungs-Startkollisionen, Sichtlinien, Rundenwechsel und Endabläufe.
+
 ## Haupteingang, Garderobe und Verbindungsgang (3.3.0)
 
 Der ehemalige Lieferflur ist jetzt der alte Haupteingang. Ein offener Bogen

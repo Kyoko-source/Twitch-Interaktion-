@@ -43,6 +43,7 @@ var venue: VenueDetails
 var graphics: AfterPlayGraphics
 var acoustics: HappylandAcoustics
 var arrival_design: ArrivalDesign
+var craft: VenueCraft
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -162,6 +163,7 @@ func build() -> void:
  FootSurfaces.tag(self)
  graphics=AfterPlayGraphics.new();add_child(graphics);graphics.build(self)
  arrival_design=ArrivalDesign.new();add_child(arrival_design);arrival_design.build(self)
+ craft=VenueCraft.new();add_child(craft);craft.build(self)
  acoustics=HappylandAcoustics.new();add_child(acoustics);acoustics.build(self)
 
 func _wall_paintings() -> void:
@@ -438,6 +440,7 @@ func set_anomaly(id: String) -> void:
  encounters.configure(id)
  terrors.configure(id)
  backstage.configure(id)
+ craft.configure(id)
  if native_art: native_art.anomaly(id)
  # Fresh world per round means every normal state starts from the exact same layout.
  if id=="chair_ceiling":
@@ -489,6 +492,7 @@ func quality(value: int) -> void:
  life.quality(value)
  graphics.quality(value)
  arrival_design.quality(value)
+ craft.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:

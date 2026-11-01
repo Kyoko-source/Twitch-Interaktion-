@@ -80,10 +80,8 @@ func _kitchen() -> void:
   for i in range(6):
    var jar:=SurfaceDetails.vessel(root,Vector3(-14.28+i*.34,y+.018,-13.56),.19,.08,.075,.007,enamel,w.materials.dark,"DustyKitchenJar");details+=1
    part(jar,Vector3(0,.20,0),Vector3(.15,.02,.15),steel)
- # Local, irregular wall-side damp stays outside the stove paper's interaction.
- var damp:=w.mat(Color(.11,.16,.13,.5),null,.11);damp.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
- for i in range(3):
-  var puddle:=w.sphere(root,Vector3(-16.1+i*.22,.021,-17.3),.26,damp);puddle.scale=Vector3(1,.006,.65);details+=1
+ # Damp is shaded into the fitted tile finish by VenueCraft, without overlapping
+ # transparent solids casting circular shadows through the kitchen floor.
  if w.native_art:
   var pantry:=w.native_art.model(root,"painted_wooden_cabinet_02",Vector3(-10.85,.012,-14.03),1.55,PI)
   pantry.name="ScannedKitchenPantry"

@@ -6,7 +6,8 @@ test.skip(!URL,'Set NACHTWACHE_QA_URL to the isolated local Godot QA export.');
 if(URL&&!['127.0.0.1','localhost'].includes(new globalThis.URL(URL).hostname))throw new Error('Godot QA must be local.');
 test.use({viewport:{width:1920,height:1080},launchOptions:{args:['--enable-unsafe-swiftshader']}});
 const state=page=>page.evaluate(()=>{window.nachtwacheQA?.(JSON.stringify({op:'state'}));return window.nachtwacheStatus;});
-async function skipIntro(page){await expect.poll(async()=>(await state(page)).phase).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
+// A QA new-shift command rebuilds the actual room before publishing its intro state.
+async function skipIntro(page){await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
 async function qa(page,command){await page.evaluate(command=>window.nachtwacheQA(JSON.stringify(command)),command);if(command.op==='new')await skipIntro(page);}
 async function clickControl(page,text){const control=(await state(page)).controls.find(c=>c.text===text);expect(control).toBeTruthy();const [x,y,w,h]=control.rect;await page.mouse.move(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.mouse.click(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
 async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu'&&typeof window.nachtwacheQA==='function',{timeout:45000});const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);expect(exported.presentation.logical_size).toEqual([1920,1080]);}
@@ -21,6 +22,25 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // QA teleports expose cold materials immediately; allow first-use shader compilation
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
+
+test('v3.4 fitted floors, cinema facade and repairs preserve physical room access and floor sounds',async({page})=>{
+ test.setTimeout(240000);await begin(page);
+ const craft=(await state(page)).craft;
+ expect(craft.floor_finishes).toBe(3);expect(craft.handles).toBe(5);expect(craft.worn_surfaces).toBe(2);expect(craft.ticket_desk).toBe(true);expect(craft.litter_clusters).toBe(5);
+ for(const sample of [{x:-2.15,z:-3.7,yaw:0,floor:'rubber'},{x:-5.3,z:-29.65,yaw:0,floor:'carpet'},{x:-11.8,z:-29.65,yaw:Math.PI/2,floor:'concrete'}]){
+  await qa(page,{op:'warp',...sample});await expect.poll(async()=>(await state(page)).polish.floor).toBe(sample.floor);
+  const before=(await state(page)).polish.steps;await walk(page,'w',s=>s.polish.steps>before);
+  expect((await state(page)).polish.last_surface).toBe(sample.floor);
+ }
+ for(const x of [-9.4,-6.4]){
+  await qa(page,{op:'warp',x:x-1.1,z:-29.3,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>x+.9);await walk(page,'s',s=>s.position[0]<x-.9);
+  expect(Math.abs((await state(page)).position[1])).toBeLessThan(.06);
+ }
+ await qa(page,{op:'warp',x:-5.3,z:-30.8,yaw:0,pitch:0});await walk(page,'w',s=>s.position[2]<-33.3);await walk(page,'s',s=>s.position[2]>-30.8);
+ await qa(page,{op:'audit'});const layout=(await state(page)).layout;
+ expect(layout.door_obstructions).toEqual([]);expect(layout.art_overlaps).toEqual([]);expect(layout.furniture_wall_intrusions).toEqual([]);
+ await page.screenshot({path:join(tmpdir(),'after-play-v340-web-cinema.png')});
+});
 
 
 test('v3.3 continue preserves a clear foyer pose and rejects an old save inside the new bench',async({page})=>{
@@ -118,7 +138,7 @@ test('v3.0 has distinct scare voices without immediate repeats and a fitted kitc
 });
 
 test('round 5 cinema newspaper can be collected with E from the aisle and stays in the saved inventory',async({page})=>{
- test.setTimeout(150000);await begin(page);
+ test.setTimeout(240000);await begin(page);
  for(let i=0;i<4;i++){
   await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  }

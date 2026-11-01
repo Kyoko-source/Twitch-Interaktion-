@@ -153,7 +153,7 @@ void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(flo
  for i in range(18):
   var x:=-5.7+fmod(i*2.17,8.2);var z:=-21.7+fmod(i*3.14,7.6)
   if absf(z+17.65)<.8: continue
-  var paper:=w.box(self,Vector3(x,.036,z),Vector3(.2,.008,.28),w.materials.paper);paper.rotation.y=i*.7
+  var paper:=w.box(self,Vector3(x,.036,z),Vector3(.2,.008,.28),w.materials.paper);paper.rotation.y=i*.7;paper.set_meta("cinema_litter",true)
 
 func _audio() -> void:
  for item in [{"file":"stir-pot.wav","pos":Vector3(-13.25,1.2,-19.25),"db":-22.0},{"file":"projector.wav","pos":Vector3(-5.4,2.9,-17.7),"db":-27.0}]:

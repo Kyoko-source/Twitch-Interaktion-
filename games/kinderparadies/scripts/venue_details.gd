@@ -59,16 +59,16 @@ func _cinema() -> void:
  SurfaceDetails.vessel(bin,Vector3(0,.015,0),.64,.24,.20,.025,metal,w.materials.dark,"LinedCinemaBin");count+=1
  ring(bin,Vector3(0,.66,0),.24,.035,w.materials.dark)
  for i in range(6):
-  var ticket:=box(root,Vector3(-5.4+i*.11,.035,-21.8+sin(i*2.)*.24),Vector3(.13,.005,.07),paper);ticket.rotation.y=i*.83
+  var ticket:=box(root,Vector3(-5.4+i*.11,.035,-21.8+sin(i*2.)*.24),Vector3(.13,.005,.07),paper);ticket.rotation.y=i*.83;ticket.set_meta("cinema_litter",true)
  # Small litter clusters follow seat bases, leaving newspaper and all aisles open.
  for i in range(34):
   var x: float=-4.7+fmod(i*1.41,4.9);var z: float=-21.20+fmod(i*1.93,6.8)
   if absf(z+17.65)<.88:continue
   if Vector2(x-1.2,z+19.9).length()<.8:continue
   if i%4==0:
-   var wrapper:=box(root,Vector3(x,.035,z),Vector3(.11,.009,.07),red if i%2 else paper);wrapper.rotation=Vector3(.04,i*.72,.08)
+   var wrapper:=box(root,Vector3(x,.035,z),Vector3(.11,.009,.07),red if i%2 else paper);wrapper.rotation=Vector3(.04,i*.72,.08);wrapper.set_meta("cinema_litter",true)
   else:
-   var kernel:=w.sphere(root,Vector3(x,.032,z),.017,paper);kernel.scale=Vector3(1.3,.75,.86);count+=1
+   var kernel:=w.sphere(root,Vector3(x,.032,z),.017,paper);kernel.scale=Vector3(1.3,.75,.86);kernel.set_meta("cinema_litter",true);count+=1
  # An attached speaker system, with grilles instead of featureless wall cubes.
  for z in [-21.90,-13.55]:
   var speaker:=Node3D.new();speaker.position=Vector3(2.95,2.88,z);root.add_child(speaker)

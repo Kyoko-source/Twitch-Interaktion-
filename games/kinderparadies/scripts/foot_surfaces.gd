@@ -12,7 +12,11 @@ static func at(player: CharacterBody3D) -> String:
  var node: Node=hit.collider
  while node!=null:
   if node.has_meta("foot_surface"): return str(node.get_meta("foot_surface"))
-  if node is PlayWorld and node.polish: return node.polish.surface_at(hit.position)
+  if node is PlayWorld and node.polish:
+   if node.craft:
+    var finish: String=node.craft.surface_at(hit.position)
+    if not finish.is_empty():return finish
+   return node.polish.surface_at(hit.position)
   node=node.get_parent()
  return "concrete"
 

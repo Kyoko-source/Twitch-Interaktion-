@@ -70,3 +70,7 @@ After Play 3.3: Eingangs- und Flurausstattung sowie das Autogeräusch wurden
 für After Play erstellt. Das Autogeräusch ist vollständig synthetisiert und
 enthält keine fremden Samples. Die Putz-Fototexturen stammen weiterhin von
 Poly Haven (CC0 1.0, siehe Quellen.txt).
+
+After Play 3.4: Boden- und Gebrauchsspuren-Shader, Kinofassade, Bühnenrahmen,
+Kartenkontrolle und überarbeitetes Küchenmodell sind Projektarbeit. Vorhandene
+Poly-Haven-Texturen werden weiterhin unter CC0 1.0 verwendet.
