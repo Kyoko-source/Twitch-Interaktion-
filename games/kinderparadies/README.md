@@ -45,6 +45,11 @@ bestehen Dateiliste, CRC, Prüfsummen, Lizenz- und Privatheitsgrenze; die
 gepackte Windows-EXE startet ohne fehlende Ressourcen. Beide itch-Kanäle
 bestehen den lokalen Probelauf ohne Upload. Die neue Browser-Prüfung für
 Fensterkollision, Raumfilter, Röhrenhall und Pause besteht ebenfalls.
+Neun weitere echte Browser-Abläufe bestehen einschließlich beider Enden,
+0712-Zugang, Zeitungsinventar, Speichern, Physik der Kino-Gänge, Röhrentraversierung,
+Küchenclown und Automaten. Die Langtests erlauben die gemessene erste
+Materialkompilierung und mehrere vollständige Seitenneuladungen; ihre
+Bewegungs-, Kollisions-, Audio- und Speicherprüfungen bleiben vollständig.
 
 ## Sitz der Clownaugen und Zähne (3.1.1)
 

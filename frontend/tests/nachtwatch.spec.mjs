@@ -221,7 +221,8 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
 });
 
 test('v2.8 real corridors return through the entrance elevator; death resets; thirteen rounds finish at ending 1 with credits',async({page})=>{
- test.setTimeout(300000);await begin(page);
+ // Full patrol, death, two credit sequences and cold page reloads in one flow.
+ test.setTimeout(450000);await begin(page);
  expect((await state(page)).visited).toEqual([]);
  await qa(page,{op:'warp',x:-4.3,z:-10.5,yaw:0});await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');
  await page.waitForTimeout(750);await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);
@@ -375,7 +376,7 @@ test('normal tube voices, crouch clearance, complete winding traversal and windo
 });
 
 test('annex corridor, kitchen and cinema have real open routes, persistent saves, paused ambience and a one-shot clown lunge',async({page})=>{
- test.setTimeout(150000);await begin(page);await page.mouse.click(768,512);
+ test.setTimeout(240000);await begin(page);await page.mouse.click(768,512);
  await qa(page,{op:'warp',x:-7.9,z:-10.3,yaw:0});await walk(page,'w',s=>s.position[2]<-29.4);
  await qa(page,{op:'look',yaw:Math.PI/2});await walk(page,'w',s=>s.position[0]<-12);
  expect((await state(page)).visited).toContain('Küche');expect((await state(page)).anomaly).toBe('none');expect((await state(page)).annex.stirring).toBe(true);expect((await state(page)).encounter.triggered).toBe(false);
@@ -524,7 +525,7 @@ test('server room has a walkable threshold in both directions and continues from
 });
 
 test('0712 opens the archive immediately; E plays Marelle, reload resumes it and turning back after its end reveals the chef and credits',async({page})=>{
- test.setTimeout(180000);await begin(page);
+ test.setTimeout(300000);await begin(page);
  async function aim(position,target){const dx=target[0]-position[0],dy=target[1]-position[1]-1.65,dz=target[2]-position[2];await qa(page,{op:'warp',x:position[0],y:position[1],z:position[2],yaw:Math.atan2(-dx,-dz),pitch:Math.atan2(dy,Math.hypot(dx,dz))});}
  expect((await state(page)).archive.collected).toEqual([]);
  await aim([-8.7,0,-9.9],[-10.2,1.3,-9.9]);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');
@@ -563,7 +564,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
 
 
 test('v2.6 exact Dienstanweisung, party-only mascot and manufactured kitchen render without blocked doors',async({page})=>{
- test.setTimeout(90000);await load(page);await clickControl(page,'Dienstanweisung');await expect.poll(async()=>(await state(page)).phase).toBe('help');
+ test.setTimeout(180000);await load(page);await clickControl(page,'Dienstanweisung');await expect.poll(async()=>(await state(page)).phase).toBe('help');
  const copy=(await state(page)).instructions.join('\n');expect(copy).toContain('13 Rundgänge. 13 mal der gleiche Raum...oder?...');expect(copy).toContain('Geräusche und vom Spieler selbst verschobene Gegenstände zählen natürlich nicht zu den Anomalien.');expect(copy).toContain('Sterueung');expect(copy).toContain('E: interagieren');expect(copy).toContain('F11: Vollbild');expect(copy).not.toContain('Küchenclown');expect(copy).not.toContain('Normal:');
  await page.screenshot({path:join(tmpdir(),'after-play-v260-instructions-web.png')});await clickControl(page,'Zurück');await clickControl(page,'Neue Nachtschicht');await skipIntro(page);expect((await state(page)).giant_mascots).toBe(1);
  await qa(page,{op:'warp',x:-10.5,z:-29.3,yaw:1.3,pitch:-.1});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v260-kitchen-web.png')});
@@ -575,7 +576,7 @@ test('v2.6 exact Dienstanweisung, party-only mascot and manufactured kitchen ren
 
 
 test('v2.9 environmental dressing has solid arcade cabinets, stable reference rooms, paused CRTs and a working green-door trip',async({page})=>{
- test.setTimeout(120000);await begin(page);await page.mouse.click(768,512);
+ test.setTimeout(240000);await begin(page);await page.mouse.click(768,512);
  expect((await state(page)).details.groups).toBeGreaterThanOrEqual(17);expect((await state(page)).details.screens).toBe(2);
  await qa(page,{op:'warp',x:7.5,z:14.6,yaw:Math.PI,pitch:0});
  await page.keyboard.down('w');try{await page.waitForTimeout(1800);}finally{await page.keyboard.up('w');}
@@ -596,7 +597,7 @@ test('v2.9 environmental dressing has solid arcade cabinets, stable reference ro
 });
 
 test('cinema aisles are walkable forwards and backwards without seat snags',async({page})=>{
- test.setTimeout(150000);await begin(page);
+ test.setTimeout(240000);await begin(page);
  for(const x of [-5.15,-3.55,-.55]){
   await qa(page,{op:'warp',x,z:-26.0,yaw:0,pitch:0});
   await walk(page,'w',s=>s.position[2]<-33.6);
