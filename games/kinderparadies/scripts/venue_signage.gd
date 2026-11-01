@@ -19,9 +19,10 @@ static func texture(id: String) -> Texture2D:
  return result
 
 static func frame(w: PlayWorld,face: MeshInstance3D,size_value: Vector2,id: String) -> void:
- face.name="HappylandSign_"+id;face.set_meta("sign_design",id)
+ face.name="HappylandSign_"+id;face.set_meta("sign_design",id);face.set_meta("mounted_art",true)
  var paper: bool=id in INDEX.POSTERS
  var m:=face.material_override as StandardMaterial3D;m.albedo_color=Color.WHITE;m.roughness=.95 if paper else .52;m.metallic=0. if paper else .48
+ m.uv1_triplanar=false;m.uv1_scale=Vector3.ONE;m.uv1_offset=Vector3.ZERO;m.texture_repeat=false
  if paper:
   var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
   for y in range(10):

@@ -150,7 +150,7 @@ func finish() -> void:
  var rust:=Gradient.new();rust.set_color(0,Color("a0a29a"));rust.add_point(.53,Color("81715a"));rust.set_color(1,Color("493225"));patina.color_ramp=rust
  var done: Dictionary={}
  for mesh in w.find_children("*","MeshInstance3D",true,false):
-  if mesh.has_meta("native_model"): continue # Retain authored imported PBR maps.
+  if mesh.has_meta("native_model") or mesh.has_meta("mounted_art"): continue # Printed faces retain their own UVs; patina belongs on their metal frames.
   var material:=mesh.material_override as StandardMaterial3D
   if not material or material.metallic<.35 or done.has(material.get_instance_id()): continue
   done[material.get_instance_id()]=true

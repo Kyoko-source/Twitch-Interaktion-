@@ -23,6 +23,30 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.5.1 elevator readouts follow rounds, saved progress and death',async({page})=>{
+ test.setTimeout(240000);await begin(page);
+ const checkFloor=(snapshot,number)=>{
+  const formatted=String(number).padStart(2,'0');
+  expect(snapshot.intro.floor).toBe(number);expect(snapshot.passage.floor).toBe(number);
+  expect(snapshot.intro.floor_texts).toEqual([formatted+'  ▲',formatted+'  ▲']);
+  expect(snapshot.passage.floor_texts).toEqual([formatted+' / AUFZUG',formatted+' / AUFZUG']);
+ };
+ checkFloor(await state(page),1);
+ for(let round=1;round<5;round++){
+  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});
+  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+  expect((await state(page)).streak).toBe(round);checkFloor(await state(page),round+1);
+ }
+ await page.keyboard.press('Escape');await page.reload();
+ await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');checkFloor(await state(page),5);
+ await page.screenshot({path:join(tmpdir(),'after-play-v351-web-floor-05.png')});
+ await qa(page,{op:'choose',red:(await state(page)).anomaly==='none'});
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).streak).toBe(0);checkFloor(await state(page),1);
+ await page.screenshot({path:join(tmpdir(),'after-play-v351-web-floor-reset.png')});
+});
+
 test('v3.5 Play reuses the menu venue and holding Skip switches to the prepared ending without rebuilding',async({page})=>{
  test.setTimeout(240000);await load(page);const builds=(await state(page)).performance.world_builds;
  await clickControl(page,'Neue Nachtschicht');await skipIntro(page);

@@ -1,5 +1,28 @@
 # After Play — Kinderparadies
 
+## Schilderdruck und Fahrstuhletagen (3.5.1)
+
+Die metallischen Druckflächen wurden vom allgemeinen Metall-Patina-Durchlauf
+ausgenommen. Dessen triplanare UV-Skalierung hatte insbesondere das Schild über
+der Wartungstür mehrfach gekachelt. Alle gestalteten Schilder behalten jetzt
+ihre eigenen UVs ohne Texturwiederholung; auch kleine Möbelschilder werden im
+Platzierungstest erfasst. Rahmen erhalten weiterhin ihre Materialbehandlung.
+
+Front- und Seitenanzeige des Startfahrstuhls sowie beide Flur-Fahrstühle zeigen
+die aktuelle Rundennummer von 01 bis 13. Die Anzeige folgt dem gespeicherten
+Fortschritt und beginnt nach Tod oder einer neuen Schicht wieder bei 01.
+Auch der Ankunftstext nennt die aktuelle Etage.
+
+273 gezielte native Checks bestehen: Schilder/Etagen 184, Start/Credits 24,
+reale Flure und Tod 35, Enden 30. Neun native Aufnahmen bei 1920 × 1080 zeigen
+unter anderem das korrigierte Wartungsschild und Etagen 01, 05 und 13.
+Der Platzierungsbericht meldet keine Bildüberschneidungen oder blockierten Türen.
+Windows- und Web-Pakete sind neu exportiert und bestehen die Paketprüfung.
+Der Edge/Playwright-Test durchläuft Runde 1 bis 5, lädt einen in Runde 5
+gespeicherten Stand und löst anschließend einen Tod aus. Alle vier sichtbaren
+Etagenanzeigen stimmen mit dem Rundgang überein und springen danach auf 01;
+es treten keine Konsolenfehler auf.
+
 ## Start, Credits, Stuhlkollisionen und Beschilderung (3.5.0)
 
 Der erste Menüstart nutzt die bereits geladene Referenzwelt. Weitere Starts

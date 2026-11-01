@@ -95,6 +95,7 @@ func _build_world(anomaly: String) -> void:
 
 func _connect_world(anomaly: String) -> void:
  world.set_anomaly(anomaly)
+ _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
@@ -508,8 +509,14 @@ func _process(delta: float) -> void:
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
 
 func _refresh_hud() -> void:
+ _sync_lift_floor()
  round_label.offset_left=-440 if state.completed else -275
  round_label.text="13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1)
+
+func _sync_lift_floor() -> void:
+ var floor_number:=clampi(state.streak+1,1,13)
+ if is_instance_valid(world) and world.passages:world.passages.set_floor(floor_number)
+ if intro:intro.set_floor(floor_number)
 
 func _target() -> String:
  var origin:=player.camera.global_position;var end:=origin-player.camera.global_transform.basis.z*2.7

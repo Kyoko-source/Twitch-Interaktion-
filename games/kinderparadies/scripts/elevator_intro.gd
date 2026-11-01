@@ -32,6 +32,15 @@ var recording:=false
 var call_length:=33.0
 var starts:=0
 var display: GuardPhoneDisplay
+var floor_number:=1
+var floor_displays: Array[Label3D]=[]
+
+static func floor_text(value: int) -> String:
+ return "%02d"%clampi(value,1,13)
+
+func set_floor(value: int) -> void:
+ floor_number=clampi(value,1,13)
+ for indicator in floor_displays:indicator.text=floor_text(floor_number)+"  ▲"
 
 func build(w: PlayWorld, player: NightGuard) -> void:
  guard=player;name="ElevatorIntro"
@@ -100,9 +109,9 @@ func _cabin_details(w: PlayWorld, cabin: Node3D, steel: Material, trim: Material
  # Recessed threshold grooves stay below the walking surface.
  for z in [-1.52,-1.45,-1.38]: w.box(cabin,Vector3(0,.015,z),Vector3(2.58,.009,.014),steel)
  w.box(cabin,Vector3(0,2.57,-1.435),Vector3(.42,.14,.024),trim)
- var display:=Label3D.new();display.text="03  ▲";display.font=load("res://assets/Oswald.ttf");display.font_size=48;display.pixel_size=.00145;display.position=Vector3(0,2.57,-1.416);display.modulate=Color("d1a46c");display.outline_size=0;cabin.add_child(display)
+ var indicator:=Label3D.new();indicator.text=floor_text(floor_number)+"  ▲";indicator.font=load("res://assets/Oswald.ttf");indicator.font_size=48;indicator.pixel_size=.00145;indicator.position=Vector3(0,2.57,-1.416);indicator.modulate=Color("d1a46c");indicator.outline_size=0;cabin.add_child(indicator);floor_displays.append(indicator)
  w.box(cabin,Vector3(1.265,1.67,-.8),Vector3(.035,.20,.25),trim)
- var side_display:=display.duplicate() as Label3D;side_display.position=Vector3(1.241,1.67,-.8);side_display.rotation.y=-PI/2;side_display.pixel_size=.001;cabin.add_child(side_display)
+ var side_display:=indicator.duplicate() as Label3D;side_display.position=Vector3(1.241,1.67,-.8);side_display.rotation.y=-PI/2;side_display.pixel_size=.001;cabin.add_child(side_display);floor_displays.append(side_display)
  for y in [1.80,1.82,1.84,1.86]:
   for z in [-.85,-.82,-.79,-.76]: w.sphere(cabin,Vector3(1.245,y,z),.0035,w.materials.dark)
  # A ceiling ventilation grille has an actual frame and recessed slots.
@@ -163,7 +172,7 @@ func tick(delta: float) -> void:
   status.text="CHEF · %02d:%02d"%[int(stage_clock)/60,int(stage_clock)%60]
   caption.text="" if recording else LINES[mini(LINES.size()-1,int(stage_clock/maxf(call_length,1)*LINES.size()))]
   if stage_clock>=call_length or (recording and stage_clock>.3 and not voice.playing):
-   stage="arrival";stage_clock=0;voice.stop();phone_status.text="Anruf\nbeendet";caption.text="";status.text="KINDERPARADIES · 3. STOCK";motor.stop();chime.play()
+   stage="arrival";stage_clock=0;voice.stop();phone_status.text="Anruf\nbeendet";caption.text="";status.text="KINDERPARADIES · ETAGE "+floor_text(floor_number);motor.stop();chime.play()
  elif stage=="arrival":
   var amount:=smoothstep(.45,2.2,stage_clock)
   for i in range(2): doors[i].position.x=(-1 if i==0 else 1)*(.65+amount*1.24)
@@ -184,4 +193,4 @@ func stop() -> void:
  for audio in [ring,voice,motor,chime]: audio.stop()
 
 func snapshot() -> Dictionary:
- return {"stage":stage,"clock":clock,"call_clock":stage_clock,"skip":skip_hold,"paused":paused,"recording":recording,"duration":call_length,"starts":starts,"voice_playing":voice.playing,"voice_paused":voice.stream_paused,"caption":caption.text}
+ return {"stage":stage,"clock":clock,"call_clock":stage_clock,"skip":skip_hold,"paused":paused,"recording":recording,"duration":call_length,"starts":starts,"voice_playing":voice.playing,"voice_paused":voice.stream_paused,"caption":caption.text,"floor":floor_number,"floor_texts":floor_displays.map(func(indicator):return indicator.text)}
