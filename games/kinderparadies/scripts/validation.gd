@@ -8,6 +8,14 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--signage-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/signage_validation.gd").new().run(game,check)
+  print("Signage checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--startup-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/startup_validation.gd").new().run(game,check)
+  print("Startup checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--craft-only" in OS.get_cmdline_user_args():
   await load("res://scripts/craft_validation.gd").new().run(game,check)
   print("Craft checks: ",checks,"; failures: ",failures.size())
@@ -76,6 +84,7 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/polish_validation.gd").new().run(game,check)
   print("Polish checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ await load("res://scripts/startup_validation.gd").new().run(game,check)
  var state:=PatrolState.new();state.start(42)
  check(state.current=="none","First round must be normal")
  check(state.visited.is_empty() and state.decide(false).accepted,"Green door must work without visiting any area")
@@ -524,6 +533,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/upgrade_validation.gd").new().run(game,check)
  await load("res://scripts/arrival_validation.gd").new().run(game,check)
  await load("res://scripts/craft_validation.gd").new().run(game,check)
+ await load("res://scripts/signage_validation.gd").new().run(game,check)
  await load("res://scripts/venue_validation.gd").new().run(game,check)
  await load("res://scripts/revamp_validation.gd").new().run(game,check)
  await load("res://scripts/balance_validation.gd").new().run(game,check)

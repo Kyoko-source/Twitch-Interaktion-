@@ -14,13 +14,9 @@ func box(parent: Node3D,p: Vector3,s: Vector3,m: Material,solid: bool=false) -> 
  return mesh
 
 func sign_plate(parent: Node3D,words: String,p: Vector3,size_value: Vector2,yaw: float=0) -> Node3D:
- var root:=Node3D.new();root.position=p;root.rotation.y=yaw;parent.add_child(root)
- box(root,Vector3.ZERO,Vector3(size_value.x,size_value.y,.025),w.materials.wood)
- box(root,Vector3(0,0,.017),Vector3(size_value.x-.045,size_value.y-.045,.010),w.materials.cream)
- w.venue.text(root,words,Vector3(0,-size_value.y*.13,.025),size_value.y*.36,Color("353b32"))
- for x in [-1,1]:
-  for y in [-1,1]:w.tube(root,Vector3(x*(size_value.x*.5-.04),y*(size_value.y*.5-.04),.024),Vector3(x*(size_value.x*.5-.04),y*(size_value.y*.5-.04),.029),.007,w.materials.metal)
- return root
+ var sign_value:=VenueSignage.plate(w,parent,words,p,size_value,yaw)
+ parts+=sign_value.find_children("*","MeshInstance3D",true,false).size()+(1 if sign_value is MeshInstance3D else 0)
+ return sign_value
 
 func build(world: PlayWorld) -> void:
  w=world;name="AfterPlayArchitecturalRestoration"
@@ -99,9 +95,15 @@ func _annex() -> void:
  for z in [-19.9,-17.4,-15.0,-12.6]:box(root,Vector3(-9.28,.29,z),Vector3(.04,.07,.09),w.materials.metal)
  sign_plate(root,"HEIZKREIS 03",Vector3(-9.19,.88,-18.8),Vector2(.45,.13),PI/2)
  # Individually framed notices sit on separate wall spans, never over controls.
- for spec in [[-9.25,-14.8,PI/2,"KÜCHE  /  KINO"],[-6.55,-17.1,-PI/2,"GEBURTSTAGE  /  SAAL"],[-9.25,-23.2,PI/2,"PERSONAL / HYGIENE"],[-6.55,-25.6,-PI/2,"LETZTE VORSTELLUNG  18:00"]]:
+ for spec in [[-9.25,-23.2,PI/2,"PERSONAL / HYGIENE"],[-6.55,-25.6,-PI/2,"LETZTE VORSTELLUNG  18:00"]]:
   sign_plate(root,spec[3],Vector3(spec[0],2.13,spec[1]),Vector2(1.50,.31),spec[2])
- var display:=Node3D.new();display.name="PinnedBirthdayNoticeCase";display.position=Vector3(-6.55,1.87,-21.35);display.rotation.y=-PI/2;root.add_child(display)
+ var hanging:=Node3D.new();hanging.name="HungKitchenCinemaWayfinder";hanging.position=Vector3(-7.9,2.95,-14.8);root.add_child(hanging)
+ sign_plate(hanging,"KÜCHE  /  KINO",Vector3(0,0,.022),Vector2(1.78,.43))
+ sign_plate(hanging,"HAPPYLAND / PERSONALGANG",Vector3(0,0,-.022),Vector2(1.78,.43),PI)
+ for x in [-.64,.64]:
+  w.tube(root,Vector3(-7.9+x,3.172,-14.8),Vector3(-7.9+x,3.58,-14.8),.009,w.materials.metal)
+  box(root,Vector3(-7.9+x,3.584,-14.8),Vector3(.11,.022,.09),w.materials.metal)
+ var display:=Node3D.new();display.name="PinnedBirthdayNoticeCase";display.position=Vector3(-9.18,1.87,-24.8);display.rotation.y=PI/2;root.add_child(display)
  box(display,Vector3.ZERO,Vector3(1.35,.92,.055),w.materials.wood)
  box(display,Vector3(0,0,.035),Vector3(1.23,.80,.02),w.materials.gold)
  for i in range(5):

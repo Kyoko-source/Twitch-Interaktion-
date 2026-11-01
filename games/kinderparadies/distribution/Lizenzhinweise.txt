@@ -74,3 +74,7 @@ Poly Haven (CC0 1.0, siehe Quellen.txt).
 After Play 3.4: Boden- und Gebrauchsspuren-Shader, Kinofassade, Bühnenrahmen,
 Kartenkontrolle und überarbeitetes Küchenmodell sind Projektarbeit. Vorhandene
 Poly-Haven-Texturen werden weiterhin unter CC0 1.0 verwendet.
+
+After Play 3.5: Eigene Happyland-Schildergrafiken, gefaltete Papierpakete und
+Bandgeometrie. Die Schilder verwenden die vorhandenen OFL-Schriften Oswald
+und Bodoni Moda. Keine neuen fremden Bild- oder Tonquellen.

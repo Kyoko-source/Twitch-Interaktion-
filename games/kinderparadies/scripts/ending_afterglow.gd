@@ -15,9 +15,8 @@ var disposed:=false
 
 func build(game: Node3D) -> void:
  g=game
- # The last image is the intact, empty reference venue. Patrol progress and
- # the completed archive remain unchanged; only the displayed world is rebuilt.
- g._build_world("none");w=g.world
+ # Credits prepare this reference venue before the player presses Skip.
+ w=g.world
  prior=g.get_viewport().get_camera_3d()
  camera=Camera3D.new();camera.name="AfterPlayLastLook";camera.fov=67;camera.position=Vector3(-4.2,1.85,13.9);w.add_child(camera)
  camera.look_at(Vector3(7.4,2.15,3.6));camera.make_current()

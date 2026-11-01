@@ -51,12 +51,17 @@ var secret_ending:=false
 var death_label: Label
 var end_credits: EndCredits
 var memories: ArchiveMemories
+var menu_reference_ready:=false
+var world_loading:=false
+var world_revision:=0
+var loading_progress:=0.0
+var world_build_count:=0
 
 func _ready() -> void:
  if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings()
  player=NightGuard.new();add_child(player);player.camera.current=true
- _build_world("none");player.reset_pose()
+ _build_world("none");player.reset_pose();menu_reference_ready=true
  _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
  intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
  world.graphics.equipment(player,intro)
@@ -81,10 +86,15 @@ func _actions() -> void:
    var event:=InputEventKey.new();event.physical_keycode=key;InputMap.action_add_event(action,event)
 
 func _build_world(anomaly: String) -> void:
+ world_revision+=1;world_loading=false
+ menu_reference_ready=false;world_build_count+=1
  if player: player.drop_prop()
  if world:
   _stop_scene_audio(world);remove_child(world);world.queue_free()
- world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
+ world=PlayWorld.new();add_child(world);world.build();_connect_world(anomaly)
+
+func _connect_world(anomaly: String) -> void:
+ world.set_anomaly(anomaly)
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
@@ -93,6 +103,37 @@ func _build_world(anomaly: String) -> void:
  world.quality(int(settings.quality))
  if player: player.reset_pose()
  if room_audio: _apply_settings()
+
+func _build_world_responsive(anomaly: String,progress: Callable=Callable()) -> void:
+ world_revision+=1
+ var revision:=world_revision
+ world_loading=true;menu_reference_ready=false;world_build_count+=1;loading_progress=0
+ player.drop_prop()
+ var old:=world;world=null
+ if is_instance_valid(old):_stop_scene_audio(old);remove_child(old);old.queue_free()
+ await get_tree().process_frame
+ if revision!=world_revision:return
+ var next:=PlayWorld.new();next.hide();add_child(next)
+ await next.build_responsive(func(value: float):
+  loading_progress=value
+  if progress.is_valid():progress.call(value)
+ ,func():return revision==world_revision)
+ if revision!=world_revision:
+  _stop_scene_audio(next);remove_child(next);next.queue_free();return
+ world=next;_connect_world(anomaly);next.show();world_loading=false
+
+func _request_shift() -> void:
+ if world_loading:return
+ if menu_reference_ready:_new_shift();return
+ secret_ending=false;archive.clear();archive_selected="";archive_input=""
+ state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
+ phase="loading";player.release();hud.hide();menu_music.stop()
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ var shade:=ColorRect.new();shade.color=Color.BLACK;shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
+ var label:=_label("Die nächste Schicht beginnt …",27);label.position=Vector2(670,500);label.size=Vector2(580,70);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;menu.add_child(label)
+ var bar:=ProgressBar.new();bar.position=Vector2(710,590);bar.size=Vector2(500,7);bar.show_percentage=false;menu.add_child(bar);_telemetry()
+ await _build_world_responsive("none",func(value: float):bar.value=value*100)
+ _begin_intro()
 
 func _stop_scene_audio(root: Node) -> void:
  # Retire paused WAV playbacks before removing a room or closing the game.
@@ -157,6 +198,9 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
  return column
 
 func _main_menu() -> void:
+ if is_instance_valid(end_credits):
+  if end_credits.afterglow:end_credits.afterglow.dispose()
+  if end_credits.prepared_afterglow:end_credits.prepared_afterglow.dispose()
  end_credits=null
  if intro: intro.stop()
  phase="menu";player.lamp.visible=false
@@ -179,9 +223,14 @@ func _menu_jump() -> void:
 func _new_shift() -> void:
  secret_ending=false
  archive.clear();archive_selected="";archive_input=""
- state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false;_build_world("none");_begin_intro()
+ state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
+ if menu_reference_ready:
+  menu_reference_ready=false;world.archive.sync(archive,1);world.film.sync(false);player.reset_pose()
+ else:_build_world("none")
+ _begin_intro()
 
 func _begin_intro() -> void:
+ if is_instance_valid(end_credits):end_credits.queue_free();end_credits=null
  menu_music.stop()
  player.camera.current=true
  phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
@@ -387,16 +436,20 @@ func _write_settings() -> void:
  _write_persistent_text(SETTINGS,JSON.stringify(settings))
 
 func _save(next_round: bool=false) -> void:
- if not has_session: return
+ if not has_session or not is_instance_valid(world): return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
  _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
 
 func _process(delta: float) -> void:
+ if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
+ if world_loading:
+  telemetry_clock+=delta
+  if telemetry_clock>.12:telemetry_clock=0;_telemetry()
+  return
  if not world or not player: return
  if menu_light: menu_light.visible=phase=="menu"
  if phase in ["intro","arrival"]: intro.tick(delta)
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
- if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
  if phase=="menu":
   menu_clock+=delta
@@ -680,9 +733,17 @@ func _notification(what: int) -> void:
 
 func _telemetry() -> void:
  if not OS.has_feature("web"): return
+ if world_loading or not is_instance_valid(world):
+  var pending:={"phase":phase,"streak":state.streak}
+  if OS.has_feature("qa"):
+   pending.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
+   pending.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
+  JavaScriptBridge.eval("Object.assign(window.nachtwacheStatus||={},"+JSON.stringify(pending)+");")
+  return
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  data.rounds=state.rounds
  if OS.has_feature("qa"):
+  data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
   data.anomaly=state.current;data.controls=[]
   data.completed=state.completed
   data.instructions=[]
@@ -752,6 +813,7 @@ func _qa_command(args: Array) -> void:
     var at:=clampf(float(command.get("time",0)),0,world.archive.finale.duration-.08)
     archive.recording_position=at;world.archive.finale.voice.seek(at)
   "new": _new_shift()
+  "show_ending": _show_ending(clampi(int(command.get("number",1)),1,3))
   "warp": player.drop_prop();player.position=Vector3(command.x,float(command.get("y",0)),command.z);player.velocity=Vector3.ZERO;player.rotation.y=float(command.get("yaw",0));player.camera.rotation.x=float(command.get("pitch",0))
   "anomaly": state.current=str(command.id);_build_world(state.current);_resume()
   "inspect":

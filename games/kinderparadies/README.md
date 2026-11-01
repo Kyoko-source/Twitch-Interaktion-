@@ -1,5 +1,59 @@
 # After Play — Kinderparadies
 
+## Start, Credits, Stuhlkollisionen und Beschilderung (3.5.0)
+
+Der erste Menüstart nutzt die bereits geladene Referenzwelt. Weitere Starts
+bauen dieselben geordneten Konstruktionsschritte über mehrere Bilder auf, mit
+sichtbarem Fortschritt. Während der Credits wird die leere Schlussansicht
+vorbereitet; Überspringen schaltet auf die fertige Ansicht, statt die Welt im
+Tastendruck neu aufzubauen. Geometrie ohne veränderliche Materialien wird bis
+zu einer festen Cachegrenze über weitere Runden wiederverwendet.
+
+Die importierten Partyraum-Stühle verwenden einen einfachen abgerundeten
+Sitz-/Fußbereich und eine passende Rückenlehne statt eines detaillierten
+Dreieckskollisionsnetzes. Die dargestellten Modelle behalten ihre Details.
+Elf Geschenke besitzen Papiermuster, gefaltete Enden, Klebestellen, umlaufende
+Bänder und weiche Schleifen. Die untere gestapelte Schachtel hat keine Schleife,
+die durch die obere Schachtel ragen würde; die Bodenpakete sind auseinandergerückt.
+
+40 eigene Druckmotive unterscheiden gealterte Öffnungszeiten-Plakate,
+lackierte Wegweiser, Kinotafeln und technische Warnschilder. Sie verwenden die
+vorhandenen OFL-Schriften und einen gemeinsamen Atlas; frühere braune
+Druckflächen werden ersetzt. Gebogene Plakatkanten, Metallränder und
+Befestigungen passen zur jeweiligen Ausführung. Die Fototafel ist an die
+Ostwand im Personalgang zum Kino versetzt. Ein doppelseitiger Wegweiser hängt
+an sichtbaren Halterungen von der Decke. Benachbarte Aushänge wurden versetzt.
+
+Veraltete, bereits laufende Vorbereitungen werden bei einem neueren Weltaufbau
+abgebrochen. Ein eigener Regressionstest wechselt während eines begonnenen
+Credit-Aufbaus in eine neue Schicht und prüft, dass deren Szene erhalten bleibt.
+
+Die vollständige native Spielprüfung besteht mit 2.379 Checks und null Fehlern.
+Gezielte Prüfungen: 24 Start-/Credit-Checks und 108 Schilder-/Platzierungschecks
+ohne Fehler. Im nativen Vulkan-Test bei 1920 × 1080 auf einer RTX 4080 betrug
+die 95. Perzentile der Bildzeit ohne Stuhlkontakt 11,09 ms und am Stuhl
+10,67 ms; die Physik blieb bei 2,97 bzw. 2,35 ms. Das sind Messwerte dieser
+Testmaschine, keine Zusicherung für andere Hardware. Der erste Play-Aufruf
+benötigte im Headless-Test rund 3 ms, der vorbereitete Credit-Wechsel 0,03 ms;
+Anwendungsstart und Shader-Kompilierung sind darin nicht enthalten.
+
+Edge/Playwright prüft den tatsächlichen ersten Menüstart, beide Skip-Vorgänge,
+Rückkehr zum Hauptmenü, einen weiteren Start mit Fortschrittsanzeige sowie
+beide Flure, Tod, dreizehn Rundgänge und das fortgesetzte Ende 1. Der vorbereitete
+Skip erreichte im Software-WebGL-Test dieselbe Bildzeit-Perzentile wie davor
+(20,1 ms). Kinolektüre, verschobene Fotowand, CCTV und physische Bälle wurden
+ebenfalls geprüft. Mangels Browser-Plugin wird der vorhandene Playwright-Runner
+verwendet. Windows- und Web-Archive bestehen Inhalts-, Lizenz-, CRC- und
+Prüfsummenprüfungen; der exportierte Windows-Player startet ohne Ressourcenfehler.
+Die fertige Website-Fassung wurde zusätzlich mit echten Maus-/Tastatureingaben
+und als mobiler Download-Launcher ohne Konsolenfehler geprüft. Zehn aktuelle
+native Aufnahmen und ein Platzierungsbericht zeigen keine blockierten Türen,
+Bildüberschneidungen oder Möbel in Wänden. Öffentliche Pakete enthalten keine
+neuen QA-Skripte oder Erstellerwerkzeuge. Der itch.io-Aufruf bleibt ein Dry-Run.
+
+Private Werkzeuge: tools/prepare-after-play-signs-v350.py,
+--self-test --startup-only, --signage-only und --render-qa --v350-qa.
+
 ## Materialien, Kinofassade und Lichtinseln (3.4.0)
 
 Drei eigens geschriebene Bodenoberflächen unterscheiden abgetretenen

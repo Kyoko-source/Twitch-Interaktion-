@@ -23,6 +23,28 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.5 Play reuses the menu venue and holding Skip switches to the prepared ending without rebuilding',async({page})=>{
+ test.setTimeout(240000);await load(page);const builds=(await state(page)).performance.world_builds;
+ await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ expect((await state(page)).performance.world_builds).toBe(builds);
+ await qa(page,{op:'show_ending',number:1});await expect.poll(async()=>(await state(page)).phase).toBe('ending');
+ await expect.poll(async()=>(await state(page)).ending_credits.prepared,{timeout:90000}).toBe(true);
+ const readyBuilds=(await state(page)).performance.world_builds;
+ const baseline=await page.evaluate(()=>new Promise(resolve=>{const times=[];let previous=performance.now();const frame=now=>{times.push(now-previous);previous=now;if(times.length===16)resolve(times);else requestAnimationFrame(frame);};requestAnimationFrame(frame);}));
+ await page.evaluate(()=>{window.skipFrameTimes=[];window.captureSkip=true;let previous=performance.now();const frame=now=>{window.skipFrameTimes.push(now-previous);previous=now;if(window.captureSkip)requestAnimationFrame(frame);};requestAnimationFrame(frame);});
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('last_look');}finally{await page.keyboard.up('Space');await page.evaluate(()=>window.captureSkip=false);}
+ expect((await state(page)).performance.world_builds).toBe(readyBuilds);
+ const deltas=await page.evaluate(()=>window.skipFrameTimes);const p95=xs=>[...xs].sort((a,b)=>a-b)[Math.floor((xs.length-1)*.95)];
+ expect(deltas.length).toBeGreaterThan(5);expect(p95(deltas)).toBeLessThan(Math.max(200,p95(baseline)*2));
+ console.log('Skip frame timing p95 ms',p95(deltas),'baseline',p95(baseline));
+ await page.screenshot({path:join(tmpdir(),'after-play-v350-web-last-look.png')});
+ await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.1);
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nEnding state: '+JSON.stringify((await state(page)).ending_credits);throw error;}finally{await page.keyboard.up('Space');}
+ await clickControl(page,'Hauptmenü');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
+ await clickControl(page,'Neue Nachtschicht');await expect.poll(async()=>(await state(page)).phase,{timeout:60000}).toBe('intro');await skipIntro(page);
+ expect((await state(page)).streak).toBe(0);expect((await state(page)).performance.world_builds).toBe(readyBuilds+1);
+});
+
 test('v3.4 fitted floors, cinema facade and repairs preserve physical room access and floor sounds',async({page})=>{
  test.setTimeout(240000);await begin(page);
  const craft=(await state(page)).craft;
@@ -162,7 +184,7 @@ test('reception memories and live CCTV remain voluntary; physical pit balls reac
  }
  await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-cctv.png')});
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).watch.opened).toBe(false);expect((await state(page)).watch.updates).toBe(0);
- await qa(page,{op:'warp',x:1.2,y:.02,z:14.7,yaw:Math.PI,pitch:.43});await expect.poll(async()=>(await state(page)).target).toBe('memory_wall');
+ await qa(page,{op:'warp',x:-7.85,y:.02,z:-18.75,yaw:-Math.PI/2,pitch:.25});await expect.poll(async()=>(await state(page)).target).toBe('memory_wall');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('help');expect((await state(page)).instructions.join(' ')).toContain('Die Geburtstage von damals');await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-photos.png')});await clickControl(page,'Zurück zum Rundgang');
  await qa(page,{op:'warp',x:1.1,y:.03,z:7.8,yaw:0,pitch:-.55});await page.keyboard.down('w');
  await expect.poll(async()=>(await state(page)).ball_pit.kicks,{timeout:12000}).toBeGreaterThan(0);await page.keyboard.up('w');
@@ -315,7 +337,7 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  expect(anomalyRounds).toBe(6);
  expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
  await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1.png')});
- await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/party/musicbox.mp3');
+ await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000,intervals:[70]}).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/party/musicbox.mp3');
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
  expect((await state(page)).phase).toBe('ending');expect((await state(page)).streak).toBe(13);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1-clue.png')});
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).ending_credits.ending).toBe(1);expect((await state(page)).streak).toBe(13);

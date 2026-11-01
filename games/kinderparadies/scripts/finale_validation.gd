@@ -74,7 +74,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(game.end_credits.snapshot().end_word and game.end_credits.word.text=="ENDE 2/2" and game.end_credits.snapshot().second_end_hint=="","The archive ending omits ENDE 2/2 or repeats the first ending's hint")
  game.end_credits.tick(4)
  verify.call(game.end_credits.snapshot().stage=="credits" and EndCredits.AUTHOR=="Kyoko" and EndCredits.IDEA=="einsmarello" and EndCredits.TESTERS==["einsmarello","__jerry__","gingerbread","Mozart"],"Rolling credits omit or misspell a requested contributor")
- game.end_credits.finish_scroll();game.end_credits.tick(17);verify.call(game.end_credits.done and game.end_credits.actions.visible,"Credits leave no way to return to the menu or start again")
+ await game.end_credits.wait_prepared();game.end_credits.finish_scroll();game.end_credits.tick(17);verify.call(game.end_credits.done and game.end_credits.actions.visible,"Credits leave no way to return to the menu or start again")
  game._main_menu();game.has_session=false;game._continue()
  verify.call(game.phase=="ending" and game.world.archive.finale.trigger_count==0,"Continuing a completed finale replays the scare")
  game._new_shift();game.intro.skip()

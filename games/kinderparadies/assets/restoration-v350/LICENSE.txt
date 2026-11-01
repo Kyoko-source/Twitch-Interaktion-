@@ -1,0 +1,4 @@
+Original Happyland sign designs and procedural ageing, created for After Play.
+Typesetting uses Oswald and Bodoni Moda, bundled under the SIL OFL.
+Parcel labels use the existing Caveat font under the SIL OFL.
+No third-party photographs or symbols are included in these layouts.

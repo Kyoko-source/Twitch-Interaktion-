@@ -42,7 +42,7 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(credits.music.playing and credits.snapshot().stage=="credits" and credits.snapshot().second_end_hint==EndCredits.SECOND_END_HINT,"Normal ending omits music, credits or the requested clue")
   var lines:=credits.roll.find_children("*","Label",true,false)
   verify.call(lines.any(func(line):return line.text==EndCredits.SECOND_END_HINT),"Second-ending clue is absent from the actual credit roll")
-  credits.finish_scroll();credits.tick(17)
+  await credits.wait_prepared();credits.finish_scroll();credits.tick(17)
   verify.call(credits.done and credits.actions.visible and credits.actions.get_node("SecondEndingHint").visible,"Skipping credits hides the second-ending clue or leaves no exit")
   await game.get_tree().create_timer(.15).timeout
   verify.call(game.phase=="ending" and game.state.streak==13,"End 1 starts another shift without a player choice")

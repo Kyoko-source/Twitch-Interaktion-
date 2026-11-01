@@ -47,9 +47,8 @@ static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
   w.tube(unit,Vector3(x-.12,.64,.365),Vector3(x+.12,.64,.365),.014,w.materials.rust)
  for k in range(12): w.tube(unit,Vector3(-.94,.847+k*.015,.02),Vector3(-.94,.857+k*.015,.02),.24,w.materials.cream)
  for k in range(4):
-  var gift:=w.box(unit,Vector3(-.22+k*.35,.96+(.04 if k%2 else 0),.02),Vector3(.28,.24+(.08 if k%2 else 0),.32),[w.materials.red,w.materials.gold,w.materials.teal][k%3])
-  w.box(gift,Vector3(0,0,.163),Vector3(.035,.245+(.08 if k%2 else 0),.008),w.materials.cream)
-  w.box(gift,Vector3(0,.123+(.04 if k%2 else 0),0),Vector3(.035,.008,.32),w.materials.cream)
+  WrappedPresent.build(w,unit,Vector3(-.22+k*.35,.96+(.04 if k%2 else 0),.02),Vector3(.28,.24+(.08 if k%2 else 0),.32),k)
+
  # Wall board and pennants share a mounting rail, not empty air.
  var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(12.0,2.85,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
  var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(7.6,3.8);painting.mesh=canvas

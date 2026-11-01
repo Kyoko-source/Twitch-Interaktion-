@@ -37,7 +37,9 @@ func _draw() -> void:
  var rng:=RandomNumberGenerator.new();rng.seed=290
  for i in range(80): draw_circle(Vector2(rng.randf_range(0,size.x),rng.randf_range(0,size.y)),rng.randf_range(.4,2),Color(.1,.07,.03,.18))
 
-static func texture(parent: Node, id: String) -> ViewportTexture:
+static func texture(parent: Node, id: String) -> Texture2D:
+ var routes:={"film": "film", "found": "found", "tickets": "tickets", "service": "service", "maintenance": "technical"}
+ if routes.has(id):return VenueSignage.texture(routes[id])
  var viewport:=SubViewport.new();viewport.name="DressingPrint_"+id;viewport.size=Vector2i(640,160);viewport.disable_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE;parent.add_child(viewport)
  var print:=DressingPrint.new();print.kind=id;print.size=Vector2(640,160);viewport.add_child(print)
  return viewport.get_texture()

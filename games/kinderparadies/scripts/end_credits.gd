@@ -21,6 +21,9 @@ var ending_number:=2
 var secret_line: Label
 var escape_audio: AudioStreamPlayer
 var car_started:=false
+var prepared_afterglow: EndingAfterglow
+var preparation_started:=false
+var skip_pending:=false
 
 func build(game: Node3D, number: int=2) -> void:
  g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -45,10 +48,27 @@ func build(game: Node3D, number: int=2) -> void:
  var note: Label=g._label(KYOKO_NOTE,29,Color("e0ddd0"));note.name="KyokoNote";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;note.add_theme_constant_override("line_spacing",12);roll.add_child(note)
  _gap(140)
  actions=VBoxContainer.new();actions.position=Vector2(742,465);actions.custom_minimum_size.x=436;actions.add_theme_constant_override("separation",16);actions.hide();add_child(actions)
- actions.add_child(g._button("Neue Nachtschicht",g._new_shift,true));actions.add_child(g._button("Hauptmenü",g._main_menu))
+ actions.add_child(g._button("Neue Nachtschicht",g._request_shift,true));actions.add_child(g._button("Hauptmenü",g._main_menu))
  if ending_number==1:
   var clue: Label=g._label(SECOND_END_HINT,24,Color("cbbb95"));clue.name="SecondEndingHint";clue.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;clue.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;clue.custom_minimum_size.x=436;actions.add_child(clue)
  var hint: Label=g._label("Leertaste halten · Credits überspringen",15,Color("6e736e"));hint.name="SkipHint";hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hint.position=Vector2(1400,32);hint.size.x=470;hint.hide();add_child(hint)
+ call_deferred("prepare_last_look")
+
+func prepare_last_look() -> void:
+ if preparation_started or done or not is_inside_tree() or g.end_credits!=self or g.phase!="ending":return
+ preparation_started=true
+ # Yield construction while the end card/credits stay animated and music plays.
+ await g._build_world_responsive("none")
+ if not is_inside_tree() or g.end_credits!=self or g.phase!="ending":return
+ prepared_afterglow=EndingAfterglow.new();prepared_afterglow.build(g)
+ if skip_pending:_start_last_look()
+
+func _start_last_look() -> void:
+ afterglow=prepared_afterglow;prepared_afterglow=null;skip_pending=false
+
+func wait_prepared() -> void:
+ while not prepared_afterglow and not afterglow and not done:
+  await get_tree().process_frame
 
 func end_title() -> String:
  return "Geheimes Ende" if ending_number==3 else "ENDE %d/2"%ending_number
@@ -65,6 +85,7 @@ func _gap(height: float) -> void:
 func tick(delta: float) -> void:
  clock+=delta
  if done: return
+ if skip_pending:return
  if ending_number==3 and not afterglow:
   black.color.a=smoothstep(0.,.8,clock)
   if clock>=.85 and not car_started:car_started=true;escape_audio.play()
@@ -89,7 +110,8 @@ func tick(delta: float) -> void:
 func finish_scroll() -> void:
  if done or afterglow: return
  roll.hide();word.hide();get_node("SkipHint").hide();hold=0
- afterglow=EndingAfterglow.new();afterglow.build(g)
+ if prepared_afterglow:_start_last_look()
+ else:skip_pending=true
  if not music.playing: music.play()
 
 func _finish_afterglow() -> void:
@@ -100,8 +122,9 @@ func _finish_afterglow() -> void:
 
 func _exit_tree() -> void:
  if afterglow: afterglow.dispose()
+ if prepared_afterglow:prepared_afterglow.dispose()
  if is_instance_valid(music): music.stop()
  if is_instance_valid(escape_audio):escape_audio.stop()
 
 func snapshot() -> Dictionary:
- return {"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=title_length() else "title" if clock>=(2.7 if ending_number==3 else .22) else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"secret_line":SECRET_LINE if ending_number==3 else "","car":is_instance_valid(escape_audio) and escape_audio.playing,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"afterglow":afterglow.snapshot() if afterglow else {}}
+ return {"prepared":prepared_afterglow!=null or afterglow!=null or done,"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=title_length() else "title" if clock>=(2.7 if ending_number==3 else .22) else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"secret_line":SECRET_LINE if ending_number==3 else "","car":is_instance_valid(escape_audio) and escape_audio.playing,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"afterglow":afterglow.snapshot() if afterglow else {}}

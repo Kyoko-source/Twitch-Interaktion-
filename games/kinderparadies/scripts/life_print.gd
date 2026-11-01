@@ -30,7 +30,9 @@ func _draw() -> void:
   draw_string(font,Vector2(32,88),"SEIFE",HORIZONTAL_ALIGNMENT_LEFT,-1,71,ink)
   draw_string(font,Vector2(34,139),"HAPPYLAND",HORIZONTAL_ALIGNMENT_LEFT,-1,27,ink)
 
-static func texture(parent: Node, id: String) -> ViewportTexture:
+static func texture(parent: Node, id: String) -> Texture2D:
+ var routes:={"menu": "menu", "photo": "photo", "wc": "wc", "closed": "closed", "soap": "soap"}
+ if routes.has(id):return VenueSignage.texture(routes[id])
  var viewport:=SubViewport.new();viewport.name="LifePrint_"+id;viewport.size=Vector2i(768,480) if id=="menu" else Vector2i(768,180)
  viewport.disable_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE;parent.add_child(viewport)
  var print:=LifePrint.new();print.kind=id;print.size=viewport.size;viewport.add_child(print);return viewport.get_texture()

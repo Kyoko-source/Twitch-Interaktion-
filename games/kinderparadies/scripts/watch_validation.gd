@@ -24,7 +24,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(JSON.stringify(game.state.serialize())==patrol_before,"Watching a security camera changes the anomaly decision")
  game._close_watch();game.player.active=false
  verify.call(game.phase=="play" and not watch.opened and watch.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED,"Closing CCTV leaves its second renderer running")
- game.player.position=Vector3(1.2,.02,14.7);game.player.camera.look_at(ReceptionWatch.WALL+Vector3(0,-.45,0))
+ game.player.position=Vector3(-7.85,.02,-18.75);game.player.camera.look_at(ReceptionWatch.WALL+Vector3(0,-.45,0))
  await game.get_tree().physics_frame
  verify.call(game._target()=="memory_wall","Memories wall is hidden behind the crawl tunnel")
  press(game);verify.call(game.phase=="help","E does not examine the birthday photographs")

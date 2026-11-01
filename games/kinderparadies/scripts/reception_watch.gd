@@ -2,7 +2,7 @@ class_name ReceptionWatch
 extends Node3D
 
 const ROOT:="res://assets/reception-v2120/"
-const WALL:=Vector3(1.2,3.15,16.94)
+const WALL:=Vector3(-6.66,1.96,-18.75)
 const FEEDS:=[
  {"label":"01 / EMPFANG","p":Vector3(-9.6,3.65,8.4),"at":Vector3(-4.6,1.0,4.0)},
  {"label":"02 / SPIELANLAGE","p":Vector3(5.8,5.9,9.5),"at":Vector3(1.2,1.1,5.4)},
@@ -29,7 +29,7 @@ func build(world: PlayWorld) -> void:
  _wall();_monitor();_housings()
 
 func _wall() -> void:
- board=Node3D.new();board.name="BirthdayMemoriesWall";board.position=WALL;board.rotation.y=PI;add_child(board)
+ board=Node3D.new();board.name="BirthdayMemoriesWall";board.position=WALL;board.rotation.y=-PI/2;add_child(board)
  w.box(board,Vector3(0,0,-.055),Vector3(4.45,2.03,.075),w.mat(Color("756c4b"),load("res://assets/aged-plaster.png"),.98))
  for sign_value in [-1,1]:
   w.box(board,Vector3(sign_value*2.24,0,-.015),Vector3(.07,2.14,.09),w.materials.wood)

@@ -61,7 +61,7 @@ func run(game: Node3D, verify: Callable) -> void:
  await game.get_tree().create_timer(.12).timeout
  verify.call(life.clock>at and not life.photo_hum.stream_paused,"Ordinary room sounds fail to resume")
  var master:=AudioServer.get_bus_volume_db(0)
- game._show_archive_ending();game.end_credits.tick(5);game.end_credits.finish_scroll();game.end_credits.tick(3)
+ game._show_archive_ending();game.end_credits.tick(5);await game.end_credits.wait_prepared();game.end_credits.finish_scroll();game.end_credits.tick(3)
  var last: EndingAfterglow=game.end_credits.afterglow
  verify.call(game.end_credits.snapshot().stage=="last_look" and not game.end_credits.actions.visible and game.end_credits.music.playing,"Closing shot is missing or reveals buttons over the image")
  verify.call(last.camera.current and game.world.current=="none" and game.end_credits.black.color.a<.01,"Closing shot is not the empty reference venue")

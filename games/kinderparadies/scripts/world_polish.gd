@@ -189,9 +189,15 @@ func _collision_repairs() -> void:
   for instance in w.native_art.find_children("*","MeshInstance3D",true,false):
    if instance.get_meta("native_model","")=="cardboard_box_01":
     instance.create_convex_collision();instance.set_meta("matched_import_collision",true)
-  for instance in w.props.chairs.find_children("*","MeshInstance3D",true,false):
-   if instance.get_meta("native_model","")=="SchoolChair_01":
-    instance.create_trimesh_collision();instance.set_meta("matched_import_collision",true)
+  for chair in w.props.chairs.get_children():
+   # A single smooth, shared footprint replaces the scanned chair's triangle
+   # soup. Detailed legs/back remain visual; the guard never collides with it.
+   var body:=StaticBody3D.new();body.name="SmoothPartyChairHull";chair.add_child(body)
+   var shape:=CollisionShape3D.new();var hull:=ConvexPolygonShape3D.new();var points:=PackedVector3Array()
+   for y in [.025,.48]:
+    for p in [Vector2(-.20,-.27),Vector2(.20,-.27),Vector2(.27,-.20),Vector2(.27,.23),Vector2(.20,.30),Vector2(-.20,.30),Vector2(-.27,.23),Vector2(-.27,-.20)]:points.append(Vector3(p.x,y,p.y))
+   hull.points=points;shape.shape=hull;body.add_child(shape);body.set_meta("smooth_party_chair",true)
+   var back:=CollisionShape3D.new();var back_shape:=BoxShape3D.new();back_shape.size=Vector3(.48,.46,.09);back.shape=back_shape;back.position=Vector3(0,.71,.25);body.add_child(back)
  # New colliders follow their visible box's pose, rather than stale sibling poses.
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   if mesh.has_meta("solid_visual"): detail_count+=1

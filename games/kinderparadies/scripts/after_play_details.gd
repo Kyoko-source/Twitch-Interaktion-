@@ -45,6 +45,7 @@ func label(parent: Node3D, id: String, pos: Vector3, size: Vector2) -> void:
  if not labels.has(id): labels[id]=DressingPrint.texture(self,id)
  var face:=MeshInstance3D.new();face.name="PrintedLabel";var quad:=QuadMesh.new();quad.size=size;face.mesh=quad
  face.position=pos;face.material_override=w.mat(Color("bdb69e"),labels[id],.88);face.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;parent.add_child(face)
+ if labels[id].has_meta("physical_sign"):VenueSignage.frame(w,face,size,str(labels[id].get_meta("physical_sign")))
 
 func ring(parent: Node3D, pos: Vector3, radius: float, material: Material, rotation_value: Vector3=Vector3.ZERO, width: float=.012) -> void:
  var node:=MeshInstance3D.new();var shape:=TorusMesh.new();shape.inner_radius=radius-width;shape.outer_radius=radius;shape.rings=20;shape.ring_segments=6

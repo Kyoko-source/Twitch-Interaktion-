@@ -18,6 +18,7 @@ var clock := 0.0
 var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(9.3,0,12.2),"Party Raum":Vector3(12,0,-6.4),"Wartungsgang":Vector3(-7.5,0,-7.2),"Küche":Vector3(-13.8,0,-17.4),"Kino":Vector3(-3,0,-17.65)}
 var source: AudioStreamPlayer3D
 var mesh_cache := {}
+static var shared_bevels: Dictionary={}
 var last_sound := 0
 var atmosphere: NurseryAtmosphere
 var native_art: NativeArt
@@ -48,6 +49,7 @@ var craft: VenueCraft
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
  if mesh_cache.has(key): return mesh_cache[key]
+ if shared_bevels.has(key):mesh_cache[key]=shared_bevels[key];return mesh_cache[key]
  var radius:=minf(.055,minf(size.x,minf(size.y,size.z))*.24)
  var inner:=size*.5-Vector3.ONE*radius
  var vertices:=PackedVector3Array();var normals:=PackedVector3Array();var uvs:=PackedVector2Array();var indices:=PackedInt32Array()
@@ -68,7 +70,9 @@ func bevel(size: Vector3) -> ArrayMesh:
      if sign_value>0: indices.append_array(PackedInt32Array([a,c,b,b,c,d]))
      else: indices.append_array(PackedInt32Array([a,b,c,b,d,c]))
  var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=normals;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_INDEX]=indices
- var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);result.regen_normal_maps();mesh_cache[key]=result;return result
+ var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);result.regen_normal_maps();mesh_cache[key]=result
+ if shared_bevels.size()<2048:shared_bevels[key]=result
+ return result
 
 func mat(color: Color, texture: Texture2D=null, roughness: float=.65, metal: float=0.0) -> StandardMaterial3D:
  var material:=StandardMaterial3D.new();material.albedo_color=color;material.roughness=roughness;material.metallic=metal
@@ -105,6 +109,8 @@ func artwork(parent: Node3D, pos: Vector3, size: Vector2, texture: Texture2D, ya
  else: image.mesh=quad
  image.material_override=mat(Color("c5c0ac"),texture,.96);image.position=pos;image.rotation.y=yaw;parent.add_child(image)
  image.set_meta("mounted_art",true)
+ if texture.has_meta("physical_sign"):
+  VenueSignage.frame(self,image,size,str(texture.get_meta("physical_sign")));return image
  # Separate frame, backing and opaque canvas avoid coplanar text/decal layers.
  box(image,Vector3(0,0,-.024),Vector3(size.x+.12,size.y+.12,.035),materials.wood)
  for side in [-1,1]:
@@ -113,7 +119,7 @@ func artwork(parent: Node3D, pos: Vector3, size: Vector2, texture: Texture2D, ya
  return image
 
 func mounted_sign(parent: Node3D, id: String, pos: Vector3, size: Vector2, yaw: float=0) -> MeshInstance3D:
- return artwork(parent,pos,size,load("res://assets/polish/"+id+".png"),yaw)
+ return artwork(parent,pos,size,VenueSignage.texture(id),yaw)
 
 func painting(parent: Node3D, cell: int, pos: Vector3, size: Vector2, yaw: float=0) -> MeshInstance3D:
  return artwork(parent,pos,size,load("res://assets/polish/paintings.png"),yaw,cell)
@@ -124,47 +130,88 @@ func group(id: String) -> Node3D:
 func lamp(pos: Vector3, color: Color, energy: float=1.4, distance: float=7.0) -> OmniLight3D:
  var light:=OmniLight3D.new();light.position=pos;light.light_color=color;light.light_energy=energy;light.omni_range=distance;light.omni_attenuation=1.25;add_child(light);practicals.append(light);return light
 
+# The synchronous path serves round rebuilds and deterministic validation.
+# Menu/ending preparation yields between the same ordered construction steps.
+func construction_steps() -> Array[Callable]:
+ return [
+  _material_setup,
+  _environment,
+  _architecture.bind(load("res://assets/floor.png")),
+  _play_structure,
+  _reception,
+  _party_room,
+  _service,
+  _doors,
+  _details,
+  _module.bind(NurseryAtmosphere,"atmosphere"),
+  _wall_paintings,
+  _module.bind(ExpandedPlayground,"playground"),
+  _enlarge_climbing_frame,
+  _native_build,
+  _module.bind(CrawlTubes,"tubes"),
+  _module.bind(ServiceAnnex,"annex"),
+  _module.bind(ServiceRoom,"server_room"),
+  RoomDressing.build.bind(self),
+  _module.bind(RoomHorror,"room_horror"),
+  _module.bind(NightTerrors,"terrors"),
+  _module.bind(NightSoundscape,"soundscape"),
+  _pipe_audio,
+  _module.bind(NightEncounters,"encounters"),
+  _module.bind(LostArchive,"archive"),
+  _module.bind(AfterPlayPolish,"polish"),
+  _native_finish,
+  _module.bind(BackstageExpansion,"backstage"),
+  _module.bind(PatrolPassage,"passages"),
+  _annex_zones,
+  _module.bind(AfterPlayDetails,"details"),
+  _module.bind(CinemaFilm,"film"),
+  _module.bind(HappylandLife,"life"),
+  _module.bind(RevampWorld,"revamp"),
+  _module.bind(VenueDetails,"venue"),
+  _seat_rays,
+  _module.bind(ReceptionWatch,"watch"),
+  _module.bind(BallPitPhysics,"pit_physics"),
+  FootSurfaces.tag.bind(self),
+  _module.bind(AfterPlayGraphics,"graphics"),
+  _module.bind(ArrivalDesign,"arrival_design"),
+  _module.bind(VenueCraft,"craft"),
+  _module.bind(HappylandAcoustics,"acoustics")]
+
 func build() -> void:
- var vinyl: Texture2D=load("res://assets/vinyl.png");var rubber: Texture2D=load("res://assets/floor.png")
+ for step in construction_steps():step.call()
+
+func build_responsive(progress: Callable,current: Callable=Callable()) -> void:
+ var steps:=construction_steps()
+ for i in range(steps.size()):
+  if current.is_valid() and not current.call():return
+  steps[i].call()
+  if progress.is_valid():progress.call(float(i+1)/steps.size())
+  await get_tree().process_frame
+
+func _module(script: Script,key: String) -> void:
+ var node: Node3D=script.new();set(key,node);add_child(node);node.build(self)
+
+func _material_setup() -> void:
+ var vinyl: Texture2D=load("res://assets/vinyl.png")
  materials={"blue":mat(NAVY,vinyl,.28),"red":mat(CORAL,vinyl,.3),"gold":mat(GOLD,vinyl,.36),"teal":mat(TEAL,vinyl,.36),"wall":mat(Color("d8d1b9"),load("res://assets/paint.png"),.95),"dark":mat(Color("182127"),null,.65,.35),"metal":mat(Color("536169"),null,.32,.75),"wood":mat(Color("b2a28d"),load("res://assets/wood.png"),.48),"cream":mat(Color("c9c4a9"),vinyl,.7)}
  materials.wall.uv1_triplanar=true;materials.wall.uv1_scale=Vector3.ONE*.5
  materials.stitch=mat(Color("39342b"),null,.98)
- _environment();_architecture(rubber);_play_structure();_reception();_party_room();_service();_doors();_details()
- atmosphere=NurseryAtmosphere.new();add_child(atmosphere);atmosphere.build(self)
- _wall_paintings()
- playground=ExpandedPlayground.new();add_child(playground);playground.build(self)
- _enlarge_climbing_frame()
- if not OS.has_feature("web"):
-  native_art=NativeArt.new();add_child(native_art);native_art.build(self)
- tubes=CrawlTubes.new();add_child(tubes);tubes.build(self)
- annex=ServiceAnnex.new();add_child(annex);annex.build(self)
- server_room=ServiceRoom.new();add_child(server_room);server_room.build(self)
- RoomDressing.build(self)
- room_horror=RoomHorror.new();add_child(room_horror);room_horror.build(self)
- terrors=NightTerrors.new();add_child(terrors);terrors.build(self)
- soundscape=NightSoundscape.new();add_child(soundscape);soundscape.build(self)
+
+func _native_build() -> void:
+ if not OS.has_feature("web"):_module(NativeArt,"native_art")
+
+func _native_finish() -> void:
+ if native_art:native_art.finish()
+
+func _pipe_audio() -> void:
  source=AudioStreamPlayer3D.new();source.stream=load("res://assets/pipe.ogg");source.unit_size=3;source.max_distance=14;source.volume_db=-19;source.position=Vector3(7,2,-6);add_child(source)
- if native_art: source.bus="Interior"
- encounters=NightEncounters.new();add_child(encounters);encounters.build(self)
- archive=LostArchive.new();add_child(archive);archive.build(self)
- polish=AfterPlayPolish.new();add_child(polish);polish.build(self)
- if native_art: native_art.finish()
- backstage=BackstageExpansion.new();add_child(backstage);backstage.build(self)
- passages=PatrolPassage.new();add_child(passages);passages.build(self)
- for zone in ["Küche","Kino"]: zones[zone]+=ServiceAnnex.OFFSET
- details=AfterPlayDetails.new();add_child(details);details.build(self)
- film=CinemaFilm.new();add_child(film);film.build(self)
- life=HappylandLife.new();add_child(life);life.build(self)
- revamp=RevampWorld.new();add_child(revamp);revamp.build(self)
- venue=VenueDetails.new();add_child(venue);venue.build(self)
+ if native_art:source.bus="Interior"
+
+func _annex_zones() -> void:
+ for zone in ["Küche","Kino"]:zones[zone]+=ServiceAnnex.OFFSET
+
+func _seat_rays() -> void:
  annex.finish_interaction_geometry()
- watch=ReceptionWatch.new();add_child(watch);watch.build(self)
- pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
- FootSurfaces.tag(self)
- graphics=AfterPlayGraphics.new();add_child(graphics);graphics.build(self)
- arrival_design=ArrivalDesign.new();add_child(arrival_design);arrival_design.build(self)
- craft=VenueCraft.new();add_child(craft);craft.build(self)
- acoustics=HappylandAcoustics.new();add_child(acoustics);acoustics.build(self)
 
 func _wall_paintings() -> void:
  var root:=group("wall_paintings")

@@ -61,7 +61,7 @@ func build(world: PlayWorld) -> void:
 func plaque(text: String, pos: Vector3, yaw: float) -> void:
  # Sign pixels and text are a single opaque texture, mounted above the frame.
  var filename:="kitchen" if text=="KÜCHE" else "cinema"
- w.artwork(self,pos,Vector2(1.4,.45),load("res://assets/annex/"+filename+"-sign.png"),yaw)
+ w.artwork(self,pos,Vector2(1.4,.45),VenueSignage.texture(filename),yaw)
 
 func _kitchen() -> void:
  var steel:=w.mat(Color("596661"),load("res://assets/paint.png"),.43,.7)

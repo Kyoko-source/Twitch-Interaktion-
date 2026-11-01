@@ -138,11 +138,9 @@ func _party_dressing() -> void:
   var page:=w.box(party,Vector3(x,.7,z+.15),Vector3(.25,.006,.2),w.materials.paper);page.rotation.y=i*.32
   for j in range(3): w.tube(party,Vector3(x-.09+j*.06,.715,z+.1),Vector3(x-.03+j*.06,.715,z+.2),.004,[w.materials.gold,w.materials.blue,w.materials.red][j])
  for i in range(7):
-  var pos:=Vector3(18.72+(i%2)*.55,.25+floori(i/6.0)*.48,-9.1+(i%3)*.56)
-  var gift:=w.box(party,pos,Vector3(.62,.48,.52),[w.materials.blue,w.materials.gold,w.materials.red][i%3],true)
-  w.box(gift,Vector3(0,.25,0),Vector3(.075,.012,.53),w.materials.cream)
-  w.box(gift,Vector3(0,.25,0),Vector3(.63,.013,.075),w.materials.cream)
-  w.tube(gift,Vector3(-.11,.27,0),Vector3(0,.35,0),.02,w.materials.cream);w.tube(gift,Vector3(.11,.27,0),Vector3(0,.35,0),.02,w.materials.cream)
+  var pos:=Vector3(18.60+(i%2)*.65,.25+floori(i/6.0)*.48,-9.1+(i%3)*.56)
+  WrappedPresent.build(w,party,pos,Vector3(.62,.48,.52),i,true,i!=0)
+
  for ends in [[Vector3(6.91,4.6,-9.8),Vector3(7.2,4.6,-9.8)],[Vector3(18.86,4.59,-9.8),Vector3(19.51,4.59,-9.8)]]:
   w.tube(party,ends[0],ends[1],.008,w.materials.stitch)
  for i in range(22):

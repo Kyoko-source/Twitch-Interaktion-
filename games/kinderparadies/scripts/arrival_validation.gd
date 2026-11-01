@@ -52,6 +52,7 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(credits.black.color.a>=.99 and credits.escape_audio.playing and credits.word.modulate.a==0,"Car must start under black before the title appears")
  credits.tick(2.2);verify.call(credits.word.modulate.a>.9 and credits.secret_line.modulate.a>.9,"Secret ending text never becomes visible")
  credits.tick(7.);verify.call(credits.snapshot().stage=="credits" and credits.music.playing and not credits.escape_audio.playing,"Secret ending omits credits or overlaps engine and credit music")
+ await credits.wait_prepared()
  game._main_menu();game.has_session=false;game._continue()
  verify.call(game.phase=="ending" and game.end_credits.ending_number==3,"Continue loses a completed secret ending")
  game._new_shift();game.intro.skip();verify.call(not game.secret_ending and game.phase=="play" and game.state.streak==0,"New shift retains the secret ending")

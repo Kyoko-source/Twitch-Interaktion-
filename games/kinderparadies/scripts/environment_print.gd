@@ -74,7 +74,9 @@ func _draw() -> void:
   draw_string(font,Vector2(70,330),"KOSTÜME / PERSONAL",HORIZONTAL_ALIGNMENT_LEFT,-1,37,ink)
   draw_string(font,Vector2(70,440),"Bitte alle Köpfe wieder aufhängen.",HORIZONTAL_ALIGNMENT_LEFT,-1,27,ink)
 
-static func texture(parent: Node, id: String) -> ViewportTexture:
+static func texture(parent: Node, id: String) -> Texture2D:
+ var routes:={"lift": "lift", "exit": "exit", "exit_changed": "exit_changed", "costumes": "costumes"}
+ if routes.has(id):return VenueSignage.texture(routes[id])
  var view:=SubViewport.new();view.name="Print_"+id;view.size=Vector2i(800,600);view.disable_3d=true;view.render_target_update_mode=SubViewport.UPDATE_ONCE;parent.add_child(view)
  var content:=EnvironmentPrint.new();content.kind=id;content.size=Vector2(800,600);view.add_child(content)
  return view.get_texture()
