@@ -24,7 +24,7 @@ static func build(w: PlayWorld, parent: Node3D) -> void:
    var brick:=w.box(parent,Vector3(-14.05+col*.29+(row%2)*.11,1.95+row*.145,-22.39),Vector3(.265,.125,.045),w.materials.rust if (row+col)%3 else grime);brick.rotation.z=sin(row*col)*.008
  # Mounted records, a worn menu and a small framed kitchen mascot painting.
  w.artwork(parent,Vector3(-10.65,2.25,-22.385),Vector2(1.3,.98),load("res://assets/annex/hygiene-board.png"))
- w.artwork(parent,Vector3(-13.9,2.3,-13.42),Vector2(1.55,1.16),load("res://assets/annex/old-menu.png"),PI)
+ w.artwork(parent,Vector3(-15.7,2.35,-13.42),Vector2(1.55,1.16),load("res://assets/annex/old-menu.png"),PI)
  w.painting(parent,2,Vector3(-11.1,2.2,-13.42),Vector2(1.65,1.1),PI)
  # A wall cupboard stands open, with real shelves and stored crockery.
  var cupboard:=Node3D.new();cupboard.position=Vector3(-15.8,1.85,-22.15);parent.add_child(cupboard)

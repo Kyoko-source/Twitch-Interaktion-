@@ -45,3 +45,14 @@ projektintern synthetisierte Aufnahmen, keine externen Feldaufnahmen.
 Die vier fiktiven historischen Fotografien an der Geburtstagswand wurden für
 After Play mit OpenAI image_gen erstellt. Alle dargestellten Personen sind erfunden.
 Fotomontage, Beschriftungen, Kamerasystem und CCTV-Bildeffekte sind Projektarbeit.
+
+After Play 3.0: Neue Kreaturenaufnahmen von Ogrebane, Monster Sound Effects Pack,
+CC0 1.0: https://opengameart.org/content/monster-sound-effects-pack
+Daraus wurden eigene Schreckeffekte in zehn Klangfamilien erstellt.
+Neue Oberflaechen und gescannter Vorratsschrank: Poly Haven, CC0 1.0.
+https://polyhaven.com/a/rusty_painted_metal
+https://polyhaven.com/a/dirty_tiles
+https://polyhaven.com/a/metal_plate
+https://polyhaven.com/a/painted_wooden_cabinet_02
+Die Bearbeitungen des Clownkopfs verwenden weiterhin den Scan von Lee Perry-Smith;
+dessen beiliegende CC-BY-3.0-Hinweise gelten unveraendert.

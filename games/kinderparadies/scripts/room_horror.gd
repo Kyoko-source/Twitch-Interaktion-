@@ -2,7 +2,7 @@ class_name RoomHorror
 extends Node3D
 
 const MUSIC:="res://assets/party/musicbox.mp3"
-const CREATURE:="res://assets/creatures/vent-ossuary-v21.glb"
+const CREATURE:="res://assets/revamp-v300/vent-ossuary-v300.glb"
 const SHAFT:=Rect2(-2.05,-20.8,1.5,1.7)
 var w: PlayWorld
 var music: AudioStreamPlayer3D
@@ -115,13 +115,13 @@ func _vent_creature() -> void:
  w.box(grate,Vector3(.1,-.08,0),Vector3(.23,.05,1.5),w.materials.metal)
  for z in [-.73,.73]: w.box(grate,Vector3(.2,-.37,z),Vector3(.045,.64,.045),w.materials.metal)
  for k in range(10): w.box(grate,Vector3(.2,-.1-k*.06,0),Vector3(.035,.025,1.4),w.materials.metal)
- creature=(load(CREATURE) as PackedScene).instantiate();creature.name="CinemaVentDweller";creature.position=pos;creature.rotation.y=-.55;add_child(creature)
+ creature=(load("res://assets/creatures/vent-ossuary-v21.glb" if OS.has_feature("web") else CREATURE) as PackedScene).instantiate();creature.name="CinemaVentDweller";creature.position=pos;creature.rotation.y=-.55;add_child(creature)
  for mesh in creature.find_children("*","MeshInstance3D",true,false):
   for s in range(mesh.mesh.get_surface_count()):
    var material: Material=mesh.get_active_material(s)
    if material is StandardMaterial3D:
     material=material.duplicate();mesh.set_surface_override_material(s,material)
-    material.albedo_texture=load("res://assets/aged-plaster.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*3.2
+    material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*3.2
     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.48
     material.roughness=.94;material.metallic_specular=.10
    if material is StandardMaterial3D and material.resource_name=="Mottled cadaver skin":

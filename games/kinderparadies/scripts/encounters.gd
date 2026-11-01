@@ -11,6 +11,8 @@ var origin := Vector3.ZERO
 var end := Vector3.ZERO
 var shock := 0.0
 var audio: AudioStreamPlayer3D
+var anticipation: AudioStreamPlayer3D
+var primed:=false
 var face: Node3D
 var baseline_bunny := Vector3.ZERO
 var baseline_balloon := Vector3.ZERO
@@ -29,6 +31,9 @@ func build(world: PlayWorld) -> void:
 
 func configure(anomaly: String) -> void:
  id=anomaly
+ if id in ["bunny_lunge","croc_snap","party_burst","clown_lunge"]:
+  anticipation=ScareBank.lead(self,id)
+  ScareBank.select(audio,id)
  # Every round owns a new controller. No wall-clock tweens: pause freezes
  # proximity checks, animation, audio and camera reaction at the same instant.
  for target in [w.atmosphere.horrors.bunny,w.props.inflatable_skin,w.props.balloons,w.atmosphere.horrors.horse]:
@@ -44,6 +49,7 @@ func visible_to(player: NightGuard, target: Vector3, distance: float) -> bool:
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  audio.stream_paused=not active
+ if anticipation: anticipation.stream_paused=not active
  if not active: return
  elapsed+=delta;shock=move_toward(shock,0,delta*2.8)
  if id=="clown_lunge":
@@ -58,10 +64,12 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if not triggered and elapsed>1:
   var target: Vector3=bunny.global_position+Vector3(0,.7,0) if id=="bunny_lunge" else w.props.inflatable.to_global(Vector3(0,2,2.7)) if id=="croc_snap" else Vector3(8.5,1.5,-7)
   var proximity:=3.0 if id=="bunny_lunge" else 5.2 if id=="croc_snap" else 3.4
+  if not primed and visible_to(player,target,proximity+1.4):
+   primed=true;anticipation.global_position=target;anticipation.play()
   if visible_to(player,target,proximity):
    triggered=true;origin=bunny.global_position;attack_time=0;shock=1
    audio.global_position=target
-   audio.stream=load("res://assets/"+("scares-v260/gasp-snap.wav" if id=="bunny_lunge" else "scares-v260/bass-roar.wav" if id=="croc_snap" else "scares-v260/crowd-burst.wav"));audio.play()
+   anticipation.stop();ScareBank.play(audio)
    if id=="bunny_lunge":
     end=player.camera.global_position-player.camera.global_basis.z*.62-Vector3(0,.64,0);face.show()
    elif id=="party_burst": w.props.balloons.scale=Vector3.ONE*1.8
@@ -88,10 +96,14 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
 
 func _clown(delta: float, player: NightGuard) -> void:
  var actor: Node3D=w.annex.clown.root
+ if not primed and elapsed>.25 and visible_to(player,actor.global_position+Vector3(0,1.95,0),4.4):
+  primed=true;w.annex.scare=true;anticipation.global_position=actor.global_position+Vector3.UP*1.7;anticipation.play()
+ if primed and not triggered:
+  w.annex.clown.head.rotation.y=lerp_angle(w.annex.clown.head.rotation.y,.28,delta*4)
  if not triggered and elapsed>1 and visible_to(player,actor.global_position+Vector3(0,1.95,0),3):
   triggered=true;w.annex.scare=true;clown_origin=actor.position;clown_rotation=actor.rotation.y;attack_time=0
   clown_end=w.annex.to_local(player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0))
-  audio.global_position=actor.global_position+Vector3(0,1.7,0);audio.stream=load("res://assets/scares-v260/ragged-scream.wav");audio.volume_db=-4;audio.play()
+  audio.global_position=actor.global_position+Vector3(0,1.7,0);anticipation.stop();ScareBank.play(audio)
  if not triggered or finished: return
  attack_time+=delta
  if attack_time<.48:

@@ -79,7 +79,7 @@ func strand(transforms: Array[Transform3D], a: Vector3, b: Vector3) -> void:
  transforms.append(Transform3D(Basis(Quaternion(Vector3.UP,difference.normalized()))*Basis.from_scale(Vector3(1,difference.length(),1)),(a+b)*.5))
 
 func _crocodile() -> void:
- inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,11.3);inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
+ inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,10.0);inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
  inflatable_skin=Node3D.new();inflatable.add_child(inflatable_skin);w.props.inflatable_skin=inflatable_skin
  # Both renderers use the authored mesh, UV skin and outward-facing normals.
  # The old Web approximation had no upper jaw and coplanar eye decorations.

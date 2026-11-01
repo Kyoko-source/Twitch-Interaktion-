@@ -51,6 +51,7 @@ func run(game: Node3D, output: String) -> void:
  subtitle.add_theme_font_override("font",NightMenus.menu_font(400,5));subtitle.add_theme_font_size_override("font_size",23)
  subtitle.add_theme_color_override("font_color",Color("d9d0b5"));layer.add_child(subtitle)
  await settle(game);save(game,output,"after-play-cover-1260x1000")
- var report:={"version":"2.12.2","renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"quality":2,"brightness":game.settings.brightness,"screenshots":views,"cover":"Actual party room and mascot; title and dark translucent backing only; no image generation, added lights, material or model changes."}
+ var report:={"version":"3.0.0","renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name(),"quality":2,"brightness":game.settings.brightness,"screenshots":views,"cover":"Actual party room and mascot; title and dark translucent backing only; no image generation, added lights, material or model changes."}
  var file:=FileAccess.open(output.path_join("aufnahme-info.json"),FileAccess.WRITE);file.store_string(JSON.stringify(report," "))
  print("ITCH MEDIA COMPLETE ",output)
+ layer.queue_free();await game.get_tree().process_frame

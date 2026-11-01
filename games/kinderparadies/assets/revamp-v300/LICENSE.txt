@@ -1,0 +1,11 @@
+After Play 3.0: original models, shaders and sound edits.
+Monster voice recordings: Ogrebane, Monster Sound Effects Pack, CC0 1.0.
+https://opengameart.org/content/monster-sound-effects-pack
+Foley: Joseph SARDIN / BigSoundBank and Kenney Impact Sounds, CC0.
+See existing Ambience-v180, Ambience-v193 and Footsteps notices.
+Rusty Painted Metal and Dirty Tiles: Poly Haven, CC0 1.0.
+https://polyhaven.com/a/rusty_painted_metal
+https://polyhaven.com/a/dirty_tiles
+https://polyhaven.com/a/metal_plate
+https://polyhaven.com/a/painted_wooden_cabinet_02
+Original source URLs, archive hash and edit measurements: private provenance.json.

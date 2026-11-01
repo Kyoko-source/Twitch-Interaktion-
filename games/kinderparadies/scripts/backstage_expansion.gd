@@ -35,7 +35,7 @@ var elapsed:=0.0
 func build(world: PlayWorld) -> void:
  w=world;name="BackstageExpansion"
  _stage();_costume_room();_maintenance_story();_unsettling_exit();_room_palettes()
- scare_audio=AudioStreamPlayer3D.new();scare_audio.name="CostumeSting";scare_audio.stream=load("res://assets/scares-v260/ragged-scream.wav");scare_audio.unit_size=5;scare_audio.max_distance=12;scare_audio.volume_db=-4;scare_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(scare_audio)
+ scare_audio=AudioStreamPlayer3D.new();scare_audio.name="CostumeSting";scare_audio.stream=ScareBank.flat("costume_wakes");scare_audio.unit_size=5;scare_audio.max_distance=12;scare_audio.volume_db=-4;scare_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(scare_audio)
 
 func model(parent: Node3D, file: String, pos: Vector3, yaw: float=0) -> Node3D:
  var instance: Node3D=(load(ROOT+file+".glb") as PackedScene).instantiate();parent.add_child(instance);instance.position=pos;instance.rotation.y=yaw
@@ -270,7 +270,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if anomaly=="costume_wakes":
   var head:=masks[3];var target:=head.global_position
   if not triggered and elapsed>.8 and w.encounters.visible_to(player,target,3.7):
-   triggered=true;attack=0;scare_audio.global_position=target;scare_audio.play();shock=1.0
+   triggered=true;attack=0;scare_audio.global_position=target;ScareBank.play_flat(scare_audio);shock=1.0
   if triggered:
    attack+=delta
    _costume_pose()

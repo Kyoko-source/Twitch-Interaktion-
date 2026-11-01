@@ -1,5 +1,60 @@
 # After Play — Kinderparadies
 
+## Klang, Materialien und räumlicher Ausbau (3.0.0)
+
+Die Schreckeffekte stammen jetzt aus zehn eigenständigen Kreaturenaufnahmen
+von Ogrebane (CC0), ergänzt durch die bereits lizenzierten Feldaufnahmen.
+Daraus entstanden drei unterschiedliche Schnitte pro Klangfamilie und zehn
+kurze Vorzeichen. Die 30 Attacken sind keine Kopien desselben Koch-Schreis.
+ScareBank verhindert direkte Wiederholung einer Variante; die Auswahl besitzt
+einen eigenen Zufallsgenerator und beeinflusst weder Anomalien noch Spielstände.
+Besucher, Hase, Krokodil, Clown, Kostüm und der falsche Ausgang verwenden diese
+Bibliothek. Der eigene Koch-Schrei des Archivfinales bleibt erhalten.
+
+Vorzeichen liegen räumlich an der Erscheinung und pausieren mit dem Spiel.
+Der Küchenclown unterbricht sein Rühren bei Annäherung und bewegt vor dem
+Angriff den Kopf. Andere Besucher reagieren mit einer begrenzten Kopfdrehung.
+Drei artikulierte Besucherformen (zerfetzt, verhüllt, verzerrt) ersetzen die
+einheitliche Gestalt an den verschiedenen Begegnungsarten. Die Figuren behalten
+dunkle Augenhöhlen; Stoff wird nicht mehr mit einer Putztextur überzogen.
+
+Windows verwendet überarbeitete Clown-, Hasen- und Schachtmodelle. Der große
+Stoffhase bleibt das genähte Spielzeug im Partyraum, mit millimeterkurzem,
+gerichtetem Flor statt langer Nadeln. Der Clown erhält gewebte Kleidung und
+Blut im tatsächlichen Stoffmaterial. Der Topfinhalt besitzt eine durchgehende
+unregelmäßige Oberfläche statt flacher kreisförmiger Schimmelplättchen.
+
+Die Küche erhält fotografische 2K-Fliesen, Lack mit unregelmäßiger Verschmutzung,
+echte Metalloberflächen, eine feste Vorbereitungsstation, Halterungen,
+Abzugsfilter, Gefäße und einen gescannten Vorratsschrank von Poly Haven.
+Gebäudesockel, befestigte Deckenbalken, Leuchtenaufhängungen, Bühnenvorhänge und
+gefasste Kinoabsorber geben auch den übrigen Bereichen mehr räumliche Details.
+Das Krokodil steht 1,3 m weiter vom Fotoautomaten entfernt.
+
+In Forward+ ersetzt aufeinander abgestimmter volumetrischer Nebel die bisherige
+doppelte Überlagerung dichter linearer und volumetrischer Schichten. Der Nebel
+bleibt immer vorhanden; nahe Oberflächen werden nicht zusätzlich ausgewaschen.
+Die rote Nebelanomalie färbt beide Nebelarten sichtbar. Web behält einfachere
+Materialien, vorhandene Hero-Geometrie und dichten linearen Nebel; die neuen
+Sounds und Besucherformen bleiben auch dort enthalten.
+
+Neue Einbauten besitzen passende feste Körper. Fortsetzen prüft deren Volumen,
+damit ältere Speicherpositionen nicht mitten in einer neuen Arbeitsplatte liegen.
+Die handschriftliche Hilfe, 6:7-Rundenverteilung, vier geschützten Zeitungsrunden,
+0712-Zugang und beide nummerierten Abschlüsse bleiben erhalten.
+
+Private Werkzeuge: tools/prepare-after-play-v300.py,
+tools/model-after-play-v300.py, --self-test --revamp-only und
+--render-qa --v300-qa --capture-dir=<Ordner>.
+Quellen, Originalhashes und Klangmessungen: assets/revamp-v300/provenance.json.
+
+Validierung 3.0.0: 1.799 native Prüfungen ohne Fehler und ohne Skriptfehler;
+sechs reale Browser-Abläufe bestanden (Klangwechsel, Küchenstation, Kino-Zeitung,
+13 Rundgänge samt Tod und Ende 1, Clown, Archiv-Ende und Menüs). Die native
+Forward+-Fassung wurde mit echten Spielaufnahmen visuell geprüft. Beide
+Spielerpakete bestehen Datei-, Prüfsummen- und Lizenzprüfung; beide itch-Kanäle
+bestehen den lokalen Butler-Probelauf. Kein itch.io-Upload wurde gestartet.
+
 ## Ausgeglichene Rundgänge (2.12.2)
 
 Eine frisch begonnene, erfolgreiche Schicht hat **6 Anomalierunden und 7 normale
@@ -180,7 +235,7 @@ Bedarf die offizielle portable Godot-Version und verifiziert deren SHA512.
 Windows- und Web-Templates aus dem offiziellen Archiv; ZIP-CRCs werden geprüft.
 
 Ergebnisse: `build/windows/AfterPlay.exe`, `build/web/`,
-`build/after-play-windows-v2.12.2.zip`. `-WithQA` erzeugt zusätzlich eine separate
+`build/after-play-windows-v3.0.0.zip`. `-WithQA` erzeugt zusätzlich eine separate
 Web-Prüffassung mit Test-Hooks; diese darf nicht veröffentlicht werden.
 
 Die Spielerpakete werden über `tools/package-kinderparadies.ps1` aus den Exporten

@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 2.12.2
+# After Play — Veröffentlichungsvorbereitung 3.0.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v2.12.2.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v2.12.2.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v3.0.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v3.0.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -17,14 +17,16 @@ Nachts gehört das verlassene Happyland dir. Dein Chef hat eine einfache Aufgabe
 
 Keine Veränderung? Nimm die grüne Tür. Eine Anomalie? Nimm die rote Tür. Triff dreizehn richtige Entscheidungen in Folge. Eine falsche Tür beendet deine Nachtschicht.
 
-Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 61 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
+Zwischen Bällebad, Kletteranlage, Krabbelröhren, Party Raum, Werkstatt, Küche und verfallenem Kino warten 64 mögliche Anomalien. Nicht jedes Geräusch ist ein Hinweis. Nicht alles, was dich beobachtet, hat sich verändert.
 
 Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland. Wer ihre Hinweise versteht, findet einen zusätzlichen Raum und ein verborgenes Ende.
 
 ### Merkmale
 
 - Ego-Horror mit frei begehbarer 3D-Umgebung, Springen, Krabbeln und physischen Spielzeugen.
-- 61 zufällige Anomalien, kurze Verfolgungen und Schreckmomente.
+- 64 zufällige Anomalien, kurze Verfolgungen und Schreckmomente.
+- Zehn Klangfamilien mit 30 Schreckeffekten und räumlichen Vorzeichen.
+- Ausgebaute Küche, gealterte Materialien und unterschiedliche Besucherformen.
 - Eine verlassene Geburtstagsbühne, ein begehbarer Kostümraum und lesbare Wartungsberichte.
 - Persönliche Nachtdienst-Ausrüstung und unterschiedliche Lichtstimmungen pro Raum.
 - Zurückhaltendes HUD; handschriftliche Kontrollliste im pausierbaren Inventar.

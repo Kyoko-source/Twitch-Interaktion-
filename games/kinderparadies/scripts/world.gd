@@ -38,6 +38,7 @@ var film: CinemaFilm
 var life: HappylandLife
 var watch: ReceptionWatch
 var pit_physics: BallPitPhysics
+var revamp: RevampWorld
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -149,6 +150,7 @@ func build() -> void:
  details=AfterPlayDetails.new();add_child(details);details.build(self)
  film=CinemaFilm.new();add_child(film);film.build(self)
  life=HappylandLife.new();add_child(life);life.build(self)
+ revamp=RevampWorld.new();add_child(revamp);revamp.build(self)
  annex.finish_interaction_geometry()
  watch=ReceptionWatch.new();add_child(watch);watch.build(self)
  pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
@@ -452,6 +454,7 @@ func set_anomaly(id: String) -> void:
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
 
 func tick(delta: float, active: bool) -> void:
+ revamp.tick(delta,active)
  life.tick(delta,active)
  details.tick(delta,active)
  annex.tick(delta,active)

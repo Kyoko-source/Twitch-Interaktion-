@@ -21,13 +21,16 @@ static func link(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
 static func sleeve(parent: Node3D, radius: float) -> MeshInstance3D:
  var scene: Node3D=(load("res://assets/props/clown-sleeve.glb") as PackedScene).instantiate()
  var mesh:=scene.find_children("*","MeshInstance3D",true,false)[0] as MeshInstance3D
- mesh.get_parent().remove_child(mesh);scene.free();parent.add_child(mesh);mesh.set_meta("radius_scale",radius/.085);return mesh
+ mesh.get_parent().remove_child(mesh);scene.free();parent.add_child(mesh);mesh.set_meta("radius_scale",radius/.085)
+ var cloth:=StandardMaterial3D.new();cloth.albedo_color=Color("875650");cloth.albedo_texture=load("res://assets/pbr/fabric_pattern_07/albedo.jpg")
+ cloth.normal_enabled=true;cloth.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");cloth.normal_scale=.4;cloth.roughness=.96
+ cloth.uv1_triplanar=true;cloth.uv1_scale=Vector3.ONE*6;mesh.material_override=cloth;return mesh
 
 static func bone(parent: Node3D, radius: float, material: Material) -> MeshInstance3D:
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load("res://assets/props/kitchen-clown-v4.glb")
+ var scene: PackedScene=load("res://assets/props/kitchen-clown-v4.glb" if OS.has_feature("web") else "res://assets/revamp-v300/kitchen-clown-v300.glb")
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
@@ -37,9 +40,15 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
    var material:=mesh.get_active_material(surface) as StandardMaterial3D
    if material and material.resource_name=="Cracked greasepaint and blood" and not material.normal_texture:
     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.17;material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*12
+   if material and material.resource_name in ["Blood stained woven costume","Dirty pleated linen"]:
+    var cloth:=ShaderMaterial.new();cloth.shader=load(ScareBank.ROOT+"soaked_cloth.gdshader")
+    cloth.set_shader_parameter("textile",load("res://assets/pbr/fabric_pattern_07/albedo.jpg"));cloth.set_shader_parameter("fibres",load("res://assets/pbr/fabric_pattern_07/normal.jpg"))
+    cloth.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));cloth.set_shader_parameter("apron",material.resource_name=="Dirty pleated linen")
+    cloth.set_shader_parameter("tint",Color("a9a18a") if material.resource_name=="Dirty pleated linen" else Color("743b36"));mesh.set_surface_override_material(surface,cloth)
  var suit:=w.mat(Color("744a46"),null,.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
  var arm:=sleeve(root,.085);var forearm:=sleeve(root,.067)
- var hand: Node3D=(load("res://assets/props/anatomical-grip.glb") as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
+ var hand: Node3D=(load("res://assets/revamp-v300/anatomical-grip-v300.glb") as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
+ CharacterFinish.hand(hand)
  link(arm,Vector3(-.28,1.48,0),Vector3(-.25,1.15,.42))
  link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))
  var idle_arm:=sleeve(root,.075);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))

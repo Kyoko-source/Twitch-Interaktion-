@@ -28,7 +28,7 @@ func _mascot() -> void:
 
 func _mascot_at(pos: Vector3, yaw: float, id: String) -> Node3D:
  var root:=Node3D.new();root.name=id;root.position=pos;root.rotation.y=yaw;root.set_meta("giant_mascot",true);add_child(root)
- var visual: Node3D=(load("res://assets/mascot-v251/mascot-rabbit.glb") as PackedScene).instantiate();visual.name="TailoredGiantMascot";root.add_child(visual)
+ var visual: Node3D=(load("res://assets/mascot-v251/mascot-rabbit.glb" if OS.has_feature("web") else "res://assets/revamp-v300/mascot-rabbit-v300.glb") as PackedScene).instantiate();visual.name="TailoredGiantMascot";root.add_child(visual)
  for mesh in visual.find_children("*","MeshInstance3D",true,false):
   mesh.set_meta("mascot_mesh",true)
   for s in range(mesh.mesh.get_surface_count()):

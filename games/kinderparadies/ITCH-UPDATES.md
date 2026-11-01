@@ -1,10 +1,12 @@
 # After Play: Uploads und Updates über die itch-App
 
-Profil: **KyokoHauntedGames**. Als Spieladresse ist vorläufig
+Profil: **KyokoHauntedGames**. Die bestehende Spieladresse ist
 `kyokohauntedgames/after-play` eingestellt. Der Projektname muss mit der auf
 itch.io angelegten Seite übereinstimmen; er lässt sich mit `-Project` ändern.
 Diese Anleitung und die Werkzeuge bleiben im Entwicklerprojekt, nicht im
-Spieler-Download. Es wurde noch nichts zu itch.io hochgeladen.
+Spieler-Download. Version 2.12.2 wurde vom Ersteller bereits über die itch-App
+hochgeladen. Neue Fassungen kommen auf denselben Kanal windows; diese
+Werkzeuge laden nur mit ausdrücklichem -Upload hoch.
 
 ## Einmalige Einrichtung
 

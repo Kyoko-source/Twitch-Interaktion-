@@ -522,5 +522,121 @@
         "bytes": 3549020
       }
     ]
+  },
+  {
+    "id": "rusty_painted_metal",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rusty_painted_metal",
+    "files": [
+      {
+        "path": "pbr/rusty_painted_metal/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rusty_painted_metal/rusty_painted_metal_diff_2k.jpg",
+        "sha256": "883118fafabb56304f9e33ea2da3c183379b1c1b1c5a4702fdc335b0cf84614f",
+        "bytes": 1930544
+      },
+      {
+        "path": "pbr/rusty_painted_metal/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rusty_painted_metal/rusty_painted_metal_nor_gl_2k.jpg",
+        "sha256": "2289c10422d5082aea3cf37661008b281c4aec20f6d0b574df6d7887573eb70c",
+        "bytes": 2293576
+      },
+      {
+        "path": "pbr/rusty_painted_metal/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rusty_painted_metal/rusty_painted_metal_rough_2k.jpg",
+        "sha256": "17e6a4cab6d42576ce0bffecc53ba364d18a40b5d941471273b947e6f347a3b5",
+        "bytes": 1342923
+      }
+    ]
+  },
+  {
+    "id": "dirty_tiles",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/dirty_tiles",
+    "files": [
+      {
+        "path": "pbr/dirty_tiles/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_tiles/dirty_tiles_diff_2k.jpg",
+        "sha256": "f6a8277364de17e8cd1fd5f4b44640d77ecd1f3f9e06bc67593a213da6b3fb44",
+        "bytes": 2480535
+      },
+      {
+        "path": "pbr/dirty_tiles/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_tiles/dirty_tiles_nor_gl_2k.jpg",
+        "sha256": "85dc33ec888d8ce529bc49eaf8c704dbf8b39d86eaba6c691d56f5a663af2273",
+        "bytes": 2687646
+      },
+      {
+        "path": "pbr/dirty_tiles/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_tiles/dirty_tiles_rough_2k.jpg",
+        "sha256": "78cd92ec652d9f833c245a459ef643738c816ee56d7681852d84f6eff471b623",
+        "bytes": 2291811
+      }
+    ]
+  },
+  {
+    "id": "metal_plate",
+    "kind": "material",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_plate",
+    "files": [
+      {
+        "path": "pbr/metal_plate/albedo.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_plate/metal_plate_diff_2k.jpg",
+        "sha256": "864c9a653acd1f5034c9bbe7f955b18cc9687a81bbdfa805e7a2319939676910",
+        "bytes": 2670774
+      },
+      {
+        "path": "pbr/metal_plate/normal.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_plate/metal_plate_nor_gl_2k.jpg",
+        "sha256": "146f8c00874a584bcc4a184643e72f160da2a7568d469198e02b26c9ff93cf43",
+        "bytes": 2516654
+      },
+      {
+        "path": "pbr/metal_plate/roughness.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/metal_plate/metal_plate_rough_2k.jpg",
+        "sha256": "3cdc139df4ec5b304dd986278c1fb026c67c42e6623f0ee5caa7f373d51c7bef",
+        "bytes": 3045988
+      }
+    ]
+  },
+  {
+    "id": "painted_wooden_cabinet_02",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/painted_wooden_cabinet_02",
+    "files": [
+      {
+        "path": "models/painted_wooden_cabinet_02/painted_wooden_cabinet_02.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/painted_wooden_cabinet_02/painted_wooden_cabinet_02_2k.gltf",
+        "sha256": "85dcb90361d7fee4dfc279c91015fffd6f8a0ed607737cb8cd0eab1f3b05bae9",
+        "bytes": 6085
+      },
+      {
+        "path": "models/painted_wooden_cabinet_02/painted_wooden_cabinet_02.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/painted_wooden_cabinet_02/painted_wooden_cabinet_02.bin",
+        "sha256": "7acab853993b90cafc9c7550a7035397dfeb4bbda7f0dba8759d40a971c755ca",
+        "bytes": 39332
+      },
+      {
+        "path": "models/painted_wooden_cabinet_02/textures/painted_wooden_cabinet_02_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_cabinet_02/painted_wooden_cabinet_02_arm_2k.jpg",
+        "sha256": "5aee389d79167887af3063c64419b9ad5903d2b08c5fa9cbe7190d193cbbc338",
+        "bytes": 1631952
+      },
+      {
+        "path": "models/painted_wooden_cabinet_02/textures/painted_wooden_cabinet_02_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_cabinet_02/painted_wooden_cabinet_02_nor_gl_2k.jpg",
+        "sha256": "90b057654befa0bc580f0ed60313d10820c2a794d8b7672dd2324bef4f89702f",
+        "bytes": 2325419
+      },
+      {
+        "path": "models/painted_wooden_cabinet_02/textures/painted_wooden_cabinet_02_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_cabinet_02/painted_wooden_cabinet_02_diff_2k.jpg",
+        "sha256": "78f80c86ace88c2ef810dd3f1665f3c009d7af09dda7e25ec6a2e673e80e4011",
+        "bytes": 2174316
+      }
+    ]
   }
 ]

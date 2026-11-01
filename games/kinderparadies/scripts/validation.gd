@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--revamp-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/revamp_validation.gd").new().run(game,check)
+  print("Revamp checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--balance-only" in OS.get_cmdline_user_args():
   await load("res://scripts/balance_validation.gd").new().run(game,check)
   print("Balance checks: ",checks,"; failures: ",failures.size())
@@ -497,6 +501,7 @@ func run(game: Node3D) -> bool:
  var stored_settings: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SETTINGS))
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
+ await load("res://scripts/revamp_validation.gd").new().run(game,check)
  await load("res://scripts/balance_validation.gd").new().run(game,check)
  await load("res://scripts/archive_validation.gd").new().run(game,check)
  await load("res://scripts/nightmare_validation.gd").new().run(game,check)

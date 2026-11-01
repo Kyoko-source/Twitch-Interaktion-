@@ -51,6 +51,8 @@ var echoes: Array[Node3D]=[]
 var marker: Node3D
 var audio: AudioStreamPlayer3D
 var footsteps: AudioStreamPlayer3D
+var anticipation: AudioStreamPlayer3D
+var primed:=false
 var elapsed:=0.0
 var attack:=0.0
 var triggered:=false
@@ -76,19 +78,11 @@ func configure(value: String) -> void:
  spec=SCENARIOS[id];origin=spec.p
  if spec.zone in ["Küche","Kino"]: origin+=ServiceAnnex.OFFSET
  vent_origin=w.room_horror.creature.position
- var track: String=spec.get("sound","window-hit" if spec.mode in ["hands","window"] else "gasp-snap" if spec.mode in ["peek","mouth"] else "metal-shriek" if spec.mode in ["ceiling","vent"] else "crowd-burst" if spec.mode=="queue" else "crawl-scream" if spec.mode in ["crawl","tube"] else "ragged-scream")
- audio.stream=load("res://assets/scares-v260/"+track+".wav");audio.pitch_scale=1.0
+ ScareBank.select(audio,id,spec.mode)
+ anticipation=ScareBank.lead(self,id,spec.mode)
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
- visual=(load("res://assets/backstage-v270/seated-visitor.glb" if spec.mode=="throne" else "res://assets/creatures/night-visitor-v21.glb") as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
- for mesh in visual.find_children("*","MeshInstance3D",true,false):
-  mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
-  for surface in range(mesh.mesh.get_surface_count()):
-   var material:=mesh.get_active_material(surface) as StandardMaterial3D
-   if material:
-    material=material.duplicate();mesh.set_surface_override_material(surface,material)
-    material.albedo_texture=load("res://assets/aged-plaster.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*4
-    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.34
-    material.roughness=.98;material.metallic_specular=.08
+ visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
+ CharacterFinish.apply(visual,w)
  var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.75;shape.shape=capsule;shape.position.y=.91;actor.add_child(shape)
  for key in ["ArmL","ArmR"]:
   var arm:=visual.find_child(key,true,false) as Node3D
@@ -140,6 +134,7 @@ func configure(value: String) -> void:
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  audio.stream_paused=not active
  footsteps.stream_paused=not active
+ if anticipation: anticipation.stream_paused=not active
  if spec.is_empty(): return
  var in_tube:=w.tubes.contains(player.position)
  if spec.mode in ["tube","window"]:
@@ -149,10 +144,17 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  var target:=focus_point()
  var eligible:=in_tube if spec.mode in ["tube","window"] else true
  var radius:=3.6 if spec.mode=="ambush" else 4.2 if spec.mode=="rush" else 5.4
+ if not triggered and not primed and elapsed>.25 and eligible and w.encounters.visible_to(player,target,radius):
+  primed=true;anticipation.position=target;anticipation.play()
  if not triggered and elapsed>.8 and eligible and w.encounters.visible_to(player,target,radius):
-  triggered=true;attack=0;audio.position=target;audio.play();shock=1.0;actor.show()
+  triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0;actor.show()
  if not triggered:
   visual.rotation.y=sin(elapsed*.53)*.12
+  if primed and spec.mode not in ["hands","window","vent"]:
+   var head:=visual.find_child("HeadRig",true,false) as Node3D
+   if head:
+    var direction:=player.position-actor.position
+    head.rotation.y=lerp_angle(head.rotation.y,clampf(atan2(direction.x,direction.z)-actor.rotation.y,-.6,.6),minf(1,delta*4))
   return
  if finished: footsteps.stop();return
  footsteps.position=actor.position

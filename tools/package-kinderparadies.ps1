@@ -1,4 +1,4 @@
-param([string]$Version='2.12.2')
+param([string]$Version='3.0.0')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
@@ -68,7 +68,7 @@ function Add-PublicSources($Value){
  }
  foreach($taskProperty in $Value.PSObject.Properties){Add-PublicSources $taskProperty.Value}
 }
-foreach($taskSource in @('assets/polyhaven-provenance.json','assets/ambience/provenance.json','assets/ambience-v180/provenance.json','assets/ambience-v193/provenance.json','assets/finale/provenance.json','assets/surfaces/provenance.json','assets/props/anatomy-provenance.json','assets/backstage-v270/provenance.json','assets/backstage-v270/Caveat-source.json')){
+foreach($taskSource in @('assets/polyhaven-provenance.json','assets/ambience/provenance.json','assets/ambience-v180/provenance.json','assets/ambience-v193/provenance.json','assets/finale/provenance.json','assets/surfaces/provenance.json','assets/props/anatomy-provenance.json','assets/backstage-v270/provenance.json','assets/backstage-v270/Caveat-source.json','assets/revamp-v300/provenance.json')){
  Add-PublicSources (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $taskProject $taskSource) | ConvertFrom-Json)
 }
 [IO.File]::WriteAllText((Join-Path $taskLicenses 'Quellen.txt'),("AFTER PLAY - Quellen und Urheber"+[Environment]::NewLine+[Environment]::NewLine+(($taskSources | Sort-Object -Unique) -join [Environment]::NewLine)),[Text.UTF8Encoding]::new($false))

@@ -78,17 +78,7 @@ func _kitchen() -> void:
  var interior:=w.mat(Color("4a4a35"),load("res://assets/aged-plaster.png"),.93,.35);interior.uv1_triplanar=true;interior.uv1_scale=Vector3.ONE*5
  SurfaceDetails.vessel(self,Vector3(-13.25,.975,-19.25),.37,.34,.29,.018,steel,interior,"CookingPot")
  for side in [-1,1]: w.tube(self,Vector3(-13.25+side*.31,1.22,-19.25),Vector3(-13.25+side*.49,1.22,-19.25),.035,steel)
- var shader:=Shader.new();shader.code="""
-shader_type spatial;
-uniform float clock=0.0;
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1)),f.x),f.y);}
-void fragment(){float n=noise(UV*15.0)*.65+noise(UV*37.0)*.25+noise(UV*94.0)*.1;float mould=smoothstep(.43,.62,n);ALBEDO=mix(vec3(.12,.082,.027),vec3(.29,.34,.19),mould);ROUGHNESS=.92;}
-""";food=ShaderMaterial.new();food.shader=shader
- var soup:=w.tube(self,Vector3(-13.25,1.20,-19.25),Vector3(-13.25,1.24,-19.25),.318,food)
- (soup.mesh as CylinderMesh).radial_segments=48
- for i in range(21):
-  var a:=i*2.4;var r:=.05+(i%5)*.05;var mould:=w.sphere(self,Vector3(-13.25+cos(a)*r,1.251,-19.25+sin(a)*r),.025+(i%3)*.012,w.mat(Color("878b60") if i%2 else Color("3c4826"),null,.99));mould.scale.y=.12
+ food=SpoiledFood.build(w,self)
  # Racks, dented trays, jars, stacked plates and abandoned ingredients.
  for y in [1.65,2.1]:
   w.box(self,Vector3(-16.8,y,-15),Vector3(.8,.06,2.4),steel)

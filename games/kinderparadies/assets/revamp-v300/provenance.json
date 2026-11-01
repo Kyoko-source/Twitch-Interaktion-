@@ -1,0 +1,350 @@
+{
+  "author": "Ogrebane; recorded Foley by Joseph SARDIN and Kenney; original edits for After Play",
+  "license": "CC0-1.0",
+  "source": "https://opengameart.org/content/monster-sound-effects-pack",
+  "archive_sha256": "f39c5ae356b1fc01284057ee48e35ec1a52fcc84bfa959b77d0a696adc8459e4",
+  "recording_sha256": {
+    "1": "eadff00fc48c13eede6255f97ca7bd47e8c44a4bef33edc5ced92f4ca3521575",
+    "2": "1c511470f5a01ec81e9f8a9889a9b13ecb27a0dbc14fadcffb022b346971afa8",
+    "3": "22d83560604f25fea0b03b4710ed86c5afc739bdbb24b5e96b614803b02c07fd",
+    "4": "23cb32d814846c22e5141e69f90814d9b3d9e283219e48fbb798f19d1a1bb35f",
+    "5": "54d433b16399b0f155cf7a0cadf397625765a894f649f9512663c98c901a6eed",
+    "6": "8aac51b6b0d058bf8a78000463897a3e633e3012f6517b6de3e36e453d6ad772",
+    "7": "91d44cfb6bb6a526fe820718e70345f73d11849d6375c954fd2d03c529ce117e",
+    "8": "ac7afb86566808f2d5b2ebf58dc3b68a0d1c2cd64cd8135d09a8d56af62928d7",
+    "9": "a4aeacd88e614fccf15e9c47b4258a76811f3c77a5d7402b7ceb1a89f5f367fc",
+    "10": "897d6f9165dfdf5ecd2a9e08d1a8a6a2cea706d6f0c43647ade44e59cdf85c75"
+  },
+  "outputs": {
+    "rabbit-1": {
+      "duration": 1.45,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -19.29,
+      "sha256": "db605d4126b899c3770e895380e46098f17f7eb8569b00eb86a4615055934211",
+      "voice": "Ogrebane monster-1.wav",
+      "foley": "cloth",
+      "variant": 1
+    },
+    "rabbit-2": {
+      "duration": 1.62,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.29,
+      "sha256": "dca09fcf44531c66382574a6f35c935016885c78e2fbf307bd1aa850b642492b",
+      "voice": "Ogrebane monster-1.wav",
+      "foley": "cloth",
+      "variant": 2
+    },
+    "rabbit-3": {
+      "duration": 1.79,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.67,
+      "sha256": "28ce473f32260a5ae04920a6f49756f98de7562f7525772f1605d9cd281c3165",
+      "voice": "Ogrebane monster-1.wav",
+      "foley": "cloth",
+      "variant": 3
+    },
+    "rabbit-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -26.18,
+      "sha256": "64c86df64344cafda6ba01c4915c9372c309d112b64a27a9faef880bb153e1a5"
+    },
+    "clown-1": {
+      "duration": 1.525,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.25,
+      "sha256": "a6bd1eea19d6ec3cc1ad6a9caddb7ce758703e3010c3f8fdd6963034e7538235",
+      "voice": "Ogrebane monster-2.wav",
+      "foley": "glass",
+      "variant": 1
+    },
+    "clown-2": {
+      "duration": 1.695,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -21.77,
+      "sha256": "fed6ca60d0f6daa207e50a77d3688a4a2de69180339149e46c005f2932ca2d6d",
+      "voice": "Ogrebane monster-2.wav",
+      "foley": "glass",
+      "variant": 2
+    },
+    "clown-3": {
+      "duration": 1.865,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.79,
+      "sha256": "16408227d35d5b48e2a42de205ea6e22b422a305561f7a3b99de48b2c77a6815",
+      "voice": "Ogrebane monster-2.wav",
+      "foley": "glass",
+      "variant": 3
+    },
+    "clown-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -3.65,
+      "rms_dbfs": -20.75,
+      "sha256": "9f57744072273d626a8c1ab369b4fa52759dcb1a693d338b07c9d22e0e4510dc"
+    },
+    "ossuary-1": {
+      "duration": 1.6,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -19.7,
+      "sha256": "70e1b55cf825910812bdc16d8e485adbcfddf4e33cb4057f57c74a7de4082f2b",
+      "voice": "Ogrebane monster-3.wav",
+      "foley": "metal",
+      "variant": 1
+    },
+    "ossuary-2": {
+      "duration": 1.77,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.68,
+      "sha256": "f93bb33f104fa1deea993f54cbae22ceedcaa17ad0211829684ab27b29c318ef",
+      "voice": "Ogrebane monster-3.wav",
+      "foley": "metal",
+      "variant": 2
+    },
+    "ossuary-3": {
+      "duration": 1.94,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.06,
+      "sha256": "7a33520d4dd068adbb32a1657455807d5176b58ae2165c374c5d935a950bc41c",
+      "voice": "Ogrebane monster-3.wav",
+      "foley": "metal",
+      "variant": 3
+    },
+    "ossuary-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -3.24,
+      "rms_dbfs": -18.84,
+      "sha256": "d3d1a4b6981f08ada95a2c4ff91a9f12c1174c5fac2f06e8e5fa4f4fea251f65"
+    },
+    "crawler-1": {
+      "duration": 1.675,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -18.87,
+      "sha256": "5141a082bebc7f22d15fdf325d1c213a82abe209ddccde2abee0cb309069c372",
+      "voice": "Ogrebane monster-4.wav",
+      "foley": "cloth",
+      "variant": 1
+    },
+    "crawler-2": {
+      "duration": 1.845,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -19.66,
+      "sha256": "8586a5fb02862a171bdccc8d4bdd4736533ab08811e3b7e7dd96a0b453e57440",
+      "voice": "Ogrebane monster-4.wav",
+      "foley": "cloth",
+      "variant": 2
+    },
+    "crawler-3": {
+      "duration": 2.015,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.19,
+      "sha256": "a21c4f01dc499102adb0911b10dbd36deff1b2faec9cc2ce9c81be5a7db197aa",
+      "voice": "Ogrebane monster-4.wav",
+      "foley": "cloth",
+      "variant": 3
+    },
+    "crawler-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -25.64,
+      "sha256": "9c35df5148a36d99f97328522758116806f6061365191e9d4744505c6f70db4f"
+    },
+    "window-1": {
+      "duration": 1.75,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -25.18,
+      "sha256": "32ec93749e3fc1971eb4a6ce077f0f633e9629eb4decef3367e10ee338ad2ed6",
+      "voice": "Ogrebane monster-5.wav",
+      "foley": "glass",
+      "variant": 1
+    },
+    "window-2": {
+      "duration": 1.92,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -25.7,
+      "sha256": "ac7a0afb612ad879b1f6eeb4a68512c42548c5c81beaf20ad3974f14ccead839",
+      "voice": "Ogrebane monster-5.wav",
+      "foley": "glass",
+      "variant": 2
+    },
+    "window-3": {
+      "duration": 2.09,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -24.16,
+      "sha256": "9b177e492f3b069441135c07ac3f38714aa0889d6457095d968a871d6f9ef9bc",
+      "voice": "Ogrebane monster-5.wav",
+      "foley": "glass",
+      "variant": 3
+    },
+    "window-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -3.07,
+      "rms_dbfs": -20.21,
+      "sha256": "19bbb58ab1e4bf260f795d5518bab56765196acd03296045fbb3c754d5319dbb"
+    },
+    "fall-1": {
+      "duration": 1.825,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -17.2,
+      "sha256": "c2f1f0d38b9f235a34a7accb9a860e71f3aedc6098e1752cb6aba9bcba750f2d",
+      "voice": "Ogrebane monster-6.wav",
+      "foley": "chain",
+      "variant": 1
+    },
+    "fall-2": {
+      "duration": 1.995,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -17.78,
+      "sha256": "535e8e7ec0476987a0bbccd9def2f2c9dbf17641ae889bc181459a6ea8a5a6cb",
+      "voice": "Ogrebane monster-6.wav",
+      "foley": "chain",
+      "variant": 2
+    },
+    "fall-3": {
+      "duration": 2.165,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -18.26,
+      "sha256": "4e78685cc1b0a41ab14b0eee57b73b5863adfde4078f0ab0dc4fff8bd849161e",
+      "voice": "Ogrebane monster-6.wav",
+      "foley": "chain",
+      "variant": 3
+    },
+    "fall-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -4.06,
+      "rms_dbfs": -20.78,
+      "sha256": "8779bab87aacd154cae396277df17f5ecf63f34e65eebb7a3838fd28abde4183"
+    },
+    "crowd-1": {
+      "duration": 1.9,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -19.54,
+      "sha256": "32e04824956a97c09aa47032f9a48990dccf8ca8239987af53baa07dc8dcf93c",
+      "voice": "Ogrebane monster-7.wav",
+      "foley": "wood",
+      "variant": 1
+    },
+    "crowd-2": {
+      "duration": 2.07,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -20.55,
+      "sha256": "4a7ba987f8c9ef747fcdc8fd3e0e1456d80d700d386ac3f8632659515f2d6139",
+      "voice": "Ogrebane monster-7.wav",
+      "foley": "wood",
+      "variant": 2
+    },
+    "crowd-3": {
+      "duration": 2.24,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -21.3,
+      "sha256": "f6bebbb01c19f593f72983bb054bb6778521e8a285ca4b34917d0e3907e999bf",
+      "voice": "Ogrebane monster-7.wav",
+      "foley": "wood",
+      "variant": 3
+    },
+    "crowd-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -21.93,
+      "sha256": "e3efb9708bd61c3d22346a45f5b8266c2f2cd539aabbe8710b98c795ddfcc488"
+    },
+    "charge-1": {
+      "duration": 1.975,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -12.0,
+      "sha256": "39a93db709fb3c50820e77456cafdb179a221c72f7f01ed08d0f28a35fa0a3ec",
+      "voice": "Ogrebane monster-8.wav",
+      "foley": "motor",
+      "variant": 1
+    },
+    "charge-2": {
+      "duration": 2.145,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -14.64,
+      "sha256": "43752dde7e01a57d162eeaa009f73c6af5014b33b6e4eb7f0ea9a75a0b35b6c2",
+      "voice": "Ogrebane monster-8.wav",
+      "foley": "motor",
+      "variant": 2
+    },
+    "charge-3": {
+      "duration": 2.315,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -12.83,
+      "sha256": "287cd9471f76fb369aa882c72951875c76a466c2b32f2725a55f5e8956b358d6",
+      "voice": "Ogrebane monster-8.wav",
+      "foley": "motor",
+      "variant": 3
+    },
+    "charge-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -10.12,
+      "sha256": "a75a9c76d6197d6e3cb617de98ee06863f2b0b26da989606c652771e85fee5bf"
+    },
+    "whisper-1": {
+      "duration": 2.05,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -18.24,
+      "sha256": "f9c217bba182a64de46e606877402880efff0cc1911cf205444bcaa091a8a407",
+      "voice": "Ogrebane monster-9.wav",
+      "foley": "breath",
+      "variant": 1
+    },
+    "whisper-2": {
+      "duration": 2.22,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -18.18,
+      "sha256": "ec824ccb19ecff382d0c1b86cb2498452801c22eafb687db58e87e11e078a97d",
+      "voice": "Ogrebane monster-9.wav",
+      "foley": "breath",
+      "variant": 2
+    },
+    "whisper-3": {
+      "duration": 2.39,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -19.04,
+      "sha256": "dce7238bf741f39dc50a7c81fc5b93223434707bbd2bb541fdcc1ce8a11bbbda",
+      "voice": "Ogrebane monster-9.wav",
+      "foley": "breath",
+      "variant": 3
+    },
+    "whisper-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -3.4,
+      "rms_dbfs": -18.44,
+      "sha256": "2274338d43194aa8b9c5722934c1713510c619008de245d908ab4d1c95bce925"
+    },
+    "crocodile-1": {
+      "duration": 2.125,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -12.9,
+      "sha256": "62a9f84b3cf4555eb6a463abbf3aa29484f169f36425d30be46fba750541ac61",
+      "voice": "Ogrebane monster-10.wav",
+      "foley": "motor",
+      "variant": 1
+    },
+    "crocodile-2": {
+      "duration": 2.295,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -14.4,
+      "sha256": "148b77b7e7edcfb914cbc01d9387ee8e00e5056c90f81d877c52e57ad1484338",
+      "voice": "Ogrebane monster-10.wav",
+      "foley": "motor",
+      "variant": 2
+    },
+    "crocodile-3": {
+      "duration": 2.465,
+      "peak_dbfs": -2.0,
+      "rms_dbfs": -13.62,
+      "sha256": "94f63f0ebd45af70de0f73b6dc839d5f775f7d943d0067e968f48f46a67fee19",
+      "voice": "Ogrebane monster-10.wav",
+      "foley": "motor",
+      "variant": 3
+    },
+    "crocodile-lead": {
+      "duration": 0.58,
+      "peak_dbfs": -2.32,
+      "rms_dbfs": -10.44,
+      "sha256": "eb68f25ee23f50eb2f0f482c38476473783d25a540e323d2d1291d06652a0104"
+    }
+  }
+}

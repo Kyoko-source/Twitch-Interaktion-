@@ -255,10 +255,17 @@ func _horror_variants() -> void:
 func anomaly(id: String) -> void:
  if horrors.has(id) and horrors[id] is Node3D: horrors[id].show()
  if id=="bunny_ceiling": horrors.bunny.position=Vector3(-4.3,3.7,-8.5);horrors.bunny.rotation.z=PI
- w.environment.environment.fog_density=.08
+ # Forward+ already renders lit volumetric fog. Stacking dense linear fog on
+ # top washed out near surfaces and hid the material work in every room.
+ var volumetric: bool=w.native_art!=null and w.native_art.advanced
+ w.environment.environment.fog_density=.014 if volumetric else .08
+ if volumetric:
+  w.environment.environment.volumetric_fog_density=.065
+  w.environment.environment.volumetric_fog_albedo=Color("99adae")
  if id=="heavy_mist":
   mist.set_shader_parameter("fog_tint",Vector3(.55,.045,.06))
   w.environment.environment.fog_light_color=Color("9c2834")
+  if volumetric: w.environment.environment.volumetric_fog_albedo=Color("9c2834")
 
 func set_active(active: bool) -> void:
  if simulation==active: return

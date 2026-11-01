@@ -20,6 +20,23 @@ async function doorTrip(page,red,{wrong=false}={}){
 async function walk(page,key,predicate){await page.keyboard.down(key);try{await expect.poll(async()=>predicate(await state(page)),{timeout:18000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page));throw error;}finally{await page.keyboard.up(key);await page.waitForTimeout(180);}}
 const errors=[];
 
+test('v3.0 has distinct scare voices without immediate repeats and a fitted kitchen prep station',async({page})=>{
+ test.setTimeout(120000);await begin(page);
+ for(const [id,family,p,height] of [['cinema_aisle_rush','charge',[-1,0,-29.65],1.4],['kitchen_floor_crawler','crawler',[-12.9,0,-27.5],.7],['service_ceiling','ossuary',[-8.9,0,-3],-1.6],['wc_stall_watcher','whisper',[23.5,0,7],1.4],['party_guests','crowd',[12.4,0,-3],1.4]]){
+  let previous='';
+  for(let i=0;i<2;i++){
+   await qa(page,{op:'anomaly',id});const actor=(await state(page)).terrors.position;const dx=actor[0]-p[0],dz=actor[2]-p[2];
+   await qa(page,{op:'warp',x:p[0],y:.02,z:p[2],yaw:Math.atan2(-dx,-dz),pitch:Math.atan2(actor[1]+height-1.65,Math.hypot(dx,dz))});
+   await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);const sound=(await state(page)).terrors.sound;
+   expect(sound).toMatch(new RegExp('/revamp-v300/'+family+'-[123]\\.wav$'));expect(sound).not.toBe(previous);previous=sound;
+  }
+ }
+ await qa(page,{op:'new'});await qa(page,{op:'warp',x:-13.3,y:.02,z:-27.5,yaw:Math.PI,pitch:-.08});
+ await page.keyboard.down('w');try{await page.waitForTimeout(1000);}finally{await page.keyboard.up('w');}
+ const position=(await state(page)).position;expect(position[2]).toBeGreaterThan(-27.2);expect(position[2]).toBeLessThan(-26.62);
+ await page.screenshot({path:join(tmpdir(),'after-play-v300-web-prep-station.png')});
+});
+
 test('round 5 cinema newspaper can be collected with E from the aisle and stays in the saved inventory',async({page})=>{
  test.setTimeout(150000);await begin(page);
  for(let i=0;i<4;i++){
@@ -519,7 +536,7 @@ test('v2.6 exact Dienstanweisung, party-only mascot and manufactured kitchen ren
  await qa(page,{op:'warp',x:-10.5,z:-29.3,yaw:1.3,pitch:-.1});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v260-kitchen-web.png')});
  await qa(page,{op:'audit'});const audit=(await state(page)).layout;expect(audit.door_obstructions).toEqual([]);expect(audit.art_overlaps).toEqual([]);expect(audit.furniture_wall_intrusions).toEqual([]);
  await qa(page,{op:'anomaly',id:'cinema_aisle_rush'});await qa(page,{op:'warp',x:-1,z:-29.65,yaw:-Math.PI/2,pitch:-.1});
- await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.sound).toContain('/scares-v260/bass-roar.wav');
+ await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.sound).toMatch(/\/revamp-v300\/charge-[123]\.wav$/);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const scare=(await state(page)).terrors;await page.waitForTimeout(350);expect((await state(page)).terrors.position).toEqual(scare.position);expect((await state(page)).terrors.attack).toBe(scare.attack);expect(!scare.audio||scare.paused).toBe(true);
 });
 
