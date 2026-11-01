@@ -53,7 +53,11 @@ sechs reale Browser-Abläufe bestanden (Klangwechsel, Küchenstation, Kino-Zeitu
 13 Rundgänge samt Tod und Ende 1, Clown, Archiv-Ende und Menüs). Die native
 Forward+-Fassung wurde mit echten Spielaufnahmen visuell geprüft. Beide
 Spielerpakete bestehen Datei-, Prüfsummen- und Lizenzprüfung; beide itch-Kanäle
-bestehen den lokalen Butler-Probelauf. Kein itch.io-Upload wurde gestartet.
+bestehen den lokalen Butler-Probelauf. Die gepackte Windows-EXE wird zusätzlich
+versteckt gestartet und auf fehlende Ressourcen geprüft. Godots Import teilt eine
+unveränderte Felltextur mit dem bisherigen Hasenordner; diese benötigten Texturen
+bleiben deshalb im Windows-Paket, die alte Hasengeometrie wird ausgeschlossen.
+Kein itch.io-Upload wurde gestartet.
 
 ## Ausgeglichene Rundgänge (2.12.2)
 

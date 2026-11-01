@@ -1,6 +1,9 @@
 """Check the public release boundary: no author tooling, spoilers or prompts."""
 import hashlib
 import json
+import os
+import subprocess
+import tempfile
 import struct
 import zipfile
 from pathlib import Path
@@ -62,3 +65,17 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             public = ROOT / 'frontend/public/standalone/kinderparadies'
             assert {str(p.relative_to(public)).replace('\\', '/') for p in public.rglob('*') if p.is_file()} == names
     print(f'{platform}: exact public file list, CRC, checksums, licenses and privacy boundary PASS')
+
+# Source imports may deduplicate an unchanged texture into an older asset folder.
+# A real exported executable catches missing dependencies hidden by source tests.
+if os.name == 'nt':
+    with tempfile.TemporaryDirectory(prefix='after-play-player-check-') as temp:
+        log = Path(temp) / 'player.log'
+        result = subprocess.run(
+            [str(BUILD / 'player-package/AfterPlay.exe'), '--headless',
+             '--quit-after', '30', '--log-file', str(log)],
+            capture_output=True, timeout=90, creationflags=subprocess.CREATE_NO_WINDOW)
+        output = log.read_text('utf-8') if log.exists() else ''
+        assert result.returncode == 0 and 'Godot Engine' in output, output
+        assert 'ERROR:' not in output and 'SCRIPT ERROR' not in output, output
+        print('windows: exported player starts with no missing resources or script errors PASS')
