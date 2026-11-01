@@ -40,6 +40,8 @@ var watch: ReceptionWatch
 var pit_physics: BallPitPhysics
 var revamp: RevampWorld
 var venue: VenueDetails
+var graphics: AfterPlayGraphics
+var acoustics: HappylandAcoustics
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -64,7 +66,7 @@ func bevel(size: Vector3) -> ArrayMesh:
      if sign_value>0: indices.append_array(PackedInt32Array([a,c,b,b,c,d]))
      else: indices.append_array(PackedInt32Array([a,b,c,b,d,c]))
  var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=normals;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_INDEX]=indices
- var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);mesh_cache[key]=result;return result
+ var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);result.regen_normal_maps();mesh_cache[key]=result;return result
 
 func mat(color: Color, texture: Texture2D=null, roughness: float=.65, metal: float=0.0) -> StandardMaterial3D:
  var material:=StandardMaterial3D.new();material.albedo_color=color;material.roughness=roughness;material.metallic=metal
@@ -157,6 +159,8 @@ func build() -> void:
  watch=ReceptionWatch.new();add_child(watch);watch.build(self)
  pit_physics=BallPitPhysics.new();add_child(pit_physics);pit_physics.build(self)
  FootSurfaces.tag(self)
+ graphics=AfterPlayGraphics.new();add_child(graphics);graphics.build(self)
+ acoustics=HappylandAcoustics.new();add_child(acoustics);acoustics.build(self)
 
 func _wall_paintings() -> void:
  var root:=group("wall_paintings")
@@ -200,7 +204,11 @@ func _architecture(rubber: Texture2D) -> void:
  box(self,Vector3(-10.2,3.7,-7.675),Vector3(.3,7.4,2.85),materials.wall,true)
  box(self,Vector3(-10.2,4.95,-5.4),Vector3(.3,4.9,1.7),materials.wall,true)
  # Real delivery corridor opening, separate from the decision doors.
- box(self,Vector3(-10.2,3.7,1.975),Vector3(.3,7.4,13.05),materials.wall,true)
+ # Genuine window aperture; the glass has its own closed collision surface.
+ for span in [Vector2(-4.55,-.1),Vector2(3.5,8.5)]:
+  box(self,Vector3(-10.2,3.7,(span.x+span.y)*.5),Vector3(.3,7.4,span.y-span.x),materials.wall,true)
+ box(self,Vector3(-10.2,.675,1.7),Vector3(.3,1.35,3.6),materials.wall,true)
+ box(self,Vector3(-10.2,5.625,1.7),Vector3(.3,3.55,3.6),materials.wall,true)
  box(self,Vector3(-10.2,3.7,13.7),Vector3(.3,7.4,6.8),materials.wall,true)
  box(self,Vector3(-10.2,5.1,9.4),Vector3(.3,4.6,1.8),materials.wall,true)
  box(self,Vector3(-10.2,4.95,-9.9),Vector3(.3,4.9,1.6),materials.wall,true)
@@ -456,6 +464,7 @@ func set_anomaly(id: String) -> void:
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
 
 func tick(delta: float, active: bool) -> void:
+ graphics.tick(delta,active)
  revamp.tick(delta,active)
  life.tick(delta,active)
  details.tick(delta,active)
@@ -476,6 +485,7 @@ func quality(value: int) -> void:
  if native_art: native_art.quality(value)
  backstage.quality(value)
  life.quality(value)
+ graphics.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:

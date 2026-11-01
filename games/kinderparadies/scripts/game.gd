@@ -58,6 +58,7 @@ func _ready() -> void:
  _build_world("none");player.reset_pose()
  _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
  intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
+ world.graphics.equipment(player,intro)
  menu_camera=Camera3D.new();menu_camera.fov=66;menu_camera.near=.06;menu_camera.far=70;add_child(menu_camera)
  menu_light=SpotLight3D.new();menu_light.light_color=Color("c8ba95");menu_light.light_energy=2.0;menu_light.spot_range=22;menu_light.spot_angle=42;menu_light.spot_angle_attenuation=1.5;menu_light.position=Vector3(0,.5,0);menu_camera.add_child(menu_light)
  menu_scare=DoorFailure.new();menu_camera.add_child(menu_scare)
@@ -244,7 +245,7 @@ func _continue() -> void:
    if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
    elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or world.life.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
-   if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p): player.position=p
+   if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p) and world.graphics.clear_pose(p): player.position=p
    player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -252,11 +253,10 @@ func _continue() -> void:
 func _resume() -> void:
  menu_music.stop()
  player.camera.current=true;player.camera.fov=player.base_fov
- phase="play";menu.hide();hud.show();player.capture();room_audio.stream_paused=false;world.archive.finale.voice.stream_paused=false
+ phase="play";menu.hide();hud.show();player.capture();room_audio.stop();world.archive.finale.voice.stream_paused=false
  player.lamp.visible=player.lamp_on
  world.atmosphere.set_active(true)
  world.pit_physics.tick(true,player)
- if not room_audio.playing: room_audio.play()
  _refresh_hud();_telemetry()
  if archive.ending=="recording": _show_recording_memories()
 
@@ -345,7 +345,7 @@ func _apply_settings() -> void:
  if crosshair: crosshair.visible=bool(settings.crosshair)
  for bus_name in ["NightAmbience","NightVoice"]:
   if AudioServer.get_bus_index(bus_name)<0: AudioServer.add_bus();AudioServer.set_bus_name(AudioServer.bus_count-1,bus_name)
-  AudioServer.set_bus_send(AudioServer.get_bus_index(bus_name),"Interior" if bus_name=="NightAmbience" and AudioServer.get_bus_index("Interior")>=0 else "Master")
+  AudioServer.set_bus_send(AudioServer.get_bus_index(bus_name),"Master")
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
@@ -353,6 +353,7 @@ func _apply_settings() -> void:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
+ if world and world.acoustics:world.acoustics.route()
  if intro: intro.voice.bus="NightVoice"
  if room_audio: room_audio.bus="NightAmbience"
  if menu_music: menu_music.bus="Master";menu_music.volume_db=linear_to_db(float(settings.menu_music))-9 if float(settings.menu_music)>0 else -80
@@ -402,6 +403,7 @@ func _process(delta: float) -> void:
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
+ world.acoustics.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.backstage.tick(delta,phase=="play",player)
@@ -688,6 +690,7 @@ func _telemetry() -> void:
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
+  data.upgrade={"graphics":world.graphics.snapshot(),"acoustics":world.acoustics.snapshot()}
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}

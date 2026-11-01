@@ -59,4 +59,9 @@ dessen beiliegende CC-BY-3.0-Hinweise gelten unveraendert.
 
 After Play 3.1: Clown-Gesichtsgeometrie und Normal Map weiter auf Basis des
 Lee-Perry-Smith-Scans (CC BY 3.0, siehe Lee-Perry-Smith.txt). Neue Hauttextur
-mit KI erstellt; modellierte Augen, Z?hne und Raumausstattung projektintern.
+mit KI erstellt; modellierte Augen, Zaehne und Raumausstattung projektintern.
+
+After Play 3.2: Acht eigenstaendige Maschinenklang-Loops, Fenster-, Regen-,
+Oberflaechen- und Glas-Shader sowie Parkplatz- und Ausbaudetails projektintern.
+Die Maschinenklaenge enthalten keine fremden Samples. Weiterverwendete
+Fototexturen von Poly Haven bleiben unter CC0 1.0 lizenziert (siehe oben).

@@ -1,0 +1,5 @@
+After Play 3.2 - original environmental sounds and shaders
+
+The machinery loops, window rain, glazing, surface and floor shaders in this
+directory were authored for After Play. The audio contains no external samples.
+Existing Poly Haven CC0 material maps remain covered by the package's credits.

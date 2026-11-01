@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--upgrade-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/upgrade_validation.gd").new().run(game,check)
+  print("Graphics/acoustics checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--venue-only" in OS.get_cmdline_user_args():
   await load("res://scripts/venue_validation.gd").new().run(game,check)
   print("Venue checks: ",checks,"; failures: ",failures.size())
@@ -443,7 +447,10 @@ func run(game: Node3D) -> bool:
   head_faces+=mesh.mesh.get_faces().size()
   for surface in range(mesh.mesh.get_surface_count()):
    var material: Material=mesh.get_active_material(surface)
-   check(mesh.mesh is ArrayMesh and mesh.get_aabb().size.z>.001,"Clown facial detail is a flat portrait plane")
+   var extent: Vector3=mesh.get_aabb().size
+   # The inset pupils are curved 0.6 mm meshes; checking for a 1 mm depth
+   # incorrectly rejected those fitted eye details as flat portraits.
+   check(mesh.mesh is ArrayMesh and extent.x>.0001 and extent.y>.0001 and extent.z>.0001,"Clown facial detail has no 3D volume: "+str(mesh.name))
    check(material is StandardMaterial3D or (material is ShaderMaterial and material.shader.resource_path.ends_with("clown_skin.gdshader")),"Clown has an unexpected face material")
  check(head_faces>20000,"Clown head lacks real sculpted geometry")
  await PassageChecks.travel(game,false)
@@ -506,6 +513,7 @@ func run(game: Node3D) -> bool:
  var stored_settings: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(game.SETTINGS))
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
+ await load("res://scripts/upgrade_validation.gd").new().run(game,check)
  await load("res://scripts/venue_validation.gd").new().run(game,check)
  await load("res://scripts/revamp_validation.gd").new().run(game,check)
  await load("res://scripts/balance_validation.gd").new().run(game,check)

@@ -51,7 +51,7 @@ func decal(parent: Node3D, cell: int, pos: Vector3, size: Vector2, rotation_valu
 func _weathering() -> void:
  for side in [-1,1]:
   for i in range(7):
-   if side<0 and i in [0,1,2,6]: continue # Archive and delivery openings cannot carry wall decals.
+   if side<0 and i in [0,1,2,3,4,6]: continue # Door and window apertures cannot carry wall decals.
    if side>0 and absf(-10+i*3.15-7.8)<1.95: continue # WC opening.
    decal(self,2,Vector3(-10.025 if side<0 else 19.625,1.35,-10+i*3.15),Vector2(2.1,2.7),Vector3(0,-side*PI/2,0),Color(.7,.74,.64,.6))
  # Weathering belongs to the solid piers, never across the service/decision

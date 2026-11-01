@@ -30,7 +30,8 @@ func pbr(id: String, color: Color, scale_value: float) -> StandardMaterial3D:
 func paint(color: Color, metal: float, rough: float) -> ShaderMaterial:
  var m:=ShaderMaterial.new();m.shader=load(ScareBank.ROOT+"weathered.gdshader")
  m.set_shader_parameter("paint",color);m.set_shader_parameter("metalness",metal);m.set_shader_parameter("polish",rough)
- m.set_shader_parameter("grain",load("res://assets/paint.png" if OS.has_feature("web") else "res://assets/pbr/rusty_painted_metal/albedo.jpg"));m.set_shader_parameter("roughness_map",load("res://assets/pbr/metal_grate_rusty/roughness.jpg" if OS.has_feature("web") else "res://assets/pbr/rusty_painted_metal/roughness.jpg"));return m
+ m.set_shader_parameter("grain",load("res://assets/paint.png" if OS.has_feature("web") else "res://assets/pbr/rusty_painted_metal/albedo.jpg"));m.set_shader_parameter("roughness_map",load("res://assets/pbr/metal_grate_rusty/roughness.jpg" if OS.has_feature("web") else "res://assets/pbr/rusty_painted_metal/roughness.jpg"))
+ m.set_shader_parameter("normal_map",w.atmosphere.micro_normal if OS.has_feature("web") else load("res://assets/pbr/metal_plate/normal.jpg"));return m
 
 func part(parent: Node3D, pos: Vector3, size: Vector3, material: Material, solid: bool=false) -> MeshInstance3D:
  details+=1

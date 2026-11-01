@@ -233,6 +233,9 @@ func anomaly(id: String) -> void:
   if strip_material: strip_material.albedo_color=Color("e22c28");strip_material.emission=Color("e22c28")
   for spot in spots: spot.light_color=Color("e22c28")
   for light in fill_lights: light.light_color=Color("e22c28")
+ if id=="party_dark":
+  for spot in spots:
+   if spot.position.x>6.8 and spot.position.z<1.6:spot.light_energy=0
 
 func tick(delta: float, active: bool) -> void:
  if active: elapsed+=delta

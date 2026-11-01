@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 3.1.1
+# After Play — Veröffentlichungsvorbereitung 3.2.0
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v3.1.1.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v3.1.1.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v3.2.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v3.2.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -32,7 +32,11 @@ Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland.
 - Persönliche Nachtdienst-Ausrüstung und unterschiedliche Lichtstimmungen pro Raum.
 - Zurückhaltendes HUD; handschriftliche Kontrollliste im pausierbaren Inventar.
 - Räumliche Geräusche und Schritte passend zu Beton, Teppich, Metall, Holz, Kunststoff und Polstern.
+- Geräusche werden durch Wände und geschlossene Türen dumpfer; offene Durchgänge und enge Krabbelröhren verändern ihren Klang.
+- Eigene leise Betriebsgeräusche für die Spielautomaten, den Kühlschrank, Projektor und die Gebäudetechnik.
+- Ein verschmutztes Fenster mit Blick auf einen echten leeren Parkplatz im Regen und die alte Happyland-Reklame.
 - Windows-Grafik mit indirekter Beleuchtung, Schatten und dichtem Nebel.
+- Überarbeitete Boden- und Möbelmaterialien, Raumreflexionen, gewölbte Automatenbildschirme und befestigte Deckendetails.
 - Deutsche Texte und deutsche Sprachaufnahmen.
 - Eine bebilderte Rückblende zur letzten Archivaufnahme, mit elf an die Stimme gebundenen Erinnerungen.
 - Speichern und Fortsetzen innerhalb der laufenden Nachtschicht.

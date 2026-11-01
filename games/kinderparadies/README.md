@@ -1,5 +1,51 @@
 # After Play — Kinderparadies
 
+## Räumlicher Klang und Oberflächen (3.2.0)
+
+Das Westfenster besitzt eine echte Öffnung in der Architektur, drei geschlossene
+Scheiben mit Dichtungen und Griffen, Schmutz- und Regenfilme und einen vollständig
+modellierten leeren Parkplatz. Markierungen, Ablaufrinne, Poller, Laternen,
+HAPPYLAND-Reklame und Regen befinden sich außerhalb des Gebäudes. Die beiden
+vormals davor stehenden Regale stehen jetzt neben den Preisautomaten; Fortsetzen
+prüft ihre neuen Kollisionsvolumen. Der Parkplatz liegt zwischen den bestehenden
+Gebäudeflügeln und überlagert weder Wartungsraum noch Lieferflur.
+
+Abgerundete prozedurale Geometrie erhält jetzt echte Tangenten für Normal Maps.
+515 vorhandene Oberflächen werden in ihren vorhandenen Materialidentitäten
+verfeinert; Anomaliefarben und die korrigierte Gesichtsgeometrie bleiben erhalten.
+Bodenmaterialien unterscheiden zwischen trockener Abnutzung, Feuchte und Teppich.
+Konvexe CRTs mit Glas, echte Polsternähte, befestigte Akustikdecken, Sprinkler,
+ein geschützter Küchenlüfter, Leuchten unter der Haube und weitere Einbaudetails
+ergänzen das gesamte Haus. Windows erhält zusätzliche Raumreflexionen, abgestimmte
+Kontaktverschattung, Lichtfarben und einen optischen Taschenlampenlichtkegel.
+Qualitätsstufen und die vereinfachte Browserbeleuchtung bleiben verfügbar.
+
+35 räumliche Quellen erhalten getrennte Tiefpass- und Pegelsteuerung. Echte
+Wand- und Türgeometrie verdeckt Klang; freie Wege durch die Raumöffnungen lassen
+ihn um Ecken dringen. Hall und Schrittresonanz folgen dem Raum, mit einem kurzen
+zusätzlichen Echo in den Kunststoffröhren. Die Menü-Raumkulisse läuft nicht mehr
+als globale Geräuschschicht über dem Spiel. Neue Maschinenaufnahmen für drei
+Automaten, Kühlschrank, Projektor, Lüftung, Transformator und Röhren bestehen aus
+eigenständig erzeugten periodischen Signalen. Regen liegt leise hinter dem Glas;
+vorhandene normale Schritte und Kinderstimmen bleiben normale Atmosphäre.
+
+Private Werkzeuge: tools/prepare-after-play-v320-audio.py,
+--self-test --upgrade-only, --render-qa --v320-qa und --render-qa --v320-audio.
+Die Audio-Nachprüfung zeichnet den echten gefilterten Submix vor dem stummen
+Master auf. Bei derselben Quelle hinter der Liefertür wurden geschlossen
+−47,14 dBFS und geöffnet −30,19 dBFS gemessen; der relative Anteil über 2 kHz
+steigt beim Öffnen um mehr als den Faktor 80. Die Tests benötigen keine
+Ausgabe von Testtönen über die Lautsprecher.
+
+Validierung 3.2.0: Der vollständige native Spieltest besteht 2.081 Prüfungen
+ohne Fehler, einschließlich aller Anomalien, Rundenbalance, beider Enden und
+der 111 neuen Grafik-/Akustikprüfungen. Zehn echte Windows-Spielaufnahmen
+zeigen die finale Szene ohne Skript- oder Shaderfehler. Die Spielerpakete
+bestehen Dateiliste, CRC, Prüfsummen, Lizenz- und Privatheitsgrenze; die
+gepackte Windows-EXE startet ohne fehlende Ressourcen. Beide itch-Kanäle
+bestehen den lokalen Probelauf ohne Upload. Die neue Browser-Prüfung für
+Fensterkollision, Raumfilter, Röhrenhall und Pause besteht ebenfalls.
+
 ## Sitz der Clownaugen und Zähne (3.1.1)
 
 Die Augen liegen wieder in den gescannten Lidern statt oberhalb davon.

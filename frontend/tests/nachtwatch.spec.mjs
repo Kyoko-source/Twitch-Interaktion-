@@ -15,13 +15,46 @@ async function doorTrip(page,red,{wrong=false}={}){
  await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.5,yaw:0,pitch:0});
  await expect.poll(async()=>(await state(page)).target).toBe(red?'red':'green');
  await page.keyboard.press('e');await walk(page,'w',s=>s.phase!=='play');
- if(!wrong)await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');
+ if(!wrong)await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
 }
 async function walk(page,key,predicate){await page.keyboard.down(key);try{await expect.poll(async()=>predicate(await state(page)),{timeout:18000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page));throw error;}finally{await page.keyboard.up(key);await page.waitForTimeout(180);}}
+// QA teleports expose cold materials immediately; allow first-use shader compilation
+// during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.2 parking window is sealed and machinery responds to walls, pause and crawl acoustics',async({page})=>{
+ test.setTimeout(150000);await begin(page);
+ expect((await state(page)).upgrade.graphics.window).toBe(true);
+ expect((await state(page)).upgrade.acoustics.source_count).toBe(35);
+ expect((await state(page)).anomaly).toBe('none');
+ await qa(page,{op:'warp',x:-7,y:.02,z:1.7,yaw:Math.PI/2,pitch:.13});
+ await page.keyboard.down('w');try{await page.waitForTimeout(1500);await page.keyboard.press('Space');await page.waitForTimeout(800);}finally{await page.keyboard.up('w');}
+ expect((await state(page)).position[0]).toBeGreaterThan(-10);
+ await page.screenshot({path:join(tmpdir(),'after-play-v320-web-window.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ const paused=(await state(page)).upgrade.acoustics.clock;await page.waitForTimeout(450);expect((await state(page)).upgrade.acoustics.clock).toBe(paused);
+ for(const source of (await state(page)).upgrade.acoustics.sources.filter(s=>['OrbitCabinetElectronics','PrizeCabinetMotor','ServiceTransformer','PlasticTubeAir'].includes(s.id)))expect(source.playing&&!source.paused).toBe(false);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ const projector=async()=>(await state(page)).upgrade.acoustics.sources.find(s=>s.file.endsWith('projector-mechanism.ogg'));
+ await qa(page,{op:'warp',x:-4.4,y:.02,z:-29.65,yaw:Math.PI/2,pitch:.1});
+ await expect.poll(async()=>(await projector()).cutoff).toBeGreaterThan(14000);
+ await qa(page,{op:'warp',x:-12,y:.02,z:-32,yaw:Math.PI/2,pitch:.1});
+ await expect.poll(async()=>(await projector()).cutoff).toBeLessThan(5500);
+ expect((await projector()).portal).toBe(true);expect((await projector()).gain).toBeLessThan(-2);
+ await page.keyboard.down('c');
+ try{
+  await qa(page,{op:'warp',x:-1.2,y:.25,z:15.8,yaw:-Math.PI/2,pitch:0});
+  await expect.poll(async()=>(await state(page)).upgrade.acoustics.room).toBe('tube');
+  await expect.poll(async()=>(await state(page)).upgrade.acoustics.step_cutoff).toBeLessThan(8000);
+ }finally{await page.keyboard.up('c');}
+ expect((await state(page)).anomaly).toBe('none');
+});
+
 test('v3.0 has distinct scare voices without immediate repeats and a fitted kitchen prep station',async({page})=>{
- test.setTimeout(120000);await begin(page);
+ // This flow rebuilds ten complete WebGL scenes, in addition
+ // to loading and compiling the release materials. Keep the interaction and
+ // encounter assertions unchanged while allowing that rendering setup time.
+ test.setTimeout(240000);await begin(page);
  for(const [id,family,p,height] of [['cinema_aisle_rush','charge',[-1,0,-29.65],1.4],['kitchen_floor_crawler','crawler',[-12.9,0,-27.5],.7],['service_ceiling','ossuary',[-8.9,0,-3],-1.6],['wc_stall_watcher','whisper',[23.5,0,7],1.4],['party_guests','crowd',[12.4,0,-3],1.4]]){
   let previous='';
   for(let i=0;i<2;i++){
@@ -40,7 +73,7 @@ test('v3.0 has distinct scare voices without immediate repeats and a fitted kitc
 test('round 5 cinema newspaper can be collected with E from the aisle and stays in the saved inventory',async({page})=>{
  test.setTimeout(150000);await begin(page);
  for(let i=0;i<4;i++){
-  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');
+  await qa(page,{op:'choose',red:(await state(page)).anomaly!=='none'});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  }
  expect((await state(page)).streak).toBe(4);expect((await state(page)).anomaly).toBe('none');expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(true);
  await qa(page,{op:'warp',x:1.2,y:.03,z:-31.90,yaw:Math.PI/2,pitch:-.85});await expect.poll(async()=>(await state(page)).target).toBe('paper:missing');
@@ -124,7 +157,7 @@ test('v2.7 stage ramp and backstage are walkable both ways; E reads maintenance 
 });
 
 test('v2.7 false exit changes once, pauses and preserves the decayed corridor and return path after reload',async({page})=>{
- test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');
+ test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  await qa(page,{op:'anomaly',id:'false_exit'});await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:-.20});await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_started).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(true);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');const paused=(await state(page)).backstage.exit_clock;await page.waitForTimeout(500);expect((await state(page)).backstage.exit_clock).toBe(paused);
@@ -198,18 +231,18 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
  expect((await state(page)).passage.chosen).toBe(0);expect((await state(page)).position[2]).toBeCloseTo(position[2],1);
  await page.screenshot({path:join(tmpdir(),'after-play-v280-web-corridor.png')});await walk(page,'w',s=>s.phase==='lift');
- await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).position[2]).toBeGreaterThan(19);
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).position[2]).toBeGreaterThan(19);
  await qa(page,{op:'anomaly',id:'balls_float'});await doorTrip(page,true);expect((await state(page)).streak).toBe(2);
  await qa(page,{op:'anomaly',id:'balls_float'});await doorTrip(page,false,{wrong:true});expect((await state(page)).failure.running).toBe(true);
  await page.waitForTimeout(150);await page.screenshot({path:join(tmpdir(),'after-play-v280-web-attacker.png')});
  await expect.poll(async()=>(await state(page)).death_text,{intervals:[30]}).toBe('2 Runden überlebt');await page.screenshot({path:join(tmpdir(),'after-play-v280-web-death.png')});
- await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe('play');expect((await state(page)).streak).toBe(0);expect((await state(page)).rounds).toBe(0);expect((await state(page)).intro.stage).toBe('done');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(0);expect((await state(page)).rounds).toBe(0);expect((await state(page)).intro.stage).toBe('done');
  expect((await state(page)).failure.count).toBe(1);await page.screenshot({path:join(tmpdir(),'after-play-v280-web-wake.png')});
  let anomalyRounds=0;
  for(let i=0;i<13;i++){
   const anomalous=(await state(page)).anomaly!=='none';anomalyRounds+=Number(anomalous);
   if([1,3,5,8,11].includes(i+1))expect(anomalous).toBe(false);
-  await qa(page,{op:'choose',red:anomalous});await expect.poll(async()=>(await state(page)).phase,{timeout:15000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
+  await qa(page,{op:'choose',red:anomalous});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
  }
  expect(anomalyRounds).toBe(6);
  expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
@@ -458,7 +491,7 @@ test('After Play newspapers follow rounds 3/5/8/11, TAB reads them, saves retain
  await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2});await walk(page,'w',s=>s.position[0]<-11.5);await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('pause');await page.waitForTimeout(300);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.unlocked).toBe(true);expect((await snapshot()).position[0]).toBeLessThan(-11.5);
  await take('casefile',[-13.8,0,-9.05]);await page.keyboard.press('Tab');await expect.poll(async()=>(await snapshot()).phase).toBe('inventory');expect((await snapshot()).archive_reader).toBe('casefile');await page.screenshot({path:join(tmpdir(),'after-play-web-archive-record.png')});await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).streak).toBe(10);
  await qa(page,{op:'warp',x:-12.8,z:-9.9,yaw:-Math.PI/2});await walk(page,'w',s=>s.position[0]>-9.8);
- const current=await snapshot();await qa(page,{op:'choose',red:current.anomaly==='none'});await expect.poll(async()=>(await snapshot()).phase,{timeout:15000}).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.unlocked).toBe(false);expect((await snapshot()).archive.stage).toBe(1);
+ const current=await snapshot();await qa(page,{op:'choose',red:current.anomaly==='none'});await expect.poll(async()=>(await snapshot()).phase,{timeout:30000}).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.unlocked).toBe(false);expect((await snapshot()).archive.stage).toBe(1);
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.spawned.map(s=>s.id)).toEqual(['note']);
 });
 
