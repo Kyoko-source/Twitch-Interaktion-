@@ -78,7 +78,7 @@ static func placement(w: PlayWorld) -> Dictionary:
   {"name":"Grüner Flur","box":AABB(Vector3(PatrolPassage.CENTERS[0]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))},
   {"name":"Roter Flur","box":AABB(Vector3(PatrolPassage.CENTERS[1]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))}]
  if w.archive.leaf.rotation.y< -1.5: passages.append({"name":"Offene Archivtür","box":AABB(Vector3(-10.62,.09,-10.58),Vector3(.84,2.25,1.36))})
- if w.backstage.exit_leaf.rotation.y>1.45: passages.append({"name":"Lieferausgang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
+ passages.append({"name":"Haupteingang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
  var blocked: Array[String]=[];var art: Array[MeshInstance3D]=[];var furniture: Array[String]=[];var walls: Array[AABB]=[]
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   if mesh.has_meta("architecture_wall"): walls.append(mesh.global_transform*mesh.get_aabb())
@@ -117,4 +117,13 @@ static func placement(w: PlayWorld) -> Dictionary:
    if rect_b.size.x<.2 or rect_b.size.y<.2: continue
    var overlap:=rect_a.intersection(rect_b)
    if overlap.size.x>.035 and overlap.size.y>.035: overlaps.append(str(a.get_path())+" + "+str(b.get_path()))
+ var standalone: Array[Node3D]=[]
+ for node in w.find_children("*","Node3D",true,false):
+  if node.has_meta("furniture_volume") and node.is_visible_in_tree():standalone.append(node)
+ for i in range(standalone.size()):
+  var a: AABB=standalone[i].global_transform*standalone[i].get_meta("furniture_volume")
+  for j in range(i):
+   var b: AABB=standalone[j].global_transform*standalone[j].get_meta("furniture_volume")
+   var overlap:=a.intersection(b)
+   if overlap.size.x>.02 and overlap.size.y>.04 and overlap.size.z>.02:furniture.append("Furniture overlap: "+str(standalone[i].get_path())+" + "+str(standalone[j].get_path()))
  return {"doors":blocked,"art":overlaps,"furniture":furniture}

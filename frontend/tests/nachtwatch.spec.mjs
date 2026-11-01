@@ -22,6 +22,53 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+
+test('v3.3 continue preserves a clear foyer pose and rejects an old save inside the new bench',async({page})=>{
+ test.setTimeout(240000);await begin(page);
+ await qa(page,{op:'warp',x:-13.2,z:9.4,yaw:Math.PI/2,pitch:0});await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[0]).toBeCloseTo(-13.2,1);expect((await state(page)).position[2]).toBeCloseTo(9.4,1);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ await page.evaluate(()=>{const key='after-play:qa-nachtwache-save.json';const save=JSON.parse(localStorage.getItem(key));save.pose=[-13.2,0,10.34,Math.PI/2,0];save.layout_version=11;localStorage.setItem(key,JSON.stringify(save));});
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase).toBe('play');const position=(await state(page)).position;expect(Math.hypot(position[0]+13.2,position[2]-10.34)).toBeGreaterThan(2);expect(position[0]).toBeCloseTo(-6.2,1);expect(position[2]).toBeCloseTo(8.5,1);
+});
+
+test('v3.3 cloakroom glass door is physical; stepping outside shows the secret car ending and saved credits',async({page})=>{
+ test.setTimeout(240000);await begin(page);expect((await state(page)).arrival.parts).toBeGreaterThan(220);
+ await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-13.5);
+ expect((await state(page)).phase).toBe('play');expect((await state(page)).secret_ending).toBe(false);
+ await page.keyboard.down('w');try{await page.waitForTimeout(1600);}finally{await page.keyboard.up('w');}
+ expect((await state(page)).position[0]).toBeGreaterThan(-15.6);
+ await qa(page,{op:'warp',x:-14.4,z:9.4,yaw:Math.PI/2,pitch:-.20});
+ await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');await page.screenshot({path:join(tmpdir(),'after-play-v330-web-glass.png')});
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
+ expect((await state(page)).phase).toBe('play');await qa(page,{op:'audit'});
+ expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.furniture_wall_intrusions).toEqual([]);
+ await walk(page,'w',s=>s.phase==='ending');await expect.poll(async()=>(await state(page)).ending_credits.car).toBe(true);
+ await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);
+ const end=(await state(page)).ending_credits;expect(end.ending).toBe(3);expect(end.title).toBe('Geheimes Ende');
+ expect(end.secret_line).toBe('Was eine dumme Horror Scheiße, ich bin Weg und Kündige');
+ await page.screenshot({path:join(tmpdir(),'after-play-v330-web-secret-ending.png')});
+ await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('credits');expect((await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.car).toBe(false);
+ await page.waitForTimeout(1300);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:8000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
+ await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:22000}).toBe(true);await clickControl(page,'Hauptmenü');
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).ending_credits.ending).toBe(3);await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('credits');
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:22000}).toBe(true);await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ expect((await state(page)).secret_ending).toBe(false);expect((await state(page)).streak).toBe(0);
+});
+
+test('v3.3 detailed annex keeps its centre and both room openings clear',async({page})=>{
+ test.setTimeout(180000);await begin(page);await qa(page,{op:'warp',x:-7.9,z:-13.6,yaw:0,pitch:0});
+ await page.screenshot({path:join(tmpdir(),'after-play-v330-web-corridor.png')});await walk(page,'w',s=>s.position[2]<-29.65);
+ await qa(page,{op:'warp',x:-7.9,z:-29.65,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-11.0);await walk(page,'s',s=>s.position[0]>-7.8);
+ await qa(page,{op:'warp',x:-7.9,z:-29.65,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>-4.8);await walk(page,'s',s=>s.position[0]<-7.8);
+ await qa(page,{op:'warp',x:-7.9,z:-29.65,yaw:Math.PI,pitch:0});await walk(page,'w',s=>s.position[2]>-13.5);
+ await qa(page,{op:'audit'});const layout=(await state(page)).layout;
+ expect(layout.door_obstructions).toEqual([]);expect(layout.art_overlaps).toEqual([]);expect(layout.furniture_wall_intrusions).toEqual([]);
+});
+
 test('v3.2 parking window is sealed and machinery responds to walls, pause and crawl acoustics',async({page})=>{
  test.setTimeout(150000);await begin(page);
  expect((await state(page)).upgrade.graphics.window).toBe(true);
@@ -158,12 +205,12 @@ test('v2.7 stage ramp and backstage are walkable both ways; E reads maintenance 
 
 test('v2.7 false exit changes once, pauses and preserves the decayed corridor and return path after reload',async({page})=>{
  test.setTimeout(150000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
- await qa(page,{op:'anomaly',id:'false_exit'});await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:-.20});await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
+ await qa(page,{op:'anomaly',id:'false_exit'});await qa(page,{op:'warp',x:-14.4,z:9.4,yaw:Math.PI/2,pitch:-.20});await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_started).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(true);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');const paused=(await state(page)).backstage.exit_clock;await page.waitForTimeout(500);expect((await state(page)).backstage.exit_clock).toBe(paused);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).backstage.exit_finished,{timeout:12000}).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(false);
- await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBe(0);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
- await walk(page,'w',s=>s.position[0]<-12.3);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-exit.png')});
+ await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
+ await qa(page,{op:'warp',x:-11.1,z:9.4,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-12.3);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-exit.png')});
  await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).backstage.exit_finished).toBe(true);expect((await state(page)).backstage.exit_open).toBe(true);expect((await state(page)).position[0]).toBeLessThan(-12.2);await walk(page,'s',s=>s.position[0]>-9.8);
 });

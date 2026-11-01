@@ -107,7 +107,9 @@ func _cinema() -> void:
  var root:=Node3D.new();root.name="CinemaWallRestoration";root.position=ServiceAnnex.OFFSET;add_child(root)
  var velvet:=pbr("dirty_carpet",Color("5e3038"),2.1)
  # Absorber panels have padded faces and attached frames, leaving seat aisles open.
- for spec in [Vector2(-21.95,.60),Vector2(-19.4,.85),Vector2(-16.0,.85)]:
+ # The remote and its label occupy -15.83; the poster occupies -14.55.
+ # Neither may share the absorber's volume.
+ for spec in [Vector2(-21.95,.60),Vector2(-19.4,.85)]:
   var z: float=spec.x;var width: float=spec.y
   part(root,Vector3(-6.275,1.76,z),Vector3(.045,1.66,width+.1),w.materials.dark)
   var face:=part(root,Vector3(-6.244,1.76,z),Vector3(.025,1.56,width),velvet);face.set_meta("new_acoustic_panel",true)

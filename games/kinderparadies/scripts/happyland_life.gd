@@ -177,6 +177,7 @@ func _booth() -> void:
 
 func _snackbar() -> void:
  snack=group("ClosedHappylandSnackBar",Vector3(16.95,.016,16.24),PI)
+ snack.set_meta("furniture_volume",AABB(Vector3(-2.11,.02,-.64),Vector3(4.22,1.85,1.32)))
  var red:=w.mat(Color("70483d"),load("res://assets/paint.png"),.8)
  w.box(snack,Vector3(0,.61,0),Vector3(4.05,.64,1.14),red,true)
  w.box(snack,Vector3(0,.975,.0),Vector3(4.18,.09,1.25),steel,true)

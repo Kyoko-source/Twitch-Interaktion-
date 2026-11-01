@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--arrival-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/arrival_validation.gd").new().run(game,check)
+  print("Arrival checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--upgrade-only" in OS.get_cmdline_user_args():
   await load("res://scripts/upgrade_validation.gd").new().run(game,check)
   print("Graphics/acoustics checks: ",checks,"; failures: ",failures.size())
@@ -514,6 +518,7 @@ func run(game: Node3D) -> bool:
  check(stored_settings.fov==89 and stored_settings.invert_y,"New options are not persisted")
  game.settings=original_settings;game._apply_settings();game._write_settings()
  await load("res://scripts/upgrade_validation.gd").new().run(game,check)
+ await load("res://scripts/arrival_validation.gd").new().run(game,check)
  await load("res://scripts/venue_validation.gd").new().run(game,check)
  await load("res://scripts/revamp_validation.gd").new().run(game,check)
  await load("res://scripts/balance_validation.gd").new().run(game,check)

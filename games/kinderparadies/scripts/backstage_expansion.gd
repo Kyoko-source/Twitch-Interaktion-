@@ -6,6 +6,8 @@ const THRONE_POS:=Vector3(13.4,.20,-11.0)
 const DOCS:={
  "plan":{"title":"Bestandsplan · Technischer Dienst","text":"HAPPYLAND — PERSONALPLAN\n\nHinter dem Party Raum liegen Bühne und Kostümkammer. Küche und Kino erreicht man über den nördlichen Verbindungsgang.\n\nHandschriftlicher Nachtrag:\n‚Altbestand hinter der Westwand: NICHT BETRETEN. Die Tür wurde im Bestandsplan nie eingetragen.‘"},
  "repairs":{"title":"Das Wartungsbuch","text":"03.06. — Lüftung gereinigt. Geruch bleibt.\n05.06. — Kostümraum: Haken nachziehen.\n07.06. — Spind 04 von innen verformt.\n08.06. — Schlüssel eingezogen. Keine Freigabe.\n\nDarunter, in einer anderen Handschrift:\n‚Keine Ursache im Bericht angeben. Rückfragen ausschließlich an die Leitung.‘"}}
+signal escaped
+var escape_queued:=false
 var w: PlayWorld
 var throne: Node3D
 var costumes: Array[Node3D]=[]
@@ -164,47 +166,7 @@ func _maintenance_story() -> void:
  for i in range(8): w.tube(locker,Vector3(.20+i*.01,.99,.40),Vector3(.21+i*.01,1.005,.41),.006,w.materials.metal)
 
 func _unsettling_exit() -> void:
- exit_root=Node3D.new();exit_root.name="DeliveryExit";exit_root.position=Vector3(-10.2,0,9.4);exit_root.rotation.y=PI/2;add_child(exit_root)
- var plaster:=w.materials.wall.duplicate() as StandardMaterial3D;plaster.albedo_color=Color("9da9a0")
- var floor:=w.box(exit_root,Vector3(0,-.14,-2.85),Vector3(2.5,.3,5.8),w.materials.dark,true);floor.set_meta("foot_surface","concrete")
- for side in [-1,1]: wall(exit_root,Vector3(side*1.25,1.55,-2.85),Vector3(.16,3.1,5.8),plaster)
- wall(exit_root,Vector3(0,1.55,-5.7),Vector3(2.65,3.1,.16),plaster)
- w.box(exit_root,Vector3(0,3.12,-2.85),Vector3(2.65,.16,5.8),w.materials.dark,true)
- for x in [-.87,.87]: w.box(exit_root,Vector3(x,1.34,0),Vector3(.12,2.68,.32),w.materials.metal,true)
- w.box(exit_root,Vector3(0,2.72,0),Vector3(1.86,.12,.32),w.materials.metal,true)
- exit_leaf=Node3D.new();exit_leaf.name="DeliveryDoorLeaf";exit_leaf.position=Vector3(-.80,0,0);exit_root.add_child(exit_leaf)
- w.box(exit_leaf,Vector3(.80,1.32,0),Vector3(1.6,2.64,.09),w.mat(Color("425b51"),load("res://assets/paint.png"),.83))
- var body:=solid(exit_leaf,Vector3(.80,1.32,0),Vector3(1.6,2.64,.09),"DeliveryDoorSolid");body.set_meta("interaction","delivery_exit");exit_collider=body.get_child(0)
- for face in [-1,1]:
-  w.box(exit_leaf,Vector3(1.39,1.10,face*.072),Vector3(.08,.25,.055),w.materials.metal)
-  w.tube(exit_leaf,Vector3(1.14,1.12,face*.12),Vector3(1.43,1.12,face*.12),.025,w.materials.metal)
- # A static wall button remains reachable after the hinged leaf opens.
- var button:=w.box(exit_root,Vector3(1.02,1.3,.19),Vector3(.15,.22,.08),w.materials.metal)
- solid(button,Vector3.ZERO,Vector3(.16,.23,.09),"DoorControl").set_meta("interaction","delivery_exit")
- exit_sign=print_board(exit_root,"exit",Vector3(0,3.18,.17),Vector2(1.45,.60))
- clean=Node3D.new();clean.name="ImpossibleCleanCorridor";exit_root.add_child(clean)
- ruined=Node3D.new();ruined.name="DecayedCorridor";exit_root.add_child(ruined)
- for group_node in [clean,ruined]:
-  var bright: bool=group_node==clean
-  var upper:=w.mat(Color("e1d8b5") if bright else Color("5f6557"),null if bright else load("res://assets/aged-plaster.png"),.82)
-  var lower:=w.mat(Color("4baaa7") if bright else Color("234741"),null if bright else load("res://assets/paint.png"),.62)
-  for side in [-1,1]:
-   w.box(group_node,Vector3(side*1.16,2.07,-2.85),Vector3(.025,1.82,5.5),upper)
-   w.box(group_node,Vector3(side*1.14,.58,-2.85),Vector3(.03,1.12,5.5),lower)
-   w.box(group_node,Vector3(side*1.10,1.16,-2.85),Vector3(.035,.055,5.5),w.materials.gold)
-  for i in range(5):
-   var board:=Node3D.new();board.position=Vector3(-1.125,1.98,-1.0-i*.87);board.rotation.y=PI/2;group_node.add_child(board)
-   w.box(board,Vector3.ZERO,Vector3(.58,.68,.014),w.mat(Color("e7dfb9") if bright else Color("83795c"),null if bright else load("res://assets/aged-plaster.png"),.94))
-   var colour:=w.mat([Color("b35246"),Color("d0ad3a"),Color("437e9c")][i%3] if bright else Color("3d2621"))
-   for k in range(6):
-    var a:=k*TAU/6;w.sphere(board,Vector3(sin(a)*.12,cos(a)*.12,.018),.07,colour).scale.z=.08
-   w.tube(board,Vector3(0,-.23,.018),Vector3(0,-.10,.018),.008,lower)
-  w.box(group_node,Vector3(0,1.3,-5.58),Vector3(1.5,2.6,.07),lower)
-  w.box(group_node,Vector3(.52,1.1,-5.51),Vector3(.23,.05,.06),w.materials.metal)
- clean_light=fixture(clean,Vector3(0,2.98,-2.6),Color("fff0d0"),2.4,6.0)
- old_light=fixture(ruined,Vector3(0,2.98,-2.6),Color("789e91"),.48,5.3)
- clean.hide()
- door_audio=AudioStreamPlayer3D.new();door_audio.name="DeliveryHinge";door_audio.stream=load("res://assets/door.ogg");door_audio.position=exit_root.position;door_audio.unit_size=2;door_audio.volume_db=-15;door_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(door_audio)
+ MainEntrance.build(self)
 
 func _room_palettes() -> void:
  # Local wall/wood treatment plus physical lamp colours; never a full-screen tint.
@@ -246,7 +208,7 @@ func configure(id: String) -> void:
 func interact_exit(player: NightGuard) -> void:
  # Never sweep a closing leaf through someone standing on the threshold.
  var p:=exit_root.to_local(player.position)
- if exit_open and p.z> -1.85 and p.z<.65 and absf(p.x)<1.2: return
+ if exit_open and p.z> -7.4 and p.z< -4.8 and absf(p.x)<1.2: return
  exit_open=not exit_open;door_audio.play()
  if exit_open and anomaly=="false_exit" and not exit_finished: exit_started=true
 
@@ -255,10 +217,12 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if not active: return
  elapsed+=delta;shock=move_toward(shock,0,delta*2.2)
  var player_local:=exit_root.to_local(player.position)
- if not exit_open and exit_leaf.rotation.y>.1 and player_local.z> -1.85 and player_local.z<.65 and absf(player_local.x)<1.2: exit_open=true
+ if not exit_open and exit_leaf.rotation.y>.1 and player_local.z> -7.4 and player_local.z< -4.8 and absf(player_local.x)<1.2: exit_open=true
  exit_leaf.rotation.y=move_toward(exit_leaf.rotation.y,PI*.49 if exit_open else 0,delta*1.8)
  var moving:=absf(exit_leaf.rotation.y-(PI*.49 if exit_open else 0))>.01
- exit_collider.disabled=moving or (exit_open and player_local.x<-.46 and player_local.z> -1.9 and player_local.z<.3)
+ exit_collider.disabled=moving or (exit_open and player_local.x<-.46 and player_local.z> -7.4 and player_local.z< -4.8)
+ if exit_open and player_local.z<MainEntrance.OUTSIDE_Z and absf(player_local.x)<1.22 and player.position.y<1.8 and not escape_queued:
+  escape_queued=true;escaped.emit()
  if anomaly=="false_exit" and exit_started and not exit_finished:
   exit_clock+=delta
   if exit_clock>3.2:
@@ -310,7 +274,7 @@ func restore(data: Variant) -> void:
 func safe_pose(p: Vector3) -> bool:
  if p.x>11.36 and p.x<19.64 and p.z< -12.15 and p.z> -18.55 and p.y>=.15 and p.y<3.3: return true
  var q:=exit_root.to_local(p)
- return absf(q.x)<1.1 and q.z<.1 and q.z> -5.5 and p.y>-.2 and p.y<2.9
+ return absf(q.x)<1.1 and q.z<.1 and q.z> -6.6 and p.y>-.2 and p.y<2.9
 
 func snapshot() -> Dictionary:
  return {"costumes":costumes.size(),"costume_triggered":triggered,"costume_attack":attack,"costume_audio":scare_audio.playing,"costume_paused":scare_audio.stream_paused,"exit_open":exit_open,"exit_angle":exit_leaf.rotation.y,"exit_started":exit_started,"exit_finished":exit_finished,"clean_corridor":clean.visible,"exit_clock":exit_clock,"anomaly":anomaly}

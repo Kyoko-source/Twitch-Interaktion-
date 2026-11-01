@@ -10,7 +10,7 @@ const ANOMALIES := [
  {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Empfang"},
  {"id":"throne_guest","name":"Auf dem Geburtstagsthron sitzt ein verdrehter Gast und schnellt dir entgegen.","zone":"Party Raum"},
  {"id":"costume_wakes","name":"Ein leer aufgehängtes Kostüm hebt den Kopf und schlägt nach vorn.","zone":"Party Raum"},
- {"id":"false_exit","name":"Hinter dem Lieferausgang erscheint ein unversehrter heller Flur. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert.","zone":"Empfang"},
+ {"id":"false_exit","name":"Die Garderobe am alten Haupteingang erscheint unversehrt und hell. Nach einem Lichtausfall ist sie verfallen; das Schild hat sich verändert.","zone":"Empfang"},
  {"id":"reception_counter_burst","name":"Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu.","zone":"Empfang"},
  {"id":"reception_overhead","name":"Über dem Empfangsgang fällt eine kopfüber hängende Gestalt herab.","zone":"Empfang"},
  {"id":"pit_runner","name":"Am Rand des Bällebads rast eine entstellte Gestalt auf dich zu.","zone":"Bällebad"},

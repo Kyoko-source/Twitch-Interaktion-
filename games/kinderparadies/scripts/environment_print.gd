@@ -62,9 +62,9 @@ func _draw() -> void:
   draw_string(font,Vector2(90,410),"013",HORIZONTAL_ALIGNMENT_LEFT,-1,350,ink)
   draw_string(font,Vector2(105,520),"NACHTDIENST",HORIZONTAL_ALIGNMENT_LEFT,-1,70,ink)
  elif kind=="exit":
-  draw_string(font,Vector2(55,215),"LIEFERAUSGANG",HORIZONTAL_ALIGNMENT_LEFT,-1,62,ink)
-  draw_string(font,Vector2(55,310),"AUSSENTÜR VERRIEGELT",HORIZONTAL_ALIGNMENT_LEFT,-1,33,ink)
-  draw_string(font,Vector2(55,423),"NUR FÜR PERSONAL",HORIZONTAL_ALIGNMENT_LEFT,-1,27,ink)
+  draw_string(font,Vector2(55,215),"HAUPTEINGANG",HORIZONTAL_ALIGNMENT_LEFT,-1,62,ink)
+  draw_string(font,Vector2(55,310),"GARDEROBE / PARKPLATZ",HORIZONTAL_ALIGNMENT_LEFT,-1,33,ink)
+  draw_string(font,Vector2(55,423),"BIS BALD IM HAPPYLAND",HORIZONTAL_ALIGNMENT_LEFT,-1,27,ink)
  elif kind=="exit_changed":
   draw_string(font,Vector2(55,195),"DU WARST",HORIZONTAL_ALIGNMENT_LEFT,-1,67,Color("762a23"))
   draw_string(font,Vector2(55,290),"SCHON DRAUSSEN.",HORIZONTAL_ALIGNMENT_LEFT,-1,57,Color("762a23"))

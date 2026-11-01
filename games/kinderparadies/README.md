@@ -1,5 +1,46 @@
 # After Play — Kinderparadies
 
+## Haupteingang, Garderobe und Verbindungsgang (3.3.0)
+
+Der ehemalige Lieferflur ist jetzt der alte Haupteingang. Ein offener Bogen
+verbindet ihn mit dem Hauptsaal; die echte Glastür liegt am anderen Ende.
+Garderobe und Kinderwagen wurden hierher versetzt, mit Sitzbank, Schuhablage,
+nummerierten Haken, Schirmständer und Fußmatte. Die Tür lässt sich mit E öffnen.
+Erst wer durch sie auf den verbundenen Parkplatz tritt, erreicht das zusätzliche
+„Geheime Ende“: Schwarzblende, eigens synthetisierte Autofahrt und der gewünschte
+Kündigungssatz. Anschließend laufen die Credits mit Spieluhr; Fortsetzen stellt
+dieses Ende wieder her. ENDE 1/2 und ENDE 2/2 bleiben erhalten. 0712 bleibt gültig.
+
+Der Verbindungsgang zu Küche und Kino erhält durchgehende Vertäfelung,
+Sockelleisten, befestigte Deckenleuchten, Heizkörper mit Leitungen, Wegweiser,
+einen Aushangkasten und eine Lüftungsrevision. Die Laufmitte und beide
+Raumöffnungen bleiben frei. Plastische Putzoberflächen ergänzen den bestehenden
+Licht- und Materialausbau. Browser und Windows behalten ihre Qualitätsstufen.
+
+Die beiden Vorratsregale stehen an der freien Nordwand. Sie durchschneiden
+keine Slush-Maschinen mehr. An der Kinosteuerung ersetzt ein flaches Metallschild
+den überlagerten Holzrahmen; das dort unpassend montierte Akustikpaneel entfällt.
+Der Möbeltest prüft nun auch die Volumina dieser tatsächlich getrennten Objekte
+gegeneinander; ein absichtlich nachgestellter Überlappungsfehler muss anschlagen.
+
+Private Werkzeuge: tools/prepare-after-play-v330-audio.py,
+--self-test --arrival-only, --render-qa --v330-qa.
+
+Validierung 3.3.0: 22 gezielte native Prüfungen für Eingang, Glastür,
+Speicherpositionen und das dritte Ende bestehen. Die 111 Grafik-/Akustikprüfungen
+und 55 bisherigen Bühnen-/Eingangsprüfungen bestehen ebenfalls. Vier echte
+Browser-Abläufe prüfen den geheimen Ausgang mit Credits/Fortsetzen, den gesamten
+Verbindungsgang samt beiden Raumöffnungen, die angepasste Eingangs-Anomalie und
+die Migration einer alten Speicherposition aus der Garderobenbank. Alle bestehen
+ohne Konsolenfehler. Die öffentliche Web-Fassung wird zusätzlich mit echten
+Maus-/Tastatureingaben und auf einer mobilen Startseite geprüft (Edge/Playwright;
+Browser-Plugin nicht verfügbar). Elf native 1920×1080-Aufnahmen bestätigen die
+Platzierungen; die Geometrieprüfung meldet keine versperrten Wege, überlagerten
+Wandbilder oder erkannten Möbelüberschneidungen. Windows- und Web-Paket bestehen
+Dateiliste, CRC, Prüfsummen, Lizenzen und die Privatheitsgrenze. Die exportierte
+Windows-EXE startet ohne fehlende Ressourcen oder Skriptfehler. Beide itch-Kanäle
+bestehen den lokalen Probelauf; ein itch-Upload wurde nicht ausgeführt.
+
 ## Räumlicher Klang und Oberflächen (3.2.0)
 
 Das Westfenster besitzt eine echte Öffnung in der Architektur, drei geschlossene

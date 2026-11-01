@@ -5,6 +5,7 @@ const AUTHOR:="Kyoko"
 const IDEA:="einsmarello"
 const TESTERS: Array[String]=["einsmarello","__jerry__","gingerbread","Mozart"]
 const SECOND_END_HINT:="schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11"
+const SECRET_LINE:="Was eine dumme Horror Scheiße, ich bin Weg und Kündige"
 const KYOKO_NOTE:="Vielen Dank fürs spielen meines Projektes. Du musst wissen, ich bin kein Spieleentwickler oder Software Designer.\n\nDas Spiel After Play war eine Idee von mir als die Anomalie Spiele groß im Hype waren.\n\nZudem Zeitpunkt wusste ich nur noch nichts von der erstellung solcher Spiele.\nMonatelanges lernen/verstehen und umsetzen folgten und mit viel Hilfe guter Freunde, Online Assets Bibliotheken und KI erstellten Inhalten wie Bilder und Musik konnte ich nach Monatelanger entwicklung mein erstes Spiel herausbringen.\n\nEs ist nicht perfekt und auch nicht Fehlerfrei gestaltet aber der erste Meilenstein für mich selber in der Entwicklung meines ersten eigenen Games."
 var g: Node3D
 var clock:=0.0
@@ -17,12 +18,19 @@ var music: AudioStreamPlayer
 var black: ColorRect
 var afterglow: EndingAfterglow
 var ending_number:=2
+var secret_line: Label
+var escape_audio: AudioStreamPlayer
+var car_started:=false
 
 func build(game: Node3D, number: int=2) -> void:
- g=game;ending_number=clampi(number,1,2);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  music=AudioStreamPlayer.new();music.name="CreditsMusicBox";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(RoomHorror.MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
  black=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(black)
  word=g._label(end_title(),128);word.add_theme_font_override("font",g.title_font);word.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;word.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;word.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);word.modulate.a=0;add_child(word)
+ if ending_number==3:
+  black.color.a=0;word.offset_bottom=-180
+  secret_line=g._label(SECRET_LINE,37,Color("d5cbbb"));secret_line.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;secret_line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;secret_line.position=Vector2(260,570);secret_line.size=Vector2(1400,150);secret_line.modulate.a=0;add_child(secret_line)
+  escape_audio=AudioStreamPlayer.new();escape_audio.name="CarLeavingHappyland";escape_audio.stream=load("res://assets/arrival-v330/car-departure.ogg");escape_audio.bus="Master";escape_audio.volume_db=-5;escape_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(escape_audio)
  roll=VBoxContainer.new();roll.position=Vector2(312,1120);roll.size.x=1296;roll.add_theme_constant_override("separation",22);add_child(roll)
  _line("AFTER PLAY",88);_line("Ein Spiel von",21,Color("b4aa90"));_line(AUTHOR,61)
  if ending_number==1:
@@ -43,7 +51,10 @@ func build(game: Node3D, number: int=2) -> void:
  var hint: Label=g._label("Leertaste halten · Credits überspringen",15,Color("6e736e"));hint.name="SkipHint";hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hint.position=Vector2(1400,32);hint.size.x=470;hint.hide();add_child(hint)
 
 func end_title() -> String:
- return "ENDE %d/2"%ending_number
+ return "Geheimes Ende" if ending_number==3 else "ENDE %d/2"%ending_number
+
+func title_length() -> float:
+ return 10. if ending_number==3 else 4.
 
 func _line(text: String, size: int, color: Color=Color("e8e6da")) -> void:
  var label: Label=g._label(text,size,color);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.add_theme_font_override("font",g.title_font);roll.add_child(label)
@@ -54,19 +65,25 @@ func _gap(height: float) -> void:
 func tick(delta: float) -> void:
  clock+=delta
  if done: return
+ if ending_number==3 and not afterglow:
+  black.color.a=smoothstep(0.,.8,clock)
+  if clock>=.85 and not car_started:car_started=true;escape_audio.play()
  if afterglow:
   afterglow.tick(delta);black.color.a=afterglow.shade_alpha()
   music.volume_db=-9-51*smoothstep(12.,16.,afterglow.clock)
   hold=hold+delta if Input.is_action_pressed("jump") and afterglow.clock>2 else 0.0
   if afterglow.finished or hold>=1.3: _finish_afterglow()
   return
- word.modulate.a=clampf((clock-.22)/.38,0,1)*clampf((4.0-clock)/.6,0,1)
- if clock<4: return
+ word.modulate.a=clampf((clock-(2.7 if ending_number==3 else .22))/.38,0,1)*clampf((title_length()-clock)/.6,0,1)
+ if secret_line:secret_line.modulate.a=word.modulate.a
+ if clock<title_length(): return
+ if escape_audio:escape_audio.stop()
  if not music.playing: music.play()
- music.volume_db=linear_to_db(maxf(.001,clampf((clock-4)/.8,0,1)*db_to_linear(-9)))
- word.hide();roll.position.y=1120-(clock-4)*38
+ music.volume_db=linear_to_db(maxf(.001,clampf((clock-title_length())/.8,0,1)*db_to_linear(-9)))
+ word.hide();roll.position.y=1120-(clock-title_length())*38
+ if secret_line:secret_line.hide()
  get_node("SkipHint").show()
- hold=hold+delta if Input.is_action_pressed("jump") and clock>5 else 0.0
+ hold=hold+delta if Input.is_action_pressed("jump") and clock>title_length()+1 else 0.0
  if roll.position.y+roll.size.y< -80 or hold>=1.3: finish_scroll()
 
 func finish_scroll() -> void:
@@ -78,10 +95,13 @@ func finish_scroll() -> void:
 func _finish_afterglow() -> void:
  afterglow.dispose();done=true;black.color.a=1;music.stop()
  word.text=end_title();word.modulate.a=1;word.show();word.offset_bottom=-390;actions.show()
+ if secret_line:
+  word.offset_bottom=-610;secret_line.position.y=325;secret_line.modulate.a=1;secret_line.show()
 
 func _exit_tree() -> void:
  if afterglow: afterglow.dispose()
  if is_instance_valid(music): music.stop()
+ if is_instance_valid(escape_audio):escape_audio.stop()
 
 func snapshot() -> Dictionary:
- return {"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=4 else "title" if clock>=.22 else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"afterglow":afterglow.snapshot() if afterglow else {}}
+ return {"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=title_length() else "title" if clock>=(2.7 if ending_number==3 else .22) else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"secret_line":SECRET_LINE if ending_number==3 else "","car":is_instance_valid(escape_audio) and escape_audio.playing,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"afterglow":afterglow.snapshot() if afterglow else {}}

@@ -47,6 +47,7 @@ var intro_pending:=false
 var wake_pending:=false
 var arrival_pending:=false
 var survived:=0
+var secret_ending:=false
 var death_label: Label
 var end_credits: EndCredits
 var memories: ArchiveMemories
@@ -85,6 +86,7 @@ func _build_world(anomaly: String) -> void:
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();world.set_anomaly(anomaly)
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
+ world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
  world.film.sync(archive.film_found)
  world.brightness(float(settings.brightness))
@@ -175,6 +177,7 @@ func _menu_jump() -> void:
  phase="settings";NightMenus.settings(self,settings_tab);_telemetry()
 
 func _new_shift() -> void:
+ secret_ending=false
  archive.clear();archive_selected="";archive_input=""
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false;_build_world("none");_begin_intro()
 
@@ -219,7 +222,8 @@ func _can_continue() -> bool:
 
 func _continue() -> void:
  if has_session:
-  if archive.ending=="complete": _show_archive_ending()
+  if secret_ending: _show_ending(3)
+  elif archive.ending=="complete": _show_archive_ending()
   elif state.completed and archive.ending=="idle": _show_patrol_ending()
   elif wake_pending or arrival_pending: _arrival(wake_pending)
   elif intro_pending: _begin_intro()
@@ -231,21 +235,23 @@ func _continue() -> void:
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
+ secret_ending=bool(data.get("secret_ending",false))
  world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
+ if secret_ending: _show_ending(3);return
  if archive.ending=="complete": _show_archive_ending();return
  if state.completed and archive.ending=="idle": _show_patrol_ending();return
  if wake_pending or arrival_pending: _arrival(wake_pending);return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0)) in [7,8,9,10,11] and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8,9,10,11,12] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
   if int(data.get("layout_version",0))<11:
    if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
    elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or world.life.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
-   if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p) and world.graphics.clear_pose(p): player.position=p
+   if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p) and world.graphics.clear_pose(p) and world.arrival_design.clear_pose(p): player.position=p
    player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
    if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
@@ -383,7 +389,7 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session: return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":11,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
 
 func _process(delta: float) -> void:
  if not world or not player: return
@@ -435,7 +441,7 @@ func _process(delta: float) -> void:
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
-  elif target=="delivery_exit": prompt.text="E · Liefertür "+("schließen" if world.backstage.exit_open else "öffnen")
+  elif target=="delivery_exit": prompt.text="E · Glastür zum Parkplatz "+("schließen" if world.backstage.exit_open else "öffnen")
   elif target.begins_with("story:"): prompt.text="E · "+str(BackstageExpansion.DOCS[target.trim_prefix("story:")].title)+" lesen"
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
@@ -522,6 +528,10 @@ func _start_archive_scare() -> void:
 func _show_archive_ending() -> void:
  _show_ending(2)
 
+func _escape_happyland() -> void:
+ if phase!="play" or archive.ending=="recording":return
+ secret_ending=true;_show_ending(3)
+
 func _show_patrol_ending() -> void:
  _show_ending(1)
 
@@ -550,7 +560,7 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
  if phase in ["archive_scare","ending","failure","death","lift","arrival"]:
-  if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>4: end_credits.finish_scroll()
+  if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>end_credits.title_length(): end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
  if event.is_action_pressed("fullscreen"): _fullscreen();get_viewport().set_input_as_handled()
@@ -691,6 +701,7 @@ func _telemetry() -> void:
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   data.upgrade={"graphics":world.graphics.snapshot(),"acoustics":world.acoustics.snapshot()}
+  data.arrival=world.arrival_design.snapshot();data.secret_ending=secret_ending
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}

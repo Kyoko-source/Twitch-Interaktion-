@@ -65,3 +65,8 @@ After Play 3.2: Acht eigenstaendige Maschinenklang-Loops, Fenster-, Regen-,
 Oberflaechen- und Glas-Shader sowie Parkplatz- und Ausbaudetails projektintern.
 Die Maschinenklaenge enthalten keine fremden Samples. Weiterverwendete
 Fototexturen von Poly Haven bleiben unter CC0 1.0 lizenziert (siehe oben).
+
+After Play 3.3: Eingangs- und Flurausstattung sowie das Autogeräusch wurden
+für After Play erstellt. Das Autogeräusch ist vollständig synthetisiert und
+enthält keine fremden Samples. Die Putz-Fototexturen stammen weiterhin von
+Poly Haven (CC0 1.0, siehe Quellen.txt).

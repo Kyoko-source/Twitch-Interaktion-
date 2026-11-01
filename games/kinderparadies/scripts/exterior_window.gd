@@ -65,7 +65,13 @@ func _parking(metal: Material) -> void:
  for i in range(13):part(Vector3(-5.9+i*.6,.08,-1.12),Vector3(.57,.16,.29),concrete)
  # Building wing conceals the maintenance room rather than overlapping it.
  part(Vector3(2.12,1.8,-15.0),Vector3(.20,3.6,30),w.materials.wall)
- part(Vector3(-6.28,1.8,-15.0),Vector3(.16,3.6,30),w.materials.wall)
+ # The old entrance joins the same parking lot beyond its west facade.
+ part(Vector3(-6.28,1.8,-3.20),Vector3(.16,3.6,4.4),w.materials.wall)
+ part(Vector3(-9.0,-.10,-18.0),Vector3(5.6,.18,24.),asphalt)
+ for z in [-9.,-14.,-19.,-24.,-29.]:
+  w.tube(self,Vector3(-11.7,0,z),Vector3(-11.7,1.8,z),.027,metal)
+ for y in [.25,1.6]:w.tube(self,Vector3(-11.7,y,-6.),Vector3(-11.7,y,-29.9),.020,metal)
+ for z in [-11.,-19.,-27.]:part(Vector3(-7.6,.003,z),Vector3(2.9,.004,.075),paint)
  for z in [-4.,-12.,-20.,-28.]:
   part(Vector3(1.99,1.2,z),Vector3(.025,.08,1.1),metal)
  for i in range(18):
@@ -83,7 +89,7 @@ func _parking(metal: Material) -> void:
  var letters:=w.venue.text(self,"HAPPYLAND",Vector3(-1.2,3.32,-15.87),.72,Color.WHITE)
  (letters.mesh as TextMesh).depth=.035;letters.material_override=sign_material
  w.venue.text(self,"KINDERPARADIES",Vector3(-1.2,3.01,-15.85),.15,Color("7c8873"))
- for point in [Vector3(-5.7,0,-13),Vector3(-3.8,0,-25)]:
+ for point in [Vector3(-5.7,0,-13),Vector3(-3.8,0,-25),Vector3(-10.8,0,-12)]:
   w.tube(self,point,point+Vector3(0,5.5,0),.055,metal)
   part(point+Vector3(0,5.43,0),Vector3(.45,.16,.7),metal)
   var diffuser:=w.mat(Color("c4c0a5"),null,.5);diffuser.emission_enabled=true;diffuser.emission=Color("d8d8b5");diffuser.emission_energy_multiplier=1.3
@@ -100,10 +106,13 @@ func _weather() -> void:
  rain.set_meta("nonblocking_atmosphere",true)
  var mesh:=QuadMesh.new();mesh.size=Vector2(.014,.19)
  var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_custom_data=true;mm.mesh=mesh;mm.instance_count=720 if not OS.has_feature("web") else 240
- mm.custom_aabb=AABB(Vector3(-6.2,0,-29),Vector3(8.2,9,28))
+ mm.custom_aabb=AABB(Vector3(-11.7,0,-29),Vector3(13.7,9,28))
  var rng:=RandomNumberGenerator.new();rng.seed=320
  for i in range(mm.instance_count):
-  mm.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(rng.randf_range(-6.1,1.8),.05,rng.randf_range(-28.5,-1.3))))
+  var point:=Vector3(rng.randf_range(-11.6,1.8),.05,rng.randf_range(-28.5,-1.3))
+  # The entrance and its awning occupy this corner of the extended lot.
+  if point.x< -6.15 and point.z> -7.0:point.z=rng.randf_range(-28.5,-7.0)
+  mm.set_instance_transform(i,Transform3D(Basis.IDENTITY,point))
   mm.set_instance_custom_data(i,Color(rng.randf(),rng.randf(),rng.randf(),rng.randf()))
  rain.multimesh=mm;add_child(rain)
 

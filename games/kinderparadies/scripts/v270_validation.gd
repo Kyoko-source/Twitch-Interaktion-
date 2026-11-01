@@ -32,12 +32,12 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(game.player.position.distance_to(Vector3(17.3,.2,-14.5))<.1,"Save/resume rejects the new backstage room")
  b=game.world.backstage
  # A shut leaf must block the actual standing capsule, not only look closed.
- game.player.position=Vector3(-8.8,0,9.4);game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI/2;game.player.active=true
+ game.player.position=Vector3(-14.4,0,9.4);game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI/2;game.player.active=true
  Input.action_press("forward")
  for frame in range(50): await game.get_tree().physics_frame
  Input.action_release("forward");game.player.active=false
- verify.call(game.player.position.x> -10.0,"Closed delivery door has no physical collision")
- game.player.position=Vector3(-8.8,0,9.4);game.player.camera.look_at(Vector3(-10.2,1.3,9.4));await game.get_tree().physics_frame
+ verify.call(game.player.position.x> -15.6,"Closed entrance glass has no physical collision")
+ game.player.position=Vector3(-14.4,0,9.4);game.player.camera.look_at(Vector3(-15.8,1.3,9.4));await game.get_tree().physics_frame
  verify.call(game._target()=="delivery_exit","Delivery door is not reachable with the normal E ray")
  b.interact_exit(game.player)
  for frame in range(80): await game.get_tree().physics_frame
@@ -50,7 +50,7 @@ func run(game: Node3D, verify: Callable) -> void:
   for frame in range(92): await game.get_tree().physics_frame
   Input.action_release("forward");game.player.active=false
   verify.call(game.player.position.x< -12.2 if direction==1 else game.player.position.x> -10,"Player cannot walk both ways through the delivery door: "+str(game.player.position))
- game.player.position=Vector3(-10.4,0,9.4);b.interact_exit(game.player)
+ game.player.position=Vector3(-15.7,0,9.4);b.interact_exit(game.player)
  verify.call(b.exit_open,"Delivery door closes through someone standing in the threshold")
  verify.call(not b.clean.visible and not b.exit_started,"Normal round contains the impossible clean corridor")
  for id in BackstageExpansion.DOCS:

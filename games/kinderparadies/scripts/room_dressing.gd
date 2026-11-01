@@ -33,6 +33,7 @@ static func shelf(w: PlayWorld, parent: Node3D, pos: Vector3, yaw: float) -> voi
     for stripe in [.04,h-.045]: w.box(unit,Vector3(-.45+k*.095,y+stripe,.158),Vector3(.062,.012,.008),w.materials.gold)
    for k in range(3): w.box(unit,Vector3(.36,y+.025+k*.04,.02),Vector3(.22,.038,.29),w.materials.cream if k%2 else w.materials.teal)
  unit.set_meta("stocked_shelf",true)
+ unit.set_meta("furniture_volume",AABB(Vector3(-.63,.02,-.28),Vector3(1.26,2.12,.57)))
 
 static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
  var unit:=Node3D.new();unit.name="PartySideboard";unit.position=Vector3(19.12,.016,-3.9);unit.rotation.y=-PI/2;parent.add_child(unit)

@@ -10,7 +10,9 @@ const PORTALS:=[
  ["hall","service",Vector3(-10.2,1.45,-5.4)],
  ["hall","washroom",Vector3(19.8,1.45,7.8)],
  ["party","backstage",Vector3(17.3,1.55,-12.2)],
- ["hall","archive",Vector3(-10.2,1.45,-9.9)]
+ ["hall","archive",Vector3(-10.2,1.45,-9.9)],
+ ["hall","entrance",Vector3(-10.2,1.45,9.4)],
+ ["entrance","outside",Vector3(-15.8,1.45,9.4)]
 ]
 const ROOMS:={
  "hall":Vector3(.78,.14,.70),"party":Vector3(.62,.12,.76),
@@ -18,7 +20,7 @@ const ROOMS:={
  "corridor":Vector3(.57,.19,.61),"service":Vector3(.40,.11,.66),
  "washroom":Vector3(.49,.23,.46),"backstage":Vector3(.43,.08,.87),
  "archive":Vector3(.39,.10,.80),"tube":Vector3(.19,.17,.32),
- "outside":Vector3(.20,.015,.90)
+ "outside":Vector3(.20,.015,.90),"entrance":Vector3(.36,.13,.65)
 }
 var w: PlayWorld
 var records: Array[Dictionary]=[]
@@ -104,6 +106,7 @@ func area(point: Vector3) -> String:
   if point.x>7:return "backstage"
   return "corridor"
  if point.x< -10.15:
+  if point.z>8.18 and point.z<10.62 and point.x> -15.85:return "entrance"
   if point.z< -7:return "archive"
   if point.z< -1:return "service"
   return "outside"

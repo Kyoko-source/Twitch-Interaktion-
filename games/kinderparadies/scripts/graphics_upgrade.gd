@@ -98,7 +98,7 @@ func _shelves() -> void:
  var index:=0
  for shelf in w.props.RoomDressing.get_children():
   if not shelf.get_meta("stocked_shelf",false) or shelf.position.x>0:continue
-  shelf.position=Vector3(17.+index*1.4,.016,16.6);shelf.rotation.y=PI;index+=1
+  shelf.position=Vector3(3.8+index*1.4,.016,-11.65);shelf.rotation.y=0;index+=1
   for shape in shelf.find_children("*","CollisionShape3D",true,false):
    if shape.shape:obstacles.append(shape.global_transform*shape.shape.get_debug_mesh().get_aabb())
 

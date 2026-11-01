@@ -33,7 +33,10 @@ func build(world: PlayWorld) -> void:
  (panel.get_child(0) as StaticBody3D).set_meta("interaction","cinema_projector")
  for y in [1.18,1.34]:
   w.tube(self,Vector3(-6.18,y,-15.83),Vector3(-6.16,y,-15.83),.043,w.materials.gold if y>1.3 else w.materials.red)
- w.artwork(self,Vector3(-6.245,1.68,-15.83),Vector2(.64,.19),DressingPrint.texture(self,"film"),PI/2)
+ var plaque:=Node3D.new();plaque.name="FlushProjectorLabel";plaque.position=Vector3(-6.215,1.68,-15.83);plaque.rotation.y=PI/2;add_child(plaque)
+ w.box(plaque,Vector3.ZERO,Vector3(.68,.23,.018),w.materials.metal)
+ var label_face:=MeshInstance3D.new();var label_quad:=QuadMesh.new();label_quad.size=Vector2(.63,.18);label_face.mesh=label_quad;label_face.position.z=.010
+ label_face.material_override=w.mat(Color("c7bea5"),DressingPrint.texture(self,"film"),.91);plaque.add_child(label_face)
  for x in [-5.59,-5.20]:
   var spool:=Node3D.new();spool.name="ProjectorFilmSpool";spool.position=Vector3(x,3.26,-17.7);add_child(spool);_reel(spool,.16,true);spool.hide();spools.append(spool)
  screen=w.annex.screen_surface;original=screen.material_override

@@ -25,7 +25,7 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
 - Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor. (`snackbar_visitor`)
 
-- Hinter dem Lieferausgang erscheint ein unversehrter heller Flur. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
+- Im alten Haupteingang erscheint die Garderobe unversehrt und hell. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
 - Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu. (`reception_counter_burst`)
 - Über dem Empfangsgang fällt eine kopfüber hängende Gestalt herab. (`reception_overhead`)
 - Eine ausgemergelte Gestalt beugt sich hinter dem Empfang hervor und zuckt auf dich zu. (`reception_peeker`)
@@ -112,7 +112,7 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
 ## Normaler Vergleich
 
-Der leere Geburtstagsthron, die reglos aufgehängten Kostüme, die lesbaren Wartungsunterlagen, der beschädigte Spind und der verfallene Lieferflur sind normal. Die Außentür ist verschlossen. Die innere Liefertür ist keine rote/grüne Entscheidungstür. Dienstausweis, Schlüsselgeräusch und lokale Lichtfarben sind keine Anomalien.
+Der leere Geburtstagsthron, die reglos aufgehängten Kostüme, die lesbaren Wartungsunterlagen, der beschädigte Spind und der verfallene Haupteingang mit Garderobe sind normal. Die Glastür am Ende lässt sich mit E öffnen. Erst das Hinaustreten auf den Parkplatz führt zum zusätzlichen geheimen Ende, mit eigenem Autogeräusch und anschließendem Abspann. Die Glastür ist keine rote/grüne Entscheidungstür. Dienstausweis, Schlüsselgeräusch und lokale Lichtfarben sind keine Anomalien.
 
 Der große beschädigte Stoffhase ausschließlich rechts im Party Raum ist ein festes Maskottchen, keine Anomalie. Auch die eingerichtete Werkstatt, die Kinovorhänge und die unterschiedlichen Schritte je Bodenmaterial gehören zum normalen Zustand.
 

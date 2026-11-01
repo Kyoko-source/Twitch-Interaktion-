@@ -10,7 +10,7 @@ func run(game: Node3D,verify: Callable) -> void:
  var ray:=PhysicsRayQueryParameters3D.create(Vector3(-9,2.2,1.7),Vector3(-11,2.2,1.7),1);ray.exclude=[guard.get_rid()]
  var hit:=w.get_world_3d().direct_space_state.intersect_ray(ray)
  verify.call(not hit.is_empty() and str(hit.collider.name)=="ClosedWindowBarrier","West window is still covered by a wall or can be walked through")
- verify.call(not w.graphics.clear_pose(Vector3(17,0,16.6)) and w.graphics.clear_pose(Vector3(-9,0,1.7)),"Relocated shelves obstruct the window or accept embedded old saves")
+ verify.call(not w.graphics.clear_pose(Vector3(3.8,0,-11.65)) and w.graphics.clear_pose(Vector3(-9,0,1.7)),"Relocated shelves obstruct the window or accept embedded old saves")
  var curved:=w.details.find_children("*","MeshInstance3D",true,false).filter(func(n):return n.get_meta("curved_crt",false))
  verify.call(curved.size()==2,"Arcade CRTs did not receive convex glass surfaces")
  for screen in curved:
@@ -41,13 +41,13 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(rain.blocked and rain.cutoff<1000 and rain.gain< -14,"Exterior rain bypasses the closed glazing")
  # Test the actual moving delivery leaf, not a mocked occlusion boolean.
  var speaker:=w.life.photo_hum;var old:=speaker.global_position
- speaker.global_position=Vector3(-11.9,1.4,9.4)
+ speaker.global_position=Vector3(-16.7,1.4,9.4)
  w.backstage.exit_open=false;w.backstage.exit_leaf.rotation.y=0
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
- var shut:=sound.solve(speaker,Vector3(-9,1.65,9.4),exclude)
+ var shut:=sound.solve(speaker,Vector3(-14.5,1.65,9.4),exclude)
  w.backstage.exit_open=true;w.backstage.exit_leaf.rotation.y=PI*.49
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
- var opened:=sound.solve(speaker,Vector3(-9,1.65,9.4),exclude)
+ var opened:=sound.solve(speaker,Vector3(-14.5,1.65,9.4),exclude)
  verify.call(shut.blocked and shut.cutoff<2000 and opened.cutoff>15000 and opened.gain>shut.gain+8,"Opening the real door does not release the sound: "+str([shut,opened]))
  speaker.global_position=old
  guard.position=CrawlTubes.route(7.4);guard.position.y=.25
