@@ -23,9 +23,16 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
-test('v3.5.2 quiet weather follows rooms, pauses and plays an occasional distant thunder roll',async({page})=>{
+test('v3.5.3 boarded window preserves a viewing slit and weather plays audible spaced thunder',async({page})=>{
  test.setTimeout(180000);await begin(page);
  await qa(page,{op:'warp',x:-8,z:1.7});
+ expect((await state(page)).upgrade.graphics.window_boards).toBe(6);
+ expect((await state(page)).upgrade.graphics.window_curtains).toBe(2);
+ await qa(page,{op:'warp',x:-9.2,z:1.7,yaw:Math.PI/2,pitch:0});
+ await page.waitForTimeout(700);
+ await page.screenshot({path:join(tmpdir(),'after-play-v353-web-window.png')});
+ await page.keyboard.down('w');await page.waitForTimeout(800);await page.keyboard.up('w');
+ expect((await state(page)).position[0]).toBeGreaterThan(-10.1);
  await expect.poll(async()=>(await state(page)).weather.rain_playing).toBe(true);
  await expect.poll(async()=>(await state(page)).weather.rain_db,{timeout:10000}).toBeGreaterThan(-20);
  expect((await state(page)).weather.bus).toBe('AP.Weather');
@@ -35,10 +42,10 @@ test('v3.5.2 quiet weather follows rooms, pauses and plays an occasional distant
  await page.keyboard.press('Escape');await qa(page,{op:'warp',x:-1,z:-31});
  await expect.poll(async()=>(await state(page)).weather.area).toBe('cinema');
  await expect.poll(async()=>(await state(page)).weather.rain_db,{timeout:10000}).toBeLessThan(-23);
- await expect.poll(async()=>(await state(page)).weather.count,{timeout:65000,intervals:[150]}).toBeGreaterThan(0);
- const rolled=(await state(page)).weather;expect(rolled.thunder_playing).toBe(true);expect(rolled.thunder_db).toBeLessThan(-20);expect(rolled.next_roll).toBeGreaterThan(60);
+ await expect.poll(async()=>{const weather=(await state(page)).weather;return weather.count>0&&weather.thunder_playing;},{timeout:90000,intervals:[150]}).toBe(true);
+ const rolled=(await state(page)).weather;expect(rolled.thunder_playing).toBe(true);expect(rolled.thunder_db).toBeGreaterThan(-12);expect(rolled.next_roll).toBeGreaterThan(35);
  expect((await state(page)).anomaly).toBe('none');
- await page.screenshot({path:join(tmpdir(),'after-play-v352-web-weather.png')});
+ await page.screenshot({path:join(tmpdir(),'after-play-v353-web-weather.png')});
 });
 
 test('v3.5.1 elevator readouts follow rounds, saved progress and death',async({page})=>{

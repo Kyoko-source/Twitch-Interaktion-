@@ -16,7 +16,9 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(weather.clock==clock and weather.next_roll==timer and weather.rain.stream_paused,"Pause advances weather or leaves rain audible")
  game._resume();game.player.active=false
  var count:=weather.count;weather.next_roll=0;weather.tick(.1,true,"hall")
- verify.call(weather.count==count+1 and weather.thunder.playing and weather.next_roll>=65 and weather.next_roll<=110,"Distant thunder has no spaced random scheduler")
+ verify.call(weather.count==count+1 and weather.thunder.playing and weather.next_roll>=40 and weather.next_roll<=70,"Distant thunder has no spaced random scheduler")
+ for i in range(30):weather.tick(.1,true,"hall")
+ verify.call(weather.thunder.volume_db> -9 and weather.thunder.volume_db< -7,"Distant thunder is buried under the ordinary room ambience")
  var previous:=weather.last_variant;weather.thunder.stop();weather.cue_thunder()
  verify.call(weather.last_variant!=previous,"Consecutive thunder rolls repeat the same recording")
  for i in range(1,4):

@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 3.5.2
+# After Play — Veröffentlichungsvorbereitung 3.5.3
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v3.5.2.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v3.5.2.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v3.5.3.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v3.5.3.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 

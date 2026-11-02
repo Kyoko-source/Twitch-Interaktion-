@@ -46,7 +46,7 @@ for i, seconds in enumerate([8.4,9.6,10.8]):
         envelope += amount*(1-np.exp(-elapsed/.65))*np.exp(-elapsed/(1.3+i*.15))
     fade_in = np.clip(t/.8,0,1)
     fade_out = np.clip((seconds-t)/2.2,0,1)
-    rumble = (.82*band(28,180)+.16*band(110,410)+.025*band(300,760))*envelope*fade_in**2*fade_out**2
+    rumble = (.72*band(28,180)+.30*band(110,410)+.14*band(180,760)+.06*band(350,1100))*envelope*fade_in**2*fade_out**2
     stereo = np.column_stack([rumble, .92*np.roll(rumble,int(.027*RATE))+.035*band(40,190)*envelope*fade_in**2*fade_out**2])
     stereo = level(stereo,-20,-8)
     encode('distant-thunder-'+str(i+1),stereo)

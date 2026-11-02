@@ -16,7 +16,7 @@ var area:="hall"
 var running:=false
 
 func build() -> void:
- name="QuietRainAndDistantThunder";rng.randomize();next_roll=rng.randf_range(24.,42.)
+ name="QuietRainAndDistantThunder";rng.randomize();next_roll=rng.randf_range(8.,16.)
  var index:=AudioServer.get_bus_index(BUS)
  if index<0:AudioServer.add_bus();index=AudioServer.bus_count-1;AudioServer.set_bus_name(index,BUS)
  AudioServer.set_bus_send(index,"NightAmbience")
@@ -30,7 +30,7 @@ func cue_thunder() -> void:
  var variant:=rng.randi_range(0,2)
  if variant==last_variant:variant=(variant+1+rng.randi_range(0,1))%3
  last_variant=variant;thunder.stream=load(ROOT+"distant-thunder-%d.ogg"%(variant+1));thunder.play();count+=1
- next_roll=rng.randf_range(65.,110.)
+ next_roll=rng.randf_range(40.,70.)
 
 func tick(delta: float,active: bool,room: String,allow_thunder: bool=true) -> void:
  running=active
@@ -43,7 +43,9 @@ func tick(delta: float,active: bool,room: String,allow_thunder: bool=true) -> vo
  var weight:=minf(1.,delta*2.)
  var level: float=LEVELS.get(room,-24.)
  rain.volume_db=lerpf(rain.volume_db,level,weight)
- thunder.volume_db=lerpf(thunder.volume_db,level*.5-12.,weight)
+ # The recording already has a soft average level. A second -20 dB
+ # attenuation buried it beneath the room beds, particularly on small speakers.
+ thunder.volume_db=lerpf(thunder.volume_db,level*.35-2.,weight)
  filter.cutoff_hz=lerpf(filter.cutoff_hz,1600. if room in ["entrance","outside"] else 500. if room in ["archive","tube","elevator"] else 850.,weight)
  if not allow_thunder:thunder.stop();return
  next_roll-=delta

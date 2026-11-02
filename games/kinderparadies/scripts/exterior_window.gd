@@ -12,6 +12,8 @@ var lamps: Array[Light3D]=[]
 var probe: ReflectionProbe
 var clock:=0.
 var count:=0
+var boards: Array[MeshInstance3D]=[]
+var drapes: Array[MeshInstance3D]=[]
 
 func part(p: Vector3,size_value: Vector3,material: Material) -> MeshInstance3D:
  count+=1;return w.box(self,p,size_value,material)
@@ -39,7 +41,7 @@ func build(world: PlayWorld) -> void:
   w.tube(self,Vector3(x+.48,2.23,.20),Vector3(x+.40,2.23,.20),.012,w.materials.metal)
  var barrier:=StaticBody3D.new();barrier.name="ClosedWindowBarrier";barrier.set_meta("acoustic_barrier",true);add_child(barrier)
  var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=Vector3(3.6,2.5,.09);shape.shape=box;shape.position=Vector3(0,2.6,.02);barrier.add_child(shape)
- _parking(metal);_weather()
+ _barricade_and_curtains(metal);_parking(metal);_weather()
  window_light=SpotLight3D.new();window_light.name="ParkingLightThroughGlass";window_light.position=Vector3(-.2,3.2,-1.1)
  window_light.light_color=Color("a1bccd");window_light.light_energy=2.1;window_light.spot_range=14;window_light.spot_angle=57;window_light.spot_angle_attenuation=1.0
  window_light.light_size=.24;window_light.shadow_enabled=true;window_light.shadow_bias=.025;window_light.light_volumetric_fog_energy=.75;add_child(window_light)
@@ -47,6 +49,73 @@ func build(world: PlayWorld) -> void:
  if not OS.has_feature("web") and DisplayServer.get_name()!="headless":
   probe=ReflectionProbe.new();probe.position=Vector3(-2,2,-3);probe.size=Vector3(8,7,30);probe.origin_offset=Vector3(0,0,-2)
   probe.box_projection=true;probe.intensity=.42;probe.interior=false;probe.max_distance=38;probe.enable_shadows=true;add_child(probe)
+
+func _quad(st: SurfaceTool,points: Array[Vector3],uvs: Array[Vector2]) -> void:
+ for i in [0,1,2,0,2,3]:st.set_uv(uvs[i]);st.add_vertex(points[i])
+
+func _barricade_and_curtains(metal: Material) -> void:
+ # Everything securing the boards is outside the glazing (local -Z).
+ var timber:=w.mat(Color("958c79"),load("res://assets/wood.png"),.96)
+ timber.normal_enabled=true;timber.normal_texture=w.atmosphere.micro_normal;timber.normal_scale=.24
+ var rusty:=w.graphics.patina(Color("594537"),.92)
+ for x in [-1.75,1.75]:part(Vector3(x,2.60,-.145),Vector3(.14,2.56,.08),timber)
+ var rng:=RandomNumberGenerator.new();rng.seed=353
+ for i in range(6):
+  var width:=rng.randf_range(3.86,3.98);var height:=rng.randf_range(.276,.302)
+  var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+  var low: Array[float]=[];var high: Array[float]=[]
+  for j in range(13):low.append(-height*.5+rng.randf_range(-.008,.008));high.append(height*.5+rng.randf_range(-.008,.008))
+  for j in range(12):
+   var a:=-width*.5+width*j/12.;var b:=-width*.5+width*(j+1)/12.
+   var u:=j/12.;var v:=(j+1)/12.
+   _quad(st,[Vector3(a,low[j],.034),Vector3(b,low[j+1],.034),Vector3(b,high[j+1],.034),Vector3(a,high[j],.034)],[Vector2(u,0),Vector2(v,0),Vector2(v,1),Vector2(u,1)])
+   _quad(st,[Vector3(b,low[j+1],-.034),Vector3(a,low[j],-.034),Vector3(a,high[j],-.034),Vector3(b,high[j+1],-.034)],[Vector2(v,0),Vector2(u,0),Vector2(u,1),Vector2(v,1)])
+   for edge in [low,high]:
+    _quad(st,[Vector3(a,edge[j],-.034),Vector3(b,edge[j+1],-.034),Vector3(b,edge[j+1],.034),Vector3(a,edge[j],.034)],[Vector2(u,0),Vector2(v,0),Vector2(v,.2),Vector2(u,.2)])
+  for j in [0,12]:
+   var x: float=-width*.5+width*j/12.
+   _quad(st,[Vector3(x,low[j],-.034),Vector3(x,low[j],.034),Vector3(x,high[j],.034),Vector3(x,high[j],-.034)],[Vector2(0,0),Vector2(.2,0),Vector2(.2,1),Vector2(0,1)])
+  st.generate_normals();st.generate_tangents()
+  var plank:=MeshInstance3D.new();plank.name="ExteriorWeatheredPlank%d"%(i+1);plank.mesh=st.commit()
+  var mat:=timber.duplicate() as StandardMaterial3D;mat.albedo_color=Color("958c79").darkened(rng.randf_range(0,.22));mat.cull_mode=BaseMaterial3D.CULL_DISABLED
+  plank.material_override=mat;plank.position=Vector3(rng.randf_range(-.025,.025),1.43+i*.435,-.220)
+  plank.rotation.z=rng.randf_range(-.009,.009);add_child(plank);boards.append(plank);count+=1
+  for x in [-1.75,1.75]:
+   var y: float=plank.position.y+(x-plank.position.x)*tan(plank.rotation.z)
+   w.tube(self,Vector3(x,y,-.095),Vector3(x,y,-.263),.004,rusty)
+   var nail:=part(Vector3(x,y,-.260),Vector3(.027,.025,.009),rusty);nail.name="ExteriorNailHead"
+ # Solid wall brackets connect a rod and rings to the interior wall.
+ for x in [-2.13,2.13]:
+  part(Vector3(x,4.02,.17),Vector3(.09,.15,.07),metal)
+  w.tube(self,Vector3(x,4.02,.19),Vector3(x,4.02,.37),.014,metal)
+ w.tube(self,Vector3(-2.23,4.02,.37),Vector3(2.23,4.02,.37),.019,metal)
+ for x in [-2.23,2.23]:w.sphere(self,Vector3(x,4.02,.37),.035,metal)
+ var fabric:=w.polish.pbr("fabric_pattern_07",Color("76644d"),4.)
+ fabric.roughness=.98;fabric.normal_scale=.3;fabric.cull_mode=BaseMaterial3D.CULL_DISABLED
+ fabric.uv1_triplanar=false;fabric.uv1_scale=Vector3.ONE
+ for side in [-1.,1.]:
+  var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+  for row in range(24):
+   for col in range(24):
+    var points: Array[Vector3]=[];var uvs: Array[Vector2]=[]
+    for corner in [Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
+     var u: float=(col+corner.x)/24.;var v: float=(row+corner.y)/24.
+     var gather:=exp(-pow((v-.47)/.15,2.));var width:=.64-.33*gather
+     points.append(Vector3(side*(1.94+.11*gather)+(u-.5)*width,.53+v*3.43+.018*sin(u*17.)*(1.-v),.37+.055*cos(u*TAU*5.)*(1.-.48*gather)))
+     uvs.append(Vector2(u*1.4,v*5.))
+    _quad(st,points,uvs)
+  st.generate_normals();st.generate_tangents()
+  var curtain:=MeshInstance3D.new();curtain.name="GatheredInteriorCurtainLeft" if side<0 else "GatheredInteriorCurtainRight"
+  curtain.mesh=st.commit();curtain.material_override=fabric;add_child(curtain);drapes.append(curtain);count+=1
+  for i in range(6):
+   var x: float=side*1.94-.28+i*.112
+   # Small oval hanger loops touch both cloth header and curtain pole.
+   var ring:=TorusMesh.new();ring.inner_radius=.025;ring.outer_radius=.033;ring.rings=12;ring.ring_segments=8
+   var mesh:=MeshInstance3D.new();mesh.mesh=ring;mesh.material_override=metal;mesh.position=Vector3(x,4.015,.37);mesh.rotation.z=PI/2;add_child(mesh)
+   w.tube(self,Vector3(x,3.96,.37),Vector3(x,3.99,.37),.004,metal)
+  # A fabric tie holds the gathered middle back against its wall hook.
+  part(Vector3(side*2.05,2.14,.407),Vector3(.33,.055,.025),fabric)
+  w.tube(self,Vector3(side*2.18,2.14,.18),Vector3(side*2.18,2.14,.39),.009,metal)
 
 func _parking(metal: Material) -> void:
  var asphalt:=w.graphics.floor_material("concrete_floor_worn_001",Color("59625f"),.45,.80)

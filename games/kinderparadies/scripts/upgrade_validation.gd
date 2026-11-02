@@ -7,6 +7,16 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(w.graphics.surfaces>400 and w.graphics.details>600,"Whole-scene surface and architectural pass did not build")
  verify.call(w.graphics.exterior.count>100 and w.graphics.exterior.rain.multimesh.instance_count>=240,"Exterior parking scene or rain is missing")
  verify.call(w.graphics.exterior.get_node("ClosedWindowBarrier").get_child_count()==1,"Window has no fitted closed collider")
+ var exterior:=w.graphics.exterior
+ verify.call(exterior.boards.size()==6 and exterior.drapes.size()==2,"Window has no complete external barricade or paired interior curtains")
+ for plank in exterior.boards:
+  var bounds: AABB=plank.transform*plank.get_aabb()
+  verify.call(bounds.end.z< -.18 and bounds.size.x>3.8,"A barricade plank sits inside the glass or does not reach both supports")
+  verify.call(bounds.intersects_segment(Vector3(0,1.65,1),Vector3(0,1.65,-2))==null,"The eye-height viewing slit is blocked by a board")
+ for curtain in exterior.drapes:
+  var bounds: AABB=curtain.transform*curtain.get_aabb()
+  verify.call(bounds.position.z>.3 and bounds.position.y>.4 and (bounds.end.x< -1.55 or bounds.position.x>1.55),"A curtain blocks the window centre, hangs outside, or intersects the floor")
+ verify.call((exterior.boards[2].transform*exterior.boards[2].get_aabb()).intersects_segment(Vector3(0,2.30,1),Vector3(0,2.30,-2))!=null,"Barricade does not physically cover its boarded region")
  var ray:=PhysicsRayQueryParameters3D.create(Vector3(-9,2.2,1.7),Vector3(-11,2.2,1.7),1);ray.exclude=[guard.get_rid()]
  var hit:=w.get_world_3d().direct_space_state.intersect_ray(ray)
  verify.call(not hit.is_empty() and str(hit.collider.name)=="ClosedWindowBarrier","West window is still covered by a wall or can be walked through")

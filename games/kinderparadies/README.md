@@ -1,5 +1,33 @@
 # After Play — Kinderparadies
 
+## Verbarrikadiertes Fenster und hörbarer Donner (3.5.3)
+
+Sechs einzeln modellierte, unregelmäßige Holzbretter sind außen vor dem Glas
+an zwei senkrechten Leisten vernagelt. Dazwischen bleiben echte Sichtschlitze;
+einer liegt auf Augenhöhe des stehenden Spielers. Die geschlossene Scheibe
+behält ihre Kollision und Schalldämpfung. Innen hängen zwei zurückgebundene,
+gefaltete Stoffvorhänge an einer Stange mit Wandhaltern und Aufhängeringen.
+Die neuen Teile liegen außerhalb der Laufwege.
+
+Der Donner war durch eine zweite starke Pegelabsenkung kaum wahrnehmbar.
+Sein Pegel ist jetzt im Hauptraum um 12,55 dB angehoben. Zusätzliche mittlere
+Frequenzen machen das ferne Grollen auch auf kleineren Lautsprechern hörbarer.
+Der Dachregen bleibt unverändert leise. Die erste Rolle folgt nach 8–16 Sekunden
+aktiver Spielzeit, weitere nach 40–70 Sekunden; Pause und Sprachaufnahmen werden
+weiter respektiert. Der tatsächliche gefilterte Wetterbus erreicht während
+des Grollens −33,46 dBFS RMS und −16,64 dBFS Spitze, gegenüber −42,19 dBFS RMS
+bei Regen allein, jeweils vor den Spieler-Lautstärkereglern.
+
+165 gezielte native Checks bestehen: Fenster/Platzierung/Akustik 127,
+Wetter 14 und Start/Credits 24. Drei native Aufnahmen bei 1920 × 1080 zeigen
+Innenansicht, Sehschlitz und Befestigung außen. Der Platzierungsbericht meldet
+keine blockierten Türen, Bildüberschneidungen oder Möbeleinbettungen.
+Der Edge/Playwright-Test bestätigt die Web-Meshes, die echte Fensterkollision,
+Pause, Raumdämpfung und eine regulär geplante Donnerrolle ohne Konsolenfehler.
+Windows- und Web-Pakete bestehen Dateilisten-, Hash-, Lizenz- und Startprüfung.
+Der itch.io-Upload wurde lokal geprüft; es wurde nichts zu itch.io hochgeladen.
+Private Aufnahme: --render-qa --v353-qa.
+
 ## Leiser Regen und entferntes Gewitter (3.5.2)
 
 Eine dezente Dachregen-Schleife ergänzt die bestehende Regenquelle am Fenster.

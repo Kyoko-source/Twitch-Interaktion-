@@ -287,4 +287,4 @@ func clear_pose(point: Vector3) -> bool:
  return true
 
 func snapshot() -> Dictionary:
- return {"clock":clock,"surfaces":surfaces,"details":details,"exterior_details":exterior.count,"rain":exterior.rain.multimesh.visible_instance_count,"window":true,"probes":probes.size(),"shelf_hulls":obstacles.size()}
+ return {"clock":clock,"surfaces":surfaces,"details":details,"exterior_details":exterior.count,"rain":exterior.rain.multimesh.visible_instance_count,"window":true,"window_boards":exterior.boards.size(),"window_curtains":exterior.drapes.size(),"probes":probes.size(),"shelf_hulls":obstacles.size()}
