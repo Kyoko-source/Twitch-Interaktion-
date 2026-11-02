@@ -2,6 +2,7 @@ class_name EndCredits
 extends Control
 
 const AUTHOR:="Kyoko"
+const MUSIC:="res://assets/music-v371/fern-and-feather.mp3"
 const IDEA:="einsmarello"
 const TESTERS: Array[String]=["einsmarello","__jerry__","gingerbread","Mozart"]
 const SECOND_END_HINT:="schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11"
@@ -27,7 +28,7 @@ var skip_pending:=false
 
 func build(game: Node3D, number: int=2) -> void:
  g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- music=AudioStreamPlayer.new();music.name="CreditsMusicBox";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(RoomHorror.MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
+ music=AudioStreamPlayer.new();music.name="CreditsFernAndFeather";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
  black=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(black)
  word=g._label(end_title(),128);word.add_theme_font_override("font",g.title_font);word.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;word.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;word.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);word.modulate.a=0;add_child(word)
  if ending_number==3:

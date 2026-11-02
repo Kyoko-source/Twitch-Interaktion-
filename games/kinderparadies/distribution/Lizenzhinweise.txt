@@ -83,3 +83,6 @@ After Play 3.5.2: Leiser Dachregen aus der bereits enthaltenen CC0-Aufnahme
 von Joseph SARDIN / BigSoundBank, neu geschnitten und für eine Schleife gemischt.
 Die drei entfernten Donnerrollen sind eigene prozedurale Tonerzeugung ohne
 fremde Samples. Die bestehende Regenquelle ist in Quellen.txt aufgeführt.
+
+After Play 3.7.1: "Fern and Feather" (Abspann) und "Music Box Chase"
+(Pferde-Verfolgung) wurden von Kyoko für dieses Projekt bereitgestellt.

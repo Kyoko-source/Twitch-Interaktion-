@@ -5,6 +5,10 @@ signal resolved
 const ID:="horse_clown_hunt"
 const TEST_CODE:="07120712"
 const CLUE:="Pferde mögen keine Clowns"
+const MUSIC:="res://assets/music-v371/music-box-chase.mp3"
+var music: AudioStreamPlayer
+var music_gain:=0.0
+var music_offset:=0.0
 var w: PlayWorld
 var horse: CeilingHorse
 var navigation: HorseNavigation
@@ -49,8 +53,10 @@ func build(world: PlayWorld) -> void:
  warning=ScareBank.lead(self,"vent_strike");warning.name="HorseUncoiling";warning.volume_db=-13
  if AudioServer.get_bus_index("Interior")>=0:scream.bus="Interior"
  catch_audio=AudioStreamPlayer.new();catch_audio.name="HorseContactScream";catch_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;catch_audio.stream=ScareBank.flat("vent_strike");catch_audio.volume_db=-3;add_child(catch_audio)
+ music=AudioStreamPlayer.new();music.name="MusicBoxChase";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
 
 func configure(id: String) -> void:
+ music.stop();music_gain=0;music_offset=0;music.volume_db=-60
  enabled=id==ID;phase="emerging" if enabled else "idle"
  w.passages.set_red_locked(enabled)
  if not enabled:return
@@ -64,6 +70,7 @@ func red_locked() -> bool:
  return enabled and phase!="resolved"
 
 func tick(delta: float,active: bool,player: NightGuard) -> void:
+ _music(delta,active)
  scream.stream_paused=not active;warning.stream_paused=not active;catch_audio.stream_paused=not active
  if not active or not enabled or phase=="resolved":return
  clock+=delta;phase_clock+=delta;shock=move_toward(shock,0,delta*2.5);catch_cooldown=maxf(0,catch_cooldown-delta)
@@ -92,6 +99,21 @@ func tick(delta: float,active: bool,player: NightGuard) -> void:
  elif phase=="retreating":_retreat(delta)
  draw_clock+=delta
  if draw_clock>=1.0/24.0 or phase=="resolved":draw_clock=0;_draw()
+
+func _music(delta: float,active: bool) -> void:
+ music.stream_paused=not active
+ if not active:return
+ var wanted:=enabled and phase!="resolved"
+ if wanted and not music.playing:
+  music.play(music_offset);music_offset=0
+ # Leave space for the horse's scream and the clown's attack.
+ var target:=db_to_linear(-25 if phase in ["catch","clown"] else -16) if wanted else 0.0
+ music_gain=move_toward(music_gain,target,delta*.22)
+ music.volume_db=linear_to_db(maxf(.001,music_gain))
+ if not wanted and music_gain<=0:music.stop()
+
+func _exit_tree() -> void:
+ if is_instance_valid(music):music.stop()
 
 func _record_player(player: NightGuard) -> void:
  var foot:=player.global_position
@@ -258,7 +280,7 @@ func serialize() -> Dictionary:
  var poses: Array=[];var breadcrumbs: Array=[]
  for i in range(trace.size()):poses.append(vector_array(trace[i])+vector_array(rotations[i]))
  for item in trail:breadcrumbs.append(vector_array(item.foot)+vector_array(item.head)+[item.low])
- return {"version":1,"phase":phase,"clock":clock,"phase_clock":phase_clock,"head":vector_array(head),"rotation":vector_array(head_rotation),"trace":poses,"trail":breadcrumbs,"trail_index":trail_index,"nav_route":Array(nav_route).map(func(p):return vector_array(p)),"nav_index":nav_index,"retreat_index":retreat_index,"clown_clock":clown_clock,"clown_start":vector_array(clown_start),"clown_target":vector_array(clown_target),"screamed":screamed,"announced":announced,"low_head":low_head,"sound_position":scream.get_playback_position(),"sound_playing":scream.playing,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"recoil_left":recoil_left,"rejoin_index":rejoin_index,"catch_sound_position":catch_audio.get_playback_position(),"catch_sound_playing":catch_audio.playing}
+ return {"version":1,"phase":phase,"clock":clock,"phase_clock":phase_clock,"head":vector_array(head),"rotation":vector_array(head_rotation),"trace":poses,"trail":breadcrumbs,"trail_index":trail_index,"nav_route":Array(nav_route).map(func(p):return vector_array(p)),"nav_index":nav_index,"retreat_index":retreat_index,"clown_clock":clown_clock,"clown_start":vector_array(clown_start),"clown_target":vector_array(clown_target),"screamed":screamed,"announced":announced,"low_head":low_head,"sound_position":scream.get_playback_position(),"sound_playing":scream.playing,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"recoil_left":recoil_left,"rejoin_index":rejoin_index,"catch_sound_position":catch_audio.get_playback_position(),"catch_sound_playing":catch_audio.playing,"music_position":music_offset if music_offset>0 else music.get_playback_position(),"music_gain":music_gain}
 
 static func valid_vector(value: Variant) -> bool:
  if not value is Array or value.size()!=3:return false
@@ -274,7 +296,7 @@ func restore(data: Variant) -> void:
  if data.get("phase","") not in ["emerging","following","catch","recoiling","rejoining","clown","retreating","resolved"]:return
  for key in ["head","rotation","clown_start","clown_target"]:
   if not valid_vector(data.get(key,[])):return
- for key in ["clock","phase_clock","clown_clock","sound_position"]:
+ for key in ["clock","phase_clock","clown_clock","sound_position","music_position","music_gain"]:
   var value=data.get(key,0)
   if not (value is float or value is int) or not is_finite(float(value)) or absf(float(value))>100000:return
  var poses=data.get("trace",[]);var crumbs=data.get("trail",[]);var routes=data.get("nav_route",[])
@@ -305,6 +327,8 @@ func restore(data: Variant) -> void:
  if is_instance_valid(catch_view):catch_view.hide()
  horse.mask.visible=phase!="catch";catch_audio.stop()
  if phase=="catch" and data.get("catch_sound_playing",false)==true and float(data.get("catch_sound_position",0))<catch_audio.stream.get_length():catch_audio.play(float(data.get("catch_sound_position",0)))
+ music.stop();music_offset=fposmod(maxf(0,float(data.get("music_position",clock))),music.stream.get_length());music_gain=clampf(float(data.get("music_gain",0)),0,db_to_linear(-16))
+ if phase=="resolved":music_offset=0;music_gain=0
  w.annex.scare=clown_clock>=0;w.passages.set_red_locked(red_locked())
  if clown_clock>=0:_clown_pose(0)
  if phase=="resolved":horse.clock=0;horse.pose(0)
@@ -312,4 +336,4 @@ func restore(data: Variant) -> void:
  if data.get("sound_playing",false)==true and float(data.sound_position)<scream.stream.get_length():scream.play(maxf(0,float(data.sound_position)))
 
 func snapshot() -> Dictionary:
- return {"enabled":enabled,"phase":phase,"locked":red_locked(),"clock":clock,"head":vector_array(head),"trace_points":trace.size(),"neck_sections":horse.sections.size(),"trail_points":trail.size(),"trail_index":trail_index,"nav_index":nav_index,"nav_points":nav_route.size(),"navigation_ready":navigation.ready if navigation else false,"navigation_cells":navigation.cells.size() if navigation else 0,"retreat_index":retreat_index,"screamed":screamed,"audio":scream.playing,"audio_paused":scream.stream_paused,"clown_clock":clown_clock,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"catch_audio":catch_audio.playing,"catch_paused":catch_audio.stream_paused,"closeup":is_instance_valid(catch_view) and catch_view.visible}
+ return {"enabled":enabled,"phase":phase,"locked":red_locked(),"clock":clock,"head":vector_array(head),"trace_points":trace.size(),"neck_sections":horse.sections.size(),"trail_points":trail.size(),"trail_index":trail_index,"nav_index":nav_index,"nav_points":nav_route.size(),"navigation_ready":navigation.ready if navigation else false,"navigation_cells":navigation.cells.size() if navigation else 0,"retreat_index":retreat_index,"screamed":screamed,"audio":scream.playing,"audio_paused":scream.stream_paused,"clown_clock":clown_clock,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"catch_audio":catch_audio.playing,"catch_paused":catch_audio.stream_paused,"closeup":is_instance_valid(catch_view) and catch_view.visible,"music":music.playing,"music_paused":music.stream_paused,"music_track":music.stream.resource_path,"music_position":music.get_playback_position(),"music_gain":music.volume_db}

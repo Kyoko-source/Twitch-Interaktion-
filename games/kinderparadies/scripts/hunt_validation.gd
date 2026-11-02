@@ -22,6 +22,7 @@ func run(game: Node3D,verify: Callable) -> void:
  for i in range(600):horse.tick(.1,true)
  verify.call(horse.mask.transform==rest and horse.jaw.transform==jaw and horse.clock==0,"Reference horse still moves in a normal round")
  verify.call(not game.world.passages.red_locked and not game.world.passages.horse_note.visible,"Normal red door displays the horse puzzle")
+ verify.call(not game.world.horse_hunt.music.playing,"Normal reference horse has chase music")
  # Existing creator access remains independent from the new eight-digit code.
  game._open_archive_lock();game.archive_input="0712";game._submit_archive_code()
  verify.call(game.archive.unlocked and game.archive.creator_access,"0712 archive access was broken by the longer keypad")
@@ -84,6 +85,7 @@ func run(game: Node3D,verify: Callable) -> void:
   if hunt.phase=="clown":break
   if i%60==0:await game.get_tree().physics_frame
  verify.call(hunt.phase=="clown" and hunt.screamed and hunt.scream.playing,"Kitchen clown does not repel the horse with a scream")
+ verify.call(hunt.music.playing and hunt.music.stream.resource_path==HorseHunt.MUSIC,"Full hunt lost its chase soundtrack")
  verify.call(hunt.red_locked(),"Red opens before the clown and retreat are complete")
  await advance(game,.55)
  verify.call(game.world.annex.scare and game.world.annex.clown.root.global_position.distance_to(hunt.clown_start)>1,"The kitchen clown remains stationary during its leap")
@@ -101,6 +103,7 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(hunt.head==good,"Malformed encounter save mutates the live hunt")
  await advance(game,80)
  verify.call(hunt.phase=="resolved" and not hunt.red_locked() and not game.world.passages.horse_note.visible,"Red never unlocks after the entire horse has returned")
+ hunt.tick(1,true,game.player);verify.call(not hunt.music.playing,"Full horse return leaves chase music running")
  verify.call(horse.mask.position.distance_to(CeilingHorse.ROUTE[0])<.001 and horse.sections.slice(1).all(func(section):return not section.neck.visible),"Horse does not return completely into its static home pose")
  verify.call(not game.world.annex.scare and game.world.annex.clown.root.transform==hunt.clown_transform,"Clown is left floating after repelling the horse")
  game._decide(true);verify.call(game.world.passages.lanes[1].open,"Resolved hunt still blocks choosing the red door")

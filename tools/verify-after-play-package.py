@@ -42,7 +42,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert sum(i.file_size for i in z.infolist()) < 500 * 1024**2
             assert max(i.file_size for i in z.infolist()) < 200 * 1024**2
             pck = z.read('index.pck')
-            for required in [b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json', b'assets/cinema-film/happyland-advert.ogv', b'assets/cinema-film/happyland-advert.ogg']:
+            for required in [b'assets/music-v371/fern-and-feather.mp3', b'assets/music-v371/music-box-chase.mp3', b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json', b'assets/cinema-film/happyland-advert.ogv', b'assets/cinema-film/happyland-advert.ogg']:
                 assert required in pck, required
             private_files = [str(p.relative_to(ROOT / 'games/kinderparadies')).replace('\\', '/').encode()
                              for p in (ROOT / 'games/kinderparadies/assets').rglob('*.json')

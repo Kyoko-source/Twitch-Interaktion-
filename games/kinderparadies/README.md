@@ -1,5 +1,19 @@
 # After Play — Kinderparadies
 
+## Neue Musik (3.7.1)
+
+Die von Kyoko bereitgestellten MP3-Dateien werden unverändert eingebunden:
+„Fern and Feather“ ersetzt die Abspannmusik bei allen drei Enden.
+„Music Box Chase“ startet bei der Pferde-Anomalie, wird bei Kontakt und beim
+Clown leiser und blendet nach dem vollständigen Rückzug des Pferdes aus.
+Pause und Fortsetzen bewahren die Abspielposition; alte Spielstände ohne
+Musikposition bleiben kompatibel. Die Verfolgungsschleife läuft nur während
+der entsprechenden Anomalie. Die Spieluhr im Partyraum bleibt erhalten.
+Ungenutzte Dateien des alten Krokodilmodells v3 werden nicht mehr exportiert.
+123 native Prüfungen und der Web-Test für Musik, Pause, Neuladen und alle drei
+Abspänne bestanden. Prüfung: `--self-test --music-only` und
+`--self-test --hunt-only`.
+
 ## Kletteranlage und Partyraum-Rundweg (3.7.0)
 
 Ein begehbarer Aussichtskasten mit handschriftlich eingeritzten Namen, altem

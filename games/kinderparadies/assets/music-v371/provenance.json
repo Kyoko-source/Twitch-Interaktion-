@@ -1,0 +1,21 @@
+{
+  "version": "3.7.1",
+  "sources": [
+    {
+      "file": "fern-and-feather.mp3",
+      "provided_filename": "Fern and Feather.mp3",
+      "provided_by": "Kyoko",
+      "use": "All ending credits",
+      "sha256": "d0318acb0d1faf07a7ab6099bc737b55dac00534395ac5ee5f51e2214c348a5a",
+      "processing": "Unmodified copy of the user-provided MP3."
+    },
+    {
+      "file": "music-box-chase.mp3",
+      "provided_filename": "Music Box Chase.mp3",
+      "provided_by": "Kyoko",
+      "use": "Horse anomaly music",
+      "sha256": "91939cd317373226d28d3d5f676c897611dcd0921db4aa7dea9a477e3486b7d3",
+      "processing": "Unmodified copy of the user-provided MP3."
+    }
+  ]
+}

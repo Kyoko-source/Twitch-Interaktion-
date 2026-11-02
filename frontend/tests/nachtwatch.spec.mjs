@@ -23,6 +23,24 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.7.1 requested music plays for horse pursuit and all credits with pause and reload',async({page})=>{
+ test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
+ await begin(page);expect((await state(page)).horse_hunt.music).toBe(false);
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});await expect.poll(async()=>(await state(page)).target).toBe('archive_door');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');await page.mouse.click(275,220);await page.keyboard.type('07120712',{delay:25});await page.keyboard.press('Enter');
+ await expect.poll(async()=>(await state(page)).horse_hunt?.music,{timeout:30000}).toBe(true);expect((await state(page)).horse_hunt.music_track).toBe('res://assets/music-v371/music-box-chase.mp3');
+ await page.waitForTimeout(1600);await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).horse_hunt.music_paused).toBe(true);const paused=(await state(page)).horse_hunt.music_position;
+ await page.waitForTimeout(400);expect(Math.abs((await state(page)).horse_hunt.music_position-paused)).toBeLessThan(.15);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).horse_hunt?.music,{timeout:30000}).toBe(true);const resumed=(await state(page)).horse_hunt;expect(resumed.music_paused).toBe(false);expect(resumed.music_position).toBeGreaterThan(paused-.15);expect(resumed.music_position).toBeLessThan(paused+2);
+ for(const number of [1,2,3]){
+  await qa(page,{op:'show_ending',number});await expect.poll(async()=>(await state(page)).ending_credits?.music,{timeout:30000}).toBe(true);
+  expect((await state(page)).ending_credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');expect((await state(page)).ending_credits.ending).toBe(number);
+  await expect.poll(async()=>(await state(page)).ending_credits.prepared,{timeout:30000}).toBe(true);
+ }
+ expect(faults).toEqual([]);
+});
+
 test('v3.7.0 lookout and transparent party loop are physically traversable and restore a crouched save',async({page})=>{
  test.setTimeout(240000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
  await begin(page);const initial=await state(page);expect(initial.climbing.length).toBeGreaterThan(18);expect(initial.climbing.names).toBe(4);expect(initial.climbing.windows).toBeGreaterThanOrEqual(6);
@@ -545,7 +563,7 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  expect(anomalyRounds).toBe(6);
  expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
  await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1.png')});
- await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000,intervals:[70]}).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/party/musicbox.mp3');
+ await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000,intervals:[70]}).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
  expect((await state(page)).phase).toBe('ending');expect((await state(page)).streak).toBe(13);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1-clue.png')});
  await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).ending_credits.ending).toBe(1);expect((await state(page)).streak).toBe(13);
@@ -849,7 +867,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await expect.poll(async()=>(await state(page)).phase,{intervals:[20]}).toBe('archive_scare');await page.waitForTimeout(180);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-chef-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('ending');await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-ende.png')});
  expect((await state(page)).ending_credits.title).toBe('ENDE 2/2');expect((await state(page)).ending_credits.second_end_hint).toBe('');
- expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/party/musicbox.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
+ expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:10000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
  await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.5);
  expect((await state(page)).ending_credits.music).toBe(true);expect((await state(page)).life.hum).toBe(false);
