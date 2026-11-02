@@ -34,6 +34,14 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
+ var old_hair:=head.find_child("MattedHairStrands",true,false)
+ if old_hair:old_hair.hide()
+ var hair: Node3D=(load("res://assets/encounter-v360/clown-blond-hair.glb") as PackedScene).instantiate()
+ head.add_child(hair)
+ var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/encounter-v360/blond_hair.gdshader")
+ for mesh in hair.find_children("*","MeshInstance3D",true,false):
+  mesh.material_override=fibres;mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
+  mesh.set_meta("nonblocking_atmosphere",true)
  for mesh in root.find_children("*","MeshInstance3D",true,false):
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for surface in range(mesh.mesh.get_surface_count()):

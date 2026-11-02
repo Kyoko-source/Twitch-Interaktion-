@@ -56,7 +56,7 @@ static func inventory(g: Node3D, selected: String="") -> void:
 static func keypad(g: Node3D, message: String="") -> void:
  background(g,"Zahlenschloss","Vier Stellen. Keine Namen. Nur die Spuren, die zurückgeblieben sind.")
  var column:=VBoxContainer.new();column.position=Vector2(65,185);column.custom_minimum_size.x=420;column.add_theme_constant_override("separation",14);g.menu.add_child(column)
- var input:=LineEdit.new();input.name="ArchiveCodeInput";input.placeholder_text="– – – –";input.max_length=4;input.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER;input.custom_minimum_size=Vector2(420,68);input.add_theme_font_size_override("font_size",34);input.alignment=HORIZONTAL_ALIGNMENT_CENTER;input.text=g.archive_input;column.add_child(input)
+ var input:=LineEdit.new();input.name="ArchiveCodeInput";input.placeholder_text="– – – –";input.max_length=8;input.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER;input.custom_minimum_size=Vector2(420,68);input.add_theme_font_size_override("font_size",34);input.alignment=HORIZONTAL_ALIGNMENT_CENTER;input.text=g.archive_input;column.add_child(input)
  input.text_changed.connect(func(text):
   var digits:=""
   for c in text:
@@ -70,7 +70,7 @@ static func keypad(g: Node3D, message: String="") -> void:
   var button: Button=g._button(key,func():
    if chosen=="Prüfen": g._submit_archive_code();return
    if chosen=="Löschen": input.text=input.text.left(maxi(0,input.text.length()-1))
-   elif input.text.length()<4: input.text+=chosen
+   elif input.text.length()<8: input.text+=chosen
    g.archive_input=input.text)
   button.custom_minimum_size=Vector2(132,58);button.alignment=HORIZONTAL_ALIGNMENT_CENTER;grid.add_child(button)
  var result: Label=g._paragraph(message,18);result.custom_minimum_size.x=420;result.add_theme_color_override("font_color",Color("d3ad82"));column.add_child(result)

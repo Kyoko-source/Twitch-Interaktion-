@@ -1,0 +1,4 @@
+Original After Play geometry: scalp-rooted blond hair ribbons and their material.
+Generated for this project; no third-party mesh, image or audio is embedded in
+clown-blond-hair.glb. The separately loaded scanned head retains its existing
+attribution in the distribution's license notices.

@@ -98,6 +98,7 @@ func _connect_world(anomaly: String) -> void:
  world.set_anomaly(anomaly)
  _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
+ world.horse_hunt.resolved.connect(_horse_resolved)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
  world.film.sync(archive.film_found)
@@ -289,6 +290,7 @@ func _continue() -> void:
  has_session=true;_build_world("none" if state.completed else state.current)
  secret_ending=bool(data.get("secret_ending",false))
  world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
+ world.horse_hunt.restore(data.get("horse_hunt",{}))
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if secret_ending: _show_ending(3);return
@@ -361,15 +363,26 @@ func _archive_back() -> void:
 
 func _open_archive_lock(message: String="") -> void:
  if world.archive.playback_locked(): _announce("Verriegelt. Hör die Aufnahme bis zum Ende.");return
- if archive.unlocked: _announce("Das Schloss ist offen. Die Tür führt ins Archiv.");return
  phase="code";ArchiveUI.keypad(self,message)
 
 func _submit_archive_code() -> void:
  if phase!="code": return
+ if archive_input==HorseHunt.TEST_CODE:
+  _force_horse_hunt();return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
  if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
  archive_input="";world.archive.open();_save();_resume();_announce("Der Riegel gibt nach. Das Archiv ist offen.",5)
+
+func _force_horse_hunt() -> void:
+ var pose:=player.transform;var look:=player.camera.rotation
+ state.current=HorseHunt.ID;state.horse_override=true
+ archive_input="";_build_world(HorseHunt.ID)
+ player.transform=pose;player.camera.rotation=look;_resume();_save()
+ _announce("Im Kino setzt sich etwas in Bewegung.",5)
+
+func _horse_resolved() -> void:
+ _save();_announce("Der Hals verschwindet im Schacht. Die rote Tür ist frei.",5)
 
 func _collect_paper(id: String) -> void:
  if phase!="play" or not archive.take(id,14 if state.completed else state.streak+1): return
@@ -441,7 +454,7 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session or not is_instance_valid(world): return
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
  if weather:
@@ -470,6 +483,7 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.acoustics.tick(delta,phase=="play",player)
+ world.horse_hunt.tick(delta,phase=="play",player)
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.backstage.tick(delta,phase=="play",player)
@@ -478,7 +492,7 @@ func _process(delta: float) -> void:
   memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
   if phase=="play": player.active=false;hud.hide()
  else: memories.hide()
- player.fright=maxf(maxf(world.encounters.shock,world.terrors.shock),world.backstage.shock)
+ player.fright=maxf(maxf(world.encounters.shock,world.terrors.shock),maxf(world.backstage.shock,world.horse_hunt.shock))
  if phase=="play":
   state.seconds+=delta
   save_clock+=delta
@@ -491,6 +505,7 @@ func _process(delta: float) -> void:
   last_target=target
   prompt.text=""
   if state.completed and target in ["red","green"]: prompt.text="E · Erneut nach den Spuren suchen"
+  elif target=="red" and world.horse_hunt.red_locked():prompt.text="E · "+HorseHunt.CLUE
   elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
   elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
@@ -540,6 +555,7 @@ func _target() -> String:
 
 func _decide(red: bool) -> void:
  if phase!="play" or world.passages.closing: return
+ if red and world.horse_hunt.red_locked():_announce(HorseHunt.CLUE,5);return
  world.open_door(red);effect.play();_save()
 
 func _board_lift(_red: bool) -> void:
@@ -783,7 +799,7 @@ func _telemetry() -> void:
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
-  data.room_horror=world.room_horror.snapshot()
+  data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot()
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible

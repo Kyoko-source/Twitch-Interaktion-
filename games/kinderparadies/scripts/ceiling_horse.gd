@@ -19,6 +19,7 @@ var attack_gain:=0.0
 var debug_hold:=false
 var samples:=PackedVector4Array()
 var normals:=PackedVector3Array()
+var sections: Array[Dictionary]=[]
 
 func build(world: PlayWorld) -> void:
  w=world;name="CinemaVentDweller"
@@ -66,21 +67,19 @@ func _build_neck() -> void:
  arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=ns;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=offsets;arrays[Mesh.ARRAY_INDEX]=indices
  var hairs:=MeshInstance3D.new();hairs.name="MattedNeckMane";var hair_geometry:=ArrayMesh.new();hair_geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);hairs.mesh=hair_geometry;hairs.custom_aabb=neck.custom_aabb;hairs.set_meta("nonblocking_atmosphere",true);add_child(hairs)
  mane=ShaderMaterial.new();mane.shader=load("res://assets/ceiling-horse-v356/mane.gdshader");hairs.material_override=mane
+ sections.append({"neck":neck,"hair":hairs,"skin":skin,"mane":mane})
 
 func tick(delta: float, active: bool) -> void:
  if not active or debug_hold: return
+ # The reference horse is motionless. The puzzle controller owns the hunt.
+ if w.current!="vent_strike":return
  clock+=delta;accumulator+=delta
  if accumulator<1.0/24.0: return
  accumulator=0
- var phase:=fmod(clock,62.0)
- var amount:=0.0
- if phase>=7 and phase<25: amount=smoothstep(7.0,25.0,phase)
- elif phase>=25 and phase<32: amount=1
- elif phase>=32 and phase<49: amount=1-smoothstep(32.0,49.0,phase)
- if w.current=="vent_strike": amount=0
- pose(amount)
+ pose(0)
 
 func pose(amount: float) -> void:
+ for i in range(1,sections.size()):sections[i].neck.hide();sections[i].hair.hide()
  progress=clampf(amount,0,1)
  var distance:=route.get_baked_length()*progress
  mask.position=route.sample_baked(distance,true)+Vector3(0,-attack_gain*.52,attack_gain*.30)
@@ -118,6 +117,49 @@ func pose(amount: float) -> void:
   normals.append(side)
  skin.set_shader_parameter("points",samples);skin.set_shader_parameter("frames",normals)
  mane.set_shader_parameter("points",samples);mane.set_shader_parameter("frames",normals)
+
+func draw_trail(trace: PackedVector3Array, rotation_value: Vector3, jaw_value: float) -> void:
+ if trace.is_empty():return
+ mask.global_position=trace[-1];mask.rotation=rotation_value
+ if jaw:jaw.rotation.x=jaw_value
+ var points:=PackedVector3Array([SOURCE,Vector3(0,-.08,.15),Vector3(.15,-.38,.05),Vector3(.2,-.7,-.05)])
+ for point in trace:points.append(to_local(point))
+ points[-1]=mask.position+mask.basis.z*.14
+ var lengths:=PackedFloat32Array([0.0])
+ for i in range(1,points.size()):lengths.append(lengths[-1]+maxf(.0001,points[i].distance_to(points[i-1])))
+ var total:=lengths[-1];var count:=maxi(1,ceili(total/4.5))
+ while sections.size()<count:
+  var segment:=MeshInstance3D.new();segment.name="GrowingNeckSection";segment.mesh=neck.mesh;segment.set_meta("nonblocking_atmosphere",true);add_child(segment)
+  var hair:=MeshInstance3D.new();hair.name="GrowingManeSection";hair.mesh=sections[0].hair.mesh;hair.set_meta("nonblocking_atmosphere",true);add_child(hair)
+  var material:=skin.duplicate() as ShaderMaterial;var hair_material:=mane.duplicate() as ShaderMaterial
+  segment.material_override=material;hair.material_override=hair_material
+  sections.append({"neck":segment,"hair":hair,"skin":material,"mane":hair_material})
+ var previous:=Vector3.RIGHT
+ for section_index in range(sections.size()):
+  var section: Dictionary=sections[section_index];section.neck.visible=section_index<count;section.hair.visible=section_index<count
+  if section_index>=count:continue
+  var positions:=PackedVector4Array();var frames:=PackedVector3Array();var bound:=AABB()
+  var a:=section_index*4.5;var b:=minf(total,a+4.5)
+  for i in range(32):
+   var d:=lerpf(a,b,i/31.0);var p:=_along(points,lengths,d)
+   var tangent:=(_along(points,lengths,minf(total,d+.025))-_along(points,lengths,maxf(0,d-.025))).normalized()
+   var side:=previous-tangent*previous.dot(tangent)
+   if side.length()<.001:side=tangent.cross(Vector3.FORWARD)
+   side=side.normalized();previous=side
+   frames.append(side);positions.append(Vector4(p.x,p.y,p.z,lerpf(.105,.082,d/total)))
+   bound=AABB(p,Vector3.ZERO) if i==0 else bound.expand(p)
+  section.neck.custom_aabb=bound.grow(.4);section.hair.custom_aabb=bound.grow(.4)
+  section.skin.set_shader_parameter("points",positions);section.skin.set_shader_parameter("frames",frames)
+  section.mane.set_shader_parameter("points",positions);section.mane.set_shader_parameter("frames",frames)
+
+func _along(points: PackedVector3Array,lengths: PackedFloat32Array,distance: float) -> Vector3:
+ var low:=0;var high:=lengths.size()-1
+ while low<high:
+  var middle: int=(low+high)/2
+  if lengths[middle]<distance:low=middle+1
+  else:high=middle
+ var i:=maxi(1,low)
+ return points[i-1].lerp(points[i],clampf((distance-lengths[i-1])/maxf(.0001,lengths[i]-lengths[i-1]),0,1))
 
 func snapshot() -> Dictionary:
  var p:=mask.global_position;var source:=to_global(SOURCE)

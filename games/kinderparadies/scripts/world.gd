@@ -30,6 +30,7 @@ var tubes: CrawlTubes
 var soundscape: NightSoundscape
 var encounters: NightEncounters
 var annex: ServiceAnnex
+var horse_hunt: HorseHunt
 var room_horror: RoomHorror
 var archive: LostArchive
 var terrors: NightTerrors
@@ -178,7 +179,8 @@ func construction_steps() -> Array[Callable]:
   _module.bind(AfterPlayGraphics,"graphics"),
   _module.bind(ArrivalDesign,"arrival_design"),
   _module.bind(VenueCraft,"craft"),
-  _module.bind(HappylandAcoustics,"acoustics")]
+  _module.bind(HappylandAcoustics,"acoustics"),
+  _module.bind(HorseHunt,"horse_hunt")]
 
 func build() -> void:
  for step in construction_steps():step.call()
@@ -488,6 +490,7 @@ func set_anomaly(id: String) -> void:
  annex.configure(id)
  tubes.set_anomaly(id)
  current=id;clock=0
+ horse_hunt.configure(id)
  pit_physics.configure()
  atmosphere.anomaly(id)
  encounters.configure(id)

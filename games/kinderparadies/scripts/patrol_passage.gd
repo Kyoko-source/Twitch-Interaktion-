@@ -15,6 +15,8 @@ var fired:=false
 var motor: AudioStreamPlayer3D
 var floor_number:=1
 var floor_displays: Array[TextMesh]=[]
+var red_locked:=false
+var horse_note: Node3D
 
 func set_floor(value: int) -> void:
  floor_number=clampi(value,1,13)
@@ -52,6 +54,13 @@ func _lane(index: int) -> void:
  for face in [-1,1]:
   w.box(hinge,Vector3(1.22,1.22,face*.08),Vector3(.09,.28,.04),steel)
   w.tube(hinge,Vector3(1.02,1.25,face*.13),Vector3(1.31,1.25,face*.13),.024,steel)
+ if index==1:
+  horse_note=Node3D.new();horse_note.name="HorseClueOnRedDoor";horse_note.position=Vector3(.75,1.94,.073);hinge.add_child(horse_note)
+  w.box(horse_note,Vector3.ZERO,Vector3(1.10,.55,.008),w.mat(Color("b2a47c"),load("res://assets/aged-plaster.png"),.97))
+  for x in [-.42,.42]:
+   var tape:=w.box(horse_note,Vector3(x,.24,.008),Vector3(.21,.07,.004),w.mat(Color("817b60"),null,.98));tape.rotation.z=x*.34
+  var writing:=Label3D.new();writing.text="Pferde mögen\nkeine Clowns";writing.font=load("res://assets/backstage-v270/Caveat.ttf");writing.font_size=96;writing.pixel_size=.0021;writing.position.z=.012;writing.modulate=Color("302820");writing.outline_size=0;writing.shaded=true;writing.no_depth_test=false;writing.alpha_cut=Label3D.ALPHA_CUT_DISCARD;horse_note.add_child(writing);horse_note.hide()
+
  var glow:=w.mat(colour);glow.emission_enabled=true;glow.emission=colour;glow.emission_energy_multiplier=1.6
  w.box(root,Vector3(0,3.35,.24),Vector3(1.7,.40,.11),glow)
  w.mounted_sign(root,"red" if index else "green",Vector3(0,3.35,.31),Vector2(1.5,.3))
@@ -80,14 +89,23 @@ func _lane(index: int) -> void:
  lanes.append({"root":root,"hinge":hinge,"body":body,"open":false,"doors":doors})
 
 func open(red: bool) -> void:
+ if red and red_locked:return
  if closing: return
  var index:=1 if red else 0
  if chosen>=0 and chosen!=index: return
  lanes[index].open=true
 
+func set_red_locked(value: bool) -> void:
+ red_locked=value
+ if horse_note:horse_note.visible=value
+ if value:
+  lanes[1].open=false;lanes[1].hinge.rotation.y=0;lanes[1].body.collision_layer=1
+  if chosen==1:chosen=-1;closing=false;fired=false
+
 func tick(delta: float, active: bool, player: NightGuard, correct_red: bool, completed: bool) -> void:
  motor.stream_paused=not active
  if not active: return
+ if red_locked:lanes[1].open=false
  for i in range(2):
   var lane: Dictionary=lanes[i]
   lane.hinge.rotation.y=move_toward(lane.hinge.rotation.y,-1.56 if lane.open else 0,delta*2.7)
@@ -125,6 +143,7 @@ func restore(data: Variant) -> void:
   lanes[i].open=(opened[i] or chosen==i) and (chosen<0 or chosen==i)
   lanes[i].hinge.rotation.y=-1.56 if lanes[i].open else 0
   lanes[i].body.collision_layer=0 if lanes[i].open else 1
+ if red_locked:set_red_locked(true)
 
 func snapshot() -> Dictionary:
- return {"chosen":chosen,"open":[lanes[0].open,lanes[1].open],"closing":closing,"clock":clock,"doors":[lanes[0].doors[0].position.x,lanes[1].doors[0].position.x],"floor":floor_number,"floor_texts":floor_displays.map(func(indicator):return indicator.text)}
+ return {"red_locked":red_locked,"horse_note":horse_note.visible,"chosen":chosen,"open":[lanes[0].open,lanes[1].open],"closing":closing,"clock":clock,"doors":[lanes[0].doors[0].position.x,lanes[1].doors[0].position.x],"floor":floor_number,"floor_texts":floor_displays.map(func(indicator):return indicator.text)}

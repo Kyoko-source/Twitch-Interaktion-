@@ -38,17 +38,63 @@ test('v3.5.7 stage front is walkable without jumping and the moved car leaves th
  await qa(page,{op:'audit'});const report=(await state(page)).layout;expect(report.door_obstructions).toEqual([]);expect(report.art_overlaps).toEqual([]);expect(report.furniture_wall_intrusions).toEqual([]);
 });
 
-test('v3.5.6 ceiling horse travels into the corridor, freezes on pause and preserves walkable cinema access',async({page})=>{
+test('v3.6.0 reference horse stays motionless and preserves walkable cinema access',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
  await begin(page);await qa(page,{op:'warp',x:-7.9,z:-25.6,yaw:0,pitch:.10});
  const initial=(await state(page)).room_horror.horse;expect(initial.bodyless).toBe(true);expect(initial.jaw).toBe(true);expect(initial.neck_samples).toBe(32);expect(initial.source[1]).toBeGreaterThan(3.9);
- await expect.poll(async()=>(await state(page)).room_horror.horse.progress,{timeout:45000,intervals:[100]}).toBe(1);
- const peek=(await state(page)).room_horror.horse;expect(peek.head[0]).toBeLessThan(-7);expect(peek.head[1]).toBeCloseTo(2.03,1);expect(peek.source).toEqual(initial.source);
+ await page.waitForTimeout(6000);expect((await state(page)).room_horror.horse).toEqual(initial);expect(initial.clock).toBe(0);expect(initial.progress).toBe(0);
  await page.keyboard.press('Escape');await page.waitForTimeout(120);const frozen=(await state(page)).room_horror.horse;await page.waitForTimeout(500);expect((await state(page)).room_horror.horse).toEqual(frozen);
  await page.keyboard.press('Escape');await page.waitForTimeout(150);await page.screenshot({path:join(tmpdir(),'after-play-v356-web-horse-peek.png')});
  await qa(page,{op:'warp',x:-7.9,z:-29.65,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>-5.05);await walk(page,'s',s=>s.position[0]<-7.8);
  await qa(page,{op:'warp',x:-7.9,z:-14,yaw:0,pitch:.25});await page.waitForTimeout(650);await page.screenshot({path:join(tmpdir(),'after-play-v356-web-ceiling.png')});
  await qa(page,{op:'audit'});const report=(await state(page)).layout;expect(report.door_obstructions).toEqual([]);expect(report.art_overlaps).toEqual([]);expect(report.furniture_wall_intrusions).toEqual([]);expect((await state(page)).anomaly).toBe('none');
+ expect(faults).toEqual([]);
+});
+
+test('v3.6.0 creator keypad starts the saved horse hunt, kitchen clown repels it and red unlocks after the full return',async({page})=>{
+ test.setTimeout(480000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);
+ // Reach a protected newspaper round, which only the explicit creator code may override.
+ for(let i=0;i<2;i++){
+  await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'choose',red:false});
+  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ }
+ expect((await state(page)).streak).toBe(2);expect((await state(page)).anomaly).toBe('none');
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});await expect.poll(async()=>(await state(page)).target).toBe('archive_door');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');
+ await page.mouse.click(275,220);await page.keyboard.type('07120712',{delay:35});
+ await expect.poll(async()=>(await state(page)).archive_input).toBe('07120712');await page.keyboard.press('Enter');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).streak).toBe(2);
+ await qa(page,{op:'warp',x:-2.15,z:-10.5,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).target).toBe('red');await page.keyboard.press('e');
+ expect((await state(page)).passage.red_locked).toBe(true);expect((await state(page)).passage.horse_note).toBe(true);expect((await state(page)).passage.open[1]).toBe(false);
+ await qa(page,{op:'warp',x:-7.9,z:-25.5,yaw:0,pitch:0});
+ await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:30000}).toBe('following');
+ // Short real key presses allow braking and correction when WebGL frames
+ // arrive late. A single held key can overshoot a narrow turning point.
+ const to=async(x,z)=>{
+  for(let attempt=0;attempt<40;attempt++){
+   const p=(await state(page)).position;const distance=Math.hypot(p[0]-x,p[2]-z);if(distance<.24)return;
+   await qa(page,{op:'look',yaw:Math.atan2(-(x-p[0]),-(z-p[2]))});
+   await page.keyboard.down('w');try{await page.waitForTimeout(Math.max(55,Math.min(700,(distance-.25)/2.8*1000)));}finally{await page.keyboard.up('w');}
+   await page.waitForTimeout(220);
+  }
+  const p=(await state(page)).position;expect(Math.hypot(p[0]-x,p[2]-z),`Lure waypoint ${x},${z}; actual ${p}`).toBeLessThan(.24);
+ };
+ for(const [x,z] of [[-7.9,-10.7],[5.7,-10.7],[5.7,-8.7],[8.1,-8.7],[8.1,-10.05],[9.6,-10.05]])await to(x,z);
+ await expect.poll(async()=>(await state(page)).horse_hunt.head[0],{timeout:20000}).toBeGreaterThan(6.8);
+ expect((await state(page)).horse_hunt.neck_sections).toBeGreaterThan(5);
+ await page.keyboard.press('Escape');const paused=(await state(page)).horse_hunt;await page.waitForTimeout(500);expect((await state(page)).horse_hunt.clock).toBe(paused.clock);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).streak).toBe(2);expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).horse_hunt.trace_points).toBeGreaterThanOrEqual(paused.trace_points);
+ expect((await state(page)).passage.red_locked).toBe(true);
+ for(const [x,z] of [[8.1,-10.05],[8.1,-8.7],[5.7,-8.7],[5.7,-10.7],[-7.9,-10.7],[-7.9,-29.65],[-12.3,-29.65]])await to(x,z);
+ await expect.poll(async()=>(await state(page)).horse_hunt.screamed,{timeout:20000}).toBe(true);
+ expect((await state(page)).passage.red_locked).toBe(true);await page.keyboard.press('Escape');
+ const clownPause=(await state(page)).horse_hunt;await page.waitForTimeout(350);expect((await state(page)).horse_hunt.clock).toBe(clownPause.clock);expect((await state(page)).horse_hunt.audio_paused).toBe(true);await page.keyboard.press('Escape');
+ await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:45000}).toBe('resolved');
+ expect((await state(page)).horse_hunt.screamed).toBe(true);expect((await state(page)).passage.red_locked).toBe(false);expect((await state(page)).passage.horse_note).toBe(false);
+ await qa(page,{op:'warp',x:-2.15,z:-10.5,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).target).toBe('red');await page.keyboard.press('e');expect((await state(page)).passage.open[1]).toBe(true);
  expect(faults).toEqual([]);
 });
 

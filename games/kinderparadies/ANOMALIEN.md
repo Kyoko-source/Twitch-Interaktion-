@@ -1,8 +1,8 @@
-# Vorhandene Anomalien — After Play 3.5.7
+# Vorhandene Anomalien — After Play 3.6.0
 
 Stand: 2. November 2026. Katalog aus `scripts/patrol.gd`.
 
-64 Anomalien insgesamt. Neu in 2.12: `wc_stall_watcher` (Gestalt in der offenen WC-Kabine), `wc_ceiling_guest` (kopfüber hängender Besucher im WC) und `snackbar_visitor` (Angriff vor der Snackbar). 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
+65 Anomalien insgesamt. Neu in 3.6: `horse_clown_hunt`. Neu in 2.12: `wc_stall_watcher` (Gestalt in der offenen WC-Kabine), `wc_ceiling_guest` (kopfüber hängender Besucher im WC) und `snackbar_visitor` (Angriff vor der Snackbar). 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
 
 Geburtstagsfotos, Kamerabildrauschen und physikalisch vom Spieler bewegte Bälle sind normale Umgebung. Der freiwillige Kontrollmonitor beobachtet dieselbe Welt. Er verändert weder die gezogene Anomalie noch löst er entfernte Annäherungsangriffe aus. Die Kameras haben bewusst begrenzte Sichtfelder.
 
@@ -90,7 +90,9 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Neben dem Küchenclown erscheint ein zweiter Besucher und verfolgt dich durch die Küche. (`kitchen_double`)
 - Eine hagere Gestalt lauert vor dem Kühlschrank und beugt sich plötzlich vor. (`fridge_occupant`)
 
-## Kino (5)
+## Kino (6)
+
+- Der Pferdekopf verfolgt den Spieler mit einem immer längeren Hals durch die Räume. Die rote Tür trägt den Hinweis „Pferde mögen keine Clowns“ und bleibt verriegelt. In die Küche gelockt wird das Pferd vom springenden, kreischenden Clown vertrieben. Es fährt seinen tatsächlich zurückgelegten Weg vollständig rückwärts zum Schacht ab; erst danach öffnet Rot. (`horse_clown_hunt`)
 
 - Eine Gestalt rennt im Mittelgang des Kinos direkt auf dich zu. (`cinema_aisle_rush`)
 - Zwischen den Kinositzen erhebt sich plötzlich ein Besucher und stürzt nach vorn. (`cinema_seat_ambush`)
@@ -115,12 +117,16 @@ Der leere Geburtstagsthron, die reglos aufgehängten Kostüme, die lesbaren Wart
 
 Der große beschädigte Stoffhase ausschließlich rechts im Party Raum ist ein festes Maskottchen, keine Anomalie. Auch die eingerichtete Werkstatt, die Kinovorhänge und die unterschiedlichen Schritte je Bodenmaterial gehören zum normalen Zustand.
 
-Dichter graugrüner Nebel, das große Clownfresko mit vier leeren Stühlen, der knöcherne Pferdeschädel im Kinoschacht, der rührende Küchenclown, das NO-SIGNAL-Bild und die Spieluhr gehören zur normalen Umgebung. Auch entfernte Schritte und Röhrenstimmen sind normale Raumgeräusche.
+Dichter graugrüner Nebel, das große Clownfresko mit vier leeren Stühlen, der vollständig reglose Pferdekopf im Kinoschacht, der rührende Küchenclown, das NO-SIGNAL-Bild und die Spieluhr gehören zur normalen Umgebung. Auch entfernte Schritte und Röhrenstimmen sind normale Raumgeräusche.
 
-Zusätzliche Besucher und greifende Arme sind Anomalien. Die neuen Begegnungen spielen einen Schreckmoment pro Rundgang; danach bleibt eine sichtbare Gestalt oder Spur zurück. Verfolgungen sind kurz und beenden die Schicht nicht automatisch. Eine falsche Tür bedeutet weiterhin Tod und Neustart.
+Zusätzliche Besucher und greifende Arme sind Anomalien. Die neuen Begegnungen spielen einen Schreckmoment pro Rundgang; danach bleibt eine sichtbare Gestalt oder Spur zurück. Die üblichen Verfolgungen sind kurz und beenden die Schicht nicht automatisch. Die Pferde-Verfolgung ist die Ausnahme: Sie bleibt bis zur Lösung aktiv und reicht durch alle begehbaren Bereiche. Eine falsche Tür bedeutet weiterhin Tod und Neustart.
 
 `tube_watcher`, die Tunnelverfolgung und die Fensterhände sind außerhalb der Röhre unsichtbar. TAB pausiert auch Begegnungen und Geräusche.
 
 Zeitungen, Zettel und Geheimtür sind keine Anomalien. Auch die Schreckmomente bei einer falschen Tür, im Archivfinale und beim absichtlichen Betätigen des Jumpscare-Schalters im Menü gehören nicht zum zufälligen Anomalie-Katalog. Ältere Anomalie-Spielstände werden auf die Ersatzanomalien bzw. in Zeitungsrunden auf einen normalen Rundgang umgesetzt.
 
-Nach 13 richtigen Türen stehst du wieder im Startraum. Vor dir liegt die Hinweiszeitung. E sammelt sie ein, TAB öffnet die Lesefassung. Sie bleibt gespeichert. Eine weitere Entscheidungstür beginnt eine neue Suche; gefundene Unterlagen bleiben dabei in dieser überlebten Schicht erhalten. Eine bewusst neue Nachtschicht oder Tod leert die Sammlung.
+Nach 13 richtigen Türen folgt ENDE 1/2 mit Credits und einem Hinweis auf die Runden 3, 5, 8 und 11. Das Archivfinale führt zu ENDE 2/2, ebenfalls mit Credits. Eine bewusst neue Nachtschicht oder Tod leert die Sammlung.
+
+## Ersteller-Test
+
+`0712` öffnet weiterhin das Archiv ohne Zeitungen. `07120712` am selben Zahlenschloss startet ausschließlich die Pferde-Clown-Anomalie in der aktuellen Runde. Rundenzähler, Archiv und Fundstücke bleiben erhalten. Dieser ausdrückliche Test darf auch die sonst ruhigen Zeitungsrunden überschreiben; Speichern/Fortsetzen bewahrt die Ausnahme und den gesamten Verfolgungs- bzw. Rückzugsweg. Der Code schaltet die normale Zufallsverteilung nicht um.

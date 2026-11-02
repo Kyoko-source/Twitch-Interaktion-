@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--hunt-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/hunt_validation.gd").new().run(game,check)
+  print("Horse hunt checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--circulation-only" in OS.get_cmdline_user_args():
   await load("res://scripts/circulation_validation.gd").new().run(game,check)
   print("Circulation checks: ",checks,"; failures: ",failures.size())

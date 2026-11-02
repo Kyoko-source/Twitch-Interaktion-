@@ -5,6 +5,7 @@ const GOAL := 13
 const REPLACEMENTS := {"clock_reverse":"reception_peeker","car_moves":"reception_charge","car_float":"reception_queue","hours_wrong":"pit_hands","bunny_watches":"frame_stalker","balls_red":"slide_crawler","ball_moves":"party_portrait","slide_green":"party_guests","slide_missing":"cake_mouth","croc_breathes":"corridor_crossing","chairs_missing":"service_pursuit","chair_stack":"service_ceiling","blood_pool":"fridge_occupant","mural_upside":"pot_arms","mural_mirror":"kitchen_double","mural_red":"screen_visitor","stars_upside":"cinema_last_row","footprints":"vent_strike","extinguisher_float":"tube_chase","bloody_hands":"tube_window_hands"}
 const ZONES := ["Empfang", "Bällebad", "Party Raum", "Wartungsgang", "Küche", "Kino"]
 const ANOMALIES := [
+ {"id":"horse_clown_hunt","name":"Der Pferdekopf verfolgt dich an einem wachsenden Hals. Die rote Tür öffnet erst, wenn der Küchenclown ihn vertrieben hat.","zone":"Kino"},
  {"id":"wc_stall_watcher","name":"In der offenen WC-Kabine wartet eine verdrehte Gestalt und schnellt nach vorn.","zone":"Kinder-WC"},
  {"id":"wc_ceiling_guest","name":"Über dem Abfluss hängt ein Besucher kopfüber und fährt von der niedrigen WC-Decke herab.","zone":"Kinder-WC"},
  {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Party Raum"},
@@ -82,11 +83,12 @@ var visited: Array[String] = []
 var deck: Array[String] = []
 var bag: Array[String] = []
 var completed := false
+var horse_override:=false
 var history: Array = []
 
 func start(seed_value: int = 0) -> void:
  rng.seed = seed_value if seed_value != 0 else Time.get_ticks_usec()
- streak=0;best=0;errors=0;rounds=0;seconds=0;current="none";completed=false
+ streak=0;best=0;errors=0;rounds=0;seconds=0;current="none";completed=false;horse_override=false
  visited.clear();deck.clear();bag.clear();history.clear()
 
 func _shuffle(items: Array[String]) -> void:
@@ -95,6 +97,7 @@ func _shuffle(items: Array[String]) -> void:
   var temp := items[i];items[i]=items[j];items[j]=temp
 
 func _next() -> void:
+ horse_override=false
  visited.clear()
  if ArchiveState.is_newspaper_round(streak+1):
   current="none"
@@ -131,7 +134,7 @@ func decide(red: bool) -> Dictionary:
  completed=streak==GOAL
  var result := {"accepted":true,"correct":correct,"anomaly":anomaly,"detail":detail,"streak":streak,"completed":completed}
  history.append({"anomaly":current,"red":red,"correct":correct})
- if completed: current="none"
+ if completed: current="none";horse_override=false
  else: _next()
  return result
 
@@ -141,7 +144,7 @@ static func describe(id: String) -> String:
  return "Es gab keine Anomalie. Der Rundgang war normal."
 
 func serialize() -> Dictionary:
- return {"version":1,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state)}
+ return {"version":1,"horse_override":horse_override,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state)}
 
 func restore(data: Dictionary) -> bool:
  var valid_ids: Array[String]=["none"]
@@ -151,6 +154,7 @@ func restore(data: Dictionary) -> bool:
  if int(data.get("streak",-1))<0 or int(data.get("streak",99))>GOAL: return false
  if not data.get("visited",[]) is Array or not data.get("deck",[]) is Array or not data.get("bag",[]) is Array: return false
  if not data.get("history",[]) is Array: return false
+ if not data.get("horse_override",false) is bool:return false
  for field in ["streak","best","errors","rounds","seconds"]:
   var value=data.get(field,0)
   if typeof(value) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(value)) or float(value)<0: return false
@@ -165,7 +169,8 @@ func restore(data: Dictionary) -> bool:
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
  visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==GOAL
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
- if completed: current="none"
+ horse_override=data.get("horse_override",false)==true and current=="horse_clown_hunt"
+ if completed: current="none";horse_override=false
  # Old saves may contain an anomaly on a now-protected newspaper round.
- if not completed and ArchiveState.is_newspaper_round(streak+1): current="none"
+ if not completed and not horse_override and ArchiveState.is_newspaper_round(streak+1): current="none"
  return true

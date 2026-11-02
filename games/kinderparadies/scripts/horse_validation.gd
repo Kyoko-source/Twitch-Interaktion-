@@ -41,8 +41,8 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(neck_inside and fixed.y>3.9,"Neck is not anchored inside the dark shaft")
  verify.call(clearance,"Creature clips the ceiling or doorway: "+issue)
  verify.call(movements[0].distance_to(movements[-1])>5 and movements[-1].x< -7,"Horse never travels from the shaft into the corridor")
- horse.debug_hold=false;horse.clock=26;horse.tick(.1,true)
- verify.call(horse.progress==1 and horse.mask.global_position.x< -7,"Natural animation never peeks out of the cinema")
+ horse.debug_hold=false;horse.clock=0;horse.pose(0);var rest:=horse.mask.transform;horse.tick(120,true)
+ verify.call(horse.mask.transform==rest and horse.clock==0,"Reference horse still moves during normal rounds")
  var transform:=horse.mask.transform;var jaw_angle:=horse.jaw.rotation.x;var time:=horse.clock
  horse.tick(2,false)
  verify.call(horse.mask.transform==transform and horse.jaw.rotation.x==jaw_angle and horse.clock==time,"Ceiling creature ignores pause")

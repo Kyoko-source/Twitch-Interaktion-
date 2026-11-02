@@ -1,5 +1,51 @@
 # After Play — Kinderparadies
 
+## Pferd-und-Clown-Begegnung (3.6.0)
+
+Der normale Pferdekopf bleibt einschließlich Kiefer und Hals vollständig still.
+`horse_clown_hunt` erweitert den Katalog auf 65 Anomalien: Der Kopf folgt dem
+Spieler durch die begehbaren Räume, sein Hals wächst vom Kinoschacht aus entlang
+der tatsächlich zurückgelegten Strecke. Ein schrittweise erstelltes Bodennetz
+führt ihn zunächst zum Spieler; danach übernimmt dessen realer Laufweg auch auf
+Podesten und in niedrigen Bereichen. Vor niedrigen Türstürzen senkt er den Kopf.
+Zusätzliche Halsabschnitte teilen sich ihre Geometrie und besitzen eigene Grenzen
+für die Sichtbarkeitsprüfung.
+
+Rot ist währenddessen physisch verriegelt und trägt einen handschriftlichen
+Zettel: „Pferde mögen keine Clowns“. Erst wenn das Pferd in die Küche gelockt
+wird, springt der Küchenclown mit einem eigenen Kreischen auf es zu. Der Kopf
+fährt alle aufgezeichneten Positionen und Drehungen rückwärts bis zum Schacht
+zurück. Erst dann verschwindet der Zettel und die rote Tür wird freigegeben.
+Der Clown kehrt auf seinen Platz zurück. Seine neuen wilden blonden Haarsträhnen
+sind am vorhandenen gescannten Kopf befestigt; Gesicht, Augen und Zähne bleiben
+unverändert. Die Haare besitzen keine Kollisionen.
+
+Pause, Inventar und Zahlenschloss halten Begegnung und Ton an. Speichern und
+Fortsetzen bewahren Kopf, Halsweg, Laufspur, Clown-Sprung und Rückzugsfortschritt.
+Die bisherige Verteilung bleibt bei sechs Anomalien und sieben normalen Runden
+pro frischer 13er-Serie. Zeitungsrunden 3/5/8/11 bleiben im normalen Spiel garantiert anomaliefrei.
+Nur der ausdrücklich eingegebene Ersteller-Code `07120712` am Archivschloss
+ersetzt die aktuelle Runde durch diese Begegnung, ohne Rundenstand, Zufallsdeck
+oder Fundstücke zu verbrauchen. Die Ausnahme bleibt beim Laden erhalten.
+`0712` öffnet weiterhin unabhängig davon das Archiv.
+
+Gezielte Prüfungen: `--self-test --hunt-only`, `--horse-only`, `--balance-only`,
+`--release-only`, `--startup-only` und `--circulation-only`. Der private Edge-Test
+betätigt das achtstellige Schloss, läuft mit Tastatur in den Partyraum und zurück
+zur Küche und prüft Pause, Fortsetzen, Rückzug und Freigabe. Native Aufnahmen
+entstehen über `--render-qa --v360-qa`. Diese Werkzeuge sind in Spielerpaketen
+ausgeschlossen. itch.io wird ausschließlich über den vorhandenen manuellen
+Upload-Befehl aktualisiert.
+
+173 gezielte native Checks bestehen: Begegnung 51, Pferdegeometrie 14,
+Rundenverteilung 18, Archiv/Release 36, Start/Abspann 24 und Laufwege 30.
+Drei Edge-Prüfungen bestehen für Podest/Auto, den reglosen Vergleich und den
+vollständigen Rätselablauf mit Neuladen während der Verfolgung. Neun native
+Aufnahmen zeigen Haare, Hinweis, Verfolgung, Clown-Angriff und Rückzug.
+Windows- und Web-Paket bestehen Dateiliste, CRC, Prüfsummen, Lizenzen und die
+Abgrenzung der Erstellerwerkzeuge; die exportierte Windows-Fassung startet ohne
+fehlende Ressourcen. Der Web-PCK bleibt mit 198,78 MiB unter dem Dateilimit.
+
 ## Begehbare Podestkante und versetztes Spielauto (3.5.7)
 
 Der flache Holzaufgang führt jetzt über die komplette sieben Meter breite
