@@ -63,6 +63,7 @@ docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env up -d --n
 curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://62.238.49.219/api/health
 curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://62.238.49.219/downloads/release.json
 sha256sum -c /tmp/kinderparadies-music-__SHORT__.sha256
+python3 deploy/prune-kinderparadies-releases.py --apply --keep-image aviary-frontend:before-kinderparadies-__SHORT__
 rm -f /tmp/kinderparadies-music-__SHORT__.sha256
 printf '\nPublished native and web game: __RELEASE__\n'
 '@
@@ -71,3 +72,4 @@ $taskRemote=$taskRemote.Replace("`r`n","`n")
 $taskEncoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($taskRemote))
 & ssh -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $SshTarget "printf %s '$taskEncoded' | base64 -d | bash -se"
 if($LASTEXITCODE -ne 0){throw 'Remote release failed; inspect logs before retrying.'}
+& (Join-Path $taskRepo 'tools/prune-after-play-releases.ps1') -Apply

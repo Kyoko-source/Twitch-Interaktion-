@@ -95,3 +95,4 @@ foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p
 $taskManifest=[ordered]@{version=$Version;packaging_revision=2;engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskBuild 'release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Player packages ready: $taskZip"
+& (Join-Path $PSScriptRoot 'prune-after-play-releases.ps1') -Apply
