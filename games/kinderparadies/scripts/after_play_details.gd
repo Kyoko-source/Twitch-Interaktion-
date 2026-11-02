@@ -91,7 +91,7 @@ func _reception() -> void:
   w.tube(rail,Vector3(x,1.74,.03),Vector3(x,1.69,.13),.015,steel)
   w.tube(rail,Vector3(x,1.69,.13),Vector3(x,1.76,.14),.015,steel)
  _jacket(rail,Vector3(-.18,1.66,.12))
- var till:=cluster(w.props.counter,"AdmissionWristbands",Vector3(.07,1.005,1.03),-PI/2)
+ var till:=cluster(w.props.counter,"AdmissionWristbands",Vector3(.23,1.005,1.18),-PI/2)
  w.box(till,Vector3(0,.08,0),Vector3(.23,.16,.21),steel)
  for i in range(3):
   w.tube(till,Vector3(-.07,.17,-.05+i*.06),Vector3(.07,.17,-.05+i*.06),.042,[w.materials.gold,w.materials.red,w.materials.teal][i])

@@ -1,5 +1,37 @@
 # After Play — Kinderparadies
 
+## Empfang am Haupteingang (3.5.4)
+
+Der Empfangstresen steht um 90 Grad gedreht neben dem Haupteingang, mit seiner
+Kundenseite zum ankommenden Besucher. PC, Telefon, Papier, Armbandspender und
+Lampe folgen seinem lokalen Koordinatensystem; auch das praktische Lampenlicht
+und das Frontbild bleiben am Möbel. Der Bildschirm zeigt zum Arbeitsplatz.
+Dahinter steht ein eigener gepolsterter Bürostuhl mit Armlehnen, Gasfeder,
+Höhenverstellung und fünf Rollen. Zwei einfache Kollisionskörper ersetzen jede
+Kollision der kleinen Rollen- und Gestelldetails.
+
+Pinnwand, Öffnungszeiten-Plakat und Uhr wurden entsprechend der markierten
+Anordnung versetzt: Pinnwand hinter dem Arbeitsplatz, Uhr darüber, Plakat weiter
+zum Fenster. Der Abfalleimer steht an der Wand außerhalb des Eingangswegs.
+Die Empfangs-Anomalien hinter dem Tresen und die Besucherwarteschlange haben
+passende neue Anker; der Monitor mit sieben Kameraperspektiven bleibt bedienbar.
+Ein alter Spielstand darf weder im neuen Tresen noch im Bürostuhl fortgesetzt
+werden.
+
+66 native Checks bestehen: Empfang 20, Eingang/geheimes Ende 22,
+Start/Credits 24. Sie durchlaufen den tatsächlichen Weg durch den Eingang,
+um die Thekenkante und hinter den Arbeitsplatz, prüfen Monitorbedienung,
+Wandmontage, Spielstandpositionen und die Kollisionen/Sichtauslöser der drei
+versetzten Anomalien. Vier native Aufnahmen bei 1920 × 1080 zeigen beide
+Tresenseiten, den Stuhl und die Wandanordnung. Der Platzierungsbericht findet
+keine blockierten Türen, überlappenden Bilder oder eingebetteten Möbel.
+Der Edge/Playwright-Test läuft durch den Haupteingang und um das Tresenende,
+öffnet den Monitor vom Arbeitsplatz, wechselt alle sieben Kameras und prüft
+weiterhin Fotowand und physische Bälle samt Pause. Keine Konsolenfehler.
+Windows- und Web-Pakete bestehen Dateilisten-, Hash-, Lizenz- und Startprüfung;
+der itch.io-Upload wurde nur lokal geprüft.
+Private Prüfungen: --self-test --reception-only und --render-qa --v354-qa.
+
 ## Verbarrikadiertes Fenster und hörbarer Donner (3.5.3)
 
 Sechs einzeln modellierte, unregelmäßige Holzbretter sind außen vor dem Glas

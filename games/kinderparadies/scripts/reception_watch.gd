@@ -77,7 +77,7 @@ func _print(value: String, handwritten: bool) -> ViewportTexture:
  label.add_theme_font_override("font",load("res://assets/backstage-v270/Caveat.ttf" if handwritten else "res://assets/Oswald.ttf"));label.add_theme_font_size_override("font_size",66 if handwritten else 50);label.add_theme_color_override("font_color",Color("3f3a2e"));view.add_child(label);return view.get_texture()
 
 func _monitor() -> void:
- var pc:=w.props.counter.get_node("ReceptionPC") as Node3D;pc.rotation.y=PI/2
+ var pc:=w.props.counter.get_node("ReceptionPC") as Node3D;pc.rotation.y=-PI/2
  var screen:=pc.get_child(2) as Node3D
  # Find the front QuadMesh rather than relying on the bezel's child index.
  for mesh in pc.find_children("*","MeshInstance3D",true,false):

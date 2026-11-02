@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--reception-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/reception_validation.gd").new().run(game,check)
+  print("Reception checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--weather-only" in OS.get_cmdline_user_args():
   await load("res://scripts/weather_validation.gd").new().run(game,check)
   print("Weather checks: ",checks,"; failures: ",failures.size())

@@ -221,10 +221,17 @@ test('round 5 cinema newspaper can be collected with E from the aisle and stays 
  expect((await state(page)).streak).toBe(4);expect((await state(page)).archive.collected).toContain('missing');expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(false);
 });
 
-test('reception memories and live CCTV remain voluntary; physical pit balls react and pause',async({page})=>{
- test.setTimeout(150000);await begin(page);
- await qa(page,{op:'warp',x:-7.4,y:.02,z:5.45,yaw:Math.PI/2,pitch:-.24});
+test('v3.5.4 reception entrance and staff side remain walkable; CCTV and physical pit balls work',async({page})=>{
+ test.setTimeout(180000);await begin(page);
+ await qa(page,{op:'warp',x:-11.3,z:9.4,yaw:-Math.PI/2,pitch:0});
+ await walk(page,'w',s=>s.position[0]>-6.3);
+ await qa(page,{op:'warp',x:-6.3,z:9.4,yaw:0,pitch:0});
+ await walk(page,'w',s=>s.position[2]<6.75);
+ await qa(page,{op:'warp',x:-6.3,z:6.75,yaw:Math.PI/2,pitch:0});
+ await walk(page,'w',s=>s.position[0]<-7.3);
+ await qa(page,{op:'warp',x:-7.4,y:.02,z:6.75,yaw:Math.atan2(.75,-1.1),pitch:-.27});
  await expect.poll(async()=>(await state(page)).target).toBe('reception_cctv');
+ await page.screenshot({path:join(tmpdir(),'after-play-v354-web-reception.png')});
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('surveillance');
  expect((await state(page)).watch.world_shared).toBe(true);expect((await state(page)).watch.count).toBe(7);
  const position=(await state(page)).position;await page.keyboard.down('w');await page.waitForTimeout(250);await page.keyboard.up('w');expect((await state(page)).position).toEqual(position);

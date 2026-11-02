@@ -10,9 +10,9 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(watch.photos.size()==6 and watch.board.get_node("FormerHappylandStaff")!=null,"Birthday wall is missing its six Polaroids or staff photograph")
  var layout:=SceneAudit.placement(game.world)
  verify.call(layout.doors.is_empty() and layout.art.is_empty() and layout.furniture.is_empty(),"Reception additions intersect another object: "+JSON.stringify(layout))
- game.player.position=Vector3(-7.4,.02,5.45);game.player.rotation=Vector3.ZERO;game.player.camera.look_at(watch.display.global_position)
+ game.player.position=game.world.props.counter.to_global(Vector3(-1.1,.02,-1.1));game.player.rotation=Vector3.ZERO;game.player.camera.look_at(watch.display.global_position)
  await game.get_tree().physics_frame
- verify.call(game._target()=="reception_cctv","CRT cannot be operated from the visitor side of the counter")
+ verify.call(game._target()=="reception_cctv","CRT cannot be operated beside the staff chair at the relocated counter")
  press(game)
  verify.call(game.phase=="surveillance" and not game.player.active and watch.opened,"E does not open the voluntary live monitor")
  var patrol_before:=JSON.stringify(game.state.serialize())

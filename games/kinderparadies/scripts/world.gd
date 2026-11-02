@@ -5,6 +5,7 @@ const NAVY := Color("294d70")
 const CORAL := Color("974442")
 const GOLD := Color("b49842")
 const TEAL := Color("3c7370")
+const RECEPTION_POS:=Vector3(-8.5,0,7.85)
 var props := {}
 var materials := {}
 var environment: WorldEnvironment
@@ -357,12 +358,13 @@ func _play_structure() -> void:
  giant.position.x-=.6;loose.position.x-=.6
 
 func _reception() -> void:
- var counter:=group("counter");counter.position=Vector3(-8.85,0,5.8)
+ var counter:=group("counter");counter.position=RECEPTION_POS;counter.rotation.y=-PI/2
+ counter.set_meta("furniture_volume",AABB(Vector3(-.48,.02,-1.45),Vector3(.96,.98,2.9)))
  props.counter_base=box(counter,Vector3(0,.46,0),Vector3(.82,.92,2.7),materials.cream,true)
  props.counter_top=box(counter,Vector3(0,.96,0),Vector3(.96,.08,2.9),materials.wood,true)
  props.counter_top.set_meta("foot_surface","wood")
- # Staff stand behind the narrow counter on its west side. The screen, stand,
- # keyboard and cables share that orientation and all rest on the actual top.
+ # Staff sit on the local -X side, facing arrivals from the main entrance.
+ # Screen, keyboard and cables share the counter's rotated local frame.
  var pc:=Node3D.new();pc.name="ReceptionPC";pc.position=Vector3(0,1.025,-.35);pc.rotation.y=-PI/2;counter.add_child(pc)
  var pc_plastic:=mat(Color("6e746a"),load("res://assets/paint.png"),.78)
  box(pc,Vector3(0,.015,0),Vector3(.31,.03,.25),materials.dark)
@@ -380,7 +382,8 @@ func _reception() -> void:
  for i in range(14):
   var a:=i/13.0;var b:=(i+1)/13.0
   tube(counter,Vector3(.12,1.04-a*.7,-.52-a*.35),Vector3(.12,1.04-b*.7,-.52-b*.35),.008,materials.dark)
- props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,7.6),Vector2(1.3,.75),PI/2)
+ props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,5.5),Vector2(1.3,.75),PI/2)
+ ReceptionFurniture.build(self)
  var shelves:=group("reception_shelves")
  var car:=group("car");car.position=Vector3(-5.2,0,5.5)
  box(car,Vector3(0,.25,0),Vector3(.7,.32,1.1),materials.red)
@@ -396,7 +399,7 @@ func _reception() -> void:
   for z in [-.35,.35]:
    tube(car,Vector3(x-.05,.18,z),Vector3(x+.05,.18,z),.17,materials.dark)
    tube(car,Vector3(x-.055,.18,z),Vector3(x+.055,.18,z),.085,materials.metal)
- var face:=group("clock");face.position=Vector3(-9.98,2.8,4);face.rotation.y=PI/2
+ var face:=group("clock");face.position=Vector3(-9.98,3.05,7.3);face.rotation.y=PI/2
  tube(face,Vector3(0,0,-.03),Vector3(0,0,.015),.37,materials.metal)
  tube(face,Vector3(0,0,.02),Vector3(0,0,.04),.32,materials.cream)
  for i in range(12):
@@ -465,8 +468,9 @@ func _details() -> void:
   for row in range(4): box(counter,Vector3(.08,1.009,.02+i*.22+row*.045),Vector3(.18,.001,.005),materials.dark)
  tube(counter,Vector3(.21,1,.68),Vector3(.21,1.12,.68),.045,materials.metal)
  for i in range(4): tube(counter,Vector3(.18+i*.02,1.05,.68),Vector3(.18+i*.02,1.25,.68),.005,materials.gold if i%2 else materials.red)
- tube(self,Vector3(-8.1,0,8.7),Vector3(-8.1,.55,8.7),.23,materials.dark)
- var lid:=sphere(self,Vector3(-8.1,.55,8.7),.25,materials.metal);lid.scale.y=.2
+ var bin:=group("reception_bin");bin.position=Vector3(-9.55,0,5.7)
+ tube(bin,Vector3.ZERO,Vector3(0,.55,0),.23,materials.dark)
+ var lid:=sphere(bin,Vector3(0,.55,0),.25,materials.metal);lid.scale.y=.2
  for z in [14.7]:
   mounted_sign(self,"rules",Vector3(-9.96,1.95,z),Vector2(.65,.4),PI/2)
  # Keep the cable run above the archive lintel, never across the moving leaf.

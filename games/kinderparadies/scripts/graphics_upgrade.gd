@@ -282,6 +282,8 @@ func quality(value: int) -> void:
 
 func clear_pose(point: Vector3) -> bool:
  var guard:=AABB(point+Vector3(-.28,.08,-.28),Vector3(.56,1.62,.56))
+ for node in [w.props.counter,w.props.reception_chair]:
+  if guard.intersects(node.global_transform*node.get_meta("furniture_volume")):return false
  for bounds in obstacles:
   if guard.intersects(bounds):return false
  return true

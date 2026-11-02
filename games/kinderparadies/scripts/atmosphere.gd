@@ -108,19 +108,21 @@ func _reception_details() -> void:
  w.tube(counter,Vector3(-.1,1.04,.99),Vector3(-.1,1.39,.99),.015,w.materials.metal)
  w.tube(counter,Vector3(-.1,1.39,.99),Vector3(.1,1.5,.99),.015,w.materials.metal)
  var shade:=w.sphere(counter,Vector3(.12,1.47,.99),.1,w.materials.dark);shade.scale=Vector3(1,.55,1)
- w.lamp(Vector3(-8.73,1.39,6.79),Color("ffd696"),.5,3.2)
+ var desk_light:=w.lamp(Vector3.ZERO,Color("ffd696"),.5,3.2)
+ desk_light.reparent(counter,false);desk_light.position=Vector3(.12,1.39,.99);desk_light.name="ReceptionDeskLight"
  var phone:=w.box(counter,Vector3(-.05,1.05,-1),Vector3(.24,.1,.28),w.materials.dark);phone.rotation.x=-.16
  w.tube(phone,Vector3(-.09,.08,-.08),Vector3(.09,.08,-.08),.032,w.materials.dark)
  for i in range(18): w.sphere(counter,Vector3(-.23+sin(i*.8)*.016,1.01,-1.13+i*.012),.008,w.materials.dark)
  # A broken corkboard with drawings, pushpins and curled corners.
- w.box(self,Vector3(-10.0,2.25,5.5),Vector3(.04,1.35,1.9),w.materials.wood)
+ var board:=Node3D.new();board.name="ReceptionNoticeboard";board.position=Vector3(-10.0,1.8,7.3);board.rotation.y=PI/2;add_child(board);w.props.reception_noticeboard=board
+ var backing:=w.box(board,Vector3.ZERO,Vector3(1.9,1.35,.04),w.materials.wood);backing.set_meta("mounted_art",true)
  for i in range(5):
-  var z:=4.82+(i%3)*.52;var y:=2.1+floori(i/3.0)*.55
-  var page:=w.box(self,Vector3(-9.96,y,z),Vector3(.012,.5,.4),w.materials.paper);page.rotation.x=(i-2)*.08
-  w.sphere(self,Vector3(-9.94,y+.21,z),.022,w.materials.red)
-  for line in range(4): w.tube(self,Vector3(-9.94,y-.15+line*.09,z-.12),Vector3(-9.94,y-.1+line*.09,z+.13),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
+  var x:=-.62+(i%3)*.52;var y:=-.15+floori(i/3.0)*.55
+  var page:=w.box(board,Vector3(x,y,.04),Vector3(.4,.5,.012),w.materials.paper);page.rotation.z=(i-2)*.08
+  w.sphere(board,Vector3(x,y+.21,.06),.022,w.materials.red)
+  for line in range(4):w.tube(board,Vector3(x-.12,y-.15+line*.09,.06),Vector3(x+.13,y-.1+line*.09,.06),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
  # Large original mural inset in reception, plus bent cable runs.
- var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.8,.6);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(-8.426,.49,5.8);mural.rotation.y=PI/2;add_child(mural)
+ var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.8,.6);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(.424,.49,0);mural.rotation.y=PI/2;counter.add_child(mural)
  for y in [.34,.38]:
   for span in [Vector2(-7,-6.42),Vector2(-4.38,3)]: w.tube(self,Vector3(-9.97,y,span.x),Vector3(-9.97,y,span.y),.014,w.materials.dark)
  # An abandoned rocking horse gives the long wall a recognizable, organic prop.
