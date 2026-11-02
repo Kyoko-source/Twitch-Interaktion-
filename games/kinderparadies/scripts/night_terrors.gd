@@ -134,7 +134,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  footsteps.stream_paused=not active
  if anticipation: anticipation.stream_paused=not active
  if spec.is_empty(): return
- var in_tube:=w.tubes.contains(player.position)
+ var in_tube:=w.tubes.contains_original(player.position)
  if spec.mode in ["tube","window"]:
   actor.visible=in_tube;marker.visible=in_tube
  if not active: return

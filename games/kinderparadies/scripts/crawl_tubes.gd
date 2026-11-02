@@ -41,10 +41,14 @@ static func nearest(pos: Vector3) -> Dictionary:
  return {"distance":best,"s":distance}
 
 func contains(pos: Vector3) -> bool:
+ return contains_original(pos) or (w.climbing!=null and w.climbing.sky.contains(pos))
+
+func contains_original(pos: Vector3) -> bool:
  var n:=nearest(pos)
  return n.distance<.73 and pos.y<1.2 and n.s>.12 and n.s<LENGTH-.12
 
 func near_entry(pos: Vector3) -> bool:
+ if w.climbing!=null and w.climbing.sky.near_entry(pos):return true
  for s in [0.0,LENGTH]:
   var p:=route(s);p.y=pos.y
   if p.distance_to(pos)<1.65: return true
@@ -166,7 +170,7 @@ func set_anomaly(id: String) -> void:
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  inside=contains(player.position)
- watcher.visible=watcher_enabled and inside
+ watcher.visible=watcher_enabled and contains_original(player.position)
  if active and watcher.visible:
   var offset:=player.position-route(7.4)
   face.rotation.y=lerpf(face.rotation.y,clampf(offset.x*.15,-.18,.18),delta*2)

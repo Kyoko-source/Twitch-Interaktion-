@@ -96,7 +96,7 @@ func route() -> void:
  for record in records:record.source.bus=record.bus
 
 func area(point: Vector3) -> String:
- if point.y<1.3 and point.z>11 and point.z<17 and point.x> -6.5 and point.x<4.8 and w.tubes.contains(point):return "tube"
+ if w.tubes.contains(point):return "tube"
  if point.x>19.5 and point.z>5 and point.z<11:return "washroom"
  if point.z< -24.1:
   if point.x< -9.35:return "kitchen"

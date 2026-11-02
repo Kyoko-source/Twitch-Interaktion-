@@ -23,6 +23,38 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.7.0 lookout and transparent party loop are physically traversable and restore a crouched save',async({page})=>{
+ test.setTimeout(240000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
+ await begin(page);const initial=await state(page);expect(initial.climbing.length).toBeGreaterThan(18);expect(initial.climbing.names).toBe(4);expect(initial.climbing.windows).toBeGreaterThanOrEqual(6);
+ const to=async(x,y,z,crawl=false)=>{
+  for(let attempt=0;attempt<35;attempt++){
+   const p=(await state(page)).position;const distance=Math.hypot(x-p[0],z-p[2]);if(distance<(crawl?.14:.22)){expect(Math.abs(p[1]-y)).toBeLessThan(.24);return;}
+   await qa(page,{op:'look',yaw:Math.atan2(-(x-p[0]),-(z-p[2]))});await page.keyboard.down('w');
+   try{await page.waitForTimeout(Math.max(40,Math.min(450,(distance-(crawl?.09:.16))/(crawl?1.35:2.8)*1000)));}finally{await page.keyboard.up('w');}
+   await page.waitForTimeout(180);
+  }
+  throw new Error('Blocked climbing route '+JSON.stringify({target:[x,y,z],state:await state(page)}));
+ };
+ await qa(page,{op:'warp',x:2.05,y:2.977,z:-.10,yaw:0,pitch:0});
+ await to(2.05,4.15,-3.7);await to(2.4,4.15,-4.5);await to(3.45,4.15,-4.5);expect((await state(page)).polish.floor).toBe('wood');
+ await page.keyboard.down('c');const path=initial.climbing.path;
+ for(let i=0;i<path.length;i++){
+  await to(...path[i],true);
+  if(i===Math.floor(path.length/2)){
+   expect((await state(page)).climbing.inside).toBe(true);expect((await state(page)).watcher).toBe(false);
+   await page.screenshot({path:join(tmpdir(),'after-play-v370-web-transparent-tube.png')});
+   await page.keyboard.up('c');await page.keyboard.press('Escape');const saved=(await state(page)).position;await page.reload();
+   await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+   await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+   const restored=await state(page);expect(restored.climbing.inside).toBe(true);expect(restored.crouching).toBe(true);expect(Math.hypot(...restored.position.map((v,j)=>v-saved[j]))).toBeLessThan(.12);await page.keyboard.down('c');
+  }
+ }
+ await to(16.05,4.15,3.65,true);await page.keyboard.up('c');await expect.poll(async()=>(await state(page)).crouching).toBe(false);
+ await to(16.2,4.15,3.7);await to(16.2,2.15,8.15);await to(16.2,4.15,3.7);
+ await page.keyboard.down('c');for(const p of [...path].reverse())await to(...p,true);await to(3.25,4.15,-4.5,true);await page.keyboard.up('c');
+ await expect.poll(async()=>(await state(page)).crouching).toBe(false);expect((await state(page)).streak).toBe(0);expect(faults).toEqual([]);
+});
+
 test('v3.6.1 horse contact screams, survives pause and reload, then continues the same pursuit without death',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
  await begin(page);await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(1);

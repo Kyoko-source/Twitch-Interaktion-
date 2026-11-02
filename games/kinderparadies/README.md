@@ -1,5 +1,26 @@
 # After Play — Kinderparadies
 
+## Kletteranlage und Partyraum-Rundweg (3.7.0)
+
+Ein begehbarer Aussichtskasten mit handschriftlich eingeritzten Namen, altem
+Aussichtsgerät und zurückgelassenem Kinderschuh erweitert den oberen Westturm.
+Eine durchgehende erhöhte Kunststoffröhre führt durch die westliche Partyraumwand,
+in drei Kurven über die Feier und durch die südliche Wand zurück zum Ostturm.
+Beide Wandlöcher besitzen echte runde Laibungen und passende Kollisionen.
+Verkratzte transparente Abschnitte lassen den Blick in den Partyraum frei.
+Vergilbte Flansche, Schrauben, Befestigungen, Reparaturbänder und verschlissenes
+Holz gehören zur normalen Umgebung. Die bestehende untere Krabbelröhre, ihre
+Zeitung und die nur von innen sichtbare Fenstergestalt bleiben erhalten.
+
+Der interne Aufstieg, die obere Ostrampe und ihre Landung besitzen durchgehende
+Laufflächen. Die störende Rutscheneinstiegskante und darüberliegende Polster
+sind bereinigt. Neue Spielstände in der oberen Röhre werden geduckt geladen.
+Der Zugang führt vom Ostturm über die Holzbrücke und die neue innere Rampe.
+131 native Prüfungen für Ausbau, Platzierung, Verfolgung und Spielstart sowie
+ein vollständiger Web-Durchlauf in beide Richtungen mit echtem Neuladen bestanden.
+Native Prüfung: `--self-test --climbing-only`; Bildkontrolle:
+`--render-qa --v370-qa`. Ersteller-Codes `0712` und `07120712` bleiben erhalten.
+
 ## Nicht tödlicher Pferde-Jumpscare (3.6.1)
 
 Erreicht das verfolgende Pferd den Spieler bei freier Sicht, folgt ein eigener

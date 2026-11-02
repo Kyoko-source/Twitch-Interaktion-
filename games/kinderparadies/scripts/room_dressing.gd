@@ -51,14 +51,14 @@ static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
 
  # Wall board and pennants share a mounting rail, not empty air.
  var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(12.0,3.95,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
- var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(7.6,3.8);painting.mesh=canvas
+ var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(6.0,3.0);painting.mesh=canvas
  var paint:=w.mat(Color("c6beaa"),load("res://assets/creatures/party-fresco-v21.png"),.99)
  paint.normal_enabled=true;paint.normal_texture=w.atmosphere.micro_normal;paint.normal_scale=.16;painting.material_override=paint;fresco.add_child(painting)
  # A cracked toy-theatre cornice is fixed to the wall above the mural.
- w.box(fresco,Vector3(0,1.98,-.005),Vector3(7.8,.10,.12),timber)
- for x in [-3.65,0,3.65]:
-  w.box(fresco,Vector3(x,1.88,-.025),Vector3(.08,.28,.11),w.materials.rust)
-  w.sphere(fresco,Vector3(x,1.88,.035),.018,w.materials.metal)
+ w.box(fresco,Vector3(0,1.58,-.005),Vector3(6.2,.10,.12),timber)
+ for x in [-2.85,0,2.85]:
+  w.box(fresco,Vector3(x,1.48,-.025),Vector3(.08,.28,.11),w.materials.rust)
+  w.sphere(fresco,Vector3(x,1.48,.035),.018,w.materials.metal)
  w.tube(parent,Vector3(19.51,3.15,-5.4),Vector3(19.51,3.15,-2.4),.018,w.materials.stitch)
  for k in range(10):
   var flag:=w.box(parent,Vector3(19.50,3.02,-5.26+k*.29),Vector3(.014,.25,.19),w.materials.gold if k%2 else w.materials.red);flag.rotation.x=.11 if k%2 else -.11

@@ -49,6 +49,7 @@ var graphics: AfterPlayGraphics
 var acoustics: HappylandAcoustics
 var arrival_design: ArrivalDesign
 var craft: VenueCraft
+var climbing: ClimbingExpansion
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -180,7 +181,8 @@ func construction_steps() -> Array[Callable]:
   _module.bind(ArrivalDesign,"arrival_design"),
   _module.bind(VenueCraft,"craft"),
   _module.bind(HappylandAcoustics,"acoustics"),
-  _module.bind(HorseHunt,"horse_hunt")]
+  _module.bind(HorseHunt,"horse_hunt"),
+  _module.bind(ClimbingExpansion,"climbing")]
 
 func build() -> void:
  for step in construction_steps():step.call()
@@ -304,9 +306,9 @@ func _architecture(rubber: Texture2D) -> void:
  for z in [-10,-5,0,5,10,15]: tube(self,Vector3(-7,7.30,z),Vector3(-7,6.72,z),.016,materials.rust if materials.has("rust") else materials.dark)
  # Room divider leaves an actual doorway into the party room.
  box(self,Vector3(6.8,3.7,-10.975),Vector3(.2,7.4,2.15),materials.wall,true)
- box(self,Vector3(6.8,3.7,-2.9),Vector3(.2,7.4,9.2),materials.wall,true)
+ ClimbingExpansion.portal_wall(self,"x",6.8,Rect2(-7.5,0,9.2,7.4),Vector2(-4.5,SkyTube.HEIGHT))
  box(self,Vector3(6.8,5.2,-8.7),Vector3(.2,4.4,2.4),materials.wall,true)
- box(self,Vector3(13.3,3.7,1.6),Vector3(13,7.4,.2),materials.wall,true)
+ ClimbingExpansion.portal_wall(self,"z",1.6,Rect2(6.8,0,13,7.4),Vector2(16.05,SkyTube.HEIGHT))
  var entry:=group("party_entry");entry.position=Vector3(6.8,0,-8.7)
  var timber:=mat(Color("7e705c"),load("res://assets/wood.png"),.85);timber.uv1_triplanar=true;timber.uv1_scale=Vector3.ONE*2
  for side in [-1,1]: box(entry,Vector3(0,1.5,side*1.2),Vector3(.34,3,.12),timber,true)

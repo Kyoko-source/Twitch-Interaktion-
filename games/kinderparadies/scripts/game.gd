@@ -307,7 +307,7 @@ func _continue() -> void:
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or world.life.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p) and world.graphics.clear_pose(p) and world.arrival_design.clear_pose(p) and world.craft.clear_pose(p): player.position=p
    player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
-   if world.tubes.contains(p): player.set_crouch(true);player.camera.position.y=.8
+   if world.tubes.contains(p) or world.climbing.low_clearance(p): player.set_crouch(true);player.camera.position.y=.8
  _resume();_announce("Nachtschicht wieder aufgenommen.")
 
 func _resume() -> void:
@@ -791,6 +791,10 @@ func _telemetry() -> void:
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
+  var sky:=world.climbing.sky;var sky_path:=[]
+  for i in range(ceili(sky.length/.4)+1):
+   var at:=sky.route(minf(sky.length,i*.4));sky_path.append([at.x,SkyTube.FLOOR,at.z])
+  data.climbing={"length":sky.length,"inside":sky.contains(player.position),"names":world.climbing.carved.size(),"windows":sky.window_count,"path":sky_path}
   data.upgrade={"graphics":world.graphics.snapshot(),"acoustics":world.acoustics.snapshot()}
   data.weather=weather.snapshot()
   data.craft=world.craft.snapshot()

@@ -80,6 +80,9 @@ func cue_voice(player: NightGuard) -> void:
  var current:=CrawlTubes.nearest(player.position)
  var offset:=2.2 if voice_index%2==0 else -2.6
  voice.position=CrawlTubes.route(clampf(current.s+offset,.8,CrawlTubes.LENGTH-.8))+Vector3(0,.15,0)
+ if w.climbing!=null and w.climbing.sky.contains(player.position):
+  var sky:=w.climbing.sky;var nearest:=sky.nearest(player.position)
+  voice.position=sky.route(clampf(nearest.s+offset,.5,sky.length-.5))+Vector3.UP*.15
  voice.volume_db=-1;voice.play();voice_index+=1;voice_count+=1
  voice_timer=voice.stream.get_length()+rng.randf_range(4,7)
 

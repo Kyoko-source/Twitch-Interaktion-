@@ -25,7 +25,10 @@ func _second_tower() -> void:
    for y in [2.15,4.15,6.15]:
     w.tube(tower,Vector3(x,y-.09,z),Vector3(x,y+.09,z),.19,w.materials.dark)
  for y in [.25,2.15,4.15,6.15]:
-  for z in [.7,6.5]: w.tube(tower,Vector3(10.5,y,z),Vector3(17.3,y,z),.14,w.materials.red)
+  for z in [.7,6.5]:
+   if z==.7 and y==4.15:
+    for span in [Vector2(10.5,14.97),Vector2(17.12,17.3)]: w.tube(tower,Vector3(span.x,y,z),Vector3(span.y,y,z),.14,w.materials.red)
+   else:w.tube(tower,Vector3(10.5,y,z),Vector3(17.3,y,z),.14,w.materials.red)
   for x in [10.5,17.3]:
    if x==10.5 and y==2.15:
     for segment in [Vector2(.7,.8),Vector2(2.2,4.7),Vector2(6.1,6.5)]: w.tube(tower,Vector3(x,y,segment.x),Vector3(x,y,segment.y),.14,w.materials.blue)
@@ -37,11 +40,11 @@ func _second_tower() -> void:
  w.box(tower,Vector3(13.6,4.05,3.6),Vector3(3.6,.2,5.8),w.materials.blue,true)
  w.box(tower,Vector3(11.15,4.05,2.65),Vector3(1.3,.2,3.9),w.materials.blue,true)
  w.box(tower,Vector3(17.1,4.05,3.6),Vector3(.4,.2,5.8),w.materials.blue,true)
- w.box(tower,Vector3(16.15,4.05,1.3),Vector3(1.5,.2,1.2),w.materials.blue,true)
+ w.box(tower,Vector3(16.15,4.05,1.25),Vector3(1.5,.2,1.1),w.materials.blue,true)
  # The same net openings drive ropes and collisions, including both approaches.
  PlayGeometry.panel(w,tower,"EastWestNet","x",10.5,Rect2(.7,.3,5.8,5.85),[Rect2(.8,2.05,1.4,2.05),Rect2(4.7,.2,1.4,3.9)])
  PlayGeometry.panel(w,tower,"EastOuterNet","x",17.3,Rect2(.7,.3,5.8,5.85))
- PlayGeometry.panel(w,tower,"EastRearNet","z",.7,Rect2(10.5,.3,6.8,5.85))
+ PlayGeometry.panel(w,tower,"EastRearNet","z",.7,Rect2(10.5,.3,6.8,5.85),[Rect2(14.97,3.92,2.15,2.04)])
  PlayGeometry.panel(w,tower,"EastFrontNet","z",6.5,Rect2(10.5,.3,6.8,5.85))
  # Bridge is in world hall coordinates so its portals line up on both towers.
  var bridge:=Node3D.new();bridge.name="ConnectingBridge";add_child(bridge)
