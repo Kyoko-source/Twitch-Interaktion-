@@ -23,6 +23,24 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.6.1 horse contact screams, survives pause and reload, then continues the same pursuit without death',async({page})=>{
+ test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(1);
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});await expect.poll(async()=>(await state(page)).target).toBe('archive_door');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');
+ await page.mouse.click(275,220);await page.keyboard.type('07120712',{delay:30});await expect.poll(async()=>(await state(page)).archive_input).toBe('07120712');await page.keyboard.press('Enter');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ await qa(page,{op:'warp',x:-7.9,z:-25.5,yaw:0,pitch:0});
+ await expect.poll(async()=>(await state(page)).horse_hunt.catch_audio,{timeout:45000,intervals:[70]}).toBe(true);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ const frozen=(await state(page)).horse_hunt;expect(frozen.catch_count).toBe(1);expect(frozen.closeup).toBe(true);expect(frozen.catch_paused).toBe(true);
+ await page.waitForTimeout(300);expect((await state(page)).horse_hunt.clock).toBe(frozen.clock);await page.screenshot({path:join(tmpdir(),'after-play-v361-web-horse-catch.png')});
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).streak).toBe(1);expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).horse_hunt.catch_count).toBe(1);expect((await state(page)).passage.red_locked).toBe(true);
+ await expect.poll(async()=>(await state(page)).horse_hunt.closeup).toBe(true);
+ await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:10000,intervals:[70]}).toBe('following');expect((await state(page)).horse_hunt.catch_count).toBe(1);
+ await expect.poll(async()=>(await state(page)).horse_hunt.catch_count,{timeout:15000,intervals:[70]}).toBe(2);
+ expect((await state(page)).phase).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).passage.red_locked).toBe(true);expect(faults).toEqual([]);
+});
+
 test('v3.5.7 stage front is walkable without jumping and the moved car leaves the party entrance clear',async({page})=>{
  test.setTimeout(180000);await begin(page);
  expect((await state(page)).backstage.stage_apron_width).toBeCloseTo(7);

@@ -4,7 +4,7 @@ func run(_game: Node3D, verify: Callable) -> void:
  var protected_ok:=true;var counts_ok:=true;var spacing_ok:=true
  var save_ok:=true;var quiet_rng_ok:=true;var unique_ok:=true
  var patterns: Dictionary={};var slot_counts: Dictionary={}
- var all_ids: Dictionary={};var total_anomalies:=0
+ var all_ids: Dictionary={};var total_anomalies:=0;var natural_horses:=0
  for seed_value in range(1,2049):
   var patrol:=PatrolState.new();patrol.start(seed_value)
   var count:=0;var consecutive:=0;var pattern:="";var ids: Dictionary={}
@@ -16,6 +16,7 @@ func run(_game: Node3D, verify: Callable) -> void:
    spacing_ok=spacing_ok and consecutive<=2
    pattern+="A" if anomalous else "N"
    if anomalous:
+    if patrol.current==HorseHunt.ID and not patrol.horse_override:natural_horses+=1
     unique_ok=unique_ok and not ids.has(patrol.current)
     ids[patrol.current]=true;all_ids[patrol.current]=true
    var before:=patrol.serialize().duplicate(true)
@@ -41,6 +42,7 @@ func run(_game: Node3D, verify: Callable) -> void:
  verify.call(save_ok,"Reload changes the current event or remaining balance, including newspaper rounds")
  verify.call(quiet_rng_ok,"A protected newspaper round consumes a random event")
  verify.call(unique_ok and all_ids.size()==PatrolState.ANOMALIES.size(),"Balanced shifts repeat their anomaly IDs or omit catalog entries")
+ verify.call(natural_horses>100,"Horse pursuit is missing from ordinary random shifts without a creator code")
  var legacy:=PatrolState.new();legacy.start(99);legacy.streak=5;legacy.current="clown_lunge"
  legacy.deck.assign(["normal","normal","normal","normal","anomaly","anomaly","anomaly"])
  var saved:=legacy.serialize().duplicate(true);var migrated:=PatrolState.new()
@@ -53,3 +55,4 @@ func run(_game: Node3D, verify: Callable) -> void:
  var fresh:=PatrolState.new();fresh.start(118)
  verify.call(reset.serialize()==fresh.serialize(),"Death/new shift retains the old balance or anomaly bag")
  print("Balance sample: 2048 shifts; ",total_anomalies," anomaly rounds; ",2048*13-total_anomalies," normal rounds; ",patterns.size()," layouts")
+ print("Ordinary randomly drawn horse pursuits without creator override: ",natural_horses)

@@ -1,4 +1,4 @@
-# Vorhandene Anomalien — After Play 3.6.0
+# Vorhandene Anomalien — After Play 3.6.1
 
 Stand: 2. November 2026. Katalog aus `scripts/patrol.gd`.
 
@@ -92,7 +92,7 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
 ## Kino (6)
 
-- Der Pferdekopf verfolgt den Spieler mit einem immer längeren Hals durch die Räume. Die rote Tür trägt den Hinweis „Pferde mögen keine Clowns“ und bleibt verriegelt. In die Küche gelockt wird das Pferd vom springenden, kreischenden Clown vertrieben. Es fährt seinen tatsächlich zurückgelegten Weg vollständig rückwärts zum Schacht ab; erst danach öffnet Rot. (`horse_clown_hunt`)
+- Der Pferdekopf verfolgt den Spieler mit einem immer längeren Hals durch die Räume. Erreicht der Kopf den Spieler bei freier Sicht, folgt ein eigener Pferde-Jumpscare mit Kreischen. Danach zieht er sich kurz auf seinem aufgezeichneten Weg zurück und verfolgt den Spieler weiter. Das ist nicht tödlich; Runde und Fundstücke bleiben erhalten. Eine kurze Sperrzeit verhindert unmittelbar aufeinanderfolgende Angriffe. Die rote Tür trägt den Hinweis „Pferde mögen keine Clowns“ und bleibt verriegelt. In die Küche gelockt wird das Pferd vom springenden, kreischenden Clown vertrieben. Es fährt seinen tatsächlich zurückgelegten Weg vollständig rückwärts zum Schacht ab; erst danach öffnet Rot. (`horse_clown_hunt`)
 
 - Eine Gestalt rennt im Mittelgang des Kinos direkt auf dich zu. (`cinema_aisle_rush`)
 - Zwischen den Kinositzen erhebt sich plötzlich ein Besucher und stürzt nach vorn. (`cinema_seat_ambush`)
@@ -129,4 +129,4 @@ Nach 13 richtigen Türen folgt ENDE 1/2 mit Credits und einem Hinweis auf die Ru
 
 ## Ersteller-Test
 
-`0712` öffnet weiterhin das Archiv ohne Zeitungen. `07120712` am selben Zahlenschloss startet ausschließlich die Pferde-Clown-Anomalie in der aktuellen Runde. Rundenzähler, Archiv und Fundstücke bleiben erhalten. Dieser ausdrückliche Test darf auch die sonst ruhigen Zeitungsrunden überschreiben; Speichern/Fortsetzen bewahrt die Ausnahme und den gesamten Verfolgungs- bzw. Rückzugsweg. Der Code schaltet die normale Zufallsverteilung nicht um.
+`0712` öffnet weiterhin das Archiv ohne Zeitungen. `07120712` am selben Zahlenschloss startet ausschließlich die Pferde-Clown-Anomalie in der aktuellen Runde. Rundenzähler, Archiv und Fundstücke bleiben erhalten. Dieser ausdrückliche Test darf auch die sonst ruhigen Zeitungsrunden überschreiben; Speichern/Fortsetzen bewahrt die Ausnahme und den gesamten Verfolgungs- bzw. Rückzugsweg. Der Code schaltet die normale Zufallsverteilung nicht um. Die Pferde-Verfolgung gehört regulär zum Zufallskatalog und benötigt den Code nicht.

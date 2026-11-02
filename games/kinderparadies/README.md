@@ -1,5 +1,29 @@
 # After Play — Kinderparadies
 
+## Nicht tödlicher Pferde-Jumpscare (3.6.1)
+
+Erreicht das verfolgende Pferd den Spieler bei freier Sicht, folgt ein eigener
+Pferde-Jumpscare mit dem vorhandenen blutigen 3D-Kopf und einem anderen Kreischen
+als beim Küchenclown. Der Kopf zieht sich anschließend 2,8 Meter auf seinem
+aufgezeichneten Weg zurück und kommt auf genau diesem Weg wieder vor. Danach
+setzt er dieselbe Verfolgung fort. Die Schicht, Runden und Fundstücke bleiben
+erhalten; die rote Tür bleibt bis zur Lösung beim Clown verriegelt. Sechs Sekunden
+Sperrzeit verhindern unmittelbar aufeinanderfolgende Kontaktangriffe. Pause und
+Fortsetzen bewahren auch Jumpscare, Ton, kurzen Rückzug und Rückweg.
+
+`horse_clown_hunt` wird regulär aus den 65 Anomalien gezogen. Der Ersteller-Code
+ist dafür nicht erforderlich. Die Rundenprüfung zählt ausdrücklich natürliche
+Pferde-Ziehungen über 2.048 Schichten; die Zeitungsrunden bleiben geschützt.
+`--self-test --catch-only` prüft natürlichen Start, Einholen, Sichtblockaden,
+Nicht-Tödlichkeit, Wiederaufnahme, Sperrzeit und Speichern/Fortsetzen. Native
+Spielaufnahmen entstehen mit `--render-qa --v361-qa`.
+
+128 gezielte native Checks bestehen: Kontakt 20, vollständiges Rätsel 51,
+Rundenverteilung 19, Pferdegeometrie 14 und Start/Abspann 24. Im Zufallstest
+erscheint die Pferde-Verfolgung 186-mal ohne Ersteller-Code. Die Windows- und
+Web-Pakete bestehen Dateiliste, CRC, Prüfsummen, Lizenzen und den Ausschluss
+privater Werkzeuge. Die exportierte Windows-Fassung startet fehlerfrei.
+
 ## Pferd-und-Clown-Begegnung (3.6.0)
 
 Der normale Pferdekopf bleibt einschließlich Kiefer und Hals vollständig still.

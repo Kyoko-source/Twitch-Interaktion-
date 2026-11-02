@@ -68,7 +68,10 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(hunt.serialize().trace==frozen.trace and hunt.clock==frozen.clock and hunt.head==HorseHunt.read_vector(frozen.head),"Pause advances the hunt or its recorded path")
  var routes: Array[Vector3]=[Vector3(-7.9,0,-10.7),Vector3(5.7,0,-10.7),Vector3(5.7,0,-8.7),Vector3(8.1,0,-8.7),Vector3(8.1,0,-10.05),Vector3(9.6,0,-10.05)]
  for p in routes:verify.call(await walk(game,p),"Player route used to lure the horse is blocked: "+str(game.player.position)+" target "+str(p))
- await advance(game,5)
+ for i in range(1200):
+  hunt.tick(1.0/60.0,true,game.player)
+  if hunt.head.x>6.8 and hunt.phase=="following":break
+  if i%60==0:await game.get_tree().physics_frame
  verify.call(hunt.head.x>6.8 and hunt.phase=="following" and hunt.trace.size()>80 and horse.sections.size()>5,"Horse stopped at the cinema doorway instead of following into the party room")
  var saved_head:=hunt.head;var saved_points:=hunt.trace.size();game._save();game.has_session=false;game._continue();game.player.active=false;hunt=game.world.horse_hunt;horse=game.world.room_horror.creature
  verify.call(hunt.phase=="following" and hunt.head.distance_to(saved_head)<.001 and hunt.trace.size()==saved_points and game.world.passages.red_locked,"Mid-chase reload resets the horse or unlocks red")

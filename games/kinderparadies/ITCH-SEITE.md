@@ -1,9 +1,9 @@
-# After Play — Veröffentlichungsvorbereitung 3.6.0
+# After Play — Veröffentlichungsvorbereitung 3.6.1
 
 ## Dateien
 
-- Windows: `build/after-play-windows-v3.6.0.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
-- Web: `build/after-play-web-v3.6.0.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
+- Windows: `build/after-play-windows-v3.6.1.zip`. Enthält `AfterPlay.exe`, `STARTEN.txt` und `Lizenzen/`. Musik und Intro-Aufnahme sind in der EXE enthalten. ZIP vollständig entpacken, danach `AfterPlay.exe` starten. Kein Website-Konto erforderlich; offline spielbar.
+- Web: `build/after-play-web-v3.6.1.zip`. `index.html` liegt direkt im ZIP-Hauptverzeichnis. Die Web-Fassung benötigt Maus und Tastatur.
 - Der Windows-Build ist die grafisch bevorzugte Fassung. Das Programm ist nicht digital signiert.
 - Eine englische Sprachfassung und Tests auf anderen Betriebssystemen sind nicht enthalten.
 
@@ -24,6 +24,7 @@ Alte Zeitungen erzählen Stück für Stück von der Vergangenheit des Happyland.
 ### Merkmale
 
 - Eine besondere Verfolgung mit wachsendem Pferdehals und verriegelter Entscheidungstür.
+- Das Pferd kann dich einholen und erschrecken; anschließend verfolgt es dich weiter. Die Begegnung ist auch ohne Testcode zufällig möglich.
 - Ein vollständig regloser Vergleichszustand des Pferdekopfs und wilde blonde Haare für den Küchenclown.
 
 - Ego-Horror mit frei begehbarer 3D-Umgebung, Springen, Krabbeln und physischen Spielzeugen.
