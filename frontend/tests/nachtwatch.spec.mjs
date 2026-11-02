@@ -95,6 +95,11 @@ test('v3.6.0 creator keypad starts the saved horse hunt, kitchen clown repels it
  await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:45000}).toBe('resolved');
  expect((await state(page)).horse_hunt.screamed).toBe(true);expect((await state(page)).passage.red_locked).toBe(false);expect((await state(page)).passage.horse_note).toBe(false);
  await qa(page,{op:'warp',x:-2.15,z:-10.5,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).target).toBe('red');await page.keyboard.press('e');expect((await state(page)).passage.open[1]).toBe(true);
+ // A completed encounter must restore the already-entered red corridor too.
+ await qa(page,{op:'warp',x:-2.15,z:-15.2,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).passage.chosen).toBe(1);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');await page.reload();
+ await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).horse_hunt.phase).toBe('resolved');expect((await state(page)).passage.open[1]).toBe(true);expect((await state(page)).passage.chosen).toBe(1);expect((await state(page)).passage.red_locked).toBe(false);
  expect(faults).toEqual([]);
 });
 

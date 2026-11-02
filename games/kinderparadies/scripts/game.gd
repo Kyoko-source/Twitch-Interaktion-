@@ -289,8 +289,8 @@ func _continue() -> void:
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
  secret_ending=bool(data.get("secret_ending",false))
- world.backstage.restore(data.get("backstage",{}));world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
- world.horse_hunt.restore(data.get("horse_hunt",{}))
+ world.backstage.restore(data.get("backstage",{}));world.horse_hunt.restore(data.get("horse_hunt",{}))
+ world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if secret_ending: _show_ending(3);return

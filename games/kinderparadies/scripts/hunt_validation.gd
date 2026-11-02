@@ -101,7 +101,8 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(horse.mask.position.distance_to(CeilingHorse.ROUTE[0])<.001 and horse.sections.slice(1).all(func(section):return not section.neck.visible),"Horse does not return completely into its static home pose")
  verify.call(not game.world.annex.scare and game.world.annex.clown.root.transform==hunt.clown_transform,"Clown is left floating after repelling the horse")
  game._decide(true);verify.call(game.world.passages.lanes[1].open,"Resolved hunt still blocks choosing the red door")
+ game.world.passages.chosen=1;game.player.position=Vector3(PatrolPassage.CENTERS[1],0,PatrolPassage.ENTRY_Z-3)
  game._save();game.has_session=false;game._continue();game.player.active=false
- verify.call(game.world.horse_hunt.phase=="resolved" and not game.world.passages.red_locked,"Reload relocks an already resolved hunt")
+ verify.call(game.world.horse_hunt.phase=="resolved" and not game.world.passages.red_locked and game.world.passages.chosen==1 and game.world.passages.lanes[1].open,"Reload relocks a resolved hunt or strands the player in its red passage")
  print("HUNT RESULT ",JSON.stringify(game.world.horse_hunt.snapshot()))
  game.set_process(true)

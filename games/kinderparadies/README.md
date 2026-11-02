@@ -22,6 +22,8 @@ unverändert. Die Haare besitzen keine Kollisionen.
 
 Pause, Inventar und Zahlenschloss halten Begegnung und Ton an. Speichern und
 Fortsetzen bewahren Kopf, Halsweg, Laufspur, Clown-Sprung und Rückzugsfortschritt.
+Der Begegnungszustand wird vor den Entscheidungstüren geladen: Auch ein bereits
+betretener roter Flur bleibt nach gelöstem Rätsel beim Fortsetzen geöffnet.
 Die bisherige Verteilung bleibt bei sechs Anomalien und sieben normalen Runden
 pro frischer 13er-Serie. Zeitungsrunden 3/5/8/11 bleiben im normalen Spiel garantiert anomaliefrei.
 Nur der ausdrücklich eingegebene Ersteller-Code `07120712` am Archivschloss
