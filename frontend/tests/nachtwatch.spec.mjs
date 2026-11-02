@@ -23,6 +23,21 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.5.7 stage front is walkable without jumping and the moved car leaves the party entrance clear',async({page})=>{
+ test.setTimeout(180000);await begin(page);
+ expect((await state(page)).backstage.stage_apron_width).toBeCloseTo(7);
+ const car=(await state(page)).backstage.car_position;expect(car[0]).toBeCloseTo(4.15);expect(car[1]).toBeCloseTo(0);expect(car[2]).toBeCloseTo(-7.45);
+ for(const x of [12,14.9,17.3]){
+  await qa(page,{op:'warp',x,y:.12,z:-9.1,yaw:0,pitch:0});
+  await walk(page,'w',s=>s.position[2]<-10.15);expect((await state(page)).position[1]).toBeGreaterThan(.18);
+  await walk(page,'s',s=>s.position[2]>-8.7);expect((await state(page)).position[1]).toBeLessThan(.09);
+ }
+ await qa(page,{op:'warp',x:15.6,y:.08,z:-8.8,yaw:1.0,pitch:-.45});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v357-web-stage.png')});
+ await qa(page,{op:'warp',x:5.9,z:-8.7,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>7.8);await walk(page,'s',s=>s.position[0]<6.0);
+ await qa(page,{op:'warp',x:2.7,z:-10.0,yaw:-2.62,pitch:-.24});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v357-web-car.png')});
+ await qa(page,{op:'audit'});const report=(await state(page)).layout;expect(report.door_obstructions).toEqual([]);expect(report.art_overlaps).toEqual([]);expect(report.furniture_wall_intrusions).toEqual([]);
+});
+
 test('v3.5.6 ceiling horse travels into the corridor, freezes on pause and preserves walkable cinema access',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
  await begin(page);await qa(page,{op:'warp',x:-7.9,z:-25.6,yaw:0,pitch:.10});

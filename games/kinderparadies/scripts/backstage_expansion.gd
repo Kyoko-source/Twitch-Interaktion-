@@ -10,6 +10,7 @@ signal escaped
 var escape_queued:=false
 var w: PlayWorld
 var throne: Node3D
+var stage_apron: MeshInstance3D
 var costumes: Array[Node3D]=[]
 var masks: Array[Node3D]=[]
 var exit_root: Node3D
@@ -85,8 +86,10 @@ func _stage() -> void:
  var wood:=w.mat(Color("70563c"),load("res://assets/wood.png"),.86);wood.uv1_triplanar=true
  var cloth:=w.polish.pbr("fabric_pattern_07",Color("61353f"),3);cloth.cull_mode=BaseMaterial3D.CULL_DISABLED
  var deck:=w.box(stage,Vector3(14.8,.10,-10.85),Vector3(7,.20,2.38),wood,true);deck.set_meta("foot_surface","wood")
- # Broad physical ramp, with no step/jump requirement into the backstage door.
- var ramp:=w.box(stage,Vector3(17.30,.06054,-9.09658),Vector3(1.7,.08,1.21655),wood,true);ramp.rotation.x=.165149;ramp.set_meta("foot_surface","wood")
+ # One shallow apron covers the entire front edge, including the throne.
+ # Its top meets the deck at .20 m and its lower edge meets the main floor.
+ var ramp:=w.box(stage,Vector3(14.8,.06054,-9.09658),Vector3(7,.08,1.21655),wood,true);ramp.name="FullWidthStageApron";ramp.rotation.x=.165149;ramp.set_meta("foot_surface","wood")
+ stage_apron=ramp
  for x in [11.35,18.25]:
   w.box(stage,Vector3(x,2.12,-11.86),Vector3(.18,4.1,.18),wood,true)
   w.tube(stage,Vector3(x,4.12,-11.86),Vector3(x,4.12,-12.045),.035,w.materials.rust)
@@ -277,4 +280,5 @@ func safe_pose(p: Vector3) -> bool:
  return absf(q.x)<1.1 and q.z<.1 and q.z> -6.6 and p.y>-.2 and p.y<2.9
 
 func snapshot() -> Dictionary:
- return {"costumes":costumes.size(),"costume_triggered":triggered,"costume_attack":attack,"costume_audio":scare_audio.playing,"costume_paused":scare_audio.stream_paused,"exit_open":exit_open,"exit_angle":exit_leaf.rotation.y,"exit_started":exit_started,"exit_finished":exit_finished,"clean_corridor":clean.visible,"exit_clock":exit_clock,"anomaly":anomaly}
+ var car: Vector3=w.props.car.global_position
+ return {"car_position":[car.x,car.y,car.z],"stage_apron_width":stage_apron.get_aabb().size.x,"costumes":costumes.size(),"costume_triggered":triggered,"costume_attack":attack,"costume_audio":scare_audio.playing,"costume_paused":scare_audio.stream_paused,"exit_open":exit_open,"exit_angle":exit_leaf.rotation.y,"exit_started":exit_started,"exit_finished":exit_finished,"clean_corridor":clean.visible,"exit_clock":exit_clock,"anomaly":anomaly}

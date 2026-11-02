@@ -1,5 +1,29 @@
 # After Play — Kinderparadies
 
+## Begehbare Podestkante und versetztes Spielauto (3.5.7)
+
+Der flache Holzaufgang führt jetzt über die komplette sieben Meter breite
+Vorderkante des Geburtstagspodests. Bisher lag die Rampe ausschließlich rechts
+vor dem Kostümraum; vor dem Thron blieb eine blockierende 20-cm-Stufe. Sichtbare
+Schräge und einfache Kollision stimmen überein. Holzschritte bleiben erhalten.
+
+Das rote Spielauto steht neben der zum Partyraum gerichteten Seite des
+Klettergerüsts. Beide Auto-Anomalien verwenden denselben neuen Ursprung.
+Ihre Beschreibungen und Bereichszuordnung folgen dem neuen Standort. Der
+Partydurchgang bleibt auch beim vergrößerten Auto frei.
+
+Die gezielte Bewegungsprüfung läuft mit stehender Spielerkapsel ohne Sprung an
+sechs Stellen über die Podestkante hinauf und hinunter, vom Saal aufs Podest
+und durch die Kostümraumtür in beide Richtungen. Zusätzlich werden der neue
+Auto-Standort, beide Auto-Anomalien und der Partydurchgang geprüft. Native
+Spielaufnahmen zeigen den flachen Aufgang und das Auto neben der Kletteranlage.
+
+54 gezielte native Checks bestehen: Bewegung/Auto 30 und Start/Abspann 24.
+Auch der Edge-Test begeht die Podestkante ohne Sprung in beide Richtungen und
+den freien Partydurchgang. Windows- und Web-Paket bestehen Datei-, CRC-, Lizenz-,
+Prüfsummen- und Datenschutzprüfung; die exportierte Windows-Fassung startet
+ohne fehlende Ressourcen. Der itch.io-Aufruf bleibt ein lokaler Probelauf.
+
 ## Pferdemaske und durchgehende Flurdecke (3.5.6)
 
 Das Küchendienst-Bild hinter dem Kühlschrank und das Personalgang-Schild an der

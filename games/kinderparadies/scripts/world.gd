@@ -1,6 +1,8 @@
 class_name PlayWorld
 extends Node3D
 
+const CAR_POS:=Vector3(4.15,0,-7.45)
+
 const NAVY := Color("294d70")
 const CORAL := Color("974442")
 const GOLD := Color("b49842")
@@ -385,7 +387,7 @@ func _reception() -> void:
  props.hours=mounted_sign(self,"hours",Vector3(-9.97,2.1,5.5),Vector2(1.3,.75),PI/2)
  ReceptionFurniture.build(self)
  var shelves:=group("reception_shelves")
- var car:=group("car");car.position=Vector3(-5.2,0,5.5)
+ var car:=group("car");car.position=CAR_POS
  box(car,Vector3(0,.25,0),Vector3(.7,.32,1.1),materials.red)
  var hood:=sphere(car,Vector3(0,.46,-.12),.34,materials.gold);hood.scale=Vector3(1,.75,1.15)
  var seat:=sphere(car,Vector3(0,.46,.32),.23,materials.dark);seat.scale=Vector3(.95,.33,1.1)

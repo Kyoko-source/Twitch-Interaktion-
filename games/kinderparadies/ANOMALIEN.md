@@ -1,4 +1,4 @@
-# Vorhandene Anomalien — After Play 3.5.5
+# Vorhandene Anomalien — After Play 3.5.7
 
 Stand: 2. November 2026. Katalog aus `scripts/patrol.gd`.
 
@@ -21,7 +21,7 @@ Alle vier Zeitungsrunden sind vollständig anomaliefrei, auch nach dem Einsammel
 und beim Laden. Dort ist die grüne Tür richtig. Die Sammlung bleibt innerhalb
 der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
-## Empfang (14)
+## Empfang (12)
 
 - Im alten Haupteingang erscheint die Garderobe unversehrt und hell. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
 - Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu. (`reception_counter_burst`)
@@ -29,17 +29,17 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Eine ausgemergelte Gestalt beugt sich hinter dem Empfang hervor und zuckt auf dich zu. (`reception_peeker`)
 - Die Uhr dreht sich viel zu schnell. (`clock_fast`)
 - Ein langarmiger Besucher verfolgt dich kurz durch den leeren Empfangsgang. (`reception_charge`)
-- Das Spielauto ist riesig geworden. (`car_giant`)
 - Drei reglose Besucher warten mit verdrehten Köpfen vor dem Empfang. (`reception_queue`)
-- Das rote Spielauto am Empfang fehlt. (`car_missing`)
 - Alle Deckenlampen leuchten rot. (`lights_red`)
 - Eine frische Blutspur zieht sich durch den Hauptgang. (`blood_trail`)
 - Der Stoffhase hängt kopfüber vor der Decke statt auf seiner Bank zu sitzen. (`bunny_ceiling`)
 - Der Stoffhase springt dich bei Annäherung an und bleibt danach vor seiner Bank liegen. (`bunny_lunge`)
 - Das verlassene Schaukelpferd schaukelt von alleine. (`horse_rocks`)
 
-## Bällebad (12)
+## Bällebad (14)
 
+- Das Spielauto neben dem Klettergerüst ist riesig geworden. (`car_giant`)
+- Das rote Spielauto neben dem Klettergerüst fehlt. (`car_missing`)
 - Am Rand des Bällebads rast eine entstellte Gestalt auf dich zu. (`pit_runner`)
 - Im Klettergerüst sackt ein kopfüber hängender Körper plötzlich nach unten. (`frame_drop`)
 - Eine Gestalt schaut durch das Dachfenster in die Krabbelröhre. (`tube_watcher`)
