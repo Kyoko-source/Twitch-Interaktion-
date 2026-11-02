@@ -1,0 +1,30 @@
+{
+  "rain_source": "Existing assets/ambience/rain-muted.ogg, Joseph SARDIN, CC0-1.0; original source https://bigsoundbank.com/rain-on-puddle-s1290.html. Trimmed and crossfaded to loop, level adjusted.",
+  "thunder": "Original procedural distant rolls; filtered noise and slow envelopes, no external samples.",
+  "tracks": {
+    "soft-roof-rain": {
+      "seconds": 11.2,
+      "peak_dbfs": -14.63308334350586,
+      "rms_dbfs": -23.0,
+      "sha256": "f0d1ec00df51048b53a57cf3f3c0f59b6d77fd7f3ad51354fb7f34f801f042e2"
+    },
+    "distant-thunder-1": {
+      "seconds": 8.4,
+      "peak_dbfs": -8.0,
+      "rms_dbfs": -26.129783630371094,
+      "sha256": "9dd888ff43ed751edcb7bfadc1a969415ea1f288d5572e5d00cf53947ca945f9"
+    },
+    "distant-thunder-2": {
+      "seconds": 9.6,
+      "peak_dbfs": -8.0,
+      "rms_dbfs": -23.620845794677734,
+      "sha256": "bce90ef12ba300b4a9e4c038af8ce5819d147a386772e3f1c789a45ff0379be5"
+    },
+    "distant-thunder-3": {
+      "seconds": 10.8,
+      "peak_dbfs": -8.0,
+      "rms_dbfs": -25.628461837768555,
+      "sha256": "4e7ca77b1b0e9c26661278e3da4b3393867019f931986083dae2e26d6a6d5be3"
+    }
+  }
+}

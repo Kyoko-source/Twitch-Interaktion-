@@ -1,0 +1,2 @@
+Roof rain: derivative of the existing CC0-1.0 rain recording by Joseph SARDIN / BigSoundBank. See assets/ambience/provenance.json and distribution/Quellen.txt.
+Thunder: original procedural project audio, no third-party samples.

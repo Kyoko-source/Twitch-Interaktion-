@@ -1,5 +1,30 @@
 # After Play — Kinderparadies
 
+## Leiser Regen und entferntes Gewitter (3.5.2)
+
+Eine dezente Dachregen-Schleife ergänzt die bestehende Regenquelle am Fenster.
+Sie verwendet die vorhandene CC0-Aufnahme von Joseph SARDIN, neu geschnitten,
+weich verdichtet und überblendet. Drei eigene, prozedural erzeugte Donnerrollen
+setzen langsam ein. Der erste Donner folgt nach 24–42 Sekunden Spielzeit,
+weitere Rollen nach zufälligen 65–110 Sekunden; zwei gleiche Varianten folgen
+nicht direkt aufeinander. Die Zufallsquelle ist unabhängig von den Anomalien.
+
+Der Wettermischer bleibt über Raumaufbauten hinweg erhalten. Raumabhängige
+Pegel und Filter dämpfen den Regen in Kino, Archiv, Krabbelröhre und Fahrstuhl.
+Pause und Menüs halten auch das Wetter an; der Atmosphären-Regler steuert es
+über den Bus NightAmbience. Während Telefonat und Archivaufnahme ruht der Donner.
+Die Wetterspur gehört zur normalen Atmosphäre.
+
+178 gezielte native Checks bestehen (Wetter 13, Akustik 111, Start 24, Enden 30).
+Die 14-sekündige Aufnahme des tatsächlichen Wetterbusses erreicht vor den
+Spieler-Lautstärkereglern −40,77 dBFS RMS und −26,67 dBFS Spitze.
+Windows- und Web-Pakete sind neu exportiert und geprüft.
+Der Browser-Test bestätigt hörbereite Wiedergabe, eingefrorene Wetterzeit in
+Pause, leiseren Regen im Kino und einen regulär geplanten Donner bei unverändert
+normaler Runde. Keine Konsolenfehler.
+Private Tonerzeugung: tools/prepare-after-play-weather-v352.py.
+Private Prüfungen: --self-test --weather-only und --render-qa --weather-audio.
+
 ## Schilderdruck und Fahrstuhletagen (3.5.1)
 
 Die metallischen Druckflächen wurden vom allgemeinen Metall-Patina-Durchlauf

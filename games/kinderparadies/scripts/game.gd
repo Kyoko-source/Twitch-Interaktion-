@@ -21,6 +21,7 @@ var notice: Label
 var notice_time := 0.0
 var post: ColorRect
 var room_audio: AudioStreamPlayer
+var weather: HappylandWeather
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
 const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true}
@@ -148,6 +149,7 @@ func _audio() -> void:
  effect=AudioStreamPlayer.new();effect.stream=load("res://assets/door.ogg");effect.volume_db=-12;add_child(effect)
  menu_music=AudioStreamPlayer.new();menu_music.name="AbandonedArcadeMenuMusic";menu_music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
  var tune: AudioStreamMP3=load("res://assets/menu/abandoned-arcade.mp3").duplicate();tune.loop=true;menu_music.stream=tune;add_child(menu_music)
+ weather=HappylandWeather.new();add_child(weather);weather.build()
 
 func _ui() -> void:
  ui=CanvasLayer.new();add_child(ui)
@@ -442,6 +444,10 @@ func _save(next_round: bool=false) -> void:
  _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize()}))
 
 func _process(delta: float) -> void:
+ if weather:
+  var weather_room: String=world.acoustics.area(player.global_position) if is_instance_valid(world) and world.acoustics else "hall"
+  if phase in ["intro","arrival","lift"]:weather_room="elevator"
+  weather.tick(delta,phase in ["play","intro","arrival","lift"] and not (phase=="intro" and intro.paused),weather_room,phase=="play" and archive.ending!="recording")
  if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if world_loading:
   telemetry_clock+=delta
@@ -769,6 +775,7 @@ func _telemetry() -> void:
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   data.upgrade={"graphics":world.graphics.snapshot(),"acoustics":world.acoustics.snapshot()}
+  data.weather=weather.snapshot()
   data.craft=world.craft.snapshot()
   data.arrival=world.arrival_design.snapshot();data.secret_ending=secret_ending
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}

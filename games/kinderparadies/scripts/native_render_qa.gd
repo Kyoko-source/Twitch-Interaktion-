@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--weather-audio" in OS.get_cmdline_user_args():
+  await load("res://art-direction/weather_audio_capture.gd").new().run(game,output);game._quit();return
  if "--v351-qa" in OS.get_cmdline_user_args():
   await load("res://art-direction/v351_capture.gd").new().run(game,output);game._quit();return
  if "--chair-profile" in OS.get_cmdline_user_args():

@@ -78,3 +78,8 @@ Poly-Haven-Texturen werden weiterhin unter CC0 1.0 verwendet.
 After Play 3.5: Eigene Happyland-Schildergrafiken, gefaltete Papierpakete und
 Bandgeometrie. Die Schilder verwenden die vorhandenen OFL-Schriften Oswald
 und Bodoni Moda. Keine neuen fremden Bild- oder Tonquellen.
+
+After Play 3.5.2: Leiser Dachregen aus der bereits enthaltenen CC0-Aufnahme
+von Joseph SARDIN / BigSoundBank, neu geschnitten und für eine Schleife gemischt.
+Die drei entfernten Donnerrollen sind eigene prozedurale Tonerzeugung ohne
+fremde Samples. Die bestehende Regenquelle ist in Quellen.txt aufgeführt.
