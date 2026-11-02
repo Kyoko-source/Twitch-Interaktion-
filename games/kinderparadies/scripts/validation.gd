@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--horse-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/horse_validation.gd").new().run(game,check)
+  print("Ceiling horse checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--scenery-only" in OS.get_cmdline_user_args():
   await load("res://scripts/scenery_validation.gd").new().run(game,check)
   print("Scenery checks: ",checks,"; failures: ",failures.size())
@@ -288,8 +292,8 @@ func run(game: Node3D) -> bool:
  for p in [(Vector3(-13.5,3.3,-18)+ServiceAnnex.OFFSET),(Vector3(-2,3.3,-18)+ServiceAnnex.OFFSET)]: check(not cast(game,p,p+Vector3.UP*.6).is_empty(),"Annex ceiling has no collision")
  check(game.world.room_horror.creature!=null,"Ceiling dweller mesh is missing")
  var dweller: Dictionary=game.world.room_horror.creature_geometry()
- check(dweller.width<.8 and dweller.rear>-.3,"Ceiling dweller still has a torso or spread limbs")
- check(dweller.top>.85 and dweller.bottom< -1.7,"Pendant neck must start inside the shaft and hang into the room")
+ check(dweller.width<.7 and dweller.bodyless,"Ceiling dweller still has a torso or spread limbs")
+ check(dweller.neck_samples==32 and game.world.room_horror.creature.to_global(CeilingHorse.SOURCE).y>3.9,"Pendant neck must start inside the shaft")
  check(cast(game,(Vector3(-1.3,3.3,-19.95)+ServiceAnnex.OFFSET),(Vector3(-1.3,4.4,-19.95)+ServiceAnnex.OFFSET)).is_empty(),"Roof slab blocks the actual ventilation shaft opening")
  var ceiling_area:=0.0
  for part in RoomHorror.outside_shaft(Rect2(-17.3,-22.55,21,10.5)):

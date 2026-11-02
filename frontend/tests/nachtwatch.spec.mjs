@@ -23,6 +23,20 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.5.6 ceiling horse travels into the corridor, freezes on pause and preserves walkable cinema access',async({page})=>{
+ test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);await qa(page,{op:'warp',x:-7.9,z:-25.6,yaw:0,pitch:.10});
+ const initial=(await state(page)).room_horror.horse;expect(initial.bodyless).toBe(true);expect(initial.jaw).toBe(true);expect(initial.neck_samples).toBe(32);expect(initial.source[1]).toBeGreaterThan(3.9);
+ await expect.poll(async()=>(await state(page)).room_horror.horse.progress,{timeout:45000,intervals:[100]}).toBe(1);
+ const peek=(await state(page)).room_horror.horse;expect(peek.head[0]).toBeLessThan(-7);expect(peek.head[1]).toBeCloseTo(2.03,1);expect(peek.source).toEqual(initial.source);
+ await page.keyboard.press('Escape');await page.waitForTimeout(120);const frozen=(await state(page)).room_horror.horse;await page.waitForTimeout(500);expect((await state(page)).room_horror.horse).toEqual(frozen);
+ await page.keyboard.press('Escape');await page.waitForTimeout(150);await page.screenshot({path:join(tmpdir(),'after-play-v356-web-horse-peek.png')});
+ await qa(page,{op:'warp',x:-7.9,z:-29.65,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>-5.05);await walk(page,'s',s=>s.position[0]<-7.8);
+ await qa(page,{op:'warp',x:-7.9,z:-14,yaw:0,pitch:.25});await page.waitForTimeout(650);await page.screenshot({path:join(tmpdir(),'after-play-v356-web-ceiling.png')});
+ await qa(page,{op:'audit'});const report=(await state(page)).layout;expect(report.door_obstructions).toEqual([]);expect(report.art_overlaps).toEqual([]);expect(report.furniture_wall_intrusions).toEqual([]);expect((await state(page)).anomaly).toBe('none');
+ expect(faults).toEqual([]);
+});
+
 test('v3.5.5 aged timber portal stays walkable and the complete snackbar occupies the party wall',async({page})=>{
  test.setTimeout(180000);await begin(page);
  await qa(page,{op:'warp',x:-7.9,z:-10,yaw:0,pitch:0});
@@ -595,7 +609,7 @@ test('phantom footsteps travel through empty aisles and pause without changing t
 test('music box plays its recording, ceiling creature is shared, bulbs flicker and all pause together',async({page})=>{
  test.setTimeout(90000);await begin(page);
  await expect.poll(async()=>(await state(page)).room_horror.music).toBe(true);
- const room=(await state(page)).room_horror;expect(room.track).toBe('res://assets/party/musicbox.mp3');expect(room.creature).toBe(true);expect(room.panels).toBeGreaterThan(100);expect(room.creature_geometry.width).toBeLessThan(.8);expect(room.creature_geometry.rear).toBeGreaterThan(-.3);expect(room.creature_geometry.top).toBeGreaterThan(.85);expect(room.shaft_depth).toBeGreaterThan(1);
+ const room=(await state(page)).room_horror;expect(room.track).toBe('res://assets/party/musicbox.mp3');expect(room.creature).toBe(true);expect(room.panels).toBeGreaterThan(100);expect(room.creature_geometry.width).toBeLessThan(.8);expect(room.creature_geometry.bodyless).toBe(true);expect(room.horse.source[1]).toBeGreaterThan(3.9);expect(room.shaft_depth).toBeGreaterThan(1);
  await expect.poll(async()=>Math.min(...(await state(page)).room_horror.bulbs),{timeout:15000,intervals:[70]}).toBeLessThan(.5);
  await page.keyboard.press('Escape');await page.waitForTimeout(300);const frozen=(await state(page)).room_horror;expect(frozen.paused).toBe(true);await page.waitForTimeout(400);expect((await state(page)).room_horror.clock).toBe(frozen.clock);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).room_horror.paused).toBe(false);

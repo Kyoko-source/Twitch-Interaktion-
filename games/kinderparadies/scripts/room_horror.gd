@@ -2,12 +2,11 @@ class_name RoomHorror
 extends Node3D
 
 const MUSIC:="res://assets/party/musicbox.mp3"
-const CREATURE:="res://assets/revamp-v300/vent-ossuary-v300.glb"
 const SHAFT:=Rect2(-2.05,-20.8,1.5,1.7)
 var w: PlayWorld
 var music: AudioStreamPlayer3D
 var dancer: Node3D
-var creature: Node3D
+var creature: CeilingHorse
 var clock:=0.0
 var bulbs: Array[Dictionary]=[]
 var panels:=0
@@ -40,13 +39,14 @@ func build(world: PlayWorld) -> void:
 func _ceilings() -> void:
  var plaster:=w.mat(Color("aaa990"),load("res://assets/aged-plaster.png"),.99)
  var acoustic:=w.mat(Color("6c7065"),load("res://assets/paint.png"),.99)
- for spec in [{"x":-17.24,"width":7.74,"material":plaster},{"x":-6.30,"width":9.94,"material":acoustic},{"x":-9.28,"width":2.76,"material":plaster}]:
+ for spec in [{"x":-17.24,"width":7.74,"length":9.,"material":plaster},{"x":-6.30,"width":9.94,"length":9.,"material":acoustic},{"x":-9.28,"width":2.76,"length":22.25,"material":plaster}]:
   var count:=ceili(float(spec.width)/1.2);var width: float=spec.width/count
+  var rows:=ceili(float(spec.length)/1.125);var pitch: float=spec.length/rows
   for col in range(count):
-   for row in range(8):
-    _ceiling_piece(Rect2(spec.x+col*width+.0125,-22.4+row*1.125+.0125,width-.025,1.1),3.535,.045,spec.material,true)
-  for col in range(count+1): _ceiling_piece(Rect2(spec.x+col*width-.0125,-22.4,.025,9),3.51,.035,w.materials.metal)
-  for row in range(9): _ceiling_piece(Rect2(spec.x,-22.4+row*1.125-.0125,spec.width,.025),3.51,.035,w.materials.metal)
+   for row in range(rows):
+    _ceiling_piece(Rect2(spec.x+col*width+.0125,-22.4+row*pitch+.0125,width-.025,pitch-.025),3.535,.045,spec.material,true)
+  for col in range(count+1): _ceiling_piece(Rect2(spec.x+col*width-.0125,-22.4,.025,spec.length),3.51,.035,w.materials.metal)
+  for row in range(rows+1): _ceiling_piece(Rect2(spec.x,-22.4+row*pitch-.0125,spec.width,.025),3.51,.035,w.materials.metal)
 
 func _bulbs() -> void:
  # Visible opal bulbs, sockets, protective cages and supports meet the ceiling.
@@ -115,22 +115,12 @@ func _vent_creature() -> void:
  w.box(grate,Vector3(.1,-.08,0),Vector3(.23,.05,1.5),w.materials.metal)
  for z in [-.73,.73]: w.box(grate,Vector3(.2,-.37,z),Vector3(.045,.64,.045),w.materials.metal)
  for k in range(10): w.box(grate,Vector3(.2,-.1-k*.06,0),Vector3(.035,.025,1.4),w.materials.metal)
- creature=(load("res://assets/creatures/vent-ossuary-v21.glb" if OS.has_feature("web") else CREATURE) as PackedScene).instantiate();creature.name="CinemaVentDweller";creature.position=pos;creature.rotation.y=-.55;add_child(creature)
- for mesh in creature.find_children("*","MeshInstance3D",true,false):
-  for s in range(mesh.mesh.get_surface_count()):
-   var material: Material=mesh.get_active_material(s)
-   if material is StandardMaterial3D:
-    material=material.duplicate();mesh.set_surface_override_material(s,material)
-    material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*3.2
-    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.48
-    material.roughness=.94;material.metallic_specular=.10
-   if material is StandardMaterial3D and material.resource_name=="Mottled cadaver skin":
-    material.albedo_texture=load("res://assets/creatures/dweller-skin.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*2.2
-    material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.22
+ creature=CeilingHorse.new();add_child(creature);creature.position=pos;creature.build(w)
 
 func tick(delta: float, active: bool) -> void:
  if music.stream_paused==active: music.stream_paused=not active
  if active and not music.playing: music.play()
+ creature.tick(delta,active)
  if not active: return
  clock+=delta;dancer.rotation.y=clock*.7
  # Isolated short contact failures, not a constant full-screen strobe.
@@ -148,17 +138,12 @@ func tick(delta: float, active: bool) -> void:
   if phase>18.25 and phase<18.63: amount=.28 if sin(phase*85)>0 else .76
   w.practicals[i].light_energy=.65*amount
   if w.native_art and i<w.native_art.spots.size(): w.native_art.spots[i].light_energy=3.0*amount
- # Subtle breathing stays rooted inside the shaft.
- creature.scale=Vector3(1,1+sin(clock*.65)*.006,1)
 
 func snapshot() -> Dictionary:
  var powers: Array[float]=[]
  for item in bulbs: powers.append(item.light.light_energy)
- return {"clock":clock,"panels":panels,"music":music.playing,"paused":music.stream_paused,"track":music.stream.resource_path,"creature":is_instance_valid(creature),"creature_geometry":creature_geometry(),"shaft_depth":1.25,"bulbs":powers}
+ return {"clock":clock,"panels":panels,"music":music.playing,"paused":music.stream_paused,"track":music.stream.resource_path,"creature":is_instance_valid(creature),"creature_geometry":creature_geometry(),"horse":creature.snapshot(),"shaft_depth":1.25,"bulbs":powers}
 
 func creature_geometry() -> Dictionary:
- var bounds:=AABB();var first:=true;var surfaces:=0
- for mesh in creature.find_children("*","MeshInstance3D",true,false):
-  var local: AABB=(creature.global_transform.affine_inverse()*mesh.global_transform)*mesh.get_aabb()
-  bounds=local if first else bounds.merge(local);first=false;surfaces+=mesh.mesh.get_surface_count()
- return {"width":bounds.size.x,"rear":bounds.position.z,"top":bounds.end.y,"bottom":bounds.position.y,"surfaces":surfaces}
+ var bounds:=creature.head_bounds()
+ return {"width":bounds.size.x,"rear":bounds.position.z,"top":bounds.end.y,"bottom":bounds.position.y,"surfaces":8,"bodyless":true,"neck_samples":creature.samples.size()}

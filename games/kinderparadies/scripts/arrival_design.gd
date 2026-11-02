@@ -135,7 +135,6 @@ func _annex() -> void:
    light.light_color=Color("c5c4ab");light.light_energy=.85
  # Floor expansion strips are flush, with no raised collision lips.
  for z in [-12.7,-18.4,-24.15,-28.45,-30.85,-34.1]:box(root,Vector3(-7.9,.013,z),Vector3(2.62,.003,.027),brass)
- sign_plate(root,"HAPPYLAND / PERSONALGANG",Vector3(-7.9,2.3,-34.425),Vector2(1.92,.38))
 
 func _materials() -> void:
  var seen: Dictionary={}

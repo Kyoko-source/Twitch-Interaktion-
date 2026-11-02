@@ -59,7 +59,6 @@ var triggered:=false
 var finished:=false
 var shock:=0.0
 var origin:=Vector3.ZERO
-var vent_origin:=Vector3.ZERO
 var path_s:=0.0
 var window_normal:=Vector3.ZERO
 var warning_light: OmniLight3D
@@ -77,7 +76,6 @@ func configure(value: String) -> void:
  if not SCENARIOS.has(id): return
  spec=SCENARIOS[id];origin=spec.p
  if spec.zone in ["Küche","Kino"]: origin+=ServiceAnnex.OFFSET
- vent_origin=w.room_horror.creature.position
  ScareBank.select(audio,id,spec.mode)
  anticipation=ScareBank.lead(self,id,spec.mode)
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
@@ -213,9 +211,8 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
   if attack>4.8: finished=true
  elif spec.mode=="vent":
   var pulse:=sin(clampf(attack/1.6,0,1)*PI)
-  w.room_horror.creature.position=vent_origin+Vector3(0,-pulse*.52,pulse*.30)
-  w.room_horror.creature.rotation.z=sin(attack*12)*pulse*.055;shock=maxf(shock,pulse*.85)
-  if attack>1.6: finished=true;w.room_horror.creature.position=vent_origin;w.room_horror.creature.rotation.z=.13
+  w.room_horror.creature.attack_gain=pulse;shock=maxf(shock,pulse*.85)
+  if attack>1.6: finished=true;w.room_horror.creature.attack_gain=0
  else:
   var pulse:=sin(clampf(attack/1.6,0,1)*PI)
   if spec.mode=="window": visual.position=-window_normal*(.42+pulse*.02)

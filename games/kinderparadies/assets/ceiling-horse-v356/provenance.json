@@ -1,0 +1,7 @@
+{
+  "author": "Original project geometry",
+  "source": "tools/model-after-play-ceiling-horse-v356.py",
+  "external_assets": [],
+  "anatomy": "head only; neck is animated in Godot",
+  "triangles": 24164
+}

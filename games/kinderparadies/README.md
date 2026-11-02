@@ -1,5 +1,44 @@
 # After Play — Kinderparadies
 
+## Pferdemaske und durchgehende Flurdecke (3.5.6)
+
+Das Küchendienst-Bild hinter dem Kühlschrank und das Personalgang-Schild an der
+Stirnwand sind entfernt. Ein durchgehender, gleich hoher Deckenraster reicht vom
+Holzportal bis zur hinteren Flurwand; der vorherige schwarze Abschnitt entfällt.
+
+Das alte Pferdeskelett ist durch eine original modellierte, körperlose Gestalt
+**ohne Rumpf oder Gliedmaßen** ersetzt: sichtbar sind ausschließlich eine lange,
+zusammenhängende Halsform und eine beschädigte Pferdemaske. Die Maske hat echte
+Augen-/Nasenhöhlen, aufgerissene Ränder, Zahnfleisch, unregelmäßige Pferdezähne,
+einen beweglichen Unterkiefer und eine verklumpte Mähne. Die Haut verwendet
+gemalte Vertexfarben und Porennormalen; Blutflächen reagieren rauer oder feuchter
+auf Licht. Das Modell besteht aus acht zusammengefassten Oberflächen und rund
+24.000 Dreiecken. Der Hals und seine einzelnen Mähnensträhnen verwenden zwei
+zusätzliche, verformte Meshes mit 32 gemeinsamen Stützpunkten statt vieler
+Einzelobjekte oder neu aufgebauter Geometrie pro Frame.
+
+Der Hals bleibt im dunklen Lüftungsschacht verankert, windet sich entlang der
+Kinodecke und lässt den Kopf kurz durch die Kinotür in den Flur spähen. Pause
+stoppt auch Kiefer und Hals. Beim Schachtangriff bewegt sich nur der sichtbare
+Kopf mit seinem Halsende; der Ursprung wird nicht aus dem Schacht gezogen.
+Diese Bewegung gehört weiterhin zur normalen Atmosphäre, auch in Zeitungsrunden.
+
+Die gezielte native Prüfung untersucht 41 Positionen entlang der Bahn mit den
+tatsächlichen Kopf-/Kiefervertices sowie allen Halsstützpunkten gegen Decke,
+Schachtöffnung und Kinodurchgang. Zusätzlich werden Pausenverhalten, Angriff,
+entfernte Bilder und der vollständige Deckenverlauf geprüft. Der Browser-Test
+wartet den natürlichen Bewegungszyklus ab, pausiert beim Blick in den Flur und
+geht anschließend durch den Kinodurchgang. Alte, unbenutzte Pferdemodelle werden
+nicht mehr in die Spielerpakete exportiert.
+
+60 gezielte native Checks bestehen: Pferdebahn/Decke 14, Eingang/geheimes Ende
+22 und Start/Abspann 24. Der isolierte Edge-Test besteht mit natürlicher
+Bewegung, Pause und begehbarem Kinodurchgang; es treten keine Browser- oder
+Shaderfehler auf. Beide Spielerpakete bestehen Dateilisten-, CRC-, Lizenz-,
+Prüfsummen- und Datenschutzprüfung; die exportierte Windows-EXE startet ohne
+fehlende Ressourcen. Das Web-PCK umfasst 197,75 MiB. Der itch.io-Aufruf wird
+weiterhin nur lokal vorbereitet; ein Upload erfolgt erst mit `-Upload`.
+
 ## Alter Holzrahmen und Snackbar im Partyraum (3.5.5)
 
 Der Zugang zum Küche/Kino-Flur erhält einen vollständigen alten Holzrahmen:
