@@ -36,6 +36,7 @@ func route(s: float) -> Vector3:
  return points[-1]
 
 func tangent(s: float) -> Vector3:
+ s=clampf(s,0,length)
  return (route(minf(length,s+.035))-route(maxf(0,s-.035))).normalized()
 
 func nearest(p: Vector3) -> Dictionary:

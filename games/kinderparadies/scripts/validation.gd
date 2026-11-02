@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--language-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/language_validation.gd").new().run(game,check)
+  print("Language checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--music-only" in OS.get_cmdline_user_args():
   await load("res://scripts/music_validation.gd").new().run(game,check)
   print("Music checks: ",checks,"; failures: ",failures.size())

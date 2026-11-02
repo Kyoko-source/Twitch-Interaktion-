@@ -170,9 +170,10 @@ func tick(delta: float) -> void:
   if not ring.playing and fmod(clock,3.3)<.06: ring.play()
  elif stage=="call":
   status.text="CHEF · %02d:%02d"%[int(stage_clock)/60,int(stage_clock)%60]
-  caption.text="" if recording else LINES[mini(LINES.size()-1,int(stage_clock/maxf(call_length,1)*LINES.size()))]
+  caption.text="" # Timed speech is displayed by AfterPlayCaptions, including the fallback call.
+  status.text=AfterPlayLanguage.t(status.text)
   if stage_clock>=call_length or (recording and stage_clock>.3 and not voice.playing):
-   stage="arrival";stage_clock=0;voice.stop();phone_status.text="Anruf\nbeendet";caption.text="";status.text="KINDERPARADIES · ETAGE "+floor_text(floor_number);motor.stop();chime.play()
+   stage="arrival";stage_clock=0;voice.stop();phone_status.text="Anruf\nbeendet";caption.text="";status.text=AfterPlayLanguage.t("KINDERPARADIES · ETAGE %s"%floor_text(floor_number));motor.stop();chime.play()
  elif stage=="arrival":
   var amount:=smoothstep(.45,2.2,stage_clock)
   for i in range(2): doors[i].position.x=(-1 if i==0 else 1)*(.65+amount*1.24)

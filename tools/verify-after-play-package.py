@@ -42,7 +42,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert sum(i.file_size for i in z.infolist()) < 500 * 1024**2
             assert max(i.file_size for i in z.infolist()) < 200 * 1024**2
             pck = z.read('index.pck')
-            for required in [b'assets/music-v371/fern-and-feather.mp3', b'assets/music-v371/music-box-chase.mp3', b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json', b'assets/cinema-film/happyland-advert.ogv', b'assets/cinema-film/happyland-advert.ogg']:
+            for required in [b'locales/ui_en.json', b'locales/story_en.json', b'locales/signs_en.json', b'locales/subtitles.json', b'scripts/language.gd', b'scripts/captions.gd', b'scripts/carved_timber.gd', b'assets/music-v371/fern-and-feather.mp3', b'assets/music-v371/music-box-chase.mp3', b'assets/intro/chef.mp3', b'assets/story/catalog.json', b'assets/presentation-v250/memories.json', b'assets/cinema-film/happyland-advert.ogv', b'assets/cinema-film/happyland-advert.ogg']:
                 assert required in pck, required
             private_files = [str(p.relative_to(ROOT / 'games/kinderparadies')).replace('\\', '/').encode()
                              for p in (ROOT / 'games/kinderparadies/assets').rglob('*.json')
@@ -61,7 +61,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/horse_hunt.gd', b'scripts/horse_navigation.gd', b'assets/encounter-v360/clown-blond-hair.glb', b'assets/encounter-v360/blond_hair.gdshader']:
                 assert any(required in name for name in packed_names), required
-            for private in [b'scripts/horse_catch_validation.gd', b'art-direction/v361_capture.gd']:
+            for private in [b'scripts/language_validation.gd', b'art-direction/trailer_v380.gd', b'art-direction/itch_v380_capture.gd', b'override.cfg', b'scripts/horse_catch_validation.gd', b'art-direction/v361_capture.gd']:
                 assert not any(private in name for name in packed_names), private
             for private in private_files + [b'scripts/hunt_validation.gd', b'art-direction/v360_capture.gd', b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/endings_validation.gd', b'scripts/balance_validation.gd', b'scripts/revamp_validation.gd', b'scripts/venue_validation.gd', b'scripts/film_validation.gd', b'scripts/life_validation.gd', b'scripts/watch_validation.gd', b'assets/life-v2110/image-generation-provenance.json', b'art-direction/v300_capture.gd', b'art-direction/v310_capture.gd', b'art-direction/itch_capture.gd', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
                 assert not any(private in name for name in packed_names), private

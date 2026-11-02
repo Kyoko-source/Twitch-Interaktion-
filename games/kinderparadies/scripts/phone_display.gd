@@ -38,7 +38,7 @@ func build() -> void:
  var glass:=StandardMaterial3D.new();glass.albedo_texture=viewport.get_texture();glass.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;glass.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR;face.material_override=glass;add_child(face)
 
 func update_call(state: String, seconds: float) -> void:
- var value:=state+str(int(seconds))
+ var value:=state+str(int(seconds))+AfterPlayLanguage.code
  if value==last_text: return
  last_text=value;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
  state_label.text="Eingehender Anruf" if state=="ringing" else "Verbunden" if state=="call" else "Anruf beendet"

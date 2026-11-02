@@ -23,6 +23,38 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.8 English settings persist, sign reading works and speech has timed translated captions',async({page})=>{
+ test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
+ await load(page);await clickControl(page,'Einstellungen');await clickControl(page,'Sprache');
+ await clickControl(page,'Deutsch');await page.screenshot({path:join(tmpdir(),'after-play-v380-language-dropdown.png')});
+ await expect.poll(async()=>(await state(page)).dropdown?.items).toEqual(['Deutsch','English']);
+ const dropdown=(await state(page)).dropdown;await page.mouse.click(dropdown.position[0]+60,dropdown.position[1]+dropdown.size[1]*.75);
+ await expect.poll(async()=>(await state(page)).language).toBe('en');
+ expect((await state(page)).controls.some(c=>c.text==='Speech subtitles')).toBe(true);
+ await clickControl(page,'Back');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
+ expect((await state(page)).controls.some(c=>c.text==='New night shift')).toBe(true);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ expect((await state(page)).language).toBe('en');await clickControl(page,'New night shift');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('intro');
+ await page.waitForTimeout(1300);await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).captions.source,{timeout:10000}).toBe('intro');
+ expect((await state(page)).captions.text).toMatch(/new guy|listen|Welcome/);
+ await page.screenshot({path:join(tmpdir(),'after-play-v380-web-english-call.png')});
+ await page.keyboard.down('Space');await expect.poll(async()=>(await state(page)).phase,{timeout:10000}).toBe('play');await page.keyboard.up('Space');
+ await qa(page,{op:'warp',x:-8.17,y:.008,z:5.5,yaw:Math.PI/2,pitch:.245});
+ await page.mouse.click(960,540);
+ await expect.poll(async()=>(await state(page)).captions.sign,{timeout:8000}).toBe('hours');
+ expect((await state(page)).captions.text).toContain('10:00');expect((await state(page)).captions.text).toContain('STEP RIGHT IN');
+ await page.screenshot({path:join(tmpdir(),'after-play-v380-web-english-sign.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ await clickControl(page,'Settings');await clickControl(page,'Language');
+ await clickControl(page,'Speech subtitles');expect((await state(page)).settings.subtitles).toBe(false);
+ await clickControl(page,'English sign translations');expect((await state(page)).settings.sign_subtitles).toBe(false);
+ await clickControl(page,'Back');await clickControl(page,'Resume patrol');
+ expect((await state(page)).captions.visible).toBe(false);
+ expect(faults).toEqual([]);
+});
+
 test('v3.7.1 requested music plays for horse pursuit and all credits with pause and reload',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
  await begin(page);expect((await state(page)).horse_hunt.music).toBe(false);

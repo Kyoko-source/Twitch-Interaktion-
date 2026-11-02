@@ -68,7 +68,9 @@ func _bulbs() -> void:
 
 func _music_box() -> void:
  # An open, brass-trimmed wooden automaton rests on the existing sideboard.
- var root:=Node3D.new();root.name="PartyMusicBox";root.position=Vector3(19.12,.89,-2.42);root.rotation.y=-PI/2;add_child(root)
+ # Feet touch the sideboard top (.856 m). Leave the whole footprint, open lid
+ # and winding key inside the cabinet's edge, clear of the adjacent shelf.
+ var root:=Node3D.new();root.name="PartyMusicBox";root.position=Vector3(19.07,.89,-2.63);root.rotation.y=-PI/2;add_child(root)
  var wood:=w.mat(Color("4b3025"),load("res://assets/wood.png"),.72)
  var brass:=w.mat(Color("948054"),null,.46,.7)
  var velvet:=w.mat(Color("4e1924"),load("res://assets/paint.png"),.95)

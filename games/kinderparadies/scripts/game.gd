@@ -24,9 +24,10 @@ var room_audio: AudioStreamPlayer
 var weather: HappylandWeather
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
+var captions: AfterPlayCaptions
 var menu_camera: Camera3D
 var menu_light: SpotLight3D
 var menu_clock:=0.0
@@ -59,6 +60,7 @@ var loading_progress:=0.0
 var world_build_count:=0
 
 func _ready() -> void:
+ AfterPlayLanguage.setup()
  if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings()
  player=NightGuard.new();add_child(player);player.camera.current=true
@@ -169,9 +171,10 @@ func _ui() -> void:
  menu=Control.new();menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(menu)
  transition_shade=ColorRect.new();transition_shade.color=Color(0,0,0,0);transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);transition_shade.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(transition_shade);transition_shade.hide()
  death_label=_label("",70);death_label.add_theme_font_override("font",title_font);death_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER);death_label.offset_left=-600;death_label.offset_right=600;death_label.offset_top=-60;death_label.offset_bottom=80;death_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;death_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;root.add_child(death_label);death_label.hide()
+ captions=AfterPlayCaptions.new();add_child(captions);captions.build()
 
 func _label(value: String, size: int=18, color: Color=Color("eee7d6")) -> Label:
- var label:=Label.new();label.text=value;label.add_theme_font_size_override("font_size",size);label.add_theme_color_override("font_color",color);return label
+ var label:=Label.new();label.text=AfterPlayLanguage.t(value);label.add_theme_font_size_override("font_size",size);label.add_theme_color_override("font_color",color);return label
 
 func _paragraph(value: String, size: int=18) -> Label:
  var label:=_label(value,size,Color("bac6c0"));label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.custom_minimum_size.x=420;return label
@@ -180,7 +183,7 @@ func _style(color: Color,border: Color) -> StyleBoxFlat:
  var style:=StyleBoxFlat.new();style.bg_color=color;style.border_color=border;style.set_border_width_all(1);style.set_corner_radius_all(3);style.content_margin_left=18;style.content_margin_right=18;style.content_margin_top=13;style.content_margin_bottom=13;return style
 
 func _button(value: String, action: Callable, primary: bool=false) -> Button:
- var button:=Button.new();button.text=value;button.custom_minimum_size=Vector2(420,48);button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+ var button:=Button.new();button.text=AfterPlayLanguage.t(value);button.custom_minimum_size=Vector2(420,48);button.alignment=HORIZONTAL_ALIGNMENT_LEFT
  button.add_theme_stylebox_override("normal",_style(Color("b6a16d") if primary else Color(.045,.059,.049,.8),Color("b6a16d") if primary else Color("575643")))
  button.add_theme_stylebox_override("hover",_style(Color("e8e1c8") if primary else Color("2c3021"),Color("b6a16d")))
  button.add_theme_stylebox_override("pressed",_style(Color("958354") if primary else Color("383c29"),Color("e8e1c8")))
@@ -404,9 +407,13 @@ func _read_settings() -> void:
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
  for key in ["grain","vsync","invert_y","crosshair"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
  settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
+ settings.language="en" if data.get("language","de")=="en" else "de"
+ settings.subtitles=bool(data.get("subtitles",true));settings.sign_subtitles=bool(data.get("sign_subtitles",true))
+ AfterPlayLanguage.choose(settings.language)
  if not OS.has_feature("web") and int(data.get("render_version",0))<2: settings.quality=2
 
 func _apply_settings() -> void:
+ AfterPlayLanguage.choose(str(settings.language))
  AudioServer.set_bus_volume_db(0,linear_to_db(float(settings.volume)) if float(settings.volume)>0 else -80)
  Engine.max_fps=int(settings.fps)
  if not OS.has_feature("web"): DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if settings.vsync else DisplayServer.VSYNC_DISABLED)
@@ -463,6 +470,7 @@ func _process(delta: float) -> void:
   weather.tick(delta,phase in ["play","intro","arrival","lift"] and not (phase=="intro" and intro.paused),weather_room,phase=="play" and archive.ending!="recording")
  if phase=="ending" and is_instance_valid(end_credits): end_credits.tick(delta)
  if world_loading:
+  if captions:captions.clear()
   telemetry_clock+=delta
   if telemetry_clock>.12:telemetry_clock=0;_telemetry()
   return
@@ -526,14 +534,16 @@ func _process(delta: float) -> void:
     if object: prompt.text="G · "+object.title+" aufheben"
   if prompt.text=="" and (world.tubes.near_entry(player.position) or world.tubes.inside): prompt.text="C halten · Ducken und durch die Röhre krabbeln"
   if prompt.text=="" and OS.has_feature("web") and Input.mouse_mode!=Input.MOUSE_MODE_CAPTURED: prompt.text="Ins Spiel klicken · Maussteuerung aktivieren"
+  prompt.text=AfterPlayLanguage.t(prompt.text)
   if notice_time>0: notice_time-=delta;notice.visible=notice_time>0
+ if captions:captions.tick(delta,self)
  telemetry_clock+=delta
  if telemetry_clock>.25: telemetry_clock=0;_telemetry()
 
 func _refresh_hud() -> void:
  _sync_lift_floor()
  round_label.offset_left=-440 if state.completed else -275
- round_label.text="13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1)
+ round_label.text=AfterPlayLanguage.t("13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1))
 
 func _sync_lift_floor() -> void:
  var floor_number:=clampi(state.streak+1,1,13)
@@ -590,7 +600,7 @@ func _door_death(red: bool) -> void:
  await door_failure.finished
  if phase=="quitting": return
  phase="death";await _fade(1,.15)
- death_label.text="%d Runden überlebt"%survived;death_label.modulate.a=0;death_label.show()
+ death_label.text=AfterPlayLanguage.t("%d Runden überlebt"%survived);death_label.modulate.a=0;death_label.show()
  await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
  await get_tree().create_timer(1.65).timeout
  if phase=="quitting": return
@@ -628,7 +638,7 @@ func _won() -> void:
  _show_patrol_ending()
 
 func _announce(value: String, seconds: float=4.0) -> void:
- notice.text=value;notice_time=seconds;notice.show()
+ notice.text=AfterPlayLanguage.t(value);notice_time=seconds;notice.show()
 
 func _input(event: InputEvent) -> void:
  if event.is_action_pressed("pause") and phase in ["inventory","code"]:
@@ -705,7 +715,7 @@ func _open_watch(index: int=0) -> void:
  var cameras:=HBoxContainer.new();cameras.add_theme_constant_override("separation",8);column.add_child(cameras)
  for i in range(ReceptionWatch.FEEDS.size()):
   var button:=_button("Kamera %02d"%(i+1),func():
-   world.watch._select(i);caption.text=ReceptionWatch.FEEDS[i].label
+   world.watch._select(i);caption.text=AfterPlayLanguage.t(ReceptionWatch.FEEDS[i].label)
   );button.custom_minimum_size=Vector2(125,46);cameras.add_child(button)
  column.add_child(_button("Monitor verlassen · ESC",_close_watch,true));_telemetry()
 
@@ -818,6 +828,9 @@ func _telemetry() -> void:
    if label.is_visible_in_tree(): data.hud_labels.append(label.text)
   var notebook:=menu.find_child("PatrolNotebook",true,false) as PatrolNotebook
   data.notebook={"visible":is_instance_valid(notebook) and notebook.is_visible_in_tree(),"visited":notebook.visited if is_instance_valid(notebook) else [],"round":notebook.round_number if is_instance_valid(notebook) else 0}
+  data.captions=captions.snapshot();data.language=AfterPlayLanguage.code
+  var article:=menu.find_child("NewspaperBody",true,false) as RichTextLabel
+  data.reader_body=article.get_parsed_text() if article else ""
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
   data.layout=qa_layout
   data.props=[]
@@ -826,6 +839,9 @@ func _telemetry() -> void:
    if node.is_visible_in_tree() and (node is Button or node is HSlider):
     var rect: Rect2=node.get_global_rect()
     data.controls.append({"text":node.text if node is Button else str(node.get_meta("qa_label","")),"kind":"button" if node is Button else "slider","rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y]})
+    if node is OptionButton and node.get_popup().visible:
+     var popup: PopupMenu=node.get_popup()
+     data.dropdown={"position":[popup.position.x,popup.position.y],"size":[popup.size.x,popup.size.y],"items":range(popup.item_count).map(func(i):return popup.get_item_text(i)),"focused":popup.get_focused_item()}
  JavaScriptBridge.eval("window.nachtwacheStatus="+JSON.stringify(data)+";window.dispatchEvent(new CustomEvent('nachtwache-state',{detail:window.nachtwacheStatus}));")
 
 func _install_qa() -> void:

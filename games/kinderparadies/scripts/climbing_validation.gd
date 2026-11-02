@@ -19,6 +19,10 @@ func run(game: Node3D,verify: Callable) -> void:
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  verify.call(sky.length>18 and sky.window_count>=6,"The party loop is not a substantial glazed route")
  verify.call(w.climbing.carved.size()==4,"Lookout has no physically attached carved names")
+ verify.call(w.climbing.repaired_post_count==21,"Repair bands were attached to rails or suspended in empty space")
+ for s in [-.045,sky.length+.045]:
+  verify.call(sky.tangent(s).length()>.99 and (sky.surface(s,0,SkyTube.OUTER)-sky.route(s)).length()>.92,"Tube seam residue collapses across an entrance")
+ verify.call(w.climbing.lookout.find_children("CarvedName*","Label3D",true,false).is_empty(),"Carvings are still floating text labels")
  var doors:=SceneAudit.placement(w)
  verify.call(doors.doors.is_empty() and doors.art.is_empty() and doors.furniture.is_empty(),"Climbing expansion overlaps scenery: "+JSON.stringify(doors))
  # Start on the ground and reach the old bridge using normal movement.
@@ -61,6 +65,8 @@ func run(game: Node3D,verify: Callable) -> void:
  var sample:=sky.route(7.8);sample.y=SkyTube.FLOOR
  guard.position=sample;guard.velocity=Vector3.ZERO;guard.set_crouch(true)
  verify.call(w.tubes.contains(sample) and w.acoustics.area(sample)=="tube","Upper route is missing crawl audio/pose detection")
+ w.soundscape.voice.stop();var voices_before:=w.soundscape.voice_count;w.soundscape.cue_voice(guard)
+ verify.call(w.soundscape.voice_count==voices_before+1 and absf(w.soundscape.voice.position.y-SkyTube.HEIGHT-.15)<.02,"Children's voices remain in the lower tunnel when inside the upper route")
  verify.call(not w.tubes.contains(sample-Vector3.UP*SkyTube.FLOOR),"Party floor is incorrectly classified as a tube")
  w.tubes.set_anomaly("tube_watcher");w.tubes.tick(0,true,guard)
  verify.call(not w.tubes.watcher.visible,"Lower-tunnel watcher appears outside its roof window")

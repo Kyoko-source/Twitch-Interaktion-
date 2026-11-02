@@ -102,7 +102,8 @@ func sphere(parent: Node3D, pos: Vector3, radius: float, material: Material) -> 
  var mesh:=MeshInstance3D.new();var shape:=SphereMesh.new();shape.radius=radius;shape.height=radius*2;shape.radial_segments=16 if OS.has_feature("web") else 40;shape.rings=8 if OS.has_feature("web") else 20;mesh.mesh=shape;mesh.material_override=material;mesh.position=pos;parent.add_child(mesh);return mesh
 
 func text(parent: Node3D, value: String, pos: Vector3, size: float, color: Color=Color("e6dbc1")) -> Label3D:
- var label:=Label3D.new();label.text=value;label.font_size=64;label.pixel_size=size/64;label.position=pos;label.modulate=color;label.outline_size=0;label.no_depth_test=false;label.shaded=true;label.alpha_cut=Label3D.ALPHA_CUT_DISCARD;parent.add_child(label);return label
+ var label:=Label3D.new();label.text=value;label.font_size=64;label.pixel_size=size/64;label.position=pos;label.modulate=color;label.outline_size=0;label.no_depth_test=false;label.shaded=true;label.alpha_cut=Label3D.ALPHA_CUT_DISCARD;label.auto_translate_mode=Node.AUTO_TRANSLATE_MODE_DISABLED;parent.add_child(label)
+ label.add_to_group("caption_signs");label.set_meta("sign_text",value);label.set_meta("sign_rect",Vector2(maxf(size,value.length()*size*.5),size*1.6));return label
 
 func artwork(parent: Node3D, pos: Vector3, size: Vector2, texture: Texture2D, yaw: float=0, cell: int=-1) -> MeshInstance3D:
  var image:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=size
@@ -332,7 +333,11 @@ func _play_structure() -> void:
    elif x==5.5 and y==2.25: tube(structure,Vector3(x,y,-5.5),Vector3(x,y,2.6),.13,materials.blue)
    else: tube(structure,Vector3(x,y,-5.5),Vector3(x,y,3.8),.13,materials.blue if y<3 else materials.gold)
   for z in [-5.5,.7,3.8]:
-   if z>=.7 and y<4:
+   if z==-5.5 and y==4.5:
+    # The lookout replaces this bay; its window cannot have a padded rail
+    # running straight through the view at eye height.
+    tube(structure,Vector3(-.3,y,z),Vector3(2.6,y,z),.13,materials.gold)
+   elif z>=.7 and y<4:
     tube(structure,Vector3(-.3,y,z),Vector3(2.85,y,z),.13,materials.red)
     tube(structure,Vector3(4.5,y,z),Vector3(5.5,y,z),.13,materials.red)
    else: tube(structure,Vector3(-.3,y,z),Vector3(5.5,y,z),.13,materials.red if z>.5 else materials.gold)

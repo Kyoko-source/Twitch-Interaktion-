@@ -20,8 +20,9 @@ func box(parent: Node3D,p: Vector3,s: Vector3,m: Material,solid: bool=false) -> 
  count+=1;return w.box(parent,p,s,m,solid)
 
 func text(parent: Node3D,words: String,p: Vector3,height: float,color: Color,yaw: float=0) -> MeshInstance3D:
- var mesh:=MeshInstance3D.new();var letters:=TextMesh.new();letters.font=load("res://assets/Oswald.ttf");letters.text=words;letters.font_size=48;letters.pixel_size=height/48.;letters.depth=.0003
- mesh.mesh=letters;mesh.material_override=w.mat(color,null,.9);mesh.position=p;mesh.rotation.y=yaw;parent.add_child(mesh);count+=1;return mesh
+ var mesh:=MeshInstance3D.new();var letters:=TextMesh.new();letters.set_message_translation(false);letters.font=load("res://assets/Oswald.ttf");letters.text=words;letters.font_size=48;letters.pixel_size=height/48.;letters.depth=.0003
+ mesh.mesh=letters;mesh.material_override=w.mat(color,null,.9);mesh.position=p;mesh.rotation.y=yaw;parent.add_child(mesh);count+=1
+ mesh.add_to_group("caption_signs");mesh.set_meta("sign_text",words);mesh.set_meta("sign_rect",Vector2(maxf(height,letters.get_aabb().size.x),height*1.6));return mesh
 
 func ring(parent: Node3D,p: Vector3,r: float,thickness: float,m: Material,rotation_value: Vector3=Vector3.ZERO) -> MeshInstance3D:
  var o:=MeshInstance3D.new();var t:=TorusMesh.new();t.inner_radius=r-thickness;t.outer_radius=r;t.rings=24;t.ring_segments=8;o.mesh=t;o.material_override=m;o.position=p;o.rotation=rotation_value;parent.add_child(o);count+=1;return o

@@ -34,7 +34,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v3.7.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v3.8.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -42,7 +42,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
  var title: Label=g._label("Einstellungen",62);title.add_theme_font_override("font",menu_font());title.position=Vector2(75,55);g.menu.add_child(title)
  var note: Label=g._label("Deine Nachtschicht. Dein Spielgefühl.",17,Color("a3aaa2"));note.position=Vector2(78,140);g.menu.add_child(note)
  var nav:=VBoxContainer.new();nav.position=Vector2(75,218);nav.add_theme_constant_override("separation",14);g.menu.add_child(nav)
- for category in ["Bild","Audio","Steuerung","Spiel"]:
+ for category in ["Bild","Audio","Steuerung","Spiel","Sprache"]:
   var chosen: String=category
   var button: Button=g._button(category,func():settings(g,chosen),category==tab);button.custom_minimum_size.x=250;nav.add_child(button)
  var back: Button=g._button("Zurück",g._return_from_panel);back.custom_minimum_size.x=250;nav.add_child(back)
@@ -50,6 +50,14 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
  var column:=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;column.add_theme_constant_override("separation",16);scroll.add_child(column)
  var heading: Label=g._label(tab,30);heading.add_theme_font_override("font",g.title_font);column.add_child(heading)
  match tab:
+  "Sprache":
+   column.add_child(g._label("Sprache / Language",24))
+   var languages:=OptionButton.new();languages.name="LanguageChoice";languages.set_meta("qa_label","Sprache / Language");languages.custom_minimum_size=Vector2(500,52);languages.add_item("Deutsch");languages.add_item("English");languages.selected=1 if g.settings.language=="en" else 0
+   languages.item_selected.connect(func(index: int):changed(g,"language","en" if index==1 else "de");settings(g,"Sprache"));column.add_child(languages)
+   toggle(g,column,"Untertitel für Sprache","subtitles")
+   toggle(g,column,"Englische Schildübersetzungen","sign_subtitles")
+   column.add_child(g._paragraph("Die gesprochenen Aufnahmen erhalten Untertitel in deiner gewählten Sprache. Sie folgen Pause und Fortsetzen.",18))
+   column.add_child(g._paragraph("Sieh ein Schild mit dem Fadenkreuz an. Seine englische Übersetzung erscheint unten im Bild.",18))
   "Bild":
    slider(g,column,"Helligkeit","brightness",.7,1.8,.05)
    slider(g,column,"Sichtfeld","fov",65,100,1,"°")
@@ -85,20 +93,20 @@ static func changed(g: Node3D, key: String, value: Variant) -> void:
 static func slider(g: Node3D, parent: VBoxContainer, title: String, key: String, low: float, high: float, step: float, suffix: String="") -> void:
  var label: Label=g._label(title,18);parent.add_child(label)
  var slider:=HSlider.new();slider.set_meta("qa_label",title);slider.min_value=low;slider.max_value=high;slider.step=step;slider.value=float(g.settings[key]);slider.custom_minimum_size=Vector2(500,32)
- var display:=func(v):label.text=title+"   "+("%.4f"%v if key=="sensitivity" else str(roundi(v))+suffix if high>2 else "%d %%"%roundi(v*100))
+ var display:=func(v):label.text=AfterPlayLanguage.t(title)+"   "+("%.4f"%v if key=="sensitivity" else str(roundi(v))+suffix if high>2 else "%d %%"%roundi(v*100))
  display.call(slider.value);slider.value_changed.connect(func(v):display.call(v);changed(g,key,v));parent.add_child(slider)
 
 static func toggle(g: Node3D, parent: VBoxContainer, title: String, key: String) -> void:
- var button:=CheckButton.new();button.text=title;button.button_pressed=bool(g.settings[key]);button.custom_minimum_size.y=48;button.toggled.connect(func(v):changed(g,key,v));parent.add_child(button)
+ var button:=CheckButton.new();button.text=AfterPlayLanguage.t(title);button.button_pressed=bool(g.settings[key]);button.custom_minimum_size.y=48;button.toggled.connect(func(v):changed(g,key,v));parent.add_child(button)
 
 static func option(g: Node3D, parent: VBoxContainer, title: String, key: String, labels: Array, values: Array) -> void:
  parent.add_child(g._label(title,18));var button:=OptionButton.new();button.set_meta("qa_label",title);button.custom_minimum_size.y=46
- for label in labels: button.add_item(label)
+ for label in labels: button.add_item(AfterPlayLanguage.t(label))
  button.selected=maxi(0,values.find(int(g.settings[key])));button.item_selected.connect(func(i):changed(g,key,values[i]));parent.add_child(button)
 
 static func credits(g: Node3D) -> void:
  g.phase="help";g.return_phase="menu"
  var column: VBoxContainer=g._panel("Mitwirkende","After Play · Kinderparadies")
  column.add_child(g._paragraph("Spielidee, Programmierung und Gestaltung: Kyoko.\nZusätzliche Ideen und Konzeptbeiträge: einsmarello.\nTestspieler: einsmarello, __jerry__, gingerbread und Mozart.\n\nAnatomiebasis des Clownkopfs: Infinite von Lee Perry-Smith, bearbeitet, CC BY 3.0.\n\nUmgebungsaufnahmen: Joseph SARDIN / BigSoundBank, CC0. Kreaturenaufnahmen: Ogrebane und A New Room / OpenGameArt, CC0. Weitere Asset-Lizenzen und Quellen liegen der Windows-Fassung bei.",18))
- var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.text="[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]Kopfmodell und Quelle[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]";credit.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(credit)
+ var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.text="[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]%s[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]";credit.text=credit.text%AfterPlayLanguage.t("Kopfmodell und Quelle");credit.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(credit)
  column.add_child(g._button("Zurück",g._return_from_panel,true));g._telemetry()

@@ -1,0 +1,398 @@
+{
+  "intro": [
+    {
+      "start": 0.0,
+      "end": 1.86,
+      "de": "Hey, du bist also der Neue, richtig?",
+      "en": "Hey, so you’re the new guy, right?"
+    },
+    {
+      "start": 2.54,
+      "end": 7.76,
+      "de": "Okay, pass auf. Willkommen an Bord. Hoffentlich hältst du länger aus als der letzte Nachtwächter.",
+      "en": "Okay, listen up. Welcome aboard. Hopefully you’ll last longer than the last night guard."
+    },
+    {
+      "start": 8.3,
+      "end": 12.2,
+      "de": "Keine Ahnung, wo der sich jetzt rumtreibt. Er kam irgendwann einfach nicht wieder.",
+      "en": "No idea where he ended up. One day he just stopped showing up."
+    },
+    {
+      "start": 12.74,
+      "end": 17.42,
+      "de": "Naja, egal. Ich mach es kurz und knapp. Deine Aufgabe ist es, Rundgänge zu machen.",
+      "en": "Anyway. I’ll keep this short. Your job is to make patrol rounds."
+    },
+    {
+      "start": 17.9,
+      "end": 20.48,
+      "de": "Der erste Rundgang wird noch zur Orientierung dienen.",
+      "en": "Your first round is just to get your bearings."
+    },
+    {
+      "start": 20.8,
+      "end": 26.26,
+      "de": "Aber leider haben wir festgestellt, dass hier und da mal was nicht ganz so ist, wie es sein sollte.",
+      "en": "Unfortunately, we’ve noticed that things around here aren’t always quite as they should be."
+    },
+    {
+      "start": 26.82,
+      "end": 30.26,
+      "de": "Sollte dir etwas komisch vorkommen, geh am Ende durch die rote Tür.",
+      "en": "If anything seems strange, take the red door at the end."
+    },
+    {
+      "start": 30.72,
+      "end": 34.06,
+      "de": "Wenn du sagst, das passt alles so, dann geh durch die grüne Tür.",
+      "en": "If everything seems fine, take the green door."
+    },
+    {
+      "start": 34.56,
+      "end": 38.62,
+      "de": "Ich weiß, ganz alleine im Dunkeln kann einem der Kopf ein paar Streiche spielen.",
+      "en": "I know, being alone in the dark can play tricks on your mind."
+    },
+    {
+      "start": 39.18,
+      "end": 43.58,
+      "de": "Alle Geräusche kannst du also getrost ignorieren. Das sind nur Einbildungen von dir.",
+      "en": "So you can safely ignore any sounds. They’re just your imagination."
+    },
+    {
+      "start": 44.1,
+      "end": 45.36,
+      "de": "Also dann, viel Glück!",
+      "en": "Well then, good luck!"
+    }
+  ],
+  "film": [
+    {
+      "start": 0.91,
+      "end": 10.67,
+      "de": "Willkommen im Happyland. Hier beginnt dein Abenteuer. Klettern, rutschen und eintauchen.",
+      "en": "Welcome to Happyland. Your adventure starts here. Climb, slide and dive right in."
+    },
+    {
+      "start": 11.37,
+      "end": 19.56,
+      "de": "Bei uns wird jeder Tag zum Erlebnis. Ein Geburtstag, den niemand vergisst.",
+      "en": "We turn every day into an adventure. A birthday no one will forget."
+    },
+    {
+      "start": 20.4,
+      "end": 26.72,
+      "de": "Mit Kuchen, Spielen und deinen besten Freunden. Happyland.",
+      "en": "With cake, games and your best friends. Happyland."
+    },
+    {
+      "start": 27.5,
+      "end": 31.46,
+      "de": "Große Abenteuer für kleine Gäste. Wir freuen uns auf euch.",
+      "en": "Big adventures for little guests. We can’t wait to see you."
+    }
+  ],
+  "archive": [
+    {
+      "start": 0.0,
+      "end": 3.92,
+      "de": "Hey, wenn du das hier hörst, dann fürchte ich, dass",
+      "en": "Hey. If you’re hearing this, I’m afraid you"
+    },
+    {
+      "start": 3.92,
+      "end": 7.84,
+      "de": "du nicht mehr lange unter den Lebenden verweilen wirst.",
+      "en": "won’t be among the living for much longer."
+    },
+    {
+      "start": 9.02,
+      "end": 13.88,
+      "de": "Du kennst mich nicht. Also sollte ich mich wohl erst einmal vorstellen.",
+      "en": "You don’t know me. I suppose I should introduce myself."
+    },
+    {
+      "start": 15.18,
+      "end": 21.22,
+      "de": "Mein Name ist Florian. Ich war Nachtwächter hier im After Play Spieleparadies.",
+      "en": "My name is Florian. I was a night guard here at the After Play indoor playground."
+    },
+    {
+      "start": 22.22,
+      "end": 25.78,
+      "de": "Du musst wissen, früher war das hier ein glücklicher Ort.",
+      "en": "You should know this used to be a happy place."
+    },
+    {
+      "start": 26.72,
+      "end": 33.82,
+      "de": "Voller Freude, Kinderlachen, Spiel und Spaß. Bis zu diesem einen grausamen Tag.",
+      "en": "Full of joy, children’s laughter, games and fun. Until that one terrible day."
+    },
+    {
+      "start": 35.24,
+      "end": 40.6,
+      "de": "Es war im Juni. 13 Kinder feierten hier einen privaten Kindergeburtstag.",
+      "en": "It was June. Thirteen children were here for a private birthday party."
+    },
+    {
+      "start": 41.68,
+      "end": 45.66,
+      "de": "Zunächst war alles wie immer. Die Kinder tobten auf dem Krokodil,",
+      "en": "At first, everything was normal. The children played on the crocodile,"
+    },
+    {
+      "start": 45.66,
+      "end": 49.64,
+      "de": "kletterten durch das Gerüst und rannten lachend durch die Gänge.",
+      "en": "climbed through the play frame and ran laughing through the corridors."
+    },
+    {
+      "start": 50.64,
+      "end": 55.4,
+      "de": "Und in der Küche, da stand Marelle, unsere Showköchin.",
+      "en": "And in the kitchen stood Marelle, our performing cook."
+    },
+    {
+      "start": 56.48,
+      "end": 62.74,
+      "de": "Sie bereitete ihre berühmte Gyros-Suppe zu. Marelle arbeitete schon seit vielen Jahren hier.",
+      "en": "She was making her famous gyros soup. Marelle had worked here for many years."
+    },
+    {
+      "start": 63.68,
+      "end": 67.93,
+      "de": "Aber die Kinder, die waren nicht immer freundlich zu",
+      "en": "But the children weren’t always kind to her. They insulted"
+    },
+    {
+      "start": 67.93,
+      "end": 72.18,
+      "de": "ihr. Sie wurde beleidigt, geschubst, manchmal sogar angespuckt.",
+      "en": "her, pushed her around, sometimes even spat at her."
+    },
+    {
+      "start": 73.48,
+      "end": 78.26,
+      "de": "Marelle, der dumme Scheißclown, kann nichts außer ekelhaftes Essen kochen.",
+      "en": "“Marelle, that stupid fucking clown, can’t do anything but cook disgusting food.”"
+    },
+    {
+      "start": 79.18,
+      "end": 86.38,
+      "de": "So etwas musste sie sich ständig anhören. Ich glaube, irgendwann hat es einfach gereicht.",
+      "en": "She heard things like that all the time. I think eventually she just had enough."
+    },
+    {
+      "start": 87.38,
+      "end": 93.16,
+      "de": "An diesem Tag hatte Marelle etwas in die Suppe gemischt, etwas, das dort nicht hineingehörte.",
+      "en": "That day, Marelle mixed something into the soup. Something that didn’t belong there."
+    },
+    {
+      "start": 94.2,
+      "end": 97.3,
+      "de": "Ich bemerkte es, aber da war es schon zu spät.",
+      "en": "I noticed, but by then it was already too late."
+    },
+    {
+      "start": 97.3,
+      "end": 103.92,
+      "de": "Ich versuchte noch, die Suppe mit Wasser zu verdünnen. Gott, ich dachte, das würde helfen.",
+      "en": "I tried to dilute the soup with water. God, I thought it would help."
+    },
+    {
+      "start": 105.12,
+      "end": 108.88,
+      "de": "Kurz nachdem die Kinder gegessen hatten, ging es los.",
+      "en": "It started shortly after the children ate. First"
+    },
+    {
+      "start": 108.88,
+      "end": 112.64,
+      "de": "Erst klagte eines über Bauchschmerzen, dann das nächste.",
+      "en": "one complained of stomach pain, then another."
+    },
+    {
+      "start": 113.88,
+      "end": 118.56,
+      "de": "Einige fingen an zu erbrechen. Andere konnten kaum noch auf den Beinen stehen.",
+      "en": "Some started vomiting. Others could barely stand."
+    },
+    {
+      "start": 119.76,
+      "end": 122.38,
+      "de": "Zwei Kinder schafften es, den Notruf zu wählen.",
+      "en": "Two children managed to call the emergency services."
+    },
+    {
+      "start": 122.38,
+      "end": 132.12,
+      "de": "Und Marelle? Marelle stand einfach in der Küche und rührte immer weiter, als wäre nichts geschehen.",
+      "en": "And Marelle? Marelle just stood in the kitchen, stirring and stirring, as if nothing had happened."
+    },
+    {
+      "start": 133.32,
+      "end": 137.72,
+      "de": "Ich wollte die Kinder nach draußen bringen, aber die Eingangstür war verschlossen.",
+      "en": "I wanted to get the children outside, but the front door was locked."
+    },
+    {
+      "start": 138.72,
+      "end": 141.99,
+      "de": "Marelle hatte sie verriegelt. Ich weiß nicht mehr, wie",
+      "en": "Marelle had locked it. I don’t remember how"
+    },
+    {
+      "start": 141.99,
+      "end": 145.26,
+      "de": "lange ich an diesem verdammten Schloss herumgefummelt habe.",
+      "en": "long I struggled with that damn lock."
+    },
+    {
+      "start": 146.26,
+      "end": 154.6,
+      "de": "Irgendwann, endlich, sprang es auf. Neun Kinder schafften es nach draußen, neun von dreizehn.",
+      "en": "Eventually, finally, it opened. Nine children made it outside. Nine out of thirteen."
+    },
+    {
+      "start": 155.98,
+      "end": 159.52,
+      "de": "Die anderen vier waren bereits zusammengebrochen.",
+      "en": "The other four had already collapsed."
+    },
+    {
+      "start": 160.58,
+      "end": 167.88,
+      "de": "Ich wollte zurück, ich wollte sie holen, aber plötzlich packte mich jemand von hinten. Es war Marelle.",
+      "en": "I wanted to go back, to get them. But suddenly someone grabbed me from behind. It was Marelle."
+    },
+    {
+      "start": 167.88,
+      "end": 172.32,
+      "de": "Sie zerrte mich in diesen Hinterraum und kettete mich am Boden fest.",
+      "en": "She dragged me into this back room and chained me to the floor."
+    },
+    {
+      "start": 173.18,
+      "end": 179.12,
+      "de": "Ich habe geschrien, geflucht, um Hilfe gerufen, aber niemand kam.",
+      "en": "I screamed, cursed, called for help. But nobody came."
+    },
+    {
+      "start": 180.4,
+      "end": 183.86,
+      "de": "Die vier Kinder lagen direkt neben mir, bewusstlos.",
+      "en": "The four children lay right beside me, unconscious."
+    },
+    {
+      "start": 184.96,
+      "end": 190.3,
+      "de": "Ich habe versucht sie wachzurütteln, immer wieder, aber sie reagierten nicht.",
+      "en": "I tried shaking them awake, over and over. But they didn’t respond."
+    },
+    {
+      "start": 191.3,
+      "end": 195.26,
+      "de": "Dann kam Marelle zurück, mit einem langen Küchenmesser.",
+      "en": "Then Marelle came back, carrying a long kitchen knife."
+    },
+    {
+      "start": 196.2,
+      "end": 199.64,
+      "de": "Ich, ich will nicht erzählen, was danach passiert ist.",
+      "en": "I… I don’t want to describe what happened next."
+    },
+    {
+      "start": 200.46,
+      "end": 205.36,
+      "de": "Ich habe sie angefleht, aufzuhören, aber sie hat nicht einmal zu mir hingesehen.",
+      "en": "I begged her to stop, but she wouldn’t even look at me."
+    },
+    {
+      "start": 206.44,
+      "end": 210.14,
+      "de": "Sie nahm die Kinder mit in die Küche, eines nach dem anderen.",
+      "en": "She took the children into the kitchen, one by one."
+    },
+    {
+      "start": 211.2,
+      "end": 217.58,
+      "de": "Und jedes Mal hörte ich dieses Geräusch, den Löffel, wie er gegen den Topf schlug.",
+      "en": "And every time I heard that sound. The spoon striking the pot."
+    },
+    {
+      "start": 218.44,
+      "end": 222.94,
+      "de": "Sie hat sie gekocht. Diese verdammte Frau hat die Kinder gekocht.",
+      "en": "She cooked them. That damned woman cooked the children."
+    },
+    {
+      "start": 222.94,
+      "end": 231.4,
+      "de": "Und mich? Mich hat sie einfach hier gelassen, angekettet, ohne Essen, ohne Wasser.",
+      "en": "And me? She just left me here. Chained up. No food, no water."
+    },
+    {
+      "start": 232.5,
+      "end": 238.2,
+      "de": "Nur die Dunkelheit, diese bitterliche Kälte und mein alter Sprachrekorder.",
+      "en": "Just the darkness, this bitter cold and my old voice recorder."
+    },
+    {
+      "start": 239.2,
+      "end": 242.86,
+      "de": "Ich habe ihn immer benutzt, um während meiner Schichten Logbuch zu führen.",
+      "en": "I always used it to keep a log during my shifts."
+    },
+    {
+      "start": 243.9,
+      "end": 246.58,
+      "de": "Jetzt ist er das Einzige, was mir noch geblieben ist.",
+      "en": "Now it’s the only thing I have left."
+    },
+    {
+      "start": 247.64,
+      "end": 249.94,
+      "de": "Ich weiß nicht, wie viele Tage ich schon hier bin.",
+      "en": "I don’t know how many days I’ve been here."
+    },
+    {
+      "start": 250.7,
+      "end": 255.2,
+      "de": "Meine Stimme wird schwächer. Ich kann meine Beine kaum noch spüren.",
+      "en": "My voice is getting weaker. I can barely feel my legs."
+    },
+    {
+      "start": 255.94,
+      "end": 260.92,
+      "de": "Aber ich höre sie noch. Marelle. Sie ist immer noch da draußen.",
+      "en": "But I can still hear her. Marelle. She’s still out there."
+    },
+    {
+      "start": 261.94,
+      "end": 263.72,
+      "de": "Sie rührt immer noch in ihrem Topf.",
+      "en": "She’s still stirring her pot."
+    },
+    {
+      "start": 264.78,
+      "end": 269.1,
+      "de": "Wenn du diese Aufnahme gefunden hast, bin ich vermutlich schon lange tot.",
+      "en": "If you’ve found this recording, I’ve probably been dead for a long time."
+    },
+    {
+      "start": 270.02,
+      "end": 272.44,
+      "de": "Bitte, verschwinde von hier.",
+      "en": "Please. Get out of here."
+    },
+    {
+      "start": 273.34,
+      "end": 277.14,
+      "de": "Und egal, was du tust, iss niemals ihre Suppe.",
+      "en": "And whatever you do, never eat her soup."
+    }
+  ]
+}

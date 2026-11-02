@@ -20,7 +20,7 @@ var horse_note: Node3D
 
 func set_floor(value: int) -> void:
  floor_number=clampi(value,1,13)
- for indicator in floor_displays:indicator.text=ElevatorIntro.floor_text(floor_number)+" / AUFZUG"
+ for indicator in floor_displays:indicator.text=ElevatorIntro.floor_text(floor_number)+" / "+AfterPlayLanguage.t("AUFZUG")
 
 func build(world: PlayWorld) -> void:
  w=world;name="PatrolPassages"
@@ -83,7 +83,7 @@ func _lane(index: int) -> void:
   var door:=w.box(root,Vector3(side*1.36,1.36,-7.58),Vector3(.90,2.7,.07),steel);doors.append(door)
   for k in range(5): w.box(door,Vector3(-.35+k*.175,0,.042),Vector3(.009,2.64,.006),w.materials.dark)
  w.box(root,Vector3(0,2.57,-7.455),Vector3(.9,.18,.03),w.materials.dark)
- var indicator:=TextMesh.new();indicator.font=load("res://assets/Oswald.ttf");indicator.font_size=48;indicator.pixel_size=.00185;indicator.depth=.0001;indicator.text=ElevatorIntro.floor_text(floor_number)+" / AUFZUG";floor_displays.append(indicator)
+ var indicator:=TextMesh.new();indicator.set_message_translation(false);indicator.font=load("res://assets/Oswald.ttf");indicator.font_size=48;indicator.pixel_size=.00185;indicator.depth=.0001;indicator.text=ElevatorIntro.floor_text(floor_number)+" / "+AfterPlayLanguage.t("AUFZUG");floor_displays.append(indicator)
  var face:=MeshInstance3D.new();face.name="CurrentFloorReadout";face.mesh=indicator;face.position=Vector3(0,2.57,-7.43);face.material_override=w.mat(Color("d1a46c"),null,.6);root.add_child(face)
  var cabin_floor:=w.box(root,Vector3(0,.015,-9.18),Vector3(1.82,.01,3.07),steel,true);cabin_floor.set_meta("foot_surface","metal")
  lanes.append({"root":root,"hinge":hinge,"body":body,"open":false,"doors":doors})

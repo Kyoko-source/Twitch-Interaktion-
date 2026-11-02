@@ -20,6 +20,7 @@ static func texture(id: String) -> Texture2D:
 
 static func frame(w: PlayWorld,face: MeshInstance3D,size_value: Vector2,id: String) -> void:
  face.name="HappylandSign_"+id;face.set_meta("sign_design",id);face.set_meta("mounted_art",true)
+ face.add_to_group("caption_signs");face.set_meta("sign_rect",size_value)
  var paper: bool=id in INDEX.POSTERS
  var m:=face.material_override as StandardMaterial3D;m.albedo_color=Color.WHITE;m.roughness=.95 if paper else .52;m.metallic=0. if paper else .48
  m.uv1_triplanar=false;m.uv1_scale=Vector3.ONE;m.uv1_offset=Vector3.ZERO;m.texture_repeat=false
@@ -53,8 +54,9 @@ static func plate(w: PlayWorld,parent: Node3D,words: String,p: Vector3,size_valu
  var id: String=WORDS.get(words,"")
  if id.is_empty():
   var root:=Node3D.new();root.position=p;root.rotation.y=yaw;parent.add_child(root)
+  root.add_to_group("caption_signs");root.set_meta("sign_text",words);root.set_meta("sign_rect",size_value)
   w.box(root,Vector3.ZERO,Vector3(size_value.x,size_value.y,.012),w.materials.metal)
-  var letters:=TextMesh.new();letters.text=words;letters.font=load("res://assets/Oswald.ttf");letters.font_size=48;letters.pixel_size=size_value.y*.36/48.;letters.depth=.0002
+  var letters:=TextMesh.new();letters.set_message_translation(false);letters.text=words;letters.font=load("res://assets/Oswald.ttf");letters.font_size=48;letters.pixel_size=size_value.y*.36/48.;letters.depth=.0002
   var number:=MeshInstance3D.new();number.mesh=letters;number.material_override=w.mat(Color("ded8c1"),null,.8);number.position=Vector3(0,-size_value.y*.13,.009);root.add_child(number)
   return root
  return w.artwork(parent,p,size_value,texture(id),yaw)

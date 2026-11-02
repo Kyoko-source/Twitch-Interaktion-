@@ -72,7 +72,7 @@ func wait_prepared() -> void:
   await get_tree().process_frame
 
 func end_title() -> String:
- return "Geheimes Ende" if ending_number==3 else "ENDE %d/2"%ending_number
+ return AfterPlayLanguage.t("Geheimes Ende" if ending_number==3 else "ENDE %d/2"%ending_number)
 
 func title_length() -> float:
  return 10. if ending_number==3 else 4.

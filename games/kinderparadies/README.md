@@ -1,5 +1,23 @@
 # After Play — Kinderparadies
 
+## Sprache, Untertitel und Medien (3.8.0)
+
+Unter Einstellungen → Sprache lassen sich Deutsch und Englisch wählen. Menüs,
+Inventar, Zeitungen, Notizen und Abspann folgen dieser Einstellung. Telefonat,
+Kinowerbefilm und Archivaufnahme besitzen zeitgesteuerte Untertitel. Beim Ansehen
+der Schilder erscheint ihre englische Lesefassung; beide Untertitelarten sind
+getrennt abschaltbar. Die originale Beschriftung in der Spielwelt bleibt erhalten.
+
+Die erhöhten Röhren haben freie Mündungen, der Aussichtskasten nutzt die vorhandenen
+Stützen und eingearbeitete Schrift im Holzmaterial. Reparaturringe sitzen nur auf
+Stützpfosten. Querleisten an den Öffnungen liegen nicht mehr im Weg; die Spieluhr
+steht vollständig auf der Kommode. Der neue Trailer zeigt 75 Sekunden native
+Spielszenen ohne Jumpscares oder Hinweise auf die geheimen Enden. Zwölf neue
+Full-HD-Screenshots liegen zusammen mit dem Trailer unter `build/itch-media-v3.8.0/`.
+
+Die Webseite enthält keine lange Versionschronik mehr. Die Spracherkennung lief
+ausschließlich lokal; die bearbeiteten Untertitel stehen unter `locales/`.
+
 ## Neue Musik (3.7.1)
 
 Die von Kyoko bereitgestellten MP3-Dateien werden unverändert eingebunden:

@@ -29,12 +29,12 @@ static func panel(w: PlayWorld, parent: Node3D, name: String, axis: String, fixe
  for row in range(ceili(area.size.y/.16)+1):
   var v:=minf(area.position.y+row*.16,area.end.y);var cuts: Array[Vector2]=[]
   for hole in holes:
-   if v>hole.position.y and v<hole.end.y: cuts.append(Vector2(hole.position.x,hole.end.x))
+   if v>=hole.position.y and v<=hole.end.y: cuts.append(Vector2(hole.position.x,hole.end.x))
   for segment in segments(area.position.x,area.end.x,cuts): strand(transforms,point(axis,fixed,segment.x,v),point(axis,fixed,segment.y,v))
  for col in range(ceili(area.size.x/.16)+1):
   var u:=minf(area.position.x+col*.16,area.end.x);var cuts: Array[Vector2]=[]
   for hole in holes:
-   if u>hole.position.x and u<hole.end.x: cuts.append(Vector2(hole.position.y,hole.end.y))
+   if u>=hole.position.x and u<=hole.end.x: cuts.append(Vector2(hole.position.y,hole.end.y))
   for segment in segments(area.position.y,area.end.y,cuts): strand(transforms,point(axis,fixed,u,segment.x),point(axis,fixed,u,segment.y))
  var ropes:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D
  var rope:=CylinderMesh.new();rope.height=1;rope.top_radius=.009;rope.bottom_radius=.009;rope.radial_segments=6;mm.mesh=rope;mm.instance_count=transforms.size()
@@ -64,16 +64,14 @@ static func panel(w: PlayWorld, parent: Node3D, name: String, axis: String, fixe
   for side in [0,1]:
    var u: float=clipped.position.x+side*clipped.size.x;var v: float=clipped.position.y+side*clipped.size.y
    w.tube(root,point(axis,fixed,u,clipped.position.y),point(axis,fixed,u,clipped.end.y),.065,w.materials.gold)
-   if side==1 or hole.position.y>area.position.y+.01:
-    # Threshold trim belongs below the walking plane, not across the feet.
-    var edge_v:=v-.095 if side==0 else v
-    w.tube(root,point(axis,fixed,clipped.position.x,edge_v),point(axis,fixed,clipped.end.x,edge_v),.065,w.materials.gold)
+   # Openings have side padding and a lintel, without a trip bar at the feet.
+   if side==1:w.tube(root,point(axis,fixed,clipped.position.x,v),point(axis,fixed,clipped.end.x,v),.065,w.materials.gold)
  return root
 
 static func west_nets(w: PlayWorld, root: Node3D) -> void:
  panel(w,root,"WestEntryNet","x",-.32,Rect2(-5.5,.3,9.3,4.2),[Rect2(-1.7,.28,1.4,1.85)])
  panel(w,root,"BridgeEntryNet","x",5.52,Rect2(-5.5,.3,9.3,4.2),[Rect2(2.6,2.15,1.2,2.3),Rect2(-4.95,2.95,1.86,1.55)])
- panel(w,root,"RearNet","z",-5.52,Rect2(-.3,.3,5.8,4.2),[Rect2(2.30,3.68,3.15,.82)])
+ panel(w,root,"RearNet","z",-5.52,Rect2(-.3,.3,5.8,4.2),[Rect2(2.6,3.14,2.9,1.36)])
  panel(w,root,"SlideExitNet","z",3.82,Rect2(-.3,.3,5.8,4.2),[Rect2(2.85,.28,1.65,4.17)])
 
 static func arch(w: PlayWorld, root: Node3D, z: float) -> void:

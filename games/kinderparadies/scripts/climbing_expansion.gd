@@ -4,10 +4,11 @@ extends Node3D
 var w: PlayWorld
 var sky: SkyTube
 var lookout: Node3D
-var carved: Array[Label3D]=[]
+var carved: Array[Dictionary]=[]
 var timber: Material
 var fasteners: Array[Transform3D]=[]
 var ties: Array[Transform3D]=[]
+var repaired_post_count:=0
 
 func low_clearance(p: Vector3) -> bool:
  # Older saves may stand on the former upper deck beneath the new cabin.
@@ -78,31 +79,39 @@ func _lookout() -> void:
  lookout=Node3D.new();lookout.name="NamesInTheLookout";lookout.set_meta("foot_surface","wood");add_child(lookout)
  # A short internal climb starts on the existing deck, clear of the slide.
  ramp(lookout,Vector3(2.05,2.977,-.40),Vector3(2.05,4.15,-3.45),1.4,"ContinuousLookoutApproach")
- w.box(lookout,Vector3(2.65,4.055,-4.72),Vector3(3.65,.19,2.55),timber,true)
- for x in [.85,4.45]:
-  for z in [-5.98,-3.46]:
-   w.tube(lookout,Vector3(x,2.98,z),Vector3(x,6.47,z),.105,w.materials.teal)
+ w.box(lookout,Vector3(2.8575,4.055,-4.81),Vector3(3.335,.19,2.70),timber,true)
+ for x in [1.19,4.525]:
+  for z in [-6.16,-3.46]:
+   # Rear uprights extend the original columns on the same centreline.
+   var start:=6.045 if z== -6.16 else 2.977
+   w.tube(lookout,Vector3(x,start,z),Vector3(x,6.47,z),.14,w.materials.gold)
+   if z== -3.46:
+    w.box(lookout,Vector3(x,3.01,z),Vector3(.36,.065,.36),w.materials.dark)
    for y in [4.05,5.25,6.35]:fasteners.append(Transform3D(Basis.IDENTITY,Vector3(x-.115,y,z)))
+  for y in [4.02,6.38]:w.tube(lookout,Vector3(x,y,-6.16),Vector3(x,y,-3.46),.07,w.materials.gold)
  # Wood knee walls, glazing and safety nets frame views over the old attractions.
- w.box(lookout,Vector3(2.65,4.47,-5.98),Vector3(3.65,.64,.11),timber,true)
- w.box(lookout,Vector3(.85,4.47,-4.72),Vector3(.11,.64,2.55),timber,true)
- w.box(lookout,Vector3(1.1,4.65,-3.46),Vector3(.5,1,.12),timber,true)
- w.box(lookout,Vector3(3.62,4.65,-3.46),Vector3(1.65,1,.12),timber,true)
- PlayGeometry.panel(w,lookout,"LookoutRearWindow","z",-5.98,Rect2(.85,4.79,3.6,1.55))
- PlayGeometry.panel(w,lookout,"LookoutHallWindow","x",.85,Rect2(-5.98,4.79,2.52,1.55))
+ var rear:=w.box(lookout,Vector3(2.8575,4.47,-6.16),Vector3(3.335,.64,.11),timber,true)
+ w.box(lookout,Vector3(1.19,4.47,-4.81),Vector3(.11,.64,2.70),timber,true)
+ var left:=w.box(lookout,Vector3(1.43,4.65,-3.46),Vector3(.48,1,.12),timber,true)
+ var right:=w.box(lookout,Vector3(3.62,4.65,-3.46),Vector3(1.65,1,.12),timber,true)
+ PlayGeometry.panel(w,lookout,"LookoutRearWindow","z",-6.16,Rect2(1.19,4.79,3.335,1.55))
+ PlayGeometry.panel(w,lookout,"LookoutHallWindow","x",1.19,Rect2(-6.16,4.79,2.70,1.55))
  # Tube mouth remains open. The two small side guards protect the lookout edge.
  for z in [-5.75,-3.50]:w.box(lookout,Vector3(4.45,4.68,z),Vector3(.12,1.05,.42),timber,true)
  for side in [-1,1]:
-  var roof:=w.box(lookout,Vector3(2.65,6.48,-4.72+side*.72),Vector3(3.98,.11,1.52),w.materials.gold,true);roof.rotation.x=side*.13
- w.tube(lookout,Vector3(.63,6.58,-4.72),Vector3(4.66,6.58,-4.72),.055,w.materials.dark)
+  var roof:=w.box(lookout,Vector3(2.8575,6.48,-4.81+side*.72),Vector3(3.65,.11,1.60),w.materials.gold,true);roof.rotation.x=side*.13
+ w.tube(lookout,Vector3(1.04,6.58,-4.81),Vector3(4.68,6.58,-4.81),.055,w.materials.dark)
  var sign:=w.box(lookout,Vector3(2.65,6.02,-3.365),Vector3(2.35,.36,.075),timber)
  var label:=w.text(sign,"HAPPYLAND · AUSSICHT",Vector3(0,0,.045),.14,Color("444436"));label.font=load("res://assets/Oswald.ttf")
- _engraving("Mia 1998",Vector3(1.52,4.58,-5.911),.23,.04)
- _engraving("LEON + TOM",Vector3(3.08,4.40,-5.911),.19,-.035)
- _engraving("Wir waren hier.",Vector3(3.64,4.77,-3.389),.14,.025)
- _engraving("ANNA",Vector3(1.09,4.90,-3.389),.13,-.06)
+ _engraving("Mia 1998",Vector2(95,110),92,.04)
+ _engraving("LEON + TOM",Vector2(530,210),76,-.035)
+ CarvedTimber.apply(rear,carved.duplicate())
+ _engraving("Wir waren hier.",Vector2(60,110),82,.025)
+ CarvedTimber.apply(right,[carved[2]])
+ _engraving("ANNA",Vector2(85,130),145,-.06)
+ CarvedTimber.apply(left,[carved[3]])
  # Old slot viewer, a forgotten wristband and a tiny abandoned child's shoe.
- var viewer:=Node3D.new();viewer.position=Vector3(1.19,4.15,-5.50);viewer.rotation.y=PI;lookout.add_child(viewer)
+ var viewer:=Node3D.new();viewer.position=Vector3(1.52,4.15,-5.50);viewer.rotation.y=PI;lookout.add_child(viewer)
  w.tube(viewer,Vector3(0,0,0),Vector3(0,.88,0),.055,w.materials.rust)
  w.box(viewer,Vector3(0,.96,0),Vector3(.45,.24,.27),w.materials.teal)
  for side in [-1,1]:w.tube(viewer,Vector3(side*.12,.98,.08),Vector3(side*.12,.98,.22),.065,w.materials.dark)
@@ -112,12 +121,8 @@ func _lookout() -> void:
  var glow:=w.lamp(Vector3(2.5,6.12,-4.9),Color("b3b18b"),.36,4.3);glow.light_volumetric_fog_energy=.05
  w.box(lookout,Vector3(2.5,6.24,-5.7),Vector3(.48,.11,.18),w.materials.dark)
 
-func _engraving(value: String,p: Vector3,size: float,angle: float) -> void:
- # Raster glyph outlines preserve the scratched handwriting without forcing
- # self-intersecting handwritten contours through TextMesh triangulation.
- var font: Font=load("res://assets/backstage-v270/Caveat.ttf")
- var cut:=w.text(lookout,value,p,size,Color("302c22"));cut.name="CarvedName";cut.font=font;cut.rotation.z=angle;carved.append(cut)
- var lip:=w.text(lookout,value,p+Vector3(.0015,-.002,-.0007),size,Color("aa9874"));lip.font=font;lip.rotation.z=angle
+func _engraving(value: String,p: Vector2,size: int,angle: float) -> void:
+ carved.append({"text":value,"p":p,"size":size,"angle":angle})
 
 func _east_landing() -> void:
  var tower:=w.playground.get_node("EastTower")
@@ -133,13 +138,17 @@ func _repaired_frame() -> void:
  # Flush the oversized deck rail below its surface. Formerly this tube was
  # proud of the padding and visually cut through the slide launch opening.
  for mesh in w.props.structure.get_children():
-  if mesh is MeshInstance3D and mesh.mesh is CylinderMesh and absf(mesh.position.y-2.25)<.01 and mesh.mesh.height>1:
-   mesh.position.y-=.14
+  if mesh is MeshInstance3D and mesh.mesh is CylinderMesh and mesh.mesh.height>1 and absf(mesh.basis.y.normalized().dot(Vector3.UP))<.01:
+   if absf(mesh.position.y-2.25)<.01 or absf(mesh.position.y-.3)<.01:mesh.position.y-=.16
  # Repairs are attached to existing posts and rendered in two instanced batches.
  var rng:=RandomNumberGenerator.new();rng.seed=3700712
  for branch: Node3D in [w.props.structure,w.playground.get_node("EastTower")]:
   for mesh in branch.get_children():
    if not mesh is MeshInstance3D or not mesh.mesh is CylinderMesh or mesh.mesh.height<4:continue
+   # Cylinder height also describes horizontal rails. Repair bands belong only
+   # to upright support columns, never to a rail's midpoint in empty space.
+   if absf(mesh.basis.y.normalized().dot(Vector3.UP))<.99:continue
+   repaired_post_count+=1
    for y in [.9,1.15,3.7]:
     var center:=branch.to_global(Vector3(mesh.position.x,y,mesh.position.z))
     var radius: float=.19 if branch==w.props.structure else .205

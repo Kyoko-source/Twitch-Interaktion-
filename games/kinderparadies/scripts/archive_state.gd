@@ -4,6 +4,7 @@ extends RefCounted
 const ORDER: Array[String]=["note","opening","missing","coverup","closure","casefile","patrol_hint"]
 const PAPERS: Array[String]=["opening","missing","coverup","closure"]
 static var catalog: Dictionary={}
+static var english_catalog: Dictionary={}
 var collected: Array[String]=[]
 var unlocked:=false
 var creator_access:=false
@@ -13,6 +14,9 @@ var film_found:=false
 
 static func document(id: String) -> Dictionary:
  if catalog.is_empty(): catalog=JSON.parse_string(FileAccess.get_file_as_string("res://assets/story/catalog.json"))
+ if AfterPlayLanguage.english():
+  if english_catalog.is_empty():english_catalog=JSON.parse_string(FileAccess.get_file_as_string("res://locales/story_en.json"))
+  return english_catalog.get(id,{})
  return catalog.get(id,{})
 
 static func is_newspaper_round(stage: int) -> bool:

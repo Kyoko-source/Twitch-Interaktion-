@@ -40,16 +40,20 @@ static func inventory(g: Node3D, selected: String="") -> void:
  else:
   g.archive_selected=current
   var doc:=ArchiveState.document(current)
-  if current in ArchiveState.PAPERS:
+  if current in ArchiveState.PAPERS and not AfterPlayLanguage.english():
    var scan:=TextureRect.new();scan.name="NewspaperScan";scan.texture=load("res://assets/story/"+current+".png");scan.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;scan.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;scan.custom_minimum_size.y=1180;scan.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(scan)
    article.add_child(g._label("LESEFASSUNG",15,Color("6e5a39")))
-  if current=="note":
+  if current=="note" and not AfterPlayLanguage.english():
    var handwritten:=TextureRect.new();handwritten.name="HandwrittenNote";handwritten.texture=load("res://assets/story/note.png");handwritten.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;handwritten.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;handwritten.custom_minimum_size.y=1100;handwritten.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(handwritten)
   else:
+   if AfterPlayLanguage.english() and current in ArchiveState.PAPERS:
+    var masthead: Label=g._label("THE CITY GAZETTE",54,Color("29271f"));masthead.add_theme_font_override("font",NightMenus.menu_font());article.add_child(masthead)
+    var photo:=TextureRect.new();photo.name="EnglishNewspaperPhoto";var atlas:=AtlasTexture.new();atlas.atlas=load("res://assets/story/archive-photos-v21.png");var index:=ArchiveState.PAPERS.find(current);var cell:=Vector2(atlas.atlas.get_width(),atlas.atlas.get_height())*.5;atlas.region=Rect2(Vector2(index%2,index/2)*cell,cell);photo.texture=atlas;photo.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;photo.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;photo.custom_minimum_size.y=310;photo.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(photo)
    var section: Label=g._label(doc.section,15,Color("6e5a39"));article.add_child(section)
    var headline: Label=g._label(doc.headline,39,Color("29271f"));headline.add_theme_font_override("font",g.title_font);headline.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;article.add_child(headline)
    var rule:=HSeparator.new();article.add_child(rule)
-   var body:=RichTextLabel.new();body.text=doc.body;body.fit_content=true;body.scroll_active=false;body.add_theme_color_override("default_color",Color("312e24"));body.add_theme_font_size_override("normal_font_size",23);body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(body)
+   var body:=RichTextLabel.new();body.name="NewspaperBody";body.text=doc.body;body.fit_content=true;body.scroll_active=false;body.add_theme_color_override("default_color",Color("312e24"));body.add_theme_font_size_override("normal_font_size",23);body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(body)
+   if current=="note":body.add_theme_font_override("normal_font",load("res://assets/backstage-v270/Caveat.ttf"));body.add_theme_font_size_override("normal_font_size",40)
    var footer: Label=g._paragraph(doc.footer,17);footer.custom_minimum_size.x=0;footer.add_theme_color_override("font_color",Color("716044"));article.add_child(footer)
  g._telemetry()
 
