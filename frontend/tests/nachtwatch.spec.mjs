@@ -23,6 +23,32 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.8.4 German renders again after English and both selections survive restart',async({page})=>{
+ test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));
+ await load(page);
+ const select=async(label,index)=>{
+  await clickControl(page,label);
+  const dropdown=(await state(page)).dropdown;expect(dropdown.items).toEqual(['Deutsch','English']);
+  await page.mouse.click(dropdown.position[0]+60,dropdown.position[1]+dropdown.size[1]*(index+.5)/2);
+ };
+ await clickControl(page,'Einstellungen');await clickControl(page,'Sprache');await select('Deutsch',1);
+ await expect.poll(async()=>(await state(page)).language).toBe('en');
+ await clickControl(page,'Back');
+ expect((await state(page)).controls.find(c=>c.text==='New night shift').rendered_text).toBe('New night shift');
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ expect((await state(page)).language).toBe('en');
+ await clickControl(page,'Settings');await clickControl(page,'Language');await select('English',0);
+ await expect.poll(async()=>(await state(page)).language).toBe('de');
+ expect((await state(page)).controls.find(c=>c.text==='Zurück').rendered_text).toBe('Zurück');
+ await clickControl(page,'Zurück');
+ expect((await state(page)).controls.find(c=>c.text==='Neue Nachtschicht').rendered_text).toBe('Neue Nachtschicht');
+ await page.screenshot({path:join(tmpdir(),'after-play-v384-web-german.png')});
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ expect((await state(page)).language).toBe('de');
+ expect((await state(page)).controls.find(c=>c.text==='Einstellungen').rendered_text).toBe('Einstellungen');
+ expect(faults).toEqual([]);
+});
+
 test('v3.8 English settings persist, sign reading works and speech has timed translated captions',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
  await load(page);await clickControl(page,'Einstellungen');await clickControl(page,'Sprache');

@@ -20,6 +20,9 @@ window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
+[internationalization]
+locale/fallback="de"
+
 [rendering]
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.web="gl_compatibility"

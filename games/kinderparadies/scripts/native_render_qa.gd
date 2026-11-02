@@ -6,6 +6,14 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--language-qa" in OS.get_cmdline_user_args():
+  for index in [1,0]:
+   game._settings("menu");NightMenus.settings(game,"Sprache")
+   var choice:=game.menu.find_child("LanguageChoice",true,false) as OptionButton
+   choice.item_selected.emit(index);game._main_menu()
+   await game.get_tree().create_timer(.3).timeout;await capture(game,output,"menu-en" if index==1 else "menu-de")
+  game._read_settings();game._main_menu()
+  await capture(game,output,"menu-de-reloaded");game._quit();return
  if "--wall-decay-qa" in OS.get_cmdline_user_args():
   await load("res://art-direction/wall_decay_capture.gd").new().run(game,output);game._quit();return
  if "--child-art-qa" in OS.get_cmdline_user_args():

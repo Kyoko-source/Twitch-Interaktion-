@@ -10,7 +10,7 @@ func run(g: Node3D,verify: Callable) -> void:
  g.settings.language="de";g._read_settings()
  verify.call(g.settings.language=="en","Language choice does not survive settings reload")
  var sample: Label=g._label("Einstellungen")
- verify.call(sample.text=="Settings","Shared UI still uses German in English mode");sample.free()
+ verify.call(sample.text=="Settings" and sample.tr(sample.text)=="Settings","Shared UI still uses German in English mode");sample.free()
  verify.call(AfterPlayLanguage.t("RUNDGANG 03 / 13")=="PATROL 03 / 13","Formatted patrol HUD is untranslated")
  verify.call(AfterPlayLanguage.t("E · Zeitung einsammeln")=="E · Collect Newspaper","Specific collection template loses to generic E template")
  verify.call(AfterPlayLanguage.t("E · Rote Tür – Anomalie")=="E · Red door – Anomaly","Door interaction is not translated recursively")
@@ -65,7 +65,20 @@ func run(g: Node3D,verify: Callable) -> void:
   blocker.queue_free()
   g.player.camera.rotate_y(PI)
   verify.call(g.captions.read_sign(g,center).is_empty(),"Sign translation ignores where the player is looking")
- AfterPlayLanguage.choose("de")
+ # Test the rendered translation too: Label.text alone hid the engine's former
+ # English fallback, even while the saved selection already said German.
+ g._settings("menu");NightMenus.settings(g,"Sprache")
+ choice=g.menu.find_child("LanguageChoice",true,false) as OptionButton
+ choice.item_selected.emit(0)
+ verify.call(g.settings.language=="de" and not AfterPlayLanguage.english(),"Selecting German does not apply immediately")
+ sample=g._label("Einstellungen")
+ verify.call(sample.text=="Einstellungen" and sample.tr(sample.text)=="Einstellungen","German labels are displayed in English through the engine fallback");sample.free()
+ verify.call(TranslationServer.translate("Einstellungen")=="Einstellungen","Engine translation ignores the selected German locale")
+ g.settings.language="en";AfterPlayLanguage.choose("en");g._read_settings()
+ verify.call(g.settings.language=="de" and not AfterPlayLanguage.english(),"German selection does not survive settings reload")
+ g._main_menu()
+ var start:=g.menu.find_child("MainMenuAction0",true,false) as Button
+ verify.call(start.text=="Neue Nachtschicht" and start.tr(start.text)=="Neue Nachtschicht","Main menu does not return to rendered German after leaving settings")
  verify.call(g.captions.line_at("intro",27).contains("rote Tür"),"German speech captions are missing")
  verify.call(AfterPlayLanguage.t("Einstellungen")=="Einstellungen","German UI was overwritten by English")
  g.settings=original;g._apply_settings();g._write_settings();g.player.active=false

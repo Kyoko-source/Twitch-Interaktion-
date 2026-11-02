@@ -855,7 +855,7 @@ func _telemetry() -> void:
   for node in menu.find_children("*","Control",true,false)+intro.overlay.find_children("*","Control",true,false):
    if node.is_visible_in_tree() and (node is Button or node is HSlider):
     var rect: Rect2=node.get_global_rect()
-    data.controls.append({"text":node.text if node is Button else str(node.get_meta("qa_label","")),"kind":"button" if node is Button else "slider","rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y]})
+    data.controls.append({"text":node.text if node is Button else str(node.get_meta("qa_label","")),"rendered_text":node.tr(node.text) if node is Button else "","kind":"button" if node is Button else "slider","rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y]})
     if node is OptionButton and node.get_popup().visible:
      var popup: PopupMenu=node.get_popup()
      data.dropdown={"position":[popup.position.x,popup.position.y],"size":[popup.size.x,popup.size.y],"items":range(popup.item_count).map(func(i):return popup.get_item_text(i)),"focused":popup.get_focused_item()}
