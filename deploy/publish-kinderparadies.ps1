@@ -2,13 +2,20 @@ param([string]$SshTarget='root@62.238.49.219',[string]$KeyPath=(Join-Path $env:U
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskBuild=Join-Path $taskRepo 'games/kinderparadies/build'
+$taskManifest=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $taskBuild 'release.json') | ConvertFrom-Json
+$taskVersion=[string]$taskManifest.version
+if($taskVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid release version'}
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
-foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm','after-play-windows-v3.8.0.zip','after-play-web-v3.8.0.zip','release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-$taskStage=Join-Path $taskBuild ('release-stage-v3.8.0-'+[Guid]::NewGuid().ToString('N'))
+foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm',"after-play-windows-v$taskVersion.zip","after-play-web-v$taskVersion.zip",'release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
+foreach($taskCheck in @(@("after-play-windows-v$taskVersion.zip",$taskManifest.windows_sha256),@("after-play-web-v$taskVersion.zip",$taskManifest.web_zip_sha256),@('browser-package/index.pck',$taskManifest.web_pck_sha256))){
+ if((Get-FileHash -LiteralPath (Join-Path $taskBuild $taskCheck[0]) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCheck[1]){throw "Release checksum mismatch: $($taskCheck[0])"}
+}
+if(-not [IO.File]::ReadAllText((Join-Path $taskRepo 'frontend/src/nachtwache/Nachtwache.jsx')).Contains("/downloads/after-play-windows-v$taskVersion.zip")){throw 'Website download link does not match the release'}
+$taskStage=Join-Path $taskBuild ("release-stage-v$taskVersion-"+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'web'),(Join-Path $taskStage 'downloads') | Out-Null
 Copy-Item -Path (Join-Path $taskBuild 'browser-package/*') -Destination (Join-Path $taskStage 'web') -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $taskBuild 'after-play-windows-v3.8.0.zip'),(Join-Path $taskBuild 'after-play-web-v3.8.0.zip'),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
+Copy-Item -LiteralPath (Join-Path $taskBuild "after-play-windows-v$taskVersion.zip"),(Join-Path $taskBuild "after-play-web-v$taskVersion.zip"),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
 foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p.mp4';'Happyland-Alter-Werbefilm.mp4'='after-play-happyland-werbefilm.mp4'}.GetEnumerator()){
  $taskMediaSource=Join-Path $taskBuild ('trailer/'+$taskMedia.Key)
  if(Test-Path -LiteralPath $taskMediaSource){Copy-Item -LiteralPath $taskMediaSource -Destination (Join-Path $taskStage ('downloads/'+$taskMedia.Value)) -Force}
@@ -22,31 +29,41 @@ $taskBundle=Join-Path $taskBuild 'publish.tgz'
 & tar -czf $taskBundle -C $taskStage .
 if($LASTEXITCODE -ne 0){throw 'Release archive failed'}
 $taskDigest=(Get-FileHash -LiteralPath $taskBundle -Algorithm SHA256).Hash.ToLowerInvariant()
-$taskRelease='v3.8.0-'+$taskDigest.Substring(0,12)
-& scp -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $taskBundle "${SshTarget}:/tmp/kinderparadies-$taskDigest.tgz"
-if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
+$taskRelease="v$taskVersion-"+$taskDigest.Substring(0,12)
+# Stream binary data directly into the isolated release directory. The server
+# needs room for the extracted release, without a second temporary archive.
+if($SshTarget -notmatch '^[a-zA-Z0-9_.-]+@[a-zA-Z0-9.-]+$' -or $KeyPath.Contains('"')){throw 'Invalid SSH arguments'}
+$taskReceive="set -eu; cd /opt/twitch-interaktion; mkdir -p game-releases/kinderparadies/releases/$taskRelease; tar -xzf - -C game-releases/kinderparadies/releases/$taskRelease; cd game-releases/kinderparadies/releases/$taskRelease; sha256sum -c SHA256SUMS"
+$taskInfo=New-Object Diagnostics.ProcessStartInfo
+$taskInfo.FileName=(Get-Command ssh -ErrorAction Stop).Source
+$taskInfo.Arguments='-i "'+$KeyPath+'" -o BatchMode=yes -o ConnectTimeout=12 '+$SshTarget+' "'+$taskReceive+'"'
+$taskInfo.UseShellExecute=$false
+$taskInfo.CreateNoWindow=$true
+$taskInfo.RedirectStandardInput=$true
+$taskProcess=[Diagnostics.Process]::Start($taskInfo)
+$taskInput=[IO.File]::OpenRead($taskBundle)
+try{$taskInput.CopyTo($taskProcess.StandardInput.BaseStream)}finally{$taskInput.Dispose();$taskProcess.StandardInput.Close()}
+$taskProcess.WaitForExit()
+if($taskProcess.ExitCode -ne 0){throw 'Release upload or checksum validation failed'}
 $taskRemote=@'
 set -eu
 cd /opt/twitch-interaktion
 test -z "$(git status --porcelain --untracked-files=no)"
-printf '%s  %s\n' '__DIGEST__' '/tmp/kinderparadies-__DIGEST__.tgz' | sha256sum -c -
-mkdir -p game-releases/kinderparadies/releases/__RELEASE__
-tar -xzf /tmp/kinderparadies-__DIGEST__.tgz -C game-releases/kinderparadies/releases/__RELEASE__
 (cd game-releases/kinderparadies/releases/__RELEASE__ && sha256sum -c SHA256SUMS)
 docker tag "$(docker inspect deploy-frontend-1 --format '{{.Image}}')" aviary-frontend:before-kinderparadies-__SHORT__
 sha256sum frontend/public/music/nullsignal/menu.mp3 frontend/public/music/nullsignal/ingame.mp3 > /tmp/kinderparadies-music-__SHORT__.sha256
 git pull --ff-only origin main
 test "$(git rev-parse HEAD)" = '__COMMIT__'
+docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env build frontend < /dev/null
 for item in web downloads; do
  test ! -e "game-releases/kinderparadies/$item" || test -L "game-releases/kinderparadies/$item"
  ln -sfn "releases/__RELEASE__/$item" "game-releases/kinderparadies/$item"
 done
-docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env build frontend < /dev/null
 docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env up -d --no-deps frontend < /dev/null
 curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://62.238.49.219/api/health
 curl -fsS --retry 8 --retry-delay 2 --retry-all-errors https://62.238.49.219/downloads/release.json
 sha256sum -c /tmp/kinderparadies-music-__SHORT__.sha256
-rm -f /tmp/kinderparadies-__DIGEST__.tgz /tmp/kinderparadies-music-__SHORT__.sha256
+rm -f /tmp/kinderparadies-music-__SHORT__.sha256
 printf '\nPublished native and web game: __RELEASE__\n'
 '@
 $taskRemote=$taskRemote.Replace('__DIGEST__',$taskDigest).Replace('__RELEASE__',$taskRelease).Replace('__COMMIT__',$taskCommit).Replace('__SHORT__',$taskCommit.Substring(0,7))

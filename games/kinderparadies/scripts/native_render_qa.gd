@@ -6,6 +6,12 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--wall-decay-qa" in OS.get_cmdline_user_args():
+  await load("res://art-direction/wall_decay_capture.gd").new().run(game,output);game._quit();return
+ if "--child-art-qa" in OS.get_cmdline_user_args():
+  await load("res://art-direction/child_art_capture.gd").new().run(game,output);game._quit();return
+ if "--chalk-qa" in OS.get_cmdline_user_args():
+  await load("res://art-direction/chalk_capture.gd").new().run(game,output);game._quit();return
  if "--itch-v380" in OS.get_cmdline_user_args():
   await load("res://art-direction/itch_v380_capture.gd").new().run(game,output);game._quit();return
  if "--v380-qa" in OS.get_cmdline_user_args():

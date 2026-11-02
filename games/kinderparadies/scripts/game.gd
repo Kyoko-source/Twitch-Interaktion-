@@ -8,6 +8,7 @@ var archive:=ArchiveState.new()
 var archive_selected:=""
 var inventory_back:="play"
 var archive_input:=""
+var chalk_drawing:=""
 var world: PlayWorld
 var player: NightGuard
 var phase := "menu"
@@ -93,11 +94,13 @@ func _build_world(anomaly: String) -> void:
  menu_reference_ready=false;world_build_count+=1
  if player: player.drop_prop()
  if world:
+  if world.chalk:chalk_drawing=world.chalk.serialize()
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();_connect_world(anomaly)
 
 func _connect_world(anomaly: String) -> void:
  world.set_anomaly(anomaly)
+ world.chalk.restore(chalk_drawing)
  _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.horse_hunt.resolved.connect(_horse_resolved)
@@ -115,7 +118,9 @@ func _build_world_responsive(anomaly: String,progress: Callable=Callable()) -> v
  world_loading=true;menu_reference_ready=false;world_build_count+=1;loading_progress=0
  player.drop_prop()
  var old:=world;world=null
- if is_instance_valid(old):_stop_scene_audio(old);remove_child(old);old.queue_free()
+ if is_instance_valid(old):
+  if old.chalk:chalk_drawing=old.chalk.serialize()
+  _stop_scene_audio(old);remove_child(old);old.queue_free()
  await get_tree().process_frame
  if revision!=world_revision:return
  var next:=PlayWorld.new();next.hide();add_child(next)
@@ -229,6 +234,8 @@ func _menu_jump() -> void:
 
 func _new_shift() -> void:
  secret_ending=false
+ chalk_drawing=""
+ if is_instance_valid(world) and world.chalk:world.chalk.restore("")
  archive.clear();archive_selected="";archive_input=""
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  if menu_reference_ready:
@@ -291,6 +298,8 @@ func _continue() -> void:
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
  has_session=true;_build_world("none" if state.completed else state.current)
+ chalk_drawing=str(data.get("chalk",""))
+ if not world.chalk.restore(chalk_drawing):chalk_drawing=""
  secret_ending=bool(data.get("secret_ending",false))
  world.backstage.restore(data.get("backstage",{}));world.horse_hunt.restore(data.get("horse_hunt",{}))
  world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
@@ -460,8 +469,9 @@ func _write_settings() -> void:
 
 func _save(next_round: bool=false) -> void:
  if not has_session or not is_instance_valid(world): return
+ if world.chalk:chalk_drawing=world.chalk.serialize()
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
  if weather:
@@ -520,6 +530,7 @@ func _process(delta: float) -> void:
   elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
   elif target=="life:photo": prompt.text="E · Alten Fotostreifen ansehen"
   elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
+  elif target=="chalk_board": prompt.text="E · Mit Kreide schreiben"
   elif target=="reception_cctv": prompt.text="E · Kontrollmonitor bedienen"
   elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
@@ -641,6 +652,8 @@ func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=AfterPlayLanguage.t(value);notice_time=seconds;notice.show()
 
 func _input(event: InputEvent) -> void:
+ if phase=="chalk" and event.is_action_pressed("pause"):
+  _close_chalk();get_viewport().set_input_as_handled();return
  if event.is_action_pressed("pause") and phase in ["inventory","code"]:
   if phase=="inventory": _archive_back()
   else: _resume()
@@ -688,12 +701,16 @@ func _unhandled_input(event: InputEvent) -> void:
   elif target=="archive_recording": world.archive.finale.interact()
   elif target=="life:photo": _show_booth_photo()
   elif target=="memory_wall": _show_memory_wall()
+  elif target=="chalk_board": world.chalk.open(self)
   elif target=="reception_cctv": _open_watch()
   elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
   elif target=="delivery_exit": world.backstage.interact_exit(player)
   elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
+
+func _close_chalk() -> void:
+ world.chalk.finish_stroke();_save();_resume()
 
 func _show_memory_wall() -> void:
  phase="help";return_phase="play"

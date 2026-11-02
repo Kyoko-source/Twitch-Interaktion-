@@ -118,7 +118,11 @@ func _cinema() -> void:
  # Acoustic panels fixed to the two side walls, not floating ceiling curtains.
  for z in [-22.36,-13.48]:
   for i in range(8):
+   # The framed birthday photograph occupies this part of the rear wall.
+   # Full-height absorbers used to cover its picture, leaving strips in the gaps.
+   if z< -20 and i in [3,4,5]:continue
    var panel:=w.box(root,Vector3(-5.75+i*1.1,1.72,z),Vector3(.92,2.12,.065),fabric)
+   panel.name="CinemaAcousticPanel";panel.set_meta("cinema_absorber",true)
    for side in [-1,1]: w.box(panel,Vector3(side*.45,0,.04),Vector3(.025,2.1,.025),w.materials.wood)
  for x in [-4.6,-2.6,-.6,1.4]:
   for z in [-18.18,-17.12]:

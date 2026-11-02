@@ -50,6 +50,9 @@ var acoustics: HappylandAcoustics
 var arrival_design: ArrivalDesign
 var craft: VenueCraft
 var climbing: ClimbingExpansion
+var chalk: ChalkBoard
+var child_art: ChildDrawings
+var wall_decay: WallDecay
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -183,7 +186,13 @@ func construction_steps() -> Array[Callable]:
   _module.bind(VenueCraft,"craft"),
   _module.bind(HappylandAcoustics,"acoustics"),
   _module.bind(HorseHunt,"horse_hunt"),
-  _module.bind(ClimbingExpansion,"climbing")]
+  _module.bind(ClimbingExpansion,"climbing"),
+  _chalk_board,
+  _module.bind(ChildDrawings,"child_art"),
+  _module.bind(WallDecay,"wall_decay")]
+
+func _chalk_board() -> void:
+ chalk=ChalkBoard.new();add_child(chalk);chalk.build(self)
 
 func build() -> void:
  for step in construction_steps():step.call()

@@ -8,6 +8,18 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--wall-decay-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/wall_decay_validation.gd").new().run(game,check)
+  print("Wall finish checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--child-art-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/child_art_validation.gd").new().run(game,check)
+  print("Child artwork checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--chalk-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/chalk_validation.gd").new().run(game,check)
+  print("Chalk/cinema checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--language-only" in OS.get_cmdline_user_args():
   await load("res://scripts/language_validation.gd").new().run(game,check)
   print("Language checks: ",checks,"; failures: ",failures.size())

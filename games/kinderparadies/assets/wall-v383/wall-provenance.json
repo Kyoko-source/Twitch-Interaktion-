@@ -1,0 +1,27 @@
+{
+  "source": "https://polyhaven.com/a/damaged_plaster",
+  "license": "CC0-1.0",
+  "license_url": "https://polyhaven.com/license",
+  "style_reference_only": "https://www.fab.com/listings/62579cbe-2670-4050-bd3b-4caf8a376a59",
+  "files": [
+    {
+      "name": "albedo.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_diff_2k.jpg",
+      "bytes": 3392885,
+      "sha256": "7bb34e3829bac09d9bc7d667998e7d02b19ffda50b8be3452f9edfdfedb3012f"
+    },
+    {
+      "name": "normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_nor_gl_2k.jpg",
+      "bytes": 3665302,
+      "sha256": "75ddabef98424d57d7b9ab44890532dba886e3f3fca10264b36de0640386d9ab"
+    },
+    {
+      "name": "roughness.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damaged_plaster/damaged_plaster_rough_1k.jpg",
+      "bytes": 421151,
+      "sha256": "595b9cc69e163687c27681f73fae4a34f5f82ecd70a1ce3867fc8026a0db76cb"
+    }
+  ],
+  "author": "Amal Kumar / Poly Haven"
+}

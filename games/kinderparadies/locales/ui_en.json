@@ -224,5 +224,16 @@
   "07 / WC-VORRAUM": "07 / TOILET LOBBY",
   "Spielball": "Toy ball",
   "Holzbaustein": "Wooden block",
-  "Spielzeug": "Toy"
+  "Spielzeug": "Toy",
+  "Kreidetafel": "Chalkboard",
+  "Linke Maustaste halten · Zeichnen. Deine Notizen bleiben im Spielstand erhalten.": "Hold the left mouse button to draw. Your notes are kept in your saved game.",
+  "Weiße Kreide": "White chalk",
+  "Rote Kreide": "Red chalk",
+  "Gelbe Kreide": "Yellow chalk",
+  "Blaue Kreide": "Blue chalk",
+  "Schwamm": "Eraser",
+  "Rückgängig": "Undo",
+  "Alles abwischen": "Wipe clean",
+  "Zurück zum Rundgang · ESC": "Return to patrol · ESC",
+  "E · Mit Kreide schreiben": "E · Write with chalk"
 }

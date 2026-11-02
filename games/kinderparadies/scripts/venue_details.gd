@@ -31,7 +31,8 @@ func _cinema() -> void:
  var root:=Node3D.new();root.name="CinemaShowHistory";root.position=ServiceAnnex.OFFSET;add_child(root)
  # Seat backs, cups and numbers follow the actual transformed seat nodes.
  var index:=0
- w.artwork(root,Vector3(-1.3,2.15,-22.39),Vector2(2.45,1.35),load("res://assets/reception-v2120/birthday-memories.png"),0,2)
+ var photo:=w.artwork(root,Vector3(-1.3,2.15,-22.39),Vector2(2.45,1.35),load("res://assets/reception-v2120/birthday-memories.png"),0,2)
+ photo.name="CinemaBirthdayPhotograph"
  text(root,"LETZTE VORSTELLUNG",Vector3(-1.3,2.99,-22.35),.17,Color("baa781"))
  text(root,"EIN TAG IM HAPPYLAND",Vector3(-1.3,1.32,-22.35),.10,Color("a29b83"))
  for seat in w.annex.get_children():
