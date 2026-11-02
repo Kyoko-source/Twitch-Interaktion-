@@ -177,7 +177,6 @@ func _maintenance_hall() -> void:
  for y in [4.1,4.28]:
   w.tube(root,Vector3(-9.91,y,-8.0),Vector3(-9.91,y,-2.9),.045,w.materials.rust)
   for z in [-7.8,-6.5,-4.3,-3]: w.tube(root,Vector3(-9.99,y,z),Vector3(-9.85,y,z),.015,w.materials.metal)
- w.artwork(root,Vector3(-9.975,2.0,-7.55),Vector2(.75,.7),load("res://assets/polish-v240/maintenance-board.png"),PI/2)
 
 func _collision_repairs() -> void:
  # Decorative imported cartons previously had no collision at all.

@@ -7,7 +7,7 @@ const ZONES := ["Empfang", "Bällebad", "Party Raum", "Wartungsgang", "Küche", 
 const ANOMALIES := [
  {"id":"wc_stall_watcher","name":"In der offenen WC-Kabine wartet eine verdrehte Gestalt und schnellt nach vorn.","zone":"Kinder-WC"},
  {"id":"wc_ceiling_guest","name":"Über dem Abfluss hängt ein Besucher kopfüber und fährt von der niedrigen WC-Decke herab.","zone":"Kinder-WC"},
- {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Empfang"},
+ {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Party Raum"},
  {"id":"throne_guest","name":"Auf dem Geburtstagsthron sitzt ein verdrehter Gast und schnellt dir entgegen.","zone":"Party Raum"},
  {"id":"costume_wakes","name":"Ein leer aufgehängtes Kostüm hebt den Kopf und schlägt nach vorn.","zone":"Party Raum"},
  {"id":"false_exit","name":"Die Garderobe am alten Haupteingang erscheint unversehrt und hell. Nach einem Lichtausfall ist sie verfallen; das Schild hat sich verändert.","zone":"Empfang"},

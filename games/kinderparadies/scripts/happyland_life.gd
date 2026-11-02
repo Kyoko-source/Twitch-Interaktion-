@@ -4,6 +4,7 @@ extends Node3D
 const ROOT:="res://assets/life-v2110/"
 const ENTRY:=Vector3(19.8,0,7.8)
 const PHOTO:=Vector3(12.69,.548,16.32)
+const SNACK_POS:=Vector3(12.0,.016,.71)
 var w: PlayWorld
 var bathroom: Node3D
 var booth: Node3D
@@ -54,11 +55,11 @@ func build(world: PlayWorld) -> void:
 func wall(pos: Vector3, size: Vector3, material: Material) -> void:
  var mesh:=w.box(bathroom,pos,size,material,true);mesh.set_meta("architecture_wall",true)
 
-func print_face(parent: Node3D, id: String, pos: Vector3, size: Vector2, yaw: float=0) -> void:
+func print_face(parent: Node3D, id: String, pos: Vector3, size: Vector2, yaw: float=0) -> MeshInstance3D:
  if id=="soap" or (id=="closed" and parent==bathroom):
   var face:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=size;face.mesh=quad;face.position=pos;face.rotation.y=yaw;face.material_override=w.mat(Color.WHITE,LifePrint.texture(self,id),.96);parent.add_child(face)
-  return
- w.artwork(parent,pos,size,LifePrint.texture(self,id),yaw)
+  return face
+ return w.artwork(parent,pos,size,LifePrint.texture(self,id),yaw)
 
 func _bathroom() -> void:
  bathroom=group("ChildrensWashroom")
@@ -176,7 +177,7 @@ func _booth() -> void:
  _fixture(Vector3(.25,2.17,-.23),Color("c9b58c"),.22,booth)
 
 func _snackbar() -> void:
- snack=group("ClosedHappylandSnackBar",Vector3(16.95,.016,16.24),PI)
+ snack=group("ClosedHappylandSnackBar",SNACK_POS,PI)
  snack.set_meta("furniture_volume",AABB(Vector3(-2.11,.02,-.64),Vector3(4.22,1.85,1.32)))
  var red:=w.mat(Color("70483d"),load("res://assets/paint.png"),.8)
  w.box(snack,Vector3(0,.61,0),Vector3(4.05,.64,1.14),red,true)
@@ -190,8 +191,14 @@ func _snackbar() -> void:
   w.box(snack,Vector3(x,.61,-.584),Vector3(1.10,.60,.03),red)
   for y in [.3,.75]: w.box(snack,Vector3(x-.48,y,-.61),Vector3(.04,.08,.035),steel)
  for x in [-1.15,-.40]: _slush(snack,Vector3(x,1.022,-.05),Color("753327") if x<-.8 else Color("52633d"))
- print_face(snack,"menu",Vector3(.12,2.43,-.73),Vector2(2.73,1.70))
- # Frame and menu backing are mounted against the existing south wall.
+ # The full-size menu occupies the adjacent wall, leaving the fresco visible.
+ var menu:=print_face(snack,"menu",Vector3(5.02,2.43,.96),Vector2(2.73,1.70),-PI/2);menu.name="PartySnackbarMenu"
+ # A small fixed service light keeps the moved countertop readable.
+ var cover:=w.mat(Color("c6b78e"),null,.71);cover.emission_enabled=true;cover.emission=Color("baa77b");cover.emission_energy_multiplier=.35
+ w.box(snack,Vector3(0,1.95,-.66),Vector3(1.55,.065,.13),steel)
+ w.box(snack,Vector3(0,1.91,-.64),Vector3(1.40,.018,.08),cover)
+ for x in [-.62,.62]:w.tube(snack,Vector3(x,1.95,-.76),Vector3(x,1.95,-.66),.012,steel)
+ var light:=SpotLight3D.new();light.name="SnackCounterServiceLight";light.position=Vector3(0,1.89,-.59);light.light_color=Color("cbb88c");light.light_energy=.65;light.spot_range=3.4;light.spot_angle=66;light.shadow_enabled=not OS.has_feature("web");snack.add_child(light);light.look_at(snack.to_global(Vector3(0,.95,.14)));lights.append(light)
  print_face(snack,"closed",Vector3(1.37,1.18,.64),Vector2(.93,.23))
  var cup:=SurfaceDetails.vessel(snack,Vector3(.85,1.024,.16),.19,.077,.05,.007,enamel,enamel,"MouldyDrinkCup")
  w.tube(cup,Vector3(0,.10,0),Vector3(0,.112,0),.059,w.mat(Color("263e29"),null,.96))
@@ -204,10 +211,10 @@ func _snackbar() -> void:
   var fry:=w.box(snack,Vector3(.44+fmod(i*.137,.97),.15+floori(i/9.)*.018,.55+fmod(i*.079,.23)),Vector3(.13,.019,.018),w.materials.gold);fry.rotation.y=i*1.41
  w.box(snack,Vector3(-1.72,1.065,.30),Vector3(.28,.07,.20),enamel)
  for i in range(4): w.box(snack,Vector3(-1.72,1.11+i*.012,.30),Vector3(.26,.008,.18),enamel)
- _puddle(self,Vector3(16.4,.020,15.20),Vector2(.75,.35),13)
+ _puddle(snack,Vector3(.55,.006,1.04),Vector2(.75,.35),13)
 
 func _slush(parent: Node3D, pos: Vector3, color: Color) -> void:
- var root:=Node3D.new();root.name="CrustedSlushMachine";root.position=pos;parent.add_child(root)
+ var root:=Node3D.new();root.name="CrustedSlushMachineCherry" if pos.x<-.8 else "CrustedSlushMachineLime";root.set_meta("slush_dispenser",true);root.position=pos;parent.add_child(root)
  w.box(root,Vector3(0,.145,0),Vector3(.61,.29,.53),steel)
  var glass:=w.mat(Color(.38,.47,.35,.19),null,.20);glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
  var tub:=SurfaceDetails.vessel(root,Vector3(0,.30,0),.42,.24,.21,.012,glass,glass,"SlushReservoir");tub.scale.z=.87
@@ -327,4 +334,4 @@ func quality(value: int) -> void:
  for light in lights: light.shadow_enabled=value>0 and not OS.has_feature("web")
 
 func snapshot() -> Dictionary:
- return {"clock":clock,"bathroom":true,"photo":ResourceLoader.exists(ROOT+"photostrip-v2.png"),"drips":drip_count,"compressors":compressor_count,"curtain":curtain.get_shader_parameter("clock"),"hum":photo_hum.playing,"paused":photo_hum.stream_paused,"puddles":puddles}
+ return {"clock":clock,"bathroom":true,"photo":ResourceLoader.exists(ROOT+"photostrip-v2.png"),"drips":drip_count,"compressors":compressor_count,"curtain":curtain.get_shader_parameter("clock"),"hum":photo_hum.playing,"paused":photo_hum.stream_paused,"puddles":puddles,"snack_position":[snack.global_position.x,snack.global_position.y,snack.global_position.z],"slush_machines":snack.get_children().filter(func(node):return node.get_meta("slush_dispenser",false)).size()}

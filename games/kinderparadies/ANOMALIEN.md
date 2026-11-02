@@ -1,6 +1,6 @@
-# Vorhandene Anomalien — After Play 2.12.1
+# Vorhandene Anomalien — After Play 3.5.5
 
-Stand: 26. Oktober 2026. Katalog aus `scripts/patrol.gd`.
+Stand: 2. November 2026. Katalog aus `scripts/patrol.gd`.
 
 64 Anomalien insgesamt. Neu in 2.12: `wc_stall_watcher` (Gestalt in der offenen WC-Kabine), `wc_ceiling_guest` (kopfüber hängender Besucher im WC) und `snackbar_visitor` (Angriff vor der Snackbar). 20 frühere Varianten wurden bereits ersetzt. Rundgang 1 sowie die Zeitungsrunden 3, 5, 8 und 11 sind garantiert normal. Die übrigen Rundgänge werden zufällig aus normalen Runden und dem Anomalie-Katalog gemischt. Es gibt keine feste Anomalie pro Rundennummer.
 
@@ -21,9 +21,7 @@ Alle vier Zeitungsrunden sind vollständig anomaliefrei, auch nach dem Einsammel
 und beim Laden. Dort ist die grüne Tür richtig. Die Sammlung bleibt innerhalb
 der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 
-## Empfang (15)
-
-- Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor. (`snackbar_visitor`)
+## Empfang (14)
 
 - Im alten Haupteingang erscheint die Garderobe unversehrt und hell. Nach einem Lichtausfall ist er verfallen; das Schild hat sich verändert. (`false_exit`)
 - Hinter dem Empfang schnellt ein Besucher hervor und stürmt auf dich zu. (`reception_counter_burst`)
@@ -55,8 +53,9 @@ der Schicht erhalten; bei Tod oder einer neuen Schicht beginnt sie von vorn.
 - Eine kriechende Gestalt bewegt sich hinter den Netzen im Klettergerüst. (`frame_stalker`)
 - Das Krokodil bäumt sich mit einem Knall auf und bleibt danach aufgerichtet. (`croc_snap`)
 
-## Party Raum (13)
+## Party Raum (14)
 
+- Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor. (`snackbar_visitor`)
 - Auf dem Geburtstagsthron sitzt ein verdrehter Gast und schnellt dir entgegen. (`throne_guest`)
 - Ein leer aufgehängtes Kostüm hebt den Kopf und schlägt nach vorn. (`costume_wakes`)
 - Neben dem großen Stoffhasen taucht ein Gast auf und schießt auf dich zu. (`party_mascot_guest`)

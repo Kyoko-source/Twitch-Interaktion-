@@ -23,6 +23,28 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.5.5 aged timber portal stays walkable and the complete snackbar occupies the party wall',async({page})=>{
+ test.setTimeout(180000);await begin(page);
+ await qa(page,{op:'warp',x:-7.9,z:-10,yaw:0,pitch:0});
+ await walk(page,'w',s=>s.position[2]<-15.2);await walk(page,'s',s=>s.position[2]>-10);
+ await qa(page,{op:'warp',x:-7.9,z:-8.9,yaw:0,pitch:.05});await page.waitForTimeout(700);
+ await page.screenshot({path:join(tmpdir(),'after-play-v355-web-timber-frame.png')});
+ const place=(await state(page)).life.snack_position;expect(place[0]).toBeCloseTo(12);expect(place[2]).toBeCloseTo(.71);
+ expect((await state(page)).life.slush_machines).toBe(2);expect((await state(page)).presentation.fresco[1]).toBeCloseTo(3.95);
+ await qa(page,{op:'warp',x:8.1,z:-6.2,yaw:Math.PI,pitch:0});await walk(page,'w',s=>s.position[2]>-.7);
+ await qa(page,{op:'warp',x:11,z:-1.2,yaw:Math.PI,pitch:0});
+ await page.keyboard.down('w');await page.waitForTimeout(850);await page.keyboard.up('w');
+ expect((await state(page)).position[2]).toBeLessThan(-.12);
+ await qa(page,{op:'warp',x:12,z:-3.5,yaw:Math.PI,pitch:.1});await page.waitForTimeout(700);
+ await page.screenshot({path:join(tmpdir(),'after-play-v355-web-party-snackbar.png')});
+ for(const encounter of [{id:'snackbar_visitor',x:12,z:-2.85},{id:'party_portrait',x:9.3,z:-2.15}]){
+  await qa(page,{op:'anomaly',id:encounter.id});await qa(page,{op:'warp',...encounter,y:.03,yaw:Math.PI,pitch:0});
+  await expect.poll(async()=>(await state(page)).terrors.triggered,{timeout:15000}).toBe(true);
+ }
+ await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'audit'});
+ const layout=(await state(page)).layout;expect(layout.door_obstructions).toEqual([]);expect(layout.art_overlaps).toEqual([]);expect(layout.furniture_wall_intrusions).toEqual([]);
+});
+
 test('v3.5.3 boarded window preserves a viewing slit and weather plays audible spaced thunder',async({page})=>{
  test.setTimeout(180000);await begin(page);
  await qa(page,{op:'warp',x:-8,z:1.7});
@@ -247,7 +269,7 @@ test('v3.5.4 reception entrance and staff side remain walkable; CCTV and physica
  expect((await state(page)).ball_pit.count).toBe(360);await page.screenshot({path:join(tmpdir(),'after-play-v2120-web-ball-physics.png')});
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect((await state(page)).ball_pit.running).toBe(false);
  await clickControl(page,'Rundgang fortsetzen');await expect.poll(async()=>(await state(page)).ball_pit.running).toBe(true);
- for(const encounter of [{id:'wc_stall_watcher',x:23.5,z:7,yaw:Math.PI,pitch:0},{id:'wc_ceiling_guest',x:22.4,z:7.1,yaw:-Math.PI/2,pitch:-.12},{id:'snackbar_visitor',x:17.2,z:11.9,yaw:Math.PI,pitch:0}]){
+ for(const encounter of [{id:'wc_stall_watcher',x:23.5,z:7,yaw:Math.PI,pitch:0},{id:'wc_ceiling_guest',x:22.4,z:7.1,yaw:-Math.PI/2,pitch:-.12},{id:'snackbar_visitor',x:12,z:-2.85,yaw:Math.PI,pitch:0}]){
   await qa(page,{op:'anomaly',id:encounter.id});await qa(page,{op:'warp',...encounter,y:.03});
   await expect.poll(async()=>(await state(page)).terrors.triggered,{timeout:12000}).toBe(true);
  }
@@ -349,8 +371,8 @@ test('standalone 16:9 stays proportional at 4:3 and 16:10; the fresco and its vi
  await page.setViewportSize({width:1920,height:1080});await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
  const fresco=(await state(page)).presentation.fresco;expect(fresco[0]).toBeCloseTo(12.0);expect(fresco[2]).toBeCloseTo(1.485);
  await qa(page,{op:'warp',x:12.0,z:-4.4,yaw:Math.PI,pitch:.18});await page.waitForTimeout(600);await page.screenshot({path:join(tmpdir(),'after-play-v230-web-right-wall.png')});
- await qa(page,{op:'anomaly',id:'party_portrait'});await qa(page,{op:'warp',x:12.0,z:-1.5,yaw:Math.PI,pitch:0});
- await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.position[0]).toBeGreaterThan(10.5);expect((await state(page)).terrors.position[2]).toBeLessThan(1.485);
+ await qa(page,{op:'anomaly',id:'party_portrait'});await qa(page,{op:'warp',x:9.3,z:-2.15,yaw:Math.PI,pitch:0});
+ await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);expect((await state(page)).terrors.position[0]).toBeGreaterThan(8.5);expect((await state(page)).terrors.position[2]).toBeLessThan(1.485);
 });
 
 test('actual WASD patrol visits all areas, collides with floor, operates flashlight, pauses and chooses the real green door',async({page})=>{

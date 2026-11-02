@@ -1,5 +1,43 @@
 # After Play — Kinderparadies
 
+## Alter Holzrahmen und Snackbar im Partyraum (3.5.5)
+
+Der Zugang zum Küche/Kino-Flur erhält einen vollständigen alten Holzrahmen:
+tiefe Futterbretter, beidseitige profilierte Bekleidungen, Sockel, Eckstücke,
+Nagelköpfe und eine teilweise fehlende Zierleiste. Der eigene Holzshader bildet
+längs laufende Maserung, abblätternde Beschichtung, feine Spalten und dunkle
+Feuchtigkeit am Fuß ab. Drei einfache Kernkollisionen lassen den Flur frei.
+Das markierte Technischer-Dienst-Schild neben dem Wartungsraum ist entfernt;
+die separate Tafel innerhalb der Werkstatt bleibt erhalten.
+
+Die komplette Snackbar steht an der markierten Wand im Partyraum. Das große
+Wandbild hängt 1,10 m höher, sodass beide Slush-Maschinen darunter frei stehen.
+Die Speisekarte hängt ohne Verkleinerung an der angrenzenden Wand. Ein kleiner,
+wandbefestigter Servicestrahler beleuchtet die Arbeitsfläche. Becher, Geschirr,
+alte Pommes und die kleine Wasserstelle folgen der Snackbar an den neuen Ort.
+Beide Slush-Geräte haben jetzt eindeutige Namen und eine gemeinsame Kennzeichnung;
+damit erhält auch das zweite Gerät die vorgesehenen Lüftungsschlitze und Ablagen.
+
+Der Snackbar-Besucher zählt zum Partyraum. Sein Anker und der Besucher unter dem
+Clownfresko wurden von den neuen Möbeln freigehalten; Sammlung, Rundenauswahl und
+Enden bleiben im bestehenden Ablauf. Die Kollisionsgrenzen für gespeicherte
+Spielstände folgen der versetzten Snackbar.
+
+66 native Checks bestehen: Szenenumbau 20, Eingang/geheimes Ende 22 und
+Start/Credits 24. Sie durchlaufen den Holzrahmen in beide Richtungen, den Zugang
+zum Partyraum und den Weg neben den Tischen, prüfen die reale Thekenkollision,
+Speisekarte, beide Maschinen sowie Kollisionen und Sichtauslöser der zwei
+versetzten Anomalien. Sechs native Aufnahmen bei 1920 × 1080 zeigen Rahmen,
+Snackbar, Speisekarte, entfernte Tafel und die freigewordene Stelle im Hauptsaal.
+Der Platzierungsbericht meldet keine Tür-, Bild- oder Möbelüberschneidungen.
+Der Edge/Playwright-Test bestätigt den Durchgang in beide Richtungen, die neue
+Snackbarposition samt beiden Geräten, den freien Weg neben den Tischen und die
+Thekenkollision. Beide versetzten Anomalien werden mit ihren echten Sichtauslösern
+aktiviert; keine Konsolen- oder Shaderfehler. Windows- und Web-Pakete bestehen
+Dateilisten-, Hash-, Lizenz- und Startprüfung. Der itch.io-Upload wurde lokal
+geprüft; es wurde nichts zu itch.io hochgeladen.
+Private Prüfungen: --self-test --scenery-only und --render-qa --v355-qa.
+
 ## Empfang am Haupteingang (3.5.4)
 
 Der Empfangstresen steht um 90 Grad gedreht neben dem Haupteingang, mit seiner

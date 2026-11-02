@@ -50,7 +50,7 @@ static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
   WrappedPresent.build(w,unit,Vector3(-.22+k*.35,.96+(.04 if k%2 else 0),.02),Vector3(.28,.24+(.08 if k%2 else 0),.32),k)
 
  # Wall board and pennants share a mounting rail, not empty air.
- var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(12.0,2.85,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
+ var fresco:=Node3D.new();fresco.name="TheFourEmptyChairs";fresco.position=Vector3(12.0,3.95,1.485);fresco.rotation.y=PI;parent.add_child(fresco)
  var painting:=MeshInstance3D.new();var canvas:=QuadMesh.new();canvas.size=Vector2(7.6,3.8);painting.mesh=canvas
  var paint:=w.mat(Color("c6beaa"),load("res://assets/creatures/party-fresco-v21.png"),.99)
  paint.normal_enabled=true;paint.normal_texture=w.atmosphere.micro_normal;paint.normal_scale=.16;painting.material_override=paint;fresco.add_child(painting)

@@ -5,7 +5,7 @@ extends Node3D
 const SCENARIOS:={
  "wc_stall_watcher":{"p":Vector3(23.5,.02,8.85),"mode":"peek","zone":"Kinder-WC","sound":"gasp-snap"},
  "wc_ceiling_guest":{"p":Vector3(24.0,3.03,7.15),"mode":"ceiling","zone":"Kinder-WC","ceiling":3.11,"sound":"metal-shriek"},
- "snackbar_visitor":{"p":Vector3(17.2,.02,14.8),"mode":"ambush","zone":"Empfang","sound":"ragged-scream"},
+ "snackbar_visitor":{"p":Vector3(12.0,.02,-1.05),"mode":"ambush","zone":"Party Raum","sound":"ragged-scream"},
  "throne_guest":{"p":Vector3(13.4,.20,-10.97),"mode":"throne","zone":"Party Raum","sound":"crowd-burst"},
  "reception_counter_burst":{"p":Vector3(-7.25,0,6.35),"mode":"ambush","zone":"Empfang","sound":"gasp-snap"},
  "reception_overhead":{"p":Vector3(-4.8,3.2,6.7),"mode":"drop","zone":"Empfang","sound":"metal-shriek"},
@@ -26,7 +26,7 @@ const SCENARIOS:={
  "pit_hands":{"p":Vector3(3.6,.3,7.1),"mode":"hands","zone":"Bällebad"},
  "frame_stalker":{"p":Vector3(2.0,.31,2.2),"mode":"crawl","zone":"Bällebad"},
  "slide_crawler":{"p":Vector3(3.7,0,10.9),"mode":"crawl","zone":"Bällebad"},
- "party_portrait":{"p":Vector3(12.0,0,.65),"mode":"pursuit","zone":"Party Raum"},
+ "party_portrait":{"p":Vector3(9.3,0,-.35),"mode":"pursuit","zone":"Party Raum"},
  "party_guests":{"p":Vector3(12.4,.02,-5.5),"mode":"queue","zone":"Party Raum"},
  "cake_mouth":{"p":Vector3(10.2,.87,-7.0),"mode":"mouth","zone":"Party Raum"},
  "corridor_crossing":{"p":Vector3(-6.1,0,-6.6),"mode":"crossing","zone":"Wartungsgang"},

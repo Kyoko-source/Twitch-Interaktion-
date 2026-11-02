@@ -69,6 +69,8 @@ func _entrance() -> void:
 
 func _annex() -> void:
  var root:=Node3D.new();root.name="RememberedHappylandCorridor";add_child(root)
+ var frame:=AgedArchway.new();root.add_child(frame);frame.build(w)
+ for mesh in frame.solids:obstacles.append(mesh.global_transform*mesh.get_aabb())
  for mesh in w.annex.get_children():
   if mesh is MeshInstance3D and absf(mesh.position.x+7.9)<.02 and mesh.position.y>3.3 and mesh.position.y<3.56:mesh.hide()
  var green:=w.revamp.paint(Color("435e53"),.12,.67)
@@ -152,7 +154,7 @@ func _materials() -> void:
 func _snackbar() -> void:
  # Real fluted motor vents, tray lips and fasteners on the two dispensers.
  for machine in w.life.snack.get_children():
-  if not str(machine.name).begins_with("CrustedSlushMachine"):continue
+  if not machine.get_meta("slush_dispenser",false):continue
   for i in range(8):box(machine,Vector3(-.20+i*.057,.15,.269),Vector3(.023,.11,.008),w.materials.dark)
   for x in [-.255,.255]:w.tube(machine,Vector3(x,.25,.272),Vector3(x,.25,.279),.007,w.materials.metal)
   for x in [-.16,.16]:box(machine,Vector3(x,.016,.40),Vector3(.012,.023,.18),w.materials.metal)
