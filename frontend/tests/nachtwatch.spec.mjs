@@ -151,6 +151,21 @@ test('v3.8 English settings persist, sign reading works and speech has timed tra
  await expect.poll(async()=>(await state(page)).captions.sign,{timeout:8000}).toBe('hours');
  expect((await state(page)).captions.text).toContain('10:00');expect((await state(page)).captions.text).toContain('STEP RIGHT IN');
  await page.screenshot({path:join(tmpdir(),'after-play-v380-web-english-sign.png')});
+ // The saved sign preference stays enabled; German must suppress the overlay
+ // independently and switching back must rescan the same physical poster.
+ const selectLanguage=async(english)=>{
+  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+  await clickControl(page,english?'Einstellungen':'Settings');await clickControl(page,english?'Sprache':'Language');
+  await clickControl(page,english?'Deutsch':'English');const menu=(await state(page)).dropdown;
+  await page.mouse.click(menu.position[0]+60,menu.position[1]+menu.size[1]*(english?.75:.25));
+  await expect.poll(async()=>(await state(page)).language).toBe(english?'en':'de');
+  await clickControl(page,english?'Back':'Zurück');await clickControl(page,english?'Resume patrol':'Rundgang fortsetzen');
+  await page.mouse.click(960,540);await page.waitForTimeout(100);await qa(page,{op:'look',yaw:Math.PI/2,pitch:.245});
+ };
+ await selectLanguage(false);expect((await state(page)).settings.sign_subtitles).toBe(true);
+ await expect.poll(async()=>(await state(page)).captions.visible).toBe(false);
+ await page.screenshot({path:join(tmpdir(),'after-play-v389-web-german-sign.png')});
+ await selectLanguage(true);await expect.poll(async()=>(await state(page)).captions.sign).toBe('hours');
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  await clickControl(page,'Settings');await clickControl(page,'Language');
  await clickControl(page,'Speech subtitles');expect((await state(page)).settings.subtitles).toBe(false);

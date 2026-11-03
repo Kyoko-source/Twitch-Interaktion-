@@ -47,7 +47,7 @@ func tick(delta: float,g: Node3D) -> void:
    show_line("[Children laughing]" if g.world.soundscape.last_voice=="children-laugh.ogg" else "[Children crying]" if AfterPlayLanguage.english() else "[Kinder weinen]","ambient")
    if not AfterPlayLanguage.english() and g.world.soundscape.last_voice=="children-laugh.ogg":show_line("[Kinder lachen]","ambient")
    return
- if g.phase!="play" or not bool(g.settings.sign_subtitles):
+ if g.phase!="play" or not bool(g.settings.sign_subtitles) or not AfterPlayLanguage.english():
   cached_sign="";scan_clock=0;clear();return
  scan_clock-=delta
  if scan_clock<=0:

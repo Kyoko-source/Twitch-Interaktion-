@@ -59,6 +59,14 @@ func run(g: Node3D,verify: Callable) -> void:
   await g.get_tree().physics_frame;await g.get_tree().physics_frame
   var center: Vector2=g.player.camera.get_viewport().get_visible_rect().size*.5
   verify.call(not g.captions.read_sign(g,center).is_empty(),"Looking at a physical sign shows no English translation")
+  # Headless displays do not capture a real mouse. Seed the cache from the
+  # actual centre-ray hit, then verify the language change clears that hit.
+  g.captions.cached_sign=g.captions.read_sign(g,center);g.captions.scan_clock=1;g.captions.tick(0,g)
+  verify.call(g.captions.panel.visible and g.captions.source=="sign","English sign overlay does not appear")
+  AfterPlayLanguage.choose("de");g.captions.tick(0,g)
+  verify.call(not g.captions.panel.visible and g.captions.cached_sign.is_empty() and g.captions.sign_id.is_empty(),"English sign translation remains cached after switching to German")
+  AfterPlayLanguage.choose("en")
+  verify.call(not g.captions.read_sign(g,center).is_empty(),"Sign translation does not return after switching back to English")
   var blocker: MeshInstance3D=g.world.box(g.world,sign.global_position+sign.global_basis.z*.7,Vector3(.7,1,.7),g.world.materials.dark,true)
   await g.get_tree().physics_frame;await g.get_tree().physics_frame
   verify.call(g.captions.read_sign(g,center).is_empty(),"Sign translation is visible through an obstruction")

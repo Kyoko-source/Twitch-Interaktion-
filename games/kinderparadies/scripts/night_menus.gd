@@ -34,7 +34,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v3.8.8",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v3.8.9",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -57,7 +57,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    toggle(g,column,"Untertitel für Sprache","subtitles")
    toggle(g,column,"Englische Schildübersetzungen","sign_subtitles")
    column.add_child(g._paragraph("Die gesprochenen Aufnahmen erhalten Untertitel in deiner gewählten Sprache. Sie folgen Pause und Fortsetzen.",18))
-   column.add_child(g._paragraph("Sieh ein Schild mit dem Fadenkreuz an. Seine englische Übersetzung erscheint unten im Bild.",18))
+   column.add_child(g._paragraph("Bei englischer Spielsprache erscheint die Übersetzung unten im Bild, wenn du ein Schild ansiehst.",18))
   "Bild":
    slider(g,column,"Helligkeit","brightness",.7,1.8,.05)
    slider(g,column,"Sichtfeld","fov",65,100,1,"°")
