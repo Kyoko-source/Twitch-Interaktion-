@@ -59,11 +59,14 @@ var world_loading:=false
 var world_revision:=0
 var loading_progress:=0.0
 var world_build_count:=0
+var start_warning: AfterPlayStartWarning
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
  if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings()
+ var show_warning:=not (AUTHOR_TOOLS and ("--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args()))
+ if show_warning:AudioServer.set_bus_mute(0,true)
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose();menu_reference_ready=true
  _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
@@ -72,9 +75,15 @@ func _ready() -> void:
  menu_camera=Camera3D.new();menu_camera.fov=66;menu_camera.near=.06;menu_camera.far=70;add_child(menu_camera)
  menu_light=SpotLight3D.new();menu_light.light_color=Color("c8ba95");menu_light.light_energy=2.0;menu_light.spot_range=22;menu_light.spot_angle=42;menu_light.spot_angle_attenuation=1.5;menu_light.position=Vector3(0,.5,0);menu_camera.add_child(menu_light)
  menu_scare=DoorFailure.new();menu_camera.add_child(menu_scare)
- _apply_settings();_main_menu()
+ _apply_settings()
  get_tree().auto_accept_quit=false
  if OS.has_feature("qa"): _install_qa()
+ if show_warning:
+  phase="warning";menu.hide();hud.hide();world.hide();player.release();menu_camera.current=true;player.lamp.hide();world.atmosphere.set_active(false)
+  start_warning=AfterPlayStartWarning.new();add_child(start_warning);start_warning.build(self);_telemetry()
+  await start_warning.acknowledged
+  start_warning.queue_free();start_warning=null;world.show();AudioServer.set_bus_mute(0,false);_apply_settings()
+ _main_menu()
  if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
  if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
 
@@ -817,6 +826,8 @@ func _telemetry() -> void:
   data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
   data.anomaly=state.current;data.controls=[]
   data.completed=state.completed
+  data.startup=start_warning.snapshot() if is_instance_valid(start_warning) else {"visible":false}
+  if is_instance_valid(start_warning):data.controls=data.startup.controls
   data.instructions=[]
   if phase=="help":
    for line in menu.find_children("*","Label",true,false): data.instructions.append(line.text)

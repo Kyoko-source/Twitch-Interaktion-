@@ -8,7 +8,7 @@ config/custom_user_dir_name.web="godot/app_userdata/NACHTWACHE - Kinderparadies"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/description="Dreizehn Rundgaenge durch ein verlassenes Kinderparadies."
-config/icon="res://assets/icon.png"
+config/icon="res://assets/branding-v386/after-play-icon.png"
 boot_splash/show_image=false
 boot_splash/bg_color=Color(0.025,0.04,0.045,1)
 

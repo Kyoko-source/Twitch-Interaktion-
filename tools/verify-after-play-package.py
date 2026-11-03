@@ -23,6 +23,44 @@ def packed_paths(data, start=0):
         cursor += length + 36
     return names
 
+def verify_windows_icon(exe):
+    # Inspect the real PE resources; a PNG in the PCK alone does not change
+    # Explorer's executable icon. Godot embeds these six standard sizes.
+    pe = struct.unpack_from('<I', exe, 60)[0]
+    optional = pe + 24
+    sections = optional + struct.unpack_from('<H', exe, pe + 20)[0]
+    def offset(rva):
+        for i in range(struct.unpack_from('<H', exe, pe + 6)[0]):
+            size, base, raw_size, pointer = struct.unpack_from('<IIII', exe, sections + 40*i + 8)
+            if base <= rva < base + max(size, raw_size):
+                return pointer + rva - base
+        raise AssertionError('PE resource RVA is outside sections')
+    root = offset(struct.unpack_from('<I', exe, optional + 128)[0])
+    def entries(at):
+        count = sum(struct.unpack_from('<HH', exe, at + 12))
+        return dict(struct.unpack_from('<II', exe, at + 16 + 8*i) for i in range(count))
+    def child(at, key):
+        return root + (entries(at)[key] & 0x7fffffff)
+    def resource(kind, ident=None):
+        at = child(root, kind)
+        at = child(at, next(iter(entries(at))) if ident is None else ident)
+        at = child(at, next(iter(entries(at))))
+        rva, size = struct.unpack_from('<II', exe, at)
+        return exe[offset(rva):offset(rva) + size]
+    ico = (ROOT / 'games/kinderparadies/assets/branding-v386/after-play-icon.ico').read_bytes()
+    originals = {}
+    for i in range(struct.unpack_from('<H', ico, 4)[0]):
+        size, start = struct.unpack_from('<II', ico, 14 + 16*i)
+        originals[ico[6 + 16*i] or 256] = ico[start:start + size]
+    group = resource(14)
+    sizes = set()
+    for i in range(struct.unpack_from('<H', group, 4)[0]):
+        size = group[6 + 14*i] or 256
+        ident = struct.unpack_from('<H', group, 18 + 14*i)[0]
+        assert resource(3, ident) == originals[size], size
+        sizes.add(size)
+    assert sizes == {16, 32, 48, 64, 128, 256}, sizes
+
 manifest = json.loads((BUILD / 'release.json').read_text('utf-8-sig'))
 version = manifest['version']
 assert manifest['packaging_revision'] == 2
@@ -47,6 +85,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
         if platform == 'windows':
             assert z.read('AfterPlay.exe') == (BUILD / 'windows/AfterPlay.exe').read_bytes()
             executable = z.read('AfterPlay.exe')
+            verify_windows_icon(executable)
             start = len(executable) - 12 - struct.unpack_from('<Q', executable, len(executable) - 12)[0]
             native_names = packed_paths(executable, start)
             assert any(b'assets/party-v385/party.mp3' in name for name in native_names)
@@ -56,6 +95,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
         else:
             html = z.read('index.html').decode('utf-8')
             assert '<html lang="de">' in html and 'aria-label="After Play 3D-Spiel"' in html
+            assert 'href="index.png"' in html
             assert len(names) < 1000
             assert sum(i.file_size for i in z.infolist()) < 500 * 1024**2
             assert max(i.file_size for i in z.infolist()) < 200 * 1024**2
@@ -74,6 +114,8 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             for private in [b'scripts/language_validation.gd', b'art-direction/trailer_v380.gd', b'art-direction/itch_v380_capture.gd', b'override.cfg', b'scripts/horse_catch_validation.gd', b'art-direction/v361_capture.gd']:
                 assert not any(private in name for name in packed_names), private
             for required in [b'scripts/chalk_board.gd', b'scripts/child_drawings.gd', b'scripts/wall_decay.gd', b'assets/child-art-v382/crayon-atlas.png.import', b'assets/wall-v383/broken-plaster.gdshader', b'assets/wall-v383/web/albedo.jpg.import', b'assets/wall-v383/web/normal.jpg.import', b'assets/wall-v383/web/roughness.jpg.import']:
+                assert any(required in name for name in packed_names), required
+            for required in [b'scripts/start_warning.gd', b'assets/branding-v386/after-play-icon.png.import']:
                 assert any(required in name for name in packed_names), required
             assert not any(b'assets/wall-v383/desktop/' in name for name in packed_names)
             for required in [b'scripts/party_mode.gd', b'assets/party-v385/party-web.ogg', b'assets/party-v385/track_cues.gd', b'assets/croc-v385/crocodile.glb']:

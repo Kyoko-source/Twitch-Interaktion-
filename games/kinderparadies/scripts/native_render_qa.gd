@@ -6,6 +6,11 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--warning-v386-qa" in OS.get_cmdline_user_args():
+  var warning:=AfterPlayStartWarning.new();game.add_child(warning);warning.build(game)
+  AfterPlayLanguage.choose("de");await capture(game,output,"start-warning-de")
+  AfterPlayLanguage.choose("en");warning.language.selected=1;await capture(game,output,"start-warning-en")
+  warning.queue_free();game._quit();return
  if "--update-v385-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()

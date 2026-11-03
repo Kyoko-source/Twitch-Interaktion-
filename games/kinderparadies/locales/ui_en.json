@@ -246,5 +246,12 @@
   "E · Partymodus ausschalten": "E · Disable party mode",
   "Partymodus eingeschaltet.": "Party mode enabled.",
   "Partymodus ausgeschaltet.": "Party mode disabled.",
-  "Stroboskop-Effekte": "Strobe effects"
+  "Stroboskop-Effekte": "Strobe effects",
+  "BEVOR DEINE SCHICHT BEGINNT": "BEFORE YOUR SHIFT BEGINS",
+  "Dieses Spiel enthält Lichtblitze, schnelle Lichtwechsel und Stroboskopeffekte sowie plötzliche laute Geräusche, Jumpscares und verstörende Bilder.": "This game contains flashing lights, rapid lighting changes and strobe effects, as well as sudden loud noises, jumpscares and disturbing imagery.",
+  "Lichtblitze können bei lichtempfindlichen Personen epileptische Anfälle auslösen. Beende das Spiel, wenn du dich unwohl fühlst.": "Flashing lights can trigger seizures in photosensitive people. Stop playing if you feel unwell.",
+  "Stroboskopeffekte kannst du hier und unter Einstellungen → Bild ausschalten. Andere Lichtwechsel und Schreckeffekte bleiben enthalten.": "You can disable strobe effects here and in Settings → Display. Other lighting changes and scares remain.",
+  "Außerdem: erschreckend schlechte Jumpscares.\nFür verschüttete Getränke übernimmt Kyoko keine Verantwortung.": "Also: terrifyingly terrible jumpscares.\nKyoko accepts no responsibility for spilled drinks.",
+  "Stroboskopeffekte aktivieren": "Enable strobe effects",
+  "Verstanden · Weiter": "Understood · Continue"
 }

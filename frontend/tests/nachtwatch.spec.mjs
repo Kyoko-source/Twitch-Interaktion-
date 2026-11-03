@@ -10,7 +10,8 @@ const state=page=>page.evaluate(()=>{window.nachtwacheQA?.(JSON.stringify({op:'s
 async function skipIntro(page,loadingTimeout=30000){await expect.poll(async()=>(await state(page)).phase,{timeout:loadingTimeout}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
 async function qa(page,command){await page.evaluate(command=>window.nachtwacheQA(JSON.stringify(command)),command);if(command.op==='new')await skipIntro(page);}
 async function clickControl(page,text){const control=(await state(page)).controls.find(c=>c.text===text);expect(control).toBeTruthy();const [x,y,w,h]=control.rect;await page.mouse.move(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.mouse.click(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
-async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu'&&typeof window.nachtwacheQA==='function',{timeout:45000});const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);expect(exported.presentation.logical_size).toEqual([1920,1080]);}
+async function waitForMenu(page){await page.waitForFunction(()=>['warning','menu'].includes(window.nachtwacheStatus?.phase)&&typeof window.nachtwacheQA==='function',null,{timeout:60000});if((await state(page)).phase==='warning')await clickControl(page,'Verstanden · Weiter');await expect.poll(async()=>(await state(page)).phase).toBe('menu');}
+async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await waitForMenu(page);const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);expect(exported.presentation.logical_size).toEqual([1920,1080]);}
 async function begin(page){await load(page);await clickControl(page,'Neue Nachtschicht');await skipIntro(page);await expect.poll(async()=>(await state(page)).phase).toBe('play');}
 async function doorTrip(page,red,{wrong=false}={}){
  await qa(page,{op:'warp',x:red?-2.15:-4.3,z:-10.5,yaw:0,pitch:0});
@@ -22,6 +23,27 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // QA teleports expose cold materials immediately; allow first-use shader compilation
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
+
+test('v3.8.6 warning blocks the menu, switches language and remembers disabled strobe',async({page})=>{
+ test.setTimeout(180000);await page.goto(URL);await expect(page).toHaveTitle('After Play');
+ await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='warning',null,{timeout:60000});
+ expect((await state(page)).startup.visible).toBe(true);expect((await state(page)).startup.muted).toBe(true);
+ expect((await state(page)).startup.content).toContain('Lichtblitze');expect((await state(page)).startup.joke).toContain('erschreckend schlechte Jumpscares');
+ await page.keyboard.press('Escape');expect((await state(page)).phase).toBe('warning');
+ const select=async(english)=>{const [x,y,w,h]=(await state(page)).startup.language_rect;await page.mouse.click(x+w/2,y+h/2);await expect.poll(async()=>(await state(page)).startup.dropdown.visible).toBe(true);const dropdown=(await state(page)).startup.dropdown;await page.mouse.click(dropdown.position[0]+60,dropdown.position[1]+dropdown.size[1]*((english?1:0)+.5)/2);await expect.poll(async()=>(await state(page)).startup.language).toBe(english?'en':'de');};
+ await select(true);expect((await state(page)).startup.content).toContain('flashing lights');
+ expect((await state(page)).controls.find(c=>c.text==='Verstanden · Weiter').rendered_text).toBe('Understood · Continue');
+ await page.screenshot({path:join(tmpdir(),'after-play-v386-warning-en.png')});await select(false);
+ await page.screenshot({path:join(tmpdir(),'after-play-v386-warning-de.png')});
+ if((await state(page)).startup.strobe)await clickControl(page,'Stroboskopeffekte aktivieren');
+ await clickControl(page,'Verstanden · Weiter');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
+ expect((await state(page)).settings.strobe).toBe(false);expect((await state(page)).startup.visible).toBe(false);
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='warning',null,{timeout:60000});
+ expect((await state(page)).startup.strobe).toBe(false);expect((await state(page)).startup.muted).toBe(true);
+ await clickControl(page,'Verstanden · Weiter');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
+ await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ expect((await state(page)).settings.strobe).toBe(false);expect((await state(page)).phase).toBe('play');
+});
 
 async function takeParkingKey(page){
  await qa(page,{op:'warp',x:-7.89,z:-18,yaw:Math.PI/2,pitch:-.24});
@@ -65,7 +87,7 @@ test('v3.8.4 German renders again after English and both selections survive rest
  await expect.poll(async()=>(await state(page)).language).toBe('en');
  await clickControl(page,'Back');
  expect((await state(page)).controls.find(c=>c.text==='New night shift').rendered_text).toBe('New night shift');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ await page.reload();await waitForMenu(page);
  expect((await state(page)).language).toBe('en');
  await clickControl(page,'Settings');await clickControl(page,'Language');await select('English',0);
  await expect.poll(async()=>(await state(page)).language).toBe('de');
@@ -73,7 +95,7 @@ test('v3.8.4 German renders again after English and both selections survive rest
  await clickControl(page,'Zurück');
  expect((await state(page)).controls.find(c=>c.text==='Neue Nachtschicht').rendered_text).toBe('Neue Nachtschicht');
  await page.screenshot({path:join(tmpdir(),'after-play-v384-web-german.png')});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ await page.reload();await waitForMenu(page);
  expect((await state(page)).language).toBe('de');
  expect((await state(page)).controls.find(c=>c.text==='Einstellungen').rendered_text).toBe('Einstellungen');
  expect(faults).toEqual([]);
@@ -89,7 +111,7 @@ test('v3.8 English settings persist, sign reading works and speech has timed tra
  expect((await state(page)).controls.some(c=>c.text==='Speech subtitles')).toBe(true);
  await clickControl(page,'Back');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
  expect((await state(page)).controls.some(c=>c.text==='New night shift')).toBe(true);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});
+ await page.reload();await waitForMenu(page);
  expect((await state(page)).language).toBe('en');await clickControl(page,'New night shift');
  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('intro');
  await page.waitForTimeout(1300);await page.keyboard.press('e');
@@ -119,7 +141,7 @@ test('v3.7.1 requested music plays for horse pursuit and all credits with pause 
  await expect.poll(async()=>(await state(page)).horse_hunt?.music,{timeout:30000}).toBe(true);expect((await state(page)).horse_hunt.music_track).toBe('res://assets/music-v371/music-box-chase.mp3');
  await page.waitForTimeout(1600);await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).horse_hunt.music_paused).toBe(true);const paused=(await state(page)).horse_hunt.music_position;
  await page.waitForTimeout(400);expect(Math.abs((await state(page)).horse_hunt.music_position-paused)).toBeLessThan(.15);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).horse_hunt?.music,{timeout:30000}).toBe(true);const resumed=(await state(page)).horse_hunt;expect(resumed.music_paused).toBe(false);expect(resumed.music_position).toBeGreaterThan(paused-.15);expect(resumed.music_position).toBeLessThan(paused+2);
  for(const number of [1,2,3]){
   await qa(page,{op:'show_ending',number});await expect.poll(async()=>(await state(page)).ending_credits?.music,{timeout:30000}).toBe(true);
@@ -150,7 +172,7 @@ test('v3.7.0 lookout and transparent party loop are physically traversable and r
    expect((await state(page)).climbing.inside).toBe(true);expect((await state(page)).watcher).toBe(false);
    await page.screenshot({path:join(tmpdir(),'after-play-v370-web-transparent-tube.png')});
    await page.keyboard.up('c');await page.keyboard.press('Escape');const saved=(await state(page)).position;await page.reload();
-   await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+   await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
    await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
    const restored=await state(page);expect(restored.climbing.inside).toBe(true);expect(restored.crouching).toBe(true);expect(Math.hypot(...restored.position.map((v,j)=>v-saved[j]))).toBeLessThan(.12);await page.keyboard.down('c');
   }
@@ -171,7 +193,7 @@ test('v3.6.1 horse contact screams, survives pause and reload, then continues th
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  const frozen=(await state(page)).horse_hunt;expect(frozen.catch_count).toBe(1);expect(frozen.closeup).toBe(true);expect(frozen.catch_paused).toBe(true);
  await page.waitForTimeout(300);expect((await state(page)).horse_hunt.clock).toBe(frozen.clock);await page.screenshot({path:join(tmpdir(),'after-play-v361-web-horse-catch.png')});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  expect((await state(page)).streak).toBe(1);expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).horse_hunt.catch_count).toBe(1);expect((await state(page)).passage.red_locked).toBe(true);
  await expect.poll(async()=>(await state(page)).horse_hunt.closeup).toBe(true);
  await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:10000,intervals:[70]}).toBe('following');expect((await state(page)).horse_hunt.catch_count).toBe(1);
@@ -240,7 +262,7 @@ test('v3.6.0 creator keypad starts the saved horse hunt, kitchen clown repels it
  await expect.poll(async()=>(await state(page)).horse_hunt.head[0],{timeout:20000}).toBeGreaterThan(6.8);
  expect((await state(page)).horse_hunt.neck_sections).toBeGreaterThan(5);
  await page.keyboard.press('Escape');const paused=(await state(page)).horse_hunt;await page.waitForTimeout(500);expect((await state(page)).horse_hunt.clock).toBe(paused.clock);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  expect((await state(page)).streak).toBe(2);expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).horse_hunt.trace_points).toBeGreaterThanOrEqual(paused.trace_points);
  expect((await state(page)).passage.red_locked).toBe(true);
@@ -254,7 +276,7 @@ test('v3.6.0 creator keypad starts the saved horse hunt, kitchen clown repels it
  // A completed encounter must restore the already-entered red corridor too.
  await qa(page,{op:'warp',x:-2.15,z:-15.2,yaw:0,pitch:0});await expect.poll(async()=>(await state(page)).passage.chosen).toBe(1);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');await page.reload();
- await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  expect((await state(page)).horse_hunt.phase).toBe('resolved');expect((await state(page)).passage.open[1]).toBe(true);expect((await state(page)).passage.chosen).toBe(1);expect((await state(page)).passage.red_locked).toBe(false);
  expect(faults).toEqual([]);
 });
@@ -321,7 +343,7 @@ test('v3.5.1 elevator readouts follow rounds, saved progress and death',async({p
   expect((await state(page)).streak).toBe(round);checkFloor(await state(page),round+1);
  }
  await page.keyboard.press('Escape');await page.reload();
- await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');checkFloor(await state(page),5);
  await page.screenshot({path:join(tmpdir(),'after-play-v351-web-floor-05.png')});
  await qa(page,{op:'choose',red:(await state(page)).anomaly==='none'});
@@ -375,11 +397,11 @@ test('v3.4 fitted floors, cinema facade and repairs preserve physical room acces
 test('v3.3 continue preserves a clear foyer pose and rejects an old save inside the new bench',async({page})=>{
  test.setTimeout(240000);await begin(page);
  await qa(page,{op:'warp',x:-13.2,z:9.4,yaw:Math.PI/2,pitch:0});await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[0]).toBeCloseTo(-13.2,1);expect((await state(page)).position[2]).toBeCloseTo(9.4,1);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  await page.evaluate(()=>{const key='after-play:qa-nachtwache-save.json';const save=JSON.parse(localStorage.getItem(key));save.pose=[-13.2,0,10.34,Math.PI/2,0];save.layout_version=11;localStorage.setItem(key,JSON.stringify(save));});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).phase).toBe('play');const position=(await state(page)).position;expect(Math.hypot(position[0]+13.2,position[2]-10.34)).toBeGreaterThan(2);expect(position[0]).toBeCloseTo(-6.2,1);expect(position[2]).toBeCloseTo(8.5,1);
 });
 
@@ -409,7 +431,7 @@ test('v3.3 cloakroom glass door is physical; stepping outside shows the secret c
  await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('credits');expect((await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.car).toBe(false);
  await page.waitForTimeout(1300);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:8000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
  await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:60000}).toBe(true);await clickControl(page,'Hauptmenü');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',null,{timeout:60000});await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).ending_credits.ending).toBe(3);await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:60000}).toBe('credits');
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:60000}).toBe(true);await clickControl(page,'Neue Nachtschicht');await skipIntro(page,60000);
  expect((await state(page)).secret_ending).toBe(false);expect((await state(page)).streak).toBe(0);
@@ -482,7 +504,7 @@ test('round 5 cinema newspaper can be collected with E from the aisle and stays 
  await qa(page,{op:'warp',x:1.2,y:.03,z:-31.90,yaw:Math.PI/2,pitch:-.85});await expect.poll(async()=>(await state(page)).target).toBe('paper:missing');
  await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-cinema-newspaper.png')});await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).archive.collected.includes('missing')).toBe(true);
  expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(false);await page.keyboard.press('Tab');expect((await state(page)).archive_reader).toBe('missing');await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-newspaper-reader.png')});await page.keyboard.press('Escape');
- await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await page.keyboard.press('Escape');await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).streak).toBe(4);expect((await state(page)).archive.collected).toContain('missing');expect((await state(page)).archive.spawned.some(p=>p.id==='missing')).toBe(false);
 });
 
@@ -553,7 +575,7 @@ test('v2.7 stage ramp and backstage are walkable both ways; E reads maintenance 
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).notebook.visible).toBe(true);expect((await state(page)).notebook.round).toBe(1);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-notebook.png')});await page.keyboard.press('Escape');
  await qa(page,{op:'warp',x:17.3,z:-8.2,yaw:0});await walk(page,'w',s=>s.position[2]<-14.0);
  expect((await state(page)).polish.floor).toBe('wood');await page.screenshot({path:join(tmpdir(),'after-play-v270-web-costumes.png')});
- await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.keyboard.press('Escape');await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[2]).toBeLessThan(-13.9);
  await walk(page,'s',s=>s.position[2]>-8.7);expect((await state(page)).position[1]).toBeGreaterThan(-.1);
  for(const doc of [{id:'plan',x:-14.1,y:1.94,text:'Bestandsplan'},{id:'repairs',x:-12.55,y:1.82,text:'Wartungsbuch'}]){
@@ -574,7 +596,7 @@ test('v2.7 false exit changes once, pauses and preserves the decayed corridor an
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).backstage.exit_finished,{timeout:12000}).toBe(true);expect((await state(page)).backstage.clean_corridor).toBe(false);
  await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
  await qa(page,{op:'warp',x:-11.1,z:9.4,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-12.3);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-exit.png')});
- await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await page.keyboard.press('Escape');await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).backstage.exit_finished).toBe(true);expect((await state(page)).backstage.exit_open).toBe(true);expect((await state(page)).position[0]).toBeLessThan(-12.2);await walk(page,'s',s=>s.position[0]>-9.8);
 });
 
@@ -582,7 +604,7 @@ test('v2.7 hanging costume and seated guest react in 3D; the costume remains cha
  test.setTimeout(120000);await begin(page);await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await qa(page,{op:'anomaly',id:'costume_wakes'});await qa(page,{op:'warp',x:16.15,y:.2,z:-15.1,yaw:0,pitch:.15});await expect.poll(async()=>(await state(page)).backstage.costume_triggered).toBe(true);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const frozen=(await state(page)).backstage.costume_attack;await page.waitForTimeout(400);expect((await state(page)).backstage.costume_attack).toBe(frozen);
- expect((await state(page)).backstage.costume_paused).toBe(true);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ expect((await state(page)).backstage.costume_paused).toBe(true);await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).backstage.costume_triggered).toBe(true);expect((await state(page)).backstage.costume_audio).toBe(false);
  await qa(page,{op:'anomaly',id:'throne_guest'});await qa(page,{op:'warp',x:13.4,y:.2,z:-8.6,yaw:0,pitch:.10});await expect.poll(async()=>(await state(page)).terrors.triggered).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v270-web-throne-guest.png')});
 });
@@ -627,7 +649,7 @@ test('actual WASD patrol visits all areas, collides with floor, operates flashli
  await page.screenshot({path:join(tmpdir(),'nachtwache-partyroom-desktop.png')});await walk(page,'w',s=>s.position[2]<-8.5);await walk(page,'a',s=>s.position[0]<6.05);await walk(page,'w',s=>s.position[2]<-7.2);await walk(page,'a',s=>s.position[0]<-7.1);await expect.poll(async()=>(await state(page)).visited.length).toBe(4);
  await page.keyboard.press('Tab');await expect.poll(async()=>(await state(page)).phase).toBe('inventory');await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  await doorTrip(page,false);expect((await state(page)).streak).toBe(1);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');await expect.poll(async()=>(await state(page)).streak).toBe(1);expect((await state(page)).position[1]).toBeGreaterThan(-.2);
 });
 
 test('v2.8 real corridors return through the entrance elevator; death resets; thirteen rounds finish at ending 1 with credits',async({page})=>{
@@ -639,7 +661,7 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  await page.screenshot({path:join(tmpdir(),'after-play-v291-web-open-green.png')});
  expect((await state(page)).streak).toBe(0);await walk(page,'w',s=>s.position[2]<-15.1);
  const position=(await state(page)).position;expect((await state(page)).passage.chosen).toBe(0);
- await page.keyboard.press('Escape');await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.keyboard.press('Escape');await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  expect((await state(page)).passage.chosen).toBe(0);expect((await state(page)).position[2]).toBeCloseTo(position[2],1);
  await page.screenshot({path:join(tmpdir(),'after-play-v280-web-corridor.png')});await walk(page,'w',s=>s.phase==='lift');
  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).position[2]).toBeGreaterThan(19);
@@ -661,7 +683,7 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
  await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000,intervals:[70]}).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
  expect((await state(page)).phase).toBe('ending');expect((await state(page)).streak).toBe(13);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1-clue.png')});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).ending_credits.ending).toBe(1);expect((await state(page)).streak).toBe(13);
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).ending_credits.ending).toBe(1);expect((await state(page)).streak).toBe(13);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
  await clickControl(page,'Neue Nachtschicht');await skipIntro(page);expect((await state(page)).streak).toBe(0);expect((await state(page)).completed).toBe(false);
 });
@@ -670,7 +692,7 @@ test('pause freezes movement and real settings controls persist volume after rel
  await begin(page);await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  const position=(await state(page)).position;await page.keyboard.down('w');await page.waitForTimeout(400);await page.keyboard.up('w');expect((await state(page)).position).toEqual(position);
  await qa(page,{op:'menu'});await page.waitForTimeout(100);await clickControl(page,'Einstellungen');await expect.poll(async()=>(await state(page)).phase).toBe('settings');await page.waitForTimeout(100);
- await clickControl(page,'Audio');await clickControl(page,'Lautstärke');await page.keyboard.press('Home');await expect.poll(async()=>(await state(page)).volume).toBe(0);await page.screenshot({path:join(tmpdir(),'nachtwache-settings-desktop.png')});await clickControl(page,'Zurück');await expect.poll(async()=>(await state(page)).phase).toBe('menu');await page.waitForTimeout(400);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await expect.poll(async()=>(await state(page)).volume).toBe(0);
+ await clickControl(page,'Audio');await clickControl(page,'Lautstärke');await page.keyboard.press('Home');await expect.poll(async()=>(await state(page)).volume).toBe(0);await page.screenshot({path:join(tmpdir(),'nachtwache-settings-desktop.png')});await clickControl(page,'Zurück');await expect.poll(async()=>(await state(page)).phase).toBe('menu');await page.waitForTimeout(400);await page.reload();await waitForMenu(page);await expect.poll(async()=>(await state(page)).volume).toBe(0);
 });
 
 test('space jumps and lands; G physically lifts a toy, mouse throws it, pause freezes props and next world releases references',async({page})=>{
@@ -698,7 +720,7 @@ test('website offers a real Windows ZIP and opens the release game without any Q
  const zip=await request.get('http://127.0.0.1:4186/downloads/after-play-windows-v2.8.0.zip',{headers:{Range:'bytes=0-3'}});expect(zip.status()).toBe(206);expect([...(await zip.body())]).toEqual([80,75,3,4]);
  await page.locator('.nightLaunchArt img').evaluate(img=>img.decode());await page.locator('.nightLaunch').screenshot({path:join(tmpdir(),'nachtwache-launcher-desktop.png')});await page.getByRole('button',{name:'Im Web spielen',exact:true}).click();
  await expect(page.getByRole('region',{name:'After Play spielen'})).toBeVisible();const iframe=page.frameLocator('iframe[title="After Play – eigenständiges 3D-Spiel"]');await expect(iframe.locator('canvas')).toBeVisible();
- const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',{timeout:45000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
+ const frame=page.frames().find(f=>f.url().includes('/standalone/kinderparadies/'));await frame.waitForFunction(()=>window.nachtwacheStatus?.phase==='warning',null,{timeout:60000});expect(await frame.evaluate(()=>typeof window.nachtwacheQA)).toBe('undefined');expect(await frame.evaluate(()=>'anomaly' in window.nachtwacheStatus)).toBe(false);
  for(const viewport of [{width:1920,height:1080},{width:1280,height:960},{width:1536,height:1024}]){await page.setViewportSize(viewport);await expect.poll(async()=>{const box=await page.locator('.nightGameStage iframe').boundingBox();return Math.abs(box.width/box.height-16/9);}).toBeLessThan(.002);const box=await page.locator('.nightGameStage iframe').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(43);expect(box.x+box.width).toBeLessThanOrEqual(viewport.width+.1);expect(box.y+box.height).toBeLessThanOrEqual(viewport.height+.1);}
  await page.getByRole('button',{name:'Spiel im Vollbild öffnen'}).click();await page.waitForFunction(()=>Boolean(document.fullscreenElement));await expect.poll(async()=>{const box=await page.locator('.nightGameStage iframe').boundingBox();return Math.abs(box.width/box.height-16/9);}).toBeLessThan(.002);await page.evaluate(()=>document.exitFullscreen());
  await page.getByRole('button',{name:'Zurück zur Webseite',exact:true}).click();await expect(page.locator('.nightGameWindow')).toHaveCount(0);expect(await page.locator('.communityApp').evaluate(e=>e.inert)).toBe(false);
@@ -792,7 +814,7 @@ test('annex corridor, kitchen and cinema have real open routes, persistent saves
  expect((await state(page)).visited).toContain('Küche');expect((await state(page)).anomaly).toBe('none');expect((await state(page)).annex.stirring).toBe(true);expect((await state(page)).encounter.triggered).toBe(false);
  await qa(page,{op:'warp',x:-12.2,z:-30.0,yaw:1.1,pitch:.09});await page.waitForTimeout(700);await page.screenshot({path:join(tmpdir(),'nachtwache-v170-web-kitchen.png')});
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const clock=(await state(page)).annex.clock;await page.waitForTimeout(500);expect((await state(page)).annex.clock).toBe(clock);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[0]).toBeLessThan(-11.5);expect((await state(page)).position[2]).toBeLessThan(-29);
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).position[0]).toBeLessThan(-11.5);expect((await state(page)).position[2]).toBeLessThan(-29);
  await page.mouse.click(768,512);await qa(page,{op:'warp',x:-12,z:-29.65,yaw:-Math.PI/2});await walk(page,'w',s=>s.position[0]>1.7);
  expect((await state(page)).visited).toContain('Kino');expect((await state(page)).position[1]).toBeGreaterThan(-.1);expect((await state(page)).encounter.triggered).toBe(false);
  await qa(page,{op:'warp',x:-4.6,z:-29.65,yaw:-Math.PI/2,pitch:.1});await page.waitForTimeout(700);await page.screenshot({path:join(tmpdir(),'nachtwache-v170-web-cinema.png')});
@@ -855,7 +877,7 @@ test('lift intro accepts the chief call, pauses, resumes from a pending save and
  const call=(await state(page)).intro;console.log('Chief call recording',call);if(call.recording){expect(call.duration).toBeGreaterThan(1);expect(call.voice_playing).toBe(true);expect(call.caption).toBe('');}
  await page.keyboard.press('Escape');const clock=(await state(page)).intro.clock;await page.waitForTimeout(500);expect((await state(page)).intro.clock).toBe(clock);if(call.recording)expect((await state(page)).intro.voice_paused).toBe(true);
  await page.keyboard.press('Escape');await page.screenshot({path:join(tmpdir(),'nachtwache-v190-web-intro-call.png')});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('intro');expect((await state(page)).intro.stage).toBe('ringing');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('intro');expect((await state(page)).intro.stage).toBe('ringing');
  await page.waitForTimeout(1300);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).intro.stage).toBe('call');
  await page.mouse.move(768,512);await expect.poll(async()=>(await state(page)).phase,{timeout:60000,intervals:[200]}).toBe('play');expect((await state(page)).position[2]).toBeGreaterThan(17);
  await page.mouse.click(768,512);await page.waitForTimeout(200);expect(Math.abs((await state(page)).yaw)).toBeLessThan(.02);await walk(page,'w',s=>s.position[2]<16.5);expect((await state(page)).position[1]).toBeGreaterThan(-.1);
@@ -873,7 +895,7 @@ test('new menu settings drive FOV and audio, and the fake jumpscare switch scare
  await clickControl(page,'Jumpscares  Off / On');await expect.poll(async()=>(await state(page)).phase,{intervals:[30]}).toBe('menu_scare');await page.waitForTimeout(200);await page.screenshot({path:join(tmpdir(),'nachtwache-v194-web-menu-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('settings');const after=await state(page);expect(after.settings_tab).toBe('Spiel');expect(after.menu_prank.count).toBe(1);expect(after.menu_prank.running).toBe(false);expect(after.settings).toEqual(options);expect(after.streak).toBe(before.streak);expect(after.rounds).toBe(before.rounds);expect(after.anomaly).toBe(before.anomaly);expect(after.menu_prank.gain).toBeLessThan(-70);
  await clickControl(page,'Zurück');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');expect((await state(page)).camera_fov).toBe(100);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');expect((await state(page)).settings.fov).toBe(100);expect((await state(page)).volume).toBe(0);expect((await state(page)).menu_prank.count).toBe(0);
+ await page.reload();await waitForMenu(page);expect((await state(page)).settings.fov).toBe(100);expect((await state(page)).volume).toBe(0);expect((await state(page)).menu_prank.count).toBe(0);
 });
 
 test('After Play newspapers follow rounds 3/5/8/11, TAB reads them, saves retain them, the 6428 archive is walkable and death resets it',async({page})=>{
@@ -895,15 +917,15 @@ test('After Play newspapers follow rounds 3/5/8/11, TAB reads them, saves retain
   await take(paper.id,paper.p,paper.id==='closure'?.8:1.65);expect((await snapshot()).anomaly).toBe('none');
   if(paper.id==='closure')await page.keyboard.up('c');
   await page.keyboard.press('Tab');await expect.poll(async()=>(await snapshot()).phase).toBe('inventory');expect((await snapshot()).archive_reader).toBe(paper.id);await page.screenshot({path:join(tmpdir(),'after-play-web-reader-'+paper.id+'.png')});await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('play');
-  if(paper.id==='opening'){await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.collected).toEqual(['note','opening']);expect((await snapshot()).archive.stage).toBe(3);expect((await snapshot()).anomaly).toBe('none');expect((await snapshot()).archive.spawned).toEqual([]);}
+  if(paper.id==='opening'){await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.collected).toEqual(['note','opening']);expect((await snapshot()).archive.stage).toBe(3);expect((await snapshot()).anomaly).toBe('none');expect((await snapshot()).archive.spawned).toEqual([]);}
  }
  await lookAt([-8.6,0,-9.9],[-10.1,1.3,-9.9]);await expect.poll(async()=>(await snapshot()).target).toBe('archive_door');await page.keyboard.press('e');await expect.poll(async()=>(await snapshot()).phase).toBe('code');await page.keyboard.press('Control+a');await page.keyboard.type('7428');await expect.poll(async()=>(await snapshot()).archive_input).toBe('7428');await page.keyboard.press('Enter');await page.waitForTimeout(150);expect((await snapshot()).archive.unlocked).toBe(false);
  await page.keyboard.press('Control+a');await page.keyboard.type('6428');await expect.poll(async()=>(await snapshot()).archive_input).toBe('6428');await page.keyboard.press('Enter');await expect.poll(async()=>(await snapshot()).phase).toBe('play');await expect.poll(async()=>(await snapshot()).archive.angle).toBeLessThan(-1.7);
- await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2});await walk(page,'w',s=>s.position[0]<-11.5);await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('pause');await page.waitForTimeout(300);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.unlocked).toBe(true);expect((await snapshot()).position[0]).toBeLessThan(-11.5);
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2});await walk(page,'w',s=>s.position[0]<-11.5);await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('pause');await page.waitForTimeout(300);await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.unlocked).toBe(true);expect((await snapshot()).position[0]).toBeLessThan(-11.5);
  await take('casefile',[-13.8,0,-9.05]);await page.keyboard.press('Tab');await expect.poll(async()=>(await snapshot()).phase).toBe('inventory');expect((await snapshot()).archive_reader).toBe('casefile');await page.screenshot({path:join(tmpdir(),'after-play-web-archive-record.png')});await page.keyboard.press('Escape');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).streak).toBe(10);
  await qa(page,{op:'warp',x:-12.8,z:-9.9,yaw:-Math.PI/2});await walk(page,'w',s=>s.position[0]>-9.8);
  const current=await snapshot();await qa(page,{op:'choose',red:current.anomaly==='none'});await expect.poll(async()=>(await snapshot()).phase,{timeout:30000}).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.unlocked).toBe(false);expect((await snapshot()).archive.stage).toBe(1);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.spawned.map(s=>s.id)).toEqual(['note']);
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await snapshot()).phase).toBe('play');expect((await snapshot()).archive.collected).toEqual([]);expect((await snapshot()).archive.spawned.map(s=>s.id)).toEqual(['note']);
 });
 
 test('new visitors pursue once, freeze with their sounds in TAB and pause, respect walls, and all tube figures disappear outside',async({page})=>{
@@ -928,7 +950,7 @@ test('server room has a walkable threshold in both directions and continues from
  await walk(page,'w',s=>s.position[0]<-12.1);const inside=(await state(page)).position;
  await page.screenshot({path:join(tmpdir(),'after-play-v21-web-server-room.png')});
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).position[0]).toBeLessThan(-12);expect(Math.abs((await state(page)).position[2]-inside[2])).toBeLessThan(.1);
  await qa(page,{op:'warp',x:-12.1,z:-5.4,yaw:-Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]>-9.6);
  for(const shot of [{name:'croc-body',x:17.8,z:15.9,yaw:.83,pitch:-.04},{name:'kitchen-sink',x:-15.25,z:-28.1,yaw:1.19,pitch:-.36},{name:'ball-pit',x:.2,z:10.7,yaw:-.2,pitch:-.31}]){await qa(page,{op:'warp',...shot});await page.waitForTimeout(550);await page.screenshot({path:join(tmpdir(),'after-play-v21-web-'+shot.name+'.png')});}
@@ -955,7 +977,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
 
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');const at=(await state(page)).archive.finale.position;await page.waitForTimeout(400);expect((await state(page)).archive.finale.position).toBe(at);expect((await state(page)).archive.finale.paused).toBe(true);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');await qa(page,{op:'recording_seek',time:117});await expect.poll(async()=>(await state(page)).archive.finale.position).toBeGreaterThan(117);
- await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('after-play:qa-nachtwache-save.json')).archive.recording_position)).toBeGreaterThan(117);await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('after-play:qa-nachtwache-save.json')).archive.recording_position)).toBeGreaterThan(117);await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('play');
  expect((await state(page)).archive.creator_access).toBe(true);await expect.poll(async()=>(await state(page)).archive.finale.position).toBeGreaterThan(117);expect((await state(page)).archive.finale.position).toBeLessThan(123);expect((await state(page)).archive.recording_locked).toBe(true);expect((await state(page)).archive.angle).toBe(0);
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await qa(page,{op:'recording_seek',time:(await state(page)).archive.finale.duration-.12});await expect.poll(async()=>(await state(page)).archive.finale.state).toBe('armed');expect((await state(page)).phase).toBe('play');expect((await state(page)).archive.recording_locked).toBe(false);await expect.poll(async()=>(await state(page)).archive.angle).toBeLessThan(-1.7);
  await aim([-11.3,0,-9.9],[-14,1.3,-9.9]);await expect.poll(async()=>(await state(page)).archive.finale.looked_away).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-remains.png')});
@@ -969,7 +991,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
  await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-last-look.png')});
  await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);expect((await state(page)).ending_credits.music).toBe(false);
  await clickControl(page,'Hauptmenü');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase).toBe('ending');expect((await state(page)).archive.finale.triggers).toBe(0);
 });
 
 
@@ -1001,7 +1023,7 @@ test('v2.9 environmental dressing has solid arcade cabinets, stable reference ro
  await doorTrip(page,false);expect((await state(page)).streak).toBe(1);expect((await state(page)).details.groups).toBeGreaterThanOrEqual(17);
  await qa(page,{op:'anomaly',id:'none'});
  await page.evaluate(()=>{window.nachtwacheQA(JSON.stringify({op:'warp',x:7.5,z:16.4,yaw:0}));window.nachtwacheQA(JSON.stringify({op:'pause'}));});
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  const continued=await state(page);expect(continued.streak).toBe(1);expect(continued.position[0]).toBeCloseTo(-6.2,1);expect(continued.position[2]).toBeCloseTo(8.5,1);
 
 });
@@ -1038,7 +1060,7 @@ test('Happyland film can be collected, projected with synchronized sound, paused
  expect((await state(page)).film.screen).toBe(false);expect((await state(page)).anomaly).toBe('none');
  await aim(-5.05,-27.83,-6.17,1.27,-27.83);await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).film.playing).toBe(true);
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).film.playing).toBe(false);
- await qa(page,{op:'pause'});await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');expect((await state(page)).film.owned).toBe(true);
+ await qa(page,{op:'pause'});await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');expect((await state(page)).film.owned).toBe(true);
  await qa(page,{op:'anomaly',id:'none'});expect((await state(page)).film.owned).toBe(true);expect((await state(page)).film.playing).toBe(false);
  await qa(page,{op:'audit'});expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.art_overlaps).toEqual([]);
 });
@@ -1049,7 +1071,7 @@ test('washroom is walkable and saved; ordinary ambience pauses and the corrected
  expect((await state(page)).position[2]).toBeCloseTo(7.8,1);expect((await state(page)).anomaly).toBe('none');
  await page.keyboard.press('Escape');await page.waitForTimeout(100);const stopped=(await state(page)).life.clock;
  await page.waitForTimeout(400);expect((await state(page)).life.clock).toBe(stopped);expect((await state(page)).life.paused).toBe(true);
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
  expect((await state(page)).position[0]).toBeGreaterThan(21.1);expect((await state(page)).position[2]).toBeCloseTo(7.8,1);
  await page.screenshot({path:join(tmpdir(),'after-play-v2110-web-washroom.png')});await walk(page,'s',s=>s.position[0]<18.5);
  await qa(page,{op:'warp',x:25.7,z:6.8,yaw:Math.PI,pitch:0});await expect.poll(async()=>(await state(page)).target).toBe('life:locked_wc');

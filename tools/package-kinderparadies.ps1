@@ -1,4 +1,4 @@
-param([string]$Version='3.8.5')
+param([string]$Version='3.8.6')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
@@ -76,7 +76,8 @@ $taskRuntime=@('index.html','index.js','index.wasm','index.pck','index.audio.wor
 foreach($taskFile in $taskRuntime){Copy-Item -LiteralPath (Join-Path $taskBuild ('web/'+$taskFile)) -Destination $taskBrowser}
 $taskHtml=Join-Path $taskBrowser 'index.html'
 $taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="After Play 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
-if(-not $taskText.Contains('href="data:,"')){$taskText=$taskText.Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" href="data:,">')}
+$taskText=$taskText.Replace('href="data:,"','href="index.png"')
+if(-not $taskText.Contains('rel="icon"')){$taskText=$taskText.Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" type="image/png" href="index.png">')}
 [IO.File]::WriteAllText($taskHtml,$taskText,[Text.UTF8Encoding]::new($false))
 if(Test-Path -LiteralPath (Join-Path $taskBuild 'web/index.png')){Copy-Item -LiteralPath (Join-Path $taskBuild 'web/index.png') -Destination $taskBrowser}
 Copy-Item -LiteralPath $taskLicenses -Destination $taskBrowser -Recurse

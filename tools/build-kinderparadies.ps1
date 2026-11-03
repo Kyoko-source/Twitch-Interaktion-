@@ -51,7 +51,7 @@ foreach($taskPreset in $taskExports){
 foreach($taskTarget in @('build/qa')){
  $taskHtml=Join-Path $taskProject ($taskTarget+'/index.html')
  if(Test-Path -LiteralPath $taskHtml){
-  $taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" href="data:,">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="After Play 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
+  $taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" type="image/png" href="index.png">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="After Play 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
   [IO.File]::WriteAllText($taskHtml,$taskText,[Text.UTF8Encoding]::new($false))
  }
 }
