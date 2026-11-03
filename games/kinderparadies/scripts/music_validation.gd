@@ -31,7 +31,8 @@ func run(game: Node3D,verify: Callable) -> void:
   verify.call(credits.music.playing and credits.music.stream.resource_path==EndCredits.MUSIC,"Ending "+str(ending)+" does not play Fern and Feather")
   verify.call(credits.music.stream.get_length()>100 and credits.music.volume_db> -12,"Credits MP3 is truncated or inaudible")
   await credits.wait_prepared();credits.finish_scroll();credits.tick(.3)
-  verify.call(credits.afterglow!=null and credits.music.playing,"Skipping credits loses the new song during the closing shot")
+  await game.get_tree().physics_frame;await game.get_tree().physics_frame
+  verify.call(credits.afterglow!=null and (game.world.party.audio.playing and not credits.music.playing if ending==1 else credits.music.playing),"Credits-to-outro music handoff is incorrect")
   credits._finish_afterglow()
   verify.call(not credits.music.playing,"Finished credits leave a music loop running")
  game._main_menu();game.set_process(true)

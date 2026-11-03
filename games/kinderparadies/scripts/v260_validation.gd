@@ -12,7 +12,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(giants.size()==1 and giants[0].name=="PartyMascotCorner","The giant rabbit still appears outside the party room")
  var kit: Node3D=game.world.annex.find_child("ManufacturedKitchen",true,false)
  verify.call(is_instance_valid(kit) and kit.find_children("*","MeshInstance3D",true,false).size()>=7,"The manufactured kitchen mesh kit failed to load")
- # Completion now ends at ENDE 1/2 instead of returning to a playable room.
+ # Completion now ends at ENDE 1/3 instead of returning to a playable room.
  # Both endings and their saves are exercised in endings_validation.gd.
  # Every new placement must have an actual sightline that activates its sting.
  for id in NightTerrors.SCENARIOS:

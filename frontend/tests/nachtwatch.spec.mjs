@@ -24,6 +24,51 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.8.13 creator code plays credits then a cheerful party without overlapping music',async({page})=>{
+ test.setTimeout(420000);await begin(page);
+ const patrol=(await state(page)).streak;
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});
+ await expect.poll(async()=>(await state(page)).target).toBe('archive_door');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).phase).toBe('code');
+ await page.mouse.click(275,220);await page.keyboard.type('07122000',{delay:25});
+ await expect.poll(async()=>(await state(page)).archive_input).toBe('07122000');await page.keyboard.press('Enter');
+ await expect.poll(async()=>(await state(page)).phase).toBe('ending');
+ await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000}).toBe(true);
+ console.log('Ending 1: credits music started');
+ expect((await state(page)).ending_credits.title).toBe('ENDE 1/3');
+ await expect.poll(async()=>(await state(page)).ending_credits.prepared,{timeout:90000}).toBe(true);
+ expect((await state(page)).party.playing).toBe(false);
+ console.log('Ending 1: party prepared');
+ await page.keyboard.down('Space');
+ try{
+  await expect.poll(async()=>(await state(page)).ending_credits.afterglow.party,{timeout:15000}).toBe(true);
+  await page.waitForTimeout(4000);expect((await state(page)).ending_credits.done).toBe(false);
+ }finally{await page.keyboard.up('Space');}
+ await expect.poll(async()=>(await state(page)).ending_credits.skip_released).toBe(true);
+ const celebration=(await state(page)).ending_credits;
+ expect(celebration.music).toBe(false);expect(celebration.afterglow.party_music).toBe(true);expect(celebration.afterglow.music_box).toBe(false);
+ expect(celebration.afterglow.dancers).toBe(12);expect(celebration.afterglow.rabbit_cola).toBe(true);
+ expect((await state(page)).party.track).toBe('Rolling Acid');
+ const first=celebration.afterglow.camera_position;
+ await expect.poll(async()=>(await state(page)).ending_credits.afterglow.dance_updates).toBeGreaterThan(celebration.afterglow.dance_updates+8);
+ expect((await state(page)).ending_credits.afterglow.camera_position).not.toEqual(first);
+ await page.screenshot({path:join(tmpdir(),'after-play-v3813-web-celebration.png')});
+ await page.waitForTimeout(200);
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:30000}).toBe(true);}catch(error){error.message+='\nParty skip: '+JSON.stringify((await state(page)).ending_credits);throw error;}finally{await page.keyboard.up('Space');}
+ console.log('Ending 1: party skipped');
+ expect((await state(page)).party.playing).toBe(false);
+ await clickControl(page,'Hauptmenü');await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).streak).toBe(patrol);expect((await state(page)).party.enabled).toBe(false);
+ for(const number of [2,3]){
+  await qa(page,{op:'show_ending',number});
+  await expect.poll(async()=>(await state(page)).ending_credits.prepared,{timeout:60000}).toBe(true);
+  await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:30000}).toBe('credits');
+  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('last_look');
+  expect((await state(page)).ending_credits.afterglow.party).toBeUndefined();expect((await state(page)).ending_credits.music).toBe(true);
+ }
+});
+
 test('v3.8.10 crocodile supports repeated jumps and backing out after the tape cannot skip ending 2',async({page})=>{
  test.setTimeout(180000);await begin(page);
  await qa(page,{op:'warp',x:12.65,y:2.8,z:12.4,yaw:Math.PI/2,pitch:-.25});
@@ -457,6 +502,7 @@ test('v3.5 Play reuses the menu venue and holding Skip switches to the prepared 
  const baseline=await page.evaluate(()=>new Promise(resolve=>{const times=[];let previous=performance.now();const frame=now=>{times.push(now-previous);previous=now;if(times.length===16)resolve(times);else requestAnimationFrame(frame);};requestAnimationFrame(frame);}));
  await page.evaluate(()=>{window.skipFrameTimes=[];window.captureSkip=true;let previous=performance.now();const frame=now=>{window.skipFrameTimes.push(now-previous);previous=now;if(window.captureSkip)requestAnimationFrame(frame);};requestAnimationFrame(frame);});
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('last_look');}finally{await page.keyboard.up('Space');await page.evaluate(()=>window.captureSkip=false);}
+ await expect.poll(async()=>(await state(page)).ending_credits.skip_released).toBe(true);
  expect((await state(page)).performance.world_builds).toBe(readyBuilds);
  const deltas=await page.evaluate(()=>window.skipFrameTimes);const p95=xs=>[...xs].sort((a,b)=>a-b)[Math.floor((xs.length-1)*.95)];
  expect(deltas.length).toBeGreaterThan(5);expect(p95(deltas)).toBeLessThan(Math.max(200,p95(baseline)*2));
@@ -773,7 +819,7 @@ test('v2.8 real corridors return through the entrance elevator; death resets; th
   await qa(page,{op:'choose',red:anomalous});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe(i===12?'ending':'play');expect((await state(page)).streak).toBe(i+1);
  }
  expect(anomalyRounds).toBe(6);
- expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/2');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
+ expect((await state(page)).completed).toBe(true);expect((await state(page)).ending_credits.title).toBe('ENDE 1/3');expect((await state(page)).ending_credits.second_end_hint).toBe('schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11');
  await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v2121-web-ending-1.png')});
  await expect.poll(async()=>(await state(page)).ending_credits.music,{timeout:30000,intervals:[70]}).toBe(true);expect((await state(page)).ending_credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000}).toBe(true);}finally{await page.keyboard.up('Space');}
@@ -1078,7 +1124,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
  await aim([-11.3,0,-9.9],[-14,1.3,-9.9]);await expect.poll(async()=>(await state(page)).archive.finale.looked_away).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-remains.png')});
  await aim([-11.3,0,-9.9],[-10.2,1.5,-9.9]);await expect.poll(async()=>(await state(page)).phase,{intervals:[20]}).toBe('archive_scare');await page.waitForTimeout(180);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-chef-scare.png')});
  await expect.poll(async()=>(await state(page)).phase).toBe('ending');await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v220-web-ende.png')});
- expect((await state(page)).ending_credits.title).toBe('ENDE 2/2');expect((await state(page)).ending_credits.second_end_hint).toBe('');
+ expect((await state(page)).ending_credits.title).toBe('ENDE 2/3');expect((await state(page)).ending_credits.second_end_hint).toBe('');
  expect((await state(page)).archive.finale.triggers).toBe(1);await expect.poll(async()=>(await state(page)).ending_credits.stage).toBe('credits');await expect.poll(async()=>(await state(page)).ending_credits.music).toBe(true);const credits=(await state(page)).ending_credits;expect(credits.music_track).toBe('res://assets/music-v371/fern-and-feather.mp3');expect(credits.author).toBe('Kyoko');expect(credits.ideas).toBe('einsmarello');expect(credits.testers).toEqual(['einsmarello','__jerry__','gingerbread','Mozart']);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:10000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
  await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.5);

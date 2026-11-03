@@ -68,5 +68,5 @@ func run(game: Node3D,verify: Callable) -> void:
  game._new_shift();game.intro.skip();verify.call(not game.secret_ending and game.phase=="play" and game.state.streak==0,"New shift retains the secret ending")
  # Secret exit is additional; both numbered story endings keep their titles.
  for number in [1,2]:
-  game._show_ending(number);verify.call(game.end_credits.end_title()=="ENDE %d/2"%number,"Secret ending renumbers a story ending")
+  game._show_ending(number);verify.call(game.end_credits.end_title()=="ENDE %d/3"%number,"Secret ending renumbers a story ending")
  game._new_shift();game.intro.skip()

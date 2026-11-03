@@ -37,12 +37,12 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(game.phase=="ending" and game.state.completed and game.state.streak==13,"Thirteenth correct elevator choice restarts instead of ending: "+final_anomaly)
   verify.call(not game.player.active and not game.arrival_pending and not game.wake_pending and game.door_failure.shown==scares,"Normal ending restarts the elevator or triggers death")
   var credits: EndCredits=game.end_credits;credits.tick(1)
-  verify.call(credits.word.text=="ENDE 1/2" and credits.snapshot().end_word,"Normal ending omits its numbered end card")
+  verify.call(credits.word.text=="ENDE 1/3" and credits.snapshot().end_word,"Normal ending omits its numbered end card")
   credits.tick(4)
   verify.call(credits.music.playing and credits.snapshot().stage=="credits" and credits.snapshot().second_end_hint==EndCredits.SECOND_END_HINT,"Normal ending omits music, credits or the requested clue")
   var lines:=credits.roll.find_children("*","Label",true,false)
   verify.call(lines.any(func(line):return line.text==EndCredits.SECOND_END_HINT),"Second-ending clue is absent from the actual credit roll")
-  await credits.wait_prepared();credits.finish_scroll();credits.tick(17)
+  await credits.wait_prepared();credits.finish_scroll();credits.tick(PatrolPartyOutro.DURATION+1.)
   verify.call(credits.done and credits.actions.visible and credits.actions.get_node("SecondEndingHint").visible,"Skipping credits hides the second-ending clue or leaves no exit")
   await game.get_tree().create_timer(.15).timeout
   verify.call(game.phase=="ending" and game.state.streak==13,"End 1 starts another shift without a player choice")
@@ -52,7 +52,7 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(game.phase=="ending" and game.end_credits.ending_number==1 and game.state.streak==13 and "opening" in game.archive.collected,"Saved completion restarts or loses the finished shift")
  # A completed archive takes precedence even if thirteen rounds are also saved.
  game.archive.creator_access=true;game.archive.unlocked=true;game.archive.ending="complete";game._show_archive_ending();game.end_credits.tick(1)
- verify.call(game.end_credits.word.text=="ENDE 2/2" and game.end_credits.snapshot().second_end_hint=="","Archive ending has the wrong number or the end-1-only clue")
+ verify.call(game.end_credits.word.text=="ENDE 2/3" and game.end_credits.snapshot().second_end_hint=="","Archive ending has the wrong number or the end-1-only clue")
  game.end_credits.tick(4)
  verify.call(game.end_credits.music.playing and game.end_credits.snapshot().stage=="credits","Ending 2 loses the music-box credit roll")
  game._main_menu();game.has_session=false;game._continue()

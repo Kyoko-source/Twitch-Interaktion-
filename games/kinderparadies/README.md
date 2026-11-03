@@ -1,5 +1,32 @@
 # After Play — Kinderparadies
 
+## Feier nach Ende 1 (3.8.13)
+
+Nach den Credits des regulären 13-Rundgänge-Endes folgt eine 48-sekündige
+Kamerafahrt durch eine freundliche Variante des Partyraums. Ein sauberer großer
+Stoffhase trinkt Cola, Clown und drei Besucher-Varianten tanzen, das lange Pferd
+bewegt Kopf und Hals, ein Besucher steht am DJ-Pult und fünf kleine Stoffhasen
+ziehen als Polonaise durch den Raum. Pastellfarben, Ballons und Konfetti ersetzen
+für diese Sequenz die düstere Ausstattung. Mittig steht „Ende 1/3“.
+
+„Fern and Feather“ wird beim Szenenbeginn gestoppt; nur „Rolling Acid“ läuft,
+beginnend kurz vor seinem ersten Bass-Einsatz. Die Spieluhr bleibt stumm. Die
+Musik der Feier hängt an der Gesamtlautstärke und wird vom Standort der inaktiven
+Spielfigur nicht gedämpft. Die vorhandene Stroboskop-Einstellung gilt weiterhin.
+Das bisherige Halten der Leertaste zum Credits-Überspringen überspringt die Feier
+erst nach Loslassen und erneutem Halten. Die beiden anderen Enden behalten ihren
+bisherigen Abschluss; die nummerierten Titel berücksichtigen jetzt drei Enden.
+
+Der Terminalcode **07122000** startet die Vorschau einschließlich der Credits
+ohne Zeitungsanforderung. Fortsetzen lädt danach den gespeicherten Rundgang mit
+seiner tatsächlichen Anomalie. **0712** und **07120712** bleiben erhalten.
+Die Feier verändert keine gemeinsamen Materialien oder Figuren des Hauptspiels.
+Die saubere, bewegliche Hasenvariante stammt aus dem vorhandenen kleinen Stoffhasen;
+`tools/model-after-play-party-cast.py` erzeugt das Modell mit getrennten Gelenken.
+
+Prüfung: `--self-test --celebration-only`, `--endings-only`, `--startup-only`;
+native Kameraproben: `--render-qa --celebration-qa`; Browser-Test „v3.8.13“.
+
 ## Partyschalter im Kostümraum (3.8.12)
 
 Der einzige Partyschalter sitzt jetzt an der Ostwand neben der Kreidetafel im

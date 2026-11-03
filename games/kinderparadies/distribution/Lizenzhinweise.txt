@@ -88,6 +88,10 @@ After Play 3.7.1: "Fern and Feather" (Abspann) und "Music Box Chase"
 (Pferde-Verfolgung) wurden von Kyoko für dieses Projekt bereitgestellt.
 
 PARTYMUSIK
+Die freundliche Abschlusskulisse, Tanzanimationen und das bewegliche Modell
+des vorhandenen Stoffhasen (After Play 3.8.13) sind Projektarbeit. Bereits
+aufgefuehrte Texturen und die bearbeitete Clown-Anatomiebasis werden weiterverwendet.
+
 Rolling Acid — atomicmicrotone145 / Kyoko
 Erstellt mit Suno im kostenlosen Tarif. Von Kyoko fuer After Play bereitgestellt.
 Suno Free erlaubt persoenliche, nichtkommerzielle Nutzung nach den Suno-Bedingungen.

@@ -6,6 +6,17 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--celebration-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.player.active=false
+  game.phase="code";game.archive_input=PatrolPartyOutro.TEST_CODE;game._submit_archive_code()
+  game.end_credits.tick(5);await game.end_credits.wait_prepared();game.end_credits.finish_scroll()
+  var party: PatrolPartyOutro=game.end_credits.afterglow
+  for moment in [2.,8.,16.,24.,32.,40.,44.]:
+   party.clock=moment;game.world.party.audio.seek(PatrolPartyOutro.SONG_START+moment)
+   await game.get_tree().create_timer(.5).timeout
+   await capture(game,output,"celebration-%02d"%int(moment))
+  print("CELEBRATION ",JSON.stringify(game.end_credits.snapshot()))
+  game._quit();return
  if "--party-control-qa" in OS.get_cmdline_user_args():
   game.party_reboot_until=0;game.world.party.reboot_until=0
   game._new_shift();game.intro.skip();game.player.active=false

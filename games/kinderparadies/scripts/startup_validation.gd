@@ -25,7 +25,7 @@ func run(game: Node3D,verify: Callable) -> void:
  builds=game.world_build_count;started=Time.get_ticks_usec();ending.finish_scroll()
  var skip_ms:=float(Time.get_ticks_usec()-started)/1000.
  verify.call(ending.afterglow!=null and game.world_build_count==builds and skip_ms<50.,"Skip builds a world or blocks instead of showing the prepared closing view")
- ending.tick(17);verify.call(ending.done and ending.actions.visible,"Prepared closing view has no completed ending actions")
+ ending.tick(PatrolPartyOutro.DURATION+1.);verify.call(ending.done and ending.actions.visible,"Prepared closing view has no completed ending actions")
  game._main_menu();beat=game.get_tree().get_frame()
  await game._request_shift()
  verify.call(game.get_tree().get_frame()>beat+10 and game.phase=="intro" and game.loading_progress==1.,"Starting a later shift blocks or leaves an unfinished loading state")

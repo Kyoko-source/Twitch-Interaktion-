@@ -128,7 +128,7 @@ func _connect_world(anomaly: String) -> void:
  if player: player.reset_pose()
  if room_audio: _apply_settings()
 
-func _build_world_responsive(anomaly: String,progress: Callable=Callable()) -> void:
+func _build_world_responsive(anomaly: String,progress: Callable=Callable(),reveal: bool=true) -> void:
  world_revision+=1
  var revision:=world_revision
  world_loading=true;menu_reference_ready=false;world_build_count+=1;loading_progress=0
@@ -147,7 +147,7 @@ func _build_world_responsive(anomaly: String,progress: Callable=Callable()) -> v
  ,func():return revision==world_revision)
  if revision!=world_revision:
   _stop_scene_audio(next);remove_child(next);next.queue_free();return
- world=next;_connect_world(anomaly);next.show();world_loading=false
+ world=next;_connect_world(anomaly);next.visible=reveal;world_loading=false
 
 func _request_shift() -> void:
  if world_loading:return
@@ -398,6 +398,11 @@ func _open_archive_lock(message: String="") -> void:
 
 func _submit_archive_code() -> void:
  if phase!="code": return
+ if archive_input==PatrolPartyOutro.TEST_CODE:
+  archive_input="";_show_patrol_ending()
+  # The preview prepares a clean venue. Continue must reload the saved patrol
+  # and its actual anomaly instead of resuming that temporary celebration set.
+  has_session=false;return
  if archive_input==HorseHunt.TEST_CODE:
   _force_horse_hunt();return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
@@ -526,7 +531,8 @@ func _process(delta: float) -> void:
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.backstage.tick(delta,phase=="play",player)
- world.party.tick(delta,phase=="play" and archive.ending!="recording",phase in ["play","pause","settings","inventory","help","code"],bool(settings.strobe))
+ var celebrating:=phase=="ending" and is_instance_valid(end_credits) and end_credits.afterglow is PatrolPartyOutro and not end_credits.done
+ world.party.tick(delta,celebrating or phase=="play" and archive.ending!="recording",celebrating or phase in ["play","pause","settings","inventory","help","code"],bool(settings.strobe))
  world.archive.tick(delta,phase=="play")
  if archive.ending=="recording" and phase in ["play","pause","inventory","settings","help"]:
   memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))

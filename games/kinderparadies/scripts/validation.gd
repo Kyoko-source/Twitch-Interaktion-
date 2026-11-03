@@ -9,6 +9,10 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--celebration-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/celebration_validation.gd").new().run(game,check)
+  print("Celebration checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--party-control-only" in OS.get_cmdline_user_args():
   await load("res://scripts/party_control_validation.gd").new().run(game,check)
   print("Party control checks: ",checks,"; failures: ",failures.size())
