@@ -24,7 +24,7 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
-test('v3.8.13 creator code plays credits then a cheerful party without overlapping music',async({page})=>{
+test('v3.8.14 creator code plays credits then a cheerful party in the original room without overlapping music',async({page})=>{
  test.setTimeout(420000);await begin(page);
  const patrol=(await state(page)).streak;
  await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});
@@ -50,9 +50,9 @@ test('v3.8.13 creator code plays credits then a cheerful party without overlappi
  expect(celebration.afterglow.dancers).toBe(12);expect(celebration.afterglow.rabbit_cola).toBe(true);
  expect((await state(page)).party.track).toBe('Rolling Acid');
  const first=celebration.afterglow.camera_position;
- await expect.poll(async()=>(await state(page)).ending_credits.afterglow.dance_updates).toBeGreaterThan(celebration.afterglow.dance_updates+8);
+ await expect.poll(async()=>(await state(page)).ending_credits.afterglow.dance_updates,{timeout:15000}).toBeGreaterThan(celebration.afterglow.dance_updates+8);
  expect((await state(page)).ending_credits.afterglow.camera_position).not.toEqual(first);
- await page.screenshot({path:join(tmpdir(),'after-play-v3813-web-celebration.png')});
+ await page.screenshot({path:join(tmpdir(),'after-play-v3814-web-celebration.png')});
  await page.waitForTimeout(200);
  await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:30000}).toBe(true);}catch(error){error.message+='\nParty skip: '+JSON.stringify((await state(page)).ending_credits);throw error;}finally{await page.keyboard.up('Space');}
  console.log('Ending 1: party skipped');

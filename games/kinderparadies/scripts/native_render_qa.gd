@@ -11,6 +11,15 @@ func run(game: Node3D) -> void:
   game.phase="code";game.archive_input=PatrolPartyOutro.TEST_CODE;game._submit_archive_code()
   game.end_credits.tick(5);await game.end_credits.wait_prepared();game.end_credits.finish_scroll()
   var party: PatrolPartyOutro=game.end_credits.afterglow
+  if "--celebration-detail-qa" in OS.get_cmdline_user_args():
+   game.set_process(false)
+   party.clock=12.;party._pose(0.);game.end_credits.tick(0.)
+   game.world.party.evaluate(PatrolPartyOutro.SONG_START+12.,bool(game.settings.strobe))
+   for detail in [{"name":"clown","p":party.actors[0].origin,"yaw":party.actors[0].yaw},{"name":"guest","p":party.actors[1].origin,"yaw":party.actors[1].yaw},{"name":"horse","p":party.horse.origin,"yaw":party.horse.yaw}]:
+    var facing:=Vector3(sin(detail.yaw),0,cos(detail.yaw))
+    party.camera.position=detail.p+facing*(3.5 if detail.name=="horse" else 2.8)+Vector3(0,1.7,0);party.camera.look_at(detail.p+Vector3(0,1.6 if detail.name=="horse" else 1.2,0))
+    await capture(game,output,"detail-"+detail.name)
+   game._quit();return
   for moment in [2.,8.,16.,24.,32.,40.,44.]:
    party.clock=moment;game.world.party.audio.seek(PatrolPartyOutro.SONG_START+moment)
    await game.get_tree().create_timer(.5).timeout

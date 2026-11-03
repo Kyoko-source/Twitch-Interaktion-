@@ -19,20 +19,29 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(not credits.music.playing and not g.menu_music.playing and not g.world.room_horror.music.playing,"Credits, menu or music-box audio overlaps the party")
  verify.call(g.world.party.audio.bus==&"Master" and g.world.party.audio.panning_strength==0,"Inactive player location muffles the cinematic music")
  verify.call(party.actors.size()==5 and party.minis.size()==5 and not party.bunny.is_empty() and not party.horse.is_empty(),"Celebration cast is incomplete")
+ verify.call(g.world.props.party_table.is_visible_in_tree() and g.world.props.chairs.is_visible_in_tree() and g.world.backstage.throne.is_visible_in_tree(),"The original party furniture is hidden during the celebration")
+ verify.call(_all_triangles_referenced(party),"Merging costume details drops unindexed sleeve or finger triangles")
  verify.call(is_instance_valid(party.cola) and party.cola.is_inside_tree(),"Rabbit has no attached cola bottle")
  var before:=party.camera.position;var arm_before: Vector3=party.actors[0].left.rotation
  credits.tick(4)
  verify.call(not credits.done,"Holding the credit-skip key also skips the new scene")
  verify.call(party.camera.position.distance_to(before)>.2 and party.actors[0].left.rotation.distance_to(arm_before)>.05,"Camera or articulated dancer remains static")
+ verify.call(party.horse.skeleton.get_bone_pose_position(17).distance_to(party.horse.skeleton.get_bone_pose_position(0))>1.5,"Skinned horse neck collapses because bone poses omit their rest positions")
  verify.call(credits.word.visible and credits.word.text=="Ende 1/3","Numbered title is absent from the centre of the party scene")
  verify.call(not credits.music.playing and not g.world.room_horror.music.playing,"Credits music restarts during the celebration")
  var camera_clear:=true
+ var furniture_clear:=true
+ var tops: Array[AABB]=[AABB(Vector3(9.15,.72,-8.55),Vector3(2.1,.12,3.1)),AABB(Vector3(13.3,.56,-8.225),Vector3(3.4,.12,1.25))]
  for sample in range(96):
   party.clock=sample*.5;party._pose(0.)
   for actor in party.actors+[party.bunny]:
    for mesh in CelebrationCast.meshes(actor.root):
     if mesh.is_visible_in_tree() and (mesh.global_transform*mesh.get_aabb()).grow(.025).has_point(party.camera.global_position):camera_clear=false
+    if mesh.is_visible_in_tree():
+     for top in tops:
+      if (mesh.global_transform*mesh.get_aabb()).intersects(top):furniture_clear=false
  verify.call(camera_clear,"Dolly intersects a dancer between camera keys")
+ verify.call(furniture_clear,"A dancer intersects an original party tabletop during the camera ride")
  party.clock=4.
  Input.action_release("jump");credits.tick(.05)
  var original_env: Environment=party.original_environment
@@ -50,3 +59,17 @@ func run(g: Node3D,verify: Callable) -> void:
   verify.call(other.afterglow is EndingAfterglow and other.music.playing and not g.world.party.enabled,"Celebration incorrectly replaces ending "+str(number))
   other.tick(17);g._main_menu()
  g._new_shift();g.intro.skip();g.player.active=false
+
+func _all_triangles_referenced(party: PatrolPartyOutro) -> bool:
+ for actor in party.actors+[party.horse]:
+  for mesh in CelebrationCast.meshes(actor.root):
+   for surface in range(mesh.mesh.get_surface_count()):
+    var arrays: Array=mesh.mesh.surface_get_arrays(surface)
+    var vertices: PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+    var indices: PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
+    if indices.is_empty():continue
+    var all_bounds:=AABB(vertices[0],Vector3.ZERO);var drawn_bounds:=AABB(vertices[indices[0]],Vector3.ZERO)
+    for vertex in vertices:all_bounds=all_bounds.expand(vertex)
+    for index in indices:drawn_bounds=drawn_bounds.expand(vertices[index])
+    if all_bounds.position.distance_to(drawn_bounds.position)>.002 or all_bounds.size.distance_to(drawn_bounds.size)>.002:return false
+ return true

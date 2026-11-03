@@ -29,7 +29,15 @@ static func rabbit(w: PlayWorld,parent: Node3D,p: Vector3,size: float,tint: Colo
    if "oatmeal" in name_value:
     var texture_path:="res://assets/plush-fur.png" if ResourceLoader.exists("res://assets/plush-fur.png") else "res://assets/pbr/fabric_pattern_07/albedo.jpg"
     m.albedo_texture=load(texture_path);m.uv1_scale=Vector3.ONE*6
+   elif "black buttons" in name_value.to_lower():
+    m.roughness=.28;m.metallic_specular=.65;m.albedo_color=Color("312d29");m.normal_enabled=false
    mesh.set_surface_override_material(i,m)
+ CelebrationTailoring.bow(w,root,Vector3(0,.58,.20),Color("c38180"),1.05)
+ # The original toy remains recognizable: stitched patches, glossy sewn
+ # buttons, a tailored bow and soft cheek colour rather than a replacement face.
+ var head:=root.find_child("HeadRig",true,false) as Node3D
+ for side in [-1,1]:
+  oval(w,head,Vector3(side*.14,-.075,.183),Vector3(.039,.019,.008),w.mat(Color("c99483"),null,.95))
  return {"root":root,"head":root.find_child("HeadRig",true,false),"left":root.find_child("ArmL",true,false),"right":root.find_child("ArmR",true,false),"leg_l":root.find_child("LegL",true,false),"leg_r":root.find_child("LegR",true,false),"origin":p,"yaw":0.}
 
 static func hat(w: PlayWorld,parent: Node3D,p: Vector3,color: Color) -> void:
@@ -43,79 +51,10 @@ static func smile(w: PlayWorld,parent: Node3D,p: Vector3,size: float) -> void:
   w.tube(parent,p+Vector3(cos(a)*size,sin(a)*size*.45,0),p+Vector3(cos(b)*size,sin(b)*size*.45,0),size*.065,ink)
 
 static func visitor(w: PlayWorld,parent: Node3D,p: Vector3,kind: String,color: Color) -> Dictionary:
- var root: Node3D=(load("res://assets/revamp-v300/visitor-"+kind+".glb") as PackedScene).instantiate()
- parent.add_child(root);root.name="FriendlyVisitor_"+kind;root.position=p
- for mesh in meshes(root):
-  for i in range(mesh.mesh.get_surface_count()):mesh.set_surface_override_material(i,cloth(w,color if mesh.name in ["Torso","BurialHood"] else Color("fff0de")))
- var head:=root.find_child("HeadRig",true,false) as Node3D
- for part in head.get_children():
-  if part.name!="BurialHood":part.hide()
- oval(w,head,Vector3(0,.25,.04),Vector3(.145,.20,.14),cloth(w,Color("fff1df")))
- for side in [-1,1]:
-  oval(w,head,Vector3(side*.055,.285,.175),Vector3(.024,.033,.012),w.mat(Color("332b43"),null,.24))
-  w.sphere(head,Vector3(side*.055-.006,.295,.187),.006,w.mat(Color.WHITE))
-  oval(w,head,Vector3(side*.087,.23,.171),Vector3(.022,.013,.006),w.mat(Color("f8b2ba")))
- smile(w,head,Vector3(0,.22,.182),.040);hat(w,head,Vector3(0,.58,0),color.lightened(.18))
- var result:={"root":root,"head":head,"left":root.find_child("ArmL",true,false),"right":root.find_child("ArmR",true,false),"origin":p,"yaw":0.}
- for side in [-1,1]:
-  var leg:=root.find_child("LegL" if side<0 else "LegR",true,false) as Node3D
-  var pivot:=joint(root,"DancingHipL" if side<0 else "DancingHipR",Vector3(side*.14,.83,0))
-  leg.reparent(pivot,true);result["leg_l" if side<0 else "leg_r"]=pivot
- return result
+ return CelebrationTailoring.performer(w,parent,p,kind,color)
 
 static func clown(w: PlayWorld,parent: Node3D,p: Vector3) -> Dictionary:
- var root:=joint(parent,"CelebratingKitchenClown",p)
- var mint:=cloth(w,Color("8dd9cb"));var pink:=cloth(w,Color("f1adc7"));var white:=cloth(w,Color("fff6e9"));var gold:=cloth(w,Color("f7db7b"))
- oval(w,root,Vector3(0,1.18,0),Vector3(.32,.43,.21),mint)
- for y in [1.02,1.22,1.42]:w.sphere(root,Vector3(0,y,.215),.035,gold)
- for side in [-1,1]:oval(w,root,Vector3(side*.16,1.60,.045),Vector3(.15,.065,.10),pink)
- var asset: Node3D=(load("res://assets/detail-v310/clown-v310.glb") as PackedScene).instantiate();root.add_child(asset)
- var head:=asset.find_child("Head",true,false) as Node3D
- head.reparent(root,true);asset.queue_free()
- for mesh in meshes(head):
-  if "tooth" in str(mesh.name).to_lower() or "gum" in str(mesh.name).to_lower() or "oral" in str(mesh.name).to_lower() or "Hair" in str(mesh.name):mesh.hide();continue
-  for i in range(mesh.mesh.get_surface_count()):
-   var old: Material=mesh.get_active_material(i);var label: String=old.resource_name if old else ""
-   var m:=w.mat(Color("84b6b9") if "irises" in label else Color("302b3b") if "cavit" in label else Color("fff3e5"),null,.74)
-   mesh.set_surface_override_material(i,m)
- var hair: Node3D=(load("res://assets/encounter-v360/clown-blond-hair.glb") as PackedScene).instantiate();head.add_child(hair)
- var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/encounter-v360/blond_hair.gdshader")
- for mesh in meshes(hair):mesh.material_override=fibres
- w.sphere(head,Vector3(0,0,.173),.031,w.mat(Color("e4778d"),null,.4))
- oval(w,head,Vector3(0,-.085,.148),Vector3(.058,.040,.022),white)
- smile(w,head,Vector3(0,-.077,.172),.042)
- for side in [-1,1]:oval(w,head,Vector3(side*.09,-.044,.146),Vector3(.030,.022,.010),pink)
- var result:={"root":root,"head":head,"origin":p,"yaw":0.}
- for side in [-1,1]:
-  var arm:=joint(root,"ShoulderL" if side<0 else "ShoulderR",Vector3(side*.32,1.47,0))
-  w.tube(arm,Vector3.ZERO,Vector3(0,-.29,0),.09,mint)
-  var elbow:=joint(arm,"Elbow",Vector3(0,-.29,0));w.tube(elbow,Vector3.ZERO,Vector3(0,-.26,0),.075,pink)
-  w.sphere(elbow,Vector3(0,-.29,0),.09,white)
-  var leg:=joint(root,"HipL" if side<0 else "HipR",Vector3(side*.16,.91,0))
-  w.tube(leg,Vector3.ZERO,Vector3(0,-.35,0),.11,pink)
-  var knee:=joint(leg,"Knee",Vector3(0,-.35,0));w.tube(knee,Vector3.ZERO,Vector3(0,-.36,0),.09,mint)
-  oval(w,knee,Vector3(side*.045,-.42,.13),Vector3(.15,.10,.29),gold)
-  result["left" if side<0 else "right"]=arm;result["leg_l" if side<0 else "leg_r"]=leg
-  result["elbow_l" if side<0 else "elbow_r"]=elbow;result["knee_l" if side<0 else "knee_r"]=knee
- return result
+ return CelebrationTailoring.performer(w,parent,p,"clown",Color("72afa7"),true)
 
 static func horse(w: PlayWorld,parent: Node3D,p: Vector3) -> Dictionary:
- var root:=joint(parent,"HappyLongNeckHorse",p);var cream:=cloth(w,Color("f3deb3"));var pink:=cloth(w,Color("edb9c9"));var mane:=cloth(w,Color("9a76ba"))
- oval(w,root,Vector3(0,.45,0),Vector3(.44,.45,.38),pink)
- var links: Array[MeshInstance3D]=[]
- for i in range(20):
-  var section:=w.tube(root,Vector3(0,.5+i*.1,0),Vector3(0,.62+i*.1,0),.13,cream)
-  (section.mesh as CylinderMesh).height=1.;links.append(section)
- var head:=joint(root,"DancingHorseHead",Vector3(0,2.4,0))
- oval(w,head,Vector3(0,.09,0),Vector3(.25,.36,.25),cream)
- oval(w,head,Vector3(0,-.13,.30),Vector3(.25,.22,.30),cream)
- for side in [-1,1]:
-  var ear:=oval(w,head,Vector3(side*.17,.46,-.02),Vector3(.08,.25,.075),cream);ear.rotation.z=-side*.3
-  oval(w,head,Vector3(side*.19,.19,.20),Vector3(.055,.075,.045),w.mat(Color("433148"),null,.25))
-  w.sphere(head,Vector3(side*.18,.212,.237),.016,w.mat(Color.WHITE))
-  oval(w,head,Vector3(side*.15,-.10,.56),Vector3(.031,.022,.012),mane)
-  oval(w,head,Vector3(side*.225,-.01,.36),Vector3(.035,.018,.025),pink)
- for i in range(7):oval(w,head,Vector3(0,.37-i*.11,-.20),Vector3(.13,.1,.10),mane)
- smile(w,head,Vector3(0,-.23,.568),.09)
- for side in [-1,1]:oval(w,root,Vector3(side*.16,1.07,.14),Vector3(.16,.09,.08),pink)
- return {"root":root,"head":head,"links":links,"origin":p,"yaw":0.}
+ return CelebrationTailoring.horse(w,parent,p)

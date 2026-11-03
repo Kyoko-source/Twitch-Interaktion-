@@ -26,6 +26,8 @@ var prepared_afterglow
 var preparation_started:=false
 var skip_pending:=false
 var party_skip_released:=false
+var hold_started_at:=-1
+var party_started_at:=-1
 
 func build(game: Node3D, number: int=2) -> void:
  g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -80,6 +82,7 @@ func prepare_last_look() -> void:
 func _start_last_look() -> void:
  afterglow=prepared_afterglow;prepared_afterglow=null;skip_pending=false
  if afterglow is PatrolPartyOutro:
+  party_started_at=Time.get_ticks_msec()
   music.stop();afterglow.start()
   word.text=AfterPlayLanguage.t("Ende 1/3");word.add_theme_font_size_override("font_size",90);word.offset_bottom=0;word.show()
   word.add_theme_color_override("font_color",Color("71486d"));word.add_theme_color_override("font_outline_color",Color("fff5e8"));word.add_theme_constant_override("outline_size",5)
@@ -116,7 +119,8 @@ func tick(delta: float) -> void:
    word.modulate.a=(1.-black.color.a)*.94
    if not Input.is_action_pressed("jump"):party_skip_released=true
   else:music.volume_db=-9-51*smoothstep(12.,16.,afterglow.clock)
-  hold=hold+delta if Input.is_action_pressed("jump") and afterglow.clock>2 and (not afterglow is PatrolPartyOutro or party_skip_released) else 0.0
+  var ready_to_skip: bool=afterglow.clock>2 or (afterglow is PatrolPartyOutro and Time.get_ticks_msec()-party_started_at>2000)
+  _update_hold(delta,ready_to_skip and (not afterglow is PatrolPartyOutro or party_skip_released))
   if afterglow.finished or hold>=1.3: _finish_afterglow()
   return
  word.modulate.a=clampf((clock-(2.7 if ending_number==3 else .22))/.38,0,1)*clampf((title_length()-clock)/.6,0,1)
@@ -128,17 +132,29 @@ func tick(delta: float) -> void:
  word.hide();roll.position.y=1120-(clock-title_length())*38
  if secret_line:secret_line.hide()
  get_node("SkipHint").show()
- hold=hold+delta if Input.is_action_pressed("jump") and clock>title_length()+1 else 0.0
+ _update_hold(delta,clock>title_length()+1)
  if roll.position.y+roll.size.y< -80 or hold>=1.3: finish_scroll()
 
 func finish_scroll() -> void:
  if done or afterglow: return
- roll.hide();word.hide();get_node("SkipHint").hide();hold=0
+ roll.hide();word.hide();get_node("SkipHint").hide();hold=0;hold_started_at=-1
  if prepared_afterglow:_start_last_look()
  else:skip_pending=true
  if not (afterglow is PatrolPartyOutro) and not music.playing: music.play()
 
+func _update_hold(delta: float,allowed: bool) -> void:
+ if not allowed or not Input.is_action_pressed("jump"):
+  hold=0.;hold_started_at=-1;return
+ if hold_started_at<0:hold_started_at=Time.get_ticks_msec()
+ # A slow shader compilation or software-rendered frame must not turn a
+ # 1.3-second key hold into a long wait measured in simulation frames.
+ hold=maxf(hold+delta,float(Time.get_ticks_msec()-hold_started_at)/1000.)
+
 func _finish_afterglow() -> void:
+ # The opaque end card needs no 3D view. Restoring the inactive player camera
+ # otherwise renders a cold venue behind it and stalls WebGL before buttons
+ # become responsive, even though the celebration has already finished.
+ g.world.hide()
  afterglow.dispose();done=true;black.color.a=1;music.stop()
  get_node("SkipHint").hide()
  word.text=end_title();word.add_theme_font_size_override("font_size",128);word.modulate.a=1;word.show();word.offset_bottom=-390;actions.show()

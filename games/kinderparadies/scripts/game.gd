@@ -234,6 +234,7 @@ func _main_menu() -> void:
  if intro: intro.stop()
  phase="menu";player.lamp.visible=false
  menu_camera.position=Vector3(13.8,2.1,-6.2);menu_camera.fov=60;menu_camera.look_at(Vector3(17.2,2.3,.2));menu_camera.current=true;menu_clock=0
+ if is_instance_valid(world):world.show()
  NightMenus.home(self);room_audio.stream_paused=false
  if not menu_music.playing: menu_music.play()
  if not room_audio.playing: room_audio.play()

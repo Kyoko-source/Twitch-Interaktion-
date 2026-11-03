@@ -1,5 +1,30 @@
 # After Play — Kinderparadies
 
+## Überarbeitete Feierfiguren im Originalraum (3.8.14)
+
+Der Partyraum behält seine echten Wände, Böden, Bühne, Tische, Stühle, Snackbar,
+Geschenke und Wandbilder. Nur der blutige Hase wird während der Schlusssequenz
+gegen die saubere Variante getauscht. Warmes Licht, die vorhandene Partyanlage,
+Ballons und Konfetti verändern die Stimmung, ohne den Raum zu ersetzen.
+
+Clown und Gäste haben zusammenhängende gefaltete Kleidung, modellierte Gesichter,
+Augenlider, Hände mit Fingern, Schuhe, Ärmel und Säume. Der Clown trägt blonde
+Locken, eine Halskrause und eine Weste. Die Figuren tanzen unterschiedlich;
+zweigliedrige Beine halten das Standbein am Boden und die Knöchel gleichen die
+Bewegung aus. Der DJ greift zum Pult. Das Pferd hat einen zusammenhängenden,
+über 18 Gelenke weich verformten Hals, vier Beine, Schweif und einen detaillierten,
+freundlichen Kopf. Der Stoffhase bekommt glänzende Knopfaugen und eine Schleife.
+
+Statische Details werden pro Gelenk und Material zusammengeführt; zusätzliche
+Texturen oder Modelldownloads sind dafür nicht nötig. Kamera und Tanzplätze
+berücksichtigen die Originalmöbel. 07122000, Musikwechsel und die anderen Enden
+behalten ihren Ablauf. Prüfung: `--self-test --celebration-only`,
+`--render-qa --celebration-qa` und optional `--celebration-detail-qa`.
+
+Die Browser-Feier verzichtet auf die Schatten der vorhandenen Lampen und stellt
+diese danach wieder her. Die Haltezeit zum Überspringen berücksichtigt die echte
+verstrichene Zeit, damit langsame Renderframes die Taste nicht ausbremsen.
+
 ## Feier nach Ende 1 (3.8.13)
 
 Nach den Credits des regulären 13-Rundgänge-Endes folgt eine 48-sekündige
