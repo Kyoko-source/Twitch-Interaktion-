@@ -509,7 +509,9 @@ test('v3.5 Play reuses the menu venue and holding Skip switches to the prepared 
  console.log('Skip frame timing p95 ms',p95(deltas),'baseline',p95(baseline));
  await page.screenshot({path:join(tmpdir(),'after-play-v350-web-last-look.png')});
  await expect.poll(async()=>(await state(page)).ending_credits.afterglow.clock,{timeout:10000}).toBeGreaterThan(2.1);
- await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:25000,intervals:[70]}).toBe(true);}catch(error){error.message+='\nEnding state: '+JSON.stringify((await state(page)).ending_credits);throw error;}finally{await page.keyboard.up('Space');}
+ // Full-world telemetry is synchronous in WASM. Poll at the normal cadence so
+ // the software renderer gets frames between state requests during the hold.
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:30000}).toBe(true);}catch(error){error.message+='\nEnding state: '+JSON.stringify((await state(page)).ending_credits);throw error;}finally{await page.keyboard.up('Space');}
  await clickControl(page,'Hauptmenü');await expect.poll(async()=>(await state(page)).phase).toBe('menu');
  await clickControl(page,'Neue Nachtschicht');await expect.poll(async()=>(await state(page)).phase,{timeout:60000}).toBe('intro');await skipIntro(page);
  expect((await state(page)).streak).toBe(0);expect((await state(page)).performance.world_builds).toBe(readyBuilds+1);
