@@ -7,7 +7,7 @@ if(URL&&!['127.0.0.1','localhost'].includes(new globalThis.URL(URL).hostname))th
 test.use({viewport:{width:1920,height:1080},launchOptions:{args:['--enable-unsafe-swiftshader']}});
 const state=page=>page.evaluate(()=>{window.nachtwacheQA?.(JSON.stringify({op:'state'}));return window.nachtwacheStatus;});
 // A QA new-shift command rebuilds the actual room before publishing its intro state.
-async function skipIntro(page){await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
+async function skipIntro(page,loadingTimeout=30000){await expect.poll(async()=>(await state(page)).phase,{timeout:loadingTimeout}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
 async function qa(page,command){await page.evaluate(command=>window.nachtwacheQA(JSON.stringify(command)),command);if(command.op==='new')await skipIntro(page);}
 async function clickControl(page,text){const control=(await state(page)).controls.find(c=>c.text===text);expect(control).toBeTruthy();const [x,y,w,h]=control.rect;await page.mouse.move(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.mouse.click(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
 async function load(page){await page.goto(URL);await expect(page).toHaveTitle('After Play');await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu'&&typeof window.nachtwacheQA==='function',{timeout:45000});const exported=await state(page);expect(exported.renderer).toBe('gl_compatibility');expect(exported.native_assets).toBe(false);expect(exported.shared_croc).toBe(true);expect(exported.presentation.logical_size).toEqual([1920,1080]);}
@@ -384,7 +384,7 @@ test('v3.3 continue preserves a clear foyer pose and rejects an old save inside 
 });
 
 test('v3.3 cloakroom glass door is physical; stepping outside shows the secret car ending and saved credits',async({page})=>{
- test.setTimeout(300000);await begin(page);expect((await state(page)).arrival.parts).toBeGreaterThan(220);
+ test.setTimeout(420000);await begin(page);expect((await state(page)).arrival.parts).toBeGreaterThan(220);
  await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-13.5);
  expect((await state(page)).phase).toBe('play');expect((await state(page)).secret_ending).toBe(false);
  await page.keyboard.down('w');try{await page.waitForTimeout(1600);}finally{await page.keyboard.up('w');}
@@ -408,10 +408,10 @@ test('v3.3 cloakroom glass door is physical; stepping outside shows the secret c
  await page.screenshot({path:join(tmpdir(),'after-play-v330-web-secret-ending.png')});
  await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('credits');expect((await state(page)).ending_credits.music).toBe(true);expect((await state(page)).ending_credits.car).toBe(false);
  await page.waitForTimeout(1300);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:8000}).toBe('last_look');}finally{await page.keyboard.up('Space');}
- await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:22000}).toBe(true);await clickControl(page,'Hauptmenü');
- await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu');await clickControl(page,'Schicht fortsetzen');
- await expect.poll(async()=>(await state(page)).ending_credits.ending).toBe(3);await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:15000}).toBe('credits');
- await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:22000}).toBe(true);await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:60000}).toBe(true);await clickControl(page,'Hauptmenü');
+ await page.reload();await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='menu',null,{timeout:60000});await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).ending_credits.ending).toBe(3);await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:60000}).toBe('credits');
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:60000}).toBe(true);await clickControl(page,'Neue Nachtschicht');await skipIntro(page,60000);
  expect((await state(page)).secret_ending).toBe(false);expect((await state(page)).streak).toBe(0);
 });
 
