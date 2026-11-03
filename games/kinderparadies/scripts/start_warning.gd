@@ -6,7 +6,7 @@ signal acknowledged
 const TITLE:="BEVOR DEINE SCHICHT BEGINNT"
 const CONTENT:="Dieses Spiel enthält Lichtblitze, schnelle Lichtwechsel und Stroboskopeffekte sowie plötzliche laute Geräusche, Jumpscares und verstörende Bilder."
 const HEALTH:="Lichtblitze können bei lichtempfindlichen Personen epileptische Anfälle auslösen. Beende das Spiel, wenn du dich unwohl fühlst."
-const LIMIT:="Stroboskopeffekte kannst du hier und unter Einstellungen → Bild ausschalten. Andere Lichtwechsel und Schreckeffekte bleiben enthalten."
+const LIMIT:="Stroboskopeffekte kannst du hier und unter Einstellungen / Bild ausschalten. Andere Lichtwechsel und Schreckeffekte bleiben enthalten."
 const JOKE:="Außerdem: erschreckend schlechte Jumpscares.\nFür verschüttete Getränke übernimmt Kyoko keine Verantwortung."
 var g: Node3D
 var root: Control
