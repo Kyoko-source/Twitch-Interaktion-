@@ -148,6 +148,16 @@ func portal_path(origin: String,destination: String) -> Array[Vector3]:
 
 func solve(source: AudioStreamPlayer3D,listener: Vector3,exclude: Array[RID]) -> Dictionary:
  var point:=source.global_position;var origin:=area(point);var destination:=area(listener)
+ if source.get_meta("room_filling_music",false):
+  # The stereo fills its room instead of becoming a quiet point source in a
+  # corner. A single playback preserves stereo and keeps every beat in sync.
+  if destination=="party":return {"gain":0.,"cutoff":18000.,"blocked":false,"route":false}
+  if point.distance_to(listener)>36:return {"gain":-60.,"cutoff":1150.,"blocked":true,"route":false}
+  var path:=portal_path("party",destination)
+  var doorway: Vector3=path[-1] if not path.is_empty() else point
+  var obstruction:=blocked(point,listener,exclude)
+  var gain:=(-16. if obstruction else -9.)-20.*log(1.+listener.distance_to(doorway)/3.)/log(10.)
+  return {"gain":gain,"cutoff":1400. if obstruction else 4800.,"blocked":obstruction,"route":not path.is_empty()}
  if point.distance_to(listener)>source.max_distance+4:return {"gain":-60.,"cutoff":18000.,"blocked":false,"route":false}
  var obstruction:=blocked(point,listener,exclude)
  if origin=="tube" or destination=="tube":

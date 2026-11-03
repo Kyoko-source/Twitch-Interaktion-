@@ -154,9 +154,13 @@ func _party_dressing() -> void:
  w.mounted_sign(party,"birthday",Vector3(13.4,4.75,-11.95),Vector2(2.5,.85))
  # A second, lower activity table with child-sized stools gives the wider room
  # a distinct craft corner rather than merely stretching its walls.
- w.tube(party,Vector3(13.7,.58,-3.8),Vector3(13.7,.66,-3.8),1.1,w.materials.cream)
+ var round_top:=w.tube(party,Vector3(13.7,.58,-3.8),Vector3(13.7,.66,-3.8),1.1,w.materials.cream);round_top.name="RoundActivityTable"
+ var table_body:=StaticBody3D.new();table_body.name="RoundTableSolid";table_body.set_meta("foot_surface","wood");round_top.add_child(table_body)
+ var table_shape:=CollisionShape3D.new();var top_bounds:=CylinderShape3D.new();top_bounds.radius=1.1;top_bounds.height=.08;table_shape.shape=top_bounds;table_body.add_child(table_shape)
  for side in [-1,1]:
-  for z in [-4.45,-3.15]: w.tube(party,Vector3(13.7+side*.65,.05,z),Vector3(13.7+side*.65,.58,z),.04,w.materials.metal)
+  for z in [-4.45,-3.15]:
+   var leg:=w.tube(party,Vector3(13.7+side*.65,.05,z),Vector3(13.7+side*.65,.58,z),.04,w.materials.metal)
+   var body:=StaticBody3D.new();leg.add_child(body);var shape:=CollisionShape3D.new();var bounds:=CylinderShape3D.new();bounds.radius=.04;bounds.height=.53;shape.shape=bounds;body.add_child(shape)
  for i in range(5):
   var angle:=i*TAU/5;var pos:=Vector3(13.7+sin(angle)*1.4,0,-3.8+cos(angle)*1.4)
   w.tube(party,pos+Vector3(0,.32,0),pos+Vector3(0,.39,0),.23,[w.materials.gold,w.materials.teal,w.materials.red][i%3])

@@ -24,6 +24,33 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.8.7 stereo fills the party room and round table stops walking and supports landing',async({page})=>{
+ test.setTimeout(180000);await begin(page);expect((await state(page)).party.stereo).toBe(true);
+ await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await expect.poll(async()=>(await state(page)).target).toBe('party_control');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).party.playing).toBe(true);
+ const song=async()=>(await state(page)).upgrade.acoustics.sources.find(s=>s.id==='PartySong');
+ for(const [x,z] of [[8,-2.8],[18.5,-10.5],[18.5,.4]]){
+  await qa(page,{op:'warp',x,z});
+  await expect.poll(async()=>Math.abs((await song()).gain),{timeout:8000}).toBeLessThan(.1);
+  await expect.poll(async()=>(await song()).cutoff).toBeGreaterThan(17500);
+ }
+ await qa(page,{op:'warp',x:10.8,z:-2.4,yaw:1.26,pitch:-.18});
+ await qa(page,{op:'party_seek',time:51});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
+ await page.screenshot({path:join(tmpdir(),'after-play-v387-web-stereo.png')});
+ await qa(page,{op:'pause'});await expect.poll(async()=>(await state(page)).party.paused).toBe(true);
+ await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).party.paused).toBe(false);
+ await qa(page,{op:'warp',x:4,z:-8});await expect.poll(async()=>(await song()).gain).toBeLessThan(-9);
+ await qa(page,{op:'warp',x:13.7,z:-1.8,yaw:0,pitch:0});
+ await page.keyboard.down('w');await page.waitForTimeout(1400);await page.keyboard.up('w');
+ const stopped=(await state(page)).position;expect(stopped[2]).toBeGreaterThan(-2.5);expect(stopped[2]).toBeLessThan(-2.15);
+ await qa(page,{op:'warp',x:13.7,y:1.3,z:-3.8});
+ await expect.poll(async()=>Math.abs((await state(page)).position[1]-.66)).toBeLessThan(.035);
+ await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await expect.poll(async()=>(await state(page)).target).toBe('party_control');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).party.playing).toBe(false);
+});
+
 test('v3.8.6 warning blocks the menu, switches language and remembers disabled strobe',async({page})=>{
  test.setTimeout(180000);await page.goto(URL);await expect(page).toHaveTitle('After Play');
  await page.waitForFunction(()=>window.nachtwacheStatus?.phase==='warning',null,{timeout:60000});

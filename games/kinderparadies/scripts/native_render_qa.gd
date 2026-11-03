@@ -6,6 +6,19 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--stereo-v387-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(10.8,0,-2.4),Vector3(7.4,1.0,-3.5))
+  await capture(game,output,"stereo-off")
+  game.world.party.set_enabled(true);game.world.party.audio.seek(51)
+  await game.get_tree().create_timer(.3).timeout;await capture(game,output,"stereo-on")
+  author.pose(game,Vector3(17.6,0,-10),Vector3(9.0,2.0,-2.8))
+  await capture(game,output,"party-wide")
+  game.world.party.set_enabled(false)
+  author.pose(game,Vector3(15.8,0,-1.8),Vector3(13.7,.6,-3.8))
+  await capture(game,output,"round-table")
+  game._quit();return
  if "--warning-v386-qa" in OS.get_cmdline_user_args():
   var warning:=AfterPlayStartWarning.new();game.add_child(warning);warning.build(game)
   AfterPlayLanguage.choose("de");await capture(game,output,"start-warning-de")

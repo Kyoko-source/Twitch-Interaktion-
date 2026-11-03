@@ -19,6 +19,8 @@ var dot_material: ShaderMaterial
 var status: Label3D
 var led: StandardMaterial3D
 var saved_practical:=0.0
+var stereo: Node3D
+var vu: Array[StandardMaterial3D]=[]
 
 func build(world: PlayWorld) -> void:
  w=world;name="HappylandPartyLighting"
@@ -64,8 +66,55 @@ func build(world: PlayWorld) -> void:
  dots=MultiMeshInstance3D.new();dots.name="DiscoBallFloorReflections";var reflections:=MultiMesh.new();reflections.transform_format=MultiMesh.TRANSFORM_3D;var quad:=QuadMesh.new();quad.size=Vector2.ONE;reflections.mesh=quad;reflections.instance_count=72;dots.multimesh=reflections;add_child(dots)
  var shader:=Shader.new();shader.code="shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled;uniform float power=0.0;void fragment(){float a=1.0-smoothstep(.08,.5,length(UV-.5));ALBEDO=vec3(.8,.88,.72)*power;ALPHA=a*power;}"
  dot_material=ShaderMaterial.new();dot_material.shader=shader;dots.material_override=dot_material;dots.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
- audio=AudioStreamPlayer3D.new();audio.name="PartySong";audio.stream=load("res://assets/party-v385/party-web.ogg" if OS.has_feature("web") else "res://assets/party-v385/party.mp3").duplicate();audio.stream.loop=true;audio.position=Vector3(13.4,3.4,-4.5);audio.unit_size=5;audio.max_distance=33;audio.volume_db=-7;audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(audio)
+ _stereo()
+ audio=AudioStreamPlayer3D.new();audio.name="PartySong";audio.stream=load("res://assets/party-v385/party-web.ogg" if OS.has_feature("web") else "res://assets/party-v385/party.mp3").duplicate();audio.stream.loop=true;audio.position=stereo.transform*Vector3(0,1.15,.38);audio.volume_db=-10;audio.attenuation_model=AudioStreamPlayer3D.ATTENUATION_DISABLED;audio.max_distance=0;audio.panning_strength=.12;audio.attenuation_filter_db=0;audio.set_meta("room_filling_music",true);audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(audio)
  _control();evaluate(0,true);set_enabled(false)
+
+func _stereo() -> void:
+ stereo=Node3D.new();stereo.name="OldHappylandStereo";stereo.position=Vector3(7.38,.016,-3.5);stereo.rotation.y=PI/2;add_child(stereo)
+ stereo.set_meta("environment_dressing",true);stereo.set_meta("furniture_volume",AABB(Vector3(-1.65,0,-.35),Vector3(3.3,1.95,.8)))
+ var timber:=w.mat(Color("65513e"),load("res://assets/wood.png"),.88)
+ var face:=w.mat(Color("222823"),load("res://assets/paint.png"),.87)
+ var rubber:=w.mat(Color("151c19"),null,.96)
+ var steel: Material=w.materials.metal
+ # The entire set is against the west wall, below the overhead crawl tube.
+ # Cabinets use one fitted hull each; grille wires and cables are decorative.
+ for x in [-1.2,1.2]:
+  var cabinet:=Node3D.new();cabinet.name="LeftSpeaker" if x<0 else "RightSpeaker";cabinet.position.x=x;stereo.add_child(cabinet)
+  w.box(cabinet,Vector3(0,1.0,0),Vector3(.86,1.85,.68),timber,true)
+  for side in [-1,1]:w.box(cabinet,Vector3(side*.32,.055,.02),Vector3(.11,.09,.5),rubber)
+  w.box(cabinet,Vector3(0,1.0,.352),Vector3(.75,1.71,.025),face)
+  for cone in [Vector3(0,.57,.38),Vector3(0,1.25,.38),Vector3(0,1.65,.38)]:
+   var radius:=.265 if cone.y<1 else .20 if cone.y<1.5 else .085
+   w.tube(cabinet,cone,cone+Vector3(0,0,.018),radius,rubber)
+   var rim:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=radius-.025;torus.outer_radius=radius;torus.rings=32;torus.ring_segments=6;rim.mesh=torus;rim.material_override=steel;rim.position=cone+Vector3(0,0,.018);rim.rotation.x=PI/2;cabinet.add_child(rim)
+   var dust:=w.sphere(cabinet,cone+Vector3(0,0,.025),radius*.34,face);dust.scale.z=.4
+  for k in range(7):w.tube(cabinet,Vector3(-.32+k*.107,.2,.426),Vector3(-.32+k*.107,1.8,.426),.004,steel)
+  for k in range(9):w.tube(cabinet,Vector3(-.35,.22+k*.19,.429),Vector3(.35,.22+k*.19,.429),.004,steel)
+  w.box(cabinet,Vector3(.22,.20,.442),Vector3(.19,.07,.008),w.materials.gold)
+ w.box(stereo,Vector3(0,.43,.015),Vector3(1.27,.82,.65),timber,true)
+ for side in [-1,1]:
+  w.box(stereo,Vector3(side*.56,.06,.015),Vector3(.1,.1,.55),rubber)
+  w.box(stereo,Vector3(side*.305,.46,.352),Vector3(.58,.65,.035),face)
+  w.tube(stereo,Vector3(side*.08,.61,.38),Vector3(side*.08,.61,.405),.025,steel)
+ for y in [.98,1.23]:
+  w.box(stereo,Vector3(0,y,.03),Vector3(1.19,.23,.66),steel,true)
+  w.box(stereo,Vector3(0,y,.372),Vector3(1.11,.18,.022),face)
+  for x in [-.48,.48]:w.tube(stereo,Vector3(x,y,.39),Vector3(x,y,.428),.047,steel)
+ for x in [-.2,.2]:w.box(stereo,Vector3(x,1.23,.39),Vector3(.29,.10,.02),w.materials.dark)
+ for i in range(8):
+  var indicator:=w.mat(Color("3a8558") if i<6 else Color("9b7840"),null,.35);indicator.emission_enabled=true;indicator.emission=indicator.albedo_color;indicator.emission_energy_multiplier=.03;vu.append(indicator)
+  w.box(stereo,Vector3(-.30+i*.085,.98,.394),Vector3(.048,.042,.008),indicator)
+ # An old record deck, arm and loose cables make this a usable sound system.
+ w.box(stereo,Vector3(0,1.41,.03),Vector3(1.18,.11,.65),timber)
+ w.tube(stereo,Vector3(-.12,1.47,.04),Vector3(-.12,1.482,.04),.25,rubber)
+ w.tube(stereo,Vector3(-.12,1.483,.04),Vector3(-.12,1.488,.04),.075,w.materials.red)
+ w.tube(stereo,Vector3(.38,1.48,-.15),Vector3(.38,1.56,-.15),.022,steel)
+ w.tube(stereo,Vector3(.38,1.56,-.15),Vector3(.15,1.53,.15),.012,steel)
+ w.box(stereo,Vector3(.15,1.52,.15),Vector3(.035,.05,.075),face)
+ w.text(stereo,"HAPPYLAND / STEREO",Vector3(0,.78,.379),.053,Color("ad9f76"))
+ for side in [-1,1]:
+  for segment in [[Vector3(side*.4,.055,-.27),Vector3(side*1.2,.05,-.27)],[Vector3(side*1.2,.05,-.27),Vector3(side*1.2,.25,-.29)]]:w.tube(stereo,segment[0],segment[1],.012,rubber)
 
 func _control() -> void:
  var panel:=Node3D.new();panel.name="MaintenancePartyControl";panel.position=Vector3(-10.39,1.44,-3.48);panel.rotation.y=-PI/2;add_child(panel)
@@ -87,6 +136,7 @@ func set_enabled(value: bool) -> void:
  if value:audio.play(0)
  else:audio.stop()
  if not value:
+  for indicator in vu:indicator.emission_energy_multiplier=.03
   for i in range(lamps.size()):lamps[i].light_energy=0;lenses[i].emission_energy_multiplier=.03
   for fill in fills:fill.light_energy=0
   dot_material.set_shader_parameter("power",0.)
@@ -103,6 +153,7 @@ func evaluate(seconds: float,strobe: bool) -> void:
  for moment in TRACK.DROPS:
   if clock>=moment and clock<moment+24:drop=true
  intensity=(.35+energy*.65)*(.65+pulse*.65)*(1.8 if drop else 1.)
+ for i in range(vu.size()):vu[i].emission_energy_multiplier=1.5 if energy*(.6+pulse*.4)>float(i)/vu.size() else .03
  # Short, music-synchronised bursts, capped at 6 flashes/s and independently
  # switchable. Motion and colour continue when strobe is disabled.
  var flash:=strobe and drop and energy>.68 and fposmod(clock*6,1)<.20 and beat_index%8<3
@@ -134,5 +185,10 @@ func tick(delta: float,active: bool,visible_scene: bool,strobe: bool) -> void:
  dots.visible=visible_scene
  if active:evaluate(audio.get_playback_position(),strobe)
 
+func clear_pose(point: Vector3) -> bool:
+ var guard:=AABB(stereo.to_local(point)+Vector3(-.28,.08,-.28),Vector3(.56,1.6,.56))
+ if guard.intersects(stereo.get_meta("furniture_volume")):return false
+ return not (Vector2(point.x-13.7,point.z+3.8).length()<1.38 and point.y<.65 and point.y>-.5)
+
 func snapshot() -> Dictionary:
- return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS}
+ return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS,"stereo":is_instance_valid(stereo),"source_position":[audio.global_position.x,audio.global_position.y,audio.global_position.z]}
