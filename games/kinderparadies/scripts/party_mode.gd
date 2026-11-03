@@ -2,6 +2,7 @@ class_name HappylandParty
 extends Node3D
 
 const TRACK=preload("res://assets/party-v385/track_cues.gd")
+const MUSIC_CREDIT:="Track: Focus Fire - Mirage [NCS Release]\nMusic provided by NoCopyrightSounds.\nWatch more NCS on YouTube: https://NCS.lnk.to/YouTubeAT\nFree Download / Stream: https://ncs.io/FFMirage"
 const COLORS: Array[Color]=[Color("ff2862"),Color("396aff"),Color("21edaa"),Color("f2bb25"),Color("bd3cff"),Color("22d9f2")]
 var w: PlayWorld
 var audio: AudioStreamPlayer3D

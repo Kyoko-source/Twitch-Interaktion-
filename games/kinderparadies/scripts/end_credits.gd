@@ -45,6 +45,7 @@ func build(game: Node3D, number: int=2) -> void:
  for tester in TESTERS: _line(tester,37)
  _gap(85);_line("Vielen Dank fürs Spielen.",38)
  _gap(65);_line("GODOT ENGINE",23);_line("Asset-Quellen und Lizenzen: Mitwirkende im Hauptmenü und Dateien im Windows-Paket.",17,Color("8a8c83"))
+ _gap(65);_line("Partymusik",23,Color("b4aa90"));_line(HappylandParty.MUSIC_CREDIT,21)
  _gap(160);_line("Notiz von Kyoko",49,Color("cbbb95"));_gap(28)
  var note: Label=g._label(KYOKO_NOTE,29,Color("e0ddd0"));note.name="KyokoNote";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;note.add_theme_constant_override("line_spacing",12);roll.add_child(note)
  _gap(140)

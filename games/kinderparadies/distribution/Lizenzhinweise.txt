@@ -87,6 +87,12 @@ fremde Samples. Die bestehende Regenquelle ist in Quellen.txt aufgeführt.
 After Play 3.7.1: "Fern and Feather" (Abspann) und "Music Box Chase"
 (Pferde-Verfolgung) wurden von Kyoko für dieses Projekt bereitgestellt.
 
-After Play 3.8.5: Die Aufnahme "party.mp3" für den zuschaltbaren Partymodus
-wurde vom Ersteller für dieses Projekt bereitgestellt. Die Web-Fassung nutzt
-eine platzsparende Ogg-Kopie derselben Aufnahme.
+PARTYMUSIK
+Track: Focus Fire - Mirage [NCS Release]
+Music provided by NoCopyrightSounds.
+Watch more NCS on YouTube: https://NCS.lnk.to/YouTubeAT
+Free Download / Stream: https://ncs.io/FFMirage
+
+Diese Aufnahme wird im zuschaltbaren Partymodus verwendet ("party.mp3").
+Die Web-Fassung nutzt eine platzsparende Ogg-Kopie derselben Aufnahme.
+Die oben genannten CC0-Lizenzen gelten nicht für diesen Musiktitel.
