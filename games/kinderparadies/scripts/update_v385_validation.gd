@@ -41,10 +41,10 @@ func run(g: Node3D,verify: Callable) -> void:
  var old:=w.playground.croc_jaw.rotation;w.playground.set_croc_jaw(.1);verify.call(w.playground.croc_jaw.rotation!=old,"New crocodile jaw cannot animate");w.playground.set_croc_jaw(0)
  var party: HappylandParty=w.party
  verify.call(not party.enabled and not party.audio.playing,"Party starts unprompted as a false anomaly")
- var button: Node3D=party.get_node("MaintenancePartyControl")
- guard.position=button.global_position+button.global_basis.z*1.1;guard.position.y=0;guard.camera.look_at(button.global_position)
+ var button: Node3D=party.control
+ guard.position=button.global_position+button.global_basis.z*1.1;guard.position.y=.20;guard.camera.look_at(button.global_position)
  await g.get_tree().physics_frame;await g.get_tree().physics_frame
- verify.call(g._target()=="party_control","Maintenance party switch is obstructed")
+ verify.call(g._target()=="party_control","Costume-room party switch is obstructed")
  var event:=InputEventAction.new();event.action="interact";event.pressed=true;g._unhandled_input(event)
  verify.call(party.enabled and party.audio.playing and party.lamps.size()==6,"E does not start the real song and party rig")
  await g.get_tree().physics_frame;await g.get_tree().physics_frame

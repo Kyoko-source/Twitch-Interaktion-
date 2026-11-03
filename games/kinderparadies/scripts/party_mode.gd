@@ -4,6 +4,8 @@ extends Node3D
 const TRACK=preload("res://assets/party-v385/track_cues.gd")
 const MUSIC_CREDIT:="Rolling Acid — atomicmicrotone145 / Kyoko\nCreated with Suno (Free plan).\nPersonal, non-commercial use under Suno's terms.\nhttps://suno.com/terms"
 const COLORS: Array[Color]=[Color("ff2862"),Color("396aff"),Color("21edaa"),Color("f2bb25"),Color("bd3cff"),Color("22d9f2")]
+const REBOOT_SECONDS:=15*60
+const CONTROL_POSITION:=Vector3(19.62,1.65,-13.25)
 var w: PlayWorld
 var audio: AudioStreamPlayer3D
 var enabled:=false
@@ -23,6 +25,9 @@ var led: StandardMaterial3D
 var saved_practical:=0.0
 var stereo: Node3D
 var vu: Array[StandardMaterial3D]=[]
+var control: Node3D
+var reboot_until:=0
+var displayed_status:=""
 
 func build(world: PlayWorld) -> void:
  w=world;name="HappylandPartyLighting"
@@ -119,7 +124,7 @@ func _stereo() -> void:
   for segment in [[Vector3(side*.4,.055,-.27),Vector3(side*1.2,.05,-.27)],[Vector3(side*1.2,.05,-.27),Vector3(side*1.2,.25,-.29)]]:w.tube(stereo,segment[0],segment[1],.012,rubber)
 
 func _control() -> void:
- var panel:=Node3D.new();panel.name="MaintenancePartyControl";panel.position=Vector3(-10.39,1.44,-3.48);panel.rotation.y=-PI/2;add_child(panel)
+ var panel:=Node3D.new();panel.name="CostumePartyControl";panel.position=CONTROL_POSITION;panel.rotation.y=-PI/2;add_child(panel);control=panel
  w.box(panel,Vector3.ZERO,Vector3(.58,.62,.10),w.materials.metal)
  for x in [-.24,.24]:
   for y in [-.26,.26]:w.sphere(panel,Vector3(x,y,.058),.014,w.materials.rust)
@@ -130,10 +135,40 @@ func _control() -> void:
  var body:=StaticBody3D.new();body.set_meta("interaction","party_control");body.position=Vector3(0,0,.10);panel.add_child(body)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(.58,.62,.09);shape.shape=bounds;body.add_child(shape)
 
+func reboot_remaining() -> int:
+ return clampi(reboot_until-int(Time.get_unix_time_from_system()),0,REBOOT_SECONDS)
+
+func reboot_text() -> String:
+ var remaining:=reboot_remaining()
+ return "System startet neu · %02d:%02d"%[remaining/60,remaining%60]
+
+func control_prompt() -> String:
+ if enabled:return "E · Partymodus ausschalten"
+ return reboot_text() if reboot_remaining()>0 else "E · Partymodus einschalten"
+
+func interact() -> bool:
+ if enabled:
+  set_enabled(false);reboot_until=int(Time.get_unix_time_from_system())+REBOOT_SECONDS
+ elif reboot_remaining()>0:
+  return false
+ else:set_enabled(true)
+ _refresh_control();return true
+
+func _refresh_control() -> void:
+ var remaining:=reboot_remaining()
+ var value: String="AN" if enabled else "NEUSTART %02d:%02d"%[remaining/60,remaining%60] if remaining>0 else "AUS"
+ var signature:=value+"|"+AfterPlayLanguage.code
+ if signature==displayed_status:return
+ displayed_status=signature
+ status.text=AfterPlayLanguage.t(value);status.font_size=44 if remaining>0 and not enabled else 64
+ status.set_meta("sign_text",value)
+ led.emission=Color("ffb94f") if remaining>0 and not enabled else Color("4fff91")
+ led.emission_energy_multiplier=2.0 if enabled else .45 if remaining>0 else .05
+
 func set_enabled(value: bool) -> void:
  if value and not enabled:saved_practical=w.party_light.light_energy
  if enabled and not value:w.party_light.light_energy=saved_practical
- enabled=value;status.text="AN" if value else "AUS";led.emission_energy_multiplier=2.0 if value else .05
+ enabled=value;_refresh_control()
  if enabled:w.party_light.light_energy=.16
  if value:audio.play(0)
  else:audio.stop()
@@ -185,6 +220,7 @@ func evaluate(seconds: float,strobe: bool) -> void:
   dots.multimesh.set_instance_transform(i,Transform3D(basis,p))
 
 func tick(delta: float,active: bool,visible_scene: bool,strobe: bool) -> void:
+ _refresh_control()
  if not enabled:return
  audio.stream_paused=not active
  for light in lamps:light.visible=visible_scene
@@ -198,4 +234,4 @@ func clear_pose(point: Vector3) -> bool:
  return not (Vector2(point.x-13.7,point.z+3.8).length()<1.38 and point.y<.65 and point.y>-.5)
 
 func snapshot() -> Dictionary:
- return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"buildup":buildup,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS,"drop_ends":TRACK.DROP_ENDS,"duration":TRACK.DURATION,"track":"Rolling Acid","stereo":is_instance_valid(stereo),"source_position":[audio.global_position.x,audio.global_position.y,audio.global_position.z]}
+ return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"buildup":buildup,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS,"drop_ends":TRACK.DROP_ENDS,"duration":TRACK.DURATION,"track":"Rolling Acid","reboot_remaining":reboot_remaining(),"reboot_until":reboot_until,"control_prompt":AfterPlayLanguage.t(control_prompt()),"control_position":[control.global_position.x,control.global_position.y,control.global_position.z],"stereo":is_instance_valid(stereo),"source_position":[audio.global_position.x,audio.global_position.y,audio.global_position.z]}

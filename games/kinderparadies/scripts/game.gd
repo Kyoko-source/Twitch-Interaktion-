@@ -9,6 +9,7 @@ var archive_selected:=""
 var inventory_back:="play"
 var archive_input:=""
 var chalk_drawing:=""
+var party_reboot_until:=0
 var world: PlayWorld
 var player: NightGuard
 var phase := "menu"
@@ -65,6 +66,9 @@ func _ready() -> void:
  AfterPlayLanguage.setup()
  if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings()
+ var stored_party_text:=_persistent_text(SAVE)
+ var stored_party=JSON.parse_string(stored_party_text) if not stored_party_text.is_empty() else null
+ if stored_party is Dictionary:party_reboot_until=clampi(int(stored_party.get("party_reboot_until",0)),0,int(Time.get_unix_time_from_system())+HappylandParty.REBOOT_SECONDS)
  var show_warning:=not (AUTHOR_TOOLS and ("--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args()))
  if show_warning:AudioServer.set_bus_mute(0,true)
  player=NightGuard.new();add_child(player);player.camera.current=true
@@ -103,6 +107,7 @@ func _build_world(anomaly: String) -> void:
  menu_reference_ready=false;world_build_count+=1
  if player: player.drop_prop()
  if world:
+  if world.party:party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
   if world.chalk:chalk_drawing=world.chalk.serialize()
   _stop_scene_audio(world);remove_child(world);world.queue_free()
  world=PlayWorld.new();add_child(world);world.build();_connect_world(anomaly)
@@ -110,6 +115,7 @@ func _build_world(anomaly: String) -> void:
 func _connect_world(anomaly: String) -> void:
  world.set_anomaly(anomaly)
  world.chalk.restore(chalk_drawing)
+ world.party.reboot_until=party_reboot_until
  _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.horse_hunt.resolved.connect(_horse_resolved)
@@ -129,6 +135,7 @@ func _build_world_responsive(anomaly: String,progress: Callable=Callable()) -> v
  player.drop_prop()
  var old:=world;world=null
  if is_instance_valid(old):
+  if old.party:party_reboot_until=maxi(party_reboot_until,old.party.reboot_until)
   if old.chalk:chalk_drawing=old.chalk.serialize()
   _stop_scene_audio(old);remove_child(old);old.queue_free()
  await get_tree().process_frame
@@ -307,6 +314,7 @@ func _continue() -> void:
  var stored_archive=data.get("archive",{})
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
+ party_reboot_until=maxi(party_reboot_until,clampi(int(data.get("party_reboot_until",0)),0,int(Time.get_unix_time_from_system())+HappylandParty.REBOOT_SECONDS))
  has_session=true;_build_world("none" if state.completed else state.current)
  chalk_drawing=str(data.get("chalk",""))
  if not world.chalk.restore(chalk_drawing):chalk_drawing=""
@@ -481,8 +489,9 @@ func _write_settings() -> void:
 func _save(next_round: bool=false) -> void:
  if not has_session or not is_instance_valid(world): return
  if world.chalk:chalk_drawing=world.chalk.serialize()
+ party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
  if weather:
@@ -544,7 +553,7 @@ func _process(delta: float) -> void:
   elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
   elif target=="chalk_board": prompt.text="E · Mit Kreide schreiben"
   elif target=="parking_key":prompt.text="E · Parkplatzschlüssel mitnehmen"
-  elif target=="party_control":prompt.text="E · Partymodus "+("ausschalten" if world.party.enabled else "einschalten")
+  elif target=="party_control":prompt.text=world.party.control_prompt()
   elif target=="reception_cctv": prompt.text="E · Kontrollmonitor bedienen"
   elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
@@ -723,7 +732,9 @@ func _unhandled_input(event: InputEvent) -> void:
   elif target=="parking_key":
    archive.parking_key_found=true;_sync_parking_key();effect.play();_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
   elif target=="party_control":
-   world.party.set_enabled(not world.party.enabled);_save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet.",3)
+   if world.party.interact():
+    _save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet · Systemneustart dauert 15 Minuten.",4)
+   else:_announce(world.party.reboot_text(),3)
   elif target=="delivery_exit":
    if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
    else:world.backstage.interact_exit(player);_save()

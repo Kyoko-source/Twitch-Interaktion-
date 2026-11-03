@@ -55,7 +55,7 @@ test('v3.8.10 crocodile supports repeated jumps and backing out after the tape c
 
 test('v3.8.7 stereo fills the party room and round table stops walking and supports landing',async({page})=>{
  test.setTimeout(180000);await begin(page);expect((await state(page)).party.stereo).toBe(true);
- await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await qa(page,{op:'warp',x:18.52,y:.2,z:-13.25,yaw:-Math.PI/2,pitch:-.18});
  await expect.poll(async()=>(await state(page)).target).toBe('party_control');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).party.playing).toBe(true);
  const song=async()=>(await state(page)).upgrade.acoustics.sources.find(s=>s.id==='PartySong');
@@ -75,7 +75,7 @@ test('v3.8.7 stereo fills the party room and round table stops walking and suppo
  const stopped=(await state(page)).position;expect(stopped[2]).toBeGreaterThan(-2.5);expect(stopped[2]).toBeLessThan(-2.15);
  await qa(page,{op:'warp',x:13.7,y:1.3,z:-3.8});
  await expect.poll(async()=>Math.abs((await state(page)).position[1]-.66)).toBeLessThan(.035);
- await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await qa(page,{op:'warp',x:18.52,y:.2,z:-13.25,yaw:-Math.PI/2,pitch:-.18});
  await expect.poll(async()=>(await state(page)).target).toBe('party_control');await page.keyboard.press('e');
  await expect.poll(async()=>(await state(page)).party.playing).toBe(false);
 });
@@ -107,10 +107,12 @@ async function takeParkingKey(page){
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).parking_key).toBe(true);
 }
 
-test('v3.8.11 Rolling Acid follows all song sections, pauses and persists; ramp is walkable',async({page})=>{
+test('v3.8.12 Rolling Acid and costume-room switch preserve music and the restart cooldown',async({page})=>{
  test.setTimeout(180000);await begin(page);
  expect((await state(page)).party.enabled).toBe(false);
  await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ expect((await state(page)).target).not.toBe('party_control');
+ await qa(page,{op:'warp',x:18.52,y:.2,z:-13.25,yaw:-Math.PI/2,pitch:-.18});
  await expect.poll(async()=>(await state(page)).target).toBe('party_control');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).party.playing).toBe(true);
  await qa(page,{op:'party_seek',time:12});await expect.poll(async()=>(await state(page)).party.clock).toBeGreaterThan(11);
@@ -136,9 +138,21 @@ test('v3.8.11 Rolling Acid follows all song sections, pauses and persists; ramp 
  await qa(page,{op:'warp',x:6.25,z:7.5,yaw:-Math.PI/2,pitch:0});
  await walk(page,'w',s=>s.position[0]>11.15);expect((await state(page)).position[1]).toBeGreaterThan(2.1);
  await walk(page,'s',s=>s.position[0]<6.3);expect((await state(page)).position[1]).toBeLessThan(.2);
- await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await qa(page,{op:'warp',x:18.52,y:.2,z:-13.25,yaw:-Math.PI/2,pitch:-.18});
  await expect.poll(async()=>(await state(page)).target).toBe('party_control');await page.keyboard.press('e');
  await expect.poll(async()=>(await state(page)).party.playing).toBe(false);
+ const reboot=(await state(page)).party;expect(reboot.reboot_remaining).toBeGreaterThanOrEqual(898);
+ expect(reboot.control_prompt).toContain('System startet neu');
+ for(let i=0;i<5;i++)await page.keyboard.press('e');
+ expect((await state(page)).party.reboot_until).toBe(reboot.reboot_until);
+ expect((await state(page)).party.playing).toBe(false);
+ await page.screenshot({path:join(tmpdir(),'after-play-v3812-party-restart.png')});
+ await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).party.reboot_until).toBe(reboot.reboot_until);
+ await qa(page,{op:'warp',x:18.52,y:.2,z:-13.25,yaw:-Math.PI/2,pitch:-.18});
+ await expect.poll(async()=>(await state(page)).target).toBe('party_control');await page.keyboard.press('e');
+ expect((await state(page)).party.enabled).toBe(false);expect((await state(page)).party.reboot_remaining).toBeGreaterThan(850);
 });
 
 test('v3.8.4 German renders again after English and both selections survive restart',async({page})=>{

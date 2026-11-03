@@ -1,5 +1,24 @@
 # After Play — Kinderparadies
 
+## Partyschalter im Kostümraum (3.8.12)
+
+Der einzige Partyschalter sitzt jetzt an der Ostwand neben der Kreidetafel im
+Raum mit den hängenden Teddy-Kostümen. Der Technikraum enthält keinen zweiten
+Schalter mehr. Einschalten startet die vorhandene Partyanlage; Ausschalten
+stoppt Musik und Licht und beginnt einen 15-minütigen Systemneustart. Während
+dieser Zeit zeigen Schalter und Interaktionshinweis die verbleibende Zeit;
+wiederholtes Drücken schaltet nichts ein und verlängert die Wartezeit nicht.
+
+Der absolute Zeitstempel wird im Spielstand aufbewahrt und bleibt bei einem
+Rundenwechsel, einer neuen Schicht und beim Fortsetzen erhalten. Auch außerhalb
+des Spiels vergeht die Neustartzeit. Alte Spielstände ohne diesen Wert starten
+ohne Sperre. Deutsch und Englisch sind enthalten.
+
+Prüfung: `--self-test --party-control-only` sowie Browser-Test „v3.8.12“.
+Das bestehende Hasen-Icon ist in allen sechs Windows-Größen in der Anwendung
+enthalten; die ZIP-Ansicht des Explorers kann ein allgemeines EXE-Symbol zeigen.
+Zum Starten zuerst das gesamte Archiv entpacken.
+
 ## Rolling Acid (3.8.11)
 
 Die Partyanlage spielt jetzt Kyokos „Rolling Acid“ (4:32) statt „Mirage“.

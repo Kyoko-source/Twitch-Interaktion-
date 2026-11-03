@@ -6,6 +6,17 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--party-control-qa" in OS.get_cmdline_user_args():
+  game.party_reboot_until=0;game.world.party.reboot_until=0
+  game._new_shift();game.intro.skip();game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(17.1,.2,-14.2),Vector3(19.5,1.65,-14.2))
+  await capture(game,output,"party-control-room")
+  author.pose(game,Vector3(18.3,.2,-13.25),game.world.party.control.global_position)
+  game.world.party.interact();await game.get_tree().create_timer(.5).timeout;await capture(game,output,"party-control-on")
+  game.world.party.interact();await game.get_tree().create_timer(.5).timeout;await capture(game,output,"party-control-restart-de")
+  AfterPlayLanguage.choose("en");await game.get_tree().create_timer(.5).timeout;await capture(game,output,"party-control-restart-en")
+  game._quit();return
  if "--croc-contact-profile" in OS.get_cmdline_user_args():
   await load("res://art-direction/croc_profile.gd").new().run(game,output);return
  if "--rolling-acid-qa" in OS.get_cmdline_user_args():
