@@ -93,11 +93,17 @@ func _play() -> void:
 
 func _finished_recording() -> void:
  if not progress or progress.ending!="recording": return
- progress.ending="armed";progress.recording_position=duration;looked_away=false;w.archive.open();_game()._save()
+ progress.ending="armed";progress.recording_position=duration;looked_away=not _facing_exit();w.archive.open();_game()._save()
  _game()._end_recording_memories()
 
 func _game() -> Node3D:
  return w.get_parent()
+
+func _facing_exit() -> bool:
+ var camera: Camera3D=_game().player.camera
+ var direction: Vector3=LostArchive.ENTRY+Vector3(0,1.5,0)-camera.global_position;direction.y=0
+ var forward: Vector3=-camera.global_basis.z;forward.y=0
+ return forward.normalized().dot(direction.normalized())>.65
 
 func tick(_delta: float, active: bool) -> void:
  if not progress: return
@@ -112,13 +118,14 @@ func tick(_delta: float, active: bool) -> void:
  if recording:
   if not started: _play()
   if voice.playing: progress.recording_position=clampf(voice.get_playback_position(),0,duration)
- if progress.ending!="armed" or not w.archive.safe_pose(_game().player.position): return
- var camera: Camera3D=_game().player.camera
- var direction: Vector3=LostArchive.ENTRY+Vector3(0,1.5,0)-camera.global_position;direction.y=0
- var forward: Vector3=-camera.global_basis.z;forward.y=0
- var facing:=forward.normalized().dot(direction.normalized())>.65
+ if progress.ending!="armed": return
+ var player: NightGuard=_game().player
+ var facing:=_facing_exit()
  if not facing: looked_away=true
- if facing and looked_away:
+ # Resolve before the capsule crosses the doorway, including backwards or
+ # crouched exits. Old saves already outside the room must resolve too.
+ var at_exit:=player.position.x>=LostArchive.ENTRY.x-.65 and absf(player.position.z-LostArchive.ENTRY.z)<1.05
+ if (facing and looked_away) or at_exit or not w.archive.safe_pose(player.position):
   progress.ending="complete";trigger_count+=1;_game()._save();_game()._start_archive_scare()
 
 func snapshot() -> Dictionary:

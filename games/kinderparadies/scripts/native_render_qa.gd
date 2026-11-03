@@ -6,6 +6,8 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--croc-contact-profile" in OS.get_cmdline_user_args():
+  await load("res://art-direction/croc_profile.gd").new().run(game,output);return
  if "--ncs-credit-qa" in OS.get_cmdline_user_args():
   for language in ["de","en"]:
    AfterPlayLanguage.choose(language);NightMenus.credits(game)

@@ -8,6 +8,10 @@ func check(condition: bool, message: String) -> void:
  if not condition: failures.append(message);push_error(message)
 
 func run(game: Node3D) -> bool:
+ if "--update-v3810-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/update_v3810_validation.gd").new().run(game,check)
+  print("Finale/crocodile checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--party-stereo-only" in OS.get_cmdline_user_args():
   await load("res://scripts/stereo_validation.gd").new().run(game,check)
   print("Stereo and table checks: ",checks,"; failures: ",failures.size())

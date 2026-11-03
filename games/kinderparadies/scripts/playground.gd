@@ -6,6 +6,7 @@ var inflatable: Node3D
 var inflatable_skin: Node3D
 var fan: AudioStreamPlayer3D
 const CROCODILE_PATH := "res://assets/croc-v385/crocodile.glb"
+const CROC_CONTACT_PATH := "res://assets/croc-v385/collision.glb"
 var croc_visual: Node3D
 var croc_jaw: Node3D
 var jaw_rest := Vector3.ZERO
@@ -101,15 +102,19 @@ func _crocodile() -> void:
    elif material is StandardMaterial3D and material.resource_name in ["Faded ochre bed","Yellowed tapered teeth"]:
     material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*1.8
     material.albedo_color=Color("8e7940") if material.resource_name=="Faded ochre bed" else Color("c4b48b")
- var pvc:=w.mat(Color("343e23"),null,.8)
- # Collision follows the new closed silhouette instead of the former long
- # invisible boxes across empty space beside the mouth.
- for mesh in croc_visual.find_children("*","MeshInstance3D",true,false):
-  if mesh.name=="Body":mesh.create_trimesh_collision()
+ # Contact geometry is derived from this exact model, with a small fraction
+ # of its faces. The detailed shell and teeth never enter the physics solver.
+ inflatable.set_meta("foot_surface","rubber")
+ var proxy: Node3D=(load(CROC_CONTACT_PATH) as PackedScene).instantiate();inflatable_skin.add_child(proxy);proxy.hide()
+ for id in ["Body","UpperJaw"]:
+  var contact:=proxy.find_child(id,true,false) as MeshInstance3D
+  var body:=StaticBody3D.new();body.name="CrocBodyContact" if id=="Body" else "CrocJawContact"
+  (inflatable_skin if id=="Body" else croc_jaw).add_child(body);body.global_transform=contact.global_transform
+  var contact_shape:=CollisionShape3D.new();contact_shape.shape=contact.mesh.create_trimesh_shape() if id=="Body" else contact.mesh.create_convex_shape();body.add_child(contact_shape)
+ proxy.queue_free()
  var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,3.35);deck.set_meta("bounce_speed",7.2);inflatable.add_child(deck)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(2.45,.14,2.85);shape.shape=bounds;deck.add_child(shape)
- # The upper jaw's simple hull moves with its hinge during croc_snap.
- (croc_jaw as MeshInstance3D).create_convex_collision()
+ # The upper-jaw contact body is parented to its animated hinge.
  # Branding belongs on a worn safety plaque, not floating across its mouth.
  w.mounted_sign(inflatable,"croc",Vector3(-2.80,.34,2.2),Vector2(.65,.35))
  # The hose runs to the actual inlet and blower, all in attraction-local space.

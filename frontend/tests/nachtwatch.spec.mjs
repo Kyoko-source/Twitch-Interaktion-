@@ -24,6 +24,35 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.8.10 crocodile supports repeated jumps and backing out after the tape cannot skip ending 2',async({page})=>{
+ test.setTimeout(180000);await begin(page);
+ await qa(page,{op:'warp',x:12.65,y:2.8,z:12.4,yaw:Math.PI/2,pitch:-.25});
+ await expect.poll(async()=>(await state(page)).grounded).toBe(true);
+ for(let jump=0;jump<3;jump++){
+  const floor=(await state(page)).position[1];expect(floor).toBeGreaterThan(2);
+  await page.keyboard.press('Space');
+  await expect.poll(async()=>(await state(page)).position[1]).toBeGreaterThan(floor+.5);
+  await expect.poll(async()=>(await state(page)).grounded).toBe(true);
+  expect((await state(page)).position[1]).toBeGreaterThan(2);
+ }
+ await page.screenshot({path:join(tmpdir(),'after-play-v3810-web-croc-top.png')});
+ await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});
+ await expect.poll(async()=>(await state(page)).target).toBe('archive_door');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).phase).toBe('code');await page.mouse.click(275,220);await page.keyboard.type('0712',{delay:25});
+ await expect.poll(async()=>(await state(page)).archive_input).toBe('0712');await page.keyboard.press('Enter');
+ await expect.poll(async()=>(await state(page)).archive.angle).toBeLessThan(-1.7);
+ await qa(page,{op:'warp',x:-11.3,z:-9.9,yaw:Math.atan2(.8,-.35),pitch:Math.atan2(.11-1.65,Math.hypot(.8,.35))});
+ await expect.poll(async()=>(await state(page)).target).toBe('archive_recording');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).archive.finale.state).toBe('recording');
+ await qa(page,{op:'recording_seek',time:(await state(page)).archive.finale.duration-.08});
+ await expect.poll(async()=>(await state(page)).archive.finale.state).toBe('armed');
+ await qa(page,{op:'warp',x:-11.3,z:-9.9,yaw:Math.PI/2,pitch:0});
+ await page.keyboard.down('c');try{await walk(page,'s',s=>s.phase!=='play');}finally{await page.keyboard.up('c');}
+ expect((await state(page)).failure.count).toBe(1);expect((await state(page)).position[0]).toBeLessThan(-10.2);
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('ending');
+ expect((await state(page)).ending_credits.ending).toBe(2);
+});
+
 test('v3.8.7 stereo fills the party room and round table stops walking and supports landing',async({page})=>{
  test.setTimeout(180000);await begin(page);expect((await state(page)).party.stereo).toBe(true);
  await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
