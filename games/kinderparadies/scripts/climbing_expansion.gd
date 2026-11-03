@@ -48,6 +48,7 @@ func build(world: PlayWorld) -> void:
  w=world;name="AbandonedClimbingAdventure";set_meta("foot_surface","rubber")
  timber=w.mat(Color("8a7e61"),load("res://assets/wood.png"),.94);timber.uv1_triplanar=true;timber.uv1_scale=Vector3(1,4,1)
  _lookout();_east_landing();_repaired_frame()
+ _lower_entrance()
  sky=SkyTube.new();add_child(sky);sky.build(w)
  # Reinforced collars finish both sides of each penetration in the wall.
  for portal in [{"axis":"x","fixed":6.8,"u":-4.5},{"axis":"z","fixed":1.6,"u":16.05}]:
@@ -133,6 +134,16 @@ func _east_landing() -> void:
  ramp(self,Vector3(16.2,2.15,8.25),Vector3(16.2,4.15,3.90),1.25,"ContinuousEastUpperRamp")
  w.box(self,Vector3(16.12,4.065,3.36),Vector3(1.94,.17,1.10),w.materials.blue,true)
  w.box(self,Vector3(15.33,4.065,3.35),Vector3(.38,.17,1.12),w.materials.blue,true)
+
+func _lower_entrance() -> void:
+ var tower:=w.playground.get_node("EastTower")
+ for child in tower.get_children():
+  if child is Node3D and child.position.distance_to(Vector3(8.6,1.1,5.4))<.01:
+   tower.remove_child(child);child.queue_free()
+ # A true ramp and flush landing cross the net plane; no tilted end face or
+ # horizontal side tubes project into the opening at ankle height.
+ ramp(self,Vector3(6.20,.012,7.5),Vector3(10.05,2.15,7.5),1.32,"LowerEntranceContinuousSlope")
+ ramp(self,Vector3(10.05,2.15,7.5),Vector3(11.45,2.15,7.5),1.32,"LowerEntranceFlushLanding")
 
 func _repaired_frame() -> void:
  # Flush the oversized deck rail below its surface. Formerly this tube was

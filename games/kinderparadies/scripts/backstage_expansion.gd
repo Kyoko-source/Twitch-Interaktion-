@@ -27,6 +27,7 @@ var costume_light: OmniLight3D
 var scene_lights: Array[Light3D]=[]
 var anomaly:="none"
 var exit_open:=false
+var exit_key_owned:=false
 var exit_started:=false
 var exit_finished:=false
 var exit_clock:=0.0
@@ -209,6 +210,7 @@ func configure(id: String) -> void:
   for light in scene_lights: light.light_color=Color("e22c28")
 
 func interact_exit(player: NightGuard) -> void:
+ if not exit_key_owned:return
  # Never sweep a closing leaf through someone standing on the threshold.
  var p:=exit_root.to_local(player.position)
  if exit_open and p.z> -7.4 and p.z< -4.8 and absf(p.x)<1.2: return
@@ -224,7 +226,9 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  exit_leaf.rotation.y=move_toward(exit_leaf.rotation.y,PI*.49 if exit_open else 0,delta*1.8)
  var moving:=absf(exit_leaf.rotation.y-(PI*.49 if exit_open else 0))>.01
  exit_collider.disabled=moving or (exit_open and player_local.x<-.46 and player_local.z> -7.4 and player_local.z< -4.8)
- if exit_open and player_local.z<MainEntrance.OUTSIDE_Z and absf(player_local.x)<1.22 and player.position.y<1.8 and not escape_queued:
+ # The whole outdoor landing counts, including a diagonal step immediately
+ # right of the door. The former narrow stripe could be walked around.
+ if exit_open and exit_key_owned and MainEntrance.is_outside(player_local) and not escape_queued:
   escape_queued=true;escaped.emit()
  if anomaly=="false_exit" and exit_started and not exit_finished:
   exit_clock+=delta
@@ -266,7 +270,7 @@ func restore(data: Variant) -> void:
  for field in ["exit_clock","costume_attack"]:
   var value: Variant=data.get(field,0)
   if not (value is float or value is int) or not is_finite(float(value)): return
- exit_open=data.get("exit_open",false);exit_leaf.rotation.y=PI*.49 if exit_open else 0
+ exit_open=data.get("exit_open",false) and exit_key_owned;exit_leaf.rotation.y=PI*.49 if exit_open else 0
  if anomaly=="false_exit":
   exit_started=data.get("exit_started",false);exit_clock=clampf(float(data.get("exit_clock",0)),0,10)
   if data.get("exit_finished",false): _finish_exit()

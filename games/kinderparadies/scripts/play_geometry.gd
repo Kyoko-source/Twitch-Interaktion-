@@ -91,7 +91,7 @@ static func entry_ramp(w: PlayWorld, root: Node3D) -> MeshInstance3D:
  # A flat landing crosses the net plane. The old tilted box left the capsule
  # below the deck when walking out, so floor snapping caught the edge repeatedly.
  var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
- var profile: Array[Vector2]=[Vector2(-1.65,-.018),Vector2(-.55,.305),Vector2(.35,.305)]
+ var profile: Array[Vector2]=[Vector2(-1.65,-.018),Vector2(-.55,.29),Vector2(.35,.29)]
  for i in range(2):
   var a:=Vector3(profile[i].x,profile[i].y,-1.67);var b:=Vector3(profile[i].x,profile[i].y,-.33)
   var c:=Vector3(profile[i+1].x,profile[i+1].y,-1.67);var d:=Vector3(profile[i+1].x,profile[i+1].y,-.33)

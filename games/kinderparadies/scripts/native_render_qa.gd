@@ -6,6 +6,17 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--update-v385-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  for view in [{"id":"croc-front","p":Vector3(5.4,1.0,16.0),"look":Vector3(12.3,1.55,12.4)},{"id":"croc-rear","p":Vector3(19,1.0,15.4),"look":Vector3(12.3,1.3,12.4)},{"id":"parking-key","p":Vector3(-7.7,0,-18.0),"look":game.world.details.parking_key.global_position},{"id":"play-entry","p":Vector3(11.8,2.15,7.5),"look":Vector3(9.1,1.8,7.5)}]:
+   author.pose(game,view.p,view.look);await game.get_tree().create_timer(.5).timeout;await capture(game,output,view.id)
+  author.pose(game,Vector3(8.3,0,-8.8),Vector3(13.5,4.0,-4.5))
+  await capture(game,output,"party-off")
+  game.world.party.set_enabled(true)
+  for seconds in [12.0,51.0,141.0]:
+   game.world.party.audio.seek(seconds);await game.get_tree().create_timer(.3).timeout;await capture(game,output,"party-"+str(int(seconds)))
+  game.world.party.set_enabled(false);game._quit();return
  if "--language-qa" in OS.get_cmdline_user_args():
   for index in [1,0]:
    game._settings("menu");NightMenus.settings(game,"Sprache")

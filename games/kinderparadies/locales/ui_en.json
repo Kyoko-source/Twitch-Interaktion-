@@ -235,5 +235,16 @@
   "Rückgängig": "Undo",
   "Alles abwischen": "Wipe clean",
   "Zurück zum Rundgang · ESC": "Return to patrol · ESC",
-  "E · Mit Kreide schreiben": "E · Write with chalk"
+  "E · Mit Kreide schreiben": "E · Write with chalk",
+  "E · Parkplatzschlüssel mitnehmen": "E · Take parking key",
+  "Glastür verschlossen · Parkplatzschlüssel fehlt": "Glass door locked · Parking key required",
+  "Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.": "Parking key collected · You can now open the glass door.",
+  "Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.": "Locked. The parking key hangs on the key board in the staff corridor.",
+  "PARKPLATZSCHLÜSSEL": "PARKING KEY",
+  "Ein Messingschlüssel mit grünem P-Anhänger.\nEr öffnet die Glastür am Haupteingang.": "A brass key with a green P tag.\nIt opens the glass door at the main entrance.",
+  "E · Partymodus einschalten": "E · Enable party mode",
+  "E · Partymodus ausschalten": "E · Disable party mode",
+  "Partymodus eingeschaltet.": "Party mode enabled.",
+  "Partymodus ausgeschaltet.": "Party mode disabled.",
+  "Stroboskop-Effekte": "Strobe effects"
 }

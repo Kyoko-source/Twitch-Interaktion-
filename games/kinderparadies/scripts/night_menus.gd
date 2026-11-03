@@ -34,7 +34,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v3.8.4",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v3.8.5",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -64,6 +64,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    slider(g,column,"Renderauflösung","render_scale",.65,1,.05)
    option(g,column,"Grafikqualität","quality",["Leistung","Standard","Hoch"],[0,1,2])
    toggle(g,column,"Filmkorn","grain")
+   toggle(g,column,"Stroboskop-Effekte","strobe")
    option(g,column,"Bildratenlimit","fps",["Unbegrenzt","30 FPS","60 FPS","120 FPS","144 FPS"],[0,30,60,120,144])
    if not OS.has_feature("web"): toggle(g,column,"V-Sync","vsync")
    column.add_child(g._button("Vollbild umschalten",g._fullscreen))

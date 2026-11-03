@@ -62,7 +62,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   w.atmosphere.horrors.horse.rotation.x=sin(elapsed*2.7)*.22
  if id not in ["bunny_lunge","croc_snap","party_burst"]: return
  if not triggered and elapsed>1:
-  var target: Vector3=bunny.global_position+Vector3(0,.7,0) if id=="bunny_lunge" else w.props.inflatable.to_global(Vector3(0,2,2.7)) if id=="croc_snap" else Vector3(8.5,1.5,-7)
+  var target: Vector3=bunny.global_position+Vector3(0,.7,0) if id=="bunny_lunge" else w.props.inflatable.to_global(Vector3(0,1.8,5.25)) if id=="croc_snap" else Vector3(8.5,1.5,-7)
   var proximity:=3.0 if id=="bunny_lunge" else 5.2 if id=="croc_snap" else 3.4
   if not primed and visible_to(player,target,proximity+1.4):
    primed=true;anticipation.global_position=target;anticipation.play()

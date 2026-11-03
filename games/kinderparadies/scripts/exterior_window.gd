@@ -15,8 +15,8 @@ var count:=0
 var boards: Array[MeshInstance3D]=[]
 var drapes: Array[MeshInstance3D]=[]
 
-func part(p: Vector3,size_value: Vector3,material: Material) -> MeshInstance3D:
- count+=1;return w.box(self,p,size_value,material)
+func part(p: Vector3,size_value: Vector3,material: Material,solid: bool=false) -> MeshInstance3D:
+ count+=1;return w.box(self,p,size_value,material,solid)
 
 func build(world: PlayWorld) -> void:
  w=world;name="RainyParkingWindow";position=Vector3(-10.2,0,1.7);rotation.y=PI/2
@@ -119,7 +119,7 @@ func _barricade_and_curtains(metal: Material) -> void:
 
 func _parking(metal: Material) -> void:
  var asphalt:=w.graphics.floor_material("concrete_floor_worn_001",Color("59625f"),.45,.80)
- part(Vector3(-2.1,-.10,-15.5),Vector3(8.2,.18,29),asphalt)
+ part(Vector3(-2.1,-.10,-15.5),Vector3(8.2,.18,29),asphalt,true).set_meta("foot_surface","concrete")
  var paint:=w.mat(Color("aaa990"),load("res://assets/paint.png"),.96)
  var concrete:=w.mat(Color("676e68"),load("res://assets/aged-plaster.png"),.93)
  # Two rows of empty parking bays, worn line fragments and cast kerb stones.
@@ -136,7 +136,7 @@ func _parking(metal: Material) -> void:
  part(Vector3(2.12,1.8,-15.0),Vector3(.20,3.6,30),w.materials.wall)
  # The old entrance joins the same parking lot beyond its west facade.
  part(Vector3(-6.28,1.8,-3.20),Vector3(.16,3.6,4.4),w.materials.wall)
- part(Vector3(-9.0,-.10,-18.0),Vector3(5.6,.18,24.),asphalt)
+ part(Vector3(-10.1,-.10,-18.0),Vector3(7.8,.18,24.),asphalt,true).set_meta("foot_surface","concrete")
  for z in [-9.,-14.,-19.,-24.,-29.]:
   w.tube(self,Vector3(-11.7,0,z),Vector3(-11.7,1.8,z),.027,metal)
  for y in [.25,1.6]:w.tube(self,Vector3(-11.7,y,-6.),Vector3(-11.7,y,-29.9),.020,metal)

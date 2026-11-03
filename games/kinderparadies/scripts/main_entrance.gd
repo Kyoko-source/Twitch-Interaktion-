@@ -4,6 +4,9 @@ extends RefCounted
 const DOOR_Z:=-5.60
 const OUTSIDE_Z:=-6.65
 
+static func is_outside(p: Vector3) -> bool:
+ return p.z<DOOR_Z-.35 and p.z> -30 and absf(p.x)<14 and p.y> -1 and p.y<2.8
+
 static func build(b: Node3D) -> void:
  var w: PlayWorld=b.w
  b.exit_root=Node3D.new();b.exit_root.name="OldHappylandMainEntrance";b.exit_root.position=Vector3(-10.2,0,9.4);b.exit_root.rotation.y=PI/2;b.add_child(b.exit_root)

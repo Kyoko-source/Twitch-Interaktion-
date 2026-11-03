@@ -25,7 +25,7 @@ var room_audio: AudioStreamPlayer
 var weather: HappylandWeather
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true,"strobe":true}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var captions: AfterPlayCaptions
@@ -106,6 +106,7 @@ func _connect_world(anomaly: String) -> void:
  world.horse_hunt.resolved.connect(_horse_resolved)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
+ _sync_parking_key()
  world.film.sync(archive.film_found)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
@@ -143,7 +144,7 @@ func _request_shift() -> void:
  var label:=_label("Die nächste Schicht beginnt …",27);label.position=Vector2(670,500);label.size=Vector2(580,70);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;menu.add_child(label)
  var bar:=ProgressBar.new();bar.position=Vector2(710,590);bar.size=Vector2(500,7);bar.show_percentage=false;menu.add_child(bar);_telemetry()
  await _build_world_responsive("none",func(value: float):bar.value=value*100)
- _begin_intro()
+ _sync_parking_key();_begin_intro()
 
 func _stop_scene_audio(root: Node) -> void:
  # Retire paused WAV playbacks before removing a room or closing the game.
@@ -241,7 +242,7 @@ func _new_shift() -> void:
  if menu_reference_ready:
   menu_reference_ready=false;world.archive.sync(archive,1);world.film.sync(false);player.reset_pose()
  else:_build_world("none")
- _begin_intro()
+ _sync_parking_key();_begin_intro()
 
 func _begin_intro() -> void:
  if is_instance_valid(end_credits):end_credits.queue_free();end_credits=null
@@ -302,6 +303,7 @@ func _continue() -> void:
  if not world.chalk.restore(chalk_drawing):chalk_drawing=""
  secret_ending=bool(data.get("secret_ending",false))
  world.backstage.restore(data.get("backstage",{}));world.horse_hunt.restore(data.get("horse_hunt",{}))
+ world.party.set_enabled(bool(data.get("party_mode",false)))
  world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
@@ -414,7 +416,7 @@ func _read_settings() -> void:
   var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
   var high:=100.0 if key=="fov" else 1.0
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
- for key in ["grain","vsync","invert_y","crosshair"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
+ for key in ["grain","vsync","invert_y","crosshair","strobe"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
  settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
  settings.language="en" if data.get("language","de")=="en" else "de"
  settings.subtitles=bool(data.get("subtitles",true));settings.sign_subtitles=bool(data.get("sign_subtitles",true))
@@ -471,7 +473,7 @@ func _save(next_round: bool=false) -> void:
  if not has_session or not is_instance_valid(world): return
  if world.chalk:chalk_drawing=world.chalk.serialize()
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
  if weather:
@@ -506,6 +508,7 @@ func _process(delta: float) -> void:
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.backstage.tick(delta,phase=="play",player)
+ world.party.tick(delta,phase=="play" and archive.ending!="recording",phase in ["play","pause","settings","inventory","help","code"],bool(settings.strobe))
  world.archive.tick(delta,phase=="play")
  if archive.ending=="recording" and phase in ["play","pause","inventory","settings","help"]:
   memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
@@ -531,12 +534,14 @@ func _process(delta: float) -> void:
   elif target=="life:photo": prompt.text="E · Alten Fotostreifen ansehen"
   elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
   elif target=="chalk_board": prompt.text="E · Mit Kreide schreiben"
+  elif target=="parking_key":prompt.text="E · Parkplatzschlüssel mitnehmen"
+  elif target=="party_control":prompt.text="E · Partymodus "+("ausschalten" if world.party.enabled else "einschalten")
   elif target=="reception_cctv": prompt.text="E · Kontrollmonitor bedienen"
   elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
   elif target=="archive_recording": prompt.text="E · Aufnahme abspielen" if archive.ending=="idle" else "Aufnahme läuft · ESC pausiert" if archive.ending=="recording" else "Die Aufnahme ist zu Ende"
   elif target.begins_with("paper:"): prompt.text="E · "+str(ArchiveState.document(target.trim_prefix("paper:")).title)+" einsammeln"
   elif target in ["archive_door","archive_lock"]: prompt.text="Archiv · Verriegelt bis zum Ende der Aufnahme" if world.archive.playback_locked() else "Archiv · Offen" if archive.unlocked else "E · Zahlenschloss untersuchen"
-  elif target=="delivery_exit": prompt.text="E · Glastür zum Parkplatz "+("schließen" if world.backstage.exit_open else "öffnen")
+  elif target=="delivery_exit": prompt.text="E · Glastür zum Parkplatz "+("schließen" if world.backstage.exit_open else "öffnen") if archive.parking_key_found else "Glastür verschlossen · Parkplatzschlüssel fehlt"
   elif target.begins_with("story:"): prompt.text="E · "+str(BackstageExpansion.DOCS[target.trim_prefix("story:")].title)+" lesen"
   if target=="":
    if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
@@ -706,11 +711,20 @@ func _unhandled_input(event: InputEvent) -> void:
   elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
   elif target in ["archive_door","archive_lock"]: _open_archive_lock()
-  elif target=="delivery_exit": world.backstage.interact_exit(player)
+  elif target=="parking_key":
+   archive.parking_key_found=true;_sync_parking_key();effect.play();_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
+  elif target=="party_control":
+   world.party.set_enabled(not world.party.enabled);_save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet.",3)
+  elif target=="delivery_exit":
+   if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
+   else:world.backstage.interact_exit(player);_save()
   elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
 
 func _close_chalk() -> void:
  world.chalk.finish_stroke();_save();_resume()
+
+func _sync_parking_key() -> void:
+ world.details.sync_parking_key(archive.parking_key_found);world.backstage.exit_key_owned=archive.parking_key_found
 
 func _show_memory_wall() -> void:
  phase="help";return_phase="play"
@@ -826,6 +840,7 @@ func _telemetry() -> void:
   data.weather=weather.snapshot()
   data.craft=world.craft.snapshot()
   data.arrival=world.arrival_design.snapshot();data.secret_ending=secret_ending
+  data.party=world.party.snapshot();data.parking_key=archive.parking_key_found
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
@@ -874,6 +889,8 @@ func _qa_command(args: Array) -> void:
  match command.get("op",""):
   "look": player.rotation.y=float(command.yaw)
   "voice": world.soundscape.cue_voice(player)
+  "party_seek":
+   if world.party.enabled:world.party.audio.seek(clampf(float(command.get("time",0)),0,203.9))
   "flicker": player.torch_body.trigger()
   "audit": qa_layout=SceneAudit.inspect(world)
   "recording_seek":

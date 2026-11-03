@@ -12,6 +12,8 @@ var steel: StandardMaterial3D
 var enamel: StandardMaterial3D
 var timber: StandardMaterial3D
 var cloth: StandardMaterial3D
+var parking_key: Node3D
+var parking_key_shape: CollisionShape3D
 
 func build(world: PlayWorld) -> void:
  w=world;name="AfterPlayDetails"
@@ -273,6 +275,18 @@ func _service_hall() -> void:
   ring(board,Vector3(x,.012,.11),.023,brass,Vector3(PI/2,0,0),.006)
   w.box(board,Vector3(x,-.06,.11),Vector3(.013,.105,.014),brass)
   for y in [-.075,-.105]: w.box(board,Vector3(x+.014,y,.11),Vector3(.027,.013,.014),brass)
+ parking_key=Node3D.new();parking_key.name="CollectibleParkingKey";board.add_child(parking_key)
+ ring(parking_key,Vector3(0,.05,.11),.04,steel,Vector3(PI/2,0,0),.005)
+ ring(parking_key,Vector3(0,.012,.12),.025,brass,Vector3(PI/2,0,0),.006)
+ w.box(parking_key,Vector3(0,-.065,.12),Vector3(.014,.11,.015),brass)
+ for y in [-.08,-.115]:w.box(parking_key,Vector3(.014,y,.12),Vector3(.03,.014,.015),brass)
+ var tag:=w.box(parking_key,Vector3(.066,-.045,.12),Vector3(.065,.105,.012),w.materials.teal);tag.rotation.z=-.15
+ w.text(parking_key,"P",Vector3(.066,-.045,.13),.036,Color("ded8b7"))
+ var body:=StaticBody3D.new();body.name="ParkingKeyInteraction";body.set_meta("interaction","parking_key");parking_key.add_child(body)
+ parking_key_shape=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(.19,.25,.09);parking_key_shape.shape=bounds;parking_key_shape.position=Vector3(.025,-.03,.13);body.add_child(parking_key_shape)
+
+func sync_parking_key(found: bool) -> void:
+ parking_key.visible=not found;parking_key_shape.set_deferred("disabled",found)
 
 func tick(delta: float, active: bool) -> void:
  hum.stream_paused=not active

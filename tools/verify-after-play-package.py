@@ -10,6 +10,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / 'games/kinderparadies/build'
+
+def packed_paths(data, start=0):
+    assert data[start:start + 4] == b'GDPC'
+    directory = start + struct.unpack_from('<Q', data, start + 32)[0]
+    count = struct.unpack_from('<I', data, directory)[0]
+    cursor, names = directory + 4, set()
+    for _ in range(count):
+        length = struct.unpack_from('<I', data, cursor)[0]
+        cursor += 4
+        names.add(data[cursor:cursor + length].rstrip(b'\0'))
+        cursor += length + 36
+    return names
+
 manifest = json.loads((BUILD / 'release.json').read_text('utf-8-sig'))
 version = manifest['version']
 assert manifest['packaging_revision'] == 2
@@ -33,6 +46,11 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
         assert z.read('Lizenzen/Godot-COPYRIGHT.txt') == (BUILD / 'package/Godot-COPYRIGHT.txt').read_bytes()
         if platform == 'windows':
             assert z.read('AfterPlay.exe') == (BUILD / 'windows/AfterPlay.exe').read_bytes()
+            executable = z.read('AfterPlay.exe')
+            start = len(executable) - 12 - struct.unpack_from('<Q', executable, len(executable) - 12)[0]
+            native_names = packed_paths(executable, start)
+            assert any(b'assets/party-v385/party.mp3' in name for name in native_names)
+            assert not any(b'assets/party-v385/party-web.ogg' in name for name in native_names)
             guide = z.read('STARTEN.txt').decode('utf-8')
             assert all(spoiler not in guide for spoiler in ['0712', '6428', 'clock_reverse', 'tube_watcher'])
         else:
@@ -48,15 +66,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                              for p in (ROOT / 'games/kinderparadies/assets').rglob('*.json')
                              if p.name not in ['catalog.json', 'memories.json']]
             assert pck[:4] == b'GDPC' and struct.unpack_from('<I', pck, 4)[0] == 3
-            directory = struct.unpack_from('<Q', pck, 32)[0]
-            count = struct.unpack_from('<I', pck, directory)[0]
-            cursor = directory + 4
-            packed_names = set()
-            for _ in range(count):
-                length = struct.unpack_from('<I', pck, cursor)[0]
-                cursor += 4
-                packed_names.add(pck[cursor:cursor + length].rstrip(b'\0'))
-                cursor += length + 36
+            packed_names = packed_paths(pck)
             for required in [b'assets/reception-v2120/birthday-memories.png', b'assets/reception-v2120/cctv.gdshader', b'scripts/ball_pit_physics.gd', b'scripts/reception_watch.gd', b'assets/life-v2110/photostrip-v2.png', b'assets/life-v2110/compressor.wav', b'assets/life-v2110/water-film.gdshader', b'scripts/room_acoustics.gd', b'scripts/exterior_window.gd', b'scripts/graphics_upgrade.gd', b'assets/atmosphere-v320/arcade-1.ogg', b'assets/atmosphere-v320/projector-mechanism.ogg', b'scripts/main_entrance.gd', b'scripts/arrival_design.gd', b'scripts/venue_craft.gd', b'scripts/venue_signage.gd', b'scripts/wrapped_present.gd', b'assets/restoration-v350/happyland-signs.jpg', b'assets/restoration-v350/wrapping-paper.gdshader', b'assets/restoration-v350/sign_index.gd', b'assets/craft-v340/floor-finish.gdshader', b'assets/craft-v340/service-wear.gdshader', b'assets/craft-v340/industrial-kitchen.glb', b'assets/arrival-v330/car-departure.ogg']:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/horse_hunt.gd', b'scripts/horse_navigation.gd', b'assets/encounter-v360/clown-blond-hair.glb', b'assets/encounter-v360/blond_hair.gdshader']:
@@ -66,6 +76,9 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             for required in [b'scripts/chalk_board.gd', b'scripts/child_drawings.gd', b'scripts/wall_decay.gd', b'assets/child-art-v382/crayon-atlas.png.import', b'assets/wall-v383/broken-plaster.gdshader', b'assets/wall-v383/web/albedo.jpg.import', b'assets/wall-v383/web/normal.jpg.import', b'assets/wall-v383/web/roughness.jpg.import']:
                 assert any(required in name for name in packed_names), required
             assert not any(b'assets/wall-v383/desktop/' in name for name in packed_names)
+            for required in [b'scripts/party_mode.gd', b'assets/party-v385/party-web.ogg', b'assets/party-v385/track_cues.gd', b'assets/croc-v385/crocodile.glb']:
+                assert any(required in name for name in packed_names), required
+            assert not any(b'assets/party-v385/party.mp3' in name or b'assets/creatures/night-crocodile-v4' in name for name in packed_names)
             for private in private_files + [b'scripts/hunt_validation.gd', b'art-direction/v360_capture.gd', b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/endings_validation.gd', b'scripts/balance_validation.gd', b'scripts/revamp_validation.gd', b'scripts/venue_validation.gd', b'scripts/film_validation.gd', b'scripts/life_validation.gd', b'scripts/watch_validation.gd', b'assets/life-v2110/image-generation-provenance.json', b'art-direction/v300_capture.gd', b'art-direction/v310_capture.gd', b'art-direction/itch_capture.gd', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
                 assert not any(private in name for name in packed_names), private
             for private in [b'scripts/upgrade_validation.gd', b'art-direction/v320_capture.gd', b'art-direction/v320_audio_capture.gd', b'art-direction/v330_capture.gd', b'scripts/arrival_validation.gd', b'scripts/craft_validation.gd', b'scripts/signage_validation.gd', b'scripts/startup_validation.gd', b'art-direction/v350_capture.gd', b'art-direction/v340_capture.gd', b'assets/kitchen-v260/industrial-kitchen.glb']:

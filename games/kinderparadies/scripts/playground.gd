@@ -5,7 +5,7 @@ var w: PlayWorld
 var inflatable: Node3D
 var inflatable_skin: Node3D
 var fan: AudioStreamPlayer3D
-const CROCODILE_PATH := "res://assets/creatures/night-crocodile-v4.glb"
+const CROCODILE_PATH := "res://assets/croc-v385/crocodile.glb"
 var croc_visual: Node3D
 var croc_jaw: Node3D
 var jaw_rest := Vector3.ZERO
@@ -82,7 +82,7 @@ func strand(transforms: Array[Transform3D], a: Vector3, b: Vector3) -> void:
  transforms.append(Transform3D(Basis(Quaternion(Vector3.UP,difference.normalized()))*Basis.from_scale(Vector3(1,difference.length(),1)),(a+b)*.5))
 
 func _crocodile() -> void:
- inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.4,0,11.6);inflatable.scale=Vector3.ONE*.72;inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
+ inflatable=Node3D.new();inflatable.name="KrokoKlub";inflatable.position=Vector3(12.2,0,12.4);inflatable.scale=Vector3.ONE*.90;inflatable.rotation.y=-PI/2;add_child(inflatable);w.props.inflatable=inflatable
  inflatable_skin=Node3D.new();inflatable.add_child(inflatable_skin);w.props.inflatable_skin=inflatable_skin
  # Both renderers use the authored mesh, UV skin and outward-facing normals.
  # The old Web approximation had no upper jaw and coplanar eye decorations.
@@ -102,18 +102,19 @@ func _crocodile() -> void:
     material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*1.8
     material.albedo_color=Color("8e7940") if material.resource_name=="Faded ochre bed" else Color("c4b48b")
  var pvc:=w.mat(Color("343e23"),null,.8)
- # A flat compliant surface sits inside the visual PVC bed, with real collision.
- var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,0);deck.set_meta("bounce_speed",8.0);inflatable.add_child(deck)
- var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(3.3,.55,6.6);shape.shape=bounds;deck.add_child(shape)
- w.box(inflatable,Vector3(0,1.12,-.9),Vector3(3.1,1.9,2.7),pvc,true).hide()
- w.box(inflatable,Vector3(.1,.6,-3.2),Vector3(1.5,1.1,1.8),pvc,true).hide()
- for side in [-1,1]: w.box(inflatable,Vector3(side*2.1,.65,0),Vector3(.55,1.3,7.4),pvc,true).hide()
- for i in range(3): w.box(inflatable,Vector3(-2.65+i*.28,.1+i*.13,-1.4),Vector3(.32,.2+i*.26,1.4),w.materials.gold,true)
+ # Collision follows the new closed silhouette instead of the former long
+ # invisible boxes across empty space beside the mouth.
+ for mesh in croc_visual.find_children("*","MeshInstance3D",true,false):
+  if mesh.name=="Body":mesh.create_trimesh_collision()
+ var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,3.35);deck.set_meta("bounce_speed",7.2);inflatable.add_child(deck)
+ var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(2.45,.14,2.85);shape.shape=bounds;deck.add_child(shape)
+ # The upper jaw's simple hull moves with its hinge during croc_snap.
+ (croc_jaw as MeshInstance3D).create_convex_collision()
  # Branding belongs on a worn safety plaque, not floating across its mouth.
- w.mounted_sign(inflatable,"croc",Vector3(-2.45,.34,3.2),Vector2(.65,.35))
+ w.mounted_sign(inflatable,"croc",Vector3(-2.80,.34,2.2),Vector2(.65,.35))
  # The hose runs to the actual inlet and blower, all in attraction-local space.
- var blower:=Node3D.new();blower.name="ConnectedInflationBlower";blower.position=Vector3(1.45,.02,-5.1);inflatable.add_child(blower)
- var hose:=PackedVector3Array([Vector3(1.45,.4,-3.80),Vector3(1.45,.35,-4.05),Vector3(1.45,.30,-4.40),Vector3(1.45,.30,-4.88)])
+ var blower:=Node3D.new();blower.name="ConnectedInflationBlower";blower.position=Vector3(-2.95,.02,-1.2);inflatable.add_child(blower)
+ var hose:=PackedVector3Array([Vector3(-1.85,.5,-.60),Vector3(-2.20,.35,-.72),Vector3(-2.65,.28,-.90),Vector3(-2.95,.28,-.99)])
  for i in range(hose.size()-1): w.tube(inflatable,hose[i],hose[i+1],.12,w.materials.dark)
  for i in range(9):
   var t:=i/8.;var point:=hose[0].lerp(hose[1],t);w.tube(inflatable,point,point+Vector3(0,0,-.012),.128,w.materials.metal)

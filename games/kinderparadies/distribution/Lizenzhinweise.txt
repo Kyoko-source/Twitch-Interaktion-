@@ -86,3 +86,7 @@ fremde Samples. Die bestehende Regenquelle ist in Quellen.txt aufgeführt.
 
 After Play 3.7.1: "Fern and Feather" (Abspann) und "Music Box Chase"
 (Pferde-Verfolgung) wurden von Kyoko für dieses Projekt bereitgestellt.
+
+After Play 3.8.5: Die Aufnahme "party.mp3" für den zuschaltbaren Partymodus
+wurde vom Ersteller für dieses Projekt bereitgestellt. Die Web-Fassung nutzt
+eine platzsparende Ogg-Kopie derselben Aufnahme.

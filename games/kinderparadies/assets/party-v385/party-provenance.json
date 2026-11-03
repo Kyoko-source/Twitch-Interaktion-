@@ -1,0 +1,11 @@
+{
+  "source": "creator-provided:party.mp3",
+  "author": "Recording supplied by the game creator",
+  "sha256": "ea3fdaccecece7b37e2cf8f34b0df95efe8be6561535b8367d8784268223a54e",
+  "duration_seconds": 204.05696145124716,
+  "beat_count": 483,
+  "drop_candidates_seconds": [
+    50.5,
+    138.75
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "Body": {
+    "vertices": 27431,
+    "faces": 38022,
+    "non_manifold_edges": 0
+  },
+  "UpperJaw": {
+    "vertices": 13295,
+    "faces": 17332,
+    "non_manifold_edges": 0
+  },
+  "AttachedScutesFeetAndMouth": {
+    "vertices": 11866,
+    "faces": 13712,
+    "non_manifold_edges": 0
+  },
+  "UpperJawDetails": {
+    "vertices": 10456,
+    "faces": 11664,
+    "non_manifold_edges": 0
+  }
+}

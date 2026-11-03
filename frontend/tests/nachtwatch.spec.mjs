@@ -23,6 +23,36 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+async function takeParkingKey(page){
+ await qa(page,{op:'warp',x:-7.89,z:-18,yaw:Math.PI/2,pitch:-.24});
+ await expect.poll(async()=>(await state(page)).target).toBe('parking_key');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).parking_key).toBe(true);
+}
+
+test('v3.8.5 party follows song drops, pauses and persists; ramp is walkable',async({page})=>{
+ test.setTimeout(180000);await begin(page);
+ expect((await state(page)).party.enabled).toBe(false);
+ await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await expect.poll(async()=>(await state(page)).target).toBe('party_control');
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).party.playing).toBe(true);
+ await qa(page,{op:'party_seek',time:12});await expect.poll(async()=>(await state(page)).party.clock).toBeGreaterThan(11);
+ await expect.poll(async()=>(await state(page)).party.drop).toBe(false);
+ await qa(page,{op:'party_seek',time:51});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
+ await qa(page,{op:'pause'});await expect.poll(async()=>(await state(page)).party.paused).toBe(true);
+ const paused=(await state(page)).party.clock;await page.waitForTimeout(300);expect((await state(page)).party.clock).toBe(paused);
+ await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).party.paused).toBe(false);
+ await takeParkingKey(page);await qa(page,{op:'menu'});await clickControl(page,'Schicht fortsetzen');
+ expect((await state(page)).parking_key).toBe(true);expect((await state(page)).party.enabled).toBe(true);
+ await qa(page,{op:'warp',x:8.3,z:-8.8,yaw:-2.2,pitch:.4});await qa(page,{op:'party_seek',time:141});
+ await expect.poll(async()=>(await state(page)).party.drop).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v385-web-party.png')});
+ await qa(page,{op:'warp',x:6.25,z:7.5,yaw:-Math.PI/2,pitch:0});
+ await walk(page,'w',s=>s.position[0]>11.15);expect((await state(page)).position[1]).toBeGreaterThan(2.1);
+ await walk(page,'s',s=>s.position[0]<6.3);expect((await state(page)).position[1]).toBeLessThan(.2);
+ await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
+ await expect.poll(async()=>(await state(page)).target).toBe('party_control');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).party.playing).toBe(false);
+});
+
 test('v3.8.4 German renders again after English and both selections survive restart',async({page})=>{
  test.setTimeout(180000);const faults=[];page.on('pageerror',e=>faults.push(e.message));
  await load(page);
@@ -354,18 +384,25 @@ test('v3.3 continue preserves a clear foyer pose and rejects an old save inside 
 });
 
 test('v3.3 cloakroom glass door is physical; stepping outside shows the secret car ending and saved credits',async({page})=>{
- test.setTimeout(240000);await begin(page);expect((await state(page)).arrival.parts).toBeGreaterThan(220);
+ test.setTimeout(300000);await begin(page);expect((await state(page)).arrival.parts).toBeGreaterThan(220);
  await qa(page,{op:'warp',x:-8.8,z:9.4,yaw:Math.PI/2,pitch:0});await walk(page,'w',s=>s.position[0]<-13.5);
  expect((await state(page)).phase).toBe('play');expect((await state(page)).secret_ending).toBe(false);
  await page.keyboard.down('w');try{await page.waitForTimeout(1600);}finally{await page.keyboard.up('w');}
  expect((await state(page)).position[0]).toBeGreaterThan(-15.6);
  await qa(page,{op:'warp',x:-14.4,z:9.4,yaw:Math.PI/2,pitch:-.20});
  await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');await page.screenshot({path:join(tmpdir(),'after-play-v330-web-glass.png')});
+ await page.keyboard.press('e');await page.waitForTimeout(300);expect((await state(page)).backstage.exit_angle).toBeLessThan(.01);
+ await takeParkingKey(page);await qa(page,{op:'warp',x:-14.4,z:9.4,yaw:Math.PI/2,pitch:-.20});
+ await expect.poll(async()=>(await state(page)).target).toBe('delivery_exit');
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).backstage.exit_angle).toBeGreaterThan(1.45);
  expect((await state(page)).phase).toBe('play');await qa(page,{op:'audit'});
  expect((await state(page)).layout.door_obstructions).toEqual([]);expect((await state(page)).layout.furniture_wall_intrusions).toEqual([]);
- await walk(page,'w',s=>s.phase==='ending');await expect.poll(async()=>(await state(page)).ending_credits.car).toBe(true);
- await expect.poll(async()=>(await state(page)).ending_credits.end_word).toBe(true);
+ // Cross the door frame before turning right, as in the reported escape.
+ await walk(page,'w',s=>s.position[0]<-16.0);
+ await page.keyboard.down('d');try{await walk(page,'w',s=>s.phase==='ending');}finally{await page.keyboard.up('d');}
+ expect((await state(page)).position[1]).toBeGreaterThan(-.4);await expect.poll(async()=>(await state(page)).ending_credits.car).toBe(true);
+ // Preparing the final room is slower with the headless browser's renderer.
+ await expect.poll(async()=>(await state(page)).ending_credits.end_word,{timeout:60000}).toBe(true);
  const end=(await state(page)).ending_credits;expect(end.ending).toBe(3);expect(end.title).toBe('Geheimes Ende');
  expect(end.secret_line).toBe('Was eine dumme Horror Scheiße, ich bin Weg und Kündige');
  await page.screenshot({path:join(tmpdir(),'after-play-v330-web-secret-ending.png')});
