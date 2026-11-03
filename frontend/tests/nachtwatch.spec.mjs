@@ -65,7 +65,7 @@ test('v3.8.7 stereo fills the party room and round table stops walking and suppo
   await expect.poll(async()=>(await song()).cutoff).toBeGreaterThan(17500);
  }
  await qa(page,{op:'warp',x:10.8,z:-2.4,yaw:1.26,pitch:-.18});
- await qa(page,{op:'party_seek',time:51});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
+ await qa(page,{op:'party_seek',time:(await state(page)).party.drops[0]+1});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
  await page.screenshot({path:join(tmpdir(),'after-play-v387-web-stereo.png')});
  await qa(page,{op:'pause'});await expect.poll(async()=>(await state(page)).party.paused).toBe(true);
  await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).party.paused).toBe(false);
@@ -107,7 +107,7 @@ async function takeParkingKey(page){
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).parking_key).toBe(true);
 }
 
-test('v3.8.5 party follows song drops, pauses and persists; ramp is walkable',async({page})=>{
+test('v3.8.11 Rolling Acid follows all song sections, pauses and persists; ramp is walkable',async({page})=>{
  test.setTimeout(180000);await begin(page);
  expect((await state(page)).party.enabled).toBe(false);
  await qa(page,{op:'warp',x:-11.49,z:-3.48,yaw:-Math.PI/2,pitch:-.18});
@@ -115,13 +115,23 @@ test('v3.8.5 party follows song drops, pauses and persists; ramp is walkable',as
  await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).party.playing).toBe(true);
  await qa(page,{op:'party_seek',time:12});await expect.poll(async()=>(await state(page)).party.clock).toBeGreaterThan(11);
  await expect.poll(async()=>(await state(page)).party.drop).toBe(false);
- await qa(page,{op:'party_seek',time:51});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
+ const track=(await state(page)).party;expect(track.track).toBe('Rolling Acid');expect(track.duration).toBeGreaterThan(270);
+ expect(track.drops).toHaveLength(5);expect(track.drop_ends).toHaveLength(5);
+ for(let i=0;i<track.drops.length;i++){
+  await qa(page,{op:'party_seek',time:track.drops[i]+1});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
+  await expect.poll(async()=>(await state(page)).party.clock).toBeGreaterThan(track.drops[i]);
+ }
+ await qa(page,{op:'party_seek',time:150});await expect.poll(async()=>(await state(page)).party.drop).toBe(false);
+ await qa(page,{op:'party_seek',time:track.duration-.4});
+ await expect.poll(async()=>(await state(page)).party.clock,{timeout:6000}).toBeLessThan(4);
+ expect((await state(page)).party.playing).toBe(true);
+ await qa(page,{op:'party_seek',time:track.drops[0]+1});await expect.poll(async()=>(await state(page)).party.drop).toBe(true);
  await qa(page,{op:'pause'});await expect.poll(async()=>(await state(page)).party.paused).toBe(true);
  const paused=(await state(page)).party.clock;await page.waitForTimeout(300);expect((await state(page)).party.clock).toBe(paused);
  await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).party.paused).toBe(false);
  await takeParkingKey(page);await qa(page,{op:'menu'});await clickControl(page,'Schicht fortsetzen');
  expect((await state(page)).parking_key).toBe(true);expect((await state(page)).party.enabled).toBe(true);
- await qa(page,{op:'warp',x:8.3,z:-8.8,yaw:-2.2,pitch:.4});await qa(page,{op:'party_seek',time:141});
+ await qa(page,{op:'warp',x:8.3,z:-8.8,yaw:-2.2,pitch:.4});await qa(page,{op:'party_seek',time:track.drops[1]+1});
  await expect.poll(async()=>(await state(page)).party.drop).toBe(true);await page.screenshot({path:join(tmpdir(),'after-play-v385-web-party.png')});
  await qa(page,{op:'warp',x:6.25,z:7.5,yaw:-Math.PI/2,pitch:0});
  await walk(page,'w',s=>s.position[0]>11.15);expect((await state(page)).position[1]).toBeGreaterThan(2.1);

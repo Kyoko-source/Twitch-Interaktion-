@@ -2,7 +2,7 @@ class_name HappylandParty
 extends Node3D
 
 const TRACK=preload("res://assets/party-v385/track_cues.gd")
-const MUSIC_CREDIT:="Track: Focus Fire - Mirage [NCS Release]\nMusic provided by NoCopyrightSounds.\nWatch more NCS on YouTube: https://NCS.lnk.to/YouTubeAT\nFree Download / Stream: https://ncs.io/FFMirage"
+const MUSIC_CREDIT:="Rolling Acid — atomicmicrotone145 / Kyoko\nCreated with Suno (Free plan).\nPersonal, non-commercial use under Suno's terms.\nhttps://suno.com/terms"
 const COLORS: Array[Color]=[Color("ff2862"),Color("396aff"),Color("21edaa"),Color("f2bb25"),Color("bd3cff"),Color("22d9f2")]
 var w: PlayWorld
 var audio: AudioStreamPlayer3D
@@ -10,6 +10,7 @@ var enabled:=false
 var clock:=0.0
 var intensity:=0.0
 var drop:=false
+var buildup:=0.0
 var lamps: Array[SpotLight3D]=[]
 var fills: Array[OmniLight3D]=[]
 var heads: Array[Node3D]=[]
@@ -144,34 +145,39 @@ func set_enabled(value: bool) -> void:
 
 func evaluate(seconds: float,strobe: bool) -> void:
  clock=fposmod(seconds,TRACK.DURATION)
- var sample:=clampi(int(clock*4),0,TRACK.ENERGY.size()-1);var energy: float=TRACK.ENERGY[sample]
+ var sample:=clampi(int(clock*4),0,TRACK.ENERGY.size()-1)
+ var next:=mini(sample+1,TRACK.ENERGY.size()-1);var fraction:=fposmod(clock*4,1.)
+ var energy:=lerpf(TRACK.ENERGY[sample],TRACK.ENERGY[next],fraction)
+ var bass:=lerpf(TRACK.BASS[sample],TRACK.BASS[next],fraction)
  var beat_index:=0
  for i in range(TRACK.BEATS.size()):
   if TRACK.BEATS[i]>clock:break
   beat_index=i
- var age: float=maxf(0,clock-float(TRACK.BEATS[beat_index]));var pulse:=exp(-age*13.)
- drop=false
- for moment in TRACK.DROPS:
-  if clock>=moment and clock<moment+24:drop=true
- intensity=(.35+energy*.65)*(.65+pulse*.65)*(1.8 if drop else 1.)
+ var age: float=clock-float(TRACK.BEATS[beat_index]);var pulse:=exp(-age*13.) if age>=0 else 0.
+ drop=false;buildup=0.
+ for i in range(TRACK.DROPS.size()):
+  if clock>=TRACK.DROPS[i] and clock<TRACK.DROP_ENDS[i]:drop=true
+  if clock<TRACK.DROPS[i] and clock>=TRACK.DROPS[i]-4.:buildup=1.-(TRACK.DROPS[i]-clock)/4.
+ var envelope:=smoothstep(0.,.14,energy)*minf(1.,clock/1.5)*minf(1.,(TRACK.DURATION-clock)/2.)
+ intensity=envelope*(.18+energy*.55+bass*.27)*(.65+pulse*.65)*(1.85 if drop else 1.)
  for i in range(vu.size()):vu[i].emission_energy_multiplier=1.5 if energy*(.6+pulse*.4)>float(i)/vu.size() else .03
- # Short, music-synchronised bursts, capped at 6 flashes/s and independently
- # switchable. Motion and colour continue when strobe is disabled.
- var flash:=strobe and drop and energy>.68 and fposmod(clock*6,1)<.20 and beat_index%8<3
+ # Kick-locked bursts: measured onsets are at least .27 s apart. Never flash
+ # before the first onset, in a breakdown or with the player's strobe disabled.
+ var flash:=strobe and drop and bass>.45 and age>=0 and age<.055 and beat_index%16<6
  for i in range(lamps.size()):
   var color:=COLORS[(i+floori(float(beat_index)/(1 if drop else 4)))%COLORS.size()]
   lamps[i].light_color=Color("f4fff8") if flash and i%2==0 else color
-  lamps[i].light_energy=(28.0 if flash else (10.0 if drop else 4.0)*intensity)
-  lamps[i].spot_angle=35 if drop else 27
-  var target:=Vector3(13.4+sin(clock*(1.1 if drop else .23)+i*1.9)*3.7,.15,-5.2+cos(clock*(.8 if drop else .19)+i)*4.3)
+  lamps[i].light_energy=(28.0*envelope if flash else (10.0 if drop else 4.0)*intensity)
+  lamps[i].spot_angle=35 if drop else lerpf(27,15,buildup)
+  var target:=Vector3(13.4+sin(clock*(1.1 if drop else .23)+i*1.9)*(3.7-buildup*2.),.15,-5.2+cos(clock*(.8 if drop else .19)+i)*(4.3-buildup*2.))
   heads[i].quaternion=Quaternion(Vector3.DOWN,(target-heads[i].global_position).normalized())
   lamps[i].global_position=heads[i].global_position-heads[i].global_basis.y*.27
   lamps[i].look_at(target)
-  lenses[i].emission=color;lenses[i].emission_energy_multiplier=1.0+intensity*2
+  lenses[i].emission=color;lenses[i].emission_energy_multiplier=.03+intensity*2
  for i in range(fills.size()):
   fills[i].light_color=COLORS[(beat_index+i*3)%COLORS.size()];fills[i].light_energy=intensity*(2.2 if drop else .5)
  ball.rotation.y=clock*(.36 if drop else .11)
- dot_material.set_shader_parameter("power",.32+intensity*.42)
+ dot_material.set_shader_parameter("power",envelope*(.12+intensity*.42))
  for i in range(dots.multimesh.instance_count):
   var a: float=i*2.39996+clock*.12;var radius:=1.3+fmod(i*.71,4.5)
   var p:=Vector3(clampf(13.5+cos(a)*radius,7.2,19.3),.035,clampf(-5.3+sin(a)*radius,-11.5,1.0))
@@ -192,4 +198,4 @@ func clear_pose(point: Vector3) -> bool:
  return not (Vector2(point.x-13.7,point.z+3.8).length()<1.38 and point.y<.65 and point.y>-.5)
 
 func snapshot() -> Dictionary:
- return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS,"stereo":is_instance_valid(stereo),"source_position":[audio.global_position.x,audio.global_position.y,audio.global_position.z]}
+ return {"enabled":enabled,"playing":audio.playing,"paused":audio.stream_paused,"clock":clock,"drop":drop,"buildup":buildup,"intensity":intensity,"lights":lamps.size(),"drops":TRACK.DROPS,"drop_ends":TRACK.DROP_ENDS,"duration":TRACK.DURATION,"track":"Rolling Acid","stereo":is_instance_valid(stereo),"source_position":[audio.global_position.x,audio.global_position.y,audio.global_position.z]}

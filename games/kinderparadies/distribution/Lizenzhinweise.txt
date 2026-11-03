@@ -88,11 +88,16 @@ After Play 3.7.1: "Fern and Feather" (Abspann) und "Music Box Chase"
 (Pferde-Verfolgung) wurden von Kyoko für dieses Projekt bereitgestellt.
 
 PARTYMUSIK
-Track: Focus Fire - Mirage [NCS Release]
-Music provided by NoCopyrightSounds.
-Watch more NCS on YouTube: https://NCS.lnk.to/YouTubeAT
-Free Download / Stream: https://ncs.io/FFMirage
+Rolling Acid — atomicmicrotone145 / Kyoko
+Erstellt mit Suno im kostenlosen Tarif. Von Kyoko fuer After Play bereitgestellt.
+Suno Free erlaubt persoenliche, nichtkommerzielle Nutzung nach den Suno-Bedingungen.
+https://suno.com/terms
+https://suno.com/song/7c0b0cbc-ee54-4941-874a-d8791fa7d477
 
 Diese Aufnahme wird im zuschaltbaren Partymodus verwendet ("party.mp3").
 Die Web-Fassung nutzt eine platzsparende Ogg-Kopie derselben Aufnahme.
+Die Original-MP3 und ihre Herkunftsmetadaten bleiben unveraendert.
+Fuer diesen Titel wurde keine kommerzielle Lizenz nachgewiesen. Seine Verwendung
+setzt voraus, dass After Play ausschliesslich nichtkommerziell und ohne Zahlungen
+oder Spenden fuer das Spiel bereitgestellt wird.
 Die oben genannten CC0-Lizenzen gelten nicht für diesen Musiktitel.

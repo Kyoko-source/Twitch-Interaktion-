@@ -79,6 +79,10 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
         assert names == top | {'Lizenzen/' + n for n in notices}, names
         assert all('..' not in Path(n).parts and not n.startswith('/') for n in names)
         credits = z.read('Lizenzen/Lizenzhinweise.txt').decode('utf-8')
+        sources = z.read('Lizenzen/Quellen.txt').decode('utf-8')
+        assert 'Rolling Acid' in credits and 'Suno' in credits and 'https://suno.com/terms' in credits
+        assert 'nichtkommerziell' in credits and 'Suno Free' in sources
+        assert all(old not in credits + sources for old in ['Focus Fire', 'FFMirage', 'NoCopyrightSounds'])
         assert all(name in credits for name in ['Lee Perry-Smith', 'Joseph SARDIN', 'Axeline T.', 'A New Room', 'Poly Haven', 'turbulentmicrogenres466'])
         assert z.read('Lizenzen/Lee-Perry-Smith.txt') == (ROOT / 'games/kinderparadies/assets/props/Head-Attribution.txt').read_bytes()
         assert z.read('Lizenzen/Godot-COPYRIGHT.txt') == (BUILD / 'package/Godot-COPYRIGHT.txt').read_bytes()

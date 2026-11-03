@@ -1,15 +1,41 @@
 {
-  "source": "https://ncs.io/FFMirage",
-  "author": "Focus Fire",
-  "title": "Mirage [NCS Release]",
-  "provider": "NoCopyrightSounds",
-  "youtube": "https://NCS.lnk.to/YouTubeAT",
-  "provided_filename": "party.mp3",
-  "sha256": "ea3fdaccecece7b37e2cf8f34b0df95efe8be6561535b8367d8784268223a54e",
-  "duration_seconds": 204.05696145124716,
-  "beat_count": 483,
-  "drop_candidates_seconds": [
-    50.5,
-    138.75
-  ]
+  "source": "https://suno.com/song/7c0b0cbc-ee54-4941-874a-d8791fa7d477",
+  "author": "atomicmicrotone145 / Kyoko",
+  "title": "Rolling Acid",
+  "provider": "Suno",
+  "plan_at_creation": "Free (confirmed by creator)",
+  "license": "Suno Free: personal, non-commercial use only; no commercial license verified",
+  "terms": {
+    "source": "https://suno.com/terms",
+    "author": "Suno",
+    "license": "Suno Terms of Service"
+  },
+  "provided_filename": "Rolling Acid.mp3",
+  "sha256": "a408765ec7a5dcaf299a682a99faf5ce3f457d05e13d68cf55bc1993a16dc03e",
+  "duration_seconds": 272.37351473922905,
+  "beat_count": 649,
+  "drop_spans_seconds": [
+    [
+      59.25,
+      107.1
+    ],
+    [
+      111.9,
+      142.8
+    ],
+    [
+      164.4,
+      212.6
+    ],
+    [
+      217.05,
+      242.7
+    ],
+    [
+      243.35,
+      264.1
+    ]
+  ],
+  "metadata": "Original MP3 unchanged; Ogg conversion preserves source audio metadata.",
+  "distribution_condition": "Game must remain noncommercial, with payments and donations disabled."
 }

@@ -1,5 +1,26 @@
 # After Play — Kinderparadies
 
+## Rolling Acid (3.8.11)
+
+Die Partyanlage spielt jetzt Kyokos „Rolling Acid“ (4:32) statt „Mirage“.
+Die originale MP3 bleibt einschließlich Suno-Metadaten unverändert; die
+Web-Fassung verwendet eine Ogg-Konvertierung. `tools/prepare-after-play-party-v385.py`
+erzeugt Bass-/Lautstärkeverlauf, lokal erkannte Kick-Einsätze und fünf anhand
+der Aufnahme geprüfte Lichtabschnitte. Ruhige Passagen, Aufbau, Bass-Einsätze
+und Ausklang steuern Intensität, Bewegung und kurze, abschaltbare Lichtblitze.
+Die Lichtkarte gilt nur für die dort geprüfte SHA-256 der Aufnahme.
+
+Suno-Free-Titel: ausschließlich persönliche, nichtkommerzielle Nutzung nach
+den Suno-Bedingungen; keine kommerzielle Lizenz nachgewiesen. Vor einem Upload
+auf itch.io muss das Projekt unter **Pricing → No payments** stehen, ohne
+optionale Zahlungen oder Spenden. Credits, Abspann und Lizenzhinweise nennen
+die neue Musik. Diese Änderung veröffentlicht sich nicht automatisch auf itch.io.
+
+Prüfung: `--self-test --party-music-only`, `--party-stereo-only` und
+`--update-v385-only`; Browser-Test „Rolling Acid“ prüft die fünf Abschnitte,
+späte Abspielpositionen, Schleife, Pause, Fortsetzen und gespeicherten Partymodus.
+Native Vorschau: `--render-qa --rolling-acid-qa`.
+
 ## Sprache, Untertitel und Medien (3.8.0)
 
 Unter Einstellungen → Sprache lassen sich Deutsch und Englisch wählen. Menüs,

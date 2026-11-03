@@ -27,7 +27,7 @@ func run(g: Node3D,verify: Callable) -> void:
  guard.position=Vector3(18.5,0,-10.5)
  for i in range(75):w.acoustics.tick(1./60,true,guard)
  verify.call(absf(AudioServer.get_bus_volume_db(AudioServer.get_bus_index(record.bus)))<.1,"Actual music bus remains quiet in the far corner")
- party.evaluate(51,false);verify.call(party.drop and party.vu.any(func(m):return m.emission_energy_multiplier>1),"Drop sync or amplifier meter stopped working")
+ party.evaluate(HappylandParty.TRACK.DROPS[0]+1,false);verify.call(party.drop and party.vu.any(func(m):return m.emission_energy_multiplier>1),"Drop sync or amplifier meter stopped working")
  g._pause();party.tick(.1,false,true,false);await g.get_tree().physics_frame;verify.call(party.audio.stream_paused,"Stereo ignores pause")
  g._resume();party.tick(.1,true,true,false);verify.call(not party.audio.stream_paused,"Stereo does not resume")
  # Walk into the repaired tabletop from every side. No jump or teleport is

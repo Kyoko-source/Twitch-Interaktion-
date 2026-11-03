@@ -8,6 +8,13 @@ Spieler-Download. Version 2.12.2 wurde vom Ersteller bereits über die itch-App
 hochgeladen. Neue Fassungen kommen auf denselben Kanal windows; diese
 Werkzeuge laden nur mit ausdrücklichem -Upload hoch.
 
+Die Partymusik ab 3.8.11 („Rolling Acid“) wurde im Suno-Free-Tarif erstellt.
+Das Spiel muss dafür persönlich und nichtkommerziell bleiben. Vor dem nächsten
+Upload auf **Edit game → Pricing → No payments → Save** stellen; **$0 or Donate**
+erlaubt weiterhin Zahlungen. Butler ändert diese Seiteneinstellung nicht.
+Offizielle Hinweise: https://help.suno.com/en/articles/9601601 und
+https://itch.io/docs/creators/pricing.
+
 ## Einmalige Einrichtung
 
 1. Auf itch.io eine Spielseite anlegen. Für Windows plus Browser den Typ

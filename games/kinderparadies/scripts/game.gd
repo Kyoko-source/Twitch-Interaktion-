@@ -901,7 +901,7 @@ func _qa_command(args: Array) -> void:
   "look": player.rotation.y=float(command.yaw)
   "voice": world.soundscape.cue_voice(player)
   "party_seek":
-   if world.party.enabled:world.party.audio.seek(clampf(float(command.get("time",0)),0,203.9))
+   if world.party.enabled:world.party.audio.seek(clampf(float(command.get("time",0)),0,HappylandParty.TRACK.DURATION-.1))
   "flicker": player.torch_body.trigger()
   "audit": qa_layout=SceneAudit.inspect(world)
   "recording_seek":

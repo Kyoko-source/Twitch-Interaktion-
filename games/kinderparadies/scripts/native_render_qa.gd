@@ -8,18 +8,33 @@ func run(game: Node3D) -> void:
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
  if "--croc-contact-profile" in OS.get_cmdline_user_args():
   await load("res://art-direction/croc_profile.gd").new().run(game,output);return
- if "--ncs-credit-qa" in OS.get_cmdline_user_args():
+ if "--rolling-acid-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(8.3,0,-8.8),Vector3(13.5,4.0,-4.5))
+  await capture(game,output,"01-party-off")
+  game.world.party.set_enabled(true)
+  for point in [{"id":"02-build","time":57.5},{"id":"03-first-drop","time":60.0},{"id":"04-breakdown","time":150.0},{"id":"05-final-drop","time":250.0}]:
+   game.world.party.audio.seek(point.time)
+   await game.get_tree().create_timer(.3).timeout
+   await capture(game,output,point.id)
+  game.world.party.set_enabled(false)
   for language in ["de","en"]:
    AfterPlayLanguage.choose(language);NightMenus.credits(game)
-   await capture(game,output,"ncs-credit-"+language)
-   print("NCS CREDIT ",language," ",game.menu.find_child("NCSPartyMusicCredit",true,false).get_parsed_text())
+   await capture(game,output,"credit-"+language)
+  game._quit();return
+ if "--party-credit-qa" in OS.get_cmdline_user_args():
+  for language in ["de","en"]:
+   AfterPlayLanguage.choose(language);NightMenus.credits(game)
+   await capture(game,output,"party-credit-"+language)
+   print("PARTY CREDIT ",language," ",game.menu.find_child("PartyMusicCredit",true,false).get_parsed_text())
   game._quit();return
  if "--stereo-v387-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()
   author.pose(game,Vector3(10.8,0,-2.4),Vector3(7.4,1.0,-3.5))
   await capture(game,output,"stereo-off")
-  game.world.party.set_enabled(true);game.world.party.audio.seek(51)
+  game.world.party.set_enabled(true);game.world.party.audio.seek(HappylandParty.TRACK.DROPS[0]+1)
   await game.get_tree().create_timer(.3).timeout;await capture(game,output,"stereo-on")
   author.pose(game,Vector3(17.6,0,-10),Vector3(9.0,2.0,-2.8))
   await capture(game,output,"party-wide")
@@ -40,7 +55,7 @@ func run(game: Node3D) -> void:
   author.pose(game,Vector3(8.3,0,-8.8),Vector3(13.5,4.0,-4.5))
   await capture(game,output,"party-off")
   game.world.party.set_enabled(true)
-  for seconds in [12.0,51.0,141.0]:
+  for seconds in [12.0,HappylandParty.TRACK.DROPS[0]+1,HappylandParty.TRACK.DROPS[1]+1]:
    game.world.party.audio.seek(seconds);await game.get_tree().create_timer(.3).timeout;await capture(game,output,"party-"+str(int(seconds)))
   game.world.party.set_enabled(false);game._quit();return
  if "--language-qa" in OS.get_cmdline_user_args():

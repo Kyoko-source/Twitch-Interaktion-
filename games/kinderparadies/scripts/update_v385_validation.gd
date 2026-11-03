@@ -49,10 +49,10 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(party.enabled and party.audio.playing and party.lamps.size()==6,"E does not start the real song and party rig")
  await g.get_tree().physics_frame;await g.get_tree().physics_frame
  party.evaluate(12,false);var calm:=party.intensity
- party.evaluate(51,false)
+ party.evaluate(HappylandParty.TRACK.BEATS.filter(func(t):return t>HappylandParty.TRACK.DROPS[0]+1)[0],false)
  verify.call(party.drop and party.intensity>calm*1.3 and party.lamps.any(func(light):return light.light_energy>2),"First analysed drop has no intensified lighting")
  verify.call(party.lamps.all(func(light):return light.light_color!=Color("f4fff8")),"Disabled strobe still produces white flashes")
- party.evaluate(141,false);verify.call(party.drop,"Second analysed drop is not recognised")
+ party.evaluate(HappylandParty.TRACK.DROPS[1]+1,false);verify.call(party.drop,"Second analysed drop is not recognised")
  g.phase="pause";party.tick(.1,false,true,true);await g.get_tree().physics_frame
  verify.call(party.audio.stream_paused,"Party music keeps advancing during pause")
  g.phase="play";party.tick(.1,true,true,false);verify.call(not party.audio.stream_paused,"Party music does not resume")
