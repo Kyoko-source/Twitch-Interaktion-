@@ -95,6 +95,7 @@ static func placement(w: PlayWorld) -> Dictionary:
  # segment in its own frame; an old straight world AABB crossed their walls.
  for index in range(w.passages.lanes.size()):
   var lane: Dictionary=w.passages.lanes[index]
+  passages.append({"name":"Roter Flur" if index else "Grüner Flur","box":AABB(Vector3(PatrolPassage.CENTERS[index]-.6,.09,PatrolPassage.ENTRY_Z-.4),Vector3(1.2,2.25,1.3))})
   for i in range(lane.path.size()-1):
    var a: Vector2=lane.path[i];var b: Vector2=lane.path[i+1];var delta:=b-a;var middle:=(a+b)*.5
    var frame: Transform3D=lane.root.global_transform*Transform3D(Basis(Vector3.UP,atan2(-delta.x,-delta.y)),Vector3(middle.x,0,middle.y))
