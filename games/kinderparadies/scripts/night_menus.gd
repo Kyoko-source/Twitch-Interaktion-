@@ -27,14 +27,14 @@ static func home(g: Node3D) -> void:
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue],["Einstellungen",func():g._settings("menu")],["Dienstanweisung",func():g._help("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
  for i in range(items.size()):
   var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,494+i*62);button.custom_minimum_size=Vector2(540,58);button.size=Vector2(540,58);button.disabled=i==1 and not g._can_continue();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",31)
   button.add_theme_stylebox_override("normal",nav_style(i==0));button.add_theme_stylebox_override("hover",nav_style(true,true));button.add_theme_stylebox_override("pressed",nav_style(true,true));button.add_theme_stylebox_override("disabled",nav_style(false));button.add_theme_stylebox_override("focus",nav_style(false,true))
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v3.9.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v3.9.2",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

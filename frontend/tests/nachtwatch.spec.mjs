@@ -804,7 +804,7 @@ test('v2.7 hanging costume and seated guest react in 3D; the costume remains cha
 
 test('v2.5 cinematic menu and eleven narration images follow the actual tape, pause and restore the archive',async({page})=>{
  test.setTimeout(150000);await load(page);
- const menuControls=(await state(page)).controls.filter(c=>['Neue Nachtschicht','Schicht fortsetzen','Einstellungen','Dienstanweisung','Mitwirkende','Zur Webseite'].includes(c.text));expect(menuControls).toHaveLength(6);
+ const menuControls=(await state(page)).controls.filter(c=>['Neue Nachtschicht','Schicht fortsetzen','Einstellungen','Erinnerungsalbum','Mitwirkende','Zur Webseite'].includes(c.text));expect(menuControls).toHaveLength(6);
  for(let i=1;i<menuControls.length;i++)expect(menuControls[i].rect[1]).toBeGreaterThanOrEqual(menuControls[i-1].rect[1]+menuControls[i-1].rect[3]);
  await page.screenshot({path:join(tmpdir(),'after-play-v250-web-main-menu.png')});await clickControl(page,'Einstellungen');await expect.poll(async()=>(await state(page)).phase).toBe('settings');await clickControl(page,'Audio');await expect.poll(async()=>(await state(page)).settings_tab).toBe('Audio');expect((await state(page)).controls.some(c=>c.text==='Menümusik')).toBe(true);await clickControl(page,'Zurück');await expect.poll(async()=>(await state(page)).phase).toBe('menu');await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
  await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});await expect.poll(async()=>(await state(page)).target).toBe('archive_door');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');await page.mouse.click(275,220);await page.keyboard.type('0712',{delay:35});await expect.poll(async()=>(await state(page)).archive_input).toBe('0712');await page.keyboard.press('Enter');await expect.poll(async()=>(await state(page)).phase).toBe('play');
@@ -1189,7 +1189,7 @@ test('0712 opens the archive immediately; E plays Marelle, reload resumes it and
 
 
 test('v2.6 exact Dienstanweisung, party-only mascot and manufactured kitchen render without blocked doors',async({page})=>{
- test.setTimeout(180000);await load(page);await clickControl(page,'Dienstanweisung');await expect.poll(async()=>(await state(page)).phase).toBe('help');
+ test.setTimeout(180000);await begin(page);await qa(page,{op:'pause'});await clickControl(page,'Dienstanweisung');await expect.poll(async()=>(await state(page)).phase).toBe('help');
  const copy=(await state(page)).instructions.join('\n');expect(copy).toContain('13 Rundgänge. 13 mal der gleiche Raum...oder?...');expect(copy).toContain('Geräusche und vom Spieler selbst verschobene Gegenstände zählen natürlich nicht zu den Anomalien.');expect(copy).toContain('Sterueung');expect(copy).toContain('E: interagieren');expect(copy).toContain('F11: Vollbild');expect(copy).not.toContain('Küchenclown');expect(copy).not.toContain('Normal:');
  await page.screenshot({path:join(tmpdir(),'after-play-v260-instructions-web.png')});await clickControl(page,'Zurück');await clickControl(page,'Neue Nachtschicht');await skipIntro(page);expect((await state(page)).giant_mascots).toBe(1);
  await qa(page,{op:'warp',x:-10.5,z:-29.3,yaw:1.3,pitch:-.1});await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v260-kitchen-web.png')});

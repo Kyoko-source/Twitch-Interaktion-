@@ -6,6 +6,10 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--menu-qa" in OS.get_cmdline_user_args():
+  await capture(game,output,"main-menu")
+  game._settings("menu");NightMenus.settings(game,"Steuerung");await capture(game,output,"settings-controls")
+  game._quit();return
  if "--lift-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.tick(1.5);game.set_process(false)
   await capture(game,output,"01-incoming-phone")
