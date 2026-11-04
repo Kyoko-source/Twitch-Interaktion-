@@ -21,5 +21,5 @@ void fragment(){
  float wet=stain*(1.-smoothstep(.50,.66,UV.y));
  ALBEDO=mix(base*.91,mix(old.rgb*vec3(.40,.28,.26),vec3(.17,.008,.014),wet*.36),stain*.92);
  ROUGHNESS=mix(.73,.29,wet);SPECULAR=mix(.28,.48,wet);
- NORMAL_MAP=texture(pores,UV).rgb;NORMAL_MAP_DEPTH=.58;
+ NORMAL_MAP=texture(pores,UV).rgb;NORMAL_MAP_DEPTH=.38;
 }

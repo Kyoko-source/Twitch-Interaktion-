@@ -37,7 +37,7 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(g._target()=="parking_key","Close-up hand changes key pickup targeting")
  press(g);verify.call(not g.archive.parking_key_found and hand.held.get_child_count()==1,"Key disappears before the pickup reaches it")
  hand.tick(.31,true);verify.call(g.archive.parking_key_found and not key.visible and w.backstage.exit_key_owned,"Key contact does not grant the parking key")
- verify.call(guard.foley.last=="keys" and guard.foley.sound.stream.resource_path.ends_with("keys.wav"),"Key pickup plays a door or cloth sound instead of keyring foley")
+ verify.call(guard.foley.last=="keys" and guard.foley.sound.stream.resource_path.contains("/keys-"),"Key pickup plays a door or cloth sound instead of keyring foley")
  var key_sounds:=guard.foley.count;g._interact_target("parking_key")
  verify.call(guard.foley.count==key_sounds,"An already collected key repeats its pickup sound")
  hand.tick(1.,true)

@@ -6,9 +6,9 @@ func run(game: Node3D, verify: Callable) -> void:
   var last:=0
   for i in range(12):
    var next:=ScareBank.next_variant(family)
-   verify.call(next in [1,2,3] and next!=last,"Scare variant repeats immediately: "+family);last=next
-  for i in range(1,4):
-   var path: String=ScareBank.ROOT+family+"-%d.wav"%i
+   verify.call(next>=1 and next<=ScareBank.VARIANTS and next!=last,"Scare variant repeats immediately: "+family);last=next
+  for i in range(1,ScareBank.VARIANTS+1):
+   var path: String=ScareBank.track(family,i)
    var sound: AudioStream=load(path)
    verify.call(sound!=null and sound.get_length()>1.2 and sound.get_length()<3.5,"Missing complete new sound: "+path)
    var digest:=FileAccess.get_sha256(path);verify.call(not unique.has(digest),"Distinct scare families share the same audio bytes: "+path);unique[digest]=true
@@ -46,7 +46,7 @@ func run(game: Node3D, verify: Callable) -> void:
  for id in ["bunny_lunge","croc_snap","clown_lunge","party_burst"]:
   game._build_world(id);game.player.active=false
   var e: NightEncounters=game.world.encounters
-  verify.call(e.audio.stream.resource_path.begins_with(ScareBank.ROOT) and e.anticipation!=null,"Hero scare uses its old shared recording: "+id)
+  verify.call(e.audio.stream.resource_path.begins_with(ScareBank.SOUND_ROOT) and e.anticipation!=null,"Hero scare uses its old shared recording: "+id)
   game._resume();game.player.active=false;e.anticipation.play();await game.get_tree().process_frame;await game.get_tree().process_frame
   game._pause();await game.get_tree().process_frame;await game.get_tree().process_frame;e.tick(.1,false,game.player)
   verify.call(not e.anticipation.playing or e.anticipation.stream_paused,"Anticipation continues while paused: "+id)

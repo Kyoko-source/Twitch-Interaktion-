@@ -1,7 +1,7 @@
 extends RefCounted
 
 func run(game: Node3D, verify: Callable) -> void:
- game._new_shift();game.intro.skip();game._build_world("none");game._resume();game.player.active=false
+ game._new_shift();game.intro.skip();game.set_process(false);game._build_world("none");game._resume();game.player.active=false
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  verify.call(ArchiveState.document("note").footer=="","Door note still contains its removed footer")
  var old: Dictionary=game.state.serialize();old.visited=["Partyraum"]
@@ -12,8 +12,9 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(levels.size()>15,"Ball pile still consists of regular horizontal rows")
  var audit:=SceneAudit.inspect(game.world)
  verify.call(audit.ball_min_distance>.28,"Randomized ball pile intersects")
- game.world.set_anomaly("balls_float");game.world.tick(.6,true)
+ game.world.set_anomaly("balls_float");game.world.tick(.6,true);game.world.pit_physics.tick(true,game.player)
  verify.call(SceneAudit.inspect(game.world).ball_min_distance>.28,"Floating balls collide with one another")
+ game.set_process(true)
  # Mesh triangles point into the cup on its inner wall. Looking into the pot
  # and bucket must show real textured material instead of back-face culling.
  for cup in [game.world.annex.get_node("CookingPot"),game.world.atmosphere.find_child("BucketCup",true,false)]:

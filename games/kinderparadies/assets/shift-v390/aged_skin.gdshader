@@ -22,5 +22,5 @@ void fragment(){
  float wet=stain.a*bounds*mouth;
  tone=mix(tone,mix(vec3(.085,.006,.009),stain.rgb*vec3(.38,.20,.16),.35),wet*.9);
  ALBEDO=tone;ROUGHNESS=mix(.86,.37,wet);SPECULAR=mix(.23,.38,wet);
- NORMAL_MAP=texture(pores,UV).rgb;NORMAL_MAP_DEPTH=.72;
+ NORMAL_MAP=texture(pores,UV).rgb;NORMAL_MAP_DEPTH=.38;
 }

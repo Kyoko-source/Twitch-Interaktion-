@@ -92,6 +92,9 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             verify_windows_icon(executable)
             start = len(executable) - 12 - struct.unpack_from('<Q', executable, len(executable) - 12)[0]
             native_names = packed_paths(executable, start)
+            for model in ['interaction-hand','torch-grip','phone-hand','clown','horse-mask','granny-head','passage-head','mascot-rabbit','desk-phone']:
+                assert any(('assets/quality-v410/desktop/'+model+'.glb').encode() in name for name in native_names), model
+            assert not any(b'quality-v410/' in name and b'provenance.json' in name for name in native_names)
             assert any(b'assets/party-v385/party.mp3' in name for name in native_names)
             assert not any(b'assets/party-v385/party-web.ogg' in name for name in native_names)
             assert any(b'assets/tactile-v400/interaction-hand.glb' in name for name in native_names)
@@ -120,10 +123,13 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                              if p.name not in ['catalog.json', 'memories.json']]
             assert pck[:4] == b'GDPC' and struct.unpack_from('<I', pck, 4)[0] == 3
             packed_names = packed_paths(pck)
+            for required in [b'scripts/quality_assets.gd',b'scripts/close_prop_craft.gd',b'scripts/creature_foley.gd',b'assets/quality-v410/guard-cloth.gdshader',b'assets/quality-v410/ceramic.gdshader',b'assets/quality-v410/audio/horse-4.ogg',b'assets/quality-v410/audio/granny-4.ogg',b'assets/quality-v410/audio/step-carpet-7.ogg']:
+                assert any(required in name for name in packed_names), required
+            assert not any(b'assets/quality-v410/desktop/' in name or b'scripts/quality_validation.gd' in name for name in packed_names)
             for required in [b'assets/encounter-v401/horse-final-scream.wav', b'assets/encounter-v401/bloodshot.gdshader']:
                 assert any(required in name for name in packed_names), required
             assert any(b'assets/player-v402/breathing.ogg' in name for name in packed_names)
-            for required in [b'scripts/guard_foley.gd',b'assets/feedback-v403/paper.ogg',b'assets/feedback-v403/switch.ogg',b'assets/feedback-v403/horse-1.ogg',b'assets/feedback-v403/granny-1.ogg',b'assets/feedback-v403/door-1.ogg']:
+            for required in [b'scripts/guard_foley.gd',b'assets/quality-v410/audio/paper-1.ogg',b'assets/quality-v410/audio/switch-1.ogg',b'assets/quality-v410/audio/horse-1.ogg',b'assets/quality-v410/audio/granny-1.ogg',b'assets/quality-v410/audio/door-1.ogg']:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/guard_actions.gd', b'scripts/guard_presence.gd', b'scripts/paper_craft.gd', b'scripts/tactile_world.gd', b'assets/tactile-v400/interaction-hand-web.glb']:
                 assert any(required in name for name in packed_names), required

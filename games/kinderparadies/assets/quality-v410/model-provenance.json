@@ -1,0 +1,45 @@
+{
+  "author": "Original project derivatives and original telephone model",
+  "sources": [
+    "existing credited project hand and costume models",
+    "Lee Perry Smith credited facial scan in existing clown derivative"
+  ],
+  "models": {
+    "interaction-hand": {
+      "vertices": 97620,
+      "meshes": 6
+    },
+    "torch-grip": {
+      "vertices": 117000,
+      "meshes": 17
+    },
+    "phone-hand": {
+      "vertices": 209270,
+      "meshes": 7
+    },
+    "clown": {
+      "vertices": 375968,
+      "meshes": 28
+    },
+    "horse-mask": {
+      "vertices": 67722,
+      "meshes": 8
+    },
+    "granny-head": {
+      "vertices": 282745,
+      "meshes": 11
+    },
+    "passage-head": {
+      "vertices": 256581,
+      "meshes": 10
+    },
+    "mascot-rabbit": {
+      "vertices": 477150,
+      "meshes": 2
+    },
+    "desk-phone": {
+      "vertices": 103576,
+      "meshes": 3
+    }
+  }
+}

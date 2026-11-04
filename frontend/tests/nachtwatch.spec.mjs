@@ -134,6 +134,28 @@ test('v4.0.6 comments type, fall, persist and restart while the cloned lift comp
  expect(faults).toEqual([]);
 });
 
+test('v4.1.0 quality audio and near-wall flashlight work in the compact Web export',async({page})=>{
+ test.setTimeout(180000);const faults=[];
+ page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);expect((await state(page)).step_variants).toBe(8);
+ expect((await state(page)).creature_foley.sources).toBe(4);
+ let previous='';
+ for(let i=0;i<6;i++){
+  const count=(await state(page)).foley.count;await page.keyboard.press('f');
+  await expect.poll(async()=>(await state(page)).foley.count).toBe(count+1);
+  const path=(await state(page)).foley.track;expect(path).toContain('/quality-v410/audio/switch-');expect(path).not.toBe(previous);previous=path;
+ }
+ await qa(page,{op:'warp',x:-9.75,z:4.3,yaw:Math.PI/2,pitch:0});
+ await expect.poll(async()=>(await state(page)).flashlight.near_wall).toBeGreaterThan(.4);
+ expect((await state(page)).flashlight.energy).toBeLessThan(3.9);
+ await qa(page,{op:'warp',x:-4,z:12,yaw:0,pitch:0});
+ await expect.poll(async()=>(await state(page)).flashlight.near_wall).toBeLessThan(.03);
+ const steps=(await state(page)).polish.steps;await walk(page,'w',s=>s.polish.steps>steps+2);
+ expect((await state(page)).polish.step_track).toContain('/quality-v410/audio/step-');
+ await qa(page,{op:'anomaly',id:'wc_stall_watcher'});expect((await state(page)).terrors.sound).toContain('/quality-v410/audio/granny-');
+ await page.screenshot({path:join(tmpdir(),'after-play-v410-web-scene.png')});expect(faults).toEqual([]);
+});
+
 test('v4.0.8 reception notes render and desk mechanisms avoid a stretched arm',async({page})=>{
  test.setTimeout(150000);const faults=[];
  page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});

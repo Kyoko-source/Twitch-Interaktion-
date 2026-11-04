@@ -47,11 +47,11 @@ func _ready() -> void:
  presence=GuardPresence.new();add_child(presence);presence.build(self)
  hands=GuardActions.new();hands.build(self)
  foley=GuardFoley.new();add_child(foley)
- step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=load(FootSurfaces.ROOT+"footstep_concrete_000.ogg");step_player.volume_db=-19;add_child(step_player)
+ step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=QualityAssets.audio("step-concrete",0);step_player.volume_db=-16;add_child(step_player)
  crawl_sound=load("res://assets/ambience/crawl-contact.wav")
  for surface in FootSurfaces.TYPES:
   var sounds: Array[AudioStream]=[]
-  for i in range(5): sounds.append(load(FootSurfaces.ROOT+"footstep_"+surface+"_%03d.ogg"%i))
+  for i in range(8):sounds.append(QualityAssets.audio("step-"+surface,i))
   surface_sounds[surface]=sounds
 
 func capture() -> void:
@@ -157,11 +157,11 @@ func prop_target() -> NightProp:
 
 func play_step(landing: bool=false) -> void:
  surface_name=FootSurfaces.at(self)
- var variant:=randi_range(0,3)
+ var variant:=randi_range(0,6)
  if variant>=last_step_variant: variant+=1
  last_step_variant=variant;footstep_count+=1
  step_player.stream=crawl_sound if crouching and surface_name=="plastic" else surface_sounds[surface_name][variant]
- step_player.volume_db=(-23 if crouching else -16 if landing else -20)+(-2 if surface_name=="metal" else 0)
+ step_player.volume_db=(-19 if crouching else -12 if landing else -16)+(-2 if surface_name=="metal" else 0)
  step_player.pitch_scale=randf_range(.88,.97) if landing else randf_range(.96,1.05)
  step_player.play()
  if active: equipment.step(Vector2(velocity.x,velocity.z).length()>3.0,landing)

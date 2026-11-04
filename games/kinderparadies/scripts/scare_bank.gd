@@ -3,6 +3,8 @@ extends RefCounted
 
 const ROOT:="res://assets/revamp-v300/"
 const VOICE_ROOT:="res://assets/feedback-v403/"
+const SOUND_ROOT:="res://assets/quality-v410/audio/"
+const VARIANTS:=4
 const VOICES:=["horse","granny","door"]
 const FAMILIES:=["rabbit","clown","ossuary","crawler","window","fall","crowd","charge","whisper","crocodile"]
 static var previous: Dictionary={}
@@ -35,7 +37,7 @@ static func next_variant(kind: String) -> int:
 
 static func choose(kind: String, remember: bool) -> int:
  if not initialized: random.randomize();initialized=true
- var candidates: Array[int]=[1,2,3];candidates.erase(previous.get(kind,0))
+ var candidates: Array[int]=[1,2,3,4];candidates.erase(previous.get(kind,0))
  var variant: int=candidates[random.randi_range(0,candidates.size()-1)]
  if remember: previous[kind]=variant
  return variant
@@ -45,7 +47,7 @@ static func flat(id: String) -> AudioStream:
  return load(track(kind,choose(kind,false)))
 
 static func track(kind: String,variant: int) -> String:
- return VOICE_ROOT+kind+"-%d.ogg"%variant if kind in VOICES else ROOT+kind+"-%d.wav"%variant
+ return SOUND_ROOT+kind+"-%d.ogg"%variant
 
 static func play(player: AudioStreamPlayer3D) -> void:
  var kind: String=player.get_meta("scare_family","")
@@ -58,7 +60,7 @@ static func play(player: AudioStreamPlayer3D) -> void:
 
 static func play_flat(player: Node) -> void:
  var path: String=player.stream.resource_path
- if path.begins_with(ROOT) or path.begins_with(VOICE_ROOT):
+ if path.begins_with(ROOT) or path.begins_with(VOICE_ROOT) or path.begins_with(SOUND_ROOT):
   var key:=path.get_file().get_basename();var kind:=key.get_slice("-",0);var variant:=int(key.get_slice("-",1))
   if previous.get(kind,0)==variant: variant=choose(kind,false);player.stream=load(track(kind,variant))
   previous[kind]=variant
@@ -68,8 +70,7 @@ static func lead(parent: Node3D, id: String, mode: String="") -> AudioStreamPlay
  var player:=AudioStreamPlayer3D.new();player.name="ScareAnticipation"
  player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;player.max_distance=13;player.unit_size=3
  var kind:=family(id,mode)
- kind={"horse":"ossuary","granny":"whisper","door":"charge"}.get(kind,kind)
- player.volume_db=-16;player.stream=load(ROOT+kind+"-lead.wav")
+ player.volume_db=-16;player.stream=load(SOUND_ROOT+kind+"-lead.ogg")
  parent.add_child(player)
  if AudioServer.get_bus_index("Interior")>=0: player.bus="Interior"
  return player

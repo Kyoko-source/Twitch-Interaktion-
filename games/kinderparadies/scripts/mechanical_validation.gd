@@ -45,8 +45,10 @@ func run(g: Node3D,verify: Callable) -> void:
   verify.call(hands.visible and hands.close_contact,"Reachable bell hides the hand")
   var finger:=hands.skeleton.get_bone_global_pose(hands.skeleton.find_bone("index3"))*Vector3(0,.02125,0)
   verify.call(hands.skeleton.to_global(finger).distance_to(bell_point)<.012,"Finger misses the reachable bell")
-  var bounds:=hands.sleeve.get_aabb()
+  var bounds:=hands.sleeve.custom_aabb
   verify.call(bounds.end.z<-.06 and bounds.size.length()<.85,"Sleeve crosses the camera or stretches across the screen")
+  var mesh_id:=hands.sleeve.mesh.get_instance_id();hands.pose()
+  verify.call(hands.sleeve.mesh.get_instance_id()==mesh_id,"Each hand pose allocates a new sleeve mesh")
   hands.cancel()
  g.player.position=Vector3(bell_point.x,0,9.1);g.player.camera.look_at(bell_point)
  hands.begin("mechanical:bell",bell_point);hands.clock=hands.duration*.40;hands.pose()

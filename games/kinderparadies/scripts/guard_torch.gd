@@ -65,10 +65,11 @@ func build(light: SpotLight3D) -> void:
  for side in [-1,1]:
   var screw:=MeshInstance3D.new();screw.name="BezelFastener";var ball:=SphereMesh.new();ball.radius=.0025;ball.height=.005;ball.radial_segments=12;ball.rings=6;screw.mesh=ball;screw.position=Vector3(side*.061,0,-.25);screw.material_override=brass;body.add_child(screw)
  box(body,"PocketClip",Vector3(-.033,.012,.057),Vector3(.005,.012,.14),edge)
- var hand: Node3D=(load("res://assets/revamp-v300/anatomical-grip-v300.glb") as PackedScene).instantiate();hand.name="GuardGrip";hand.position=Vector3(.046,-.025,.04);hand.quaternion=Quaternion(Vector3.UP,-PI/2)*Quaternion(Vector3.BACK,PI);add_child(hand);CharacterFinish.hand(hand)
- var cuff: Node3D=(load("res://assets/props/clown-sleeve.glb") as PackedScene).instantiate();cuff.name="WornGuardCuff";cuff.position=Vector3(0,.16,0);cuff.scale=Vector3(.45,.21,.45);hand.add_child(cuff)
- var fabric:=surface(Color("293d34"),0.,.97);fabric.albedo_texture=load("res://assets/pbr/fabric_pattern_07/albedo.jpg");fabric.uv1_scale=Vector3.ONE*8
- for mesh in cuff.find_children("*","MeshInstance3D",true,false):mesh.material_override=fabric
+ var hand: Node3D=(load(QualityAssets.model("torch-grip","res://assets/revamp-v300/anatomical-grip-v300.glb")) as PackedScene).instantiate();hand.name="GuardGrip";hand.position=Vector3(.046,-.025,.04);hand.quaternion=Quaternion(Vector3.UP,-PI/2)*Quaternion(Vector3.BACK,PI);add_child(hand);CharacterFinish.hand(hand)
+ var cuff:=Node3D.new();cuff.name="WornGuardCuff";cuff.position=Vector3(0,.16,0);cuff.rotation.x=PI/2;hand.add_child(cuff)
+ var fabric:=surface(Color("344b3d"),0.,.97);fabric.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");fabric.normal_scale=.25;fabric.uv1_scale=Vector3.ONE*14
+ lathe(cuff,"TailoredNightguardSleeve",[Vector2(-.105,.028),Vector2(-.09,.031),Vector2(-.07,.030),Vector2(-.045,.034),Vector2(0,.035),Vector2(.04,.040),Vector2(.065,.037),Vector2(.10,.044),Vector2(.105,.042)],fabric,.045)
+ lathe(cuff,"FoldedCuffSeam",[Vector2(-.105,.028),Vector2(-.11,.032),Vector2(-.104,.034),Vector2(-.093,.033),Vector2(-.09,.03)],fabric)
  for mesh in find_children("*","MeshInstance3D",true,false):mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;mesh.layers=2
 
 func look(relative: Vector2) -> void:
@@ -98,6 +99,9 @@ func tick(delta: float,on: bool,fright: float,guard=null) -> void:
  var hit: Dictionary=guard.get_world_3d().direct_space_state.intersect_ray(query)
  var target:=clampf((.82-from.distance_to(hit.position))/.6,0.,1.) if hit else 0.
  near_wall=lerpf(near_wall,target,1.-exp(-delta*13.))
+ # Preserve surface detail at arm's length instead of bleaching paper and faces.
+ lamp.light_energy=BASE_ENERGY*strength*lerpf(1.,.42,near_wall)
+ lamp.light_size=.035;lamp.shadow_normal_bias=.24
  var moving: float=Vector2(guard.velocity.x,guard.velocity.z).length()
  walk_phase+=delta*(10.5 if moving>3. else 6.5)
  var motion_enabled: bool=guard.motion

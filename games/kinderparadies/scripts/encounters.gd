@@ -77,7 +77,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  attack_time+=delta
  if id=="bunny_lunge":
   if attack_time<.34:
-   var t:=clampf(attack_time/.34,0,1);bunny.global_position=origin.lerp(end,1-pow(1-t,3))+Vector3.UP*sin(t*PI)*.5
+   var t:=clampf(attack_time/.34,0,1);bunny.global_position=origin.lerp(end,1-pow(1-t,3))+Vector3.UP*sin(t*PI)*.17
    bunny.rotation.y=atan2(player.camera.global_position.x-bunny.global_position.x,player.camera.global_position.z-bunny.global_position.z)
    shock=maxf(shock,sin(t*PI)*.9)
   elif attack_time<.48: bunny.global_position=end
@@ -100,6 +100,7 @@ func _clown(delta: float, player: NightGuard) -> void:
   primed=true;w.annex.scare=true;anticipation.global_position=actor.global_position+Vector3.UP*1.7;anticipation.play()
  if primed and not triggered:
   w.annex.clown.head.rotation.y=lerp_angle(w.annex.clown.head.rotation.y,.28,delta*4)
+  w.annex.clown.head.rotation.z=lerpf(w.annex.clown.head.rotation.z,-.11,minf(1.,delta*5.))
  if not triggered and elapsed>1 and visible_to(player,actor.global_position+Vector3(0,1.95,0),3):
   triggered=true;w.annex.scare=true;clown_origin=actor.position;clown_rotation=actor.rotation.y;attack_time=0
   clown_end=w.annex.to_local(player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0))
@@ -107,10 +108,11 @@ func _clown(delta: float, player: NightGuard) -> void:
  if not triggered or finished: return
  attack_time+=delta
  if attack_time<.48:
-  var t:=attack_time/.48;actor.position=clown_origin.lerp(clown_end,1-pow(1-t,3))+Vector3.UP*sin(t*PI)*.22
+  var t:=attack_time/.48;var charge:=smoothstep(.10,.85,t);actor.position=clown_origin.lerp(clown_end,1-pow(1-charge,3))+Vector3.UP*sin(charge*PI)*.12
   actor.rotation.y=atan2(player.position.x-actor.global_position.x,player.position.z-actor.global_position.z);shock=maxf(shock,sin(t*PI)*.9)
+  w.annex.clown.head.rotation.z=lerpf(-.11,.20,smoothstep(.18,.45,t))
  elif attack_time<.7: actor.position=clown_end
  elif attack_time<1.6:
   actor.position=clown_end.lerp(clown_origin,(attack_time-.7)/.9)
  else:
-  actor.position=clown_origin;finished=true;w.annex.scare=false;w.annex.settled=true
+  actor.position=clown_origin;w.annex.clown.head.rotation.z=0.;finished=true;w.annex.scare=false;w.annex.settled=true

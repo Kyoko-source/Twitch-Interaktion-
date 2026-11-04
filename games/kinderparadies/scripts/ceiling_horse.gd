@@ -28,7 +28,7 @@ func build(world: PlayWorld) -> void:
   var tangent: Vector3=(ROUTE[mini(i+1,ROUTE.size()-1)]-ROUTE[maxi(0,i-1)])*.12
   if tangent.length()>.28: tangent=tangent.normalized()*.28
   route.add_point(ROUTE[i],-tangent,tangent)
- mask=(load(MODEL) as PackedScene).instantiate();mask.name="BloodiedHorseMask";add_child(mask);mask.scale=Vector3.ONE*.82
+ mask=(load(QualityAssets.model("horse-mask",MODEL)) as PackedScene).instantiate();mask.name="BloodiedHorseMask";add_child(mask);mask.scale=Vector3.ONE*.82
  jaw=mask.find_child("JawHinge",true,false)
  for mesh in mask.find_children("*","MeshInstance3D",true,false):
   mesh.set_meta("nonblocking_atmosphere",true)

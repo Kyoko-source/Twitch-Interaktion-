@@ -1,8 +1,8 @@
 extends Node3D
 
 var AUTHOR_TOOLS := OS.has_feature("editor") or OS.has_feature("qa")
-var SAVE := "user://qa-nachtwache-save.json" if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-save.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-save.json"
-var SETTINGS := "user://qa-nachtwache-settings.json" if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() or OS.has_feature("qa") else "user://render-qa-settings.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-settings.json"
+var SAVE := "user://qa-%d-nachtwache-save.json"%OS.get_process_id() if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() else "user://qa-nachtwache-save.json" if OS.has_feature("qa") else "user://render-qa-save.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-save.json"
+var SETTINGS := "user://qa-%d-nachtwache-settings.json"%OS.get_process_id() if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args() else "user://qa-nachtwache-settings.json" if OS.has_feature("qa") else "user://render-qa-settings.json" if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args() else "user://nachtwache-settings.json"
 var state := PatrolState.new()
 var archive:=ArchiveState.new()
 var archive_selected:=""
@@ -560,6 +560,7 @@ func _process(delta: float) -> void:
  player.foley.tick(phase in ["play","inventory"])
  world.acoustics.tick(delta,phase=="play",player)
  world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
+ world.creature_audio.tick(delta,phase=="play" and archive.ending!="recording")
  world.horse_hunt.present_contact(player.camera.current and phase in ["play","horse_death","pause","inventory","settings","help","code"] and archive.ending!="recording")
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
@@ -642,7 +643,7 @@ func _target() -> String:
 func _decide(red: bool) -> void:
  if phase!="play" or world.passages.closing: return
  if red and world.horse_hunt.red_locked():_announce(HorseHunt.CLUE,5);return
- world.open_door(red);effect.play();_save()
+ world.open_door(red);effect.stream=QualityAssets.audio("hinge",randi_range(1,4));effect.play();_save()
 
 func _board_lift(_red: bool) -> void:
  if phase!="play": return
@@ -924,6 +925,9 @@ func _telemetry() -> void:
   data.memories=memories.snapshot()
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
   data.foley=player.foley.snapshot()
+  data.creature_foley=world.creature_audio.snapshot()
+  data.flashlight={"energy":player.lamp.light_energy,"near_wall":player.torch_body.near_wall}
+  data.step_variants=player.surface_sounds.concrete.size()
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   var sky:=world.climbing.sky;var sky_path:=[]
@@ -1020,6 +1024,7 @@ func _self_test() -> void:
  await get_tree().process_frame
  await get_tree().process_frame
  print("NACHTWACHE SELF TEST: ","PASS" if passed else "FAIL")
+ DirAccess.remove_absolute(SAVE);DirAccess.remove_absolute(SETTINGS)
  get_tree().quit(0 if passed else 1)
 
 func _render_qa() -> void:

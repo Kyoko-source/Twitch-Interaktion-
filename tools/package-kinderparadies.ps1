@@ -1,4 +1,4 @@
-param([string]$Version='4.0.9')
+param([string]$Version='4.1.0')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
@@ -68,7 +68,7 @@ function Add-PublicSources($Value){
  }
  foreach($taskProperty in $Value.PSObject.Properties){Add-PublicSources $taskProperty.Value}
 }
-foreach($taskSource in @('assets/polyhaven-provenance.json','assets/ambience/provenance.json','assets/ambience-v180/provenance.json','assets/ambience-v193/provenance.json','assets/finale/provenance.json','assets/surfaces/provenance.json','assets/props/anatomy-provenance.json','assets/backstage-v270/provenance.json','assets/backstage-v270/Caveat-source.json','assets/revamp-v300/provenance.json','assets/wall-v383/wall-provenance.json','assets/party-v385/party-provenance.json')){
+foreach($taskSource in @('assets/polyhaven-provenance.json','assets/ambience/provenance.json','assets/ambience-v180/provenance.json','assets/ambience-v193/provenance.json','assets/finale/provenance.json','assets/surfaces/provenance.json','assets/props/anatomy-provenance.json','assets/backstage-v270/provenance.json','assets/backstage-v270/Caveat-source.json','assets/revamp-v300/provenance.json','assets/wall-v383/wall-provenance.json','assets/party-v385/party-provenance.json','assets/quality-v410/audio-provenance.json')){
  Add-PublicSources (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $taskProject $taskSource) | ConvertFrom-Json)
 }
 [IO.File]::WriteAllText((Join-Path $taskLicenses 'Quellen.txt'),("AFTER PLAY - Quellen und Urheber"+[Environment]::NewLine+[Environment]::NewLine+(($taskSources | Sort-Object -Unique) -join [Environment]::NewLine)),[Text.UTF8Encoding]::new($false))

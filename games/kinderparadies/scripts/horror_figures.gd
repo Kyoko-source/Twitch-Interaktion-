@@ -53,7 +53,7 @@ static func spoon_head(parent: Node3D,material: Material) -> MeshInstance3D:
  var mesh:=MeshInstance3D.new();mesh.name="ConcaveWoodenSpoonHead";mesh.mesh=st.commit();mesh.material_override=material;parent.add_child(mesh);return mesh
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load("res://assets/detail-v310/clown-v310.glb")
+ var scene: PackedScene=load(QualityAssets.model("clown","res://assets/detail-v310/clown-v310.glb"))
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
@@ -92,7 +92,7 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
     cloth.set_shader_parameter("tint",Color("a9a18a") if material.resource_name=="Dirty pleated linen" else Color("743b36"));mesh.set_surface_override_material(surface,cloth)
  var suit:=w.mat(Color("744a46"),null,.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
  var arm:=sleeve(root,.085);var forearm:=sleeve(root,.067)
- var hand: Node3D=(load("res://assets/revamp-v300/anatomical-grip-v300.glb") as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
+ var hand: Node3D=(load(QualityAssets.model("torch-grip","res://assets/revamp-v300/anatomical-grip-v300.glb")) as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
  CharacterFinish.hand(hand)
  link(arm,Vector3(-.28,1.48,0),Vector3(-.25,1.15,.42))
  link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))

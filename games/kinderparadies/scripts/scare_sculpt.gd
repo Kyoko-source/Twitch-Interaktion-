@@ -2,7 +2,7 @@ class_name ScareSculpt
 extends RefCounted
 
 static func head(parent: Node3D,kind: String,p: Vector3) -> Node3D:
- var root: Node3D=(load("res://assets/shift-v390/"+kind+"-head.glb") as PackedScene).instantiate();root.name="DetailedScareAnatomy";root.position=p;parent.add_child(root)
+ var root: Node3D=(load(QualityAssets.model(kind+"-head","res://assets/shift-v390/"+kind+"-head.glb")) as PackedScene).instantiate();root.name="DetailedScareAnatomy";root.position=p;parent.add_child(root)
  for mesh in root.find_children("*","MeshInstance3D",true,false):
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for i in range(mesh.mesh.get_surface_count()):

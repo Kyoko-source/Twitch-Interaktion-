@@ -187,8 +187,11 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
     if slide.length()<.1: slide=Vector3(direction.z,0,-direction.x)
     actor.move_and_collide(slide*speed*delta)
    actor.rotation.y=atan2(direction.x,direction.z)
-   visual.position.y=(.20 if spec.mode=="crawl" else 0)+absf(sin(attack*12))*.025
-   for i in range(arms.size()): arms[i].rotation.x=sin(attack*11+i*PI)*.16
+   var stride:=attack*(7. if spec.mode=="crawl" else 13. if spec.mode=="rush" else 8.)
+   visual.position.y=(.20 if spec.mode=="crawl" else 0)+absf(sin(stride))*(.012 if spec.mode=="peek" else .035)
+   visual.rotation.z=sin(stride*.5)*(.075 if spec.mode=="crawl" else .025)
+   for i in range(arms.size()):
+    arms[i].rotation.x=(-.65+sin(stride+i*PI)*.38) if spec.mode=="crawl" else (-.52+sin(stride+i*PI)*.12) if spec.mode=="rush" else sin(stride+i*PI)*.09
   elif attack>duration:
    finished=true
    # Hold the contorted visitor as an unmistakable clue, never replay the sting.

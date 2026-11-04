@@ -6,6 +6,39 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--quality-v410-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.tick(1.5);game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  await capture(game,output,"00-phone-hand")
+  game.intro.skip();game.dialogue.reset();game.notice.hide()
+  var author=load("res://art-direction/itch_capture.gd").new()
+  var views=[
+   ["01-reception",Vector3(-7.0,0,8.65),Vector3(-8.2,1.03,7.3)],
+   ["02-plates-chairs",Vector3(11.45,0,-5.8),Vector3(10.2,.82,-7.)],
+   ["03-rabbit",Vector3(15.2,0,-4.7),Vector3(17.9,2.25,.38)],
+   ["04-clown",Vector3(-12.4,0,-31.25),Vector3(-14.4,1.8,-31.25)],
+   ["05-kitchen",Vector3(-11.6,0,-29.2),Vector3(-13.7,1.9,-31.2)],
+   ["06-hall",Vector3(-3.5,0,8.8),Vector3(4,2.5,0)],
+   ["07-cinema",Vector3(-3.55,0,-30.9),Vector3(3.3,1.7,-29.7)],
+   ["08-horse",game.world.room_horror.creature.mask.global_position-game.world.room_horror.creature.mask.global_basis.z*2.-Vector3.UP*1.65,game.world.room_horror.creature.mask.global_position]]
+  var samples: Dictionary={}
+  for view in views:
+   author.pose(game,view[1],view[2]);game.player.torch_body.tick(1.,true,0.,game.player)
+   for frame in range(24):await game.get_tree().process_frame
+   var times: Array[float]=[]
+   for frame in range(90):
+    var started:=Time.get_ticks_usec();await game.get_tree().process_frame;times.append((Time.get_ticks_usec()-started)/1000.)
+   times.sort()
+   samples[view[0]]={"median_frame_ms":times[45],"p95_frame_ms":times[85],"draw_calls":Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),"primitives":Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)}
+   await capture(game,output,view[0])
+  var point: Vector3=game.world.mechanics.records.bell.contact.global_position
+  author.pose(game,Vector3(point.x,0,8.56),point);game.player.hands.begin("mechanical:bell",point)
+  game.player.hands.clock=game.player.hands.duration*.40;game.player.hands.pose()
+  await capture(game,output,"09-bell-hand");game.player.hands.cancel()
+  for kind in ["granny","passage"]:
+   var head:=ScareSculpt.head(game.player.camera,kind,Vector3(0,-.02,-.75))
+   await capture(game,output,"10-head-"+kind);head.free()
+  var report:=FileAccess.open(output.path_join("quality-render.json"),FileAccess.WRITE);report.store_string(JSON.stringify(samples," "));report.close()
+  game._quit();return
  if "--reception-v408-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false);game.dialogue.reset()
   game.notice.hide()

@@ -1,6 +1,21 @@
 class_name SceneAudit
 extends RefCounted
 
+static func oriented_overlap(a: AABB,ta: Transform3D,b: AABB,tb: Transform3D) -> bool:
+ var delta:=tb*b.get_center()-ta*a.get_center()
+ var ea: Array[Vector3]=[ta.basis.x*a.size.x*.5,ta.basis.y*a.size.y*.5,ta.basis.z*a.size.z*.5]
+ var eb: Array[Vector3]=[tb.basis.x*b.size.x*.5,tb.basis.y*b.size.y*.5,tb.basis.z*b.size.z*.5]
+ var axes: Array[Vector3]=[ta.basis.x,ta.basis.y,ta.basis.z,tb.basis.x,tb.basis.y,tb.basis.z]
+ for u in ea:
+  for v in eb:axes.append(u.cross(v))
+ for axis in axes:
+  if axis.length_squared()<.00000001:continue
+  var radius:=0.
+  for edge in ea:radius+=absf(edge.dot(axis))
+  for edge in eb:radius+=absf(edge.dot(axis))
+  if absf(delta.dot(axis))>=radius-.000001:return false
+ return true
+
 # QA-only callers: inspect actual mesh bounds and imported vertices, not merely
 # intended constants. A normal round must have no accidental geometry anomaly.
 static func inspect(w: PlayWorld) -> Dictionary:
@@ -75,8 +90,15 @@ static func placement(w: PlayWorld) -> Dictionary:
   {"name":"Nebenraum-Flur","box":AABB(Vector3(-9.0,.09,-24.15),Vector3(2.2,2.25,12.8))},
   {"name":"Fahrstuhl","box":AABB(Vector3(-9.12,.09,16.76),Vector3(2.24,2.25,.88))},
   {"name":"Archiv-Vorbereich","box":AABB(Vector3(-9.75,.09,-10.5),Vector3(1.0,2.25,1.2))},
-  {"name":"Grüner Flur","box":AABB(Vector3(PatrolPassage.CENTERS[0]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))},
-  {"name":"Roter Flur","box":AABB(Vector3(PatrolPassage.CENTERS[1]-.6,.09,PatrolPassage.ENTRY_Z-7.3),Vector3(1.2,2.25,8.2))}]
+ ]
+ # The return corridors bend towards wider, centred cabins. Test each real
+ # segment in its own frame; an old straight world AABB crossed their walls.
+ for index in range(w.passages.lanes.size()):
+  var lane: Dictionary=w.passages.lanes[index]
+  for i in range(lane.path.size()-1):
+   var a: Vector2=lane.path[i];var b: Vector2=lane.path[i+1];var delta:=b-a;var middle:=(a+b)*.5
+   var frame: Transform3D=lane.root.global_transform*Transform3D(Basis(Vector3.UP,atan2(-delta.x,-delta.y)),Vector3(middle.x,0,middle.y))
+   passages.append({"name":"Roter Flur" if index else "Grüner Flur","box":AABB(Vector3(-.6,.09,-delta.length()*.5),Vector3(1.2,2.25,delta.length())),"inverse":frame.affine_inverse()})
  if w.archive.leaf.rotation.y< -1.5: passages.append({"name":"Offene Archivtür","box":AABB(Vector3(-10.62,.09,-10.58),Vector3(.84,2.25,1.36))})
  passages.append({"name":"Haupteingang","box":AABB(Vector3(-10.65,.09,8.87),Vector3(.9,2.25,1.06))})
  var blocked: Array[String]=[];var art: Array[MeshInstance3D]=[];var furniture: Array[String]=[];var walls: Array[AABB]=[]
@@ -93,7 +115,9 @@ static func placement(w: PlayWorld) -> Dictionary:
    ancestor=ancestor.get_parent()
   for passage in passages:
    if closed_door and passage.name in ["Grüner Flur","Roter Flur"]: continue
-   if bounds.intersects(passage.box): blocked.append(passage.name+": "+str(mesh.get_path())+" at "+str(bounds))
+   var tested: AABB=(passage.inverse*mesh.global_transform)*mesh.get_aabb() if passage.has("inverse") else bounds
+   var passage_frame: Transform3D=passage.inverse.affine_inverse() if passage.has("inverse") else Transform3D.IDENTITY
+   if tested.intersects(passage.box) and oriented_overlap(mesh.get_aabb(),mesh.global_transform,passage.box,passage_frame):blocked.append(passage.name+": "+str(mesh.get_path())+" at "+str(bounds))
   var furnishing: bool=mesh.get_meta("native_model","") in ["cardboard_box_01","metal_office_desk"]
   var cursor: Node=mesh.get_parent()
   while cursor!=null and cursor!=w:

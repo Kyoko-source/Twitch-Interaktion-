@@ -141,3 +141,14 @@ Klingel, Kaugummiautomat, Ticketentwerter, Holzloeffel und Animationen:
 Originalarbeit fuer After Play mit bereits oben aufgefuehrten Materialien.
 Klingel-, Kurbel-, Hebel- und Topfrandgeraeusche wurden fuer dieses Projekt
 aus kurzen Resonanzen und mechanischen Impulsen erzeugt, ohne Fremdaufnahmen.
+
+NAHAUFNAHMEN UND KLANGARCHIV (4.1.0)
+Verfeinerte Haende, Kostueme, Stoffhase, Pferdemaske und Schreckgesichter
+basieren auf den bereits oben aufgefuehrten Projektmodellen und Quellen.
+Die Gesichtsscan-Nennung von Lee Perry-Smith gilt weiterhin fuer die Derivate.
+Empfangstelefon, Keramikteller, Uniformaermel und Automatenbeschlaege:
+Originalmodelle und Materialarbeit fuer After Play.
+Neue Schreckvarianten: Tonbearbeitungen des oben genannten Ogrebane-Pakets.
+Bewegungs- und Kontaktklaenge: vorhandene CC0-Aufnahmen von Joseph SARDIN
+und Kenney, eigene Papiergeraeusche; acht neu abgestimmte Schrittvarianten
+je Boden auf Basis der bereits aufgefuehrten Schrittaufnahmen.

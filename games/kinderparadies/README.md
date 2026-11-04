@@ -1,5 +1,31 @@
 # After Play — Kinderparadies
 
+## Nahaufnahmen, Materialklang und Licht (4.1.0)
+
+Die Windows-Fassung verwendet verfeinerte Hand-, Clown-, Hasen-, Pferde- und
+Schreckgesichtmodelle mit den vorhandenen Quellenangaben. Gefittete Fingernaegel,
+Hautfalten, kurzer gekaemmter Stoffflor und ein durchgehender Clownkragen
+verbessern die Nahansichten. Ein eigener Uniformaermel ersetzt den Clownstoff;
+der Interaktionsaermel wird einmal erzeugt und im Shader mit der Hand bewegt.
+
+Ein ausgearbeitetes Empfangstelefon, eine Kassenschublade, gewoelbte Keramikteller,
+Automatenbeschlaege und ueberarbeitete Geschenkbaender ergaenzen bestehende
+Gegenstaende. Die Laufkollisionen werden durch diese Details nicht erweitert.
+Die Taschenlampe reduziert ihre Leistung direkt vor Oberflaechen und erholt
+sich beim Zuruecktreten; Kontaktverschattung, Reflexionen und Nebel wurden
+abgestimmt. SDFGI bleibt wegen der vorher behobenen Bildartefakte deaktiviert.
+
+141 neue und ueberarbeitete kurze Audioclips liefern vier Varianten pro
+Schreckfamilie, Materialgeraeusche und acht abgestimmte Schritte je Boden.
+Wiederholschutz, Raumfilter, Positionsnachfuehrung und Pausenverhalten bleiben
+aktiv. Der normale Pferdekopf erzeugt keine Bewegungsgeraeusche. Granny nutzt
+eine trockene Stimme in Originaltonhoehe. Hasensprung, Clownansturm und
+kriechende Besucher besitzen unterschiedliche Bewegungsablaeufe.
+
+Die Browserfassung behaelt die kompakteren Figurenmodelle und teilt die neuen
+Audio-, Material-, Interaktions- und Animationsverbesserungen. Native Modelle
+und private Herkunftsmanifeste gelangen nicht ins oeffentliche Web-Paket.
+
 ## Drei weitere Kommentare (4.0.9)
 
 Einmalige Kommentare beim ersten Krabbeln in einer der beiden Röhren,

@@ -183,14 +183,14 @@ func finish() -> void:
 
 func _lighting() -> void:
  var env:=w.environment.environment
- env.ambient_light_energy=.10;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
- env.fog_density=.004;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.058
+ env.ambient_light_energy=.12;env.ambient_light_color=Color("647b88");env.tonemap_mode=Environment.TONE_MAPPER_AGX
+ env.fog_density=.004;env.volumetric_fog_enabled=true;env.volumetric_fog_density=.047
  env.volumetric_fog_albedo=Color("99adae");env.volumetric_fog_length=45;env.volumetric_fog_anisotropy=.4
  env.volumetric_fog_ambient_inject=.12;env.volumetric_fog_gi_inject=.35
  env.volumetric_fog_temporal_reprojection_amount=.75
  env.sdfgi_cascades=4;env.sdfgi_min_cell_size=.2;env.sdfgi_use_occlusion=true;env.sdfgi_read_sky_light=false;env.sdfgi_energy=.85
- env.ssao_enabled=true;env.ssao_radius=.85;env.ssao_intensity=1.5;env.ssao_detail=.7
- env.ssil_radius=2.5;env.ssil_intensity=.7
+ env.ssao_enabled=true;env.ssao_radius=.40;env.ssao_intensity=1.15;env.ssao_detail=.68
+ env.ssil_radius=1.8;env.ssil_intensity=.52
  env.glow_enabled=true;env.glow_intensity=.22;env.glow_hdr_threshold=1.4
  for mesh in w.atmosphere.get_children():
   if mesh is MeshInstance3D and (mesh.material_override==w.atmosphere.mist or (mesh.mesh is SphereMesh and mesh.material_override is StandardMaterial3D and mesh.material_override.roughness<.1)): mesh.hide()
@@ -207,8 +207,8 @@ func _lighting() -> void:
   var spot:=SpotLight3D.new();spot.position=Vector3(-5.5,6.02,z);spot.rotation.x=-PI/2;spot.light_color=Color("ffe0ad");spot.light_energy=3.0;spot.spot_range=9;spot.spot_angle=65;spot.spot_angle_attenuation=.8;spot.shadow_enabled=true;spot.light_size=.12;spot.shadow_bias=.025;spot.shadow_normal_bias=.6;spot.light_volumetric_fog_energy=1.3;spot.light_indirect_energy=1.3;add_child(spot);spots.append(spot)
  for pos in [Vector3(12.4,6,11.4),Vector3(10.2,6,-7)]:
   var spot:=SpotLight3D.new();spot.position=pos;spot.rotation.x=-PI/2;spot.light_color=Color("bbcab6") if pos.z>0 else Color("e8c399");spot.light_energy=3;spot.spot_range=11;spot.spot_angle=66;spot.shadow_enabled=true;spot.light_size=.16;spot.shadow_bias=.025;spot.shadow_normal_bias=.6;add_child(spot);spots.append(spot)
- for pos in [Vector3(4.8,3,2.4),Vector3(13.3,3,-5.3)]:
-  var probe:=ReflectionProbe.new();probe.position=pos;probe.size=Vector3(29.5,7.1,29) if pos.x<5 else Vector3(12.7,7.1,13.1);probe.box_projection=true;probe.interior=true;probe.intensity=.6;probe.max_distance=30;add_child(probe);probes.append(probe)
+ for pos in [Vector3(-1.65,3,2.4),Vector3(13.3,3,-5.3)]:
+  var probe:=ReflectionProbe.new();probe.position=pos;probe.size=Vector3(16.5,7.1,29) if pos.x<5 else Vector3(12.7,7.1,13.1);probe.box_projection=true;probe.interior=true;probe.intensity=.52;probe.max_distance=30;add_child(probe);probes.append(probe)
  # Low fog banks use participating-media density and react to light/shadow.
  for pos in [Vector3(-5,.2,-4),Vector3(2,.2,7.5),Vector3(12.4,.2,12.5),Vector3(14,.2,-6)]:
   var volume:=FogVolume.new();volume.position=pos;volume.size=Vector3(8,.8,5);volume.shape=RenderingServer.FOG_VOLUME_SHAPE_ELLIPSOID

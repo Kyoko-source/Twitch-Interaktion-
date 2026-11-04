@@ -18,14 +18,14 @@ var object_start:=Transform3D.IDENTITY
 var world_item: Node3D
 var torch_dip:=Vector3.ZERO
 var sleeve: MeshInstance3D
-var cloth: StandardMaterial3D
+var cloth: ShaderMaterial
 var fill: OmniLight3D
 var on_contact:=Callable()
 var close_contact:=false
 
 func build(player: NightGuard) -> void:
  guard=player;name="VisibleInteractionHand";guard.camera.add_child(self)
- rig=(load("res://assets/tactile-v400/interaction-hand-web.glb" if OS.has_feature("web") else "res://assets/tactile-v400/interaction-hand.glb") as PackedScene).instantiate();add_child(rig)
+ rig=(load(QualityAssets.model("interaction-hand","res://assets/tactile-v400/interaction-hand-web.glb")) as PackedScene).instantiate();add_child(rig)
  skeleton=rig.find_children("*","Skeleton3D",true,false)[0]
  for i in range(skeleton.get_bone_count()):rest_bones[i]=skeleton.get_bone_rest(i)
  CharacterFinish.hand(rig)
@@ -36,8 +36,7 @@ func build(player: NightGuard) -> void:
    if original and "sleeve" in original.resource_name.to_lower():
     mesh.hide()
    elif original and "skin" in original.resource_name.to_lower():original.albedo_color=Color("e4cbb2")
- cloth=StandardMaterial3D.new();cloth.albedo_color=Color("526056");cloth.roughness=.96;cloth.metallic_specular=.12
- cloth.normal_enabled=true;cloth.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");cloth.normal_scale=.20;cloth.uv1_triplanar=true;cloth.uv1_scale=Vector3.ONE*22
+ cloth=ShaderMaterial.new();cloth.shader=load("res://assets/quality-v410/guard-cloth.gdshader");cloth.set_shader_parameter("weave",load("res://assets/pbr/fabric_pattern_07/normal.jpg"))
  sleeve=MeshInstance3D.new();sleeve.name="ConnectedInteractionSleeve";sleeve.material_override=cloth;sleeve.layers=2;sleeve.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;guard.camera.add_child(sleeve);sleeve.hide()
  held=Node3D.new();held.name="HandledObject";guard.camera.add_child(held)
  sound=AudioStreamPlayer.new();sound.stream=load("res://assets/polish/impact-cloth.wav");sound.volume_db=-28;sound.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(sound)
@@ -161,20 +160,16 @@ func _sleeve() -> void:
  # Start below the frame, in front of the near plane. Crossing the camera
  # plane made the old sleeve appear as a huge black strip across the screen.
  var start:=Vector3(-.24,-.50,-.27);var elbow:=Vector3(-.28,-.36,-.39)
- var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
- var points: Array[Vector3]=[];var sides: Array[Vector3]=[];var ups: Array[Vector3]=[]
- for row in range(13):
-  var t:=row/12.;var p:=start*pow(1.-t,2.)+elbow*2.*(1.-t)*t+end*t*t
-  var tangent:=((elbow-start)*(1.-t)+(end-elbow)*t).normalized();var u:=tangent.cross(Vector3.UP).normalized();var v:=tangent.cross(u).normalized()
-  points.append(p);sides.append(u);ups.append(v)
- for row in range(12):
-  for side in range(12):
-   for corner in [Vector2i(0,0),Vector2i(0,1),Vector2i(1,0),Vector2i(1,0),Vector2i(0,1),Vector2i(1,1)]:
-    var ring: int=row+corner.y;var t: float=ring/12.;var a: float=(side+corner.x)*TAU/12.
-    var normal:=sides[ring]*cos(a)+ups[ring]*sin(a)
-    var radius:=lerpf(.049,.025,t)*(1.+sin(t*46.)*.11*pow(t,3.))+.002*smoothstep(.88,1.,t)
-    tool.set_normal(normal);tool.set_uv(Vector2(float(side+corner.x)/12.,t*3.));tool.add_vertex(points[ring]+normal*radius)
- tool.index();sleeve.mesh=tool.commit();sleeve.show()
+ if not sleeve.mesh:
+  var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+  for row in range(16):
+   for side in range(20):
+    for corner in [Vector2i(0,0),Vector2i(0,1),Vector2i(1,0),Vector2i(1,0),Vector2i(0,1),Vector2i(1,1)]:
+     var t:=float(row+corner.y)/16.;var a:=float(side+corner.x)*TAU/20.
+     tool.set_normal(Vector3(cos(a),0,sin(a)));tool.set_uv(Vector2(float(side+corner.x)/20.,t));tool.add_vertex(Vector3(cos(a),t,sin(a)))
+  tool.index();tool.generate_tangents();sleeve.mesh=tool.commit()
+ cloth.set_shader_parameter("start_point",start);cloth.set_shader_parameter("elbow_point",elbow);cloth.set_shader_parameter("wrist_point",end)
+ sleeve.custom_aabb=AABB(start,Vector3.ZERO).expand(elbow).expand(end).grow(.055);sleeve.show()
 
 func cancel() -> void:
  kind="";clock=0.;hide();held.hide();contact_node=null;world_item=null;torch_dip=Vector3.ZERO;on_contact=Callable()

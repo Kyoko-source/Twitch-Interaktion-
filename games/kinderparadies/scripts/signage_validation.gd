@@ -15,8 +15,8 @@ func run(game: Node3D,verify: Callable) -> void:
  for mesh in w.find_children("*","MeshInstance3D",true,false):
   if mesh.has_meta("sign_design"):
    count+=1
-   var print_material:=mesh.material_override as StandardMaterial3D
-   verify.call(not print_material.uv1_triplanar and print_material.uv1_scale==Vector3.ONE and print_material.uv1_offset==Vector3.ZERO and not print_material.texture_repeat,"Printed metal sign is tiled by a later material pass: "+str(mesh.get_path()))
+   var print_material:=mesh.get_active_material(0) as StandardMaterial3D
+   verify.call(print_material!=null and not print_material.uv1_triplanar and print_material.uv1_scale==Vector3.ONE and print_material.uv1_offset==Vector3.ZERO and not print_material.texture_repeat,"Printed metal sign is tiled by a later material pass: "+str(mesh.get_path()))
  verify.call(count>=30,"The signage pass missed legacy brown signs")
  for id in VenueSignage.INDEX.IDS:
   verify.call(VenueSignage.texture(id).get_width()==512 and VenueSignage.texture(id).get_height()==256,"Sign atlas cropping fails for "+id)
@@ -24,7 +24,7 @@ func run(game: Node3D,verify: Callable) -> void:
   game.state.streak=round_number-1;game._refresh_hud()
   verify.call(game.intro.floor_number==round_number and game.world.passages.floor_number==round_number,"Lift floor is not synchronized with round "+str(round_number))
   verify.call(game.intro.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)),"Entrance cabin still displays a fixed floor")
-  verify.call(game.world.passages.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)+" / AUFZUG"),"A decision corridor still displays a fixed floor")
+  verify.call(game.world.passages.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)),"A decision corridor still displays a fixed floor")
  game.player.position=Vector3(-7.85,.02,-18.75);game.player.camera.look_at(ReceptionWatch.WALL)
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  verify.call(game._target()=="memory_wall","The relocated photo board cannot be inspected from the corridor")

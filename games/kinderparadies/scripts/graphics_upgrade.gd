@@ -241,14 +241,14 @@ func _light_design() -> void:
 
 func _environment() -> void:
  var env:=w.environment.environment
- env.ambient_light_energy=.105;env.ambient_light_color=Color("71858f")
+ env.ambient_light_energy=.115;env.ambient_light_color=Color("71858f")
  env.tonemap_mode=Environment.TONE_MAPPER_AGX
- env.ssao_radius=.55;env.ssao_intensity=1.35;env.ssao_detail=.9;env.ssao_sharpness=.88
- env.ssil_radius=2.2;env.ssil_intensity=.9
+ env.ssao_radius=.45;env.ssao_intensity=1.2;env.ssao_detail=.75;env.ssao_sharpness=.88
+ env.ssil_radius=1.8;env.ssil_intensity=.52
  env.ssr_max_steps=96;env.ssr_depth_tolerance=.25
  env.glow_intensity=.24;env.glow_hdr_threshold=1.25
  env.adjustment_enabled=true;env.adjustment_contrast=1.045;env.adjustment_saturation=.93
- env.volumetric_fog_albedo=Color("a1adb0");env.volumetric_fog_density=.054;env.volumetric_fog_anisotropy=.35
+ env.volumetric_fog_albedo=Color("a1adb0");env.volumetric_fog_density=.047;env.volumetric_fog_anisotropy=.35
 
 func equipment(guard: NightGuard,intro: ElevatorIntro) -> void:
  # Hands and phone retain their authored shapes; refine skin response, seams,

@@ -53,7 +53,7 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  var handset: Node3D=(load("res://assets/lift-v391/nightguard-handset.glb") as PackedScene).instantiate();handset.name="MachinedHandset";phone.add_child(handset)
  phone_status=Label3D.new();phone_status.hide();phone.add_child(phone_status)
  display=GuardPhoneDisplay.new();phone.add_child(display);display.build()
- var hand: Node3D=(load("res://assets/lift-v391/nightguard-phone-hand.glb") as PackedScene).instantiate();hand.name="FittedPhoneHand";phone.add_child(hand)
+ var hand: Node3D=(load(QualityAssets.model("phone-hand","res://assets/lift-v391/nightguard-phone-hand.glb")) as PackedScene).instantiate();hand.name="FittedPhoneHand";phone.add_child(hand);CharacterFinish.hand(hand)
  var pores:=NoiseTexture2D.new();var noise:=FastNoiseLite.new();noise.seed=391;noise.frequency=.35;pores.noise=noise;pores.width=128;pores.height=128;pores.seamless=true;pores.as_normal_map=true;pores.bump_strength=.08
  for mesh in hand.find_children("*","MeshInstance3D",true,false):
   for surface in range(mesh.mesh.get_surface_count()):

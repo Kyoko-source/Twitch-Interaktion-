@@ -9,6 +9,12 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--quality-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/quality_validation.gd").new().run(game,check)
+  await load("res://scripts/feedback_validation.gd").new().run(game,check)
+  await load("res://scripts/tactile_validation.gd").new().run(game,check)
+  print("Close-up quality, material movement and feedback checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--finish-v406-only" in OS.get_cmdline_user_args():
   await load("res://scripts/finish_v406_validation.gd").new().run(game,check)
   print("Cabin copies, scenery and kitchen stability checks: ",checks,"; failures: ",failures.size())
@@ -417,7 +423,7 @@ func run(game: Node3D) -> bool:
  check(game.world.room_horror.music.stream_paused,"Music box ignores pause")
  game.world.room_horror.tick(.1,true)
  game.world.room_horror.clock=11.75;game.world.room_horror.tick(0,true)
- check(game.world.room_horror.bulbs[0].light.light_energy<.5,"Bulb contact failure never dims the real light")
+ check(is_equal_approx(game.world.room_horror.bulbs[0].light.light_energy,game.world.room_horror.bulbs[0].energy),"Kitchen reference lighting flickers despite the steady-light repair")
  game.world.room_horror.clock=12.5;game.world.room_horror.tick(0,true)
  check(game.world.room_horror.bulbs[0].light.light_energy>.5,"Bulb failed to recover after flicker")
  game.player.position=Vector3(4.1,3.01,3.6);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
@@ -529,7 +535,7 @@ func run(game: Node3D) -> bool:
  var annex_clock: float=game.world.annex.clock;var hand_pose: Vector3=game.world.annex.clown.hand.position
  for frame in range(12): await game.get_tree().physics_frame
  check(game.world.annex.clock==annex_clock and game.world.annex.clown.hand.position==hand_pose,"Pause does not freeze projector and spoon")
- check(game.world.annex.sources.all(func(source): return source.stream_paused),"Annex audio continues in pause")
+ check(game.world.annex.sources.all(func(source): return not source.playing or source.stream_paused),"Annex audio continues in pause")
  game._resume()
  # Both new rooms must support a real persisted save, not only main-hall bounds.
  for pose in [(Vector3(-12,0,-17.65)+ServiceAnnex.OFFSET),(Vector3(1.7,0,-17.65)+ServiceAnnex.OFFSET)]:

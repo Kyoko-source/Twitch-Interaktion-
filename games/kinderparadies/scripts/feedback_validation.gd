@@ -5,7 +5,7 @@ func run(g: Node3D,verify: Callable) -> void:
  var speaker:=AudioStreamPlayer3D.new();g.add_child(speaker)
  var flat:=AudioStreamPlayer.new();g.add_child(flat)
  for character in ScareBank.VOICES:
-  for variant in range(1,4):
+  for variant in range(1,ScareBank.VARIANTS+1):
    var path:=ScareBank.track(character,variant);var stream: AudioStream=load(path)
    verify.call(stream!=null and stream.get_length()>.6 and stream.get_length()<1.5,"Missing complete character voice: "+path)
    var digest:=FileAccess.get_sha256(path)

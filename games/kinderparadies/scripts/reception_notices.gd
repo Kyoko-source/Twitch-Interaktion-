@@ -51,7 +51,7 @@ static func build(w: PlayWorld,board: Node3D) -> void:
   var drawing:=ReceptionNotices.new();drawing.index=i;drawing.size=Vector2(384,512);view.add_child(drawing)
   var page:=MeshInstance3D.new();page.name="PinnedPaperNotice%d"%i
   var tint:=Color(.55,.55,.55) if OS.has_feature("web") else Color.WHITE
-  var material:=w.mat(tint,view.get_texture(),.98);material.metallic_specular=.08
+  var material:=w.mat(tint,view.get_texture(),.98);material.metallic_specular=.08;material.texture_repeat=false
   page.material_override=material;board.add_child(page)
   var dims: Vector2=[Vector2(.37,.49),Vector2(.33,.43),Vector2(.36,.47),Vector2(.35,.46),Vector2(.38,.50)][i]
   page.position=Vector3(-.62+(i%3)*.52,-.18+floori(i/3.)*.57,.027)

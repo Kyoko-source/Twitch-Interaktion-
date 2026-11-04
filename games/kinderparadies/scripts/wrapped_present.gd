@@ -19,7 +19,8 @@ static func build(w: PlayWorld,parent: Node3D,p: Vector3,size_value: Vector3,ind
  var mesh:=MeshInstance3D.new();mesh.name="CrispWrappedCarton";mesh.mesh=w.bevel(size_value*10.);mesh.scale=Vector3.ONE*.1;mesh.material_override=material;root.add_child(mesh)
  if solid:
   var body:=StaticBody3D.new();root.add_child(body);var collider:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=size_value;collider.shape=box;body.add_child(collider)
- var satin:=w.mat(Color("aa9e7d"),load("res://assets/paint.png"),.53);satin.cull_mode=BaseMaterial3D.CULL_DISABLED
+ var satin:=w.mat(Color("aa9e7d"),null,.53);satin.cull_mode=BaseMaterial3D.CULL_DISABLED
+ satin.normal_enabled=true;satin.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");satin.normal_scale=.14;satin.uv1_scale=Vector3(7,28,1)
  root.set_meta("environment_dressing",true);root.set_meta("furniture_volume",AABB(-size_value*.5,size_value))
  var half:=size_value*.5;var band:=minf(size_value.x,size_value.z)*.065
  # Flat wrapping bands continue across all four faces, without wooden struts.
@@ -49,7 +50,8 @@ static func build(w: PlayWorld,parent: Node3D,p: Vector3,size_value: Vector3,ind
    for i in range(18):
     var t: float=i/17.;tail.append(Vector3(side*span*.24*t,half.y+.009+.012*sin(PI*t)-pow(t,8.)*.025,t*half.z*.90))
    ribbon(root,tail,band,satin)
- var tag:=w.box(root,Vector3(half.x*.58,half.y+.003,half.z*.42),Vector3(size_value.x*.23,.001,size_value.z*.16),w.materials.paper if w.materials.has("paper") else w.materials.cream);tag.rotation.y=-.18
+ var tag_paper:=w.mat(Color("d8cdb0"),null,.98);tag_paper.metallic_specular=.08
+ var tag:=w.box(root,Vector3(half.x*.58,half.y+.003,half.z*.42),Vector3(size_value.x*.23,.001,size_value.z*.16),tag_paper);tag.rotation.y=-.18
  var ink:=QuadMesh.new();ink.size=Vector2(size_value.x*.21,size_value.x*.0525)
  var print_material:=w.mat(Color.WHITE,load("res://assets/restoration-v350/parcel-tag-%d.png"%(index%3)),.95);print_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;print_material.alpha_scissor_threshold=.35
  var caption:=MeshInstance3D.new();caption.mesh=ink;caption.material_override=print_material;caption.position=Vector3(0,.001,0);caption.rotation.x=-PI/2;caption.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;tag.add_child(caption)

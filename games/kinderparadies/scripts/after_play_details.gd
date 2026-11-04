@@ -54,8 +54,7 @@ func ring(parent: Node3D, pos: Vector3, radius: float, material: Material, rotat
  node.mesh=shape;node.material_override=material;node.position=pos;node.rotation=rotation_value;parent.add_child(node)
 
 func plate(parent: Node3D, pos: Vector3, radius: float=.17) -> void:
- SurfaceDetails.vessel(parent,pos,.026,radius,radius*.78,.009,enamel,enamel,"UsedPlate")
- w.tube(parent,pos+Vector3(0,.010,0),pos+Vector3(0,.012,0),radius*.58,w.mat(Color("685940"),null,.99))
+ ClosePropCraft.plate(w,parent,pos,radius)
 
 func cup(parent: Node3D, pos: Vector3, material: Material) -> void:
  SurfaceDetails.vessel(parent,pos,.12,.052,.038,.007,material,enamel,"PaperCup")

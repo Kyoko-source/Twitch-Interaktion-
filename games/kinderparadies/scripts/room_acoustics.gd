@@ -87,10 +87,12 @@ func build(world: PlayWorld) -> void:
  w.soundscape.ghost.volume_db=-9.
  var server:=w.server_room.get_node("ServerVentilation") as AudioStreamPlayer3D
  sources.append(server)
- for source in sources:
-  var id:="AP.Source.%02d"%records.size();var filter:=AudioEffectLowPassFilter.new();filter.cutoff_hz=18000
-  replace_effects(bus(id,"AP.Room"),[filter]);source.bus=id
-  records.append({"source":source,"bus":id,"filter":filter,"gain":0.,"target_gain":0.,"cutoff":18000.,"target_cutoff":18000.,"blocked":false,"route":false})
+ for source in sources:add_source(source)
+
+func add_source(source: AudioStreamPlayer3D) -> void:
+ var id:="AP.Source.%02d"%records.size();var filter:=AudioEffectLowPassFilter.new();filter.cutoff_hz=18000
+ replace_effects(bus(id,"AP.Room"),[filter]);source.bus=id
+ records.append({"source":source,"bus":id,"filter":filter,"gain":0.,"target_gain":0.,"cutoff":18000.,"target_cutoff":18000.,"blocked":false,"route":false})
 
 func route() -> void:
  # Settings and scene rebuilds must not overwrite source-specific filters.
