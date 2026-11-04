@@ -96,6 +96,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert not any(b'assets/party-v385/party-web.ogg' in name for name in native_names)
             assert any(b'assets/tactile-v400/interaction-hand.glb' in name for name in native_names)
             assert any(b'assets/encounter-v401/horse-final-scream.wav' in name for name in native_names)
+            assert any(b'assets/player-v402/breathing.ogg' in name for name in native_names)
             assert any(b'assets/encounter-v401/bloodshot.gdshader' in name for name in native_names)
             assert not any(b'assets/tactile-v400/interaction-hand-web.glb' in name for name in native_names)
             guide = z.read('STARTEN.txt').decode('utf-8')
@@ -117,6 +118,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             packed_names = packed_paths(pck)
             for required in [b'assets/encounter-v401/horse-final-scream.wav', b'assets/encounter-v401/bloodshot.gdshader']:
                 assert any(required in name for name in packed_names), required
+            assert any(b'assets/player-v402/breathing.ogg' in name for name in packed_names)
             for required in [b'scripts/guard_actions.gd', b'scripts/guard_presence.gd', b'scripts/paper_craft.gd', b'scripts/tactile_world.gd', b'assets/tactile-v400/interaction-hand-web.glb']:
                 assert any(required in name for name in packed_names), required
             assert not any(b'assets/tactile-v400/interaction-hand.glb' in name for name in packed_names)

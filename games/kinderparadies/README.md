@@ -1,5 +1,18 @@
 # After Play — Kinderparadies
 
+## Natürlichere Spieleratmung (4.0.2)
+
+Die eigene Atmung nutzt jetzt einen separaten, leiseren Schnitt aus der
+unveränderten menschlichen Originalaufnahme. Tiefes Mikrofonrauschen und die
+starke Nasenresonanz sind reduziert. Sprinten und Erholung verändern die
+Lautstärke, ohne die Tonhöhe zu verschieben. Zwei vollständige Atemzüge laufen
+mit ihren natürlichen Pausen in einer Schleife. Pause, Lautstärkeeinstellung und
+allmähliche Erholung bleiben erhalten. Die räumlichen Gruselgeräusche verwenden
+weiterhin ihre bisherigen Aufnahmen.
+
+Prüfung: `--self-test --tactile-only` mit Sprint, normaler Tonhöhe, Erholung,
+Pause, Stummschaltung und Rücksetzen der Spielergeräusche.
+
 ## Drei Treffer bei der Pferdeverfolgung (4.0.1)
 
 Der erste Kontakt hinterlässt einen leichten blutunterlaufenen Bildschirmrand,

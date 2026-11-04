@@ -111,6 +111,8 @@ Die artikulierte Interaktionshand, Klinken, Schlosszylinder, Taster und
 Papiergeometrie wurden fuer After Play modelliert und programmiert.
 Die browseroptimierte Hand ist eine reduzierte Kopie desselben Originalmodells.
 Atmung: Joseph SARDIN / BigSoundBank, bereits oben als CC0 aufgefuehrt.
+Die eigene Spieleratmung nutzt einen separaten, leisen Schnitt der Originalaufnahme
+mit unveraenderter Tonhoehe und reduziertem Nasen- und Mikrofonrauschen.
 Kleidungsgeraeusche: vorhandene Kenney-Impact-Aufnahmen, CC0 (Kenney.txt).
 Die Uniform nutzt weiterhin die bereits aufgefuehrte Poly-Haven-Stofftextur.
 

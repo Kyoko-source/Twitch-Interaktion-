@@ -1,0 +1,8 @@
+{
+  "file": "breathing.ogg",
+  "author": "Joseph SARDIN",
+  "license": "CC0-1.0",
+  "source": "https://bigsoundbank.com/man-breathing-s2195.html",
+  "original_sha256": "d077b2743eeeaa69f5f2f993ee16b4441d1cd32211774c22bc885c29150d2bb6",
+  "processing": "atrim=start=11.05:end=18.95,asetpts=PTS-STARTPTS,highpass=f=220,equalizer=f=520:t=o:w=1.4:g=-5,lowpass=f=6000,afade=t=in:d=0.12,afade=t=out:st=7.7:d=0.2; mono 24 kHz Vorbis q4; original pitch and timing"
+}

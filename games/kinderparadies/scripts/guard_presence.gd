@@ -19,7 +19,7 @@ var suspended:=true
 
 func build(player: NightGuard) -> void:
  guard=player;name="PlayerBodyPresence"
- breath=AudioStreamPlayer.new();breath.name="NightguardBreathing";breath.stream=load("res://assets/ambience-v180/breathing.wav");breath.volume_db=-80;breath.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(breath)
+ breath=AudioStreamPlayer.new();breath.name="NightguardBreathing";breath.stream=load("res://assets/player-v402/breathing.ogg");breath.stream.loop=true;breath.volume_db=-80;breath.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(breath)
  cloth=AudioStreamPlayer.new();cloth.name="UniformAgainstCrawlTube";cloth.stream=load("res://assets/polish/impact-cloth.wav");cloth.volume_db=-31;cloth.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(cloth)
 
 func set_active(active: bool) -> void:
@@ -35,7 +35,9 @@ func tick(delta: float) -> void:
  var volume:=clampf(sound_amount,0.,1.)
  if effort>.06 and volume>0:
   if not breath.playing:breath.play()
-  breath.volume_db=linear_to_db(volume)+lerpf(-23.,-3.,effort);breath.pitch_scale=lerpf(.96,1.16,effort)
+  # Fatigue changes loudness only. Pitch shifting a close nasal recording makes
+  # the guard sound like one of the creatures, especially during recovery.
+  breath.volume_db=linear_to_db(volume)+lerpf(-23.,-10.,effort)
  else:breath.stop()
  cloth_clock=maxf(0.,cloth_clock-delta)
  var g:=guard.get_parent()
