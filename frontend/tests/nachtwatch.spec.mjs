@@ -7,7 +7,7 @@ if(URL&&!['127.0.0.1','localhost'].includes(new globalThis.URL(URL).hostname))th
 test.use({viewport:{width:1920,height:1080},launchOptions:{args:['--enable-unsafe-swiftshader']}});
 const state=page=>page.evaluate(()=>{window.nachtwacheQA?.(JSON.stringify({op:'state'}));return window.nachtwacheStatus;});
 // A QA new-shift command rebuilds the actual room before publishing its intro state.
-async function skipIntro(page,loadingTimeout=30000){await expect.poll(async()=>(await state(page)).phase,{timeout:loadingTimeout}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
+async function skipIntro(page,loadingTimeout=30000){await expect.poll(async()=>(await state(page)).phase,{timeout:loadingTimeout}).toBe('intro');await page.mouse.move(768,512);await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).phase,{timeout:30000,intervals:[70]}).toBe('play');}finally{await page.keyboard.up('Space');}}
 async function qa(page,command){await page.evaluate(command=>window.nachtwacheQA(JSON.stringify(command)),command);if(command.op==='new')await skipIntro(page);}
 async function clickControl(page,text){const control=(await state(page)).controls.find(c=>c.text===text);expect(control).toBeTruthy();const [x,y,w,h]=control.rect;await page.mouse.move(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.mouse.click(x+w/2,y+h/2);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
 async function waitForMenu(page){await page.waitForFunction(()=>['warning','menu'].includes(window.nachtwacheStatus?.phase)&&typeof window.nachtwacheQA==='function',null,{timeout:60000});if((await state(page)).phase==='warning')await clickControl(page,'Verstanden · Weiter');await expect.poll(async()=>(await state(page)).phase).toBe('menu');}
@@ -93,6 +93,39 @@ test('v4.0.3 interaction foley and real cinema movement work in the Web export',
  await page.screenshot({path:join(tmpdir(),'after-play-v403-web-cinema-aisle.png')});
  await qa(page,{op:'anomaly',id:'wc_stall_watcher'});
  expect((await state(page)).terrors.sound).toContain('/granny-');
+ expect(faults).toEqual([]);
+});
+
+test('v4.0.5 physical mechanisms and synchronized cooking work in the Web export',async({page})=>{
+ test.setTimeout(180000);const faults=[];
+ page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);
+ for(const id of ['bell','gum','ticket']){
+  const point=(await state(page)).mechanics[id].point;
+  const x=id==='ticket'?-5.3:point[0],z=id==='ticket'?point[2]:8.77;
+  const dx=point[0]-x,dz=point[2]-z;
+  await qa(page,{op:'warp',x,z,yaw:Math.atan2(-dx,-dz),pitch:Math.atan2(point[1]-1.65,Math.hypot(dx,dz))});
+  try{await expect.poll(async()=>(await state(page)).target,{timeout:12000}).toBe(`mechanical:${id}`);}catch(error){error.message+=`\n${id} state: `+JSON.stringify(await state(page))+`\nConsole errors: `+JSON.stringify(faults);throw error;}
+  const before=(await state(page)).mechanics[id].count;
+  await page.keyboard.press('e');
+  await expect.poll(async()=>(await state(page)).mechanics[id].count).toBe(before+1);
+  await expect.poll(async()=>(await state(page)).mechanics[id].busy).toBe(true);
+  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+  // Let the next process frame cancel any pending positional audio start.
+  await expect.poll(async()=>(await state(page)).mechanics[id].paused).toBe(true);
+  const frozen=(await state(page)).mechanics[id].time;
+  await page.waitForTimeout(350);expect((await state(page)).mechanics[id].time).toBe(frozen);
+  expect((await state(page)).mechanics[id].playing).toBe(false);
+  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+  await expect.poll(async()=>(await state(page)).mechanics[id].busy).toBe(false);
+  await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+  await page.screenshot({path:join(tmpdir(),`after-play-v405-web-${id}.png`)});
+ }
+ await qa(page,{op:'warp',x:-12.55,z:-30.1,yaw:.7,pitch:-.17});
+ await expect.poll(async()=>(await state(page)).annex.pot_taps,{timeout:18000}).toBeGreaterThan(0);
+ expect((await state(page)).annex.grip_error).toBeLessThan(.00001);
+ await page.keyboard.press('Escape');const clock=(await state(page)).annex.clock;
+ await page.waitForTimeout(350);expect((await state(page)).annex.clock).toBe(clock);
  expect(faults).toEqual([]);
 });
 

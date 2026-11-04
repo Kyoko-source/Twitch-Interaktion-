@@ -13,6 +13,12 @@ var scare:=false
 var settled:=false
 var clown_shape: CollisionShape3D
 var sources: Array[AudioStreamPlayer3D]=[]
+var pot_audio: AudioStreamPlayer3D
+var pot_taps:=0
+var spoon_grip:=Vector3.ZERO
+var pot_paused:=false
+var pot_resume:=false
+var pot_offset:=0.
 
 func wall(pos: Vector3, size: Vector3) -> void:
  var mesh:=w.box(self,pos,size,w.materials.wall,true);mesh.set_meta("architecture_wall",true)
@@ -49,7 +55,7 @@ func build(world: PlayWorld) -> void:
  for x in [-9.35,-6.45]: w.tube(self,Vector3(x,3.25,-12.3),Vector3(x,3.25,-22.3),.06,w.materials.rust)
  plaque("KÜCHE",Vector3(-9.23,2.9,-17.65),PI/2)
  plaque("LICHTSPIEL",Vector3(-6.57,2.9,-17.65),-PI/2)
- _kitchen();KitchenDressing.build(w,self);_cinema();_audio()
+ _kitchen();KitchenDressing.build(w,self);_cinema();_audio();_stir_pose()
  for i in range(first_light,w.practicals.size()): w.practicals[i].position+=OFFSET
  _approach()
  # Wall damp lives on physical plaster, away from door apertures and the screen.
@@ -156,28 +162,64 @@ void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(flo
   var paper:=w.box(self,Vector3(x,.036,z),Vector3(.2,.008,.28),w.materials.paper);paper.rotation.y=i*.7;paper.set_meta("cinema_litter",true)
 
 func _audio() -> void:
- for item in [{"file":"stir-pot.wav","pos":Vector3(-13.25,1.2,-19.25),"db":-22.0},{"file":"projector.wav","pos":Vector3(-5.4,2.9,-17.7),"db":-27.0}]:
+ for item in [{"file":"stir-pot.wav","pos":Vector3(-13.25,1.2,-19.25),"db":-29.0},{"file":"projector.wav","pos":Vector3(-5.4,2.9,-17.7),"db":-27.0}]:
   var source:=AudioStreamPlayer3D.new();source.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;var stream: AudioStreamWAV=load("res://assets/annex/"+item.file);stream.loop_mode=AudioStreamWAV.LOOP_FORWARD;stream.loop_end=int(stream.get_length()*stream.mix_rate);source.stream=stream;source.position=item.pos;source.volume_db=item.db;source.max_distance=9;source.unit_size=2;add_child(source);sources.append(source)
   if w.native_art: source.bus="Interior"
+ pot_audio=AudioStreamPlayer3D.new();pot_audio.name="SpoonPotRimContact";pot_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
+ pot_audio.stream=load(MechanicalProps.ROOT+"pot.ogg");pot_audio.position=Vector3(-13.25,1.34,-19.25);pot_audio.volume_db=-20;pot_audio.unit_size=1.5;pot_audio.max_distance=7;add_child(pot_audio);sources.append(pot_audio)
 
 func configure(id: String) -> void:
  scare=false;settled=false
 
 func tick(delta: float, active: bool) -> void:
  for i in range(sources.size()):
-  var source:=sources[i];var audible:=active and (i!=0 or not (scare or settled))
+  if sources[i]==pot_audio:continue
+  var source:=sources[i];var audible:=active and (i==1 or not (scare or settled))
   if source.stream_paused==audible: source.stream_paused=not audible
-  if audible and not source.playing: source.play()
+  if audible and not source.playing and source!=pot_audio: source.play()
+ if scare or settled:
+  pot_audio.stop();pot_resume=false;pot_paused=not active
+ elif not active:
+  if not pot_paused and pot_audio.playing:pot_resume=true;pot_offset=pot_audio.get_playback_position()
+  pot_audio.stop();pot_paused=true
+ elif pot_paused:
+  if pot_resume:pot_audio.play(pot_offset)
+  pot_resume=false;pot_paused=false
  if clown_shape.disabled!=scare: clown_shape.set_deferred("disabled",scare)
  if not active: return
+ var previous_clock:=clock
  clock+=delta;screen.set_shader_parameter("clock",clock)
  var flies:=get_node("PotFlies")
  for i in range(flies.get_child_count()): flies.get_child(i).position=Vector3(-13.25+sin(clock*(1+i*.06)+i*2)*.28,1.55+sin(clock*1.4+i)*.16,-19.25+cos(clock*1.3+i*2)*.25)
  if scare or settled: return
- var a:=clock*1.5;var hand:=Vector3(-.05+cos(a)*.12,1.42,1.08+sin(a)*.12);var tip:=Vector3(cos(a)*.12,1.22,1.15+sin(a)*.12)
- HorrorFigures.link(clown.upper,Vector3(-.28,1.48,0),Vector3(-.25,1.18,.42));HorrorFigures.link(clown.forearm,Vector3(-.25,1.18,.42),hand)
- clown.hand.position=hand;clown.hand.quaternion=Quaternion(Vector3.UP,(Vector3(-.25,1.18,.42)-hand).normalized());HorrorFigures.link(clown.spoon,hand,tip);clown.bowl.position=tip
+ _stir_pose()
+ # Every third revolution lifts the wooden head against the inner rolled rim.
+ # Crossing a marker (rather than a narrow time window) survives slow frames.
+ var before:=int(floor((previous_clock*1.15-TAU*2.-PI)/(TAU*3.)))
+ var after:=int(floor((clock*1.15-TAU*2.-PI)/(TAU*3.)))
+ if after>before:pot_audio.play();pot_taps+=1
  clown.head.rotation.z=sin(clock*.42)*.025
+
+func _stir_pose() -> void:
+ var a:=clock*1.15;var cycle:=int(floor(a/TAU))
+ var contact:=exp(-pow(wrapf(a-PI,-PI,PI)/.32,2)) if cycle%3==2 else 0.
+ var radius:=.195+.074*contact
+ var tip:=Vector3(cos(a)*radius,1.262+.075*contact,1.15+sin(a)*radius)
+ var up:=Vector3(-.10,1.,-.23).normalized()
+ spoon_grip=tip+up*.31
+ var elbow:=Vector3(-.25,1.22+sin(a)*.025,.54)
+ var wrist_axis:=(elbow-spoon_grip).slide(up).normalized()
+ var grip_basis:=Basis(up,wrist_axis,up.cross(wrist_axis)).orthonormalized()
+ clown.hand.transform=Transform3D(grip_basis,spoon_grip-grip_basis*HorrorFigures.SPOON_GRIP)
+ var wrist: Vector3=clown.hand.transform*Vector3(0,.078,0)
+ HorrorFigures.link(clown.upper,Vector3(-.28,1.48,0),elbow)
+ HorrorFigures.link(clown.forearm,elbow,wrist)
+ HorrorFigures.link(clown.spoon,tip+up*.025,tip+up*.405)
+ clown.bowl.position=tip
+ clown.bowl.rotation.y=atan2(cos(a),sin(a))
+
+func grip_error() -> float:
+ return (clown.hand.transform*HorrorFigures.SPOON_GRIP).distance_to(spoon_grip)
 
 func safe_pose(pos: Vector3) -> bool:
  pos-=OFFSET

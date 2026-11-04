@@ -1,6 +1,10 @@
 class_name HorrorFigures
 extends RefCounted
 
+# The authored fingers curl around local X, below the palm and in front of it.
+# Align the handle with that actual opening instead of the palm's origin.
+const SPOON_GRIP:=Vector3(0,-.057,.030)
+
 static func complexion(texture: Texture2D, stained: bool=false) -> ShaderMaterial:
  var shader:=Shader.new();shader.code="""
 shader_type spatial;
@@ -28,6 +32,25 @@ static func sleeve(parent: Node3D, radius: float) -> MeshInstance3D:
 
 static func bone(parent: Node3D, radius: float, material: Material) -> MeshInstance3D:
  var node:=MeshInstance3D.new();var cylinder:=CylinderMesh.new();cylinder.height=1;cylinder.top_radius=radius*.8;cylinder.bottom_radius=radius;cylinder.radial_segments=24;node.mesh=cylinder;node.material_override=material;parent.add_child(node);return node
+
+static func spoon_head(parent: Node3D,material: Material) -> MeshInstance3D:
+ var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ for underside in [false,true]:
+  for row in range(8):
+   for side in range(32):
+    var points: Array[Vector3]=[]
+    for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),Vector2(1,1)]:
+     var r: float=(row+corner.y)/8.;var a: float=(side+corner.x)*TAU/32.
+     points.append(Vector3(cos(a)*.040*r,-.015+.023*r*r-(.004 if underside else 0.),sin(a)*.052*r))
+    var normal:=Vector3.DOWN if underside else Vector3.UP
+    SurfaceDetails.triangle(st,points[0],points[1],points[2],normal)
+    SurfaceDetails.triangle(st,points[1],points[3],points[2],normal)
+ for i in range(32):
+  var a:=i*TAU/32.;var b:=(i+1)*TAU/32.
+  var aa:=Vector3(cos(a)*.040,.008,sin(a)*.052);var ab:=Vector3(cos(b)*.040,.008,sin(b)*.052)
+  SurfaceDetails.triangle(st,aa,ab,aa-Vector3.UP*.004,Vector3(cos(a),0,sin(a)))
+  SurfaceDetails.triangle(st,ab,ab-Vector3.UP*.004,aa-Vector3.UP*.004,Vector3(cos(a),0,sin(a)))
+ var mesh:=MeshInstance3D.new();mesh.name="ConcaveWoodenSpoonHead";mesh.mesh=st.commit();mesh.material_override=material;parent.add_child(mesh);return mesh
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
  var scene: PackedScene=load("res://assets/detail-v310/clown-v310.glb")
@@ -75,5 +98,6 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
  link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))
  var idle_arm:=sleeve(root,.075);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))
  var idle:=hand.duplicate();root.add_child(idle);idle.position=Vector3(.32,.9,.08)
- var spoon:=bone(root,.016,w.materials.wood);var bowl:=w.sphere(root,Vector3.ZERO,.058,w.materials.wood);bowl.scale=Vector3(1,.3,1.35)
+ var spoon:=bone(root,.012,w.materials.wood);spoon.name="GrippedWoodenSpoonHandle"
+ var bowl:=spoon_head(root,w.materials.wood)
  return {"root":root,"head":head,"upper":arm,"forearm":forearm,"hand":hand,"spoon":spoon,"bowl":bowl}

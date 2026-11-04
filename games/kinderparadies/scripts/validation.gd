@@ -9,6 +9,10 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--mechanics-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/mechanical_validation.gd").new().run(game,check)
+  print("Mechanical interactions and cooking checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--clown-style-only" in OS.get_cmdline_user_args():
   await load("res://scripts/clown_style_validation.gd").new().run(game,check)
   print("Clown grooming and costume checks: ",checks,"; failures: ",failures.size())

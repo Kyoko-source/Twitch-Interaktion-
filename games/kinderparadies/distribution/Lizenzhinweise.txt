@@ -135,3 +135,9 @@ Neue blonde Haarstraehnen, hautaehnliche Kunstledermuetze, Naehte und
 Materialshader: eigens fuer After Play modelliert und programmiert.
 Der bereits aufgefuehrte Kopf wurde nur zur Passform verwendet; seine
 vorhandenen Quellen und Rechte bleiben wie oben angegeben.
+
+MECHANISCHE REQUISITEN UND KOCHPLATZ (4.0.5)
+Klingel, Kaugummiautomat, Ticketentwerter, Holzloeffel und Animationen:
+Originalarbeit fuer After Play mit bereits oben aufgefuehrten Materialien.
+Klingel-, Kurbel-, Hebel- und Topfrandgeraeusche wurden fuer dieses Projekt
+aus kurzen Resonanzen und mechanischen Impulsen erzeugt, ohne Fremdaufnahmen.

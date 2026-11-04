@@ -27,6 +27,7 @@ func build(world: PlayWorld) -> void:
    if not levers.has(id):levers[id]=[]
    levers[id].append(lever)
  _exit_lock();_party_button();_keypad()
+ for id in w.mechanics.records:contact["mechanical:"+id]=w.mechanics.records[id].contact
 
 func screw(root: Node3D,p: Vector3) -> void:
  w.tube(root,p,p+Vector3.BACK*.002,.006,metal)

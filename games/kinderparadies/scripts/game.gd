@@ -518,6 +518,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(world) and world.tactile:world.tactile.tick(delta,phase=="play")
  if intro:intro.ticket.tick(delta,phase in ["arrival","play"])
  if is_instance_valid(world) and world.touch:world.touch.tick(delta,phase=="play")
+ if is_instance_valid(world) and world.mechanics:world.mechanics.tick(delta,phase=="play")
  if weather:
   var weather_room: String=world.acoustics.area(player.global_position) if is_instance_valid(world) and world.acoustics else "hall"
   if phase in ["intro","arrival","lift"]:weather_room="elevator"
@@ -578,6 +579,7 @@ func _process(delta: float) -> void:
   elif target=="life:photo": prompt.text="E · Alten Fotostreifen ansehen"
   elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
   elif target=="chalk_board": prompt.text="E · Mit Kreide schreiben"
+  elif target.begins_with("mechanical:"):prompt.text=world.mechanics.prompt(target)
   elif target=="parking_key":prompt.text="E · Parkplatzschlüssel mitnehmen"
   elif target=="final_receipt":prompt.text="E · Letzten Kontrollzettel lesen"
   elif target=="party_control":prompt.text=world.party.control_prompt()
@@ -760,6 +762,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _interact_target(target: String) -> void:
  if target in ["red","green"]: _decide(target=="red")
+ elif target.begins_with("mechanical:"):world.mechanics.interact(target)
  elif target=="film_reel":
   archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
  elif target=="cinema_projector":
@@ -916,7 +919,8 @@ func _telemetry() -> void:
   data.arrival=world.arrival_design.snapshot();data.secret_ending=secret_ending
   data.party=world.party.snapshot();data.parking_key=archive.parking_key_found
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
-  data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
+  data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z],"pot_taps":world.annex.pot_taps,"grip_error":world.annex.grip_error()}
+  data.mechanics=world.mechanics.snapshot()
   data.clown_style={"cap":world.annex.clown.head.has_node("PatchedCostumeCap"),"web_groom":OS.has_feature("web") and ResourceLoader.exists("res://assets/clown-v404/clown-hair-web.glb")}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}

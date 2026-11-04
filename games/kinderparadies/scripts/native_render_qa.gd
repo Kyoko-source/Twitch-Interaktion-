@@ -6,6 +6,24 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--mechanics-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game._build_world("none");game.set_process(false);game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  for id in ["bell","gum","ticket"]:
+   var r: Dictionary=game.world.mechanics.records[id]
+   var point: Vector3=r.contact.global_position
+   var p:=Vector3(point.x,0,8.77) if id!="ticket" else Vector3(-5.3,0,point.z)
+   author.pose(game,p,point);game.player.torch_body.hide()
+   await capture(game,output,"01-"+id)
+   game.player.hands.begin("mechanical:"+id,point)
+   game.player.hands.clock=game.player.hands.duration*.40;game.player.hands.pose()
+   game.world.mechanics.interact("mechanical:"+id);game.world.mechanics.tick(.15,true);game.player.hands.pose()
+   await capture(game,output,"02-"+id+"-interaction");game.player.hands.cancel()
+  for time in [0.,2.,(TAU*2.+PI)/1.15]:
+   game.world.annex.clock=time;game.world.annex._stir_pose()
+   author.pose(game,Vector3(-12.55,.0,-30.1),Vector3(-13.43,1.4,-31.22));game.player.torch_body.hide()
+   await capture(game,output,"03-cooking-%d"%int(time))
+  game._quit();return
  if "--clown-style-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()

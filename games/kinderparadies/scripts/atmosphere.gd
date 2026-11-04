@@ -110,9 +110,10 @@ func _reception_details() -> void:
  var shade:=w.sphere(counter,Vector3(.12,1.47,.99),.1,w.materials.dark);shade.scale=Vector3(1,.55,1)
  var desk_light:=w.lamp(Vector3.ZERO,Color("ffd696"),.5,3.2)
  desk_light.reparent(counter,false);desk_light.position=Vector3(.12,1.39,.99);desk_light.name="ReceptionDeskLight"
- var phone:=w.box(counter,Vector3(-.05,1.05,-1),Vector3(.24,.1,.28),w.materials.dark);phone.rotation.x=-.16
+ var phone_root:=Node3D.new();phone_root.name="ReceptionDeskPhone";phone_root.position=Vector3(-.05,1.,-.70);counter.add_child(phone_root)
+ var phone:=w.box(phone_root,Vector3(0,.05,0),Vector3(.24,.1,.28),w.materials.dark);phone.rotation.x=-.16
  w.tube(phone,Vector3(-.09,.08,-.08),Vector3(.09,.08,-.08),.032,w.materials.dark)
- for i in range(18): w.sphere(counter,Vector3(-.23+sin(i*.8)*.016,1.01,-1.13+i*.012),.008,w.materials.dark)
+ for i in range(18): w.sphere(phone_root,Vector3(-.18+sin(i*.8)*.016,.01,-.13+i*.012),.008,w.materials.dark)
  # A broken corkboard with drawings, pushpins and curled corners.
  var board:=Node3D.new();board.name="ReceptionNoticeboard";board.position=Vector3(-10.0,1.8,7.3);board.rotation.y=PI/2;add_child(board);w.props.reception_noticeboard=board
  var backing:=w.box(board,Vector3.ZERO,Vector3(1.9,1.35,.04),w.materials.wood);backing.set_meta("mounted_art",true)

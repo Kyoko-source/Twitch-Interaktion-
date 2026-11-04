@@ -1,0 +1,12 @@
+{
+  "author": "After Play project",
+  "license": "Original project audio",
+  "description": "Authored decaying resonant modes and transient ratchet/lever sounds; no borrowed audio.",
+  "generator": "tools/make-after-play-mechanical-v405.py",
+  "files": [
+    "bell.ogg",
+    "gum.ogg",
+    "ticket.ogg",
+    "pot.ogg"
+  ]
+}

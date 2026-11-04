@@ -44,11 +44,14 @@ func build(player: NightGuard) -> void:
 
 func begin(id: String,hit: Vector3) -> bool:
  if not enabled or not kind.is_empty() or is_instance_valid(guard.carried):return false
- if id not in ["red","green","delivery_exit","parking_key","party_control","archive_lock","archive_door","cinema_projector","archive_recording"] and not id.begins_with("paper:"):return false
+ if id not in ["red","green","delivery_exit","parking_key","party_control","archive_lock","archive_door","cinema_projector","archive_recording"] and not id.begins_with("paper:") and not id.begins_with("mechanical:"):return false
  var g:=guard.get_parent()
+ if id.begins_with("mechanical:") and g.world.mechanics.busy(id):return false
  if id=="delivery_exit" and not g.archive.parking_key_found:return false
  if id=="red" and g.world.horse_hunt.red_locked():return false
  kind=id;clock=0.;duration=1.05 if id.begins_with("paper:") or id=="parking_key" else .9 if id=="delivery_exit" else .64;count+=1
+ if id=="mechanical:gum":duration=1.55
+ elif id=="mechanical:ticket":duration=.98
  point=g.world.tactile.point_for(id,hit);contact_node=g.world.tactile.contact.get(id)
  for child in held.get_children():child.free()
  world_item=null
@@ -89,6 +92,7 @@ func pose() -> void:
  var t:=clock/duration
  var reach:=smoothstep(0.,.24,t)*(1.-smoothstep(.67,1.,t))
  var contact_point:=contact_node.global_position+contact_node.global_basis.z*.035 if is_instance_valid(contact_node) else point
+ if kind.begins_with("mechanical:") and is_instance_valid(contact_node):contact_point=contact_node.global_position
  var local:=guard.camera.to_local(contact_point)
  # Reach stays within a human arm length; it never teleports the player or
  # changes a collider. Close interactions align with the actual moving fitting.
@@ -103,6 +107,10 @@ func pose() -> void:
  if door:rotation=Vector3(0,PI,PI/2.)
  if unlocking:rotation=Vector3(-PI/2.,0,-.18)
  var take:=kind.begins_with("paper:") or kind=="parking_key"
+ var crank:=kind=="mechanical:gum"
+ if crank:rotation.z-=sin(TAU*smoothstep(.28,.89,t))*.65
+ var press_mechanism:=kind in ["mechanical:bell","mechanical:ticket"]
+ if press_mechanism:basis=guard.camera.global_basis.inverse()*Basis(Vector3.RIGHT,Vector3.DOWN,Vector3.FORWARD)
  if take and t>.30:
   var pull:=smoothstep(.30,.66,t)
   position=position.lerp(Vector3(-.24,-.20,-.46) if kind.begins_with("paper:") else Vector3(-.14,-.22,-.40),pull);rotation=rotation.lerp(Vector3(-.14,.12,-.25),pull)
@@ -112,12 +120,17 @@ func pose() -> void:
   var name:=skeleton.get_bone_name(i);var flex:=.0
   if name.begins_with("thumb"):flex=.12+reach*.18
   elif name not in ["wrist","palm"]:
-   flex=(.62 if take or unlocking else .55)*reach
+   flex=(.62 if take or unlocking or crank else .55)*reach
    if door:flex=(.45 if name.ends_with("1") else .95 if name.ends_with("2") else .5)*reach
-   if not take and not door and not unlocking:flex=-(.95 if name.ends_with("1") else 1.25 if name.ends_with("2") else .5)*reach
-   if name.begins_with("index") and not take and not door and not unlocking:flex=.025
+   if not take and not door and not unlocking and not crank:flex=-(.95 if name.ends_with("1") else 1.25 if name.ends_with("2") else .5)*reach
+   if name.begins_with("index") and not take and not door and not unlocking and not crank:flex=.025
   var rest: Transform3D=rest_bones[i]
   skeleton.set_bone_pose_rotation(i,rest.basis.get_rotation_quaternion()*Quaternion(Vector3.RIGHT,flex))
+ if press_mechanism:
+  skeleton.force_update_all_bone_transforms()
+  var tip:=skeleton.get_bone_global_pose(skeleton.find_bone("index3"))*Vector3(0,.02125,0)
+  var in_hand:=to_local(skeleton.to_global(tip))
+  position+=(local-transform*in_hand)*reach
  if not held.get_children().is_empty():
   var pull:=smoothstep(.25,.65,t)
   held.position=position+basis*(Vector3(.165,.06,.003) if kind.begins_with("paper:") else Vector3(.030,.065,.055));held.rotation=Vector3(.04,-.16,.12) if kind.begins_with("paper:") else rotation+Vector3(.3,0,turn)

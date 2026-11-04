@@ -102,8 +102,6 @@ func _cinema() -> void:
  for i in range(7):
   var ticket:=box(desk,Vector3(.03,.967+i*.0015,.12),Vector3(.19,.0015,.085),w.materials.paper);ticket.rotation.y=.05*i
   box(ticket,Vector3(-.065,.001,0),Vector3(.018,.001,.072),w.materials.red)
- var punch:=box(desk,Vector3(.04,.982,-.19),Vector3(.13,.025,.15),w.materials.dark);punch.rotation.y=.18
- w.tube(punch,Vector3(-.04,.02,-.03),Vector3(.04,.065,.03),.014,w.materials.metal)
  box(desk,Vector3(.228,.75,0),Vector3(.008,.10,.42),w.materials.cream)
  w.venue.text(desk,"KARTENKONTROLLE",Vector3(.237,.731,0),.044,Color("554c35"),PI/2)
  # Remove the duplicate cylindrical folds; retain the authored sewn curtain mesh.

@@ -1,5 +1,18 @@
 # After Play — Kinderparadies
 
+## Mechanische Spielereien und Kochplatz (4.0.5)
+
+Am Empfang lassen sich die Messingklingel drücken und der leere
+Kaugummiautomat drehen. An der Kartenkontrolle im Kino arbeitet ein alter
+Ticketentwerter. Alle drei besitzen sichtbare Feder-, Kurbel- oder
+Hebelbewegungen und eigene kurze Geräusche. Sie reagieren auf E und zählen
+zur normalen Umgebung. Die vorhandenen Laufwege bleiben frei.
+
+Der Küchenclown umfasst seinen Holzlöffel zwischen den gekrümmten Fingern.
+Hand, Ärmel und Löffel bewegen sich zusammen; der ausgehöhlte Löffelkopf
+folgt dem Topfinneren. Bei gelegentlichem Kontakt am Rand erklingt ein
+kurzes, räumliches Klacken. Pausen und Angriffe unterbrechen das Kochen.
+
 ## Clownfrisur und Kostümmütze (4.0.4)
 
 Der Küchenclown trägt jetzt 5.600 modellierte blonde Haarsträhnen mit mehr

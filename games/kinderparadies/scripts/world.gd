@@ -56,6 +56,7 @@ var chalk: ChalkBoard
 var child_art: ChildDrawings
 var wall_decay: WallDecay
 var party: HappylandParty
+var mechanics: MechanicalProps
 
 func bevel(size: Vector3) -> ArrayMesh:
  var key:=str(size)
@@ -187,6 +188,7 @@ func construction_steps() -> Array[Callable]:
   _module.bind(AfterPlayGraphics,"graphics"),
   _module.bind(ArrivalDesign,"arrival_design"),
   _module.bind(VenueCraft,"craft"),
+  _module.bind(MechanicalProps,"mechanics"),
   _module.bind(HappylandParty,"party"),
   _module.bind(HappylandAcoustics,"acoustics"),
   _module.bind(HorseHunt,"horse_hunt"),

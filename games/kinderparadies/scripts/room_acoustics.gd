@@ -81,6 +81,7 @@ func build(world: PlayWorld) -> void:
  sources.append_array(w.soundscape.beds);sources.append_array(w.soundscape.events);sources.append_array(w.annex.sources)
  sources.append_array([w.soundscape.voice,w.soundscape.ghost,w.details.hum,w.life.photo_hum,w.life.motor,w.life.drip,w.life.room_tone,w.atmosphere.drips,w.playground.fan,w.room_horror.music,w.film.audio])
  sources.append_array(added_loops)
+ sources.append_array(w.mechanics.sources)
  sources.append(w.party.audio)
  for source in w.soundscape.events:source.volume_db=minf(source.volume_db,-15.)
  w.soundscape.ghost.volume_db=-9.
