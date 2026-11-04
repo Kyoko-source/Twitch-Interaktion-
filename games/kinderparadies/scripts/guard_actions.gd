@@ -21,6 +21,7 @@ var sleeve: MeshInstance3D
 var cloth: StandardMaterial3D
 var fill: OmniLight3D
 var on_contact:=Callable()
+var close_contact:=false
 
 func build(player: NightGuard) -> void:
  guard=player;name="VisibleInteractionHand";guard.camera.add_child(self)
@@ -35,7 +36,8 @@ func build(player: NightGuard) -> void:
    if original and "sleeve" in original.resource_name.to_lower():
     mesh.hide()
    elif original and "skin" in original.resource_name.to_lower():original.albedo_color=Color("e4cbb2")
- cloth=StandardMaterial3D.new();cloth.albedo_color=Color("9ca78e");cloth.albedo_texture=load("res://assets/pbr/fabric_pattern_07/albedo.jpg");cloth.roughness=.96;cloth.uv1_triplanar=true;cloth.uv1_scale=Vector3.ONE*38
+ cloth=StandardMaterial3D.new();cloth.albedo_color=Color("526056");cloth.roughness=.96;cloth.metallic_specular=.12
+ cloth.normal_enabled=true;cloth.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");cloth.normal_scale=.20;cloth.uv1_triplanar=true;cloth.uv1_scale=Vector3.ONE*22
  sleeve=MeshInstance3D.new();sleeve.name="ConnectedInteractionSleeve";sleeve.material_override=cloth;sleeve.layers=2;sleeve.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;guard.camera.add_child(sleeve);sleeve.hide()
  held=Node3D.new();held.name="HandledObject";guard.camera.add_child(held)
  sound=AudioStreamPlayer.new();sound.stream=load("res://assets/polish/impact-cloth.wav");sound.volume_db=-28;sound.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(sound)
@@ -94,9 +96,17 @@ func pose() -> void:
  var contact_point:=contact_node.global_position+contact_node.global_basis.z*.035 if is_instance_valid(contact_node) else point
  if kind.begins_with("mechanical:") and is_instance_valid(contact_node):contact_point=contact_node.global_position
  var local:=guard.camera.to_local(contact_point)
+ var press_mechanism:=kind in ["mechanical:bell","mechanical:ticket"]
+ close_contact=local.distance_to(Vector3(-.24,-.34,.03))<.90
+ # A distant desk can still be operated, but never grows a rubber arm across
+ # the view. The existing timed contact and mechanical movement still run.
+ if kind.begins_with("mechanical:") and not close_contact:
+  hide();sleeve.hide();fill.hide();torch_dip=Vector3.ZERO;return
+ show()
  # Reach stays within a human arm length; it never teleports the player or
  # changes a collider. Close interactions align with the actual moving fitting.
- local=local.limit_length(.94);local.z=minf(-.28,local.z)
+ if not close_contact:local=local.limit_length(.72)
+ local.z=minf(-.28,local.z)
  var door:=kind in ["red","green"]
  var unlocking:=kind=="delivery_exit"
  var wrist:=local+Vector3(.027,-.009,.12)
@@ -109,8 +119,11 @@ func pose() -> void:
  var take:=kind.begins_with("paper:") or kind=="parking_key"
  var crank:=kind=="mechanical:gum"
  if crank:rotation.z-=sin(TAU*smoothstep(.28,.89,t))*.65
- var press_mechanism:=kind in ["mechanical:bell","mechanical:ticket"]
- if press_mechanism:basis=guard.camera.global_basis.inverse()*Basis(Vector3.RIGHT,Vector3.DOWN,Vector3.FORWARD)
+ if press_mechanism:
+  var forward: Vector3=-guard.camera.global_basis.z;forward.y=0.;forward=forward.normalized()
+  # Palm faces down, wrist stays behind the knuckles. Only the index bends
+  # onto the plunger; pointing the entire hand down put the wrist above it.
+  basis=guard.camera.global_basis.inverse()*Basis(forward.cross(Vector3.DOWN),forward,Vector3.DOWN)
  if take and t>.30:
   var pull:=smoothstep(.30,.66,t)
   position=position.lerp(Vector3(-.24,-.20,-.46) if kind.begins_with("paper:") else Vector3(-.14,-.22,-.40),pull);rotation=rotation.lerp(Vector3(-.14,.12,-.25),pull)
@@ -122,8 +135,9 @@ func pose() -> void:
   elif name not in ["wrist","palm"]:
    flex=(.62 if take or unlocking or crank else .55)*reach
    if door:flex=(.45 if name.ends_with("1") else .95 if name.ends_with("2") else .5)*reach
-   if not take and not door and not unlocking and not crank:flex=-(.95 if name.ends_with("1") else 1.25 if name.ends_with("2") else .5)*reach
-   if name.begins_with("index") and not take and not door and not unlocking and not crank:flex=.025
+   if not take and not door and not unlocking and not crank:flex=(.85 if name.ends_with("1") else 1.05 if name.ends_with("2") else .45)*reach
+   if name.begins_with("index") and not take and not door and not unlocking and not crank:
+    flex=(.25 if name.ends_with("1") else .60 if name.ends_with("2") else .12)*reach if press_mechanism else .025
   var rest: Transform3D=rest_bones[i]
   skeleton.set_bone_pose_rotation(i,rest.basis.get_rotation_quaternion()*Quaternion(Vector3.RIGHT,flex))
  if press_mechanism:
@@ -144,7 +158,9 @@ func pose() -> void:
 
 func _sleeve() -> void:
  var end:=position+basis*Vector3(0,-.08,-.004)
- var start:=Vector3(-.32,-.43,.10);var elbow:=Vector3(-.25,-.29,-.19)
+ # Start below the frame, in front of the near plane. Crossing the camera
+ # plane made the old sleeve appear as a huge black strip across the screen.
+ var start:=Vector3(-.24,-.50,-.27);var elbow:=Vector3(-.28,-.36,-.39)
  var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
  var points: Array[Vector3]=[];var sides: Array[Vector3]=[];var ups: Array[Vector3]=[]
  for row in range(13):
@@ -153,10 +169,10 @@ func _sleeve() -> void:
   points.append(p);sides.append(u);ups.append(v)
  for row in range(12):
   for side in range(12):
-   for corner in [Vector2i(0,0),Vector2i(1,0),Vector2i(0,1),Vector2i(1,0),Vector2i(1,1),Vector2i(0,1)]:
+   for corner in [Vector2i(0,0),Vector2i(0,1),Vector2i(1,0),Vector2i(1,0),Vector2i(0,1),Vector2i(1,1)]:
     var ring: int=row+corner.y;var t: float=ring/12.;var a: float=(side+corner.x)*TAU/12.
     var normal:=sides[ring]*cos(a)+ups[ring]*sin(a)
-    var radius:=lerpf(.060,.027,t)*(1.+sin(t*64.)*.075*sin(t*PI))
+    var radius:=lerpf(.049,.025,t)*(1.+sin(t*46.)*.11*pow(t,3.))+.002*smoothstep(.88,1.,t)
     tool.set_normal(normal);tool.set_uv(Vector2(float(side+corner.x)/12.,t*3.));tool.add_vertex(points[ring]+normal*radius)
  tool.index();sleeve.mesh=tool.commit();sleeve.show()
 

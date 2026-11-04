@@ -134,6 +134,26 @@ test('v4.0.6 comments type, fall, persist and restart while the cloned lift comp
  expect(faults).toEqual([]);
 });
 
+test('v4.0.8 reception notes render and desk mechanisms avoid a stretched arm',async({page})=>{
+ test.setTimeout(150000);const faults=[];
+ page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);
+ await qa(page,{op:'warp',x:-8.25,z:7.1,yaw:Math.PI/2,pitch:.09});
+ await page.waitForTimeout(900);await page.screenshot({path:join(tmpdir(),'after-play-v408-web-notices.png')});
+ const point=(await state(page)).mechanics.bell.point;
+ const face=async z=>{const dz=point[2]-z;await qa(page,{op:'warp',x:point[0],z,yaw:0,pitch:Math.atan2(point[1]-1.65,-dz)});await expect.poll(async()=>(await state(page)).target,{timeout:15000}).toBe('mechanical:bell');};
+ await face(9.1);let count=(await state(page)).mechanics.bell.count;
+ await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).mechanics.bell.count,{timeout:15000}).toBe(count+1);
+ expect((await state(page)).hand_action.visible).toBe(false);
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ await expect.poll(async()=>(await state(page)).mechanics.bell.busy).toBe(false);
+ await face(8.56);count=(await state(page)).mechanics.bell.count;await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).mechanics.bell.count,{timeout:15000}).toBe(count+1);
+ await page.screenshot({path:join(tmpdir(),'after-play-v408-web-bell.png')});
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ expect(faults).toEqual([]);
+});
+
 test('v4.0.5 physical mechanisms and synchronized cooking work in the Web export',async({page})=>{
  test.setTimeout(180000);const faults=[];
  page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});

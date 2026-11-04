@@ -34,6 +34,24 @@ func run(g: Node3D,verify: Callable) -> void:
   verify.call(record.pivot.transform.is_equal_approx(record.rest) and not m.busy(target),"Mechanism fails to return: "+id)
   AfterPlayLanguage.choose("en");verify.call(AfterPlayLanguage.t(m.prompt(target))!=m.prompt(target),"Mechanism prompt lacks English translation: "+id)
   AfterPlayLanguage.choose("de");verify.call(AfterPlayLanguage.t(m.prompt(target))==m.prompt(target),"Mechanism prompt ignores German: "+id)
+ # The reported reception bug: inspect the real fingertip and generated sleeve
+ # from both reachable customer positions, then operate it from farther away.
+ var hands: GuardActions=g.player.hands
+ var bell_point: Vector3=m.records.bell.contact.global_position
+ for side in [-.10,.10]:
+  g.player.position=Vector3(bell_point.x+side,0,8.56);g.player.camera.look_at(bell_point)
+  verify.call(hands.begin("mechanical:bell",bell_point),"Close bell gesture cannot begin")
+  hands.clock=hands.duration*.40;hands.pose()
+  verify.call(hands.visible and hands.close_contact,"Reachable bell hides the hand")
+  var finger:=hands.skeleton.get_bone_global_pose(hands.skeleton.find_bone("index3"))*Vector3(0,.02125,0)
+  verify.call(hands.skeleton.to_global(finger).distance_to(bell_point)<.012,"Finger misses the reachable bell")
+  var bounds:=hands.sleeve.get_aabb()
+  verify.call(bounds.end.z<-.06 and bounds.size.length()<.85,"Sleeve crosses the camera or stretches across the screen")
+  hands.cancel()
+ g.player.position=Vector3(bell_point.x,0,9.1);g.player.camera.look_at(bell_point)
+ hands.begin("mechanical:bell",bell_point);hands.clock=hands.duration*.40;hands.pose()
+ verify.call(not hands.visible and not hands.sleeve.visible,"Distant bell grows a stretched arm")
+ hands.cancel()
  # The animation-disabled option still works immediately, without a second path.
  g.player.hands.enabled=false
  g.player.position=Vector3(m.records.bell.contact.global_position.x,0,8.77);g.player.camera.look_at(m.records.bell.contact.global_position)

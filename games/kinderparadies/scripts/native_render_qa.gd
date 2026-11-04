@@ -6,6 +6,29 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--reception-v408-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false);game.dialogue.reset()
+  game.notice.hide()
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-8.25,0,7.1),Vector3(-9.95,1.85,7.3))
+  await capture(game,output,"01-noticeboard")
+  for id in ["bell","gum","ticket"]:
+   var point: Vector3=game.world.mechanics.records[id].contact.global_position
+   var p:=Vector3(point.x,0,8.77) if id!="ticket" else Vector3(-5.3,0,point.z)
+   author.pose(game,p,point);game.player.hands.begin("mechanical:"+id,point)
+   for frame in [.12,.30,.55,.85]:
+    game.player.hands.clock=game.player.hands.duration*frame;game.player.hands.pose()
+    await capture(game,output,"02-%s-%02d"%[id,int(frame*100)])
+   print("HAND PROBE ",id," position=",game.player.hands.position," scale=",game.player.hands.scale," sleeve=",game.player.hands.sleeve.get_aabb())
+   game.player.hands.cancel()
+   if id in ["bell","ticket"]:
+    if id=="bell":p.z=8.56
+    else:p.x-=.22
+    author.pose(game,p,point);game.player.hands.begin("mechanical:"+id,point)
+    game.player.hands.clock=game.player.hands.duration*.4;game.player.hands.pose()
+    print("CLOSE CONTACT ",id,"=",game.player.hands.close_contact)
+    await capture(game,output,"03-close-"+id);game.player.hands.cancel()
+  game._quit();return
  if "--finish-v406-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game._build_world("none");game.set_process(false);game.player.active=false;game.dialogue.reset()
   var author=load("res://art-direction/itch_capture.gd").new()

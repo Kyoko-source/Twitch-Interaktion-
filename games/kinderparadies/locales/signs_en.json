@@ -38,5 +38,10 @@
  "vent":"VENTILATION 03 · Maintenance / keep clear",
  "staff_hall":"STAFF CORRIDOR · Happyland / employees only",
  "kitchen":"KITCHEN · Staff / food service",
- "cinema":"CINEMA · Happyland's little world of film"
+ "cinema":"CINEMA · Happyland's little world of film",
+ "reception_shift":"SHIFT HANDOVER · Lock the side door after closing. Put the key back on the board! Thanks, Ralf.",
+ "reception_phone":"CALL BACK! · Call Mrs Weber about her reservation. Saturday, 2 pm? — Jana",
+ "reception_birthday":"BIRTHDAY PARTY · Saturday, 2 pm. Mia / 8 children. Table by the window. No nuts! Deposit received.",
+ "reception_list":"DON'T FORGET! · Cups restocked. Towels / count the till. Please leave the little lamp on. See you tomorrow!",
+ "reception_repair":"MAINTENANCE · The arcade machine's light has failed again. Spare bulbs are in the bottom compartment. Do not throw away!"
 }

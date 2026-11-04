@@ -1,5 +1,15 @@
 # After Play — Kinderparadies
 
+## Empfangsnotizen und Interaktionsarm (4.0.8)
+
+Fünf unterschiedliche handbeschriebene Aushänge ersetzen die Putztextur und
+farbigen Balken am Empfang. Dünnes gewölbtes Papier mit Falten, Fasern,
+Randspuren und kleinen Reißzwecken; englische Lesetexte bei Bedarf.
+Die Finger beugen sich beim Drücken zur Handfläche. Der Ärmel hat korrekte
+Außenflächen und bleibt vor der Kameraebene. Mechanismen außerhalb der
+natürlichen Armreichweite funktionieren ohne künstlich verlängerten Arm.
+Aus erreichbarer Nähe trifft der Zeigefinger die tatsächliche Klingeltaste.
+
 ## Tunnelgeräusche (4.0.7)
 
 Die Geräuschbeschreibungen „Kinder lachen“ und „Kinder weinen“ erscheinen

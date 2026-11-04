@@ -117,11 +117,7 @@ func _reception_details() -> void:
  # A broken corkboard with drawings, pushpins and curled corners.
  var board:=Node3D.new();board.name="ReceptionNoticeboard";board.position=Vector3(-10.0,1.8,7.3);board.rotation.y=PI/2;add_child(board);w.props.reception_noticeboard=board
  var backing:=w.box(board,Vector3.ZERO,Vector3(1.9,1.35,.04),w.materials.wood);backing.set_meta("mounted_art",true)
- for i in range(5):
-  var x:=-.62+(i%3)*.52;var y:=-.15+floori(i/3.0)*.55
-  var page:=w.box(board,Vector3(x,y,.04),Vector3(.4,.5,.012),w.materials.paper);page.rotation.z=(i-2)*.08
-  w.sphere(board,Vector3(x,y+.21,.06),.022,w.materials.red)
-  for line in range(4):w.tube(board,Vector3(x-.12,y-.15+line*.09,.06),Vector3(x+.13,y-.1+line*.09,.06),.006,[w.materials.red,w.materials.blue,w.materials.gold][line%3])
+ ReceptionNotices.build(w,board)
  # Large original mural inset in reception, plus bent cable runs.
  var mural:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.8,.6);mural.mesh=quad;mural.material_override=w.mat(Color("929477"),load("res://assets/mural.png"),.95);mural.position=Vector3(.424,.49,0);mural.rotation.y=PI/2;counter.add_child(mural)
  for y in [.34,.38]:
