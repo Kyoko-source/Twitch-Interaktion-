@@ -50,6 +50,7 @@ var acoustics: HappylandAcoustics
 var arrival_design: ArrivalDesign
 var craft: VenueCraft
 var climbing: ClimbingExpansion
+var touch: VenueTouch
 var chalk: ChalkBoard
 var child_art: ChildDrawings
 var wall_decay: WallDecay
@@ -191,7 +192,8 @@ func construction_steps() -> Array[Callable]:
   _module.bind(ClimbingExpansion,"climbing"),
   _chalk_board,
   _module.bind(ChildDrawings,"child_art"),
-  _module.bind(WallDecay,"wall_decay")]
+  _module.bind(WallDecay,"wall_decay"),
+  _module.bind(VenueTouch,"touch")]
 
 func _chalk_board() -> void:
  chalk=ChalkBoard.new();add_child(chalk);chalk.build(self)

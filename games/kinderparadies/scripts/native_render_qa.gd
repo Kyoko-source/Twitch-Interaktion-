@@ -6,6 +6,42 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--shift-qa" in OS.get_cmdline_user_args():
+  game.set_process(false)
+  for language in ["de","en"]:
+   AfterPlayLanguage.choose(language)
+   var warning:=AfterPlayStartWarning.new();game.add_child(warning);warning.build(game)
+   await capture(game,output,"01-warning-"+language);warning.queue_free();await game.get_tree().process_frame
+  AfterPlayLanguage.choose("de")
+  game._new_shift();game.intro.skip();game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-5.8,0,12.),Vector3(-8.0,1.7,6.3))
+  game.player.torch_body.tick(.016,true,0.)
+  for mesh in game.player.torch_body.find_children("*","MeshInstance3D",true,false):
+   var bounds: AABB=(game.player.camera.global_transform.affine_inverse()*mesh.global_transform)*mesh.get_aabb()
+   if bounds.size.length()>1.:print("LARGE HAND MESH ",mesh.name," ",bounds)
+  await capture(game,output,"02-new-flashlight")
+  game.player.torch_body.hide();await capture(game,output,"02b-room-only");game.player.torch_body.show()
+  game.intro.set_floor(13);game.intro.ticket.tick(2.,true)
+  author.pose(game,Vector3(-8.0,0,19.3),game.intro.ticket.global_position)
+  await capture(game,output,"03-last-patrol-receipt")
+  game.door_failure.start_patrol(game.world,game.player.camera);game.door_failure.running=false
+  game.door_failure.attacker.position=Vector3(0,-1.77,-1.25);game.door_failure.fill.light_energy=.45
+  game.player.torch_body.hide();game.player.lamp.hide()
+  await capture(game,output,"04-passage-creature");game.door_failure.hide()
+  game._build_world("service_pursuit");game.player.active=false
+  var granny: Node3D=game.world.terrors.visual
+  granny.reparent(game.player.camera,false);granny.position=Vector3(0,-1.73,-1.22);granny.rotation=Vector3.ZERO
+  game.player.torch_body.hide();game.player.lamp.hide()
+  var fill:=OmniLight3D.new();fill.light_energy=.45;fill.omni_range=3.;fill.position=Vector3(.3,.2,-.1);game.player.camera.add_child(fill)
+  await capture(game,output,"05-granny");granny.queue_free();fill.queue_free()
+  game._new_shift();game.intro.skip();game.player.active=false
+  game.album.discover(1);game.album.entries["1"].image="";game._show_ending(1);game.end_credits.tick(5);await game.end_credits.wait_prepared();game.end_credits.finish_scroll()
+  var party: PatrolPartyOutro=game.end_credits.afterglow;party.clock=8.;party._pose(0.);game.end_credits.tick(0.)
+  await game.album.capture(1,party.camera)
+  while game.album.capturing:await game.get_tree().process_frame
+  game._main_menu();game.album.show_menu();await capture(game,output,"06-memory-album")
+  game._quit();return
  if "--celebration-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.player.active=false
   game.phase="code";game.archive_input=PatrolPartyOutro.TEST_CODE;game._submit_archive_code()
@@ -401,7 +437,7 @@ func v180_views(game: Node3D, output: String) -> void:
  await game.get_tree().create_timer(.3).timeout
  var frozen: bool=torch_clock==game.player.torch_body.clock
  game._resume();await game.get_tree().create_timer(.7).timeout
- var recovered: bool=is_equal_approx(game.player.lamp.light_energy,4.2)
+ var recovered: bool=is_equal_approx(game.player.lamp.light_energy,GuardTorch.BASE_ENERGY)
  game._build_world("none");game._resume();game.state.start(1800)
  game._decide(true)
  var limit:=0.0

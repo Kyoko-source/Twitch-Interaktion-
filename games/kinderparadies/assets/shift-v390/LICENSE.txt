@@ -1,0 +1,7 @@
+Scare heads: derivatives of Infinite, 3D Head Scan by Lee Perry-Smith, CC BY 3.0.
+Source: https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith
+License: https://creativecommons.org/licenses/by/3.0/
+Changes: aged and stretched facial anatomy, preserved scan UVs, anatomical eye
+openings and dental arches, original grey hair, scalp and skin shader.
+Original attribution is also included in assets/props/Head-Attribution.txt and
+the distributed Lizenzen/Lee-Perry-Smith.txt.

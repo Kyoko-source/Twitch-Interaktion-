@@ -1,5 +1,39 @@
 # After Play — Kinderparadies
 
+## Persönliche Nachtschicht und neue Schreckfiguren (3.9.0)
+
+Das Erinnerungsalbum im Hauptmenü speichert entdeckte Enden und echte, ohne HUD
+aufgenommene Bilder der Schlusssequenzen in einer eigenen Profildatei. Neue
+Schichten und falsche Türen löschen diese Einträge nicht. Unentdeckte Enden
+zeigen weder Titel noch Bilder. Die Vorschau 07122000 schaltet nichts frei.
+Nach zwölf richtigen Entscheidungen druckt der Startfahrstuhl einen Zettel:
+„Letzter Kontrollgang. Danach Feierabend.“ E zeigt ihn zusätzlich groß an.
+
+Die Taschenlampe hat ein neu modelliertes Metallgehäuse mit Griff, Kühlrippen,
+Reflektor und Schutzglas. Das Licht ist rund 17 Prozent heller. Gedämpftes
+Nachziehen, Laufbewegung und eine stabile Landefeder folgen der Einstellung
+Kamerabewegung. Eine kurze Kollisionsabfrage zieht das Modell vor Wänden ein.
+Deckel und Jacke reagieren ausschließlich auf Kontakt; ein einzelner einfacher
+Pappbecher rollt beim Anstoßen. Alle Reaktionen und Geräusche folgen Pause und
+Lautstärke und verändern die Anomalieentscheidung nicht. Dieselbe verblasste
+Happyland-Sonnenmarke erscheint auf Karten, Bechern, Jacke und Automatenmarken.
+
+Die Startwarnung ist neu gesetzt und behält Sprachwahl, Gesundheitsinformation,
+bewusste Bestätigung und Stroboskop-Schalter. Besucherin und Angreifer an der
+falschen Tür erhalten anatomische Köpfe auf Basis des bereits attribuierten
+Lee-Perry-Smith-Scans: originale UVs, echte Augenöffnungen, eingesetzte Augen und
+Zahnreihen, gealterte Haut, schmutzige Haare, Stofffalten und Hände. Die bekannten
+Anomalien, ihre Auslöser und die geschützten Zeitungsrunden bleiben erhalten.
+
+Die Feier nach Ende 1 dauert jetzt zwei Minuten. Die Kamera fährt die bestehende
+freie Strecke weich hin und zurück, statt nur eine langsamere Einstellung zu
+halten. Musik und Licht folgen weiter Rolling Acid; die letzten drei Sekunden
+blenden den Song aus. Gedrückte Leertaste überspringt die Feier weiterhin.
+
+Prüfungen: `--self-test --shift-only`, `--self-test --balance-only` und
+`--render-qa --shift-qa`. Die Galerie nutzt im Browser denselben lokalen
+Speichermechanismus wie die Spielstände. Bilder werden nur lokal gespeichert.
+
 ## Überarbeitete Feierfiguren im Originalraum (3.8.14)
 
 Der Partyraum behält seine echten Wände, Böden, Bühne, Tische, Stühle, Snackbar,

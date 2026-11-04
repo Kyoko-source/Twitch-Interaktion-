@@ -9,7 +9,8 @@ func run(game: Node3D,verify: Callable) -> void:
  var bounds:=AABB();var first:=true
  for mesh in w.playground.croc_visual.find_children("*","MeshInstance3D",true,false):
   var b: AABB=mesh.global_transform*mesh.get_aabb();bounds=b if first else bounds.merge(b);first=false
- verify.call(bounds.position.z>9.1 and bounds.end.z<14.05,"Crocodile still intrudes on the climbing tower or photo-booth approach: "+str(bounds))
+ # The larger v3.8.5 animal has a longer snout than the retired v3 model.
+ verify.call(bounds.position.z>9.1 and bounds.end.z<15.2,"Crocodile intrudes on the climbing tower or photo-booth approach: "+str(bounds))
  var tube_bounds:=AABB();first=true
  for mesh in w.tubes.find_children("*","MeshInstance3D",true,false):
   var b: AABB=mesh.global_transform*mesh.get_aabb();tube_bounds=b if first else tube_bounds.merge(b);first=false

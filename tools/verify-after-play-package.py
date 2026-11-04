@@ -126,6 +126,9 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/patrol_party_outro.gd', b'scripts/celebration_cast.gd', b'scripts/celebration_tailoring.gd', b'assets/celebration-v3813/celebration-rabbit.glb']:
                 assert any(required in name for name in packed_names), required
+            for required in [b'scripts/shift_album.gd', b'scripts/shift_ticket.gd', b'scripts/venue_touch.gd', b'scripts/happyland_mark.gd', b'scripts/scare_sculpt.gd', b'assets/shift-v390/granny-head.glb', b'assets/shift-v390/passage-head.glb', b'assets/shift-v390/aged_skin.gdshader']:
+                assert any(required in name for name in packed_names), required
+            assert not any(b'scripts/shift_validation.gd' in name or b'assets/props/nightguard-torch.glb' in name or b'assets/passage-v280/passage-head' in name for name in packed_names)
             assert not any(b'assets/party-v385/party.mp3' in name or b'assets/creatures/night-crocodile-v4' in name for name in packed_names)
             for private in private_files + [b'scripts/hunt_validation.gd', b'art-direction/v360_capture.gd', b'ANOMALIEN.md', b'ITCH-SEITE.md', b'scripts/native_render_qa.gd', b'scripts/validation.gd', b'scripts/finale_validation.gd', b'scripts/endings_validation.gd', b'scripts/balance_validation.gd', b'scripts/revamp_validation.gd', b'scripts/venue_validation.gd', b'scripts/film_validation.gd', b'scripts/life_validation.gd', b'scripts/watch_validation.gd', b'assets/life-v2110/image-generation-provenance.json', b'art-direction/v300_capture.gd', b'art-direction/v310_capture.gd', b'art-direction/itch_capture.gd', b'art-direction/media_capture.gd', b'art-direction/media_capture.tscn']:
                 assert not any(private in name for name in packed_names), private

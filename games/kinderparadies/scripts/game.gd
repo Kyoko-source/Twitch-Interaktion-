@@ -61,11 +61,13 @@ var world_revision:=0
 var loading_progress:=0.0
 var world_build_count:=0
 var start_warning: AfterPlayStartWarning
+var album:=ShiftAlbum.new()
+var ending_preview:=false
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
  if OS.has_feature("web"): settings.quality=1
- _actions();_read_settings()
+ _actions();_read_settings();album.build(self)
  var stored_party_text:=_persistent_text(SAVE)
  var stored_party=JSON.parse_string(stored_party_text) if not stored_party_text.is_empty() else null
  if stored_party is Dictionary:party_reboot_until=clampi(int(stored_party.get("party_reboot_until",0)),0,int(Time.get_unix_time_from_system())+HappylandParty.REBOOT_SECONDS)
@@ -150,6 +152,7 @@ func _build_world_responsive(anomaly: String,progress: Callable=Callable(),revea
  world=next;_connect_world(anomaly);next.visible=reveal;world_loading=false
 
 func _request_shift() -> void:
+ ending_preview=false
  if world_loading:return
  if menu_reference_ready:_new_shift();return
  secret_ending=false;archive.clear();archive_selected="";archive_input=""
@@ -227,6 +230,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
  return column
 
 func _main_menu() -> void:
+ ending_preview=false
  if is_instance_valid(end_credits):
   if end_credits.afterglow:end_credits.afterglow.dispose()
   if end_credits.prepared_afterglow:end_credits.prepared_afterglow.dispose()
@@ -251,6 +255,7 @@ func _menu_jump() -> void:
  phase="settings";NightMenus.settings(self,settings_tab);_telemetry()
 
 func _new_shift() -> void:
+ ending_preview=false
  secret_ending=false
  chalk_drawing=""
  if is_instance_valid(world) and world.chalk:world.chalk.restore("")
@@ -400,7 +405,7 @@ func _open_archive_lock(message: String="") -> void:
 func _submit_archive_code() -> void:
  if phase!="code": return
  if archive_input==PatrolPartyOutro.TEST_CODE:
-  archive_input="";_show_patrol_ending()
+  archive_input="";ending_preview=true;_show_patrol_ending()
   # The preview prepares a clean venue. Continue must reload the saved patrol
   # and its actual anomaly instead of resuming that temporary celebration set.
   has_session=false;return
@@ -461,12 +466,13 @@ func _apply_settings() -> void:
   var amount: float=settings.ambience if bus_name=="NightAmbience" else settings.voice
   AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus_name),linear_to_db(amount) if amount>0 else -80)
  if world:
-  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film,world.life]:
+  for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film,world.life,world.touch]:
    if branch:
     for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
  if world and world.acoustics:world.acoustics.route()
  if intro: intro.voice.bus="NightVoice"
+ if intro:intro.ticket.print_audio.bus="NightAmbience"
  if room_audio: room_audio.bus="NightAmbience"
  if menu_music: menu_music.bus="Master";menu_music.volume_db=linear_to_db(float(settings.menu_music))-9 if float(settings.menu_music)>0 else -80
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
@@ -500,6 +506,8 @@ func _save(next_round: bool=false) -> void:
  _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
+ if intro:intro.ticket.tick(delta,phase in ["arrival","play"])
+ if is_instance_valid(world) and world.touch:world.touch.tick(delta,phase=="play")
  if weather:
   var weather_room: String=world.acoustics.area(player.global_position) if is_instance_valid(world) and world.acoustics else "hall"
   if phase in ["intro","arrival","lift"]:weather_room="elevator"
@@ -560,6 +568,7 @@ func _process(delta: float) -> void:
   elif target=="memory_wall": prompt.text="E · Erinnerungswand ansehen"
   elif target=="chalk_board": prompt.text="E · Mit Kreide schreiben"
   elif target=="parking_key":prompt.text="E · Parkplatzschlüssel mitnehmen"
+  elif target=="final_receipt":prompt.text="E · Letzten Kontrollzettel lesen"
   elif target=="party_control":prompt.text=world.party.control_prompt()
   elif target=="reception_cctv": prompt.text="E · Kontrollmonitor bedienen"
   elif target=="life:locked_wc": prompt.text="E · Kabinentür prüfen"
@@ -670,6 +679,7 @@ func _show_patrol_ending() -> void:
  _show_ending(1)
 
 func _show_ending(number: int) -> void:
+ if not ending_preview:album.discover(number)
  menu_music.stop()
  intro_pending=false;wake_pending=false;arrival_pending=false
  phase="ending";NightMenus.clear(self);world.watch.close();world.pit_physics.tick(false,player);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
@@ -732,6 +742,7 @@ func _unhandled_input(event: InputEvent) -> void:
   elif target=="life:photo": _show_booth_photo()
   elif target=="memory_wall": _show_memory_wall()
   elif target=="chalk_board": world.chalk.open(self)
+  elif target=="final_receipt": _announce(ShiftTicket.MESSAGE,7)
   elif target=="reception_cctv": _open_watch()
   elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
   elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
@@ -844,6 +855,7 @@ func _telemetry() -> void:
   data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
   data.anomaly=state.current;data.controls=[]
   data.completed=state.completed
+  data.album=album.snapshot();data.touch=world.touch.snapshot();data.final_receipt={"visible":intro.ticket.paper.visible,"amount":intro.ticket.amount,"text":intro.ticket.text.text}
   data.startup=start_warning.snapshot() if is_instance_valid(start_warning) else {"visible":false}
   if is_instance_valid(start_warning):data.controls=data.startup.controls
   data.instructions=[]
@@ -872,7 +884,7 @@ func _telemetry() -> void:
   data.party=world.party.snapshot();data.parking_key=archive.parking_key_found
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
-  data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count}
+  data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
   data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot()

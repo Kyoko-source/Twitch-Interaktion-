@@ -77,6 +77,7 @@ func apply_mouse_look(relative: Vector2) -> void:
  if capture_motion_pending: capture_motion_pending=false;return
  if look_warmup>0: return
  rotate_y(-relative.x*sensitivity)
+ if motion:torch_body.look(relative)
  camera.rotation.x=clampf(camera.rotation.x-relative.y*sensitivity*(-1 if invert_y else 1),-1.35,1.35)
 
 func _physics_process(delta: float) -> void:
@@ -100,21 +101,26 @@ func _physics_process(delta: float) -> void:
   velocity.y=bounce_speed;jump_buffer=0;coyote=0
  elif not is_on_floor(): velocity.y-=20*delta
  else: velocity.y=-.1
+ var fall_speed:=velocity.y
  move_and_slide()
  bounce_speed=6.2
  camera.rotation.z=sin(Time.get_ticks_msec()*.055)*fright*.035 if motion else 0.0
  camera.fov=base_fov+fright*5 if motion else base_fov
  # Close jumping faces otherwise leave the narrow torch cone entirely. The
  # brief spill follows the existing scare pulse and returns to the normal beam.
- torch_body.tick(delta,lamp_on,fright)
+ torch_body.tick(delta,lamp_on,fright,self)
  equipment.tick(self,delta)
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
+  if body.has_meta("touch_reaction"):
+   var game:=get_parent()
+   if game.world and game.world.touch:game.world.touch.bump(int(body.get_meta("touch_reaction")),speed)
   if hit.get_normal().y>.6 and body.has_meta("bounce_speed"): bounce_speed=float(body.get_meta("bounce_speed"))
   if body is NightProp and not body.freeze and not body.held:
    var push: Vector3=-hit.get_normal();push.y=0
    body.apply_central_impulse(push*minf(body.mass,1.8)*speed*delta*10)
  if was_airborne and is_on_floor():
+  if motion:torch_body.land(fall_speed)
   landing_offset=-.075 if motion else 0.0;play_step(true)
  was_airborne=not is_on_floor();landing_offset=lerpf(landing_offset,0,delta*9)
  if is_instance_valid(carried):
@@ -167,6 +173,7 @@ func toggle_lamp() -> void:
  lamp_on=not lamp_on;lamp.visible=lamp_on
 
 func reset_pose() -> void:
+ torch_body.reset_motion()
  set_crouch(false)
  drop_prop()
  global_position=Vector3(-6.2,0,8.5);rotation.y=0;camera.rotation=Vector3.ZERO;velocity=Vector3.ZERO

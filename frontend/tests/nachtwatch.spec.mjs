@@ -24,6 +24,33 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.9.0 memory album hides undiscovered endings and persists a real closing photo',async({page})=>{
+ test.setTimeout(300000);await load(page);
+ await clickControl(page,'Erinnerungsalbum');
+ await expect.poll(async()=>(await state(page)).phase).toBe('help');
+ expect((await state(page)).album.found).toEqual([]);
+ expect((await state(page)).instructions.filter(t=>t==='Unentdecktes Ende')).toHaveLength(3);
+ expect((await state(page)).instructions).not.toContain('Die Wahrheit hinter der Tür');
+ await clickControl(page,'Zurück');
+ await qa(page,{op:'show_ending',number:2});
+ await expect.poll(async()=>(await state(page)).ending_credits.prepared,{timeout:90000}).toBe(true);
+ await expect.poll(async()=>(await state(page)).ending_credits.stage,{timeout:30000}).toBe('credits');
+ await page.keyboard.press('Escape');
+ await expect.poll(async()=>(await state(page)).album.photos,{timeout:30000}).toEqual(['2']);
+ await page.keyboard.down('Space');try{await expect.poll(async()=>(await state(page)).ending_credits.done,{timeout:30000}).toBe(true);}finally{await page.keyboard.up('Space');}
+ await clickControl(page,'Hauptmenü');await clickControl(page,'Erinnerungsalbum');
+ expect((await state(page)).instructions).toContain('Die Wahrheit hinter der Tür');
+ expect((await state(page)).instructions.filter(t=>t==='Unentdecktes Ende')).toHaveLength(2);
+ await page.screenshot({path:join(tmpdir(),'after-play-v390-browser-album.png')});
+ await page.reload();await waitForMenu(page);await clickControl(page,'Erinnerungsalbum');
+ expect((await state(page)).album).toEqual({found:['2'],photos:['2']});
+ await clickControl(page,'Zurück');await clickControl(page,'Neue Nachtschicht');await skipIntro(page);
+ expect((await state(page)).album.found).toEqual(['2']);
+ expect((await state(page)).touch.reactions).toBe(2);
+ expect((await state(page)).flashlight.energy).toBeCloseTo(4.9,1);
+ expect((await state(page)).anomaly).toBe('none');
+});
+
 test('v3.8.14 creator code plays credits then a cheerful party in the original room without overlapping music',async({page})=>{
  test.setTimeout(420000);await begin(page);
  const patrol=(await state(page)).streak;

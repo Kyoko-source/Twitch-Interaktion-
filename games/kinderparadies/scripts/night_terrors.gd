@@ -81,6 +81,7 @@ func configure(value: String) -> void:
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
  visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
  CharacterFinish.apply(visual,w)
+ ScareSculpt.visitor(visual,w,str(spec.mode))
  var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.75;shape.shape=capsule;shape.position.y=.91;actor.add_child(shape)
  for key in ["ArmL","ArmR"]:
   var arm:=visual.find_child(key,true,false) as Node3D

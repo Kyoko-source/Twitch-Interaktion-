@@ -2,7 +2,7 @@ class_name PatrolPartyOutro
 extends RefCounted
 
 const TEST_CODE:="07122000"
-const DURATION:=48.0
+const DURATION:=120.0
 const SONG_START:=55.25
 const PALETTE: Array[Color]=[Color("f4bad1"),Color("b1e1d5"),Color("ffe5a3"),Color("c9c1ee"),Color("aadbec")]
 const POSITIONS: Array[Vector3]=[Vector3(8.1,3.8,-10.5),Vector3(8.4,3.7,-7.4),Vector3(9.0,2.5,-.4),Vector3(13.0,2.6,-3.2),Vector3(17.6,3.0,-5.0),Vector3(16.0,3.2,-10.6),Vector3(9.3,3.0,-9.9)]
@@ -154,7 +154,10 @@ func _camera_point(point: Vector3) -> Vector3:
 
 func _pose(delta: float) -> void:
  var beat: float=clock*TAU*(146.5/60.)
- var phase:=clampf(clock/(DURATION-3.),0,.9999)*(POSITIONS.size()-1)
+ # Travel the established clear route out and back, then finish with one more
+ # gentle pass. A cosine turn keeps the camera moving smoothly at each end.
+ var travel:=clampf(clock/(DURATION-3.),0.,1.)
+ var phase: float=(.5-.5*cos(travel*PI*3.))*(POSITIONS.size()-1)
  if is_instance_valid(camera):camera.position=_camera_point(_spline(POSITIONS,phase));camera.look_at(_spline(TARGETS,phase));camera.fov=lerpf(65,60,smoothstep(0.,DURATION,clock))
  if not bunny.is_empty():
   var sip_clock:=fposmod(clock,12.);var sip:=smoothstep(2.,4.,sip_clock)*(1.-smoothstep(8.,10.,sip_clock))

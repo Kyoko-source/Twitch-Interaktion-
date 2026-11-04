@@ -34,12 +34,14 @@ var starts:=0
 var display: GuardPhoneDisplay
 var floor_number:=1
 var floor_displays: Array[Label3D]=[]
+var ticket:=ShiftTicket.new()
 
 static func floor_text(value: int) -> String:
  return "%02d"%clampi(value,1,13)
 
 func set_floor(value: int) -> void:
  floor_number=clampi(value,1,13)
+ if is_instance_valid(ticket.paper):ticket.set_floor(floor_number)
  for indicator in floor_displays:indicator.text=floor_text(floor_number)+"  ▲"
 
 func build(w: PlayWorld, player: NightGuard) -> void:
@@ -67,6 +69,7 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  w.box(cabin,Vector3(1.30,1.35,-.8),Vector3(.04,.65,.24),trim)
  for y in [1.12,1.32,1.52]: w.tube(cabin,Vector3(1.275,y,-.8),Vector3(1.25,y,-.8),.035,steel)
  _cabin_details(w,cabin,steel,trim)
+ ticket.build(w,cabin)
  # Bevelled, metre-scale handset with front glass, lenses and physical ports.
  phone=Node3D.new();guard.camera.add_child(phone);phone.position=Vector3(.12,-.16,-.43);phone.rotation=Vector3(-.04,-.12,-.045)
  var handset: Node3D=(load("res://assets/polish-v240/guard-phone.glb") as PackedScene).instantiate();phone.add_child(handset)

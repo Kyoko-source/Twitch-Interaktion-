@@ -24,7 +24,7 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(not game.end_credits.music.playing and game.end_credits.snapshot().end_word,"Credits music starts before the ENDE card")
  game.end_credits.tick(4);await game.get_tree().process_frame;await game.get_tree().process_frame
  var song: AudioStreamPlayer=game.end_credits.music
- verify.call(song.playing and song.stream.resource_path==RoomHorror.MUSIC and (song.stream as AudioStreamMP3).loop,"Credits do not play the actual supplied music-box recording")
+ verify.call(song.playing and song.stream.resource_path==EndCredits.MUSIC and (song.stream as AudioStreamMP3).loop,"Credits do not play the supplied Fern and Feather recording")
  verify.call(is_equal_approx(gain,AudioServer.get_bus_volume_db(0)),"Credits override the player's master volume")
  verify.call(absf(game.end_credits.roll.position.x+game.end_credits.roll.size.x*.5-960)<1,"Credits are not centred in the 16:9 frame")
  await game.end_credits.wait_prepared();game.end_credits.finish_scroll();game.end_credits.tick(17);await game.get_tree().create_timer(.5).timeout

@@ -39,5 +39,5 @@ func run(game: Node3D, verify: Callable) -> void:
  game._show_archive_ending();await game.get_tree().process_frame;await game.get_tree().process_frame
  var note: Label=game.end_credits.roll.find_child("KyokoNote",true,false)
  verify.call(note.text==EndCredits.KYOKO_NOTE and note.autowrap_mode!=TextServer.AUTOWRAP_OFF and note.size.x>1200,"Kyoko's final note is missing or cannot wrap in the credits")
- verify.call(game.end_credits.music.stream.resource_path==RoomHorror.MUSIC,"The added credits note replaced the requested music-box track")
+ verify.call(game.end_credits.music.stream.resource_path==EndCredits.MUSIC,"The credits note replaced Fern and Feather")
  game._new_shift();game.intro.skip()

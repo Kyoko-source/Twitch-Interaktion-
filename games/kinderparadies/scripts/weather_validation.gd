@@ -15,6 +15,9 @@ func run(game: Node3D,verify: Callable) -> void:
  await game.get_tree().create_timer(.2).timeout
  verify.call(weather.clock==clock and weather.next_roll==timer and weather.rain.stream_paused,"Pause advances weather or leaves rain audible")
  game._resume();game.player.active=false
+ # A long combined suite may arrive during an existing roll. Exercise an idle
+ # scheduler deliberately, rather than depending on its random prior timing.
+ weather.thunder.stop()
  var count:=weather.count;weather.next_roll=0;weather.tick(.1,true,"hall")
  verify.call(weather.count==count+1 and weather.thunder.playing and weather.next_roll>=40 and weather.next_roll<=70,"Distant thunder has no spaced random scheduler")
  for i in range(30):weather.tick(.1,true,"hall")

@@ -13,6 +13,8 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(notebook.visited==["Küche"],"Notebook does not reflect the current round's visited areas")
  game._resume();game.state.visited.clear();game.player.active=false
  var b: BackstageExpansion=game.world.backstage
+ # The current entrance is deliberately locked until its key is collected.
+ game.archive.parking_key_found=true;game._sync_parking_key()
  verify.call(b.costumes.size()==7 and b.throne.find_children("*","MeshInstance3D",true,false).size()>=4,"Authored throne and seven hanging costumes are missing")
  var placement:=SceneAudit.placement(game.world)
  verify.call(placement.doors.is_empty() and placement.art.is_empty() and placement.furniture.is_empty(),"Expansion placement issue: "+str(placement))

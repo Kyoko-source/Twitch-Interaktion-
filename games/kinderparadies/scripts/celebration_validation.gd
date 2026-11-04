@@ -32,8 +32,8 @@ func run(g: Node3D,verify: Callable) -> void:
  var camera_clear:=true
  var furniture_clear:=true
  var tops: Array[AABB]=[AABB(Vector3(9.15,.72,-8.55),Vector3(2.1,.12,3.1)),AABB(Vector3(13.3,.56,-8.225),Vector3(3.4,.12,1.25))]
- for sample in range(96):
-  party.clock=sample*.5;party._pose(0.)
+ for sample in range(240):
+  party.clock=sample*PatrolPartyOutro.DURATION/240.;party._pose(0.)
   for actor in party.actors+[party.bunny]:
    for mesh in CelebrationCast.meshes(actor.root):
     if mesh.is_visible_in_tree() and (mesh.global_transform*mesh.get_aabb()).grow(.025).has_point(party.camera.global_position):camera_clear=false
@@ -41,6 +41,7 @@ func run(g: Node3D,verify: Callable) -> void:
      for top in tops:
       if (mesh.global_transform*mesh.get_aabb()).intersects(top):furniture_clear=false
  verify.call(camera_clear,"Dolly intersects a dancer between camera keys")
+ verify.call(PatrolPartyOutro.DURATION>=120.,"Ending 1 party ends before the requested extended celebration")
  verify.call(furniture_clear,"A dancer intersects an original party tabletop during the camera ride")
  party.clock=4.
  Input.action_release("jump");credits.tick(.05)

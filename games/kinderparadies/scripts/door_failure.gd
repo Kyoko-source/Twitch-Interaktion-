@@ -29,10 +29,7 @@ func start_patrol(world: PlayWorld, camera: Camera3D) -> void:
  attacker=(load("res://assets/revamp-v300/visitor-split.glb") as PackedScene).instantiate();add_child(attacker)
  attacker.position=Vector3(0,-1.7,-4.8)
  CharacterFinish.apply(attacker,world)
- var old_head:=attacker.find_child("HeadRig",true,false) as Node3D
- if old_head: old_head.hide()
- var head: Node3D=(load("res://assets/passage-v280/passage-head.glb") as PackedScene).instantiate()
- attacker.add_child(head);head.position=Vector3(0,1.95,.02)
+ ScareSculpt.passage(attacker,world)
  for key in ["ArmL","ArmR"]:
   var arm:=attacker.find_child(key,true,false) as Node3D
   if arm: claws.append(arm)

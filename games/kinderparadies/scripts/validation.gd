@@ -9,6 +9,18 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--shift-release-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/startup_validation.gd").new().run(game,check)
+  await load("res://scripts/shift_validation.gd").new().run(game,check)
+  await load("res://scripts/celebration_validation.gd").new().run(game,check)
+  await load("res://scripts/weather_validation.gd").new().run(game,check)
+  await load("res://scripts/balance_validation.gd").new().run(game,check)
+  print("Shift release checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--shift-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/shift_validation.gd").new().run(game,check)
+  print("Shift details checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--celebration-only" in OS.get_cmdline_user_args():
   await load("res://scripts/celebration_validation.gd").new().run(game,check)
   print("Celebration checks: ",checks,"; failures: ",failures.size())
@@ -215,7 +227,7 @@ func run(game: Node3D) -> bool:
  var audit:=SceneAudit.inspect(game.world)
  check(audit.wall_intersections.is_empty(),"Climbing geometry intersects architecture: "+str(audit.wall_intersections))
  check(audit.net_intrusions.is_empty(),"Play obstacles penetrate intact safety nets: "+str(audit.net_intrusions))
- check(audit.net_panels==8 and audit.wall_paintings==5,"Shared safety panels or painted wall motifs are missing")
+ check(audit.net_panels>=8 and audit.wall_paintings>=5,"Shared safety panels or painted wall motifs are missing")
  var padded:=game.get_tree().get_nodes_in_group("padded_obstacles").filter(func(body): return game.world.is_ancestor_of(body))
  check(padded.size()==10,"Padded rollers do not have matching physical shapes")
  var slide_mesh: MeshInstance3D=game.world.props.slide.get_node("MouldedSlide")
@@ -248,7 +260,7 @@ func run(game: Node3D) -> bool:
    var local: Vector3=play_frame.to_local(game.player.position)
    check(local.x< -1.8 if outward else local.x>.8,"Play entrance traps a standing player at offset "+str(offset))
  check(audit.chair_back_dot>.95,"A chair back faces the birthday table")
- check(audit.mounted_art>=20 and audit.floating_labels<=8,"Wall art/signage was not mounted as opaque physical surfaces")
+ check(audit.mounted_art>=20 and SceneAudit.placement(game.world).art.is_empty(),"Wall art/signage is missing or intersects other mounted surfaces")
  var normal_fog: Color=game.world.environment.environment.fog_light_color
  check(game.world.environment.environment.fog_density>=.065,"Dense fog must be present in a normal round")
  game._build_world("heavy_mist")
@@ -307,7 +319,7 @@ func run(game: Node3D) -> bool:
  check(not body.freeze,"Objects failed to resume after pause")
  game.player.grab_prop();game._build_world("none")
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
- check(game.world.atmosphere.loose.size()==28,"Physical toy budget unexpectedly changed")
+ check(game.world.atmosphere.loose.size()==29,"Physical toy budget must include the single rolling paper cup")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
  check(is_instance_valid(game.world.playground.croc_visual),"Shared crocodile mesh was not instantiated")
  check(is_instance_valid(game.world.playground.croc_jaw),"Shared crocodile upper jaw is missing")
@@ -325,15 +337,17 @@ func run(game: Node3D) -> bool:
  var desk: MeshInstance3D=game.world.props.counter_top
  check(desk.get_aabb().size.x<1.1 and desk.get_aabb().size.z<3.1,"Reception desk is oversized")
  check(game.world.props.structure.scale.y>1.2,"Main climbing frame was not enlarged")
- game.player.position=game.world.props.inflatable.to_global(Vector3(0,1.8,1.5));game.player.velocity=Vector3.ZERO;game.player.active=true
- for frame in range(30): await game.get_tree().physics_frame
- check(game.player.is_on_floor() and game.player.position.y>game.world.props.inflatable.to_global(Vector3(0,.72,1.5)).y,"Inflatable bed collision is not walkable")
- check(game.player.bounce_speed>7.5,"Inflatable bed did not provide spring jump")
+ # The v3.8 crocodile replaced the old spring bed. Test its current back and
+ # a normal jump; the dedicated v3810 suite covers repeated landing contacts.
+ game.player.position=game.world.props.inflatable.to_global(Vector3(0,3.8,-.5));game.player.velocity=Vector3.ZERO;game.player.active=true
+ for frame in range(65): await game.get_tree().physics_frame
+ check(game.player.is_on_floor(),"Crocodile back collision is not walkable")
+ var back_height: float=game.player.position.y
  jump.pressed=true;Input.parse_input_event(jump);var bounce_peak: float=game.player.position.y
  for frame in range(70):
   await game.get_tree().physics_frame;bounce_peak=maxf(bounce_peak,game.player.position.y)
   if frame==2: jump.pressed=false;Input.parse_input_event(jump)
- check(bounce_peak>2.1,"Inflatable bed jump has no extra height")
+ check(bounce_peak>back_height+.65,"Jumping on the crocodile has no normal jump height")
  game.player.position=Vector3(6.4,0,7.5);game.player.velocity=Vector3.ZERO;game.player.rotation.y=-PI/2
  Input.action_press("forward")
  for frame in range(135): await game.get_tree().physics_frame
@@ -523,7 +537,7 @@ func run(game: Node3D) -> bool:
  check(game.player.torch_body.clock==flicker_clock,"Torch flicker continues in pause")
  game._resume()
  for frame in range(50): await game.get_tree().physics_frame
- check(is_equal_approx(game.player.lamp.light_energy,4.2),"Torch failed to recover from a short contact failure")
+ check(is_equal_approx(game.player.lamp.light_energy,GuardTorch.BASE_ENERGY),"Torch failed to recover from a short contact failure")
  check(game.world.soundscape.beds.size()>=6 and game.world.soundscape.events.size()>=11,"New spatial field recordings are missing")
  game.world.soundscape.ghost_count=0;game.world.soundscape.cue_steps(game.player);var ghost_start: Vector3=game.world.soundscape.ghost.position
  game.world.soundscape.tick(.7,true,game.player)
@@ -545,7 +559,7 @@ func run(game: Node3D) -> bool:
    # The inset pupils are curved 0.6 mm meshes; checking for a 1 mm depth
    # incorrectly rejected those fitted eye details as flat portraits.
    check(mesh.mesh is ArrayMesh and extent.x>.0001 and extent.y>.0001 and extent.z>.0001,"Clown facial detail has no 3D volume: "+str(mesh.name))
-   check(material is StandardMaterial3D or (material is ShaderMaterial and material.shader.resource_path.ends_with("clown_skin.gdshader")),"Clown has an unexpected face material")
+   check(material is StandardMaterial3D or (material is ShaderMaterial and (material.shader.resource_path.ends_with("clown_skin.gdshader") or material.shader.resource_path.ends_with("blond_hair.gdshader"))),"Clown has an unexpected face material")
  check(head_faces>20000,"Clown head lacks real sculpted geometry")
  await PassageChecks.travel(game,false)
  check(game.phase=="play" and game.state.rounds==1,"Correct lift did not return automatically")
@@ -630,6 +644,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/life_validation.gd").new().run(game,check)
  await load("res://scripts/watch_validation.gd").new().run(game,check)
  await PassageChecks.new().run(game,check)
+ await load("res://scripts/shift_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

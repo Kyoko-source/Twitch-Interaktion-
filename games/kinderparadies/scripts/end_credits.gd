@@ -28,6 +28,7 @@ var skip_pending:=false
 var party_skip_released:=false
 var hold_started_at:=-1
 var party_started_at:=-1
+var album_exposed:=false
 
 func build(game: Node3D, number: int=2) -> void:
  g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -114,6 +115,9 @@ func tick(delta: float) -> void:
   if clock>=.85 and not car_started:car_started=true;escape_audio.play()
  if afterglow:
   afterglow.tick(delta);black.color.a=afterglow.shade_alpha()
+  if not album_exposed and afterglow.clock>=2.1:
+   album_exposed=true
+   if not g.ending_preview:g.album.capture(ending_number,afterglow.camera)
   if afterglow is PatrolPartyOutro:
    if music.playing:music.stop()
    word.modulate.a=(1.-black.color.a)*.94
