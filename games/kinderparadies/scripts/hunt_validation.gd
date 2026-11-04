@@ -7,12 +7,13 @@ func advance(game: Node3D,seconds: float) -> void:
 
 func walk(game: Node3D,to: Vector3,maximum: int=700) -> bool:
  var player: NightGuard=game.player;player.velocity=Vector3.ZERO;player.active=true
- player.rotation.y=atan2(-(to.x-player.position.x),-(to.z-player.position.z));Input.action_press("forward")
+ # Sprint the real lure route: standing through three contacts is now fatal.
+ player.rotation.y=atan2(-(to.x-player.position.x),-(to.z-player.position.z));Input.action_press("forward");Input.action_press("sprint")
  for i in range(maximum):
   await game.get_tree().physics_frame
   game.world.horse_hunt.tick(1.0/60.0,true,player)
   if Vector2(player.position.x,player.position.z).distance_to(Vector2(to.x,to.z))<.17:break
- Input.action_release("forward");player.active=false;player.velocity=Vector3.ZERO
+ Input.action_release("forward");Input.action_release("sprint");player.active=false;player.velocity=Vector3.ZERO
  return Vector2(player.position.x,player.position.z).distance_to(Vector2(to.x,to.z))<.25
 
 func run(game: Node3D,verify: Callable) -> void:

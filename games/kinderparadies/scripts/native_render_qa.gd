@@ -6,6 +6,22 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--horse-damage-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  game.state.current=HorseHunt.ID;game._build_world(HorseHunt.ID)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-7.9,0,-25.5),Vector3(-7.9,1.5,-29.65))
+  var hunt: HorseHunt=game.world.horse_hunt
+  hunt.head=Vector3(-7.9,2.03,-26.5)
+  for hit in range(1,3):
+   hunt._catch(game.player);hunt.tick(1.06,true,game.player);hunt.present_contact(true)
+   hunt.horse.mask.hide()
+   await capture(game,output,"horse-injury-%d"%hit)
+  hunt._catch(game.player);hunt.tick(.17,true,game.player);hunt.present_contact(true)
+  await capture(game,output,"horse-fatal-approach")
+  hunt.tick(.19,true,game.player);hunt.present_contact(true)
+  await capture(game,output,"horse-fatal-open-mouth")
+  game._quit();return
  if "--tactile-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()

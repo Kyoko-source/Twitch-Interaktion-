@@ -14,7 +14,9 @@ var query:=PhysicsShapeQueryParameters3D.new()
 
 func setup(world: PlayWorld) -> void:
  w=world;graph.region=REGION;graph.cell_size=Vector2.ONE*CELL;graph.diagonal_mode=AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES;graph.update();graph.fill_solid_region(REGION,true)
- shape.radius=.34;shape.height=1.7;query.shape=shape;query.collision_mask=1;query.margin=.002
+ # Match the guard's walking clearance. The previous wider probe split the
+ # washroom approach from the hall even though the player could walk through.
+ shape.radius=.28;shape.height=1.7;query.shape=shape;query.collision_mask=1;query.margin=.002
 
 func cell_point(id: Vector2i) -> Vector3:
  return Vector3((id.x+.5)*CELL,float(heights.get(id,0)),(id.y+.5)*CELL)

@@ -113,3 +113,9 @@ Die browseroptimierte Hand ist eine reduzierte Kopie desselben Originalmodells.
 Atmung: Joseph SARDIN / BigSoundBank, bereits oben als CC0 aufgefuehrt.
 Kleidungsgeraeusche: vorhandene Kenney-Impact-Aufnahmen, CC0 (Kenney.txt).
 Die Uniform nutzt weiterhin die bereits aufgefuehrte Poly-Haven-Stofftextur.
+
+PFERDEANGRIFF (4.0.1)
+Der blutunterlaufene Bildschirmrand und die toedliche Angriffsanimation sind
+Projektarbeit. Das finale Kreischen ist eine neue Tonbearbeitung vorhandener
+Ogrebane-Aufnahmen aus dem Monster Sound Effects Pack, CC0 1.0.
+https://opengameart.org/content/monster-sound-effects-pack

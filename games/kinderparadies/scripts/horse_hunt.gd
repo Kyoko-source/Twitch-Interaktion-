@@ -2,6 +2,8 @@ class_name HorseHunt
 extends Node3D
 
 signal resolved
+signal fatal_started
+signal killed
 const ID:="horse_clown_hunt"
 const TEST_CODE:="07120712"
 const CLUE:="Pferde mögen keine Clowns"
@@ -46,6 +48,14 @@ var catch_audio: AudioStreamPlayer
 var catch_view: Node3D
 var catch_mask: Node3D
 var catch_jaw: Node3D
+const FATAL_SCREAM:="res://assets/encounter-v401/horse-final-scream.wav"
+const MAX_HITS:=3
+var injury_layer: CanvasLayer
+var injury_screen: ColorRect
+var injury_material: ShaderMaterial
+var injury_strength:=0.0
+var fatal_announced:=false
+var catch_sounded:=false
 
 func build(world: PlayWorld) -> void:
  w=world;name="HorseAndClownEncounter";horse=w.room_horror.creature
@@ -54,10 +64,14 @@ func build(world: PlayWorld) -> void:
  if AudioServer.get_bus_index("Interior")>=0:scream.bus="Interior"
  catch_audio=AudioStreamPlayer.new();catch_audio.name="HorseContactScream";catch_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;catch_audio.stream=ScareBank.flat("vent_strike");catch_audio.volume_db=-3;add_child(catch_audio)
  music=AudioStreamPlayer.new();music.name="MusicBoxChase";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
+ injury_layer=CanvasLayer.new();injury_layer.name="HorseInjury";injury_layer.layer=0;add_child(injury_layer)
+ injury_screen=ColorRect.new();injury_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);injury_screen.mouse_filter=Control.MOUSE_FILTER_IGNORE;injury_layer.add_child(injury_screen)
+ injury_material=ShaderMaterial.new();injury_material.shader=load("res://assets/encounter-v401/bloodshot.gdshader");injury_screen.material=injury_material;injury_screen.hide()
 
 func configure(id: String) -> void:
  music.stop();music_gain=0;music_offset=0;music.volume_db=-60
  enabled=id==ID;phase="emerging" if enabled else "idle"
+ catch_count=0;injury_strength=0.;fatal_announced=false;injury_material.set_shader_parameter("injury",0.);injury_screen.hide()
  w.passages.set_red_locked(enabled)
  if not enabled:return
  horse.clock=0;horse.pose(0);head=horse.mask.global_position;head_rotation=horse.mask.rotation
@@ -72,7 +86,11 @@ func red_locked() -> bool:
 func tick(delta: float,active: bool,player: NightGuard) -> void:
  _music(delta,active)
  scream.stream_paused=not active;warning.stream_paused=not active;catch_audio.stream_paused=not active
- if not active or not enabled or phase=="resolved":return
+ if not active or not enabled:return
+ var injury_target:=0. if phase in ["resolved","dead"] else .36 if catch_count==1 else .82 if catch_count>=2 else 0.
+ injury_strength=move_toward(injury_strength,injury_target,delta*1.7)
+ injury_material.set_shader_parameter("injury",injury_strength);injury_material.set_shader_parameter("impact",shock)
+ if phase in ["resolved","dead"]:return
  clock+=delta;phase_clock+=delta;shock=move_toward(shock,0,delta*2.5);catch_cooldown=maxf(0,catch_cooldown-delta)
  navigation.tick(player)
  if not announced:
@@ -90,6 +108,11 @@ func tick(delta: float,active: bool,player: NightGuard) -> void:
   _catch_pose(player)
   if phase_clock>=1.05:
    catch_view.hide();horse.mask.show();catch_audio.stop();phase="recoiling";phase_clock=0;recoil_left=2.8;retreat_index=trace.size()-2
+ elif phase=="fatal":
+  if not fatal_announced:fatal_announced=true;fatal_started.emit()
+  _catch_pose(player)
+  if phase_clock>=1.18:
+   phase="dead";catch_view.hide();catch_audio.stop();music.stop();music_gain=0.;killed.emit()
  elif phase=="recoiling":_recoil(delta)
  elif phase=="rejoining":_rejoin(delta)
  elif phase=="clown":
@@ -103,11 +126,11 @@ func tick(delta: float,active: bool,player: NightGuard) -> void:
 func _music(delta: float,active: bool) -> void:
  music.stream_paused=not active
  if not active:return
- var wanted:=enabled and phase!="resolved"
+ var wanted:=enabled and phase not in ["resolved","dead"]
  if wanted and not music.playing:
   music.play(music_offset);music_offset=0
  # Leave space for the horse's scream and the clown's attack.
- var target:=db_to_linear(-25 if phase in ["catch","clown"] else -16) if wanted else 0.0
+ var target:=db_to_linear(-32 if phase=="fatal" else -25 if phase in ["catch","clown"] else -16) if wanted else 0.0
  music_gain=move_toward(music_gain,target,delta*.22)
  music.volume_db=linear_to_db(maxf(.001,music_gain))
  if not wanted and music_gain<=0:music.stop()
@@ -165,11 +188,15 @@ func _follow(delta: float,player: NightGuard) -> void:
  _remember()
 
 func _catch(player: NightGuard) -> void:
- phase="catch";phase_clock=0;catch_count+=1;catch_cooldown=6;shock=1;warning.stop();_remember(true)
+ catch_count=mini(MAX_HITS,catch_count+1);phase="fatal" if catch_count>=MAX_HITS else "catch";phase_clock=0;catch_cooldown=6;shock=1;warning.stop();_remember(true)
+ catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("vent_strike");catch_audio.pitch_scale=1.;catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
+ catch_sounded=false
+ if phase=="fatal":fatal_announced=true;fatal_started.emit()
  horse.mask.hide();_catch_pose(player)
 
 func present_contact(visible: bool) -> void:
- if is_instance_valid(catch_view):catch_view.visible=visible and phase=="catch"
+ if is_instance_valid(catch_view):catch_view.visible=visible and phase in ["catch","fatal"]
+ injury_screen.visible=visible and enabled and injury_strength>.001 and phase!="dead"
 
 func _catch_pose(player: NightGuard) -> void:
  if not is_instance_valid(catch_view):
@@ -178,12 +205,19 @@ func _catch_pose(player: NightGuard) -> void:
   catch_jaw=catch_mask.find_child("JawHinge",true,false) as Node3D
   var fill:=OmniLight3D.new();fill.position=Vector3(.28,.18,-.35);fill.light_color=Color("bfc6b3");fill.light_energy=.9;fill.omni_range=4;catch_view.add_child(fill)
  catch_view.show();catch_view.global_transform=player.camera.global_transform
- var lunge:=smoothstep(.035,.20,phase_clock);var withdraw:=smoothstep(.72,1.05,phase_clock)
- catch_mask.position=Vector3(.06+sin(phase_clock*35)*.018,.20,lerpf(lerpf(-3.0,-1.08,lunge),-3.0,withdraw))
- catch_mask.rotation=Vector3(-.98+sin(phase_clock*29)*.025,PI-.28+sin(phase_clock*23)*.035,-.10+sin(phase_clock*31)*.025)
- if catch_jaw:catch_jaw.rotation.x=-.23-.50*lunge*(1-withdraw)
+ var fatal:=phase=="fatal"
+ var lunge:=smoothstep(.035,.20 if not fatal else .26,phase_clock);var withdraw:=0. if fatal else smoothstep(.72,1.05,phase_clock)
+ var jitter:=1. if player.motion else 0.
+ catch_mask.scale=Vector3.ONE*(.82 if fatal else .68)
+ catch_mask.position=Vector3(.04+sin(phase_clock*35)*.018*jitter,.20,lerpf(lerpf(-3.2,-1.34 if fatal else -1.08,lunge),-3.0,withdraw))
+ catch_mask.rotation=Vector3(lerpf(-.98,.15,lunge) if fatal else -.98,PI+lerpf(-.28,.08,lunge) if fatal else PI-.28,-.10)
+ catch_mask.rotation+=Vector3(sin(phase_clock*29)*.025,sin(phase_clock*23)*.035,sin(phase_clock*31)*.025)*jitter
+ if catch_jaw:catch_jaw.rotation.x=-.23-(1.12 if fatal else .50)*lunge*(1-withdraw)
  shock=maxf(shock,.85*(1-withdraw))
- if phase_clock>=.045 and phase_clock<.3 and not catch_audio.playing:ScareBank.play_flat(catch_audio)
+ if phase_clock>=.045 and not catch_sounded:
+  catch_sounded=true
+  if fatal:catch_audio.play()
+  else:ScareBank.play_flat(catch_audio)
 
 func _recoil(delta: float) -> void:
  var remaining:=minf(delta*4.5,recoil_left)
@@ -280,7 +314,7 @@ func serialize() -> Dictionary:
  var poses: Array=[];var breadcrumbs: Array=[]
  for i in range(trace.size()):poses.append(vector_array(trace[i])+vector_array(rotations[i]))
  for item in trail:breadcrumbs.append(vector_array(item.foot)+vector_array(item.head)+[item.low])
- return {"version":1,"phase":phase,"clock":clock,"phase_clock":phase_clock,"head":vector_array(head),"rotation":vector_array(head_rotation),"trace":poses,"trail":breadcrumbs,"trail_index":trail_index,"nav_route":Array(nav_route).map(func(p):return vector_array(p)),"nav_index":nav_index,"retreat_index":retreat_index,"clown_clock":clown_clock,"clown_start":vector_array(clown_start),"clown_target":vector_array(clown_target),"screamed":screamed,"announced":announced,"low_head":low_head,"sound_position":scream.get_playback_position(),"sound_playing":scream.playing,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"recoil_left":recoil_left,"rejoin_index":rejoin_index,"catch_sound_position":catch_audio.get_playback_position(),"catch_sound_playing":catch_audio.playing,"music_position":music_offset if music_offset>0 else music.get_playback_position(),"music_gain":music_gain}
+ return {"version":2,"phase":phase,"clock":clock,"phase_clock":phase_clock,"head":vector_array(head),"rotation":vector_array(head_rotation),"trace":poses,"trail":breadcrumbs,"trail_index":trail_index,"nav_route":Array(nav_route).map(func(p):return vector_array(p)),"nav_index":nav_index,"retreat_index":retreat_index,"clown_clock":clown_clock,"clown_start":vector_array(clown_start),"clown_target":vector_array(clown_target),"screamed":screamed,"announced":announced,"low_head":low_head,"sound_position":scream.get_playback_position(),"sound_playing":scream.playing,"catch_count":catch_count,"injury_strength":injury_strength,"catch_cooldown":catch_cooldown,"recoil_left":recoil_left,"rejoin_index":rejoin_index,"catch_sound_started":catch_sounded,"catch_sound_position":catch_audio.get_playback_position(),"catch_sound_playing":catch_audio.playing,"music_position":music_offset if music_offset>0 else music.get_playback_position(),"music_gain":music_gain}
 
 static func valid_vector(value: Variant) -> bool:
  if not value is Array or value.size()!=3:return false
@@ -292,8 +326,9 @@ static func read_vector(value: Array) -> Vector3:
  return Vector3(float(value[0]),float(value[1]),float(value[2]))
 
 func restore(data: Variant) -> void:
- if not enabled or not data is Dictionary or data.get("version",0)!=1:return
- if data.get("phase","") not in ["emerging","following","catch","recoiling","rejoining","clown","retreating","resolved"]:return
+ if not enabled or not data is Dictionary:return
+ if data.get("version",0)!=1 and data.get("version",0)!=2:return
+ if data.get("phase","") not in ["emerging","following","catch","fatal","recoiling","rejoining","clown","retreating","resolved"]:return
  for key in ["head","rotation","clown_start","clown_target"]:
   if not valid_vector(data.get(key,[])):return
  for key in ["clock","phase_clock","clown_clock","sound_position","music_position","music_gain"]:
@@ -316,6 +351,11 @@ func restore(data: Variant) -> void:
   if not (value is float or value is int) or not is_finite(float(value)) or float(value)<0:return
  if float(data.get("catch_count",0))!=float(int(data.get("catch_count",0))) or float(data.get("catch_count",0))>100000:return
  if float(data.get("rejoin_index",0))!=float(int(data.get("rejoin_index",0))) or int(data.get("rejoin_index",0))>poses.size() or float(data.get("recoil_left",0))>2.801 or float(data.get("catch_cooldown",0))>6.001:return
+ var stored_injury=data.get("injury_strength",0.)
+ if not (stored_injury is float or stored_injury is int) or not is_finite(float(stored_injury)) or float(stored_injury)<0 or float(stored_injury)>1:return
+ if data.get("version",1)==2:
+  var hits:=int(data.get("catch_count",0))
+  if hits>MAX_HITS or (str(data.phase)=="fatal")!=(hits==MAX_HITS):return
  phase=data.phase;clock=maxf(0,float(data.clock));phase_clock=maxf(0,float(data.phase_clock));head=read_vector(data.head);head_rotation=read_vector(data.rotation)
  trace.clear();rotations.clear();trail.clear();nav_route.clear()
  for row in poses:trace.append(read_vector(row.slice(0,3)));rotations.append(read_vector(row.slice(3,6)))
@@ -323,10 +363,11 @@ func restore(data: Variant) -> void:
  for row in routes:nav_route.append(read_vector(row))
  trail_index=int(data.trail_index);nav_index=int(data.nav_index);retreat_index=int(data.retreat_index);clown_clock=clampf(float(data.clown_clock),-1,2)
  clown_start=read_vector(data.clown_start);clown_target=read_vector(data.clown_target);screamed=data.get("screamed",false)==true;announced=data.get("announced",false)==true;low_head=data.get("low_head",false)==true
- catch_count=int(data.get("catch_count",0));catch_cooldown=float(data.get("catch_cooldown",0));recoil_left=float(data.get("recoil_left",0));rejoin_index=int(data.get("rejoin_index",0))
+ catch_count=mini(2 if data.get("version",1)==1 else MAX_HITS,int(data.get("catch_count",0)));injury_strength=float(stored_injury) if data.get("version",1)==2 else .36 if catch_count==1 else .82 if catch_count>=2 else 0.;fatal_announced=false;injury_material.set_shader_parameter("injury",injury_strength);catch_cooldown=float(data.get("catch_cooldown",0));recoil_left=float(data.get("recoil_left",0));rejoin_index=int(data.get("rejoin_index",0))
  if is_instance_valid(catch_view):catch_view.hide()
- horse.mask.visible=phase!="catch";catch_audio.stop()
- if phase=="catch" and data.get("catch_sound_playing",false)==true and float(data.get("catch_sound_position",0))<catch_audio.stream.get_length():catch_audio.play(float(data.get("catch_sound_position",0)))
+ catch_sounded=data.get("catch_sound_started",float(data.get("phase_clock",0))>=.045)==true
+ horse.mask.visible=phase not in ["catch","fatal"];catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("vent_strike");catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
+ if phase in ["catch","fatal"] and data.get("catch_sound_playing",false)==true and float(data.get("catch_sound_position",0))<catch_audio.stream.get_length():catch_audio.play(float(data.get("catch_sound_position",0)))
  music.stop();music_offset=fposmod(maxf(0,float(data.get("music_position",clock))),music.stream.get_length());music_gain=clampf(float(data.get("music_gain",0)),0,db_to_linear(-16))
  if phase=="resolved":music_offset=0;music_gain=0
  w.annex.scare=clown_clock>=0;w.passages.set_red_locked(red_locked())
@@ -336,4 +377,4 @@ func restore(data: Variant) -> void:
  if data.get("sound_playing",false)==true and float(data.sound_position)<scream.stream.get_length():scream.play(maxf(0,float(data.sound_position)))
 
 func snapshot() -> Dictionary:
- return {"enabled":enabled,"phase":phase,"locked":red_locked(),"clock":clock,"head":vector_array(head),"trace_points":trace.size(),"neck_sections":horse.sections.size(),"trail_points":trail.size(),"trail_index":trail_index,"nav_index":nav_index,"nav_points":nav_route.size(),"navigation_ready":navigation.ready if navigation else false,"navigation_cells":navigation.cells.size() if navigation else 0,"retreat_index":retreat_index,"screamed":screamed,"audio":scream.playing,"audio_paused":scream.stream_paused,"clown_clock":clown_clock,"catch_count":catch_count,"catch_cooldown":catch_cooldown,"catch_audio":catch_audio.playing,"catch_paused":catch_audio.stream_paused,"closeup":is_instance_valid(catch_view) and catch_view.visible,"music":music.playing,"music_paused":music.stream_paused,"music_track":music.stream.resource_path,"music_position":music.get_playback_position(),"music_gain":music.volume_db}
+ return {"enabled":enabled,"phase":phase,"locked":red_locked(),"clock":clock,"head":vector_array(head),"trace_points":trace.size(),"neck_sections":horse.sections.size(),"trail_points":trail.size(),"trail_index":trail_index,"nav_index":nav_index,"nav_points":nav_route.size(),"navigation_ready":navigation.ready if navigation else false,"navigation_cells":navigation.cells.size() if navigation else 0,"retreat_index":retreat_index,"screamed":screamed,"audio":scream.playing,"audio_paused":scream.stream_paused,"clown_clock":clown_clock,"catch_count":catch_count,"injury_strength":injury_strength,"catch_cooldown":catch_cooldown,"catch_audio":catch_audio.playing,"catch_paused":catch_audio.stream_paused,"closeup":is_instance_valid(catch_view) and catch_view.visible,"injury_visible":injury_screen.visible,"fatal":phase=="fatal","jaw":catch_jaw.rotation.x if is_instance_valid(catch_jaw) else 0.,"catch_track":catch_audio.stream.resource_path,"music":music.playing,"music_paused":music.stream_paused,"music_track":music.stream.resource_path,"music_position":music.get_playback_position(),"music_gain":music.volume_db}

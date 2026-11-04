@@ -123,6 +123,7 @@ func _connect_world(anomaly: String) -> void:
  _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.horse_hunt.resolved.connect(_horse_resolved)
+ world.horse_hunt.fatal_started.connect(_horse_attack_started);world.horse_hunt.killed.connect(_horse_killed)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
  _sync_parking_key()
@@ -543,8 +544,8 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.acoustics.tick(delta,phase=="play",player)
- world.horse_hunt.tick(delta,phase=="play" and archive.ending!="recording",player)
- world.horse_hunt.present_contact(player.camera.current and phase in ["play","pause","inventory","settings","help","code"] and archive.ending!="recording")
+ world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
+ world.horse_hunt.present_contact(player.camera.current and phase in ["play","horse_death","pause","inventory","settings","help","code"] and archive.ending!="recording")
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
  world.backstage.tick(delta,phase=="play",player)
@@ -656,6 +657,17 @@ func _door_death(red: bool) -> void:
  archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
  door_failure.start_patrol(world,player.camera);_telemetry()
  await door_failure.finished
+ await _wake_after_death()
+
+func _horse_attack_started() -> void:
+ if phase!="play":return
+ survived=state.streak;phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
+ archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
+
+func _horse_killed() -> void:
+ if phase=="horse_death":await _wake_after_death()
+
+func _wake_after_death() -> void:
  if phase=="quitting": return
  phase="death";await _fade(1,.15)
  death_label.text=AfterPlayLanguage.t("%d Runden überlebt"%survived);death_label.modulate.a=0;death_label.show()
@@ -713,7 +725,7 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
- if phase in ["archive_scare","ending","failure","death","lift","arrival"]:
+ if phase in ["archive_scare","ending","failure","horse_death","death","lift","arrival"]:
   if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>end_credits.title_length(): end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return

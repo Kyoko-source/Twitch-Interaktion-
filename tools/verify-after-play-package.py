@@ -95,6 +95,8 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert any(b'assets/party-v385/party.mp3' in name for name in native_names)
             assert not any(b'assets/party-v385/party-web.ogg' in name for name in native_names)
             assert any(b'assets/tactile-v400/interaction-hand.glb' in name for name in native_names)
+            assert any(b'assets/encounter-v401/horse-final-scream.wav' in name for name in native_names)
+            assert any(b'assets/encounter-v401/bloodshot.gdshader' in name for name in native_names)
             assert not any(b'assets/tactile-v400/interaction-hand-web.glb' in name for name in native_names)
             guide = z.read('STARTEN.txt').decode('utf-8')
             assert all(spoiler not in guide for spoiler in ['0712', '6428', 'clock_reverse', 'tube_watcher'])
@@ -113,6 +115,8 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                              if p.name not in ['catalog.json', 'memories.json']]
             assert pck[:4] == b'GDPC' and struct.unpack_from('<I', pck, 4)[0] == 3
             packed_names = packed_paths(pck)
+            for required in [b'assets/encounter-v401/horse-final-scream.wav', b'assets/encounter-v401/bloodshot.gdshader']:
+                assert any(required in name for name in packed_names), required
             for required in [b'scripts/guard_actions.gd', b'scripts/guard_presence.gd', b'scripts/paper_craft.gd', b'scripts/tactile_world.gd', b'assets/tactile-v400/interaction-hand-web.glb']:
                 assert any(required in name for name in packed_names), required
             assert not any(b'assets/tactile-v400/interaction-hand.glb' in name for name in packed_names)

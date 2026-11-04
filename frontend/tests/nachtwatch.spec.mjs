@@ -410,8 +410,8 @@ test('v3.7.0 lookout and transparent party loop are physically traversable and r
  await expect.poll(async()=>(await state(page)).crouching).toBe(false);expect((await state(page)).streak).toBe(0);expect(faults).toEqual([]);
 });
 
-test('v3.6.1 horse contact screams, survives pause and reload, then continues the same pursuit without death',async({page})=>{
- test.setTimeout(180000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+test('v4.0.1 horse injuries survive reload and the third contact kills and resets the shift',async({page})=>{
+ test.setTimeout(240000);const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
  await begin(page);await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'choose',red:false});await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');expect((await state(page)).streak).toBe(1);
  await qa(page,{op:'warp',x:-8.7,z:-9.9,yaw:Math.PI/2,pitch:-.22});await expect.poll(async()=>(await state(page)).target).toBe('archive_door');await page.keyboard.press('e');await expect.poll(async()=>(await state(page)).phase).toBe('code');
  await page.mouse.click(275,220);await page.keyboard.type('07120712',{delay:30});await expect.poll(async()=>(await state(page)).archive_input).toBe('07120712');await page.keyboard.press('Enter');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
@@ -419,6 +419,7 @@ test('v3.6.1 horse contact screams, survives pause and reload, then continues th
  await expect.poll(async()=>(await state(page)).horse_hunt.catch_audio,{timeout:45000,intervals:[70]}).toBe(true);
  await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
  const frozen=(await state(page)).horse_hunt;expect(frozen.catch_count).toBe(1);expect(frozen.closeup).toBe(true);expect(frozen.catch_paused).toBe(true);
+ expect(frozen.injury_strength).toBeGreaterThan(0);expect(frozen.injury_strength).toBeLessThanOrEqual(.36);
  await page.waitForTimeout(300);expect((await state(page)).horse_hunt.clock).toBe(frozen.clock);await page.screenshot({path:join(tmpdir(),'after-play-v361-web-horse-catch.png')});
  await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
  expect((await state(page)).streak).toBe(1);expect((await state(page)).anomaly).toBe('horse_clown_hunt');expect((await state(page)).horse_hunt.catch_count).toBe(1);expect((await state(page)).passage.red_locked).toBe(true);
@@ -426,6 +427,16 @@ test('v3.6.1 horse contact screams, survives pause and reload, then continues th
  await expect.poll(async()=>(await state(page)).horse_hunt.phase,{timeout:10000,intervals:[70]}).toBe('following');expect((await state(page)).horse_hunt.catch_count).toBe(1);
  await expect.poll(async()=>(await state(page)).horse_hunt.catch_count,{timeout:15000,intervals:[70]}).toBe(2);
  expect((await state(page)).phase).toBe('play');expect((await state(page)).streak).toBe(1);expect((await state(page)).passage.red_locked).toBe(true);expect(faults).toEqual([]);
+ await expect.poll(async()=>(await state(page)).horse_hunt.injury_strength).toBeGreaterThan(.7);
+ await page.screenshot({path:join(tmpdir(),'after-play-v401-web-second-injury.png')});
+ await expect.poll(async()=>(await state(page)).phase,{timeout:20000,intervals:[50]}).toBe('horse_death');
+ const final=(await state(page)).horse_hunt;
+ expect(final.catch_count).toBe(3);expect(final.catch_track).toContain('horse-final-scream.wav');expect((await state(page)).streak).toBe(0);
+ await expect.poll(async()=>(await state(page)).phase,{timeout:8000,intervals:[70]}).toBe('death');
+ await expect.poll(async()=>(await state(page)).death_text).toBe('1 Runden überlebt');
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000,intervals:[70]}).toBe('play');
+ const fresh=await state(page);expect(fresh.streak).toBe(0);expect(fresh.anomaly).toBe('none');expect(fresh.horse_hunt.catch_count).toBe(0);expect(fresh.horse_hunt.injury_visible).toBe(false);expect(fresh.position[2]).toBeGreaterThan(18);
+ expect(faults).toEqual([]);
 });
 
 test('v3.5.7 stage front is walkable without jumping and the moved car leaves the party entrance clear',async({page})=>{

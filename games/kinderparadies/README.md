@@ -1,5 +1,31 @@
 # After Play — Kinderparadies
 
+## Drei Treffer bei der Pferdeverfolgung (4.0.1)
+
+Der erste Kontakt hinterlässt einen leichten blutunterlaufenen Bildschirmrand,
+der zweite verstärkt ihn. Die Bildmitte bleibt frei. Trefferzahl und Darstellung
+werden gespeichert; ältere Spielstände mit beliebig vielen Kontakten werden
+auf höchstens zwei Verletzungen übernommen. Die ersten beiden Schreckmomente
+behalten Rückzug, Wiederaufnahme der Verfolgung und sechs Sekunden Abstand.
+Der Clown kann die Verfolgung weiterhin lösen und die rote Tür freigeben.
+
+Der dritte Kontakt startet einen eigenen tödlichen Angriff: Das Pferd richtet
+den Kopf auf, reißt das Maul weit auf und stößt ein eigenes schrilles Kreischen
+aus. Bewegung und Interaktionen sind währenddessen gesperrt. Danach folgen
+Schwarzblende, überlebte Rundgänge und Erwachen im ursprünglichen Fahrstuhl bei
+Rundgang eins. Ein sofortiger Neustart des Spiels lädt ebenfalls diesen Neubeginn.
+Verfolgungsmusik und Kreischen stoppen beim tödlichen Einschlag. Außerhalb der
+Anomalie greift das Referenzpferd weiterhin nicht an.
+
+Die Wegsuche nutzt denselben Kapselradius wie der Spieler. Der bisher breitere
+Prüfkörper hatte den Zugang zur Toilettenanlage fälschlich als versperrt erkannt.
+Die Prüfung der vollständigen Köderroute läuft mit echtem Sprinten und bleibt
+mit höchstens zwei Treffern bis zum Küchenclown spielbar.
+
+Prüfungen: `--self-test --catch-only`, `--render-qa --horse-damage-qa` sowie
+Playwright `v4.0.1 horse injuries` (Code, drei echte Kontakte, Pause, Neuladen,
+Schadenssteigerung, Tod und Fahrstuhlrückkehr in Edge bei 1920 × 1080).
+
 ## Greifbare Interaktionen und Spielergefühl (4.0.0)
 
 Eine originale, durchgehend gewichtete Hand mit 17 Knochen bedient Türklinken,
