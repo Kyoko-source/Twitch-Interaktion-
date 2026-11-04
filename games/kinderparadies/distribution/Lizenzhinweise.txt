@@ -105,3 +105,11 @@ Fuer diesen Titel wurde keine kommerzielle Lizenz nachgewiesen. Seine Verwendung
 setzt voraus, dass After Play ausschliesslich nichtkommerziell und ohne Zahlungen
 oder Spenden fuer das Spiel bereitgestellt wird.
 Die oben genannten CC0-Lizenzen gelten nicht für diesen Musiktitel.
+
+INTERAKTIONEN UND SPIELERGERAEUSCHE (4.0.0)
+Die artikulierte Interaktionshand, Klinken, Schlosszylinder, Taster und
+Papiergeometrie wurden fuer After Play modelliert und programmiert.
+Die browseroptimierte Hand ist eine reduzierte Kopie desselben Originalmodells.
+Atmung: Joseph SARDIN / BigSoundBank, bereits oben als CC0 aufgefuehrt.
+Kleidungsgeraeusche: vorhandene Kenney-Impact-Aufnahmen, CC0 (Kenney.txt).
+Die Uniform nutzt weiterhin die bereits aufgefuehrte Poly-Haven-Stofftextur.

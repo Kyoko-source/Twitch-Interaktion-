@@ -26,7 +26,8 @@ var room_audio: AudioStreamPlayer
 var weather: HappylandWeather
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true,"strobe":true}
+var interaction_hit:=Vector3.ZERO
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true,"strobe":true,"hand_actions":true,"body_motion":.65,"body_audio":.55}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var captions: AfterPlayCaptions
@@ -108,6 +109,7 @@ func _build_world(anomaly: String) -> void:
  world_revision+=1;world_loading=false
  menu_reference_ready=false;world_build_count+=1
  if player: player.drop_prop()
+ if player and player.hands:player.hands.cancel()
  if world:
   if world.party:party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
   if world.chalk:chalk_drawing=world.chalk.serialize()
@@ -440,11 +442,11 @@ func _read_settings() -> void:
  var data=JSON.parse_string(saved)
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
- for key in ["fov","render_scale","ambience","voice","menu_music"]:
+ for key in ["fov","render_scale","ambience","voice","menu_music","body_motion","body_audio"]:
   var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
   var high:=100.0 if key=="fov" else 1.0
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
- for key in ["grain","vsync","invert_y","crosshair","strobe"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
+ for key in ["grain","vsync","invert_y","crosshair","strobe","hand_actions"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
  settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
  settings.language="en" if data.get("language","de")=="en" else "de"
  settings.subtitles=bool(data.get("subtitles",true));settings.sign_subtitles=bool(data.get("sign_subtitles",true))
@@ -476,6 +478,9 @@ func _apply_settings() -> void:
  if room_audio: room_audio.bus="NightAmbience"
  if menu_music: menu_music.bus="Master";menu_music.volume_db=linear_to_db(float(settings.menu_music))-9 if float(settings.menu_music)>0 else -80
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
+ player.presence.motion_amount=float(settings.body_motion);player.presence.sound_amount=float(settings.body_audio);player.hands.enabled=bool(settings.hand_actions)
+ if float(settings.body_audio)<=0:player.presence.breath.stop();player.presence.cloth.stop()
+ if not player.hands.enabled:player.hands.cancel()
  # Compatibility shadow maps need back-face rendering to avoid diagonal acne
  # on the crocodile and walls. Forward+ keeps its finer native bias.
  var compatibility=RenderingServer.get_current_rendering_method()=="gl_compatibility"
@@ -506,6 +511,9 @@ func _save(next_round: bool=false) -> void:
  _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
+ if player and player.presence:player.presence.set_active(phase=="play" and player.active)
+ if player and player.hands:player.hands.tick(delta,phase=="play")
+ if is_instance_valid(world) and world.tactile:world.tactile.tick(delta,phase=="play")
  if intro:intro.ticket.tick(delta,phase in ["arrival","play"])
  if is_instance_valid(world) and world.touch:world.touch.tick(delta,phase=="play")
  if weather:
@@ -610,7 +618,7 @@ func _target() -> String:
   if hit.is_empty(): break
   if hit.collider.get_meta("movement_hull",false):
    var excluded:=query.exclude;excluded.append(hit.collider.get_rid());query.exclude=excluded;continue
-  if hit.collider.has_meta("interaction"): return str(hit.collider.get_meta("interaction"))
+  if hit.collider.has_meta("interaction"):interaction_hit=hit.position;return str(hit.collider.get_meta("interaction"))
   break
  return ""
 
@@ -731,32 +739,38 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("notes"): _inventory("play");get_viewport().set_input_as_handled()
  if event.is_action_pressed("interact"):
   var target:=_target()
-  if target in ["red","green"]: _decide(target=="red")
-  elif target=="film_reel":
-   archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
-  elif target=="cinema_projector":
-   if world.film.playing: world.film.stop()
-   elif not archive.film_found: _announce("Auf dem Projektionstisch liegt eine alte Filmrolle.",4)
-   elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
-  elif target=="archive_recording": world.archive.finale.interact()
-  elif target=="life:photo": _show_booth_photo()
-  elif target=="memory_wall": _show_memory_wall()
-  elif target=="chalk_board": world.chalk.open(self)
-  elif target=="final_receipt": _announce(ShiftTicket.MESSAGE,7)
-  elif target=="reception_cctv": _open_watch()
-  elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
-  elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
-  elif target in ["archive_door","archive_lock"]: _open_archive_lock()
-  elif target=="parking_key":
-   archive.parking_key_found=true;_sync_parking_key();effect.play();_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
-  elif target=="party_control":
-   if world.party.interact():
-    _save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet · Systemneustart dauert 15 Minuten.",4)
-   else:_announce(world.party.reboot_text(),3)
-  elif target=="delivery_exit":
-   if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
-   else:world.backstage.interact_exit(player);_save()
-  elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
+  if not player.hands.kind.is_empty():return
+  if player.hands.begin(target,interaction_hit):player.hands.on_contact=func():
+   if phase=="play":_interact_target(target)
+  else:_interact_target(target)
+
+func _interact_target(target: String) -> void:
+ if target in ["red","green"]: _decide(target=="red")
+ elif target=="film_reel":
+  archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
+ elif target=="cinema_projector":
+  if world.film.playing: world.film.stop()
+  elif not archive.film_found: _announce("Auf dem Projektionstisch liegt eine alte Filmrolle.",4)
+  elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
+ elif target=="archive_recording": world.archive.finale.interact()
+ elif target=="life:photo": _show_booth_photo()
+ elif target=="memory_wall": _show_memory_wall()
+ elif target=="chalk_board": world.chalk.open(self)
+ elif target=="final_receipt": _announce(ShiftTicket.MESSAGE,7)
+ elif target=="reception_cctv": _open_watch()
+ elif target=="life:locked_wc": _announce(world.life.interact("locked_wc"),4)
+ elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
+ elif target in ["archive_door","archive_lock"]: _open_archive_lock()
+ elif target=="parking_key":
+  archive.parking_key_found=true;_sync_parking_key();effect.play();_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
+ elif target=="party_control":
+  if world.party.interact():
+   _save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet · Systemneustart dauert 15 Minuten.",4)
+  else:_announce(world.party.reboot_text(),3)
+ elif target=="delivery_exit":
+  if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
+  else:world.backstage.interact_exit(player);_save()
+ elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
 
 func _close_chalk() -> void:
  world.chalk.finish_stroke();_save();_resume()
@@ -855,6 +869,7 @@ func _telemetry() -> void:
   data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
   data.anomaly=state.current;data.controls=[]
   data.completed=state.completed
+  data.presence=player.presence.snapshot();data.hand_action=player.hands.snapshot()
   data.album=album.snapshot();data.touch=world.touch.snapshot();data.final_receipt={"visible":intro.ticket.paper.visible,"amount":intro.ticket.amount,"text":intro.ticket.text.text}
   data.startup=start_warning.snapshot() if is_instance_valid(start_warning) else {"visible":false}
   if is_instance_valid(start_warning):data.controls=data.startup.controls

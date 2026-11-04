@@ -2,6 +2,7 @@ extends RefCounted
 
 func press(game: Node3D) -> void:
  var event:=InputEventAction.new();event.action="interact";event.pressed=true;game._unhandled_input(event)
+ game.player.hands.tick(2.,true)
 
 func walk_aisles(game: Node3D, verify: Callable) -> void:
  game.player.active=true;game.player.rotation=Vector3.ZERO;game.player.set_crouch(false)

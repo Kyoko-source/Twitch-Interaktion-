@@ -1,5 +1,34 @@
 # After Play — Kinderparadies
 
+## Greifbare Interaktionen und Spielergefühl (4.0.0)
+
+Eine originale, durchgehend gewichtete Hand mit 17 Knochen bedient Türklinken,
+Taster und das Türterminal, nimmt Schlüssel und Zeitungen auf und führt den
+Parkplatzschlüssel zum Schloss. Aktionen werden beim Kontakt ausgeführt;
+erneutes E startet währenddessen keine zweite Aktion. Pause oder ein Wechsel
+der Welt verwirft eine noch nicht ausgeführte Aktion. Mit ausgeschalteten
+Handanimationen bleiben Interaktionen sofort verfügbar.
+
+Türklinken besitzen getrennte Federhebel, Rosetten, Schrauben und Schlüssellöcher;
+der Parkplatz bekommt einen drehbaren Zylinder, das Terminal einzelne Tasten
+und der Partytaster eine bewegliche Kappe. Zeitungen haben eine bedruckte
+Vorderseite, gealterte Rückseite und dünne Kanten. Die gebogene Kinozeitung
+behält ihre an den Sitz angepasste Form. Die Details erzeugen keine zusätzlichen
+Laufkollisionen. Die Browserhand verwendet eine reduzierte Version desselben
+Modells; nur das passende Modell wird je Plattform ausgeliefert.
+
+Nach Sprinten klingt die eigene Atmung allmählich ab. In beiden Krabbelstrecken
+reibt die Kleidung hörbar am Kunststoff, solange sich der Spieler bewegt.
+Eine gedämpfte Bewegung lässt die Ausrüstung beim Abbremsen leicht nachfedern.
+Die vorhandenen CC0-Aufnahmen werden wiederverwendet. Einstellungen für eigene
+Atmung/Kleidung, Körperbewegung und Handanimationen werden gespeichert und sind
+auf Deutsch und Englisch verfügbar. Die Geräusche sind normale Atmosphäre.
+
+Prüfungen: `--self-test --tactile-only` einschließlich Rundgangsverteilung,
+`--render-qa --tactile-qa` sowie Playwright `v4.0.0 tactile interactions`.
+Browserprüfung über das vorhandene Playwright/Edge-Setup, da kein Browser-Plugin
+zur Verfügung steht.
+
 ## Startfahrstuhl und Handy (3.9.1)
 
 Die ursprüngliche Kabine bleibt am bisherigen Ort. Gealterte Emaille-Paneele,

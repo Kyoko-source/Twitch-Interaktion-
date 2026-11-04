@@ -37,16 +37,19 @@ func run(game: Node3D,verify: Callable) -> void:
  guard.position=Vector3(-14.4,0,9.4);guard.camera.look_at(Vector3(-15.8,1.3,9.4));await game.get_tree().physics_frame
  verify.call(game._target()=="delivery_exit","Glass door cannot be opened with E")
  var event:=InputEventAction.new();event.action="interact";event.pressed=true;game._unhandled_input(event)
+ game.player.hands.tick(2.,true)
  verify.call(not b.exit_open,"Parking door opens without the collectible key")
  var key: Node3D=w.details.parking_key
  guard.position=key.global_position+key.global_basis.z*1.25;guard.position.y=0;guard.camera.look_at(key.global_position)
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  verify.call(game._target()=="parking_key","Key cannot be picked up from the centre hook")
  game._unhandled_input(event)
+ game.player.hands.tick(2.,true)
  verify.call(game.archive.parking_key_found and not key.visible and b.exit_key_owned,"Picking up key does not unlock door or remove key visual")
  var copy:=ArchiveState.new();verify.call(copy.restore(game.archive.serialize()) and copy.parking_key_found,"Collected parking key is lost on save/reload")
  guard.position=Vector3(-14.4,0,9.4);guard.camera.look_at(Vector3(-15.8,1.3,9.4));await game.get_tree().physics_frame
  game._unhandled_input(event)
+ game.player.hands.tick(2.,true)
  for frame in range(75):await game.get_tree().physics_frame
  verify.call(b.exit_open and b.exit_leaf.rotation.y>1.45 and game.phase=="play","Opening the glass door fails or ends the game before stepping outside")
  guard.active=true;guard.rotation.y=PI/2;Input.action_press("forward")

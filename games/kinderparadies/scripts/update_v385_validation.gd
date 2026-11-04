@@ -46,6 +46,7 @@ func run(g: Node3D,verify: Callable) -> void:
  await g.get_tree().physics_frame;await g.get_tree().physics_frame
  verify.call(g._target()=="party_control","Costume-room party switch is obstructed")
  var event:=InputEventAction.new();event.action="interact";event.pressed=true;g._unhandled_input(event)
+ g.player.hands.tick(2.,true)
  verify.call(party.enabled and party.audio.playing and party.lamps.size()==6,"E does not start the real song and party rig")
  await g.get_tree().physics_frame;await g.get_tree().physics_frame
  party.evaluate(12,false);var calm:=party.intensity

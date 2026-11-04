@@ -131,7 +131,7 @@ func _control() -> void:
  w.text(panel,"PARTY MODUS",Vector3(0,.18,.062),.072,Color("d4cfad"))
  status=w.text(panel,"AUS",Vector3(0,-.20,.062),.052,Color("bdba9c"))
  led=w.mat(Color("3f7e51"),null,.3);led.emission_enabled=true;led.emission=Color("4fff91");led.emission_energy_multiplier=.05
- var button:=w.sphere(panel,Vector3(0,-.01,.08),.086,led);button.scale.z=.3
+ var button:=w.sphere(panel,Vector3(0,-.01,.08),.086,led);button.name="PartyButtonCap";button.scale.z=.3
  var body:=StaticBody3D.new();body.set_meta("interaction","party_control");body.position=Vector3(0,0,.10);panel.add_child(body)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(.58,.62,.09);shape.shape=bounds;body.add_child(shape)
 

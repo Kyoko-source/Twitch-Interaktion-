@@ -32,6 +32,8 @@ var surface_name:="concrete"
 var last_step_variant:=-1
 var footstep_count:=0
 var equipment: GuardEquipment
+var presence: GuardPresence
+var hands: GuardActions
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -41,6 +43,8 @@ func _ready() -> void:
  lamp=SpotLight3D.new();lamp.light_color=Color("fff1cc");lamp.light_energy=4.2;lamp.spot_range=22;lamp.spot_angle=24;lamp.spot_angle_attenuation=1.1;lamp.shadow_enabled=true;lamp.shadow_bias=.025;lamp.position=Vector3(.18,-.1,-.12);camera.add_child(lamp)
  torch_body=GuardTorch.new();camera.add_child(torch_body);torch_body.build(lamp)
  equipment=GuardEquipment.new();add_child(equipment);equipment.build(self)
+ presence=GuardPresence.new();add_child(presence);presence.build(self)
+ hands=GuardActions.new();hands.build(self)
  step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=load(FootSurfaces.ROOT+"footstep_concrete_000.ogg");step_player.volume_db=-19;add_child(step_player)
  crawl_sound=load("res://assets/ambience/crawl-contact.wav")
  for surface in FootSurfaces.TYPES:
@@ -63,6 +67,8 @@ func release() -> void:
  active=false;velocity=Vector3.ZERO;camera.rotation.z=0;camera.fov=base_fov;step_player.stop()
  jump_buffer=0;coyote=0
  torch_body.hide()
+ if hands:hands.cancel()
+ if presence:presence.set_active(false)
  equipment.stop()
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
@@ -109,6 +115,7 @@ func _physics_process(delta: float) -> void:
  # Close jumping faces otherwise leave the narrow torch cone entirely. The
  # brief spill follows the existing scare pulse and returns to the normal beam.
  torch_body.tick(delta,lamp_on,fright,self)
+ presence.tick(delta);torch_body.position+=presence.offset+hands.torch_dip;torch_body.rotation+=presence.tilt
  equipment.tick(self,delta)
  for i in range(get_slide_collision_count()):
   var hit:=get_slide_collision(i);var body:=hit.get_collider()
@@ -174,6 +181,7 @@ func toggle_lamp() -> void:
 
 func reset_pose() -> void:
  torch_body.reset_motion()
+ presence.reset();hands.cancel()
  set_crouch(false)
  drop_prop()
  global_position=Vector3(-6.2,0,8.5);rotation.y=0;camera.rotation=Vector3.ZERO;velocity=Vector3.ZERO

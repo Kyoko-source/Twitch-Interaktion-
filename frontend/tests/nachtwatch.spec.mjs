@@ -24,6 +24,43 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v4.0.0 tactile interactions follow contact, pause and saved comfort settings',async({page})=>{
+ test.setTimeout(180000);
+ const faults=[];page.on('pageerror',e=>faults.push(e.message));page.on('console',m=>{if(m.type()==='error')faults.push(m.text());});
+ await begin(page);
+ expect((await state(page)).hand_action.enabled).toBe(true);
+ await qa(page,{op:'warp',x:-4,z:12,yaw:0,pitch:0});
+ await page.keyboard.down('Shift');await page.keyboard.down('w');
+ try{await expect.poll(async()=>(await state(page)).presence.effort,{timeout:18000}).toBeGreaterThan(.35);}finally{await page.keyboard.up('w');await page.keyboard.up('Shift');}
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ const fatigue=(await state(page)).presence.effort;
+ await page.waitForTimeout(500);expect((await state(page)).presence.effort).toBe(fatigue);
+ expect((await state(page)).presence.paused).toBe(true);
+ await clickControl(page,'Einstellungen');await clickControl(page,'Steuerung');
+ expect((await state(page)).controls.some(c=>c.text==='Körperbewegungen')).toBe(true);
+ await page.screenshot({path:join(tmpdir(),'after-play-v400-web-comfort.png')});
+ await clickControl(page,'Handanimationen');expect((await state(page)).settings.hand_actions).toBe(false);
+ await clickControl(page,'Handanimationen');expect((await state(page)).settings.hand_actions).toBe(true);
+ await clickControl(page,'Zurück');await page.keyboard.press('Escape');
+ await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await qa(page,{op:'warp',x:-7.89,z:-18,yaw:Math.PI/2,pitch:-.24});
+ await expect.poll(async()=>(await state(page)).target).toBe('parking_key');
+ const before=(await state(page)).hand_action.count;await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).parking_key).toBe(true);
+ expect((await state(page)).hand_action.count).toBe(before+1);
+ await page.screenshot({path:join(tmpdir(),'after-play-v400-web-key.png')});
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ await qa(page,{op:'warp',x:-4.3,z:-10.8,yaw:0,pitch:-.2});
+ await expect.poll(async()=>(await state(page)).target).toBe('green');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).passage.open[0]).toBe(true);
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ await page.keyboard.press('Escape');await clickControl(page,'Einstellungen');await clickControl(page,'Steuerung');await clickControl(page,'Handanimationen');
+ await page.reload();await waitForMenu(page);
+ expect((await state(page)).settings.hand_actions).toBe(false);
+ expect((await state(page)).hand_action.enabled).toBe(false);
+ expect(faults).toEqual([]);
+});
+
 test('v3.9.1 redesigned lift and handset accept, pause and skip the call without blocking the exit',async({page})=>{
  test.setTimeout(180000);await load(page);await clickControl(page,'Neue Nachtschicht');
  await expect.poll(async()=>(await state(page)).intro.stage).toBe('ringing');

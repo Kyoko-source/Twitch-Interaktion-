@@ -115,6 +115,7 @@ func _paper(id: String, parent: Node3D, pos: Vector3, size: Vector2, turn: Vecto
  tool.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=tool.commit()
  var texture: Texture2D=_hint_front(root) if id=="patrol_hint" else load("res://assets/story/"+id+".png")
  var material:=w.mat(Color.WHITE,texture,.99);material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;material.alpha_scissor_threshold=.5;mesh.material_override=material;root.add_child(mesh)
+ PaperCraft.finish(mesh,size,id=="missing")
  var body:=StaticBody3D.new();body.collision_layer=4;body.collision_mask=0;body.set_meta("interaction","paper:"+id);root.add_child(body)
  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=Vector3(size.x,size.y,.06 if id=="missing" else .018);collision.shape=shape
  if id=="missing": collision.position.z=.015

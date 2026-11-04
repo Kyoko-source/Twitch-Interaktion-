@@ -6,6 +6,34 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--tactile-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-4.0,0,-11.1),game.world.tactile.contact.green.global_position)
+  game.player.hands.begin("green",game.world.tactile.contact.green.global_position);game.player.hands.clock=.22;game.player.hands.pose();game.world.tactile.tick(.20,true)
+  await capture(game,output,"01-door-hand");game.player.hands.cancel()
+  var button: Node3D=game.world.party.control
+  var p:=button.global_position+button.global_basis.z*.80;p.y=.2
+  author.pose(game,p,button.global_position)
+  game.player.hands.begin("party_control",button.global_position);game.player.hands.clock=.22;game.player.hands.pose();game.world.tactile.tick(.20,true)
+  await capture(game,output,"02-button-hand");game.player.hands.cancel()
+  var key: Node3D=game.world.details.parking_key
+  p=key.global_position+key.global_basis.z*.8;p.y=0.
+  author.pose(game,p,key.to_global(Vector3(0,-.03,.12)))
+  game.player.hands.begin("parking_key",key.global_position);game.player.hands.clock=.65;game.player.hands.pose();key.hide()
+  await capture(game,output,"03-key-pickup");game.player.hands.cancel()
+  game.state.streak=2;game.world.archive.sync(game.archive,3)
+  author.pose(game,Vector3(10.2,0,-4.95),Vector3(10.2,.853,-6.05))
+  game.player.hands.begin("paper:opening",Vector3(10.2,.853,-6.05));game._collect_paper("opening");game.player.hands.clock=.65;game.player.hands.pose()
+  await capture(game,output,"04-newspaper-hand");game.player.hands.cancel()
+  game.archive.parking_key_found=true;game._sync_parking_key()
+  var lock: Node3D=game.world.tactile.contact.delivery_exit
+  p=lock.global_position+lock.global_basis.z*.7;p.y=0.
+  author.pose(game,p,lock.global_position)
+  game.player.hands.begin("delivery_exit",lock.global_position);game.player.hands.clock=.4;game.player.hands.pose();game.world.tactile.tick(.2,true)
+  await capture(game,output,"05-key-in-lock");game.player.hands.cancel()
+  game._settings("menu");NightMenus.settings(game,"Steuerung");await capture(game,output,"06-body-settings")
+  game._quit();return
  if "--menu-qa" in OS.get_cmdline_user_args():
   await capture(game,output,"main-menu")
   game._settings("menu");NightMenus.settings(game,"Steuerung");await capture(game,output,"settings-controls")
@@ -329,7 +357,8 @@ func run(game: Node3D) -> void:
  game._quit()
 
 func capture(game: Node3D, output: String, name: String) -> void:
- await game.get_tree().process_frame
+ # Skinned close-up meshes need the skeleton update before the render frame.
+ for frame in range(3):await game.get_tree().process_frame
  await RenderingServer.frame_post_draw
  var image:=game.get_viewport().get_texture().get_image()
  var error:=image.save_png(output.path_join(name+".png"))

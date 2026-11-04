@@ -94,6 +94,8 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             native_names = packed_paths(executable, start)
             assert any(b'assets/party-v385/party.mp3' in name for name in native_names)
             assert not any(b'assets/party-v385/party-web.ogg' in name for name in native_names)
+            assert any(b'assets/tactile-v400/interaction-hand.glb' in name for name in native_names)
+            assert not any(b'assets/tactile-v400/interaction-hand-web.glb' in name for name in native_names)
             guide = z.read('STARTEN.txt').decode('utf-8')
             assert all(spoiler not in guide for spoiler in ['0712', '6428', 'clock_reverse', 'tube_watcher'])
         else:
@@ -111,6 +113,10 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
                              if p.name not in ['catalog.json', 'memories.json']]
             assert pck[:4] == b'GDPC' and struct.unpack_from('<I', pck, 4)[0] == 3
             packed_names = packed_paths(pck)
+            for required in [b'scripts/guard_actions.gd', b'scripts/guard_presence.gd', b'scripts/paper_craft.gd', b'scripts/tactile_world.gd', b'assets/tactile-v400/interaction-hand-web.glb']:
+                assert any(required in name for name in packed_names), required
+            assert not any(b'assets/tactile-v400/interaction-hand.glb' in name for name in packed_names)
+            assert not any(b'scripts/tactile_validation.gd' in name for name in packed_names)
             for required in [b'assets/reception-v2120/birthday-memories.png', b'assets/reception-v2120/cctv.gdshader', b'scripts/ball_pit_physics.gd', b'scripts/reception_watch.gd', b'assets/life-v2110/photostrip-v2.png', b'assets/life-v2110/compressor.wav', b'assets/life-v2110/water-film.gdshader', b'scripts/room_acoustics.gd', b'scripts/exterior_window.gd', b'scripts/graphics_upgrade.gd', b'assets/atmosphere-v320/arcade-1.ogg', b'assets/atmosphere-v320/projector-mechanism.ogg', b'scripts/main_entrance.gd', b'scripts/arrival_design.gd', b'scripts/venue_craft.gd', b'scripts/venue_signage.gd', b'scripts/wrapped_present.gd', b'assets/restoration-v350/happyland-signs.jpg', b'assets/restoration-v350/wrapping-paper.gdshader', b'assets/restoration-v350/sign_index.gd', b'assets/craft-v340/floor-finish.gdshader', b'assets/craft-v340/service-wear.gdshader', b'assets/craft-v340/industrial-kitchen.glb', b'assets/arrival-v330/car-departure.ogg']:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/horse_hunt.gd', b'scripts/horse_navigation.gd', b'assets/encounter-v360/clown-blond-hair.glb', b'assets/encounter-v360/blond_hair.gdshader']:
