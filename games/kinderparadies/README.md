@@ -1,5 +1,25 @@
 # After Play — Kinderparadies
 
+## Clownfrisur und Kostümmütze (4.0.4)
+
+Der Küchenclown trägt jetzt 5.600 modellierte blonde Haarsträhnen mit mehr
+Volumen, längeren Seiten und einzelnen abstehenden Haaren. Die Web-Frisur
+verwendet 2.500 Strähnen derselben Gestaltung mit weniger Segmenten. Das
+bisherige separate Haarmodell wird nicht mehr ausgeliefert.
+
+Eine eingesackte, seitlich geknickte Kostümmütze aus hautähnlichem Kunstleder
+sitzt oberhalb der Augen. Sechs unterschiedlich gealterte Flächen besitzen
+modellierte Nahtwülste, einzelne gewachste Stiche, Quernähte, einen gerollten
+Saum und eine stumpfe Kostümglocke. Der Shader ergänzt Poren, Falten und
+wechselnde Rauheit. Es werden keine menschlichen Körperteile dargestellt.
+
+Beide Accessoires hängen am bestehenden Kopf und erhalten keine Kollisionen.
+Küchenclown, Küchenangriff, Pferdeauflösung und Archivschreck verwenden dieselbe
+Gestaltung. Die freundliche Abschlussfeier nutzt weiterhin ihre eigene Figur.
+Prüfung: `--self-test --clown-style-only` und native Vorder-/Seitenansicht über
+`--render-qa --clown-style-qa`. Webprüfung: vorhandenes Playwright/Edge, da kein
+Browser-Plugin verfügbar ist; Küche → pausierte Ansicht → Anspringen → Rückkehr.
+
 ## Laufwege und Klangfiguren (4.0.3)
 
 Die Prüfung `--self-test --routes-only` bewegt den echten Spielercontroller

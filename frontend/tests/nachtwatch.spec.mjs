@@ -96,6 +96,19 @@ test('v4.0.3 interaction foley and real cinema movement work in the Web export',
  expect(faults).toEqual([]);
 });
 
+test('v4.0.4 clown grooming and cap render and follow the kitchen lunge',async({page})=>{
+ test.setTimeout(150000);const faults=[];
+ page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);await qa(page,{op:'anomaly',id:'clown_lunge'});
+ await qa(page,{op:'warp',x:-13.4,z:-31.25,yaw:Math.PI/2,pitch:.19});await qa(page,{op:'pause'});
+ expect((await state(page)).clown_style).toEqual({cap:true,web_groom:true});
+ await page.waitForTimeout(400);await page.screenshot({path:join(tmpdir(),'after-play-v404-web-clown.png')});
+ await qa(page,{op:'resume'});await expect.poll(async()=>(await state(page)).encounter.triggered,{timeout:12000}).toBe(true);
+ await expect.poll(async()=>(await state(page)).encounter.finished,{timeout:12000}).toBe(true);
+ expect((await state(page)).clown_style.cap).toBe(true);expect((await state(page)).anomaly).toBe('clown_lunge');
+ expect(faults).toEqual([]);
+});
+
 test('v3.9.1 redesigned lift and handset accept, pause and skip the call without blocking the exit',async({page})=>{
  test.setTimeout(180000);await load(page);await clickControl(page,'Neue Nachtschicht');
  await expect.poll(async()=>(await state(page)).intro.stage).toBe('ringing');

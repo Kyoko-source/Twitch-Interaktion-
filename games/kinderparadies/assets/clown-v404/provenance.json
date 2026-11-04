@@ -1,0 +1,24 @@
+{
+  "author": "After Play original modelling",
+  "license": "Original project geometry",
+  "source_head": "Existing credited clown head used for fitting only; not copied into these accessories",
+  "outputs": {
+    "desktop": {
+      "strands": 5600,
+      "vertices": 78400,
+      "triangles": 67200
+    },
+    "web": {
+      "strands": 2500,
+      "vertices": 30000,
+      "triangles": 25000
+    },
+    "cap": {
+      "panels": 6,
+      "seam_stitches": 198,
+      "hem_stitches": 83,
+      "top_height": 0.3286,
+      "material": "Original patched faux leather; no human anatomy"
+    }
+  }
+}

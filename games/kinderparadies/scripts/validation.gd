@@ -9,6 +9,10 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--clown-style-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/clown_style_validation.gd").new().run(game,check)
+  print("Clown grooming and costume checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--feedback-only" in OS.get_cmdline_user_args():
   await load("res://scripts/feedback_validation.gd").new().run(game,check)
   await load("res://scripts/tactile_validation.gd").new().run(game,check)
@@ -578,7 +582,7 @@ func run(game: Node3D) -> bool:
    # The inset pupils are curved 0.6 mm meshes; checking for a 1 mm depth
    # incorrectly rejected those fitted eye details as flat portraits.
    check(mesh.mesh is ArrayMesh and extent.x>.0001 and extent.y>.0001 and extent.z>.0001,"Clown facial detail has no 3D volume: "+str(mesh.name))
-   check(material is StandardMaterial3D or (material is ShaderMaterial and (material.shader.resource_path.ends_with("clown_skin.gdshader") or material.shader.resource_path.ends_with("blond_hair.gdshader"))),"Clown has an unexpected face material")
+   check(material is StandardMaterial3D or (material is ShaderMaterial and (material.shader.resource_path.ends_with("clown_skin.gdshader") or material.shader.resource_path.ends_with("blond_hair.gdshader") or material.shader.resource_path.ends_with("patched-cap.gdshader"))),"Clown has an unexpected face material")
  check(head_faces>20000,"Clown head lacks real sculpted geometry")
  await PassageChecks.travel(game,false)
  check(game.phase=="play" and game.state.rounds==1,"Correct lift did not return automatically")

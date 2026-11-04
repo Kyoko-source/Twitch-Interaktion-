@@ -917,6 +917,7 @@ func _telemetry() -> void:
   data.party=world.party.snapshot();data.parking_key=archive.parking_key_found
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z]}
+  data.clown_style={"cap":world.annex.clown.head.has_node("PatchedCostumeCap"),"web_groom":OS.has_feature("web") and ResourceLoader.exists("res://assets/clown-v404/clown-hair-web.glb")}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()

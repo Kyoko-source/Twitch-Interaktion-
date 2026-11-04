@@ -36,12 +36,23 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
  assert(head!=null,"Sculpted clown head is missing")
  var old_hair:=head.find_child("MattedHairStrands",true,false)
  if old_hair:old_hair.hide()
- var hair: Node3D=(load("res://assets/encounter-v360/clown-blond-hair.glb") as PackedScene).instantiate()
+ var hair: Node3D=(load("res://assets/clown-v404/clown-hair-web.glb" if OS.has_feature("web") else "res://assets/clown-v404/clown-hair-desktop.glb") as PackedScene).instantiate()
  head.add_child(hair)
  var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/encounter-v360/blond_hair.gdshader")
  for mesh in hair.find_children("*","MeshInstance3D",true,false):
   mesh.material_override=fibres;mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   mesh.set_meta("nonblocking_atmosphere",true)
+ var cap: Node3D=(load("res://assets/clown-v404/patched-costume-cap.glb") as PackedScene).instantiate()
+ cap.name="PatchedCostumeCap";head.add_child(cap)
+ for mesh in cap.find_children("*","MeshInstance3D",true,false):
+  mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC;mesh.set_meta("nonblocking_atmosphere",true)
+  if str(mesh.name).begins_with("FauxLeatherPanel"):
+   var material:=ShaderMaterial.new();material.shader=load("res://assets/clown-v404/patched-cap.gdshader")
+   var original:=mesh.get_active_material(0) as StandardMaterial3D
+   if original:material.set_shader_parameter("tint",original.albedo_color)
+   var panel:=clampi(str(mesh.name).trim_prefix("FauxLeatherPanel").to_int(),0,5)
+   material.set_shader_parameter("patch_level",[.33,.52,.45,.58,.38,.64][panel]);material.set_shader_parameter("patch_shade",[.83,1.14,.77,1.08,.86,1.12][panel])
+   mesh.material_override=material
  for mesh in root.find_children("*","MeshInstance3D",true,false):
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   for surface in range(mesh.mesh.get_surface_count()):

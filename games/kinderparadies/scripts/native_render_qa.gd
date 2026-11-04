@@ -6,6 +6,19 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--clown-style-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-12.4,0,-31.25),Vector3(-14.4,1.8,-31.25))
+  game.player.torch_body.hide()
+  await capture(game,output,"01-kitchen-clown")
+  var root: Node3D=HorrorFigures.clown(game.world,game.player.camera).root
+  root.position=Vector3(0,-1.94,-1.15)
+  var fill:=OmniLight3D.new();fill.position=Vector3(.36,.23,-.3);fill.light_energy=.65;fill.omni_range=3.;fill.light_color=Color("e3d8c4");game.player.camera.add_child(fill)
+  game.player.lamp.hide()
+  await capture(game,output,"02-clown-front")
+  root.rotation.y=.8;await capture(game,output,"03-clown-profile")
+  game._quit();return
  if "--horse-damage-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   game.state.current=HorseHunt.ID;game._build_world(HorseHunt.ID)

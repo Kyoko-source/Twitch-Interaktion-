@@ -129,3 +129,9 @@ Die Granny-Stimme behaelt die originale Tonhoehe und verwendet keinen Hall.
 Schalter: Bearbeitung vorhandener CC0-Aufnahmen von Joseph SARDIN und Kenney.
 Papier: fuer After Play erzeugtes Reibegeraeusch mit vorhandener Kenney-Aufnahme.
 Schluessel: bereits aufgefuehrte Heavy-Chain-Aufnahme von Joseph SARDIN, CC0.
+
+CLOWNFRISUR UND KOSTUEMMUETZE (4.0.4)
+Neue blonde Haarstraehnen, hautaehnliche Kunstledermuetze, Naehte und
+Materialshader: eigens fuer After Play modelliert und programmiert.
+Der bereits aufgefuehrte Kopf wurde nur zur Passform verwendet; seine
+vorhandenen Quellen und Rechte bleiben wie oben angegeben.
