@@ -76,8 +76,10 @@ func configure(value: String) -> void:
  if not SCENARIOS.has(id): return
  spec=SCENARIOS[id];origin=spec.p
  if spec.zone in ["Küche","Kino"]: origin+=ServiceAnnex.OFFSET
- ScareBank.select(audio,id,spec.mode)
- anticipation=ScareBank.lead(self,id,spec.mode)
+ # Match the dry human voice to the actual granny head, including crawlers.
+ var voice_id: String="granny_"+id if spec.mode not in ["hands","window","vent","throne"] else id
+ ScareBank.select(audio,voice_id,spec.mode)
+ anticipation=ScareBank.lead(self,voice_id,spec.mode)
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
  visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
  CharacterFinish.apply(visual,w)

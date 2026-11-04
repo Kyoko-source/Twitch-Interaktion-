@@ -1,5 +1,38 @@
 # After Play — Kinderparadies
 
+## Laufwege und Klangfiguren (4.0.3)
+
+Die Prüfung `--self-test --routes-only` bewegt den echten Spielercontroller
+440-mal durch 30 Laufwege und beide oberen Röhrenmündungen: vorwärts,
+rückwärts, springend und mit Spielball, Holzbaustein, Eimer oder Stoffhase.
+Geprüft sind Türen, Empfang, Party-Sitzreihen, Kino-Sitzreihen und Mittelgang,
+Personalflur, Küche, WC, Kostümraum, Podest, Rampen, Brücke und Aufzugböden.
+Die Prüfung bleibt von der normalen Spielmechanik getrennt und wird nicht
+ausgeliefert. Dabei wurde keine neue Blockade festgestellt. Die vollständigen
+oberen und unteren Krabbelwege bestehen außerdem `--climbing-only`.
+
+Pferdekontakt, Granny und Türangreifer besitzen jeweils drei separate
+Stimmvarianten. Die Granny verwendet eine trockene Einzelaufnahme in originaler
+Tonhöhe; das Pferd einen schrillen Klang und die Türgestalt einen kurzen,
+schweren Angriff. Aufeinanderfolgende Auftritte wiederholen nicht dieselbe
+Variante. Der dritte Pferdetreffer behält seinen eigenen tödlichen Schrei.
+Tür- und Clownangriffe verpassen ihren Ton nun auch bei einem langsamen Frame
+nicht mehr: Der Ton startet einmal beim Überschreiten seiner Zeitmarke.
+
+Der Parkplatzschlüssel klirrt bei der tatsächlichen Übergabe und beim
+Aufschließen. Papier raschelt beim Einsammeln und Lesen. Taschenlampe,
+Partyknopf, Projektor und Aufnahmegerät klicken beim Betätigen. Diese
+Rückmeldungen funktionieren auch bei ausgeschalteten Handanimationen und
+respektieren Pause und Gesamtlautstärke. Die natürliche Spieleratmung aus
+4.0.2 bleibt bestehen.
+
+Weitere Prüfungen: `--feedback-only` (Stimmen, Varianten, reale Handkontakte,
+Schlüssel, Zeitung, Lesen, Schalter und Pause), `--catch-only`, `--v280-only`,
+`--update-v3810-only` und `--revamp-only`. Browserprüfung über vorhandenes
+Playwright/Edge; Browser plugin not available. Testablauf: Spielstart,
+Taschenlampe, Schlüssel, Zeitung lesen, rückwärts durch die Kinotür und durch
+die Sitzreihe, danach Überprüfung der Granny-Klangzuordnung.
+
 ## Natürlichere Spieleratmung (4.0.2)
 
 Die eigene Atmung nutzt jetzt einen separaten, leiseren Schnitt aus der

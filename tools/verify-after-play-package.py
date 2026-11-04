@@ -97,6 +97,7 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             assert any(b'assets/tactile-v400/interaction-hand.glb' in name for name in native_names)
             assert any(b'assets/encounter-v401/horse-final-scream.wav' in name for name in native_names)
             assert any(b'assets/player-v402/breathing.ogg' in name for name in native_names)
+            assert any(b'assets/feedback-v403/granny-1.ogg' in name for name in native_names)
             assert any(b'assets/encounter-v401/bloodshot.gdshader' in name for name in native_names)
             assert not any(b'assets/tactile-v400/interaction-hand-web.glb' in name for name in native_names)
             guide = z.read('STARTEN.txt').decode('utf-8')
@@ -119,10 +120,14 @@ for platform, key in [('windows', 'windows_sha256'), ('web', 'web_zip_sha256')]:
             for required in [b'assets/encounter-v401/horse-final-scream.wav', b'assets/encounter-v401/bloodshot.gdshader']:
                 assert any(required in name for name in packed_names), required
             assert any(b'assets/player-v402/breathing.ogg' in name for name in packed_names)
+            for required in [b'scripts/guard_foley.gd',b'assets/feedback-v403/paper.ogg',b'assets/feedback-v403/switch.ogg',b'assets/feedback-v403/horse-1.ogg',b'assets/feedback-v403/granny-1.ogg',b'assets/feedback-v403/door-1.ogg']:
+                assert any(required in name for name in packed_names), required
             for required in [b'scripts/guard_actions.gd', b'scripts/guard_presence.gd', b'scripts/paper_craft.gd', b'scripts/tactile_world.gd', b'assets/tactile-v400/interaction-hand-web.glb']:
                 assert any(required in name for name in packed_names), required
             assert not any(b'assets/tactile-v400/interaction-hand.glb' in name for name in packed_names)
             assert not any(b'scripts/tactile_validation.gd' in name for name in packed_names)
+            for private in [b'scripts/routes_validation.gd', b'scripts/feedback_validation.gd', b'art-direction/QA-v403.md']:
+                assert not any(private in name for name in packed_names), private
             for required in [b'assets/reception-v2120/birthday-memories.png', b'assets/reception-v2120/cctv.gdshader', b'scripts/ball_pit_physics.gd', b'scripts/reception_watch.gd', b'assets/life-v2110/photostrip-v2.png', b'assets/life-v2110/compressor.wav', b'assets/life-v2110/water-film.gdshader', b'scripts/room_acoustics.gd', b'scripts/exterior_window.gd', b'scripts/graphics_upgrade.gd', b'assets/atmosphere-v320/arcade-1.ogg', b'assets/atmosphere-v320/projector-mechanism.ogg', b'scripts/main_entrance.gd', b'scripts/arrival_design.gd', b'scripts/venue_craft.gd', b'scripts/venue_signage.gd', b'scripts/wrapped_present.gd', b'assets/restoration-v350/happyland-signs.jpg', b'assets/restoration-v350/wrapping-paper.gdshader', b'assets/restoration-v350/sign_index.gd', b'assets/craft-v340/floor-finish.gdshader', b'assets/craft-v340/service-wear.gdshader', b'assets/craft-v340/industrial-kitchen.glb', b'assets/arrival-v330/car-departure.ogg']:
                 assert any(required in name for name in packed_names), required
             for required in [b'scripts/horse_hunt.gd', b'scripts/horse_navigation.gd', b'assets/encounter-v360/clown-blond-hair.glb', b'assets/encounter-v360/blond_hair.gdshader']:

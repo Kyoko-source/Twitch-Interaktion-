@@ -1,0 +1,86 @@
+{
+  "author": "Ogrebane; Joseph SARDIN; Kenney; original project paper foley",
+  "license": "CC0-1.0 recordings; original project sound edits",
+  "source": "https://opengameart.org/content/monster-sound-effects-pack",
+  "processing": "Mono 24 kHz Vorbis q4; separate vocal recordings, dry granny at original pitch, short heavy door attack, shrill horse; finite fades; no common scream layer.",
+  "inputs": {
+    "horse": {
+      "file": "tools/art-source/v300/monster-3.wav",
+      "sha256": "22d83560604f25fea0b03b4710ed86c5afc739bdbb24b5e96b614803b02c07fd"
+    },
+    "granny": {
+      "file": "tools/art-source/v300/monster-7.wav",
+      "sha256": "91d44cfb6bb6a526fe820718e70345f73d11849d6375c954fd2d03c529ce117e"
+    },
+    "door": {
+      "file": "tools/art-source/v300/monster-8.wav",
+      "sha256": "ac7afb86566808f2d5b2ebf58dc3b68a0d1c2cd64cd8135d09a8d56af62928d7"
+    },
+    "wood": {
+      "file": "games/kinderparadies/assets/surfaces/footstep_wood_002.ogg",
+      "sha256": "9ff095b05cee5eec40b081defe3f0eef7232bb16d4865ce03b9f6dbab875cfdd"
+    },
+    "metal": {
+      "file": "games/kinderparadies/assets/ambience-v193/duct-stress.wav",
+      "sha256": "722f9ef38d1112b303b48a80e16796e2dd7e7ada1f14e3657d90d778dfff92f2"
+    },
+    "plastic": {
+      "file": "games/kinderparadies/assets/polish/impact-plastic.wav",
+      "sha256": "dbeaaff274a97c156924c4f86fd4dda7ce534682d8461095905ec654a5492811"
+    },
+    "cloth": {
+      "file": "games/kinderparadies/assets/polish/impact-cloth.wav",
+      "sha256": "277ee408bc78ae4b5484c39f06e630696411077d572a8be400e2b346c7234e6a"
+    },
+    "relay": {
+      "file": "games/kinderparadies/assets/ambience/relay-tick.wav",
+      "sha256": "082277b0e40a18bbf2aee9dd1c893973a0f53d670619f0ff36b95cf1ef42e14a"
+    }
+  },
+  "outputs": {
+    "horse-1": {
+      "duration": 1.14,
+      "sha256": "fae773d8bf744222501c5c5efc9073e9053003df14f1300cf7dae7d0fac243ba"
+    },
+    "granny-1": {
+      "duration": 1.02,
+      "sha256": "5806cba8300855e6d703e473c58df2165d1148263f3ba1918e50f2e0f07ef479"
+    },
+    "door-1": {
+      "duration": 0.745,
+      "sha256": "6f6b52085e14ef70aeb26b20edb490cf0a8b45f372b82148dbba55b0cb508a53"
+    },
+    "horse-2": {
+      "duration": 1.2,
+      "sha256": "8bf9d2b2e9fe0b13fae94aff3a8061331e44ef6ec3b1ed9ab089cb5911b61613"
+    },
+    "granny-2": {
+      "duration": 1.09,
+      "sha256": "7a62fd9aacd17772957c4d7d414f4fd076710094e72ca043d254d0108a460c4a"
+    },
+    "door-2": {
+      "duration": 0.79,
+      "sha256": "fd172204d62ddb13c6633c6c0b52048bf59178d90c1de3aa16591026b64c89d3"
+    },
+    "horse-3": {
+      "duration": 1.26,
+      "sha256": "8924fb5c8bf493d9c3b35fc93af76b63df41ac1a3a1aafa5de5f6a47726a98df"
+    },
+    "granny-3": {
+      "duration": 1.16,
+      "sha256": "d7704dfbe0c8c6d44713ab01e2a0aa7fc465abf028176143c59c1e098402d6df"
+    },
+    "door-3": {
+      "duration": 0.835,
+      "sha256": "dad37379680f24aa68008f5dd6bed0753882e9306d9ec61674600060656502b8"
+    },
+    "paper": {
+      "duration": 0.58,
+      "sha256": "63c3383da6d2ca02766764249f2f9f9128d454cbca5e43f2dcfc30a520f94d4c"
+    },
+    "switch": {
+      "duration": 0.16,
+      "sha256": "369eda8432bdce6a5cf054353ea677fad546eb63647d3a94a2557c3e0ae49a12"
+    }
+  }
+}

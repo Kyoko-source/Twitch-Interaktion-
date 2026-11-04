@@ -121,3 +121,11 @@ Der blutunterlaufene Bildschirmrand und die toedliche Angriffsanimation sind
 Projektarbeit. Das finale Kreischen ist eine neue Tonbearbeitung vorhandener
 Ogrebane-Aufnahmen aus dem Monster Sound Effects Pack, CC0 1.0.
 https://opengameart.org/content/monster-sound-effects-pack
+
+KLANGFIGUREN UND INTERAKTIONEN (4.0.3)
+Pferd, Granny und Tuerangreifer verwenden getrennte Ogrebane-Aufnahmen aus dem
+bereits aufgefuehrten CC0 Monster Sound Effects Pack, jeweils neu geschnitten.
+Die Granny-Stimme behaelt die originale Tonhoehe und verwendet keinen Hall.
+Schalter: Bearbeitung vorhandener CC0-Aufnahmen von Joseph SARDIN und Kenney.
+Papier: fuer After Play erzeugtes Reibegeraeusch mit vorhandener Kenney-Aufnahme.
+Schluessel: bereits aufgefuehrte Heavy-Chain-Aufnahme von Joseph SARDIN, CC0.

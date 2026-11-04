@@ -12,6 +12,7 @@ var archive_mode:=false
 var patrol_mode:=false
 var attacker: Node3D
 var claws: Array[Node3D]=[]
+var sound_started:=false
 
 func start(world: PlayWorld, camera: Camera3D) -> void:
  archive_mode=false;patrol_mode=false
@@ -22,7 +23,7 @@ func start(world: PlayWorld, camera: Camera3D) -> void:
  # An actual lit model approaches the camera; no full-screen face image.
  fill=OmniLight3D.new();fill.position=Vector3(.32,-.12,-.15);fill.light_color=Color("dfaa88");fill.light_energy=.9;fill.omni_range=5;add_child(fill)
  audio=AudioStreamPlayer.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.stream=ScareBank.flat("clown_lunge");audio.volume_db=-5;add_child(audio)
- clock=0;running=true;shown+=1;show()
+ clock=0;running=true;sound_started=false;shown+=1;show()
 
 func start_patrol(world: PlayWorld, camera: Camera3D) -> void:
  start(world,camera);patrol_mode=true;figure.root.hide();claws.clear()
@@ -36,7 +37,7 @@ func start_patrol(world: PlayWorld, camera: Camera3D) -> void:
  audio.stream=ScareBank.flat("door_death");audio.volume_db=-3;audio.pitch_scale=1.0
 
 func _patrol_tick() -> void:
- if clock>.13 and clock<.30 and not audio.playing: ScareBank.play_flat(audio)
+ _cue_sound(.13)
  var t:=clampf((clock-.13)/.29,0,1)
  attacker.position=Vector3(sin(clock*37)*.045,-1.74+sin(t*PI)*.22,lerpf(-4.8,-.68,1-pow(1-t,4)))
  attacker.rotation=Vector3(.05*sin(clock*23),.035*sin(clock*29),-.13+.04*sin(clock*31))
@@ -49,7 +50,7 @@ func start_archive(world: PlayWorld, camera: Camera3D) -> void:
  audio.stream=load("res://assets/finale/cook-scream.wav");audio.volume_db=-.5
 
 func _archive_tick() -> void:
- if clock>.055 and not audio.playing and clock<.3: ScareBank.play_flat(audio)
+ _cue_sound(.055)
  var t:=clampf((clock-.055)/.19,0,1)
  figure.root.position=Vector3(sin(clock*48)*.026,-1.91+sin(t*PI)*.12,lerpf(-3.8,-.54,1-pow(1-t,4)))
  figure.head.rotation=Vector3(-.07+sin(clock*27)*.045,sin(clock*21)*.045,-.16+sin(clock*34)*.04)
@@ -64,10 +65,10 @@ func tick(delta: float) -> void:
  clock+=delta
  if patrol_mode: _patrol_tick();return
  if archive_mode: _archive_tick();return
+ _cue_sound(.12)
  if clock<.12:
   figure.root.position.z=-3.8;fill.light_energy=.15
  elif clock<.42:
-  if not audio.playing: ScareBank.play_flat(audio)
   var t:=clampf((clock-.12)/.3,0,1);figure.root.position=Vector3(sin(clock*21)*.045,-1.91+sin(t*PI)*.1,lerpf(-3.8,-.68,1-pow(1-t,3)))
   figure.head.rotation=Vector3(.04,sin(clock*18)*.08,-.13);fill.light_energy=.9
  elif clock<.78:
@@ -79,3 +80,9 @@ func tick(delta: float) -> void:
  figure.spoon.hide();figure.bowl.hide()
  if clock>=1.16:
   running=false;hide();audio.stop();finished.emit()
+
+func _cue_sound(at: float) -> void:
+ # Cross the timeline marker once. A slow frame must not skip the entire
+ # narrow sound window, or restart a short voice while the figure is visible.
+ if clock>=at and not sound_started:
+  sound_started=true;ScareBank.play_flat(audio)

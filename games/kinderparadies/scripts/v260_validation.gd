@@ -31,7 +31,7 @@ func run(game: Node3D, verify: Callable) -> void:
     game.player.set_crouch(false);game.player.camera.position.y=1.65;game.player.camera.look_at(target)
     terror.tick(1,true,game.player)
     if terror.triggered: triggered=true;break
-  verify.call(triggered and terror.audio.stream.resource_path.begins_with(ScareBank.ROOT),"New encounter has no accessible visual trigger or dedicated sound: "+id)
+  verify.call(triggered and (terror.audio.stream.resource_path.begins_with(ScareBank.ROOT) or terror.audio.stream.resource_path.begins_with(ScareBank.VOICE_ROOT)),"New encounter has no accessible visual trigger or dedicated sound: "+id)
   await game.get_tree().process_frame;await game.get_tree().process_frame
   game._pause();await game.get_tree().process_frame;await game.get_tree().process_frame
   terror.tick(.2,false,game.player)

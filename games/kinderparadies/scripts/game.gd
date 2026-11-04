@@ -432,6 +432,7 @@ func _horse_resolved() -> void:
 func _collect_paper(id: String) -> void:
  if phase!="play" or not archive.take(id,14 if state.completed else state.streak+1): return
  archive_selected=id;world.archive.take(id);_save()
+ player.foley.play("paper")
  _announce("Eingesammelt: "+str(ArchiveState.document(id).title)+" · TAB zum Lesen",5)
 
 func _slider(parent: VBoxContainer, title: String, low: float, high: float, step: float, value: float, change: Callable) -> void:
@@ -543,6 +544,7 @@ func _process(delta: float) -> void:
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
+ player.foley.tick(phase in ["play","inventory"])
  world.acoustics.tick(delta,phase=="play",player)
  world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
  world.horse_hunt.present_contact(player.camera.current and phase in ["play","horse_death","pause","inventory","settings","help","code"] and archive.ending!="recording")
@@ -761,10 +763,11 @@ func _interact_target(target: String) -> void:
  elif target=="film_reel":
   archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
  elif target=="cinema_projector":
+  player.foley.play("switch")
   if world.film.playing: world.film.stop()
   elif not archive.film_found: _announce("Auf dem Projektionstisch liegt eine alte Filmrolle.",4)
   elif world.film.start(): _announce("Happyland · Ein Tag voller Abenteuer",4)
- elif target=="archive_recording": world.archive.finale.interact()
+ elif target=="archive_recording": player.foley.play("switch");world.archive.finale.interact()
  elif target=="life:photo": _show_booth_photo()
  elif target=="memory_wall": _show_memory_wall()
  elif target=="chalk_board": world.chalk.open(self)
@@ -774,14 +777,16 @@ func _interact_target(target: String) -> void:
  elif target.begins_with("paper:"): _collect_paper(target.trim_prefix("paper:"))
  elif target in ["archive_door","archive_lock"]: _open_archive_lock()
  elif target=="parking_key":
-  archive.parking_key_found=true;_sync_parking_key();effect.play();_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
+  if archive.parking_key_found:return
+  archive.parking_key_found=true;_sync_parking_key();player.foley.play("keys");_save();_announce("Parkplatzschlüssel eingesteckt · Die Glastür lässt sich jetzt öffnen.",5)
  elif target=="party_control":
+  player.foley.play("switch")
   if world.party.interact():
    _save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet · Systemneustart dauert 15 Minuten.",4)
   else:_announce(world.party.reboot_text(),3)
  elif target=="delivery_exit":
   if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
-  else:world.backstage.interact_exit(player);_save()
+  else:player.foley.play("keys");world.backstage.interact_exit(player);_save()
  elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
 
 func _close_chalk() -> void:
@@ -898,6 +903,7 @@ func _telemetry() -> void:
   data.polish={"floor":FootSurfaces.at(player),"last_surface":player.surface_name,"steps":player.footstep_count,"step_track":player.step_player.stream.resource_path,"step_playing":player.step_player.playing,"phone_state":intro.display.state_label.text,"phone_timer":intro.display.timer_label.text,"mascot":is_instance_valid(world.polish.mascot),"fur":ResourceLoader.exists("res://assets/mascot-v251/mascot-rabbit.glb"),"party_mascot":is_instance_valid(world.polish.party_mascot),"party_position":[world.polish.party_mascot.get_parent().position.x,world.polish.party_mascot.get_parent().position.y,world.polish.party_mascot.get_parent().position.z]}
   data.memories=memories.snapshot()
   data.shared_croc=is_instance_valid(world.playground.croc_visual) and ResourceLoader.exists(ExpandedPlayground.CROCODILE_PATH)
+  data.foley=player.foley.snapshot()
   data.croc_jaw=world.playground.croc_jaw.rotation.x
   data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
   var sky:=world.climbing.sky;var sky_path:=[]

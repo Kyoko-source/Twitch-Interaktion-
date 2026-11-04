@@ -42,6 +42,7 @@ static func inventory(g: Node3D, selected: String="") -> void:
   var notebook:=PatrolNotebook.new();notebook.name="PatrolNotebook";notebook.visited.assign(g.state.visited);notebook.round_number=mini(13,g.state.streak+1);notebook.finished=g.state.completed;notebook.custom_minimum_size=Vector2(900,760);notebook.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(notebook)
  else:
   g.archive_selected=current
+  g.player.foley.play("paper")
   var doc:=ArchiveState.document(current)
   if current in ArchiveState.PAPERS and not AfterPlayLanguage.english():
    var scan:=TextureRect.new();scan.name="NewspaperScan";scan.texture=load("res://assets/story/"+current+".png");scan.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;scan.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;scan.custom_minimum_size.y=1180;scan.size_flags_horizontal=Control.SIZE_EXPAND_FILL;article.add_child(scan)

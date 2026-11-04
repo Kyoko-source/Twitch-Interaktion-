@@ -34,6 +34,7 @@ var footstep_count:=0
 var equipment: GuardEquipment
 var presence: GuardPresence
 var hands: GuardActions
+var foley: GuardFoley
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -45,6 +46,7 @@ func _ready() -> void:
  equipment=GuardEquipment.new();add_child(equipment);equipment.build(self)
  presence=GuardPresence.new();add_child(presence);presence.build(self)
  hands=GuardActions.new();hands.build(self)
+ foley=GuardFoley.new();add_child(foley)
  step_player=AudioStreamPlayer.new();step_player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;step_player.stream=load(FootSurfaces.ROOT+"footstep_concrete_000.ogg");step_player.volume_db=-19;add_child(step_player)
  crawl_sound=load("res://assets/ambience/crawl-contact.wav")
  for surface in FootSurfaces.TYPES:
@@ -178,10 +180,11 @@ func drop_prop(throwing: bool=false) -> void:
 
 func toggle_lamp() -> void:
  lamp_on=not lamp_on;lamp.visible=lamp_on
+ foley.play("switch")
 
 func reset_pose() -> void:
  torch_body.reset_motion()
- presence.reset();hands.cancel()
+ presence.reset();hands.cancel();foley.stop()
  set_crouch(false)
  drop_prop()
  global_position=Vector3(-6.2,0,8.5);rotation.y=0;camera.rotation=Vector3.ZERO;velocity=Vector3.ZERO

@@ -47,6 +47,7 @@ test('v4.0.0 tactile interactions follow contact, pause and saved comfort settin
  await expect.poll(async()=>(await state(page)).target).toBe('parking_key');
  const before=(await state(page)).hand_action.count;await page.keyboard.press('e');
  await expect.poll(async()=>(await state(page)).parking_key).toBe(true);
+ expect((await state(page)).foley.last).toBe('keys');
  expect((await state(page)).hand_action.count).toBe(before+1);
  await page.screenshot({path:join(tmpdir(),'after-play-v400-web-key.png')});
  await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
@@ -58,6 +59,40 @@ test('v4.0.0 tactile interactions follow contact, pause and saved comfort settin
  await page.reload();await waitForMenu(page);
  expect((await state(page)).settings.hand_actions).toBe(false);
  expect((await state(page)).hand_action.enabled).toBe(false);
+ expect(faults).toEqual([]);
+});
+
+test('v4.0.3 interaction foley and real cinema movement work in the Web export',async({page})=>{
+ test.setTimeout(180000);
+ const faults=[];page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);
+ const before=(await state(page)).foley.count;await page.keyboard.press('f');
+ await expect.poll(async()=>(await state(page)).foley.count).toBe(before+1);expect((await state(page)).foley.last).toBe('switch');
+ await page.keyboard.press('f');
+ await qa(page,{op:'warp',x:-7.89,z:-18,yaw:Math.PI/2,pitch:-.24});
+ await expect.poll(async()=>(await state(page)).target).toBe('parking_key');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).parking_key).toBe(true);expect((await state(page)).foley.last).toBe('keys');
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ for(let i=0;i<2;i++){
+  await qa(page,{op:'anomaly',id:'none'});await qa(page,{op:'choose',red:false});
+  await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ }
+ expect((await state(page)).streak).toBe(2);
+ await qa(page,{op:'warp',x:10.2,z:-4.95,yaw:0,pitch:-Math.atan2(.797,1.1)});
+ await expect.poll(async()=>(await state(page)).target).toBe('paper:opening');await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).foley.last).toBe('paper');
+ await expect.poll(async()=>(await state(page)).hand_action.kind).toBe('');
+ const collected=(await state(page)).foley.count;await page.keyboard.press('Tab');
+ await expect.poll(async()=>(await state(page)).phase).toBe('inventory');expect((await state(page)).foley.count).toBe(collected+1);
+ await page.screenshot({path:join(tmpdir(),'after-play-v403-web-newspaper.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await qa(page,{op:'warp',x:-7.8,z:-29.65,yaw:Math.PI/2,pitch:0});
+ await walk(page,'s',s=>s.position[0]>-5.3);expect((await state(page)).position[1]).toBeGreaterThan(-.05);
+ await qa(page,{op:'warp',x:-3.55,z:-30.9,yaw:0,pitch:0});
+ await walk(page,'w',s=>s.position[2]<-32.8);await walk(page,'s',s=>s.position[2]>-31.0);
+ await page.screenshot({path:join(tmpdir(),'after-play-v403-web-cinema-aisle.png')});
+ await qa(page,{op:'anomaly',id:'wc_stall_watcher'});
+ expect((await state(page)).terrors.sound).toContain('/granny-');
  expect(faults).toEqual([]);
 });
 

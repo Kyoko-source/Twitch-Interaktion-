@@ -9,6 +9,15 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--feedback-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/feedback_validation.gd").new().run(game,check)
+  await load("res://scripts/tactile_validation.gd").new().run(game,check)
+  print("Creature voices and interaction feedback checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--routes-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/routes_validation.gd").new().run(game,check)
+  print("Route audit checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--tactile-only" in OS.get_cmdline_user_args():
   await load("res://scripts/tactile_validation.gd").new().run(game,check)
   await load("res://scripts/balance_validation.gd").new().run(game,check)

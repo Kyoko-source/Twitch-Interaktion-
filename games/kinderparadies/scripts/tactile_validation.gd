@@ -25,6 +25,7 @@ func run(g: Node3D,verify: Callable) -> void:
  press(g);verify.call(not w.party.enabled and hand.kind=="party_control","Party toggles before the hand reaches its button")
  press(g);verify.call(hand.count==1,"Repeated E starts overlapping hands")
  hand.tick(.2,true);verify.call(w.party.enabled,"Button contact never starts the existing party")
+ verify.call(guard.foley.last=="switch" and guard.foley.sound.playing,"Party button has no mechanical contact click")
  hand.tick(1.,true);verify.call(not hand.visible and not hand.sleeve.visible and not hand.fill.visible,"Hand or sleeve remains after interaction")
  hand.begin("party_control",control.global_position);hand.on_contact=func():w.party.interact()
  g._pause();hand.tick(2.,false)
@@ -36,6 +37,9 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(g._target()=="parking_key","Close-up hand changes key pickup targeting")
  press(g);verify.call(not g.archive.parking_key_found and hand.held.get_child_count()==1,"Key disappears before the pickup reaches it")
  hand.tick(.31,true);verify.call(g.archive.parking_key_found and not key.visible and w.backstage.exit_key_owned,"Key contact does not grant the parking key")
+ verify.call(guard.foley.last=="keys" and guard.foley.sound.stream.resource_path.ends_with("keys.wav"),"Key pickup plays a door or cloth sound instead of keyring foley")
+ var key_sounds:=guard.foley.count;g._interact_target("parking_key")
+ verify.call(guard.foley.count==key_sounds,"An already collected key repeats its pickup sound")
  hand.tick(1.,true)
  var lock: Node3D=w.tactile.contact.delivery_exit
  guard.position=lock.global_position+lock.global_basis.z*.8;guard.position.y=0.;guard.camera.look_at(lock.global_position)
@@ -43,6 +47,7 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(g._target()=="delivery_exit","New key cylinder blocks the glass door target")
  press(g);verify.call(not w.backstage.exit_open and hand.kind=="delivery_exit","Parking door opens before key insertion")
  hand.tick(.26,true);verify.call(w.backstage.exit_open,"Turning the key fails to unlock the existing door")
+ verify.call(guard.foley.last=="keys","Using the parking key has no physical feedback")
  hand.tick(1.,true)
  # Pick up a real newspaper through E, then read its existing inventory entry.
  g.state.streak=2;w.archive.sync(g.archive,3)
@@ -53,6 +58,7 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(paper.mesh.get_surface_count()==3 and paper.material_override==null,"Newspaper lacks its printed face, back and thin edge")
  press(g);verify.call("opening" not in g.archive.collected,"Paper collection commits before reaching it")
  hand.tick(.31,true);verify.call("opening" in g.archive.collected and not w.archive.items.has("opening"),"Visible paper pickup loses the real inventory item")
+ verify.call(guard.foley.last=="paper","Newspaper collection has no paper rustle at hand contact")
  hand.tick(.34,true);verify.call(hand.world_item!=null and hand.held.visible,"Paper is not visible while being brought into the hand")
  hand.tick(1.,true)
  # The disabled animation option performs the same action immediately.
@@ -62,6 +68,12 @@ func run(g: Node3D,verify: Callable) -> void:
  await g.get_tree().physics_frame;await g.get_tree().physics_frame
  verify.call(g._target()=="paper:missing","Cinema newspaper is obstructed after the surface update")
  press(g);verify.call("missing" in g.archive.collected and hand.kind.is_empty(),"Disabling hand animations prevents collection")
+ verify.call(guard.foley.last=="paper","Disabling hand animations also disables paper feedback")
+ g.archive_selected="opening";g._inventory();verify.call(guard.foley.last=="paper" and guard.foley.sound.playing,"Reading an owned newspaper has no paper movement sound")
+ g._resume();guard.active=false;g.set_process(false)
+ guard.toggle_lamp();verify.call(guard.foley.last=="switch","Flashlight switch is silent")
+ guard.foley.tick(false);verify.call(guard.foley.sound.stream_paused,"Pause leaves interaction foley playing")
+ guard.foley.tick(true);verify.call(not guard.foley.sound.stream_paused,"Interaction foley cannot resume")
  # Real grounded physics supplies the sprint fatigue; recovering does not need movement.
  guard.position=Vector3(-3.,.03,12.);guard.velocity=Vector3.ZERO
  for i in range(12):

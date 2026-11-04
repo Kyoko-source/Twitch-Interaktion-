@@ -24,7 +24,7 @@ func run(game: Node3D,verify: Callable) -> void:
   if i%60==0:await game.get_tree().physics_frame
  verify.call(hunt.phase=="catch" and hunt.catch_count==1,"Horse stops near a stationary player instead of catching them")
  await driver.advance(game,.20)
- verify.call(hunt.catch_audio.playing and hunt.catch_audio.stream.resource_path.contains("ossuary-"),"Horse contact lacks its own creature scream")
+ verify.call(hunt.catch_audio.playing and hunt.catch_audio.stream.resource_path.contains("horse-"),"Horse contact lacks its own creature scream")
  verify.call(hunt.catch_view.visible and hunt.catch_mask.visible and not hunt.horse.mask.visible and hunt.catch_view.global_position.distance_to(game.player.camera.global_position)<.001,"Horse close-up is missing or detached from the player's view")
  verify.call(hunt.shock>.7 and hunt.red_locked() and not game.world.annex.scare,"Contact opens red or incorrectly summons the kitchen clown")
  verify.call(hunt.injury_strength>.25 and hunt.injury_strength<=.36,"First contact has no subtle bloodshot injury")

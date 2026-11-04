@@ -62,7 +62,7 @@ func build(world: PlayWorld) -> void:
  scream=AudioStreamPlayer3D.new();scream.name="ClownRepelsHorse";scream.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;scream.max_distance=24;scream.unit_size=7;add_child(scream);ScareBank.select(scream,"clown_lunge")
  warning=ScareBank.lead(self,"vent_strike");warning.name="HorseUncoiling";warning.volume_db=-13
  if AudioServer.get_bus_index("Interior")>=0:scream.bus="Interior"
- catch_audio=AudioStreamPlayer.new();catch_audio.name="HorseContactScream";catch_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;catch_audio.stream=ScareBank.flat("vent_strike");catch_audio.volume_db=-3;add_child(catch_audio)
+ catch_audio=AudioStreamPlayer.new();catch_audio.name="HorseContactScream";catch_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;catch_audio.stream=ScareBank.flat("horse_contact");catch_audio.volume_db=-3;add_child(catch_audio)
  music=AudioStreamPlayer.new();music.name="MusicBoxChase";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
  injury_layer=CanvasLayer.new();injury_layer.name="HorseInjury";injury_layer.layer=0;add_child(injury_layer)
  injury_screen=ColorRect.new();injury_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);injury_screen.mouse_filter=Control.MOUSE_FILTER_IGNORE;injury_layer.add_child(injury_screen)
@@ -189,7 +189,7 @@ func _follow(delta: float,player: NightGuard) -> void:
 
 func _catch(player: NightGuard) -> void:
  catch_count=mini(MAX_HITS,catch_count+1);phase="fatal" if catch_count>=MAX_HITS else "catch";phase_clock=0;catch_cooldown=6;shock=1;warning.stop();_remember(true)
- catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("vent_strike");catch_audio.pitch_scale=1.;catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
+ catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("horse_contact");catch_audio.pitch_scale=1.;catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
  catch_sounded=false
  if phase=="fatal":fatal_announced=true;fatal_started.emit()
  horse.mask.hide();_catch_pose(player)
@@ -366,7 +366,7 @@ func restore(data: Variant) -> void:
  catch_count=mini(2 if data.get("version",1)==1 else MAX_HITS,int(data.get("catch_count",0)));injury_strength=float(stored_injury) if data.get("version",1)==2 else .36 if catch_count==1 else .82 if catch_count>=2 else 0.;fatal_announced=false;injury_material.set_shader_parameter("injury",injury_strength);catch_cooldown=float(data.get("catch_cooldown",0));recoil_left=float(data.get("recoil_left",0));rejoin_index=int(data.get("rejoin_index",0))
  if is_instance_valid(catch_view):catch_view.hide()
  catch_sounded=data.get("catch_sound_started",float(data.get("phase_clock",0))>=.045)==true
- horse.mask.visible=phase not in ["catch","fatal"];catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("vent_strike");catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
+ horse.mask.visible=phase not in ["catch","fatal"];catch_audio.stop();catch_audio.stream=load(FATAL_SCREAM) if phase=="fatal" else ScareBank.flat("horse_contact");catch_audio.volume_db=-1.5 if phase=="fatal" else -3.
  if phase in ["catch","fatal"] and data.get("catch_sound_playing",false)==true and float(data.get("catch_sound_position",0))<catch_audio.stream.get_length():catch_audio.play(float(data.get("catch_sound_position",0)))
  music.stop();music_offset=fposmod(maxf(0,float(data.get("music_position",clock))),music.stream.get_length());music_gain=clampf(float(data.get("music_gain",0)),0,db_to_linear(-16))
  if phase=="resolved":music_offset=0;music_gain=0
