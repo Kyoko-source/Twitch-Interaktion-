@@ -1,5 +1,15 @@
 # After Play — Kinderparadies
 
+## Drei weitere Kommentare (4.0.9)
+
+Einmalige Kommentare beim ersten Krabbeln in einer der beiden Röhren,
+nach dem ersten überlebten Pferdeangriff und nach 30 Sekunden am Stück in
+einer Röhre. Pause zählt nicht; Verlassen oder ein Raumneuaufbau setzt die
+Aufenthaltszeit zurück. Schrecken und laufende Texte haben Anzeigevorrang.
+Der allgemeine Stillstands-Spruch wird in der Röhre unterdrückt. Wiederholschutz
+und Sprachwahl verwenden das bestehende Kommentarsystem; neue Schichten
+setzen die Kommentare wieder frei. Keine neue Sprachausgabe.
+
 ## Empfangsnotizen und Interaktionsarm (4.0.8)
 
 Fünf unterschiedliche handbeschriebene Aushänge ersetzen die Putztextur und

@@ -13,6 +13,7 @@ var next_letter:=0.
 var next_sound:=0.
 var cooldown:=0.
 var idle_time:=0.
+var tube_time:=0.
 var idle_anchor:=Vector3.ZERO
 var memory_dwell:=0.
 var cook_dwell:=0.
@@ -43,7 +44,7 @@ func build(g: Node3D) -> void:
 
 func reset() -> void:
  seen.clear();pending.clear();current="";segment=0;mode="typing";clock=0.;cooldown=0.;idle_time=0.;memory_dwell=0.;cook_dwell=0.;arrival_armed=true
- idle_anchor=game.player.position;letters.clear();text.layout("",[]);typing.stop();ui.hide()
+ tube_time=0.;idle_anchor=game.player.position;letters.clear();text.layout("",[]);typing.stop();ui.hide()
 
 func request(id: String) -> bool:
  if not catalog.has(id) or seen.has(id):return false
@@ -57,6 +58,15 @@ func focuses(point: Vector3,distance: float) -> bool:
  if toward.length()>distance or toward.length()<.1 or -camera.global_basis.z.dot(toward.normalized())<.91:return false
  var ray:=PhysicsRayQueryParameters3D.create(camera.global_position,point-toward.normalized()*.08,1,[game.player.get_rid()])
  return get_world_3d().direct_space_state.intersect_ray(ray).is_empty()
+
+func situations(delta: float) -> void:
+ var w: PlayWorld=game.world
+ var in_tube:=w.tubes.contains(game.player.position)
+ if in_tube and game.player.crouching:request("crawl")
+ tube_time=tube_time+delta if in_tube else 0.
+ if tube_time>=30.:request("tube_hiding")
+ var hunt: HorseHunt=w.horse_hunt
+ if hunt.enabled and hunt.catch_count>0 and hunt.phase in ["recoiling","rejoining","following","clown","retreating","resolved"]:request("horse_survived")
 
 func observe(delta: float) -> void:
  var g:=game;var w: PlayWorld=g.world;var p: Vector3=g.player.position
@@ -73,13 +83,13 @@ func observe(delta: float) -> void:
   if cook_dwell>.45:request("cook")
  if w.encounters.id=="bunny_lunge" and w.encounters.triggered:request("bunny")
  if w.soundscape.voice.playing and w.soundscape.last_voice=="children-laugh.ogg" and (w.tubes.contains(p) or w.climbing.sky.contains(p)):request("children")
- if p.distance_to(idle_anchor)>.35:idle_anchor=p;idle_time=0.
+ if w.tubes.contains(p) or p.distance_to(idle_anchor)>.35:idle_anchor=p;idle_time=0.
  else:idle_time+=delta
  if idle_time>=60.:request("idle")
 
 func speech_busy() -> bool:
  var g:=game
- return g.archive.ending=="recording" or g.world.film.playing or (g.world.soundscape.voice.playing and g.world.tubes.contains(g.player.position)) or g.player.fright>.08
+ return g.archive.ending=="recording" or g.world.film.playing or (g.world.soundscape.voice.playing and g.world.tubes.contains(g.player.position)) or g.world.horse_hunt.phase in ["catch","fatal"] or g.player.fright>.08
 
 func _layout() -> void:
  language=AfterPlayLanguage.code
@@ -90,7 +100,10 @@ func tick(delta: float) -> void:
  var g:=game
  if not is_instance_valid(g.world) or g.world_loading:ui.hide();letters.hide();typing.stop();return
  var instance: int=g.world.get_instance_id()
- if instance!=world_id:letters.clear();world_id=instance;idle_anchor=g.player.position;idle_time=0.;memory_dwell=0.;cook_dwell=0.
+ if instance!=world_id:letters.clear();world_id=instance;idle_anchor=g.player.position;idle_time=0.;tube_time=0.;memory_dwell=0.;cook_dwell=0.
+ # Detect gameplay events independently of subtitle display priority. A scream
+ # may postpone the text, but does not stop the thirty-second hiding clock.
+ if g.phase=="play":situations(delta)
  var active: bool=g.phase=="play" and bool(g.settings.subtitles) and not speech_busy()
  ui.visible=active and not current.is_empty()
  letters.tick(delta,active)
@@ -146,4 +159,4 @@ func restore(value: Variant) -> void:
  text.typed=clampi(int(value.get("typed",0)),0,text.glyphs.size());text.dropped=clampi(int(value.get("dropped",0)),0,text.typed)
 
 func snapshot() -> Dictionary:
- return {"current":current,"segment":segment,"mode":mode,"text":text.text,"typed":text.typed,"dropped":text.dropped,"seen":seen.keys(),"pending":pending.duplicate(),"visible":ui.visible,"letters":letters.snapshot(),"idle":idle_time,"typing":typing.playing}
+ return {"current":current,"segment":segment,"mode":mode,"text":text.text,"typed":text.typed,"dropped":text.dropped,"seen":seen.keys(),"pending":pending.duplicate(),"visible":ui.visible,"letters":letters.snapshot(),"idle":idle_time,"tube_time":tube_time,"typing":typing.playing}

@@ -3,7 +3,7 @@ extends RefCounted
 func run(g: Node3D,verify: Callable) -> void:
  g._new_shift();g.intro.skip();g.set_process(false);g.player.active=false
  var d: GuardDialogue=g.dialogue
- verify.call(d.catalog.size()==13,"Author's document does not have all thirteen scenes")
+ verify.call(d.catalog.size()==16,"Author's document and three added comments are incomplete")
  for id in d.catalog:
   verify.call(d.catalog[id].de.size()==d.catalog[id].en.size(),"Missing English comment paragraphs: "+id)
  d.reset();verify.call(d.request("reel") and not d.request("reel"),"One-time comment can queue twice")
@@ -54,4 +54,34 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(record.node.billboard==BaseMaterial3D.BILLBOARD_DISABLED and absf(record.node.rotation.x+PI/2)<.001,"Landed letters do not lie flat")
  var time: float=record.time;d.letters.tick(3.,false);verify.call(record.time==time,"Fallen letters age during pause")
  d.letters.tick(6.,true);verify.call(d.letters.letters.is_empty(),"Floor lettering accumulates indefinitely")
+ # Both crawl routes use the same one-shot. Thirty continuous gameplay seconds
+ # trigger hiding; leaving the tube resets the clock and pause does not count.
+ for upper in [false,true]:
+  d.reset();d.arrival_armed=false;g.player.set_crouch(true)
+  g.player.position=g.world.climbing.sky.route(2.) if upper else CrawlTubes.route(5.)
+  g.player.position.y=SkyTube.FLOOR if upper else .25
+  d.situations(29.9);d.situations(0.)
+  verify.call(d.pending.count("crawl")==1 and not d.seen.has("tube_hiding"),"Tube entry repeats or hiding triggers too early")
+  d.situations(.2);verify.call(d.pending.count("tube_hiding")==1,"Thirty-second hiding comment is absent")
+  d.situations(40.);d.observe(61.)
+  verify.call(d.pending.count("tube_hiding")==1 and not d.seen.has("idle"),"Tube hiding repeats or also queues the ordinary idle joke")
+ d.reset();d.arrival_armed=false;g.player.position=CrawlTubes.route(5.);g.player.position.y=.25
+ d.tick(.01);d.situations(20.);var tube_time:=d.tube_time
+ g.phase="pause";d.tick(45.);verify.call(d.tube_time==tube_time,"Paused game advances the hiding timer")
+ g.phase="play";g.player.position=Vector3(-7,0,4);d.situations(.1)
+ g.player.position=CrawlTubes.route(5.);g.player.position.y=.25;d.situations(15.)
+ verify.call(not d.seen.has("tube_hiding"),"Separate tube visits accumulate hiding time")
+ var once=JSON.parse_string(JSON.stringify(d.serialize()));d.restore(once);d.situations(0.)
+ verify.call(d.pending.count("crawl")+(1 if d.current=="crawl" else 0)==1,"Continue repeats the crawl comment")
+ d.reset();d.situations(0.);verify.call(d.pending.count("crawl")==1,"New game fails to rearm crawling")
+ g.player.set_crouch(false);g._build_world(HorseHunt.ID);g.phase="play";d.reset()
+ var hunt: HorseHunt=g.world.horse_hunt
+ hunt._catch(g.player);d.situations(.01)
+ verify.call(not d.seen.has("horse_survived") and d.speech_busy(),"Horse comment interrupts the first attack")
+ hunt.tick(1.06,true,g.player);d.situations(.01)
+ verify.call(d.pending.count("horse_survived")==1,"Surviving the first horse attack has no comment")
+ hunt._catch(g.player);hunt.tick(1.06,true,g.player);d.situations(.01)
+ verify.call(d.pending.count("horse_survived")==1,"Second horse contact repeats the survival joke")
+ hunt._catch(g.player);d.reset();d.situations(.01)
+ verify.call(not d.seen.has("horse_survived"),"Fatal horse attack delivers a survival joke")
  d.reset();g._new_shift();g.intro.skip();g.set_process(true)

@@ -59,6 +59,21 @@
     "en": ["I nEeD a KeY …", "What a wonderful way to drag out a scene for no reason."],
     "emphasis": ["MiR fEhLt EiN sChLüSsEl", "I nEeD a KeY"]
   },
+  "crawl": {
+    "de": ["Andere in meinem Alter kaufen ein Haus.", "Ich krabbel für Mindestlohn durch einen Schlauch, der nach scheiße riecht."],
+    "en": ["Other people my age are buying a house.", "I'm crawling through a tube that smells like shit for minimum wage."],
+    "emphasis": ["Mindestlohn", "scheiße", "minimum wage", "shit"]
+  },
+  "horse_survived": {
+    "de": ["Ich hätte beim Bewerbungsgespräch nach den tierischen Kollegen fragen sollen."],
+    "en": ["I should've asked about the animal coworkers during the job interview."],
+    "emphasis": ["tierischen Kollegen", "animal coworkers"]
+  },
+  "tube_hiding": {
+    "de": ["Taktischer Rückzug. Klingt auf dem Unfallbericht besser als ‚hat sich eingepisst‘."],
+    "en": ["Tactical retreat. Looks better on the accident report than 'pissed himself'."],
+    "emphasis": ["Taktischer Rückzug", "eingepisst", "Tactical retreat", "pissed himself"]
+  },
   "idle": {
     "de": ["Ach nee, cool. Lass uns zwölf Stunden einfach nur dumm rumstehen.", "Muss ein geiles Gameplay sein."],
     "en": ["Oh, cool. Let's just stand around doing nothing for twelve hours.", "Must be amazing gameplay."],
