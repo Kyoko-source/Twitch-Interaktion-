@@ -43,10 +43,6 @@ func tick(delta: float,g: Node3D) -> void:
    show_line(line_at("archive",g.archive.recording_position),"archive");return
   if g.phase=="play" and g.world.film.playing and g.world.film.audio.global_position.distance_to(g.player.camera.global_position)<14:
    show_line(line_at("film",g.world.film.audio.get_playback_position()),"film");return
-  if g.phase=="play" and g.world.soundscape.voice.playing and g.world.tubes.inside:
-   show_line("[Children laughing]" if g.world.soundscape.last_voice=="children-laugh.ogg" else "[Children crying]" if AfterPlayLanguage.english() else "[Kinder weinen]","ambient")
-   if not AfterPlayLanguage.english() and g.world.soundscape.last_voice=="children-laugh.ogg":show_line("[Kinder lachen]","ambient")
-   return
  if g.dialogue and g.dialogue.ui.visible:clear();return
  if g.phase!="play" or not bool(g.settings.sign_subtitles) or not AfterPlayLanguage.english():
   cached_sign="";scan_clock=0;clear();return

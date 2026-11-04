@@ -1,5 +1,11 @@
 # After Play — Kinderparadies
 
+## Tunnelgeräusche (4.0.7)
+
+Die Geräuschbeschreibungen „Kinder lachen“ und „Kinder weinen“ erscheinen
+in keiner Sprache mehr als Untertitel. Die Geräusche, der einmalige Kommentar
+des Nachtwächters und die Untertitel gesprochener Aufnahmen bleiben erhalten.
+
 ## Kommentare, Fahrstühle und Details (4.0.6)
 
 Die 13 Szenen aus dem Untertitel-Dokument erscheinen als innere Kommentare,

@@ -31,6 +31,8 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(g.captions.line_at("archive",274).contains("soup"),"Final recording is missing its last caption")
  verify.call(g.captions.line_at("archive",278).is_empty(),"A caption persists after the final spoken sentence")
  g._new_shift();g.intro.skip();g.player.active=false
+ # Inspect speech and sign captions independently of queued guard comments.
+ g.set_process(false);g.dialogue.reset()
  var prop_names: Dictionary={}
  for prop in g.world.atmosphere.loose:prop_names[prop.title]=true
  for value: String in prop_names:
@@ -89,4 +91,4 @@ func run(g: Node3D,verify: Callable) -> void:
  verify.call(start.text=="Neue Nachtschicht" and start.tr(start.text)=="Neue Nachtschicht","Main menu does not return to rendered German after leaving settings")
  verify.call(g.captions.line_at("intro",27).contains("rote Tür"),"German speech captions are missing")
  verify.call(AfterPlayLanguage.t("Einstellungen")=="Einstellungen","German UI was overwritten by English")
- g.settings=original;g._apply_settings();g._write_settings();g.player.active=false
+ g.settings=original;g._apply_settings();g._write_settings();g.player.active=false;g.set_process(true)
