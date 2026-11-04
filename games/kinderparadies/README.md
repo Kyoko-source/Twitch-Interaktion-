@@ -1,5 +1,33 @@
 # After Play — Kinderparadies
 
+## Startfahrstuhl und Handy (3.9.1)
+
+Die ursprüngliche Kabine bleibt am bisherigen Ort. Gealterte Emaille-Paneele,
+dunkle Holzverkleidung, gebürstete Türblätter mit Falzen und Dichtungen,
+eingelassene Taster mit Blindenschriftpunkten sowie gerahmte Deckenleuchten
+ersetzen die bisher überwiegend glatten Flächen. Eine gezeichnete Happyland-
+Druckkarte mit Messingrahmen sitzt an der Rückwand. Etagenanzeige und
+Kontrollzetteldrucker behalten ihre Funktion. Die Details sind pro Material
+zusammengeführt; nur die bisherigen fünf einfachen Kabinenflächen kollidieren.
+Türschwelle und Bodeneinfassung liegen flach unter der üblichen Schritthöhe.
+
+Handy und Hand wurden neu modelliert: abgerundeter Schutzrahmen, gefasstes
+Frontglas, versenkte Kameras, Tasten, Ladebuchse, Lautsprechergitter und
+Gebrauchsspuren. Die Hand ist eine durchgehende, passend um das Gehäuse geformte
+Oberfläche mit Hautpigment, Falten, Nägeln und gewebtem Uniformärmel. Das
+abgerundete Live-Display sitzt innerhalb des Glasrandes. Annahme, Gesprächsuhr,
+Pause, Untertitel und Überspringen behalten den bisherigen Ablauf. Die
+Annehmen-Schaltfläche ist kompakter; alte Telefonmodelle werden nicht mehr
+exportiert. Englische Schilduntertitel erfassen auch die Kabine. Pfeile und
+Tastersymbole bestehen aus echter Geometrie, damit fehlende Browser-Schriftzeichen
+keine Lücken hinterlassen.
+
+Prüfungen: `--self-test --lift-only` (Startablauf, Etagen, Display, Pause,
+Rückkehr und echter Physikweg über die Türschwelle), `--render-qa --lift-qa` und
+Playwright `v3.9.1 redesigned lift`. Browser plugin not available; browser QA
+uses the existing Playwright/Edge setup at 1920 × 1080. The flow under test is:
+main menu → new shift → accept call → pause/resume → skip → walk out of lift.
+
 ## Persönliche Nachtschicht und neue Schreckfiguren (3.9.0)
 
 Das Erinnerungsalbum im Hauptmenü speichert entdeckte Enden und echte, ohne HUD

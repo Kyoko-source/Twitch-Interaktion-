@@ -60,7 +60,7 @@ func read_sign(g: Node3D,cursor: Vector2=Vector2(-1,-1)) -> String:
  if cursor.x<0:cursor=viewport.get_visible_rect().size*.5 if Input.mouse_mode==Input.MOUSE_MODE_CAPTURED else viewport.get_mouse_position()
  var origin:=camera.project_ray_origin(cursor);var direction:=camera.project_ray_normal(cursor);var best:=4.8;var found: Node3D
  for node: Node3D in get_tree().get_nodes_in_group("caption_signs"):
-  if not node.is_visible_in_tree() or not g.world.is_ancestor_of(node):continue
+  if not node.is_visible_in_tree() or not (g.world.is_ancestor_of(node) or g.intro.is_ancestor_of(node)):continue
   var local:=node.to_local(origin);var ray:=node.global_basis.inverse()*direction
   if local.z<=0 or ray.z>=-.0001:continue
   var distance: float=-local.z/ray.z

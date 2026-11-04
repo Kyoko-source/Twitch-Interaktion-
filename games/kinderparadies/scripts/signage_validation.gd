@@ -23,7 +23,7 @@ func run(game: Node3D,verify: Callable) -> void:
  for round_number in range(1,14):
   game.state.streak=round_number-1;game._refresh_hud()
   verify.call(game.intro.floor_number==round_number and game.world.passages.floor_number==round_number,"Lift floor is not synchronized with round "+str(round_number))
-  verify.call(game.intro.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)+"  ▲"),"Entrance cabin still displays a fixed floor")
+  verify.call(game.intro.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)),"Entrance cabin still displays a fixed floor")
   verify.call(game.world.passages.floor_displays.all(func(indicator):return indicator.text==ElevatorIntro.floor_text(round_number)+" / AUFZUG"),"A decision corridor still displays a fixed floor")
  game.player.position=Vector3(-7.85,.02,-18.75);game.player.camera.look_at(ReceptionWatch.WALL)
  await game.get_tree().physics_frame;await game.get_tree().physics_frame

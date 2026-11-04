@@ -1,0 +1,9 @@
+After Play — Lift and phone makeover, 3.9.1
+
+Original handset, fitted hand, uniform cuff, cabin geometry, procedural surface
+shader and period directory artwork authored for Kyoko's After Play project.
+Source: tools/model-after-play-lift-v391.py and scripts/lift_*.gd.
+
+The existing Poly Haven fabric_pattern_07 textile remains covered by the
+project's PolyHaven-CC0.txt attribution. Bodoni Moda remains under its existing
+SIL Open Font License; no new third-party downloads are included here.

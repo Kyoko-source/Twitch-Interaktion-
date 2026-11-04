@@ -24,6 +24,29 @@ async function walk(page,key,predicate){await page.keyboard.down(key);try{await 
 // during the first lift trip (measured 16 s), while still asserting the full return.
 const errors=[];
 
+test('v3.9.1 redesigned lift and handset accept, pause and skip the call without blocking the exit',async({page})=>{
+ test.setTimeout(180000);await load(page);await clickControl(page,'Neue Nachtschicht');
+ await expect.poll(async()=>(await state(page)).intro.stage).toBe('ringing');
+ await expect.poll(async()=>(await state(page)).controls.some(c=>c.text==='Annehmen   [E]')).toBe(true);
+ expect((await state(page)).intro.phone_visible).toBe(true);
+ expect((await state(page)).intro.floor_texts).toEqual(['01','01']);
+ await page.screenshot({path:join(tmpdir(),'after-play-v391-web-phone-incoming.png')});
+ await clickControl(page,'Annehmen   [E]');
+ await expect.poll(async()=>(await state(page)).intro.stage).toBe('call');
+ expect((await state(page)).intro.screen_state).toBe('Verbunden');
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).intro.paused).toBe(true);
+ const clock=(await state(page)).intro.call_clock;
+ await page.waitForTimeout(600);expect((await state(page)).intro.call_clock).toBe(clock);
+ expect((await state(page)).intro.voice_paused).toBe(true);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).intro.paused).toBe(false);
+ await page.screenshot({path:join(tmpdir(),'after-play-v391-web-phone-connected.png')});
+ await skipIntro(page);
+ expect((await state(page)).intro.phone_visible).toBe(false);
+ await page.mouse.click(1200,600);await walk(page,'w',s=>s.position[2]<16.5);
+ expect((await state(page)).position[1]).toBeGreaterThan(-.08);
+ expect((await state(page)).anomaly).toBe('none');
+});
+
 test('v3.9.0 memory album hides undiscovered endings and persists a real closing photo',async({page})=>{
  test.setTimeout(300000);await load(page);
  await clickControl(page,'Erinnerungsalbum');
@@ -500,7 +523,7 @@ test('v3.5.1 elevator readouts follow rounds, saved progress and death',async({p
  const checkFloor=(snapshot,number)=>{
   const formatted=String(number).padStart(2,'0');
   expect(snapshot.intro.floor).toBe(number);expect(snapshot.passage.floor).toBe(number);
-  expect(snapshot.intro.floor_texts).toEqual([formatted+'  ▲',formatted+'  ▲']);
+  expect(snapshot.intro.floor_texts).toEqual([formatted,formatted]);
   expect(snapshot.passage.floor_texts).toEqual([formatted+' / AUFZUG',formatted+' / AUFZUG']);
  };
  checkFloor(await state(page),1);

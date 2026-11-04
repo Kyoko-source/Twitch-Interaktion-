@@ -6,6 +6,18 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--lift-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.tick(1.5);game.set_process(false)
+  await capture(game,output,"01-incoming-phone")
+  game.intro.accept();game.intro.tick(2.);await capture(game,output,"02-connected-phone")
+  game.intro.phone.hide();game.intro.overlay.hide();await capture(game,output,"03-cabin-front")
+  for shot in [{"name":"04-cabin-controls","look":Vector3(-6.72,1.55,18.05)},{"name":"05-cabin-rear","look":Vector3(-8.,1.5,20.3)}]:
+   game.player.camera.look_at(shot.look);await capture(game,output,shot.name)
+  game.player.position=Vector3(-8.,0,17.85);game.player.camera.look_at(Vector3(-8.,1.85,20.3));await capture(game,output,"06-cabin-directory")
+  game.player.position=Vector3(-8.,0,18.65);game.player.camera.look_at(Vector3(-8.,2.7,18.4));await capture(game,output,"07-cabin-ceiling")
+  game.intro.skip();game.player.active=false;game.player.torch_body.hide();game.player.lamp.hide()
+  game.player.position=Vector3(-8.,0,16.2);game.player.camera.look_at(Vector3(-8.,1.4,20.3));await capture(game,output,"08-cabin-from-hall")
+  game._quit();return
  if "--shift-qa" in OS.get_cmdline_user_args():
   game.set_process(false)
   for language in ["de","en"]:
