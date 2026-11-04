@@ -96,6 +96,44 @@ test('v4.0.3 interaction foley and real cinema movement work in the Web export',
  expect(faults).toEqual([]);
 });
 
+test('v4.0.6 comments type, fall, persist and restart while the cloned lift completes a patrol',async({page})=>{
+ test.setTimeout(300000);const faults=[];
+ page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});
+ await begin(page);
+ await walk(page,'w',s=>s.position[2]<16.8);
+ await expect.poll(async()=>(await state(page)).dialogue.current,{timeout:12000}).toBe('arrival');
+ await expect.poll(async()=>(await state(page)).dialogue.typed).toBeGreaterThan(10);
+ await page.screenshot({path:join(tmpdir(),'after-play-v406-web-typing.png')});
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('pause');
+ const frozen=(await state(page)).dialogue.typed;
+ await page.waitForTimeout(350);expect((await state(page)).dialogue.typed).toBe(frozen);expect((await state(page)).dialogue.typing).toBe(false);
+ await page.keyboard.press('Escape');await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ await expect.poll(async()=>(await state(page)).dialogue.letters.landed,{timeout:15000}).toBeGreaterThan(0);
+ await qa(page,{op:'warp',x:-8,z:16.7,yaw:0,pitch:-1.0});
+ await page.screenshot({path:join(tmpdir(),'after-play-v406-web-floor-letters.png')});
+ await page.keyboard.press('Escape');await page.reload();await waitForMenu(page);await clickControl(page,'Schicht fortsetzen');
+ await expect.poll(async()=>(await state(page)).phase).toBe('play');
+ expect((await state(page)).dialogue.seen.filter(id=>id==='arrival')).toHaveLength(1);
+ await qa(page,{op:'warp',x:-4.3,z:-10.5,yaw:0,pitch:0});
+ try{await expect.poll(async()=>(await state(page)).target,{timeout:30000}).toBe('green');}catch(error){error.message+='\nPatrol state: '+JSON.stringify(await state(page))+'\nErrors: '+JSON.stringify(faults);throw error;}await page.keyboard.press('e');
+ await expect.poll(async()=>(await state(page)).passage.open[0],{timeout:15000}).toBe(true);
+ await qa(page,{op:'warp',x:-4.7,z:-20.8,yaw:Math.PI,pitch:0});
+ await page.screenshot({path:join(tmpdir(),'after-play-v406-web-return-lift.png')});
+ await qa(page,{op:'warp',x:-4.7,z:-22.0,yaw:Math.PI,pitch:0});
+ await expect.poll(async()=>(await state(page)).streak,{timeout:30000}).toBe(1);
+ await expect.poll(async()=>(await state(page)).phase,{timeout:30000}).toBe('play');
+ expect((await state(page)).intro.floor_texts).toEqual(['02','02']);
+ expect((await state(page)).dialogue.seen.filter(id=>id==='arrival')).toHaveLength(1);
+ await qa(page,{op:'warp',x:-12.5,z:-29.8,yaw:.92,pitch:.05});
+ await page.waitForTimeout(500);await page.screenshot({path:join(tmpdir(),'after-play-v406-web-kitchen.png')});
+ await qa(page,{op:'menu'});await clickControl(page,'Neue Nachtschicht');
+ try{await skipIntro(page,90000);}catch(error){error.message+='\nRestart state: '+JSON.stringify(await state(page))+'\nErrors: '+JSON.stringify(faults);throw error;}
+ expect((await state(page)).dialogue.seen).toEqual([]);
+ await walk(page,'w',s=>s.position[2]<16.8);
+ await expect.poll(async()=>(await state(page)).dialogue.current).toBe('arrival');
+ expect(faults).toEqual([]);
+});
+
 test('v4.0.5 physical mechanisms and synchronized cooking work in the Web export',async({page})=>{
  test.setTimeout(180000);const faults=[];
  page.on('pageerror',error=>faults.push(error.message));page.on('console',message=>{if(message.type()==='error')faults.push(message.text());});

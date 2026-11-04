@@ -1,0 +1,67 @@
+{
+  "arrival": {
+    "de": ["Da bin ich also … Zwölf Stunden.", "Nur ich und dieses verlassene Kinderparadies.", "Warum genau mache ich diesen Job nochmal?", "Ich meine, hier hat doch seit Jahren keiner mehr gespielt.", "Ach … was ich nicht alles fürs Geld tue."],
+    "en": ["So here I am … Twelve hours.", "Just me and this abandoned children's play centre.", "Why exactly am I doing this job again?", "I mean, nobody's played here in years.", "Ah … the things I do for money."],
+    "emphasis": ["Zwölf Stunden", "Geld", "Twelve hours", "money"]
+  },
+  "memories": {
+    "de": ["Scheint ja doch mal echt schön hier gewesen zu sein.", "Warum genau wurde der Laden nochmal geschlossen?", "Scheiße, ich hätte beim Briefing besser aufpassen sollen."],
+    "en": ["Looks like this place really used to be nice.", "Why exactly did it close again?", "Shit, I should've paid more attention during the briefing."],
+    "emphasis": ["geschlossen", "Briefing", "close", "briefing"]
+  },
+  "cook": {
+    "de": ["Heilige … ist das so ein … Animatronik-Ding?", "An sich ja ganz geile Dinger …", "… wenn ich damals nicht dieses eine Videospiel gespielt hätte.", "Gruselig."],
+    "en": ["Holy … is that one of those … animatronic things?", "They're pretty cool, actually …", "… if only I hadn't played that one video game back then.", "Creepy."],
+    "emphasis": ["Animatronik", "Videospiel", "Gruselig", "animatronic", "video game", "Creepy"]
+  },
+  "reel": {
+    "de": ["Oh, ein alter Nitrofilm …", "Sind die nicht so extrem entzündlich?"],
+    "en": ["Oh, an old nitrate film …", "Aren't those extremely flammable?"],
+    "emphasis": ["Nitrofilm", "entzündlich", "nitrate film", "flammable"]
+  },
+  "bunny": {
+    "de": ["Du kleiner Ba… Hur…", "Du kleines Stück Dreck!"],
+    "en": ["You little bas… You son of a…", "You little piece of shit!"],
+    "emphasis": ["Stück Dreck", "piece of shit"]
+  },
+  "round7": {
+    "de": ["Oh Mann. Sieben Stunden erst vergangen."],
+    "en": ["Oh man. Only seven hours gone."],
+    "emphasis": ["Sieben Stunden", "seven hours"]
+  },
+  "round13": {
+    "de": ["So, noch ein Durchgang. Dann sollte Feierabend sein.", "Besser ist auch."],
+    "en": ["Right. One more round, then I should be done.", "I'd better be."],
+    "emphasis": ["Feierabend", "done"]
+  },
+  "party": {
+    "de": ["Oh geil, hätte nicht gedacht, dass das noch funktioniert.", "Irgendwie hab ich nun massivst Bock, mir achtarmig einen reinzudübeln …", "Mann, ich liebe Apfelschorle."],
+    "en": ["Oh, nice. Didn't think that still worked.", "Suddenly I really feel like getting absolutely hammered …", "Man, I love apple spritzer."],
+    "emphasis": ["achtarmig", "Apfelschorle", "hammered", "apple spritzer"]
+  },
+  "children": {
+    "de": ["Die ganze Dunkelheit setzt meinem Kopf zu …", "Ich fang schon an, Stimmen zu hören."],
+    "en": ["All this darkness is getting to me …", "I'm starting to hear voices."],
+    "emphasis": ["Stimmen", "voices"]
+  },
+  "newspaper": {
+    "de": ["Es wäre ein scheiß Spiel, wenn die Zeitung nichts zu sagen hätte …"],
+    "en": ["It'd be a pretty shit game if the newspaper had nothing to say …"],
+    "emphasis": ["Zeitung", "newspaper"]
+  },
+  "note": {
+    "de": ["Mal ganz ehrlich … ein Rätsel? … Wofür?", "Für den Nachtwächter, der ohne Grund zwanzig Jahre später hier Nachtwache halten soll?", "Weil der Spieleentwickler keine besseren Ideen für die Geschichte hatte? …"],
+    "en": ["Honestly … a puzzle? … What for?", "For the guard who has to watch this place twenty years later for no reason?", "Because the developer couldn't think of a better story? …"],
+    "emphasis": ["Rätsel", "Spieleentwickler", "puzzle", "developer"]
+  },
+  "locked": {
+    "de": ["MiR fEhLt EiN sChLüSsEl …", "Ein tolles Stilmittel, um eine Szene unnötig in die Länge zu ziehen."],
+    "en": ["I nEeD a KeY …", "What a wonderful way to drag out a scene for no reason."],
+    "emphasis": ["MiR fEhLt EiN sChLüSsEl", "I nEeD a KeY"]
+  },
+  "idle": {
+    "de": ["Ach nee, cool. Lass uns zwölf Stunden einfach nur dumm rumstehen.", "Muss ein geiles Gameplay sein."],
+    "en": ["Oh, cool. Let's just stand around doing nothing for twelve hours.", "Must be amazing gameplay."],
+    "emphasis": ["rumstehen", "Gameplay", "doing nothing", "gameplay"]
+  }
+}

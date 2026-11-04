@@ -3,7 +3,7 @@ extends RefCounted
 
 static func travel(game: Node3D, red: bool) -> void:
  game._decide(red)
- game.player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,PatrolPassage.ENTRY_Z-9.2)
+ game.player.position=game.world.passages.lanes[1 if red else 0].lift.cabin.to_global(Vector3(0,0,.55))
  game.world.passages.tick(.01,true,game.player,game.state.current!="none",game.state.completed)
  for frame in range(900):
   if game.phase=="ending": break
@@ -40,7 +40,16 @@ func run(game: Node3D, verify: Callable) -> void:
   game._decide(not red)
   verify.call(not game.world.passages.lanes[1-index].open,"Committed corridor lets the other door be selected")
   game.player.active=true;game.player.rotation.y=0;Input.action_press("forward")
-  for frame in range(220):
+  var route_step:=0
+  var waypoints: Array[Vector3]=[]
+  for point in game.world.passages.lanes[index].path:
+   var waypoint: Vector3=game.world.passages.lanes[index].root.to_global(Vector3(point.x,0,point.y))
+   if waypoint.z<game.player.position.z-.1:waypoints.append(waypoint)
+  waypoints.append(game.world.passages.lanes[index].lift.cabin.to_global(Vector3(0,0,.55)))
+  for frame in range(420):
+   var toward: Vector3=waypoints[route_step]-game.player.position;toward.y=0
+   if toward.length()<.18 and route_step<waypoints.size()-1:route_step+=1;toward=waypoints[route_step]-game.player.position
+   game.player.rotation.y=atan2(-toward.x,-toward.z)
    await game.get_tree().physics_frame
    if game.phase=="lift": break
   Input.action_release("forward")

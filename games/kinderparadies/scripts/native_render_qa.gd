@@ -6,6 +6,55 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--finish-v406-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game._build_world("none");game.set_process(false);game.player.active=false;game.dialogue.reset()
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-8.15,0,15.8),Vector3(-9.3,.76,15.3))
+  await capture(game,output,"01-plant")
+  author.pose(game,Vector3(2.05,0,-27.35),Vector3(2.05,1.06,-26.35))
+  await capture(game,output,"02-popcorn")
+  for index in range(2):
+   game.world.passages.open(bool(index));game.world.passages.tick(2.,true,game.player,bool(index),false)
+   var lift: PassageLift=game.world.passages.lanes[index].lift
+   for i in range(2):lift.doors[i].position.x=(-1 if i==0 else 1)*.65
+   author.pose(game,lift.cabin.to_global(Vector3(0,0,.55)),lift.cabin.to_global(Vector3(0,1.65,-1.4)))
+   await capture(game,output,"03-return-cabin-%d"%index)
+  var cabin: Node3D=game.intro.get_node("RestoredOriginalLiftCabin")
+  for i in range(2):game.intro.doors[i].position.x=(-1 if i==0 else 1)*.65
+  author.pose(game,cabin.to_global(Vector3(0,0,.55)),cabin.to_global(Vector3(0,1.65,-1.4)))
+  await capture(game,output,"04-original-cabin")
+  author.pose(game,Vector3(-11.6,0,-29.2),Vector3(-13.7,1.9,-31.2))
+  for time in [1.,6.8,12.0]:
+   game.world.annex.clock=time;game.world.annex.tick(.01,true);game.world.room_horror.clock=time;game.world.room_horror.tick(.01,true)
+   await capture(game,output,"05-steady-kitchen-%d"%int(time))
+  for frame in range(90):
+   game.world.annex.tick(1./60.,true)
+   await game.get_tree().process_frame
+  await capture(game,output,"05b-warmed-kitchen")
+  game.world.environment.environment.sdfgi_enabled=false
+  for frame in range(30):await game.get_tree().process_frame
+  await capture(game,output,"05c-kitchen-without-sdfgi")
+  game.world.annex.get_node("PotFlies").hide()
+  await capture(game,output,"06-kitchen-without-flies")
+  game.world.environment.environment.ssil_enabled=false
+  await capture(game,output,"07-kitchen-without-ssil")
+  game.world.environment.environment.ssao_enabled=false
+  await capture(game,output,"08-kitchen-without-ssao")
+  game._quit();return
+ if "--dialogue-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game._build_world("none");game.set_process(false);game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-7.,0,14.5),Vector3(-7.,1.45,8.))
+  await game.get_tree().process_frame
+  game.dialogue.reset();game.dialogue.request("arrival")
+  for i in range(110):game.dialogue.tick(1./60.)
+  await capture(game,output,"01-typed-comment")
+  for i in range(150):game.dialogue.tick(1./60.)
+  await capture(game,output,"02-falling-letters")
+  for i in range(65):game.dialogue.tick(1./60.)
+  game.player.camera.look_at(Vector3(-7.,.02,13.6))
+  await capture(game,output,"03-letters-on-floor")
+  game._quit();return
  if "--mechanics-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game._build_world("none");game.set_process(false);game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()
@@ -378,7 +427,7 @@ func run(game: Node3D) -> void:
  game.settings.quality=0;game._apply_settings()
  var low_ok: bool=not game.world.environment.environment.sdfgi_enabled and not game.world.environment.environment.volumetric_fog_enabled
  game.settings.quality=2;game._apply_settings()
- report.quality_toggle=low_ok and game.world.environment.environment.sdfgi_enabled and game.world.environment.environment.ssr_enabled
+ report.quality_toggle=low_ok and not game.world.environment.environment.sdfgi_enabled and game.world.environment.environment.ssil_enabled and game.world.environment.environment.ssr_enabled
  game._pause();await capture(game,output,"pause");game._settings("pause");await capture(game,output,"settings");game._resume()
  for id in ["blood_trail","bunny_ceiling","lights_red"]:
   game._build_world(id);game._resume();await game.get_tree().create_timer(3).timeout

@@ -183,12 +183,7 @@ func _plush_corner() -> void:
   w.tube(bench,Vector3(side*1.2,.05,.25),Vector3(side*1.2,1.1,.25),.045,w.materials.rust)
  for y in [.8,1.05]: w.box(bench,Vector3(0,y,.26),Vector3(3,.12,.065),w.materials.wood)
  var bunny:=plush(self,Vector3(-3.35,.62,4.85),1.08);bunny.rotation.y=-PI/2;horrors.bunny=bunny
- # Dried plant with curled individual leaves.
- w.tube(self,Vector3(-9.3,.05,15.3),Vector3(-9.3,.5,15.3),.27,w.materials.rust)
- for i in range(13):
-  var a:=i*2.4;var start:=Vector3(-9.3,.45,15.3);var end:=start+Vector3(sin(a)*.48,.5+(i%4)*.12,cos(a)*.48)
-  w.tube(self,start,end,.008,w.materials.wood)
-  var leaf:=w.sphere(self,end,.12,w.materials.fabric);leaf.scale=Vector3(.35,1.7,.12);leaf.rotation.z=sin(a)*.8
+ NaturalProps.plant(w,self)
 
 func prop(pos: Vector3, size: Vector3, material: Material, title: String, mass: float, round_shape: bool=false) -> NightProp:
  var body:=NightProp.new();body.position=pos;body.title=title;body.mass=mass

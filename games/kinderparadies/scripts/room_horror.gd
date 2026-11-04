@@ -129,9 +129,10 @@ func tick(delta: float, active: bool) -> void:
  for i in range(bulbs.size()):
   var phase:=fmod(clock+i*3.17,12.7+i*1.9);var amount:=1.0
   if phase>11.7 and phase<12.18: amount=.15 if sin(phase*92+i)>-.1 else .68
-  if bulbs[i].get("kitchen",false):
-   var kitchen_phase:=fmod(clock,8.3)
-   amount=(.06 if sin(kitchen_phase*109)>.05 else .52) if kitchen_phase>6.6 and kitchen_phase<7.12 else 1.0
+  # Kitchen reference lighting is steady; rapid independent tube/bounce
+  # flicker must not obscure the player's comparison of ordinary details.
+  var p: Vector3=bulbs[i].light.global_position
+  if bulbs[i].get("kitchen",false) or (p.x< -9.35 and p.z< -24.):amount=1.0
   bulbs[i].light.light_energy=bulbs[i].energy*amount
   if bulbs[i].emission: bulbs[i].emission.emission_energy_multiplier=(.45 if bulbs[i].get("kitchen",false) else 1.1)*amount
  # The industrial pendant spots follow their visible lamp's contact failures.

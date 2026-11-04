@@ -217,7 +217,10 @@ func _lighting() -> void:
 func quality(value: int) -> void:
  if not advanced: return
  var env:=w.environment.environment
- env.sdfgi_enabled=value>0;env.ssil_enabled=value==2;env.ssr_enabled=value==2
+ # Continuously rebuilt dark interiors produced conspicuous moving checker
+ # patches from SDFGI probes. Keep the actual room lights, SSIL, contact
+ # shadows and reflection probes; do not layer unstable voxel lighting on top.
+ env.sdfgi_enabled=false;env.ssil_enabled=value==2;env.ssr_enabled=value==2
  env.volumetric_fog_enabled=value>0;env.ssao_enabled=value>0;env.glow_enabled=value>0
  for spot in spots: spot.shadow_enabled=value>0
  for light in fill_lights: light.shadow_enabled=value>0

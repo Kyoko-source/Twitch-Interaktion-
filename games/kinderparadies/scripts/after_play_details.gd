@@ -239,7 +239,7 @@ func _cinema() -> void:
  w.box(cart,Vector3(0,1.12,-.25),Vector3(.75,.52,.035),enamel)
  label(cart,"popcorn",Vector3(0,1.47,.332),Vector2(.84,.14))
  SurfaceDetails.vessel(cart,Vector3(0,.88,0),.17,.22,.16,.014,steel,w.materials.dark,"ColdPopcornKettle")
- for i in range(24): w.sphere(cart,Vector3(-.16+fmod(i*.127,.32),1.06+sin(i*3.1)*.012,-.14+fmod(i*.193,.28)),.023,enamel)
+ NaturalProps.popcorn(w,cart)
  for i in range(3): cup(cart,Vector3(-.25+i*.22,.28,0),paint)
 
 func _maintenance() -> void:

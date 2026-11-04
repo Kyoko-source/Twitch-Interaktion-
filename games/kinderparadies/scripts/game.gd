@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motio
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var captions: AfterPlayCaptions
+var dialogue: GuardDialogue
 var menu_camera: Camera3D
 var menu_light: SpotLight3D
 var menu_clock:=0.0
@@ -159,6 +160,7 @@ func _request_shift() -> void:
  if world_loading:return
  if menu_reference_ready:_new_shift();return
  secret_ending=false;archive.clear();archive_selected="";archive_input=""
+ dialogue.reset()
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  phase="loading";player.release();hud.hide();menu_music.stop()
  for child in menu.get_children():menu.remove_child(child);child.queue_free()
@@ -200,6 +202,7 @@ func _ui() -> void:
  transition_shade=ColorRect.new();transition_shade.color=Color(0,0,0,0);transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);transition_shade.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(transition_shade);transition_shade.hide()
  death_label=_label("",70);death_label.add_theme_font_override("font",title_font);death_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER);death_label.offset_left=-600;death_label.offset_right=600;death_label.offset_top=-60;death_label.offset_bottom=80;death_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;death_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;root.add_child(death_label);death_label.hide()
  captions=AfterPlayCaptions.new();add_child(captions);captions.build()
+ dialogue=GuardDialogue.new();add_child(dialogue);dialogue.build(self)
 
 func _label(value: String, size: int=18, color: Color=Color("eee7d6")) -> Label:
  var label:=Label.new();label.text=AfterPlayLanguage.t(value);label.add_theme_font_size_override("font_size",size);label.add_theme_color_override("font_color",color);return label
@@ -258,6 +261,7 @@ func _menu_jump() -> void:
  phase="settings";NightMenus.settings(self,settings_tab);_telemetry()
 
 func _new_shift() -> void:
+ dialogue.reset()
  ending_preview=false
  secret_ending=false
  chalk_drawing=""
@@ -320,6 +324,7 @@ func _continue() -> void:
   return
  var data=JSON.parse_string(_persistent_text(SAVE))
  if not data is Dictionary or not state.restore(data.get("patrol",{})): _main_menu();return
+ dialogue.restore(data.get("dialogue",{}))
  var stored_archive=data.get("archive",{})
  if stored_archive is Dictionary: archive.restore(stored_archive)
  else: archive.clear()
@@ -339,11 +344,15 @@ func _continue() -> void:
  if wake_pending or arrival_pending: _arrival(wake_pending);return
  if intro_pending: _begin_intro();return
  var pose=data.get("pose",[])
- if int(data.get("layout_version",0)) in [7,8,9,10,11,12] and pose is Array and pose.size()==5:
+ if int(data.get("layout_version",0)) in [7,8,9,10,11,12,13] and pose is Array and pose.size()==5:
   var p:=Vector3(float(pose[0]),float(pose[1]),float(pose[2]))
   if int(data.get("layout_version",0))<11:
    if p.z< -12.2 and p.x<4: p+=ServiceAnnex.OFFSET
    elif p.z>17 and p.x>5: p=Vector3(-8,0,19.35);pose[3]=0
+  elif int(data.get("layout_version",0))<13 and p.z<PatrolPassage.ENTRY_Z and p.z>PatrolPassage.ENTRY_Z-10.8:
+   for lane in range(2):
+    if absf(p.x-PatrolPassage.CENTERS[lane])<1.04:
+     p.x+=PatrolPassage.SHIFTS[lane]*clampf((PatrolPassage.ENTRY_Z-p.z-1.4)/2.6,0.,1.);break
   if p.is_finite() and ((p.x>-10 and p.x<19.5 and p.z>-12 and p.z<17 and p.y>-1 and p.y<7.2) or world.annex.safe_pose(p) or world.archive.safe_pose(p) or world.server_room.safe_pose(p) or world.backstage.safe_pose(p) or world.passages.safe_pose(p) or world.life.safe_pose(p) or (p.x> -9.1 and p.x< -6.9 and p.z>=17 and p.z<20.2 and p.y>-.1 and p.y<2.5)):
    if world.details.clear_pose(p) and world.life.clear_pose(p) and world.revamp.clear_pose(p) and world.venue.clear_pose(p) and world.graphics.clear_pose(p) and world.arrival_design.clear_pose(p) and world.craft.clear_pose(p) and world.party.clear_pose(p): player.position=p
    player.rotation.y=float(pose[3]);player.camera.rotation.x=clampf(float(pose[4]),-1.35,1.35)
@@ -432,6 +441,8 @@ func _horse_resolved() -> void:
 func _collect_paper(id: String) -> void:
  if phase!="play" or not archive.take(id,14 if state.completed else state.streak+1): return
  archive_selected=id;world.archive.take(id);_save()
+ if id=="note":dialogue.request("note")
+ elif id in ArchiveState.PAPERS:dialogue.request("newspaper")
  player.foley.play("paper")
  _announce("Eingesammelt: "+str(ArchiveState.document(id).title)+" · TAB zum Lesen",5)
 
@@ -510,9 +521,10 @@ func _save(next_round: bool=false) -> void:
  if world.chalk:chalk_drawing=world.chalk.serialize()
  party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"pose":pose,"layout_version":12,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"dialogue":dialogue.serialize(),"pose":pose,"layout_version":13,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
 
 func _process(delta: float) -> void:
+ if dialogue:dialogue.tick(delta)
  if player and player.presence:player.presence.set_active(phase=="play" and player.active)
  if player and player.hands:player.hands.tick(delta,phase=="play")
  if is_instance_valid(world) and world.tactile:world.tactile.tick(delta,phase=="play")
@@ -639,6 +651,7 @@ func _board_lift(_red: bool) -> void:
  player.rotation.y=wrapf(player.rotation.y,-PI,PI)
  create_tween().tween_property(player,"rotation:y",PI,.35)
  create_tween().tween_property(player.camera,"rotation:x",0,.35)
+ create_tween().tween_property(player,"position",world.passages.boarding_position(),.35)
  _save();_telemetry()
 
 func _finish_lift(red: bool) -> void:
@@ -764,6 +777,7 @@ func _interact_target(target: String) -> void:
  if target in ["red","green"]: _decide(target=="red")
  elif target.begins_with("mechanical:"):world.mechanics.interact(target)
  elif target=="film_reel":
+  dialogue.request("reel")
   archive.film_found=true;world.film.sync(true);_save();_announce("Filmrolle mitgenommen · Am Projektor im Kino mit E einlegen.",5)
  elif target=="cinema_projector":
   player.foley.play("switch")
@@ -785,9 +799,11 @@ func _interact_target(target: String) -> void:
  elif target=="party_control":
   player.foley.play("switch")
   if world.party.interact():
+   if world.party.enabled:dialogue.request("party")
    _save();_announce("Partymodus eingeschaltet." if world.party.enabled else "Partymodus ausgeschaltet · Systemneustart dauert 15 Minuten.",4)
   else:_announce(world.party.reboot_text(),3)
  elif target=="delivery_exit":
+  if not archive.parking_key_found:dialogue.request("locked")
   if not archive.parking_key_found:_announce("Verschlossen. Der Parkplatzschlüssel hängt am Schlüsselbrett im Personalgang.",5)
   else:player.foley.play("keys");world.backstage.interact_exit(player);_save()
  elif target.begins_with("story:"): _environment_note(target.trim_prefix("story:"))
@@ -799,6 +815,7 @@ func _sync_parking_key() -> void:
  world.details.sync_parking_key(archive.parking_key_found);world.backstage.exit_key_owned=archive.parking_key_found
 
 func _show_memory_wall() -> void:
+ dialogue.request("memories")
  phase="help";return_phase="play"
  var column:=_panel("Die Geburtstage von damals", "Verblasste Erinnerungen. Zwei Abzüge fehlen.")
  var row:=HBoxContainer.new();row.add_theme_constant_override("separation",24);column.add_child(row)
@@ -940,6 +957,7 @@ func _telemetry() -> void:
   var notebook:=menu.find_child("PatrolNotebook",true,false) as PatrolNotebook
   data.notebook={"visible":is_instance_valid(notebook) and notebook.is_visible_in_tree(),"visited":notebook.visited if is_instance_valid(notebook) else [],"round":notebook.round_number if is_instance_valid(notebook) else 0}
   data.captions=captions.snapshot();data.language=AfterPlayLanguage.code
+  data.dialogue=dialogue.snapshot()
   var article:=menu.find_child("NewspaperBody",true,false) as RichTextLabel
   data.reader_body=article.get_parsed_text() if article else ""
   data.settings=settings.duplicate();data.camera_fov=player.camera.fov;data.menu_prank={"running":menu_scare.running,"count":menu_scare.shown,"audio":is_instance_valid(menu_scare.audio) and menu_scare.audio.playing,"gain":AudioServer.get_bus_volume_db(0)};data.settings_tab=settings_tab
@@ -985,7 +1003,7 @@ func _qa_command(args: Array) -> void:
    _refresh_hud()
   "choose":
    var red:=bool(command.red);_decide(red)
-   player.position=Vector3(PatrolPassage.CENTERS[1 if red else 0],0,PatrolPassage.ENTRY_Z-9.2)
+   player.position=world.passages.lanes[1 if red else 0].lift.cabin.to_global(Vector3(0,0,.55))
    world.passages.tick(.01,true,player,state.current!="none",state.completed)
   "pause": _pause()
   "resume": _resume()

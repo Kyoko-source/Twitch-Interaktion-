@@ -1,5 +1,25 @@
 # After Play — Kinderparadies
 
+## Kommentare, Fahrstühle und Details (4.0.6)
+
+Die 13 Szenen aus dem Untertitel-Dokument erscheinen als innere Kommentare,
+mit Schreibmaschineneffekt, leisem Tippen und einzelnen hervorgehobenen Wörtern.
+Anschließend fallen die Buchstaben in die Spielwelt, bleiben kurz auf dem Boden
+liegen und verschwinden. Sie besitzen keine Laufkollisionen. Die Kommentare
+warten auf freie Sprechpausen und werden im Spielstand gemerkt. Fortsetzen und
+Fehlentscheidungen wiederholen sie nicht; eine neue Nachtschicht schaltet sie
+wieder frei. Deutsch und Englisch sind enthalten.
+
+Beide Rückkehrkabinen nutzen denselben Aufbau wie der Startfahrstuhl, inklusive
+Drucker, Bedienfeld, Etagenanzeigen, Türen und Innenausbau. Die Flure führen
+mittig hinein. Der Spieler wird vor dem geschlossenen Übergang auf denselben
+Standpunkt geführt. Ältere Flur-Spielstände werden an die neue Geometrie angepasst.
+
+Eine heruntergekommene Topfpflanze mit gebogenen, geaderten Blättern ersetzt
+die Stoffformen. Kleine unregelmäßig aufgeplatzte Maiskörner füllen die
+Popcornmaschine; dieselben Formen liegen im Kino. Die Küche erhält eine
+stabile Beleuchtung ohne die bisherigen Rasterflecken.
+
 ## Mechanische Spielereien und Kochplatz (4.0.5)
 
 Am Empfang lassen sich die Messingklingel drücken und der leere

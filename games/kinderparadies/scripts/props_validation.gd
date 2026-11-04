@@ -30,7 +30,7 @@ func run(game: Node3D, verify: Callable) -> void:
  for bulb in game.world.room_horror.bulbs:
   if bulb.get("kitchen",false): kitchen.append(bulb)
  game.world.room_horror.clock=6.7;game.world.room_horror.tick(.01,true)
- verify.call(kitchen.size()==2 and kitchen.all(func(b):return b.light.light_energy<b.energy*.6),"Kitchen fixture and bounce light do not flicker together")
+ verify.call(kitchen.size()==2 and kitchen.all(func(b):return is_equal_approx(b.light.light_energy,b.energy)),"Normal kitchen lighting flickers instead of staying steady")
  game._build_world("none");game._resume()
  game.player.position=Vector3(-8.7,0,-5.4);game.player.velocity=Vector3.ZERO;game.player.rotation.y=PI/2;game.player.camera.rotation=Vector3.ZERO
  Input.action_press("forward")

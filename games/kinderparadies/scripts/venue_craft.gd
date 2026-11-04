@@ -198,7 +198,7 @@ func _litter() -> void:
   litter_zones.append(Rect2(center-Vector2(.22,.23),Vector2(.44,.46)))
   for i in range(11):
    var point:=Vector3(center.x+rng.randf_range(-.18,.18),.023,center.y+rng.randf_range(-.19,.19))
-   var kernel:=w.sphere(self,point,.012,w.materials.cream);kernel.scale=Vector3(1.1,.9,1.3);parts+=1
+   var kernel:=MeshInstance3D.new();kernel.mesh=NaturalProps.kernel_mesh(i);kernel.position=point;kernel.rotation=Vector3(i*.7,i*1.1,i*.3);kernel.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(kernel);parts+=1
    if i%3==0:
     var crumb:=w.sphere(kernel,Vector3(.008,.004,-.005),.007,w.materials.gold);crumb.scale.y=.8
   var wrapper:=box(self,Vector3(center.x+.12,.014,center.y+.1),Vector3(.13,.003,.09),w.materials.paper);wrapper.rotation.y=rng.randf_range(-1,1)

@@ -9,6 +9,14 @@ func check(condition: bool, message: String) -> void:
 
 func run(game: Node3D) -> bool:
  game.party_reboot_until=0;game.world.party.reboot_until=0
+ if "--finish-v406-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/finish_v406_validation.gd").new().run(game,check)
+  print("Cabin copies, scenery and kitchen stability checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
+ if "--dialogue-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/dialogue_validation.gd").new().run(game,check)
+  print("Guard comment and falling-letter checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--mechanics-only" in OS.get_cmdline_user_args():
   await load("res://scripts/mechanical_validation.gd").new().run(game,check)
   print("Mechanical interactions and cooking checks: ",checks,"; failures: ",failures.size())
