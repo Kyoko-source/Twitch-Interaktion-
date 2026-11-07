@@ -4,6 +4,17 @@ extends RefCounted
 # The authored fingers curl around local X, below the palm and in front of it.
 # Align the handle with that actual opening instead of the palm's origin.
 const SPOON_GRIP:=Vector3(0,-.057,.030)
+# The stooped figure stands on the root origin; its head hangs this far forward.
+const HEAD_REACH:=.60
+const SHOULDER_STIR:=Vector3(-.25,1.52,.37)
+const SHOULDER_IDLE:=Vector3(.25,1.52,.37)
+const UPPER_LENGTH:=.47
+const FOREARM_LENGTH:=.45
+const HAND_SCALE:=1.16
+const WRIST:=Vector3(0,.078,0)
+const ELBOW_OUT:=Vector3(-1.,-.3,-.25)
+const ELBOW_IDLE:=Vector3(.6,-.2,-.5)
+const ELBOW_DOWN:=Vector3(.7,-.7,0)
 
 static func complexion(texture: Texture2D, stained: bool=false) -> ShaderMaterial:
  var shader:=Shader.new();shader.code="""
@@ -22,11 +33,37 @@ ALBEDO=c;ALPHA=skin.a;ROUGHNESS=mix(.95,.58,smear);SPECULAR=.18;}
 static func link(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
  var direction:=b-a;var radius: float=mesh.get_meta("radius_scale",1.0);mesh.position=(a+b)*.5;mesh.quaternion=Quaternion(Vector3.UP,direction.normalized());mesh.scale=Vector3(radius,direction.length(),radius)
 
-static func sleeve(parent: Node3D, radius: float) -> MeshInstance3D:
- var scene: Node3D=(load("res://assets/props/clown-sleeve.glb") as PackedScene).instantiate()
+# Two-bone solve: limbs keep their length, so the sleeves never stretch.
+static func reach(upper: MeshInstance3D,forearm: MeshInstance3D,shoulder: Vector3,wrist: Vector3,pole: Vector3) -> void:
+ var span:=wrist-shoulder;var distance:=clampf(span.length(),.1,UPPER_LENGTH+FOREARM_LENGTH-.001);var axis:=span.normalized()
+ var along:=(UPPER_LENGTH*UPPER_LENGTH-FOREARM_LENGTH*FOREARM_LENGTH+distance*distance)/(2.*distance)
+ var elbow:=shoulder+axis*along+pole.slide(axis).normalized()*sqrt(maxf(UPPER_LENGTH*UPPER_LENGTH-along*along,0.))
+ link(upper,shoulder,elbow);link(forearm,elbow,shoulder+axis*distance)
+
+static func claw(hand: Node3D,upper: MeshInstance3D,forearm: MeshInstance3D,shoulder: Vector3,target: Vector3,pole: Vector3) -> void:
+ var back:=(shoulder-target).normalized();var side:=back.cross(Vector3.FORWARD).normalized()
+ hand.transform=Transform3D(Basis(side,back,side.cross(back))*Basis.from_scale(Vector3.ONE*HAND_SCALE),target)
+ reach(upper,forearm,shoulder,hand.transform*WRIST,pole)
+
+# Both arms open toward the victim. Amount 0 leaves the free arm hanging.
+static func strike(figure: Dictionary,amount: float) -> void:
+ claw(figure.hand,figure.upper,figure.forearm,SHOULDER_STIR,Vector3(-.21,1.62,1.00),ELBOW_DOWN*Vector3(-1,1,1))
+ claw(figure.idle_hand,figure.idle_upper,figure.idle_forearm,SHOULDER_IDLE,Vector3(.40,.78,.50).lerp(Vector3(.19,1.50,1.04),amount),ELBOW_IDLE.lerp(ELBOW_DOWN,amount))
+
+static func rest(figure: Dictionary) -> void:
+ figure.idle_hand.transform=Transform3D(Basis.from_scale(Vector3.ONE*HAND_SCALE),Vector3(.40,.78,.50))
+ reach(figure.idle_upper,figure.idle_forearm,SHOULDER_IDLE,figure.idle_hand.transform*WRIST,ELBOW_IDLE)
+ gape(figure,0.)
+
+static func gape(figure: Dictionary,amount: float) -> void:
+ var head: MeshInstance3D=figure.head
+ head.set_blend_shape_value(head.find_blend_shape_by_name("Gape"),amount)
+
+static func sleeve(parent: Node3D, part: String) -> MeshInstance3D:
+ var scene: Node3D=(load("res://assets/clown-v420/sleeve-"+part+".glb") as PackedScene).instantiate()
  var mesh:=scene.find_children("*","MeshInstance3D",true,false)[0] as MeshInstance3D
- mesh.get_parent().remove_child(mesh);scene.free();parent.add_child(mesh);mesh.set_meta("radius_scale",radius/.085)
- var cloth:=StandardMaterial3D.new();cloth.albedo_color=Color("875650");cloth.albedo_texture=load("res://assets/pbr/fabric_pattern_07/albedo.jpg")
+ mesh.get_parent().remove_child(mesh);scene.free();parent.add_child(mesh)
+ var cloth:=StandardMaterial3D.new();cloth.albedo_color=Color("6b4440");cloth.albedo_texture=load("res://assets/pbr/fabric_pattern_07/albedo.jpg")
  cloth.normal_enabled=true;cloth.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");cloth.normal_scale=.4;cloth.roughness=.96
  cloth.uv1_triplanar=true;cloth.uv1_scale=Vector3.ONE*6;mesh.material_override=cloth;return mesh
 
@@ -53,12 +90,10 @@ static func spoon_head(parent: Node3D,material: Material) -> MeshInstance3D:
  var mesh:=MeshInstance3D.new();mesh.name="ConcaveWoodenSpoonHead";mesh.mesh=st.commit();mesh.material_override=material;parent.add_child(mesh);return mesh
 
 static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
- var scene: PackedScene=load(QualityAssets.model("clown","res://assets/detail-v310/clown-v310.glb"))
+ var scene: PackedScene=load("res://assets/clown-v420/clown-web.glb" if OS.has_feature("web") else "res://assets/clown-v420/clown-desktop.glb")
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
- var old_hair:=head.find_child("MattedHairStrands",true,false)
- if old_hair:old_hair.hide()
  var hair: Node3D=(load("res://assets/clown-v404/clown-hair-web.glb" if OS.has_feature("web") else "res://assets/clown-v404/clown-hair-desktop.glb") as PackedScene).instantiate()
  head.add_child(hair)
  var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/encounter-v360/blond_hair.gdshader")
@@ -81,23 +116,22 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
   for surface in range(mesh.mesh.get_surface_count()):
    var material:=mesh.get_active_material(surface) as StandardMaterial3D
    if material and material.resource_name=="Photographic clown complexion":
-    var skin:=ShaderMaterial.new();skin.shader=load("res://assets/detail-v310/clown_skin.gdshader")
-    skin.set_shader_parameter("skin",load("res://assets/detail-v310/clown-skin-albedo.png"));skin.set_shader_parameter("pores",load("res://assets/detail-v310/clown-normal.jpg"));skin.set_shader_parameter("residue",load("res://assets/presentation-v250/blood-texture.png"));mesh.set_surface_override_material(surface,skin)
+    var skin:=ShaderMaterial.new();skin.shader=load("res://assets/clown-v420/clown_skin.gdshader")
+    skin.set_shader_parameter("skin",load("res://assets/clown-v420/clown-skin-albedo.png"));skin.set_shader_parameter("pores",load("res://assets/detail-v310/clown-normal.jpg"));mesh.set_surface_override_material(surface,skin)
    if material and material.resource_name=="Cracked greasepaint and blood":
-    var neck:=w.mat(Color("79614e"),null,.78);neck.normal_enabled=true;neck.normal_texture=w.atmosphere.micro_normal;neck.normal_scale=.18;mesh.set_surface_override_material(surface,neck)
+    var neck:=w.mat(Color("a39b8e"),null,.74);neck.normal_enabled=true;neck.normal_texture=w.atmosphere.micro_normal;neck.normal_scale=.18;mesh.set_surface_override_material(surface,neck)
    if material and material.resource_name in ["Blood stained woven costume","Dirty pleated linen"]:
     var cloth:=ShaderMaterial.new();cloth.shader=load(ScareBank.ROOT+"soaked_cloth.gdshader")
     cloth.set_shader_parameter("textile",load("res://assets/pbr/fabric_pattern_07/albedo.jpg"));cloth.set_shader_parameter("fibres",load("res://assets/pbr/fabric_pattern_07/normal.jpg"))
     cloth.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"));cloth.set_shader_parameter("apron",material.resource_name=="Dirty pleated linen")
     cloth.set_shader_parameter("tint",Color("a9a18a") if material.resource_name=="Dirty pleated linen" else Color("743b36"));mesh.set_surface_override_material(surface,cloth)
- var suit:=w.mat(Color("744a46"),null,.95);suit.normal_enabled=true;suit.normal_texture=w.atmosphere.micro_normal;suit.normal_scale=.25
- var arm:=sleeve(root,.085);var forearm:=sleeve(root,.067)
- var hand: Node3D=(load(QualityAssets.model("torch-grip","res://assets/revamp-v300/anatomical-grip-v300.glb")) as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
- CharacterFinish.hand(hand)
- link(arm,Vector3(-.28,1.48,0),Vector3(-.25,1.15,.42))
- link(forearm,Vector3(-.25,1.15,.42),Vector3(-.18,1.3,.92))
- var idle_arm:=sleeve(root,.075);link(idle_arm,Vector3(.27,1.44,0),Vector3(.32,.94,.08))
- var idle:=hand.duplicate();root.add_child(idle);idle.position=Vector3(.32,.9,.08)
+ var arm:=sleeve(root,"upper");var forearm:=sleeve(root,"forearm")
+ var hand: Node3D=(load("res://assets/clown-v420/clown-hand-web.glb" if OS.has_feature("web") else "res://assets/clown-v420/clown-hand-desktop.glb") as PackedScene).instantiate();hand.name="StirringHand";root.add_child(hand)
+ CharacterFinish.hand(hand,Color("c9c2b4"));hand.scale=Vector3.ONE*HAND_SCALE
+ var idle_upper:=sleeve(root,"upper");var idle_forearm:=sleeve(root,"forearm")
+ var idle:=hand.duplicate();root.add_child(idle)
  var spoon:=bone(root,.012,w.materials.wood);spoon.name="GrippedWoodenSpoonHandle"
  var bowl:=spoon_head(root,w.materials.wood)
- return {"root":root,"head":head,"upper":arm,"forearm":forearm,"hand":hand,"spoon":spoon,"bowl":bowl}
+ var figure:={"root":root,"head":head,"upper":arm,"forearm":forearm,"hand":hand,"spoon":spoon,"bowl":bowl,"idle_upper":idle_upper,"idle_forearm":idle_forearm,"idle_hand":idle}
+ reach(arm,forearm,SHOULDER_STIR,Vector3(-.12,1.52,.92),ELBOW_OUT);hand.position=Vector3(-.12,1.42,.92)
+ rest(figure);return figure

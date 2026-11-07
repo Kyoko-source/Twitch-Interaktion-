@@ -1,0 +1,39 @@
+{
+  "author": "After Play original modelling",
+  "sources": [
+    "Lee Perry-Smith head scan, CC BY 3.0, retained and modified as the existing credited clown head"
+  ],
+  "original": [
+    "body",
+    "costume",
+    "ruff",
+    "apron",
+    "shoes",
+    "sleeves",
+    "eyes",
+    "teeth",
+    "mouth interior"
+  ],
+  "models": {
+    "desktop": {
+      "Body": {
+        "vertices": 49302,
+        "triangles": 98576
+      },
+      "Head": {
+        "vertices": 255837,
+        "triangles": 507702
+      }
+    },
+    "web": {
+      "Body": {
+        "vertices": 17658,
+        "triangles": 35288
+      },
+      "Head": {
+        "vertices": 49959,
+        "triangles": 97764
+      }
+    }
+  }
+}

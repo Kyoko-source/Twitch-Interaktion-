@@ -24,13 +24,13 @@ static func apply(root: Node3D, world: PlayWorld) -> void:
     m.albedo_texture=null;m.albedo_color=Color("080706");m.roughness=.56
    mesh.set_surface_override_material(i,m)
 
-static func hand(root: Node3D) -> void:
+static func hand(root: Node3D,tint: Color=Color("ad9176")) -> void:
  var noise:=FastNoiseLite.new();noise.seed=300;noise.frequency=.48
  var pores:=NoiseTexture2D.new();pores.width=128;pores.height=128;pores.noise=noise;pores.seamless=true;pores.as_normal_map=true;pores.bump_strength=.13
  for mesh in root.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var source:=mesh.get_active_material(i) as StandardMaterial3D
    if source and "skin" in source.resource_name.to_lower():
-    var m:=source.duplicate() as StandardMaterial3D;m.albedo_color=Color("ad9176")
+    var m:=source.duplicate() as StandardMaterial3D;m.albedo_color=tint
     m.roughness=.83;m.metallic_specular=.12;m.normal_enabled=true;m.normal_texture=pores;m.normal_scale=.12
     m.uv1_triplanar=true;m.uv1_scale=Vector3.ONE*45;mesh.set_surface_override_material(i,m)

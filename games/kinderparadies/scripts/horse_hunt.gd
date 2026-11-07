@@ -265,7 +265,7 @@ func _remember(force: bool=false) -> void:
 
 func _repel() -> void:
  phase="clown";phase_clock=0;clown_clock=0;screamed=true;shock=1
- w.annex.scare=true;clown_start=w.annex.clown.root.global_position;clown_target=head-Vector3.UP*1.65
+ w.annex.scare=true;clown_start=w.annex.clown.root.global_position;clown_target=head-Vector3.UP*1.65+(clown_start-head).slide(Vector3.UP).normalized()*HorrorFigures.HEAD_REACH
  scream.global_position=head;ScareBank.play(scream);warning.stop()
 
 func _clown_pose(delta: float) -> void:
@@ -279,14 +279,13 @@ func _clown_pose(delta: float) -> void:
   var t:=smoothstep(.92,1.55,clown_clock);actor.global_position=clown_target.lerp(launch,t)+Vector3.UP*sin(t*PI)*.35
  elif clown_clock<1.95:actor.global_position=launch.lerp(clown_start,smoothstep(1.55,1.95,clown_clock))
  else:
-  actor.transform=clown_transform;w.annex.clown.head.rotation=clown_head_rotation;w.annex.clown.spoon.show();w.annex.clown.bowl.show();w.annex.scare=false;clown_clock=-1;return
+  actor.transform=clown_transform;w.annex.clown.head.rotation=clown_head_rotation;w.annex.clown.spoon.show();w.annex.clown.bowl.show();HorrorFigures.rest(w.annex.clown);w.annex.scare=false;clown_clock=-1;return
  actor.rotation.y=atan2(head.x-actor.global_position.x,head.z-actor.global_position.z)
  actor.rotation.x=-sin(clampf((clown_clock-.32)/.60,0,1)*PI)*.2
  var figure: Dictionary=w.annex.clown
  if figure.has("head"):figure.head.rotation.x=-.12*sin(clown_clock*8)
  figure.spoon.hide();figure.bowl.hide()
- HorrorFigures.link(figure.upper,Vector3(-.28,1.48,0),Vector3(-.30,1.55,.42))
- HorrorFigures.link(figure.forearm,Vector3(-.30,1.55,.42),Vector3(-.18,1.68,.90));figure.hand.position=Vector3(-.18,1.68,.90)
+ HorrorFigures.strike(figure,1.);HorrorFigures.gape(figure,sin(clampf(clown_clock/1.55,0,1)*PI))
 
 func _retreat(delta: float) -> void:
  var remaining:=delta*5.3

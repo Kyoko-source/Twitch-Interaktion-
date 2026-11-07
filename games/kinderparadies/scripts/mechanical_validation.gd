@@ -67,14 +67,14 @@ func run(g: Node3D,verify: Callable) -> void:
   if i%20!=0:continue
   verify.call(annex.grip_error()<.00001,"Spoon slips out of the curled fingers")
   var bowl: Vector3=annex.clown.bowl.position
-  var radial:=Vector2(bowl.x,bowl.z-1.15).length()
+  var radial:=Vector2(bowl.x,bowl.z-ServiceAnnex.POT_Z).length()
   verify.call(radial>=.194 and radial<=.270 and bowl.y>=1.261 and bowl.y<=1.338,"Spoon crosses through pot wall or misses food")
-  var wrist: Vector3=annex.clown.hand.transform*Vector3(0,.078,0)
+  var wrist: Vector3=annex.clown.hand.transform*HorrorFigures.WRIST
   var endpoint: Vector3=annex.clown.forearm.transform*Vector3(0,.5,0)
   verify.call(endpoint.distance_to(wrist)<.00001,"Cooking sleeve detaches from wrist")
  verify.call(annex.pot_taps==1,"Pot contact sound is unsynchronized or repeated every frame")
  annex.clock=(TAU*2.+PI)/1.15;annex._stir_pose()
- verify.call(absf(Vector2(annex.clown.bowl.position.x,annex.clown.bowl.position.z-1.15).length()+.052-.321)<.001,"Audible contact does not meet the inner pot rim")
+ verify.call(absf(Vector2(annex.clown.bowl.position.x,annex.clown.bowl.position.z-ServiceAnnex.POT_Z).length()+.052-.321)<.001,"Audible contact does not meet the inner pot rim")
  var taps:=annex.pot_taps;var pose: Transform3D=annex.clown.hand.transform;var clock:=annex.clock
  annex.tick(5.,false)
  verify.call(annex.clock==clock and annex.clown.hand.transform.is_equal_approx(pose) and not annex.pot_audio.playing,"Cooking ignores pause")

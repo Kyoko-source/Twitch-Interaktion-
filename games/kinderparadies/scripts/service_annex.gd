@@ -4,7 +4,9 @@ extends Node3D
 const OFFSET:=Vector3(0,0,-12)
 var w: PlayWorld
 var clown: Dictionary
-var clown_origin:=Vector3(-14.4,0,-19.25)
+# The pot sits this far in front of the clown's feet, in its local space.
+const POT_Z:=.95
+var clown_origin:=Vector3(-14.2,0,-19.25)
 var screen: ShaderMaterial
 var screen_surface: MeshInstance3D
 var food: ShaderMaterial
@@ -204,16 +206,14 @@ func _stir_pose() -> void:
  var a:=clock*1.15;var cycle:=int(floor(a/TAU))
  var contact:=exp(-pow(wrapf(a-PI,-PI,PI)/.32,2)) if cycle%3==2 else 0.
  var radius:=.195+.074*contact
- var tip:=Vector3(cos(a)*radius,1.262+.075*contact,1.15+sin(a)*radius)
+ var tip:=Vector3(cos(a)*radius,1.262+.075*contact,POT_Z+sin(a)*radius)
  var up:=Vector3(-.10,1.,-.23).normalized()
  spoon_grip=tip+up*.31
- var elbow:=Vector3(-.25,1.22+sin(a)*.025,.54)
+ var elbow:=Vector3(-.40,1.20+sin(a)*.025,.52)
  var wrist_axis:=(elbow-spoon_grip).slide(up).normalized()
- var grip_basis:=Basis(up,wrist_axis,up.cross(wrist_axis)).orthonormalized()
+ var grip_basis:=Basis(up,wrist_axis,up.cross(wrist_axis)).orthonormalized()*Basis.from_scale(Vector3.ONE*HorrorFigures.HAND_SCALE)
  clown.hand.transform=Transform3D(grip_basis,spoon_grip-grip_basis*HorrorFigures.SPOON_GRIP)
- var wrist: Vector3=clown.hand.transform*Vector3(0,.078,0)
- HorrorFigures.link(clown.upper,Vector3(-.28,1.48,0),elbow)
- HorrorFigures.link(clown.forearm,elbow,wrist)
+ HorrorFigures.reach(clown.upper,clown.forearm,HorrorFigures.SHOULDER_STIR,clown.hand.transform*HorrorFigures.WRIST,HorrorFigures.ELBOW_OUT)
  HorrorFigures.link(clown.spoon,tip+up*.025,tip+up*.405)
  clown.bowl.position=tip
  clown.bowl.rotation.y=atan2(cos(a),sin(a))

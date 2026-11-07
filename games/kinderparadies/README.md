@@ -1,5 +1,19 @@
 # After Play — Kinderparadies
 
+## Neuer Küchenclown (4.2.0)
+
+Der Küchenclown ist neu aufgebaut: ein hagerer, gebückter Körper mit Schürze,
+zweilagiger Halskrause und langen Schuhen sowie ein lebensnah skalierter Kopf.
+Das Gesicht trägt rissige Schminke, tiefe Augenhöhlen, offene Augen und einen
+aufgerissenen Mund mit Zähnen. Beide Arme haben feste Längen und beugen sich
+über eine Zwei-Gelenk-Lösung, statt gedehnt zu werden.
+
+Bemerkt der Clown den Wächter, dreht sich nur der Kopf zu ihm. Beim Angriff
+öffnet sich der Kiefer, und beide Krallenhände greifen zu. Der Clown steht
+20 cm näher am Topf. Quellen: `tools/model-after-play-clown-v420.py` und
+`tools/paint-after-play-clown-v420.py`. Prüfung: `--self-test --clown-style-only`
+und `--render-qa --clown-style-qa`.
+
 ## Nahaufnahmen, Materialklang und Licht (4.1.0)
 
 Die Windows-Fassung verwendet verfeinerte Hand-, Clown-, Hasen-, Pferde- und

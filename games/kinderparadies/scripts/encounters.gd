@@ -99,20 +99,27 @@ func _clown(delta: float, player: NightGuard) -> void:
  if not primed and elapsed>.25 and visible_to(player,actor.global_position+Vector3(0,1.95,0),4.4):
   primed=true;w.annex.scare=true;anticipation.global_position=actor.global_position+Vector3.UP*1.7;anticipation.play()
  if primed and not triggered:
-  w.annex.clown.head.rotation.y=lerp_angle(w.annex.clown.head.rotation.y,.28,delta*4)
-  w.annex.clown.head.rotation.z=lerpf(w.annex.clown.head.rotation.z,-.11,minf(1.,delta*5.))
+  # The body keeps stirring while only the head comes round to find the guard.
+  var seen: Vector3=actor.global_transform.affine_inverse()*player.camera.global_position
+  w.annex.clown.head.rotation.y=lerp_angle(w.annex.clown.head.rotation.y,clampf(atan2(seen.x,seen.z),-1.45,1.45),delta*2.6)
+  w.annex.clown.head.rotation.z=lerpf(w.annex.clown.head.rotation.z,-.26,minf(1.,delta*3.))
  if not triggered and elapsed>1 and visible_to(player,actor.global_position+Vector3(0,1.95,0),3):
   triggered=true;w.annex.scare=true;clown_origin=actor.position;clown_rotation=actor.rotation.y;attack_time=0
-  clown_end=w.annex.to_local(player.camera.global_position-player.camera.global_basis.z*.8-Vector3(0,1.85,0))
+  clown_end=w.annex.to_local(player.camera.global_position-player.camera.global_basis.z*(.5+HorrorFigures.HEAD_REACH)-Vector3(0,1.85,0))
   audio.global_position=actor.global_position+Vector3(0,1.7,0);anticipation.stop();ScareBank.play(audio)
  if not triggered or finished: return
  attack_time+=delta
  if attack_time<.48:
   var t:=attack_time/.48;var charge:=smoothstep(.10,.85,t);actor.position=clown_origin.lerp(clown_end,1-pow(1-charge,3))+Vector3.UP*sin(charge*PI)*.12
   actor.rotation.y=atan2(player.position.x-actor.global_position.x,player.position.z-actor.global_position.z);shock=maxf(shock,sin(t*PI)*.9)
-  w.annex.clown.head.rotation.z=lerpf(-.11,.20,smoothstep(.18,.45,t))
+  w.annex.clown.head.rotation.y=lerp_angle(w.annex.clown.head.rotation.y,0.,minf(1.,delta*14.))
+  w.annex.clown.head.rotation.z=lerpf(-.26,.20,smoothstep(.18,.45,t))
+  w.annex.clown.spoon.hide();w.annex.clown.bowl.hide()
+  HorrorFigures.strike(w.annex.clown,smoothstep(.0,.6,t));HorrorFigures.gape(w.annex.clown,smoothstep(.1,.7,t))
  elif attack_time<.7: actor.position=clown_end
  elif attack_time<1.6:
-  actor.position=clown_end.lerp(clown_origin,(attack_time-.7)/.9)
+  var back:=(attack_time-.7)/.9
+  actor.position=clown_end.lerp(clown_origin,back);HorrorFigures.gape(w.annex.clown,1.-smoothstep(.0,.5,back))
  else:
   actor.position=clown_origin;w.annex.clown.head.rotation.z=0.;finished=true;w.annex.scare=false;w.annex.settled=true
+  actor.rotation.y=clown_rotation;w.annex.clown.spoon.show();w.annex.clown.bowl.show();w.annex._stir_pose();HorrorFigures.rest(w.annex.clown)

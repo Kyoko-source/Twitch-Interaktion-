@@ -23,6 +23,10 @@ func run(game: Node3D,verify: Callable) -> void:
  var skin_count:=0;var eye_count:=0
  for mesh in w.annex.clown.head.find_children("*","MeshInstance3D",true,false):
   if "Inset_eyeball" in str(mesh.name) or "Inset eyeball" in str(mesh.name):eye_count+=1
+ var head_mesh: MeshInstance3D=w.annex.clown.head
+ for i in range(head_mesh.mesh.get_surface_count()):
+  # Both eyeballs are real geometry in one sclera surface of the head mesh.
+  if "staring sclera" in str(head_mesh.get_active_material(i).resource_name):eye_count+=2
  for mesh in w.annex.clown.root.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var mat: Material=mesh.get_active_material(i)

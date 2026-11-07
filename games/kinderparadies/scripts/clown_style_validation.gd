@@ -27,6 +27,19 @@ func run(g: Node3D,verify: Callable) -> void:
  head.rotation=Vector3(.15,.45,-.10)
  verify.call((head.global_transform.affine_inverse()*cap.global_transform).is_equal_approx(rest),"Cap separates from the head when the clown turns")
  head.rotation=Vector3.ZERO
+ var upper: MeshInstance3D=clown.upper;var forearm: MeshInstance3D=clown.forearm
+ for hand_target in [Vector3(-.1,1.5,.9),Vector3(-.5,1.1,.6),Vector3(-.2,1.8,1.)]:
+  HorrorFigures.reach(upper,forearm,HorrorFigures.SHOULDER_STIR,hand_target,HorrorFigures.ELBOW_OUT)
+  verify.call(absf(upper.scale.y-HorrorFigures.UPPER_LENGTH)<.0001 and absf(forearm.scale.y-HorrorFigures.FOREARM_LENGTH)<.0001,"Clown arm stretches instead of bending")
+  verify.call((forearm.transform*Vector3(0,.5,0)).distance_to(hand_target)<.0001,"Clown arm misses its wrist target")
+ g.world.annex._stir_pose();HorrorFigures.strike(clown,1.)
+ verify.call(head.get_blend_shape_count()>0 and head.find_blend_shape_by_name("Gape")>=0,"Clown jaw cannot open")
+ HorrorFigures.gape(clown,1.);verify.call(head.get_blend_shape_value(head.find_blend_shape_by_name("Gape"))==1.,"Clown jaw ignores attacks")
+ HorrorFigures.rest(clown);verify.call(head.get_blend_shape_value(head.find_blend_shape_by_name("Gape"))==0.,"Clown jaw stays open at rest")
+ var web_body: Node3D=(load("res://assets/clown-v420/clown-web.glb") as PackedScene).instantiate();g.add_child(web_body)
+ var web_head:=web_body.find_child("Head",true,false) as MeshInstance3D
+ verify.call(web_head!=null and web_head.find_blend_shape_by_name("Gape")>=0,"Browser clown lost its opening jaw")
+ web_body.queue_free()
  var web: Node3D=(load("res://assets/clown-v404/clown-hair-web.glb") as PackedScene).instantiate();g.add_child(web)
  var fibre: MeshInstance3D=web.find_child("MattedBlondHair",true,false)
  verify.call(fibre!=null and fibre.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==30000,"Web grooming lost its compact version of the same style")

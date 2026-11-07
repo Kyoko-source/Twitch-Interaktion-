@@ -1,0 +1,8 @@
+Clown head base and normal map: Infinite, 3D Head Scan by Lee Perry-Smith,
+licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+Based on a work at www.triplegangers.com.
+Modified for this game: rescaled, reshaped skull and jaw, cut eyes and mouth,
+repainted greasepaint skin, and an added opening-jaw morph.
+
+Body, costume, ruff, apron, shoes, sleeves, eyes, teeth, tongue and claws are
+original After Play geometry. The hand base is the existing project hand.

@@ -52,11 +52,10 @@ func start_archive(world: PlayWorld, camera: Camera3D) -> void:
 func _archive_tick() -> void:
  _cue_sound(.055)
  var t:=clampf((clock-.055)/.19,0,1)
- figure.root.position=Vector3(sin(clock*48)*.026,-1.91+sin(t*PI)*.12,lerpf(-3.8,-.54,1-pow(1-t,4)))
+ figure.root.position=Vector3(sin(clock*48)*.026,-1.91+sin(t*PI)*.12,lerpf(-3.8,-.54-HorrorFigures.HEAD_REACH,1-pow(1-t,4)))
  figure.head.rotation=Vector3(-.07+sin(clock*27)*.045,sin(clock*21)*.045,-.16+sin(clock*34)*.04)
  fill.light_color=Color("e4b5a3");fill.light_energy=.13 if clock<.055 else 1.65 if clock<.5 else .85
- var hand:=Vector3(-.16,1.75,.48)
- HorrorFigures.link(figure.upper,Vector3(-.28,1.48,0),Vector3(-.4,1.7,.15));HorrorFigures.link(figure.forearm,Vector3(-.4,1.7,.15),hand);figure.hand.position=hand
+ HorrorFigures.strike(figure,1.);HorrorFigures.gape(figure,t)
  figure.spoon.hide();figure.bowl.hide()
  if clock>=1.08: running=false;hide();audio.stop();finished.emit()
 
@@ -69,14 +68,13 @@ func tick(delta: float) -> void:
  if clock<.12:
   figure.root.position.z=-3.8;fill.light_energy=.15
  elif clock<.42:
-  var t:=clampf((clock-.12)/.3,0,1);figure.root.position=Vector3(sin(clock*21)*.045,-1.91+sin(t*PI)*.1,lerpf(-3.8,-.68,1-pow(1-t,3)))
+  var t:=clampf((clock-.12)/.3,0,1);figure.root.position=Vector3(sin(clock*21)*.045,-1.91+sin(t*PI)*.1,lerpf(-3.8,-.68-HorrorFigures.HEAD_REACH,1-pow(1-t,3)))
   figure.head.rotation=Vector3(.04,sin(clock*18)*.08,-.13);fill.light_energy=.9
  elif clock<.78:
-  figure.root.position=Vector3(sin(clock*34)*.018,-1.91,-.68);figure.head.rotation.z=-.13+sin(clock*15)*.035
+  figure.root.position=Vector3(sin(clock*34)*.018,-1.91,-.68-HorrorFigures.HEAD_REACH);figure.head.rotation.z=-.13+sin(clock*15)*.035
  else:
-  figure.root.position.z=lerpf(-.68,-2.5,clampf((clock-.78)/.35,0,1));fill.light_energy=maxf(0,.9*(1-(clock-.78)/.35))
- var hand:=Vector3(-.22,1.65,.4)
- HorrorFigures.link(figure.upper,Vector3(-.28,1.48,0),Vector3(-.4,1.7,.15));HorrorFigures.link(figure.forearm,Vector3(-.4,1.7,.15),hand);figure.hand.position=hand
+  figure.root.position.z=lerpf(-.68-HorrorFigures.HEAD_REACH,-2.5,clampf((clock-.78)/.35,0,1));fill.light_energy=maxf(0,.9*(1-(clock-.78)/.35))
+ HorrorFigures.strike(figure,1.);HorrorFigures.gape(figure,clampf((clock-.12)/.3,0,1))
  figure.spoon.hide();figure.bowl.hide()
  if clock>=1.16:
   running=false;hide();audio.stop();finished.emit()
