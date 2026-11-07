@@ -1,0 +1,19 @@
+{
+  "head_base": "Lee Perry-Smith head scan, CC BY 3.0, via the existing credited clown derivative",
+  "original": [
+    "bodies",
+    "clothes",
+    "hands",
+    "feet",
+    "teeth",
+    "stitches",
+    "hood",
+    "face painting"
+  ],
+  "models": {
+    "visitor-split": 213393,
+    "visitor-hooded": 170535,
+    "visitor-ragged": 136992,
+    "seated-visitor": 141390
+  }
+}

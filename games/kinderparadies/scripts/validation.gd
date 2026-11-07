@@ -166,6 +166,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/revamp_validation.gd").new().run(game,check)
   print("Revamp checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--nightmare-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/nightmare_validation.gd").new().run(game,check)
+  print("Nightmare visitor checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--balance-only" in OS.get_cmdline_user_args():
   await load("res://scripts/balance_validation.gd").new().run(game,check)
   print("Balance checks: ",checks,"; failures: ",failures.size())

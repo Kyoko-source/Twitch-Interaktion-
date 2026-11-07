@@ -1,0 +1,6 @@
+Skull base: "Horse Skull" (https://skfb.ly/6EDDE) by Eric Bauer is licensed under
+Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Modified for After Play: decimated, rescaled, lower cheek teeth mirrored from the
+upper row, covered with original skin, ears, eyes, jaw, tongue and mane, and
+painted with original vertex colours.
+Neck and mane shaders: original After Play work.

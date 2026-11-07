@@ -129,6 +129,32 @@ func run(game: Node3D) -> void:
    author.pose(game,Vector3(-12.55,.0,-30.1),Vector3(-13.43,1.4,-31.22));game.player.torch_body.hide()
    await capture(game,output,"03-cooking-%d"%int(time))
   game._quit();return
+ if "--visitors-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  for pair in [["wc_ceiling_guest","01-hooded"],["cake_mouth","02-split"],["service_pursuit","03-ragged"],["throne_guest","04-seated"]]:
+   game._build_world(pair[0]);game.player.active=false
+   var head_node: Node3D=game.world.terrors.visual.find_child("HeadRig",true,false)
+   var target: Vector3=(head_node.global_position if head_node else game.world.terrors.visual.global_position)
+   author.pose(game,target+Vector3(0,.1,1.6),target);game.player.lamp.show()
+   await capture(game,output,pair[1])
+  game._quit();return
+ if "--long-horse-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  var horse: CeilingHorse=game.world.room_horror.creature
+  var head: Vector3=horse.mask.global_position
+  for view in [["01-horse-face",head-horse.mask.global_basis.z*1.6-Vector3.UP*1.45,head],["02-horse-under",head+Vector3(1.8,-2.2,1.2),head+Vector3(-.4,.1,0)],["03-horse-neck",head+Vector3(2.6,-1.7,-1.6),horse.to_global(Vector3(-.3,-.3,.2))]]:
+   author.pose(game,view[1],view[2]);game.player.lamp.show()
+   await capture(game,output,view[0])
+  horse.debug_hold=true;horse.pose(.55);var mid: Vector3=horse.mask.global_position
+  author.pose(game,mid+Vector3(.4,-1.6,2.6),mid);await capture(game,output,"04-horse-reaching")
+  # The contact close-up uses a copy of the same head in front of the camera.
+  var close:=horse.mask.duplicate() as Node3D;game.player.camera.add_child(close);close.scale=Vector3.ONE*.68
+  close.position=Vector3(.04,.20,-1.08);close.rotation=Vector3(-.98,PI-.28,-.10);game.player.torch_body.hide();var fill:=OmniLight3D.new();fill.position=Vector3(.28,.18,-.35);fill.light_color=Color("bfc6b3");fill.light_energy=.9;fill.omni_range=4;game.player.camera.add_child(fill)
+  await capture(game,output,"05-horse-contact")
+  close.position=Vector3(.0,.05,-1.5);close.rotation=Vector3(-.35,PI-.9,-.05);await capture(game,output,"06-horse-profile")
+  game._quit();return
  if "--clown-style-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()

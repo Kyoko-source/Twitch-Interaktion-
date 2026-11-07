@@ -1,5 +1,45 @@
 # After Play — Kinderparadies
 
+## Neu aufgebaute Nachtbesucher
+
+Alle vier wandernden Schreckbesucher (Kapuzenfigur, gespaltenes Gesicht,
+zugenähte Lumpengestalt, Thronsitzerin) sind komplett neu modelliert statt
+weiterhin die alte generisch umgekleidete Figur zu verwenden. Jeder hat einen
+eigenen, ausgemergelten Körper über einem echten Skin-Skelett, einen eigenen
+Kopf mit individuellem Gesicht (gespaltener Schädel mit Fängen im Rachen,
+zugenähte Augen mit hängendem Kiefer, hohle Augenhöhlen unter einer Kapuze,
+schreiendes Gesicht auf dem Thron) sowie knochige Hände mit geschwärzten
+Krallen. Die Kleidung hängt per Tuchsimulation echt über den Körper statt als
+starre Hülle; Kapuze und Thronfigur sind wegen Kollisionsproblemen der
+Simulation als fest geformte Hüllen gebaut, die an Kopf bzw. Sitzhaltung
+angepasst sind.
+
+Die Köpfe nutzen weiterhin den bereits lizenzierten Gesichtsscan (Lee
+Perry-Smith, CC BY 3.0) als Grundlage, individuell verformt und bemalt; Körper,
+Kleidung, Hände, Zähne und Nähte sind Originalarbeit. Die Rig-Struktur
+(NightVisitor > Torso/HeadRig/ArmL/ArmR/LegL/LegR) bleibt kompatibel, daher
+funktionieren Posen, Sichtbarkeits-Tricks (z. B. nur Arme bei "Hände"-Schrecken)
+und die Begegnungslogik unverändert. Die alte Umkleide-Pipeline (ScareSculpt)
+lief sonst über die neuen Modelle und hätte Kopf und Kleidung wieder ersetzt;
+sie wird für diese Begegnungen jetzt übersprungen. Quellen:
+`tools/model-after-play-visitors-v421.py`,
+`tools/paint-after-play-visitors-v421.py`. Prüfung: `--self-test
+--nightmare-only`, `--self-test --revamp-only`, Bildkontrolle:
+`--render-qa --visitors-qa`.
+
+## Überarbeitetes Lüftungspferd
+
+Der Kopf des Pferdes im Kinoschacht ist dunkel, faulig und nass statt hell.
+In den Augenhöhlen sitzen trübe, glänzende Augen mit schmalen Pupillen. Dazu
+kommen längere, schiefere Zähne, herabhängende Hautstreifen und eine lange,
+nass verklumpte Mähne. Der Hals wird mit 126 weich interpolierten Ringen
+zwischen den 32 animierten Stützpunkten gebildet. Er zeigt Wirbelhöcker,
+Sehnen, Hautfalten, räudige Stellen und Wunden; lange Strähnen hängen
+schwerkraftgerecht herab. Kollisionsfreiheit, Kiefergelenk, acht Kopfteile und
+das stille Referenzpferd bleiben unverändert. Quelle:
+`tools/model-after-play-long-horse-v420.py`. Bildkontrolle:
+`--render-qa --long-horse-qa`.
+
 ## Neuer Küchenclown (4.2.0)
 
 Der Küchenclown ist neu aufgebaut: ein hagerer, gebückter Körper mit Schürze,

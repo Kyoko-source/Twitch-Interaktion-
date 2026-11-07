@@ -1,0 +1,12 @@
+{
+  "credits": [
+    {
+      "author": "Eric Bauer (\"Horse Skull\")",
+      "license": "CC BY 4.0",
+      "url": "https://skfb.ly/6EDDE"
+    }
+  ],
+  "modified": "decimated, scaled, mirrored lower cheek teeth; original skin, ears, eyes, jaw, tongue, mane and painting",
+  "source": "tools/model-after-play-scanned-horse-v421.py",
+  "triangles": 133182
+}

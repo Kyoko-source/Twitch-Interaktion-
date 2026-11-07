@@ -2,9 +2,15 @@ class_name CharacterFinish
 extends RefCounted
 
 static func visitor(id: String, mode: String) -> String:
- if mode=="throne": return "res://assets/backstage-v270/seated-visitor.glb"
+ if mode=="throne": return "res://assets/visitors-v421/seated-visitor.glb"
  var kind:="hooded" if mode in ["ceiling","drop","queue"] else "split" if mode in ["mouth","peek","window","rush"] else "ragged"
- return ScareBank.ROOT+"visitor-"+kind+".glb"
+ return "res://assets/visitors-v421/visitor-"+kind+".glb"
+
+# The v421 visitors arrive fully headed, clothed and painted from their own
+# build script; only the dynamic GI flag is still needed, no recolouring.
+static func dynamic_only(root: Node3D) -> void:
+ for mesh in root.find_children("*","MeshInstance3D",true,false):
+  mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
 
 static func apply(root: Node3D, world: PlayWorld) -> void:
  for mesh in root.find_children("*","MeshInstance3D",true,false):

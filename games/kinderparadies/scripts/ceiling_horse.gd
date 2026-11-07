@@ -2,7 +2,12 @@ class_name CeilingHorse
 extends Node3D
 
 # One continuous, anchored neck, eight head surfaces. No torso or limbs.
-const MODEL:="res://assets/ceiling-horse-v356/bloodied-equine-mask.glb"
+const ROOT:="res://assets/horse-v420/"
+const MODEL:=ROOT+"long-horse-head.glb"
+const WEB_MODEL:=ROOT+"long-horse-head-web.glb"
+# The neck mesh samples a smooth spline between the 32 animated support points.
+const RINGS:=126
+const SIDES:=32
 const SOURCE:=Vector3(0,.65,.15)
 const ROUTE: Array[Vector3]=[Vector3(-.2,-1.2,.2),Vector3(-.6,-.55,.65),Vector3(-1.9,-.55,1),Vector3(-3.4,-.55,2.3),Vector3(-4.4,-1.35,2.5),Vector3(-5.85,-1.37,2.5)]
 var w: PlayWorld
@@ -28,45 +33,55 @@ func build(world: PlayWorld) -> void:
   var tangent: Vector3=(ROUTE[mini(i+1,ROUTE.size()-1)]-ROUTE[maxi(0,i-1)])*.12
   if tangent.length()>.28: tangent=tangent.normalized()*.28
   route.add_point(ROUTE[i],-tangent,tangent)
- mask=(load(QualityAssets.model("horse-mask",MODEL)) as PackedScene).instantiate();mask.name="BloodiedHorseMask";add_child(mask);mask.scale=Vector3.ONE*.82
+ mask=(load(WEB_MODEL if OS.has_feature("web") else MODEL) as PackedScene).instantiate();mask.name="BloodiedHorseMask";add_child(mask);mask.scale=Vector3.ONE*.82
  jaw=mask.find_child("JawHinge",true,false)
  for mesh in mask.find_children("*","MeshInstance3D",true,false):
   mesh.set_meta("nonblocking_atmosphere",true)
   for s in range(mesh.mesh.get_surface_count()):
    var original: Material=mesh.get_active_material(s)
    if original is StandardMaterial3D:
-    if "darkness" in original.resource_name or "mane" in original.resource_name:
+    if "eye" in original.resource_name.to_lower():
+     # Wet, clouded eyes deep in the sockets catch the guard's flashlight.
+     var eye:=original.duplicate() as StandardMaterial3D;eye.vertex_color_use_as_albedo=true;eye.roughness=.05;eye.metallic_specular=.9
+     eye.clearcoat_enabled=true;eye.clearcoat=1.;eye.clearcoat_roughness=.02;mesh.set_surface_override_material(s,eye)
+    elif "darkness" in original.resource_name or "mane" in original.resource_name:
      var dark:=original.duplicate() as StandardMaterial3D;dark.vertex_color_use_as_albedo=true;dark.roughness=.98;dark.metallic_specular=.08;mesh.set_surface_override_material(s,dark)
     else:
-     var detail:=ShaderMaterial.new();detail.shader=load("res://assets/ceiling-horse-v356/mask.gdshader");detail.set_shader_parameter("pores",w.atmosphere.micro_normal);mesh.set_surface_override_material(s,detail)
+     var detail:=ShaderMaterial.new();detail.shader=load(ROOT+"mask.gdshader");detail.set_shader_parameter("pores",w.atmosphere.micro_normal);mesh.set_surface_override_material(s,detail)
  _build_neck();pose(0)
 
 func _build_neck() -> void:
  var vertices:=PackedVector3Array();var uvs:=PackedVector2Array();var indices:=PackedInt32Array();var ns:=PackedVector3Array()
- for ring in range(32):
-  for side in range(17):
-   vertices.append(Vector3(cos(side*TAU/16)*.1,ring*.08,sin(side*TAU/16)*.1));ns.append(Vector3.UP);uvs.append(Vector2(side/16.0,ring/31.0))
- for ring in range(31):
-  for side in range(16):
-   var a:=ring*17+side;var b:=a+17
+ for ring in range(RINGS):
+  for side in range(SIDES+1):
+   vertices.append(Vector3(cos(side*TAU/SIDES)*.1,ring*.02,sin(side*TAU/SIDES)*.1));ns.append(Vector3.UP);uvs.append(Vector2(float(side)/SIDES,ring/float(RINGS-1)))
+ for ring in range(RINGS-1):
+  for side in range(SIDES):
+   var a:=ring*(SIDES+1)+side;var b:=a+SIDES+1
    indices.append_array(PackedInt32Array([a,b,a+1,a+1,b,b+1]))
  var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=ns;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_INDEX]=indices
  var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
  neck=MeshInstance3D.new();neck.name="ContinuousCeilingNeck";neck.mesh=geometry;neck.custom_aabb=AABB(Vector3(-7,-2.5,-2),Vector3(9,4,7));neck.set_meta("nonblocking_atmosphere",true);add_child(neck)
- skin=ShaderMaterial.new();skin.shader=load("res://assets/ceiling-horse-v356/neck.gdshader");skin.set_shader_parameter("pores",w.atmosphere.micro_normal);neck.material_override=skin
- # Sparse tapered strands share the same transported frames as the skin.
- vertices.clear();uvs.clear();indices.clear();ns.clear();var offsets:=PackedVector2Array()
- for ring in range(2,32):
-  for strand in range(7):
-   var angle:=.18+fmod(ring*.37+strand*.147,.64)
-   var length_value:=.10+fmod(ring*.043+strand*.031,.16)
+ skin=ShaderMaterial.new();skin.shader=load(ROOT+"neck.gdshader");skin.set_shader_parameter("pores",w.atmosphere.micro_normal);neck.material_override=skin
+ # Long wet clumps hang from the dorsal ridge and share the skin's support points.
+ vertices.clear();uvs.clear();indices.clear();ns.clear();var offsets:=PackedVector2Array();var shape:=PackedColorArray()
+ for ring in range(3,RINGS):
+  for strand in range(3):
+   var seed:=ring*3+strand
+   var turn:=(fmod(seed*.618034,1.)-.5)*.36
+   var length_value:=.16+fmod(seed*.4142,1.)*.44
+   var width_value:=.30+fmod(seed*.7321,1.)*.45
    var start:=vertices.size()
-   for edge in range(3):
-    vertices.append(Vector3.ZERO);ns.append(Vector3.UP);uvs.append(Vector2(angle,ring/31.0));offsets.append(Vector2(length_value if edge==2 else 0,0 if edge==2 else (-.004 if edge==0 else .004)))
-   indices.append_array(PackedInt32Array([start,start+1,start+2]))
- arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=ns;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=offsets;arrays[Mesh.ARRAY_INDEX]=indices
+   for step in range(7):
+    for edge in [-1.,1.]:
+     vertices.append(Vector3.ZERO);ns.append(Vector3.UP);uvs.append(Vector2(turn,ring/float(RINGS-1)))
+     offsets.append(Vector2(step/6.,edge));shape.append(Color(length_value,width_value,0,1))
+   for step in range(6):
+    var a:=start+step*2
+    indices.append_array(PackedInt32Array([a,a+1,a+2,a+1,a+3,a+2]))
+ arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=ns;arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=offsets;arrays[Mesh.ARRAY_COLOR]=shape;arrays[Mesh.ARRAY_INDEX]=indices
  var hairs:=MeshInstance3D.new();hairs.name="MattedNeckMane";var hair_geometry:=ArrayMesh.new();hair_geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);hairs.mesh=hair_geometry;hairs.custom_aabb=neck.custom_aabb;hairs.set_meta("nonblocking_atmosphere",true);add_child(hairs)
- mane=ShaderMaterial.new();mane.shader=load("res://assets/ceiling-horse-v356/mane.gdshader");hairs.material_override=mane
+ mane=ShaderMaterial.new();mane.shader=load(ROOT+"mane.gdshader");hairs.material_override=mane
  sections.append({"neck":neck,"hair":hairs,"skin":skin,"mane":mane})
 
 func tick(delta: float, active: bool) -> void:
