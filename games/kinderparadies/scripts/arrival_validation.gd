@@ -64,7 +64,33 @@ func run(game: Node3D,verify: Callable) -> void:
  credits.tick(.9);await game.get_tree().process_frame
  verify.call(credits.black.color.a>=.99 and credits.escape_audio.playing and credits.word.modulate.a==0,"Car must start under black before the title appears")
  credits.tick(2.2);verify.call(credits.word.modulate.a>.9 and credits.secret_line.modulate.a>.9,"Secret ending text never becomes visible")
- credits.tick(7.);verify.call(credits.snapshot().stage=="credits" and credits.music.playing and not credits.escape_audio.playing,"Secret ending omits credits or overlaps engine and credit music")
+ credits.tick(7.);credits.tick(.05)
+ verify.call(credits.snapshot().stage=="drive" and is_instance_valid(credits.drive) and credits.drive.running and not credits.escape_audio.playing and not credits.music.playing,"Secret ending skips the drive home after the title")
+ var drive: SecretDrive=credits.drive
+ verify.call(drive.camera.current and (not is_instance_valid(game.world) or not game.world.visible) and drive.engine.playing,"Drive home does not take over the view and engine sound")
+ var seen:={}
+ while is_instance_valid(credits.drive) and not credits.drive_done:
+  credits.tick(.05)
+  if not is_instance_valid(credits.drive) or credits.drive_done:break
+  var d: Dictionary=credits.drive.snapshot()
+  if d.clock>SecretDrive.SHOUT_AT+1. and d.clock<SecretDrive.SHOUT_FALL and not seen.has("shout"):
+   seen.shout=d.line==AfterPlayLanguage.t(SecretDrive.LINE) and d.typed==credits.drive.shout.glyphs.size() and credits.drive.shout.visible and credits.drive.shout.shake>3. and credits.drive.voice.playing
+  if d.clock>SecretDrive.SHOUT_FALL+1.5 and not seen.has("fallen"):seen.fallen=d.dropped==credits.drive.shout.glyphs.size() and not credits.drive.shout.visible
+  if d.clock<SecretDrive.REVEAL_AT-.2 and d.kids_visible:seen.early=true
+  if d.clock>SecretDrive.LOOK_AT+SecretDrive.LOOK_TIME and not seen.has("mirror"):seen.mirror=d.looking_up>.99
+  if d.clock>SecretDrive.REVEAL_AT+.1 and d.clock<SecretDrive.LUNGE_AT and not seen.has("kids"):seen.kids=d.kids_visible
+  if d.clock>SecretDrive.LUNGE_AT+SecretDrive.LUNGE_TIME and d.clock<SecretDrive.CUT_AT and not seen.has("lunge"):
+   var girl_face:=credits.drive.girl_head.global_position.distance_to(credits.drive.camera.global_position)
+   seen.lunge=d.lunged and d.shriek and girl_face<.45
+  if d.cut and not seen.has("cut"):seen.cut=not d.shriek and credits.drive.shade.color.a>=.99
+ verify.call(seen.get("shout",false),"Red screamed line is missing, incomplete, still or silent")
+ verify.call(seen.get("fallen",false),"Screamed letters do not fall out of the subtitle")
+ verify.call(not seen.has("early"),"Back-seat children are visible before the mirror reveal")
+ verify.call(seen.get("mirror",false) and seen.get("kids",false),"Driver never looks up to the mirror or the children never appear")
+ verify.call(seen.get("lunge",false),"Child does not lunge shrieking into the driver's face")
+ verify.call(seen.get("cut",false),"Jumpscare does not hard-cut to black and silence")
+ credits.tick(.05);credits.tick(.05)
+ verify.call(credits.snapshot().stage=="credits" and credits.music.playing and game.get_viewport().get_camera_3d()!=drive.camera,"Credits do not follow the drive home")
  await credits.wait_prepared()
  game._main_menu();game.has_session=false;game._continue()
  verify.call(game.phase=="ending" and game.end_credits.ending_number==3,"Continue loses a completed secret ending")

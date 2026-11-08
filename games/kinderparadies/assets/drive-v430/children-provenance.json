@@ -1,0 +1,16 @@
+{
+  "head_base": "Lee Perry-Smith head scan, CC BY 3.0, via the existing credited clown derivative, reshaped to child proportions",
+  "original": [
+    "bodies",
+    "dress",
+    "sweater",
+    "hair",
+    "party hat",
+    "hands",
+    "face painting"
+  ],
+  "models": {
+    "backseat-girl": 273538,
+    "backseat-boy": 62546
+  }
+}

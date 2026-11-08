@@ -6,6 +6,16 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--drive-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.player.active=false;game.player.set_physics_process(false)
+  game.secret_ending=true;game._show_ending(3);game.set_process(false)
+  var credits: EndCredits=game.end_credits
+  credits.tick(credits.title_length()-.01);credits.tick(.02)
+  for shot in [[2.6,"01-road"],[4.35,"02-shout"],[5.6,"03-shout-late"],[7.75,"04-letters-fall"],[9.0,"05-drive"],[10.5,"06-look-up"],[11.33,"07-mirror-flash"],[12.1,"08-mirror-stare"],[12.47,"09-lunge"],[12.7,"10-face"]]:
+   while credits.drive.clock<float(shot[0]):credits.tick(minf(.033,float(shot[0])-credits.drive.clock+.0001))
+   await capture(game,output,"drive-"+str(shot[1]))
+   if shot[1]=="07-mirror-flash":credits.drive.mirror_view.get_texture().get_image().save_png(output.path_join("drive-07b-mirror-texture.png"))
+  game.get_tree().quit();return
  if "--quality-v410-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.tick(1.5);game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   await capture(game,output,"00-phone-hand")

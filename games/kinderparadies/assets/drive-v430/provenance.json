@@ -1,0 +1,43 @@
+{
+  "sources": [
+    "project CC0 recordings",
+    "rubberduck 80 CC0 creature SFX"
+  ],
+  "files": {
+    "drive-loop": {
+      "seconds": 7.5,
+      "peak_dbfs": -7,
+      "sha256": "22f6dd9d99ac8830b84d3431b008ff6ec6960d5f64c8ff338e9da5a9f64968c5"
+    },
+    "pothole-1": {
+      "seconds": 0.9,
+      "peak_dbfs": -5.5,
+      "sha256": "e873f548f45927597aec5b850612cbdac0da2feae1974e07eedbc71ff4bd6326"
+    },
+    "pothole-2": {
+      "seconds": 0.9,
+      "peak_dbfs": -6.5,
+      "sha256": "3ed15bdc516e1c98c32a3f88715b1de2fffcb2acf19ea0d504d174c1103e7da4"
+    },
+    "pothole-3": {
+      "seconds": 0.9,
+      "peak_dbfs": -7.5,
+      "sha256": "6137b4d37cc569b009359961fd70ebb5e283597ca16514879624987cf4405909"
+    },
+    "shout": {
+      "seconds": 3.2,
+      "peak_dbfs": -2.0,
+      "sha256": "bb5d876a3143ff66f9c5700cd13d963a17a9862145c866aa233511307ef25ab5"
+    },
+    "child-shriek": {
+      "seconds": 1.15,
+      "peak_dbfs": -0.3,
+      "sha256": "c010aa0a13425bde920aed9943ed15ef3a9d9cb47e717588675231136906d0e1"
+    },
+    "mirror-drone": {
+      "seconds": 4.0,
+      "peak_dbfs": -9,
+      "sha256": "7ad92dc26c896dfc65668e81752d45f282db68b1b101ac3170e47ac93853728a"
+    }
+  }
+}

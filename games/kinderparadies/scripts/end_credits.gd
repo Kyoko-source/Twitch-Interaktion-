@@ -29,6 +29,9 @@ var party_skip_released:=false
 var hold_started_at:=-1
 var party_started_at:=-1
 var album_exposed:=false
+var drive: SecretDrive
+var drive_done:=false
+var preparation_done:=false
 
 func build(game: Node3D, number: int=2) -> void:
  g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -39,6 +42,8 @@ func build(game: Node3D, number: int=2) -> void:
   black.color.a=0;word.offset_bottom=-180
   secret_line=g._label(SECRET_LINE,37,Color("d5cbbb"));secret_line.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;secret_line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;secret_line.position=Vector2(260,570);secret_line.size=Vector2(1400,150);secret_line.modulate.a=0;add_child(secret_line)
   escape_audio=AudioStreamPlayer.new();escape_audio.name="CarLeavingHappyland";escape_audio.stream=load("res://assets/arrival-v330/car-departure.ogg");escape_audio.bus="Master";escape_audio.volume_db=-5;escape_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(escape_audio)
+  # The drive home is built under the black title card, then played after it.
+  drive=SecretDrive.new();g.add_child(drive);drive.build(g,self)
  roll=VBoxContainer.new();roll.position=Vector2(312,1120);roll.size.x=1296;roll.add_theme_constant_override("separation",22);add_child(roll)
  _line("AFTER PLAY",88);_line("Ein Spiel von",21,Color("b4aa90"));_line(AUTHOR,61)
  if ending_number==1:
@@ -71,6 +76,11 @@ func prepare_last_look() -> void:
  while ending_number==1 and clock<title_length()+1.:
   await get_tree().process_frame
   if not is_inside_tree() or g.end_credits!=self or g.phase!="ending":return
+ if ending_number==3:
+  # The drive home replaces the venue's last look; nothing else to warm.
+  preparation_done=true
+  if skip_pending:_finish_secret()
+  return
  var closing=PatrolPartyOutro.new() if ending_number==1 else EndingAfterglow.new()
  await closing.build(g)
  if not is_inside_tree() or g.end_credits!=self or g.phase!="ending":closing.dispose();return
@@ -91,7 +101,7 @@ func _start_last_look() -> void:
   get_node("SkipHint").text=AfterPlayLanguage.t("Leertaste halten · Feier überspringen");get_node("SkipHint").show()
 
 func wait_prepared() -> void:
- while not prepared_afterglow and not afterglow and not done:
+ while not prepared_afterglow and not afterglow and not done and not preparation_done:
   await get_tree().process_frame
 
 func end_title() -> String:
@@ -110,7 +120,7 @@ func tick(delta: float) -> void:
  clock+=delta
  if done: return
  if skip_pending:return
- if ending_number==3 and not afterglow:
+ if ending_number==3 and not afterglow and (clock<title_length() or drive_done):
   black.color.a=smoothstep(0.,.8,clock)
   if clock>=.85 and not car_started:car_started=true;escape_audio.play()
  if afterglow:
@@ -131,6 +141,8 @@ func tick(delta: float) -> void:
  if secret_line:secret_line.modulate.a=word.modulate.a
  if clock<title_length(): return
  if escape_audio:escape_audio.stop()
+ if ending_number==3 and not drive_done:
+  _drive_tick(delta);return
  if not (afterglow is PatrolPartyOutro) and not music.playing: music.play()
  music.volume_db=linear_to_db(maxf(.001,clampf((clock-title_length())/.8,0,1)*db_to_linear(-9)))
  word.hide();roll.position.y=1120-(clock-title_length())*38
@@ -141,7 +153,12 @@ func tick(delta: float) -> void:
 
 func finish_scroll() -> void:
  if done or afterglow: return
+ if ending_number==3 and not drive_done:_end_drive();return
  roll.hide();word.hide();get_node("SkipHint").hide();hold=0;hold_started_at=-1
+ if ending_number==3:
+  if preparation_done:_finish_secret()
+  else:skip_pending=true
+  return
  if prepared_afterglow:_start_last_look()
  else:skip_pending=true
  if not (afterglow is PatrolPartyOutro) and not music.playing: music.play()
@@ -153,6 +170,37 @@ func _update_hold(delta: float,allowed: bool) -> void:
  # A slow shader compilation or software-rendered frame must not turn a
  # 1.3-second key hold into a long wait measured in simulation frames.
  hold=maxf(hold+delta,float(Time.get_ticks_msec()-hold_started_at)/1000.)
+
+func _drive_tick(delta: float) -> void:
+ # Hold the credit clock at the end of the title while the car drives.
+ clock=title_length()
+ if not drive.running and not drive.done:
+  word.hide();if_secret_hide();black.color.a=0;drive.start();delta=0.
+ # A long hitch must not skip a whole beat of the scene.
+ drive.tick(minf(delta,.1))
+ if not album_exposed and drive.clock>=SecretDrive.REVEAL_AT+.12:
+  album_exposed=true
+  if not g.ending_preview:g.album.capture(ending_number,drive.camera)
+ _update_hold(delta,drive.clock>2.)
+ if drive.done or hold>=1.3:_end_drive()
+
+func if_secret_hide() -> void:
+ if secret_line:secret_line.hide()
+
+func _end_drive() -> void:
+ if drive_done:return
+ drive_done=true;hold=0.;hold_started_at=-1
+ if is_instance_valid(drive):drive.finish();drive.dispose()
+ drive=null;black.color.a=1.;clock=title_length()
+ if is_instance_valid(g.world):g.world.hide()
+
+func _finish_secret() -> void:
+ # No closing venue shot after the drive: straight to the end card.
+ if is_instance_valid(g.world):g.world.hide()
+ done=true;skip_pending=false;black.color.a=1;music.stop()
+ get_node("SkipHint").hide();roll.hide()
+ word.text=end_title();word.add_theme_font_size_override("font_size",128);word.modulate.a=1;word.show();word.offset_bottom=-610;actions.show()
+ secret_line.position.y=325;secret_line.modulate.a=1;secret_line.show()
 
 func _finish_afterglow() -> void:
  # The opaque end card needs no 3D view. Restoring the inactive player camera
@@ -169,8 +217,9 @@ func _finish_afterglow() -> void:
 func _exit_tree() -> void:
  if afterglow: afterglow.dispose()
  if prepared_afterglow:prepared_afterglow.dispose()
+ if is_instance_valid(drive):drive.dispose()
  if is_instance_valid(music): music.stop()
  if is_instance_valid(escape_audio):escape_audio.stop()
 
 func snapshot() -> Dictionary:
- return {"prepared":prepared_afterglow!=null or afterglow!=null or done,"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "credits" if clock>=title_length() else "title" if clock>=(2.7 if ending_number==3 else .22) else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"secret_line":SECRET_LINE if ending_number==3 else "","car":is_instance_valid(escape_audio) and escape_audio.playing,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"skip_hold":hold,"skip_released":party_skip_released,"skip_pressed":Input.is_action_pressed("jump"),"afterglow":afterglow.snapshot() if afterglow else {}}
+ return {"prepared":prepared_afterglow!=null or afterglow!=null or done,"clock":clock,"stage":"complete" if done else "last_look" if afterglow else "drive" if ending_number==3 and clock>=title_length() and not drive_done else "credits" if clock>=title_length() else "title" if clock>=(2.7 if ending_number==3 else .22) else "blackout","end_word":word.text==end_title() and word.is_visible_in_tree() and word.modulate.a>.05,"ending":ending_number,"secret_line":SECRET_LINE if ending_number==3 else "","car":is_instance_valid(escape_audio) and escape_audio.playing,"title":end_title(),"second_end_hint":SECOND_END_HINT if ending_number==1 else "","author":AUTHOR,"ideas":IDEA,"testers":TESTERS,"note":KYOKO_NOTE,"scroll_y":roll.position.y,"done":done,"music":music.playing,"music_track":music.stream.resource_path,"music_gain":music.volume_db,"skip_hold":hold,"skip_released":party_skip_released,"skip_pressed":Input.is_action_pressed("jump"),"afterglow":afterglow.snapshot() if afterglow else {},"drive":drive.snapshot() if is_instance_valid(drive) else {"done":drive_done}}
