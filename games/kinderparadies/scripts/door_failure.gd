@@ -27,22 +27,35 @@ func start(world: PlayWorld, camera: Camera3D) -> void:
 
 func start_patrol(world: PlayWorld, camera: Camera3D) -> void:
  start(world,camera);patrol_mode=true;figure.root.hide();claws.clear()
- attacker=(load("res://assets/revamp-v300/visitor-split.glb") as PackedScene).instantiate();add_child(attacker)
- attacker.position=Vector3(0,-1.7,-4.8)
- CharacterFinish.apply(attacker,world)
- ScareSculpt.passage(attacker,world)
+ # The rebuilt ragged visitor: dislocated jaw, sewn-shut eyes, clawed hands.
+ attacker=(load(CharacterFinish.visitor("door","pursuit")) as PackedScene).instantiate();add_child(attacker)
+ attacker.position=Vector3(0,-1.74,-6.0)
+ CharacterFinish.dynamic_only(attacker)
  for key in ["ArmL","ArmR"]:
   var arm:=attacker.find_child(key,true,false) as Node3D
   if arm: claws.append(arm)
- audio.stream=ScareBank.flat("door_death");audio.volume_db=-3;audio.pitch_scale=1.0
+ # Lit from below and in front, like a torch dropped at its feet.
+ fill.position=Vector3(.1,-1.1,-.35)
+ audio.stream=ScareBank.flat("door_death");audio.volume_db=0;audio.pitch_scale=1.0
 
 func _patrol_tick() -> void:
  _cue_sound(.13)
- var t:=clampf((clock-.13)/.29,0,1)
- attacker.position=Vector3(sin(clock*37)*.045,-1.74+sin(t*PI)*.22,lerpf(-4.8,-.68,1-pow(1-t,4)))
- attacker.rotation=Vector3(.05*sin(clock*23),.035*sin(clock*29),-.13+.04*sin(clock*31))
- for i in range(claws.size()): claws[i].rotation.x=-1.25*t;claws[i].rotation.z=(-1 if i==0 else 1)*.45*t
- fill.light_color=Color("c6c9b9");fill.light_energy=.05 if clock<.13 else 1.25 if clock<.6 else .65
+ var t:=clampf((clock-.13)/.22,0,1)
+ var lunge:=1-pow(1-t,5)
+ # While screaming in your face it does not hold still: hard stutter-jerks
+ # every few frames plus a fast, violent head shake.
+ var scream:=clampf((clock-.3)/.1,0,1)*(1-clampf((clock-1.1)/.15,0,1))
+ var step:=floorf(clock*14.0)
+ var jerk:=Vector3(sin(step*12.9898)*.06,sin(step*78.233)*.035,0)*scream
+ attacker.position=Vector3(sin(clock*41)*.03,-1.74+sin(t*PI)*.18,lerpf(-6.0,-.52,lunge))+jerk
+ attacker.rotation=Vector3(.06*sin(clock*23)-.12*lunge,.05*sin(clock*29)+.04*scream*sin(clock*47),-.10+.06*sin(clock*31)+.05*scream*sin(clock*53))
+ # Claws come in wide from both sides of the view, not straight into the lens.
+ for i in range(claws.size()):
+  claws[i].rotation.x=-.95*lunge+.15*scream*sin(clock*39+i)
+  claws[i].rotation.z=(-1 if i==0 else 1)*(.95*lunge+.1*scream*sin(clock*33))
+ fill.light_color=Color("d9c8b0")
+ if clock<.13: fill.light_energy=.03
+ else: fill.light_energy=(.32 if int(clock*22)%3 else .06) if clock<.75 else .22+.1*sin(clock*60)
  if clock>=1.32: running=false;hide();audio.stop();finished.emit()
 
 func start_archive(world: PlayWorld, camera: Camera3D) -> void:

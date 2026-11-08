@@ -66,7 +66,7 @@ func run(g: Node3D,verify: Callable) -> void:
  ScareSculpt.visitor(visitor,g.world,"pursuit")
  verify.call(visitor.find_child("DetailedScareAnatomy",true,false)!=null and visitor.find_child("ShreddedLayeredCostume",true,false)!=null,"Granny still uses the old simplified face or dress")
  g.door_failure.start_patrol(g.world,g.player.camera)
- verify.call(g.door_failure.attacker.find_child("DetailedScareAnatomy",true,false)!=null,"Wrong-door attacker does not use the new anatomical head")
+ verify.call(g.door_failure.attacker.scene_file_path.contains("visitors-v421") and g.door_failure.attacker.find_child("Head",true,false)!=null,"Wrong-door attacker does not use the rebuilt v421 visitor")
  g.door_failure.tick(1.4)
  verify.call(not g.door_failure.running,"Upgraded wrong-door attacker breaks its bounded scare timeline")
  dummy.queue_free();album.entries=original;album.textures.clear();album.save();g.ending_preview=false

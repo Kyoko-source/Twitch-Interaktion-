@@ -456,12 +456,26 @@ def build(kind):
     for side, key in ((-1, 'ArmL'), (1, 'ArmR')):
         pts = arm_points(side); limb = skinned(key + ' limb', pts, [(0, 1), (1, 2), (2, 3), (3, 4)], skin, 2)
         bits = [limb]
-        # Sleeves run down to near the wrist; ragged's left arm keeps a torn,
-        # missing sleeve on purpose, everyone else is covered to the forearm.
-        if kind != 'ragged' or side > 0:
-            bottom = .92 if not seated else .82
-            sleeve = garment(key + ' sleeve', 16, 28, 1.60, bottom, .075, .07, garment_m, 0., [limb], .12, flare=.22, frames=40, centre=V((side * .25, -.01, 0)))
-            bits.append(sleeve)
+        # A fitted sleeve following the bent arm a couple of centimetres off
+        # the skin, creased, ending in a frayed cuff near the wrist. Both a
+        # bare arm and a cloth-simulated straight tube read as smooth pipes.
+        bottom = .92 if not seated else .82
+        f = (pts[3][0].z - bottom) / max(.01, pts[3][0].z - pts[4][0].z)
+        end = pts[3][0].lerp(pts[4][0], f)
+        path = [(side * .20, -.005, 1.59, .072, .066)]
+        for (p, r), extra in zip(pts[:4], (.028, .025, .023, .022)):
+            path.append((p.x, p.y, p.z, r[0] + extra, r[1] + extra))
+        path.append((end.x, end.y, end.z, .044, .042))
+
+        def crease(t, a, s=side):
+            folds = .09 * math.sin(t * 46 + math.sin(a * 3) * 1.6) * (.35 + .65 * t)
+            lumps = .07 * (noise(V((a * 2, t * 9, s * 3))) - .3)
+            fray = 0 if t < .9 else (t - .9) / .1 * (.18 + .35 * noise(V((a * 6, 1.3, s))))
+            return folds + lumps + fray
+        sleeve = tube(key + ' sleeve', path, garment_m, 34, 20, crease, caps=False)
+        solidify(sleeve, .004)
+        for poly in sleeve.data.polygons: poly.use_smooth = True
+        bits.append(sleeve)
         clear_collision([limb])
         bits += hand(key, side, skin, nail, pts[-1][0], .55 if not seated else .95)
         arm = join(bits, key)

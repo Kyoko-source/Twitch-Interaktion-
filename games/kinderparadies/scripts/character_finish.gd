@@ -11,6 +11,23 @@ static func visitor(id: String, mode: String) -> String:
 static func dynamic_only(root: Node3D) -> void:
  for mesh in root.find_children("*","MeshInstance3D",true,false):
   mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
+  # Plain flat-coloured garments read as untextured renders; give them woven
+  # cloth, filth climbing from the hem and blood running from the neck.
+  for i in range(mesh.mesh.get_surface_count()):
+   var original:=mesh.get_active_material(i) as StandardMaterial3D
+   if not original:continue
+   var label:=original.resource_name.to_lower()
+   if label=="desiccated visitor skin":
+    var dead:=ShaderMaterial.new();dead.shader=load("res://assets/visitors-v421/visitor_skin.gdshader")
+    dead.set_shader_parameter("pores",load("res://assets/detail-v310/clown-normal.jpg"))
+    mesh.set_surface_override_material(i,dead)
+   elif "fabric" in label or "coat" in label or "gown" in label:
+    var cloth:=ShaderMaterial.new();cloth.shader=load("res://assets/visitors-v421/visitor_cloth.gdshader")
+    cloth.set_shader_parameter("textile",load("res://assets/pbr/fabric_pattern_07/albedo.jpg"))
+    cloth.set_shader_parameter("fibres",load("res://assets/pbr/fabric_pattern_07/normal.jpg"))
+    cloth.set_shader_parameter("blood_map",load("res://assets/presentation-v250/blood-texture.png"))
+    cloth.set_shader_parameter("tint",original.albedo_color)
+    mesh.set_surface_override_material(i,cloth)
 
 static func apply(root: Node3D, world: PlayWorld) -> void:
  for mesh in root.find_children("*","MeshInstance3D",true,false):

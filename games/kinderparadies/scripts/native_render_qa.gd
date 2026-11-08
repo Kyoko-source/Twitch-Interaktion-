@@ -129,6 +129,21 @@ func run(game: Node3D) -> void:
    author.pose(game,Vector3(-12.55,.0,-30.1),Vector3(-13.43,1.4,-31.22));game.player.torch_body.hide()
    await capture(game,output,"03-cooking-%d"%int(time))
   game._quit();return
+ if "--details-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  game.player.lamp.show()
+  for view in [["01-doorframe",Vector3(-7.9,0,-9.6),Vector3(-7.9,1.5,-12.2)],["02-party-table",Vector3(9.75,0,-6.6),Vector3(9.15,.86,-7.0)],
+               ["03-prep-table",Vector3(14.6,0,-6.4),Vector3(14.6,.68,-7.6)],["04-rolls",Vector3(16.3,.0,-6.6),Vector3(15.9,.72,-7.6)],
+               ["05-books",Vector3(4.5,0,-10.2),Vector3(4.5,1.0,-11.65)],["06-books-close",Vector3(3.9,0,-10.9),Vector3(3.8,1.25,-11.65)]]:
+   author.pose(game,view[1],view[2]);await capture(game,output,view[0])
+  author.pose(game,Vector3(-7.6,0,1.7),Vector3(-10.2,2.3,1.7));await capture(game,output,"07-window")
+  author.pose(game,Vector3(-8.6,0,1.25),Vector3(-10.2,2.0,1.9));await capture(game,output,"08-window-hole")
+  author.pose(game,Vector3(-7,0,-2),Vector3(-7,1.6,-6))
+  game.door_failure.start_patrol(game.world,game.player.camera)
+  for at in [.24,.5,.82]:
+   game.door_failure.tick(at-game.door_failure.clock);await capture(game,output,"09-door-%02d"%int(at*100))
+  game._quit();return
  if "--clown-ceiling-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
   var author=load("res://art-direction/itch_capture.gd").new()

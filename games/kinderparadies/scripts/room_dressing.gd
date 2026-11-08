@@ -27,13 +27,57 @@ static func shelf(w: PlayWorld, parent: Node3D, pos: Vector3, yaw: float) -> voi
     for k in range(3):
      var ball:=w.sphere(unit,Vector3(x-.12+k*.12,y+.255,.015),.075,[w.materials.red,w.materials.gold,w.materials.teal][k]);ball.scale.y=.8
   else:
-   for k in range(8):
-    var h:=.25+sin(k*3.1+row)*.045
-    w.box(unit,Vector3(-.45+k*.095,y+h*.5,.02),Vector3(.075,h,.27),[w.materials.teal,w.materials.cream,w.materials.red][k%3])
-    for stripe in [.04,h-.045]: w.box(unit,Vector3(-.45+k*.095,y+stripe,.158),Vector3(.062,.012,.008),w.materials.gold)
-   for k in range(3): w.box(unit,Vector3(.36,y+.025+k*.04,.02),Vector3(.22,.038,.29),w.materials.cream if k%2 else w.materials.teal)
+   book_row(w,unit,y,-.535,.535,int(absf(pos.x)*131+absf(pos.z)*57)+row*17)
  unit.set_meta("stocked_shelf",true)
  unit.set_meta("furniture_volume",AABB(Vector3(-.63,.02,-.28),Vector3(1.26,2.12,.57)))
+
+static func _part(w: PlayWorld,parent: Node3D,frame: Transform3D,p: Vector3,s: Vector3,m: Material) -> void:
+ var mesh:=w.box(parent,Vector3.ZERO,s,m);mesh.transform=frame*Transform3D(Basis.IDENTITY,p)
+
+# A real hardback: two boards, a spine, a recessed page block that shows
+# between the boards, raised bands and sometimes a paper title label.
+static func book(w: PlayWorld,parent: Node3D,frame: Transform3D,size: Vector3,cover: Material,band: Material,label: bool) -> void:
+ var t:=size.x;var h:=size.y;var d:=size.z
+ for side in [-1.,1.]:_part(w,parent,frame,Vector3(side*(t*.5-.0016),0,0),Vector3(.0032,h,d),cover)
+ _part(w,parent,frame,Vector3(0,0,d*.5-.0022),Vector3(t,h,.0044),cover)
+ _part(w,parent,frame,Vector3(0,-.002,-.003),Vector3(t-.006,h-.012,d-.008),w.materials.paper)
+ for y in [h*.5-.028,-h*.5+.03]:_part(w,parent,frame,Vector3(0,y,d*.5+.0005),Vector3(t+.0008,.005,.0046),band)
+ if label:_part(w,parent,frame,Vector3(0,h*.14,d*.5+.0008),Vector3(t*.62,minf(.045,h*.18),.0042),w.materials.paper)
+
+static func book_row(w: PlayWorld,unit: Node3D,y: float,x0: float,x1: float,seed_value: int) -> void:
+ var rng:=RandomNumberGenerator.new();rng.seed=seed_value
+ var row:=Node3D.new();row.name="BookRow";unit.add_child(row)
+ var colours:=[Color("5a2621"),Color("1f2f45"),Color("2f4430"),Color("5b4529"),Color("6e5426"),Color("3a2a38"),Color("6a6656"),Color("40251c")]
+ var covers: Array[Material]=[];var bands: Array[Material]=[]
+ for c in colours:
+  covers.append(w.mat(c,load("res://assets/paint.png"),.82));bands.append(w.mat(c.darkened(.45) if rng.randf()<.6 else Color("8f7a43"),null,.6))
+ var x:=x0
+ var stack_left:=x1-.25 if rng.randf()<.55 else x1
+ while x<stack_left-.06:
+  var t:=rng.randf_range(.022,.055);var h:=rng.randf_range(.19,.31);var d:=rng.randf_range(.16,.22)
+  if x+t>stack_left-.01:break
+  var k:=rng.randi_range(0,colours.size()-1)
+  book(w,row,Transform3D(Basis.IDENTITY,Vector3(x+t*.5,y+h*.5,.2-d*.5)),Vector3(t,h,d),covers[k],bands[k],rng.randf()<.35)
+  x+=t+rng.randf_range(0,.003)
+  # A gap now and then, with the next book slumped against its neighbour.
+  if rng.randf()<.12 and x<stack_left-.14:
+   var lean:=rng.randf_range(.18,.38);var lh:=rng.randf_range(.2,.28);var lt:=rng.randf_range(.025,.045)
+   # Rests on its bottom-left corner; the top-left edge touches the neighbour.
+   var pivot:=Vector3(x+lh*sin(lean),y,0)
+   var frame:=Transform3D(Basis(Vector3.BACK,lean),pivot)*Transform3D(Basis.IDENTITY,Vector3(lt*.5,lh*.5,.2-.095))
+   k=rng.randi_range(0,colours.size()-1)
+   book(w,row,frame,Vector3(lt,lh,.19),covers[k],bands[k],false)
+   x=pivot.x+lt*cos(lean)+.004
+ if stack_left<x1:
+  # Books lying flat on top of each other, spines out, slightly askew.
+  var level:=y
+  for i in range(rng.randi_range(3,5)):
+   var t:=rng.randf_range(.026,.05);var h:=rng.randf_range(.19,.24);var d:=rng.randf_range(.16,.2)
+   var frame:=Transform3D(Basis(Vector3.UP,rng.randf_range(-.12,.12))*Basis(Vector3.BACK,PI*.5),Vector3(stack_left+.12,level+t*.5,.2-d*.5))
+   var k:=rng.randi_range(0,colours.size()-1)
+   book(w,row,frame,Vector3(t,h,d),covers[k],bands[k],rng.randf()<.3)
+   level+=t
+ CelebrationTailoring.merge_joint(row)
 
 static func party_sideboard(w: PlayWorld, parent: Node3D) -> void:
  var unit:=Node3D.new();unit.name="PartySideboard";unit.position=Vector3(19.12,.016,-3.9);unit.rotation.y=-PI/2;parent.add_child(unit)

@@ -166,15 +166,25 @@ lead = np.zeros(round(RATE * .7))
 add(lead, voices[7], 0, .22, .97)
 write('granny-lead', lead, -16.)
 
-# door (wrong-door death): harder, more percussive slam.
+# door (wrong-door death): the figure screams right into your face. The old
+# slowed-down monster voice read as a low hum; this is a real, unslowed human
+# shriek (the project's own cook scream) doubled with a creature scream for
+# rawness, over the door slam, with a short hard-room tail.
+cook = read(A / 'finale/cook-scream.wav')
 for variant in range(1, 5):
-    x = np.zeros(round(RATE * .86))
-    offset = .025 * (variant - 1)
-    add(x, wood, 0, .95, .88)
-    add(x, metal, .015, .22, 1.3)
-    add(x, voices[8], .022, 1., .85 + variant * .028, offset)
-    add(x, cloth, .12, .16)
-    write(f'door-{variant}', x, -2.2, drive=1.3)
+    x = np.zeros(round(RATE * 1.25))
+    offset = .02 * (variant - 1)
+    add(x, wood, 0, .7, .9)
+    add(x, metal, .01, .14, 1.3)
+    shriek = np.zeros_like(x)
+    add(shriek, cook, .02, 1., 1.02 + variant * .025, offset)
+    add(shriek, creature['scream_01' if variant % 2 else 'scream_02'], .035, .78, 1.06 + variant * .02)
+    add(shriek, creature['scream_02' if variant % 2 else 'scream_01'], .07, .42, .94)
+    add(shriek, voices[8], .03, .28, 1.3)
+    shriek = band(shriek, 260, 9500)
+    x += shriek + sub(shriek, .7, .25, 300)
+    x = tail(x, [(.035, .25, 5200), (.085, .14, 3200)])
+    write(f'door-{variant}', x, -.8, drive=1.7)
 lead = np.zeros(round(RATE * .7))
 add(lead, wood, 0, .3, .9)
 add(lead, metal, .1, .1, 1.1)

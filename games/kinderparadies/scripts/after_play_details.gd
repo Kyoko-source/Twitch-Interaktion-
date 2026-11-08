@@ -184,8 +184,11 @@ func _party() -> void:
    var x: float=8.5+side*.65;var z:=-8.0+row
    plate(places,Vector3(x,0,z));cup(places,Vector3(x+side*.19,.006,z+.23),w.materials.red if row%2 else w.materials.teal)
    var napkin:=w.box(places,Vector3(x,.012,z-.27),Vector3(.22,.012,.14),cloth);napkin.rotation.y=.13*(row-1)
-   w.box(places,Vector3(x-side*.23,.01,z),Vector3(.018,.009,.22),steel)
-   for i in range(3): w.tube(places,Vector3(x-side*.23-.012+i*.012,.016,z-.11),Vector3(x-side*.23-.012+i*.012,.016,z-.15),.003,steel)
+   # Fork on the diner's left, knife on the right, both pointing to the
+   # table centre; whichever lies over the napkin rests on top of it.
+   for spec in [[side*.225,false],[-side*.225,true]]:
+    var cz: float=z+spec[0];var on_napkin:=cz<z-.15
+    ClosePropCraft.cutlery(w,places,Vector3(x+side*.015,.018 if on_napkin else .002,cz),-side*PI*.5+.05*sin(row*3.0+side),spec[1])
  var trolley:=cluster(self,"PartyServiceTrolley",Vector3(18.9,.016,-7.0),-PI/2)
  _cart(trolley,Vector2(1.2,.54))
  for i in range(6): plate(trolley,Vector3(-.30,.87+i*.02,0),.18)

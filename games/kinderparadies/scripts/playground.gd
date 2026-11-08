@@ -141,11 +141,19 @@ func _party_dressing() -> void:
  w.box(party,Vector3(15,.62,-7.6),Vector3(3.4,.12,1.25),w.materials.wood,true)
  for x in [13.55,16.45]:
   for z in [-8.05,-7.15]: w.box(party,Vector3(x,.29,z),Vector3(.08,.58,.08),w.materials.metal)
+ # Real glazed plates, cutlery and folded paper napkins; a few plates still
+ # hold a dried-out slice of cake, the rest a half-eaten roll or nothing.
+ var napkin_mat:=w.mat(Color("c9b98f"),load("res://assets/paint.png"),.95)
  for i in range(7):
   var x:=13.65+(i%4)*.73;var z:=-7.8+floori(i/4.0)*.5
-  w.tube(party,Vector3(x,.7,z),Vector3(x,.71,z),.16,w.materials.cream)
-  var page:=w.box(party,Vector3(x,.7,z+.15),Vector3(.25,.006,.2),w.materials.paper);page.rotation.y=i*.32
-  for j in range(3): w.tube(party,Vector3(x-.09+j*.06,.715,z+.1),Vector3(x-.03+j*.06,.715,z+.2),.004,[w.materials.gold,w.materials.blue,w.materials.red][j])
+  # Place settings over the fabric runner (x 14.65-15.35) sit on its top.
+  var top:=.703 if absf(x-15.0)<.5 else .682
+  ClosePropCraft.plate(w,party,Vector3(x,top,z),.135)
+  ClosePropCraft.cutlery(w,party,Vector3(x-.19,top+.002,z+.01),.06*sin(i*2.3),false)
+  ClosePropCraft.cutlery(w,party,Vector3(x+.19,top+.002,z-.005),PI+.05*sin(i*1.7),true)
+  var napkin:=w.box(party,Vector3(x+.02,top+.006,z+.2),Vector3(.15,.008,.11),napkin_mat);napkin.rotation.y=i*.41
+  if i%3==0:cake_slice(party,Vector3(x,top+.012,z),i*1.3)
+  elif i%3==1:ClosePropCraft.roll(w,party,Vector3(x+.02,top+.01,z-.01),i*.9).scale=Vector3(1,.92,1)
  for i in range(7):
   var pos:=Vector3(18.60+(i%2)*.65,.25+floori(i/6.0)*.48,-9.1+(i%3)*.56)
   WrappedPresent.build(w,party,pos,Vector3(.62,.48,.52),i,true,i!=0)
@@ -181,9 +189,41 @@ func _party_dressing() -> void:
  w.box(party,Vector3(15,.695,-7.6),Vector3(.7,.014,1.23),w.materials.fabric)
  for z in [-8,-7.25]:
   w.tube(party,Vector3(15.9,.7,z),Vector3(15.9,.72,z),.23,w.materials.metal)
-  for j in range(3):
-   var cake:=w.sphere(party,Vector3(15.75+j*.15,.76,z),.065,w.materials.cream);cake.scale.y=.65
+  # A loose heap of stale bread rolls rather than three spheres in a line.
+  for j in range(6):
+   var a: float=j*2.39+z;var r: float=.035+.085*float(j%4)/3.0
+   var top:=j>=4
+   ClosePropCraft.roll(w,party,Vector3(15.9+cos(a)*r*(.4 if top else 1),.722+(.045 if top else 0),z+sin(a)*r*(.4 if top else 1)),a*1.7).rotation.z=(.18 if top else 0)*sin(a)
  w.lamp(Vector3(15.7,4.2,-7.6),Color("c5a278"),.65,9)
+
+func cake_slice(parent: Node3D, p: Vector3, yaw: float) -> void:
+ # A wedge cut from the birthday cake: sponge, jam and cream layers, the
+ # icing on top and the outer rim, slightly sunk and dried at the tip.
+ var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ var layers:=[[0.0,.018,Color("b89a5a")],[.018,.024,Color("5e1414")],[.024,.042,Color("b39556")],[.042,.052,Color("d8cfb8")]]
+ var span:=.75;var radius:=.095;var steps:=10
+ for layer in layers:
+  var y0: float=layer[0];var y1: float=layer[1];var c: Color=layer[2]
+  for i in range(steps):
+   var a0:=-span*.5+span*i/steps;var a1:=-span*.5+span*(i+1)/steps
+   var o0:=Vector3(cos(a0),0,sin(a0))*radius;var o1:=Vector3(cos(a1),0,sin(a1))*radius
+   var sag:=.006
+   var quad:=[o0+Vector3(0,y0,0),o0+Vector3(0,y1,0),o1+Vector3(0,y1,0),o1+Vector3(0,y0,0)]
+   st.set_color(c)
+   for k in [0,1,2,0,2,3]:st.add_vertex(quad[k])
+   if y1>=.052:
+    st.set_color(Color("cfc4a8"))
+    for v in [Vector3(0,y1-sag,0),o1+Vector3(0,y1,0),o0+Vector3(0,y1,0)]:st.add_vertex(v)
+  for side in [-1.,1.]:
+   var a: float=side*span*.5;var o:=Vector3(cos(a),0,sin(a))*radius
+   var quad:=[Vector3(0,y0,0),Vector3(0,y1-(.006 if y1>=.052 else 0),0),o+Vector3(0,y1,0),o+Vector3(0,y0,0)]
+   st.set_color(c)
+   var order:=[0,1,2,0,2,3] if side>0 else [0,2,1,0,3,2]
+   for k in order:st.add_vertex(quad[k])
+ st.generate_normals();st.index()
+ var mesh:=MeshInstance3D.new();mesh.name="DriedCakeSlice";mesh.mesh=st.commit()
+ var m:=StandardMaterial3D.new();m.vertex_color_use_as_albedo=true;m.roughness=.88;m.cull_mode=BaseMaterial3D.CULL_DISABLED
+ mesh.material_override=m;mesh.position=p+Vector3(-.03,0,0);mesh.rotation.y=yaw;parent.add_child(mesh)
 
 func _hall_dressing() -> void:
  var dressing:=Node3D.new();dressing.name="HallDressing";add_child(dressing)

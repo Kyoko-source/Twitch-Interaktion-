@@ -4,6 +4,7 @@ extends Node3D
 const ROOT:="res://assets/atmosphere-v320/"
 var w: PlayWorld
 var glazing: ShaderMaterial
+var broken_glazing: ShaderMaterial
 var rain_material: ShaderMaterial
 var rain: MultiMeshInstance3D
 var sign_material: StandardMaterial3D
@@ -36,6 +37,10 @@ func build(world: PlayWorld) -> void:
   for y in [1.42,3.78]:part(Vector3(x,y,.11),Vector3(1.11,.018,.018),rubber)
   var glass:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(1.09,2.35);glass.mesh=quad
   glass.name="StreakedGlass";glass.position=Vector3(x,2.60,.075);glass.material_override=glazing
+  if x==0.:
+   # The centre pane was punched through just above the eye-height gap.
+   broken_glazing=glazing.duplicate() as ShaderMaterial;broken_glazing.set_shader_parameter("broken",true)
+   broken_glazing.set_shader_parameter("hole",Vector2(.683,.80));glass.material_override=broken_glazing;glass.name="CrackedHoledGlass"
   glass.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(glass)
   part(Vector3(x+.48,2.20,.17),Vector3(.03,.16,.036),metal)
   w.tube(self,Vector3(x+.48,2.23,.20),Vector3(x+.40,2.23,.20),.012,w.materials.metal)
@@ -60,7 +65,9 @@ func _barricade_and_curtains(metal: Material) -> void:
  var rusty:=w.graphics.patina(Color("594537"),.92)
  for x in [-1.75,1.75]:part(Vector3(x,2.60,-.145),Vector3(.14,2.56,.08),timber)
  var rng:=RandomNumberGenerator.new();rng.seed=353
- for i in range(6):
+ # Only three boards left: two still nailed straight, the top one has lost
+ # its right-hand nail and hangs crooked from the left support.
+ for i in range(3):
   var width:=rng.randf_range(3.86,3.98);var height:=rng.randf_range(.276,.302)
   var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
   var low: Array[float]=[];var high: Array[float]=[]
@@ -78,12 +85,26 @@ func _barricade_and_curtains(metal: Material) -> void:
   st.generate_normals();st.generate_tangents()
   var plank:=MeshInstance3D.new();plank.name="ExteriorWeatheredPlank%d"%(i+1);plank.mesh=st.commit()
   var mat:=timber.duplicate() as StandardMaterial3D;mat.albedo_color=Color("958c79").darkened(rng.randf_range(0,.22));mat.cull_mode=BaseMaterial3D.CULL_DISABLED
-  plank.material_override=mat;plank.position=Vector3(rng.randf_range(-.025,.025),1.43+i*.435,-.220)
-  plank.rotation.z=rng.randf_range(-.009,.009);add_child(plank);boards.append(plank);count+=1
+  plank.material_override=mat
+  var hanging:=i==2
+  if hanging:
+   var tilt:=-.21;var pivot:=Vector3(-1.75,3.30,-.300)
+   plank.rotation.z=tilt;plank.position=pivot-Basis(Vector3.BACK,tilt)*Vector3(-1.75,0,0)
+   plank.set_meta("hanging",true)
+  else:
+   plank.position=Vector3(rng.randf_range(-.025,.025),[1.43,2.30][i],-.220);plank.rotation.z=rng.randf_range(-.009,.009)
+  add_child(plank);boards.append(plank);count+=1
   for x in [-1.75,1.75]:
    var y: float=plank.position.y+(x-plank.position.x)*tan(plank.rotation.z)
-   w.tube(self,Vector3(x,y,-.095),Vector3(x,y,-.263),.004,rusty)
-   var nail:=part(Vector3(x,y,-.260),Vector3(.027,.025,.009),rusty);nail.name="ExteriorNailHead"
+   if hanging and x>0:
+    # The torn-out nail still sticks out of the support, bent downwards.
+    w.tube(self,Vector3(x,3.30,-.095),Vector3(x,3.30,-.20),.004,rusty)
+    w.tube(self,Vector3(x,3.30,-.20),Vector3(x+.01,3.255,-.235),.004,rusty)
+    var hole:=part(Vector3(x,3.30,-.186),Vector3(.02,.02,.004),w.materials.dark);hole.name="EmptyNailHole"
+    continue
+   var front:=-.303 if hanging else -.263
+   w.tube(self,Vector3(x,y,-.095),Vector3(x,y,front),.004,rusty)
+   var nail:=part(Vector3(x,y,front+.003),Vector3(.027,.025,.009),rusty);nail.name="ExteriorNailHead"
  # Solid wall brackets connect a rod and rings to the interior wall.
  for x in [-2.13,2.13]:
   part(Vector3(x,4.02,.17),Vector3(.09,.15,.07),metal)
@@ -187,7 +208,7 @@ func _weather() -> void:
 
 func tick(delta: float,active: bool) -> void:
  if not active:return
- clock+=delta;glazing.set_shader_parameter("clock",clock);rain_material.set_shader_parameter("clock",clock)
+ clock+=delta;glazing.set_shader_parameter("clock",clock);broken_glazing.set_shader_parameter("clock",clock);rain_material.set_shader_parameter("clock",clock)
  sign_material.emission_energy_multiplier=1.24+.07*sin(clock*1.7)+.035*sin(clock*9.1)
 
 func quality(value: int) -> void:
