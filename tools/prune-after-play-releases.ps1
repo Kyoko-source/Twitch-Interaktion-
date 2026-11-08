@@ -21,21 +21,20 @@ function Assert-GeneratedPath([string]$Path,[string]$Parent){
  }
  return $taskAbsolute
 }
-# Confirm the new release exists in both locations before pruning any predecessor.
+# Confirm the new Windows release exists in both locations before pruning
+# any predecessor. The Web export is no longer built; any web zips left
+# over from earlier releases are only ever removed, never required.
 foreach($taskRoot in $taskRoots){
- foreach($taskPlatform in @('windows','web')){
-  $taskArchive=Join-Path $taskRoot "after-play-$taskPlatform-v$taskCurrent.zip"
-  Assert-GeneratedPath $taskArchive $taskRoot | Out-Null
-  $taskExpected=if($taskPlatform -eq 'windows'){$taskManifest.windows_sha256}else{$taskManifest.web_zip_sha256}
-  if((Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskExpected){throw "Current archive checksum mismatch: $taskArchive"}
- }
+ $taskArchive=Join-Path $taskRoot "after-play-windows-v$taskCurrent.zip"
+ Assert-GeneratedPath $taskArchive $taskRoot | Out-Null
+ if((Get-FileHash -LiteralPath $taskArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskManifest.windows_sha256){throw "Current archive checksum mismatch: $taskArchive"}
 }
 $taskArchives=@(foreach($taskFile in Get-ChildItem -LiteralPath $taskBuild -File){
  if($taskFile.Name -match '^after-play-(windows|web)-v(\d+\.\d+\.\d+)\.zip$'){
   [PSCustomObject]@{Version=[version]$Matches[2];Platform=$Matches[1]}
  }
 })
-$taskPrevious=$taskArchives | Group-Object Version | Where-Object {([version]$_.Name) -lt $taskCurrent -and ($_.Group.Platform | Sort-Object -Unique).Count -eq 2} | Sort-Object {[version]$_.Name} -Descending | Select-Object -First 1
+$taskPrevious=$taskArchives | Group-Object Version | Where-Object {([version]$_.Name) -lt $taskCurrent -and 'windows' -in $_.Group.Platform} | Sort-Object {[version]$_.Name} -Descending | Select-Object -First 1
 $taskKeep=@([string]$taskCurrent)
 if($taskPrevious){$taskKeep+=([string]$taskPrevious.Name)}
 $taskRemove=@(foreach($taskRoot in $taskRoots){
