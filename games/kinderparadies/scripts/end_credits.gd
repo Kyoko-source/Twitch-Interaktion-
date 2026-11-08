@@ -4,7 +4,7 @@ extends Control
 const AUTHOR:="Kyoko"
 const MUSIC:="res://assets/music-v371/fern-and-feather.mp3"
 const IDEA:="einsmarello"
-const TESTERS: Array[String]=["einsmarello","__jerry__","gingerbread","Mozart"]
+const TESTERS: Array[String]=["einsmarello","__jerry__","gingerbread","Mozart","2eazy4me_"]
 const SECOND_END_HINT:="schau dich für Ende 2 nochmal genauer um in Runde 3,5,8 und 11"
 const SECRET_LINE:="Was eine dumme Horror Scheiße, ich bin Weg und Kündige"
 const KYOKO_NOTE:="Vielen Dank fürs spielen meines Projektes. Du musst wissen, ich bin kein Spieleentwickler oder Software Designer.\n\nDas Spiel After Play war eine Idee von mir als die Anomalie Spiele groß im Hype waren.\n\nZudem Zeitpunkt wusste ich nur noch nichts von der erstellung solcher Spiele.\nMonatelanges lernen/verstehen und umsetzen folgten und mit viel Hilfe guter Freunde, Online Assets Bibliotheken und KI erstellten Inhalten wie Bilder und Musik konnte ich nach Monatelanger entwicklung mein erstes Spiel herausbringen.\n\nEs ist nicht perfekt und auch nicht Fehlerfrei gestaltet aber der erste Meilenstein für mich selber in der Entwicklung meines ersten eigenen Games."

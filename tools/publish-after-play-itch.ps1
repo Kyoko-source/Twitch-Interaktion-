@@ -9,7 +9,7 @@ $taskBuild=Join-Path $taskRepo 'games/kinderparadies/build'
 $taskButler=Join-Path $taskRepo 'tools/art-source/butler/butler.exe'
 $taskManifest=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $taskBuild 'release.json') | ConvertFrom-Json
 if($Project -notmatch '^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$'){throw 'Project must be lower-case username/game, for example kyokohauntedgames/after-play'}
-if($taskManifest.version -notmatch '^\d+\.\d+\.\d+$' -or $taskManifest.packaging_revision -ne 2){throw 'Invalid or outdated release manifest. Package the game first.'}
+if($taskManifest.version -notmatch '^\d+\.\d+\.\d+$' -or $taskManifest.packaging_revision -notin @(2,3)){throw 'Invalid or outdated release manifest. Package the game first.'}
 if(-not (Test-Path -LiteralPath $taskButler)){throw 'Run tools/setup-after-play-butler.ps1 once before preparing an upload.'}
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 function Stream-Hash([IO.Stream]$Stream){

@@ -306,14 +306,8 @@ func _lost_property() -> void:
  for y in [.08,.43,.78,1.14]: w.box(shelf,Vector3(0,y,0),Vector3(1.73,.045,.48),timber,true)
  w.box(shelf,Vector3(0,.59,-.22),Vector3(1.7,1.1,.04),timber)
  for x in [-.28,.28]: w.box(shelf,Vector3(x,.59,0),Vector3(.03,1.08,.46),timber)
- for row in range(3):
-  for col in range(3):
-   var x: float=-.56+col*.56;var y: float=.106+row*.35
-   if (row+col)%2==0:
-    for k in range(3): w.box(shelf,Vector3(x,y+.025+k*.044,.02),Vector3(.39,.042,.32),cloth if k%2 else enamel)
-   else:
-    var item:=w.box(shelf,Vector3(x,y+.075,.02),Vector3(.35,.15,.32),w.materials.teal if row else w.materials.red)
-    w.box(item,Vector3(0,.01,.164),Vector3(.12,.045,.008),enamel)
+
+ LostProperty.build(w,shelf)
  label(shelf,"found",Vector3(0,1.41,-.22),Vector2(1.45,.36))
  w.box(shelf,Vector3(0,1.41,-.24),Vector3(1.55,.41,.035),timber)
  for x in [-.62,.62]: w.box(shelf,Vector3(x,1.20,-.22),Vector3(.04,.18,.05),timber)

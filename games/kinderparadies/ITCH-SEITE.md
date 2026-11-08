@@ -67,7 +67,7 @@ Spielidee und Umsetzung: **Kyoko**.
 
 Zusätzliche Ideen: **einsmarello**.
 
-Testspieler: **einsmarello**, **__jerry__**, **gingerbread**, **Mozart**.
+Testspieler: **einsmarello**, **__jerry__**, **gingerbread**, **Mozart**, **2eazy4me_**.
 
 Quellen und Lizenzen für verwendete Fremdmaterialien liegen dem Download bei, insbesondere Poly Haven (CC0), Kenney (CC0), der bearbeitete Lee-Perry-Smith-Kopfscan (CC BY), Oswald (OFL) und Godot (MIT).
 

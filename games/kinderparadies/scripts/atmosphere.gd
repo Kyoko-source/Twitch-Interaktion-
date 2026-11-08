@@ -193,11 +193,18 @@ func prop(pos: Vector3, size: Vector3, material: Material, title: String, mass: 
  body.add_child(collider);add_child(body);loose.append(body);body.suspend(true);return body
 
 func _physical_toys() -> void:
+ var scatter:=RandomNumberGenerator.new();scatter.seed=4305;var placed: Array[Vector2]=[]
  for i in range(18):
   # Loose physics balls stay outside the decorative packed pit instead of
   # falling through its non-physical spheres and flickering inside them.
-  var x:=-2.2+(i%6)*1.15;var z:=9.25+floori(i/6.0)*.55
-  prop(Vector3(x,.16,z),Vector3.ONE*.29,[w.materials.red,w.materials.blue,w.materials.gold,w.materials.teal][i%4],"Spielball",.16,true)
+  # Kicked out of the pit and left where they rolled: a loose spill that
+  # thins out away from the pit wall, never a tidy grid.
+  var spot:=Vector2.ZERO
+  for attempt in range(60):
+   spot=Vector2(scatter.randf_range(-2.5,4.3),9.05+pow(scatter.randf(),1.7)*1.7)
+   if placed.all(func(q: Vector2)->bool:return q.distance_to(spot)>.34):break
+  placed.append(spot)
+  prop(Vector3(spot.x,.16,spot.y),Vector3.ONE*.29,[w.materials.red,w.materials.blue,w.materials.gold,w.materials.teal][i%4],"Spielball",.16,true)
  for i in range(8):
   var block:=prop(Vector3(-3.9+(i%3)*.37,.18+floori(i/3.0)*.32,8.1),Vector3.ONE*.3,w.materials.wood,"Holzbaustein",.45)
   w.text(block,["A","B","C","★"][i%4],Vector3(0,0,.166),.18,[Color("85392f"),Color("355d66")][i%2])

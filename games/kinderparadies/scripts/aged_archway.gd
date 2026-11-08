@@ -34,6 +34,16 @@ func build(world: PlayWorld) -> void:
    for i in range(4):
     var split:=part(Vector3(side*1.62+.026*sin(i*2.1),.43+i*.49,face*.279),Vector3(.003,.14+i*.019,.002),dark);split.rotation.z=.012*sin(i)
  part(Vector3(0,2.76,0),Vector3(3.34,.22,.40),lintel,true)
+ # Carved corner blocks with a turned rosette where casing and head meet,
+ # and moulded plinth blocks at the foot: an old door surround, not boards.
+ for side in [-1.,1.]:
+  for face in [-1.,1.]:
+   part(Vector3(side*1.62,2.80,face*.30),Vector3(.30,.30,.05),lintel)
+   var rosette:=MeshInstance3D.new();var disc:=CylinderMesh.new();disc.top_radius=.085;disc.bottom_radius=.105;disc.height=.035;disc.radial_segments=32;rosette.mesh=disc
+   rosette.material_override=lintel;rosette.position=Vector3(side*1.62,2.80,face*.34);rosette.rotation.x=PI/2*face;add_child(rosette)
+   var boss:=MeshInstance3D.new();var dome:=SphereMesh.new();dome.radius=.04;dome.height=.04;boss.mesh=dome;boss.material_override=lintel;boss.position=Vector3(side*1.62,2.80,face*.36);add_child(boss)
+   part(Vector3(side*1.62,.19,face*.29),Vector3(.25,.38,.06),timber)
+   part(Vector3(side*1.62,.39,face*.30),Vector3(.27,.03,.07),lintel)
  for face in [-1.,1.]:
   part(Vector3(0,2.80,face*.235),Vector3(3.03,.20,.08),lintel)
   for y in [2.735,2.865]:part(Vector3(0,y,face*.282),Vector3(3.02,.018,.025),lintel)

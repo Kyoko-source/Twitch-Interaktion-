@@ -34,7 +34,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v4.3.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.3.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -111,7 +111,7 @@ static func option(g: Node3D, parent: VBoxContainer, title: String, key: String,
 static func credits(g: Node3D) -> void:
  g.phase="help";g.return_phase="menu"
  var column: VBoxContainer=g._panel("Mitwirkende","After Play · Kinderparadies")
- column.add_child(g._paragraph("Spielidee, Programmierung und Gestaltung: Kyoko.\nZusätzliche Ideen und Konzeptbeiträge: einsmarello.\nTestspieler: einsmarello, __jerry__, gingerbread und Mozart.\n\nAnatomiebasis des Clownkopfs: Infinite von Lee Perry-Smith, bearbeitet, CC BY 3.0.\n\nUmgebungsaufnahmen: Joseph SARDIN / BigSoundBank, CC0. Kreaturenaufnahmen: Ogrebane und A New Room / OpenGameArt, CC0. Weitere Asset-Lizenzen und Quellen liegen der Windows-Fassung bei.",18))
+ column.add_child(g._paragraph("Spielidee, Programmierung und Gestaltung: Kyoko.\nZusätzliche Ideen und Konzeptbeiträge: einsmarello.\nTestspieler: einsmarello, __jerry__, gingerbread, Mozart und 2eazy4me_.\n\nAnatomiebasis des Clownkopfs: Infinite von Lee Perry-Smith, bearbeitet, CC BY 3.0.\n\nUmgebungsaufnahmen: Joseph SARDIN / BigSoundBank, CC0. Kreaturenaufnahmen: Ogrebane und A New Room / OpenGameArt, CC0. Weitere Asset-Lizenzen und Quellen liegen der Windows-Fassung bei.",18))
  var credit:=RichTextLabel.new();credit.bbcode_enabled=true;credit.fit_content=true;credit.custom_minimum_size.x=440;credit.text="[url=https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith]%s[/url] · [url=https://creativecommons.org/licenses/by/3.0/]CC BY 3.0[/url]";credit.text=credit.text%AfterPlayLanguage.t("Kopfmodell und Quelle");credit.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(credit)
  column.add_child(g._label("Partymusik",23))
  var party_credit:=RichTextLabel.new();party_credit.name="PartyMusicCredit";party_credit.bbcode_enabled=true;party_credit.fit_content=true;party_credit.custom_minimum_size.x=440;party_credit.add_theme_font_size_override("normal_font_size",18)

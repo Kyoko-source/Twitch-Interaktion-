@@ -6,6 +6,22 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--v431-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.tick(1.5);game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  await capture(game,output,"v431-00-phone")
+  game.intro.tick(2.);await capture(game,output,"v431-01-phone-raised")
+  game.intro.skip();game.dialogue.reset();game.notice.hide()
+  var author=load("res://art-direction/itch_capture.gd").new()
+  game.player.lamp.show()
+  if "--corpse-only" in OS.get_cmdline_user_args():
+   for view in [["v431-06-corpse",Vector3(-13.05,0,-10.1),Vector3(-13.05,.6,-8.0)],["v431-07-corpse-close",Vector3(-12.4,0,-9.0),Vector3(-13.0,.75,-8.0)]]:
+    author.pose(game,view[1],view[2]);await capture(game,output,view[0])
+   game.get_tree().quit();return
+  for view in [["v431-02-lost-property",Vector3(2.2,0,-10.25),Vector3(2.2,.65,-11.7)],["v431-03-lost-close",Vector3(2.0,0,-10.9),Vector3(2.0,.45,-11.7)],
+               ["v431-04-doorframe",Vector3(-7.9,0,-9.6),Vector3(-7.9,1.5,-12.2)],["v431-05-balls",Vector3(1.0,0,12.6),Vector3(1.0,.15,9.6)],
+               ["v431-06-corpse",Vector3(-13.05,0,-10.1),Vector3(-13.05,.6,-8.0)],["v431-07-corpse-close",Vector3(-12.4,0,-9.0),Vector3(-13.0,.75,-8.0)]]:
+   author.pose(game,view[1],view[2]);await capture(game,output,view[0])
+  game.get_tree().quit();return
  if "--drive-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.player.active=false;game.player.set_physics_process(false)
   game.secret_ending=true;game._show_ending(3);game.set_process(false)

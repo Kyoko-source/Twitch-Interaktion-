@@ -83,8 +83,8 @@ func build(game: Node3D,overlay: Control) -> void:
  env=Environment.new();env.background_mode=Environment.BG_COLOR;env.background_color=Color("020305")
  env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;env.ambient_light_color=Color("1b2433");env.ambient_light_energy=.06
  env.tonemap_mode=Environment.TONE_MAPPER_FILMIC;env.tonemap_exposure=1.05
- env.fog_enabled=true;env.fog_light_color=Color("040508");env.fog_density=.011
- env.volumetric_fog_enabled=true;env.volumetric_fog_density=.012;env.volumetric_fog_albedo=Color(.55,.6,.66);env.volumetric_fog_length=48;env.volumetric_fog_ambient_inject=0.
+ env.fog_enabled=true;env.fog_light_color=Color("06080b");env.fog_density=.05;env.fog_sky_affect=1.
+ env.volumetric_fog_enabled=true;env.volumetric_fog_density=.03;env.volumetric_fog_albedo=Color(.5,.53,.58);env.volumetric_fog_length=40;env.volumetric_fog_ambient_inject=0.;env.volumetric_fog_detail_spread=1.5
  env.glow_enabled=true;env.glow_intensity=.55;env.glow_bloom=.04
  env.ssao_enabled=true;env.ssao_radius=.6;env.ssao_intensity=1.4
  env.adjustment_enabled=true;env.adjustment_brightness=float(g.settings.get("brightness",1.15))/1.15;env.adjustment_saturation=.82
@@ -92,6 +92,13 @@ func build(game: Node3D,overlay: Control) -> void:
  car=Node3D.new();car.name="OldCar";add_child(car)
  body=Node3D.new();body.name="SprungBody";car.add_child(body)
  _cabin()
+ # Thick ground mist rolling over the road, carried along with the car.
+ var mist:=FogVolume.new();mist.name="GroundMist";mist.size=Vector3(80,3.,110);mist.position=Vector3(0,.6,-60);mist.shape=RenderingServer.FOG_VOLUME_SHAPE_BOX
+ var haze:=FogMaterial.new();haze.density=.2;haze.albedo=Color(.5,.52,.56);haze.height_falloff=.9;haze.edge_fade=.6
+ var drift:=FastNoiseLite.new();drift.frequency=.035;var noise_tex:=NoiseTexture3D.new();noise_tex.noise=drift;noise_tex.width=64;noise_tex.height=24;noise_tex.depth=64;noise_tex.seamless=true
+ haze.density_texture=noise_tex;mist.material=haze;car.add_child(mist)
+ for side in [-1.,1.]:
+  var flank:=FogVolume.new();flank.name="ForestMist";flank.size=Vector3(40,3.4,70);flank.position=Vector3(side*23.,.8,-5);flank.shape=RenderingServer.FOG_VOLUME_SHAPE_BOX;flank.material=haze;car.add_child(flank)
  _children()
  head=Node3D.new();head.name="DriverHead";head.position=EYE;body.add_child(head)
  camera=Camera3D.new();camera.name="DriverEyes";camera.fov=72;camera.near=.02;camera.far=140;camera.environment=env;head.add_child(camera)
@@ -256,7 +263,7 @@ func _cabin() -> void:
  _box(body,Vector3(0,.915,-1.58),Vector3(.55,.04,1.1),paint,Vector3(.09,0,0))
  for x in [-.62,.62]:
   var beam:=SpotLight3D.new();beam.position=Vector3(x,.70,-2.3);beam.rotation.x=-.085;beam.light_color=Color("fff1d6");beam.light_energy=20;beam.spot_range=58;beam.spot_angle=30;beam.spot_attenuation=.8
-  beam.shadow_enabled=true;beam.light_volumetric_fog_energy=.7;body.add_child(beam)
+  beam.shadow_enabled=true;beam.light_volumetric_fog_energy=.9;body.add_child(beam)
  dash_light=OmniLight3D.new();dash_light.position=Vector3(-.3,.98,-.6);dash_light.light_color=Color("d9b48c");dash_light.light_energy=.18;dash_light.omni_range=1.1;body.add_child(dash_light)
  rear_light=OmniLight3D.new();rear_light.position=Vector3(0,1.30,.62);rear_light.light_color=Color("8798bd");rear_light.light_energy=.05;rear_light.omni_range=1.9;rear_light.shadow_enabled=false;body.add_child(rear_light)
 

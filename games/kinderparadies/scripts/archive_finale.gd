@@ -16,22 +16,36 @@ func build(world: PlayWorld) -> void:
  w=world;name="ArchiveFinale"
  # Seated on the floor with its back against the south archive wall (z=-7.8),
  # knees drawn up and wrists shackled out to either side at shoulder height.
- var remains: Node3D=(load("res://assets/finale/archive-remains.glb") as PackedScene).instantiate()
- remains.name="ChainedRemains";remains.position=Vector3(-13.05,.60,-7.93);remains.rotation=Vector3(-PI/2,0,0);add_child(remains)
+ var remains: Node3D=(load("res://assets/finale/archive-corpse-v431.glb") as PackedScene).instantiate()
+ # Faces into the room (-Z) with its back flat to the wall.
+ remains.name="ChainedRemains";remains.position=Vector3(-13.05,0.,-8.12);remains.rotation=Vector3(0,PI,0);add_child(remains)
+ var rot:=ShaderMaterial.new();rot.shader=load("res://assets/finale/corpse_skin.gdshader");rot.set_shader_parameter("micro",w.atmosphere.micro_normal)
  for mesh in remains.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var material:=mesh.get_active_material(i) as StandardMaterial3D
-   if material:
-    material=material.duplicate();mesh.set_surface_override_material(i,material);material.roughness=.96;material.metallic_specular=.12
-    if material.resource_name=="Ancient human bone":
-     material.albedo_texture=load("res://assets/aged-plaster.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*6;material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.23
-    elif material.resource_name=="Mummified leathery remnant":
-     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.3
- w.box(remains,Vector3(0,.0,-.13),Vector3(.75,.65,.30),w.materials.dark,true).hide()
+   if not material:continue
+   if material.resource_name=="Mummified leathery remnant":mesh.set_surface_override_material(i,rot)
+   elif material.resource_name in ["Corpse scanned complexion","Matted dead hair"]:
+    var dim:=material.duplicate() as StandardMaterial3D;dim.albedo_color=Color(.52,.48,.42) if material.resource_name.begins_with("Corpse") else Color(.16,.15,.14);dim.roughness=.8;mesh.set_surface_override_material(i,dim)
+   elif "fabric" in material.resource_name:
+    # Rotted, filth-soaked cloth: the weave shows, the colour has gone.
+    var rag:=material.duplicate() as StandardMaterial3D;rag.albedo_texture=load("res://assets/pbr/dirty_carpet/albedo.jpg");rag.albedo_color=rag.albedo_color*Color(.75,.7,.62);rag.uv1_triplanar=true;rag.uv1_scale=Vector3.ONE*5
+    rag.normal_enabled=true;rag.normal_texture=load("res://assets/pbr/dirty_carpet/normal.jpg");rag.normal_scale=.8;rag.roughness=.97
+    rag.detail_enabled=true;rag.detail_mask=load("res://assets/presentation-v250/blood-texture.png");rag.detail_albedo=load("res://assets/aged-plaster.png");rag.detail_blend_mode=BaseMaterial3D.BLEND_MODE_MUL
+    mesh.set_surface_override_material(i,rag)
+   elif material.resource_name=="Ancient human bone":
+    var b:=material.duplicate() as StandardMaterial3D;b.albedo_color=Color("62553e");b.albedo_texture=load("res://assets/aged-plaster.png");b.uv1_triplanar=true;b.uv1_scale=Vector3.ONE*6
+    b.normal_enabled=true;b.normal_texture=w.atmosphere.micro_normal;b.normal_scale=.3;b.roughness=.9;mesh.set_surface_override_material(i,b)
+ # Decades of seepage: a dark stain spreading on the floor.
+ var stain:=w.mat(Color(.05,.035,.02,.82),null,.35);stain.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ var pool:=w.sphere(self,Vector3(-13.05,.004,-8.32),1,stain);pool.scale=Vector3(.62,.004,.42);pool.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ w.box(remains,Vector3(0,.35,0),Vector3(.8,.7,.6),w.materials.dark,true).hide()
  for joint in ["LeftWrist","RightWrist","LeftAnkle","RightAnkle"]:
   var point:=remains.find_child(joint,true,false) as Node3D
   var p: Vector3=point.global_position-global_position
-  var anchor:=p+(Vector3(-.2,.75,.12) if joint.ends_with("Wrist") else Vector3(0,-.55,.08))
+  # Wrist chains run up to rings in the wall; ankle chains to floor rings.
+  var outward:=signf(p.x-(-13.05))
+  var anchor:=p+(Vector3(outward*.22,.5,.09) if joint.ends_with("Wrist") else Vector3(outward*.2,-.06,.22))
   _restraint(p,anchor,joint)
  _recorder()
  voice=AudioStreamPlayer.new();voice.name="MarelleRecording";voice.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;voice.stream=load(RECORDING);voice.volume_db=-1.5;voice.bus="NightVoice" if AudioServer.get_bus_index("NightVoice")>=0 else "Master";add_child(voice)

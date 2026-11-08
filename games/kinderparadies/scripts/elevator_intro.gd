@@ -53,7 +53,7 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  var handset: Node3D=(load("res://assets/lift-v391/nightguard-handset.glb") as PackedScene).instantiate();handset.name="MachinedHandset";phone.add_child(handset)
  phone_status=Label3D.new();phone_status.hide();phone.add_child(phone_status)
  display=GuardPhoneDisplay.new();phone.add_child(display);display.build()
- var hand: Node3D=(load(QualityAssets.model("phone-hand","res://assets/lift-v391/nightguard-phone-hand.glb")) as PackedScene).instantiate();hand.name="FittedPhoneHand";phone.add_child(hand);CharacterFinish.hand(hand)
+ var hand: Node3D=(load(QualityAssets.model("phone-hand","res://assets/lift-v391/nightguard-phone-hand.glb")) as PackedScene).instantiate();hand.name="FittedPhoneHand";phone.add_child(hand);CharacterFinish.hand(hand,Color("a8968a"))
  var pores:=NoiseTexture2D.new();var noise:=FastNoiseLite.new();noise.seed=391;noise.frequency=.35;pores.noise=noise;pores.width=128;pores.height=128;pores.seamless=true;pores.as_normal_map=true;pores.bump_strength=.08
  for mesh in hand.find_children("*","MeshInstance3D",true,false):
   for surface in range(mesh.mesh.get_surface_count()):
@@ -78,7 +78,7 @@ func build(w: PlayWorld, player: NightGuard) -> void:
  var hover:=button_style.duplicate() as StyleBoxFlat;hover.bg_color=Color("284a3e");accept_button.add_theme_stylebox_override("hover",hover);accept_button.add_theme_stylebox_override("focus",hover);accept_button.add_theme_font_size_override("font_size",20)
  var hint:=Label.new();hint.text="LEERTASTE GEDRÜCKT HALTEN · INTRO ÜBERSPRINGEN";hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hint.add_theme_font_size_override("font_size",13);panel.add_child(hint)
  skip_bar=ProgressBar.new();skip_bar.max_value=1.35;skip_bar.custom_minimum_size.y=5;skip_bar.show_percentage=false;panel.add_child(skip_bar)
- ring=sound("res://assets/intro/ring.wav",-14);chime=sound("res://assets/intro/chime.wav",-9)
+ ring=sound("res://assets/intro-v431/ringtone.ogg",-8);chime=sound("res://assets/intro/chime.wav",-9)
  motor=sound("res://assets/ambience/ventilation.ogg",-25);(motor.stream as AudioStreamOggVorbis).loop=true
  voice=sound("",-1.5);overlay.hide()
 
