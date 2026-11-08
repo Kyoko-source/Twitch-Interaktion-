@@ -29,12 +29,12 @@ void vertex() {
  top=length(top)<.05?up:normalize(top);
  float facing=dot(radial,top);
  float vertebra=pow(.5+.5*cos(s*6.2831853*1.6),3.0);
- ridge=pow(max(facing,0.0),9.0)*vertebra;
- float cords=pow(max(dot(radial,normalize(top+side*1.6)),0.0),26.0)+pow(max(dot(radial,normalize(top-side*1.6)),0.0),26.0);
+ ridge=pow(max(facing,0.0),7.0)*vertebra;
+ float cords=pow(max(dot(radial,normalize(top+side*1.6)),0.0),20.0)+pow(max(dot(radial,normalize(top-side*1.6)),0.0),20.0);
  float hollow=pow(max(dot(radial,side),0.0)*max(dot(radial,-side),0.0)*4.0,1.0);
  float sag=max(-facing,0.0);
- float folds=sin(s*23.0+sin(angle*2.0)*1.4)*(.025+.055*sag)+(noise(vec2(UV.x*14.0,s*5.0))-.5)*.08;
- float radius=centre.w*(.80+.20*ridge+.07*cords+folds-.10*hollow*(1.0-sag));
+ float folds=sin(s*23.0+sin(angle*2.0)*1.4)*(.030+.065*sag)+(noise(vec2(UV.x*14.0,s*5.0))-.5)*.10+(noise(vec2(UV.x*5.0,s*1.6))-.5)*.05;
+ float radius=centre.w*(.78+.28*ridge+.12*cords+folds-.12*hollow*(1.0-sag));
  VERTEX=centre.xyz+radial*radius-top*sag*sag*centre.w*.10*(.5+.5*sin(s*2.1));
  NORMAL=normalize(radial-tangent*(folds*.6));
  TANGENT=normalize(-side*sin(angle)+up*cos(angle));BINORMAL=tangent;

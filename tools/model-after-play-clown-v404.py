@@ -39,15 +39,20 @@ def export(path,objects):
 
 hair_material=material('Dirty flax blond fibres',(.42,.31,.14))
 report={}
-for platform,count,steps in [('desktop',5600,7),('web',2500,6)]:
+for platform,count,steps in [('desktop',11000,7),('web',4500,6)]:
     rng=random.Random(404);verts=[];faces=[];tex=[]
     for strand in range(count):
         root=rng.choice(scalp);p=root.co.copy();n=root.normal.normalized()
+        # Hundreds of strands share a handful of scalp vertices; starting every
+        # one of them at the exact same point z-fights into a flickering mess
+        # under a moving flashlight. Spread the roots a little.
+        tangent_a=n.orthogonal().normalized();tangent_b=n.cross(tangent_a)
+        p+=(tangent_a*rng.uniform(-1,1)+tangent_b*rng.uniform(-1,1))*.006
         side=1 if p.x>=0 else -1
         back=p.y>.08 and abs(p.x)<.095
         length=rng.uniform(.21,.43)
         fan=rng.uniform(.075,.17);phase=rng.uniform(0,math.tau)
-        width=rng.uniform(.00045,.00115) if strand%7 else rng.uniform(.0012,.0023)
+        width=rng.uniform(.0007,.0017) if strand%5 else rng.uniform(.0017,.0032)
         fly=strand%13==0
         curl=rng.uniform(.006,.019)
         previous=None;angle=rng.uniform(0,math.tau)

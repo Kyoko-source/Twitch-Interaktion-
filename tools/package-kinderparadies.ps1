@@ -1,21 +1,19 @@
-param([string]$Version='4.2.1')
+param([string]$Version='4.2.2')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
 $taskBuild=Join-Path $taskProject 'build'
 $taskPlayer=Join-Path $taskBuild 'player-package'
-$taskBrowser=Join-Path $taskBuild 'browser-package'
-$taskPublic=Join-Path $taskRepo 'frontend/public/standalone/kinderparadies'
 $taskDownloads=Join-Path $taskRepo 'frontend/public/downloads'
 if($Version -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid package version'}
-foreach($taskRequired in @('windows/AfterPlay.exe','web/index.html','web/index.js','web/index.wasm','web/index.pck','web/index.audio.worklet.js','web/index.audio.position.worklet.js')){
+foreach($taskRequired in @('windows/AfterPlay.exe')){
  if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskRequired))){throw "Missing export: $taskRequired"}
 }
-# Only these three generated output directories may be cleared. Reject junctions
+# Only this generated output directory may be cleared. Reject junctions
 # in the path or tree rather than following them into unrelated user files.
 function Reset-PlayerOutput([string]$Path){
  $taskAbsolute=[IO.Path]::GetFullPath($Path)
- if($taskAbsolute -notin @($taskPlayer,$taskBrowser,$taskPublic)){throw "Not a generated output: $taskAbsolute"}
+ if($taskAbsolute -notin @($taskPlayer)){throw "Not a generated output: $taskAbsolute"}
  $taskAncestor=$taskAbsolute
  while($taskAncestor -and $taskAncestor -ne $taskRepo){
   if(Test-Path -LiteralPath $taskAncestor){
@@ -31,7 +29,6 @@ function Reset-PlayerOutput([string]$Path){
  New-Item -ItemType Directory -Path $taskAbsolute -Force | Out-Null
 }
 Reset-PlayerOutput $taskPlayer
-Reset-PlayerOutput $taskBrowser
 Copy-Item -LiteralPath (Join-Path $taskBuild 'windows/AfterPlay.exe') -Destination $taskPlayer
 Copy-Item -LiteralPath (Join-Path $taskProject 'distribution/STARTEN.txt') -Destination $taskPlayer
 $taskLicenses=Join-Path $taskPlayer 'Lizenzen'
@@ -72,28 +69,15 @@ foreach($taskSource in @('assets/horse-v420/provenance.json','assets/polyhaven-p
  Add-PublicSources (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $taskProject $taskSource) | ConvertFrom-Json)
 }
 [IO.File]::WriteAllText((Join-Path $taskLicenses 'Quellen.txt'),("AFTER PLAY - Quellen und Urheber"+[Environment]::NewLine+[Environment]::NewLine+(($taskSources | Sort-Object -Unique) -join [Environment]::NewLine)),[Text.UTF8Encoding]::new($false))
-$taskRuntime=@('index.html','index.js','index.wasm','index.pck','index.audio.worklet.js','index.audio.position.worklet.js')
-foreach($taskFile in $taskRuntime){Copy-Item -LiteralPath (Join-Path $taskBuild ('web/'+$taskFile)) -Destination $taskBrowser}
-$taskHtml=Join-Path $taskBrowser 'index.html'
-$taskText=[IO.File]::ReadAllText($taskHtml).Replace('<html lang="en">','<html lang="de">').Replace('<canvas id="canvas">','<canvas id="canvas" role="application" aria-label="After Play 3D-Spiel" tabindex="0">').Replace('Your browser does not support the canvas tag.','Dein Browser kann dieses 3D-Spiel nicht anzeigen. Nutze die Windows-Fassung.').Replace('Your browser does not support JavaScript.','Bitte aktiviere JavaScript oder nutze die Windows-Fassung.')
-$taskText=$taskText.Replace('href="data:,"','href="index.png"')
-if(-not $taskText.Contains('rel="icon"')){$taskText=$taskText.Replace('<head>','<head>'+[Environment]::NewLine+'<link rel="icon" type="image/png" href="index.png">')}
-[IO.File]::WriteAllText($taskHtml,$taskText,[Text.UTF8Encoding]::new($false))
-if(Test-Path -LiteralPath (Join-Path $taskBuild 'web/index.png')){Copy-Item -LiteralPath (Join-Path $taskBuild 'web/index.png') -Destination $taskBrowser}
-Copy-Item -LiteralPath $taskLicenses -Destination $taskBrowser -Recurse
 $taskZip=Join-Path $taskBuild "after-play-windows-v$Version.zip"
-$taskWebZip=Join-Path $taskBuild "after-play-web-v$Version.zip"
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskPlayer).FullName -DestinationPath $taskZip -Force
-Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $taskBrowser).FullName -DestinationPath $taskWebZip -Force
-Reset-PlayerOutput $taskPublic
-Copy-Item -LiteralPath (Get-ChildItem -LiteralPath $taskBrowser).FullName -Destination $taskPublic -Recurse
 New-Item -ItemType Directory -Path $taskDownloads -Force | Out-Null
-Copy-Item -LiteralPath $taskZip,$taskWebZip -Destination $taskDownloads -Force
+Copy-Item -LiteralPath $taskZip -Destination $taskDownloads -Force
 foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p.mp4';'Happyland-Alter-Werbefilm.mp4'='after-play-happyland-werbefilm.mp4'}.GetEnumerator()){
  $taskMediaSource=Join-Path $taskBuild ('trailer/'+$taskMedia.Key)
  if(Test-Path -LiteralPath $taskMediaSource){Copy-Item -LiteralPath $taskMediaSource -Destination (Join-Path $taskDownloads $taskMedia.Value) -Force}
 }
-$taskManifest=[ordered]@{version=$Version;packaging_revision=2;engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant();web_zip_sha256=(Get-FileHash $taskWebZip -Algorithm SHA256).Hash.ToLowerInvariant();web_pck_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.pck') -Algorithm SHA256).Hash.ToLowerInvariant();web_wasm_sha256=(Get-FileHash (Join-Path $taskBrowser 'index.wasm') -Algorithm SHA256).Hash.ToLowerInvariant()}
+$taskManifest=[ordered]@{version=$Version;packaging_revision=3;engine='Godot 4.6.2';windows_sha256=(Get-FileHash $taskZip -Algorithm SHA256).Hash.ToLowerInvariant()}
 [IO.File]::WriteAllText((Join-Path $taskBuild 'release.json'),($taskManifest | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
 Write-Output "Player packages ready: $taskZip"
 & (Join-Path $PSScriptRoot 'prune-after-play-releases.ps1') -Apply

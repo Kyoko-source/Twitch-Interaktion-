@@ -11,8 +11,8 @@ void fragment() {
  blond = mix(vec3(.062,.038,.014), blond, root);
  float grime = smoothstep(.2,.85,sin(UV.y*22.0+scalp_space.x*35.0)*.5+.5);
  ALBEDO = blond * mix(.69,1.0,grime);
- ALPHA = smoothstep(0.0,.17,UV.x) * smoothstep(0.0,.17,1.0-UV.x);
- ALPHA_SCISSOR_THRESHOLD = .12;
- ROUGHNESS = .76;
- SPECULAR = .32;
+ ALPHA = smoothstep(0.0,.10,UV.x) * smoothstep(0.0,.10,1.0-UV.x);
+ ALPHA_SCISSOR_THRESHOLD = .08;
+ ROUGHNESS = .82;
+ SPECULAR = .22;
 }

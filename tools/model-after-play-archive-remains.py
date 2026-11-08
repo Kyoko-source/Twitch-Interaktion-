@@ -10,8 +10,29 @@ OUT.mkdir(exist_ok=True)
 reset()
 bone=mat('Ancient human bone',(.50,.45,.32),.96)
 dark=mat('Hollow cranial recess',(.024,.021,.015),.99)
+flesh=mat('Mummified leathery remnant',(.22,.15,.10),.92)
+gape=mat('Torn flesh edge',(.06,.015,.012),.85)
 
-def long_bone(name,a,b,r):
+# The knees and elbows fold the lying-flat skeleton into a seated pose; both
+# joints rotate in the body's local (length, thickness) plane.
+HIP_ANGLE=1.5708;KNEE_ANGLE=-1.6;SHOULDER_ANGLE=1.45;ELBOW_ANGLE=-1.3
+HIP_PIVOT=(.148,.100);SHOULDER_PIVOT=(-.45,.145)
+
+def rot_yz(p,pivot,angle):
+ y,z=p[1]-pivot[0],p[2]-pivot[1];c,s=math.cos(angle),math.sin(angle)
+ return (p[0],pivot[0]+y*c-z*s,pivot[1]+y*s+z*c)
+
+def bend(p,*stages):
+ for pivot,angle in stages:p=rot_yz(p,pivot,angle)
+ return p
+
+KNEE_PIVOT=rot_yz((0,.55,.116),HIP_PIVOT,HIP_ANGLE)[1:]
+ELBOW_PIVOT=rot_yz((0,-.19,.080),SHOULDER_PIVOT,SHOULDER_ANGLE)[1:]
+LEG_BEND=[(HIP_PIVOT,HIP_ANGLE)];SHIN_BEND=[(HIP_PIVOT,HIP_ANGLE),(KNEE_PIVOT,KNEE_ANGLE)]
+ARM_BEND=[(SHOULDER_PIVOT,SHOULDER_ANGLE)];FOREARM_BEND=[(SHOULDER_PIVOT,SHOULDER_ANGLE),(ELBOW_PIVOT,ELBOW_ANGLE)]
+
+def long_bone(name,a,b,r,stages=()):
+ if stages:a=bend(a,*stages);b=bend(b,*stages)
  a,b=Vector(a),Vector(b);d=b-a
  strand(name,[a,a+d*.10,a+d*.35,a+d*.75,a+d*.93,b],[r*1.5,r*1.1,r*.73,r*.67,r*1.3,r*1.5],bone,16)
  for p in [a,b]:egg('Articular condyle',p,(r*1.55,r*1.5,r*1.2),bone,16)
@@ -57,26 +78,33 @@ for s in [-1,1]:
  wing=egg('Pelvic ilium',(s*.072,.045,.116),(.073,.090,.044),bone,24)
  cut(wing,egg('Obturator opening',(s*.066,.074,.136),(.032,.043,.06),dark))
  strand('Pubic arch',[(s*.1,.035,.11),(s*.068,.132,.11),(0,.149,.12)],[.014,.014,.011],bone)
- long_bone('Femur',(s*.104,.151,.10),(s*.12,.54,.087),.020)
- egg('Patella',(s*.12,.55,.116),(.023,.028,.017),bone,16)
- long_bone('Tibia',(s*.12,.58,.075),(s*.11,.966,.060),.014)
- long_bone('Fibula',(s*.153,.58,.075),(s*.142,.965,.059),.008)
- long_bone('Humerus',(s*.215,-.45,.145),(s*.31,-.20,.08),.016)
- long_bone('Radius',(s*.31,-.17,.082),(s*.38,.09,.082),.011)
- long_bone('Ulna',(s*.329,-.18,.072),(s*.399,.09,.075),.009)
+ long_bone('Femur',(s*.104,.151,.10),(s*.12,.54,.087),.020,LEG_BEND)
+ egg('Patella',bend((s*.12,.55,.116),*LEG_BEND),(.023,.028,.017),bone,16)
+ long_bone('Tibia',(s*.12,.58,.075),(s*.11,.966,.060),.014,SHIN_BEND)
+ long_bone('Fibula',(s*.153,.58,.075),(s*.142,.965,.059),.008,SHIN_BEND)
+ long_bone('Humerus',(s*.215,-.45,.145),(s*.31,-.20,.08),.016,ARM_BEND)
+ long_bone('Radius',(s*.31,-.17,.082),(s*.38,.09,.082),.011,FOREARM_BEND)
+ long_bone('Ulna',(s*.329,-.18,.072),(s*.399,.09,.075),.009,FOREARM_BEND)
  for k in range(5):
   x=s*(.352+k*.012);length=.080-abs(k-2)*.012
-  long_bone('Metacarpal',(x,.10,.076),(x+s*.013,.15,.073),.005)
+  long_bone('Metacarpal',(x,.10,.076),(x+s*.013,.15,.073),.005,FOREARM_BEND)
   for joint in range(3):
    a=(x+s*(.013+joint*.006),.15+joint*length/3,.073-joint*.008)
    b=(x+s*(.019+joint*.006),.15+(joint+1)*length/3,.065-joint*.008)
-   long_bone('Finger phalanx',a,b,.0038-joint*.0005)
+   long_bone('Finger phalanx',a,b,.0038-joint*.0005,FOREARM_BEND)
  for k in range(5):
   x=s*(.084+k*.012)
-  long_bone('Metatarsal',(x,.968,.058),(x,1.054,.052),.005)
-  long_bone('Toe',(x,1.054,.052),(x,1.091-abs(k-1)*.006,.046),.004)
- for name,p in [('Wrist',(s*.386,.085,.080)),('Ankle',(s*.123,.955,.061))]:
-  o=bpy.data.objects.new(('Left' if s<0 else 'Right')+name,None);bpy.context.collection.objects.link(o);o.location=p
+  long_bone('Metatarsal',(x,.968,.058),(x,1.054,.052),.005,SHIN_BEND)
+  long_bone('Toe',(x,1.054,.052),(x,1.091-abs(k-1)*.006,.046),.004,SHIN_BEND)
+ for name,p,stages in [('Wrist',(s*.386,.085,.080),FOREARM_BEND),('Ankle',(s*.123,.955,.061),SHIN_BEND)]:
+  o=bpy.data.objects.new(('Left' if s<0 else 'Right')+name,None);bpy.context.collection.objects.link(o);o.location=bend(p,*stages)
+ # A few leathery, torn scraps of mummified tissue still cling to the bone;
+ # most of it has long since rotted away, so the ribs and limbs stay bare.
+ for y0,z0,sy,sz,st in [(-.58,.21,.11,.065,()),(-.30,.19,.095,.06,()),(.02,.15,.085,.05,()),
+                        (.30,.40,.06,.10,LEG_BEND),(.45,.45,.05,.085,LEG_BEND),
+                        (-.32,.10,.045,.085,ARM_BEND)]:
+  patch=egg('Mummified tissue remnant',bend((s*.03,y0,z0),*st),(.028,sy,sz),flesh,24)
+  cut(patch,egg('Torn tissue boundary',bend((s*.07,y0+sy*.6,z0),*st),(.02,sy*.4,sz*.5),gape,16))
 
 # Consolidated surfaces keep this detailed prop affordable in the Web edition.
 for m in [bone,dark]:
@@ -84,8 +112,11 @@ for m in [bone,dark]:
  if parts:
   o=join(parts,'WeatheredSkeleton' if m==bone else 'CranialDarkness')
   if m==bone:pigment(o,(.50,.45,.32))
+for m in [flesh,gape]:
+ parts=[o for o in bpy.data.objects if o.type=='MESH' and o.data.materials and o.data.materials[0]==m]
+ if parts:join(parts,'MummifiedTissueRemnants' if m==flesh else 'TornTissueEdges')
 root=bpy.data.objects.new('ChainedAdultRemains',None);bpy.context.collection.objects.link(root)
-root['anatomy']='adult male skeleton, supine; no living body'
+root['anatomy']='adult male skeleton with scant mummified tissue, seated and shackled; no living body'
 for o in list(bpy.data.objects):
  if o!=root and o.parent is None:o.parent=root
 export('archive-remains.glb')

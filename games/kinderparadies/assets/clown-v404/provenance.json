@@ -4,14 +4,14 @@
   "source_head": "Existing credited clown head used for fitting only; not copied into these accessories",
   "outputs": {
     "desktop": {
-      "strands": 5600,
-      "vertices": 78400,
-      "triangles": 67200
+      "strands": 11000,
+      "vertices": 154000,
+      "triangles": 132000
     },
     "web": {
-      "strands": 2500,
-      "vertices": 30000,
-      "triangles": 25000
+      "strands": 4500,
+      "vertices": 54000,
+      "triangles": 45000
     },
     "cap": {
       "panels": 6,

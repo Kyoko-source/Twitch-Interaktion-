@@ -7,15 +7,14 @@ $taskVersion=[string]$taskManifest.version
 if($taskVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid release version'}
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
-foreach($taskFile in @('browser-package/index.html','browser-package/index.pck','browser-package/index.wasm',"after-play-windows-v$taskVersion.zip","after-play-web-v$taskVersion.zip",'release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-foreach($taskCheck in @(@("after-play-windows-v$taskVersion.zip",$taskManifest.windows_sha256),@("after-play-web-v$taskVersion.zip",$taskManifest.web_zip_sha256),@('browser-package/index.pck',$taskManifest.web_pck_sha256))){
+foreach($taskFile in @("after-play-windows-v$taskVersion.zip",'release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
+foreach($taskCheck in @(@("after-play-windows-v$taskVersion.zip",$taskManifest.windows_sha256))){
  if((Get-FileHash -LiteralPath (Join-Path $taskBuild $taskCheck[0]) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCheck[1]){throw "Release checksum mismatch: $($taskCheck[0])"}
 }
 if(-not [IO.File]::ReadAllText((Join-Path $taskRepo 'frontend/src/nachtwache/Nachtwache.jsx')).Contains("/downloads/after-play-windows-v$taskVersion.zip")){throw 'Website download link does not match the release'}
 $taskStage=Join-Path $taskBuild ("release-stage-v$taskVersion-"+[Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'web'),(Join-Path $taskStage 'downloads') | Out-Null
-Copy-Item -Path (Join-Path $taskBuild 'browser-package/*') -Destination (Join-Path $taskStage 'web') -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $taskBuild "after-play-windows-v$taskVersion.zip"),(Join-Path $taskBuild "after-play-web-v$taskVersion.zip"),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $taskStage 'downloads') | Out-Null
+Copy-Item -LiteralPath (Join-Path $taskBuild "after-play-windows-v$taskVersion.zip"),(Join-Path $taskBuild 'release.json') -Destination (Join-Path $taskStage 'downloads') -Force
 foreach($taskMedia in @{'After-Play-Trailer-1080p.mp4'='after-play-trailer-1080p.mp4';'Happyland-Alter-Werbefilm.mp4'='after-play-happyland-werbefilm.mp4'}.GetEnumerator()){
  $taskMediaSource=Join-Path $taskBuild ('trailer/'+$taskMedia.Key)
  if(Test-Path -LiteralPath $taskMediaSource){Copy-Item -LiteralPath $taskMediaSource -Destination (Join-Path $taskStage ('downloads/'+$taskMedia.Value)) -Force}
@@ -55,7 +54,7 @@ sha256sum frontend/public/music/nullsignal/menu.mp3 frontend/public/music/nullsi
 git pull --ff-only origin main
 test "$(git rev-parse HEAD)" = '__COMMIT__'
 docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env build frontend < /dev/null
-for item in web downloads; do
+for item in downloads; do
  test ! -e "game-releases/kinderparadies/$item" || test -L "game-releases/kinderparadies/$item"
  ln -sfn "releases/__RELEASE__/$item" "game-releases/kinderparadies/$item"
 done

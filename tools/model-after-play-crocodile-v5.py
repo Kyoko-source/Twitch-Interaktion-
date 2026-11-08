@@ -23,6 +23,10 @@ black=mat('Recessed nostril and pupil',(.009,.014,.009),.72)
 amber=mat('Amber glass eye',(.43,.25,.055),.26)
 patchmat=mat('Old stitched repair fabric',(.16,.19,.12),.96)
 thread=mat('Dark welded seams',(.06,.085,.038),.92)
+blood=mat('Dried blood streak',(.12,.013,.010),.42)
+wetblood=mat('Wet blood pool',(.17,.014,.011),.18)
+mold=mat('Black mildew bloom',(.045,.045,.038),.97)
+gash=mat('Torn PVC cavity',(.03,.025,.018),.96)
 
 def finish(o,name,material,target):
  o.name=name;o.data.materials.append(material)
@@ -108,13 +112,16 @@ for side in (-1,1):
  ell('Recessed eye socket',(side*1.40,-2.54,3.48),(.20,.18,.15),thread,upper_details)
  ell('Small embedded amber eye',(side*1.44,-2.61,3.49),(.13,.13,.10),amber,upper_details)
  ell('Vertical pupil',(side*1.46,-2.72,3.49),(.018,.021,.085),black,upper_details,20,12)
- for i in range(15):
-  t=i/14;y=-4.96+t*3.5;x=.84+.72*math.sin(t*math.pi*.55)
-  # Teeth curve inward and stay rooted inside the gums at both jaws.
-  length=.19+.22*math.sin((t+.12)*math.pi)+rng.uniform(-.035,.04)
+ for i in range(20):
+  t=i/19;y=-5.0+t*3.55;x=.80+.76*math.sin(t*math.pi*.55)
+  # Teeth curve inward and stay rooted inside the gums at both jaws. Longer,
+  # more jagged and uneven than a toy mouth: a few snapped off mid-shaft.
+  length=.24+.30*math.sin((t+.12)*math.pi)+rng.uniform(-.05,.07)
+  broken=rng.random()<.22
   for upper,target,base,direction in [(True,upper_details,2.67,-1),(False,details,.64,1)]:
-   length_value=length*(1 if upper else .67)
-   loft('Rooted ivory tooth',[(side*x,y,base,.075,.075),(side*(x-.02),y-.02,base+direction*length_value*.55,.05,.05),(side*(x-.055),y-.05,base+direction*length_value,.004,.004)],toothmat,target,16)
+   length_value=length*(1 if upper else .74)*(.45 if broken else 1)
+   tip_radius=.013 if broken else .003
+   loft('Rooted ivory tooth',[(side*x,y,base,.072,.072),(side*(x-.025),y-.025,base+direction*length_value*.5,.044,.044),(side*(x-.065),y-.06,base+direction*length_value,tip_radius,tip_radius)],toothmat,target,16)
   ell('Upper gum socket',(side*x,y,2.69),(.12,.12,.055),gum,upper_details,16,10)
   ell('Lower gum socket',(side*x,y,.62),(.10,.10,.05),gum,details,16,10)
  # Fine weld seams sit on the flanks rather than crossing empty space.
@@ -137,6 +144,30 @@ for i in range(20):
   x,z=back_surface(y,side);xa,za=back_surface(y-.16,side);xb,zb=back_surface(y+.16,side)
   width=max(.045,.14-i*.004);height=max(.07,.18-i*.005)
   loft('Low dorsal armour',[(xa,y-.16,za-.06,width*.8,.06),(x,y,z+.03,width,height),(xb,y+.16,zb-.06,width*.8,.06)],skin,details,16)
+
+# A worn-out, mould-blotched attraction rather than a clean balloon: dried
+# blood dripping from the dental arcade and torn, discoloured PVC.
+ell('Pooled blood on the mouth floor',(0,-3.2,.68,),(.62,.46,.02),wetblood,details,24,12)
+for side in (-1,1):
+ for i in range(5):
+  t=rng.uniform(.08,.85);y=-5.0+t*3.3;x=side*(.84+.72*math.sin(t*math.pi*.55))
+  drop=rng.uniform(.45,1.05)
+  line('Dried blood drip',[(x,y,2.65),(x+rng.uniform(-.03,.03),y,2.65-drop*.6),(x,y,2.65-drop)],rng.uniform(.012,.028),blood,upper_details)
+ for i in range(4):
+  t=rng.uniform(.1,.7);y=-4.6+t*2.8
+  x0=side*(1.1+.5*t)
+  line('Jaw corner blood streak',[(x0*.78,y,.95),(x0*.86,y-.05,.6),(x0*.9,y-.02,.32)],rng.uniform(.02,.04),blood,details)
+for i in range(22):
+ t=rng.uniform(0,1);y=-.4+6.6*t;side=rng.choice([-1,1])
+ x,z=back_surface(y,side)
+ bloom=rng.uniform(.14,.34)
+ ell('Mildew bloom',(x*.92,y+rng.uniform(-.15,.15),z*.95),(bloom,bloom*1.5,bloom*.32),mold,details,14,8)
+for i in range(4):
+ y=rng.uniform(-.6,3.4);side=rng.choice([-1,1])
+ x,z=back_surface(y,side)
+ rim=rng.uniform(.22,.36)
+ ell('Torn PVC rim',(x,y,z),(rim,rim*.75,rim*.5),thread,details,16,10)
+ ell('Torn PVC cavity',(x*1.03,y,z*1.02),(rim*.68,rim*.5,rim*.4),gash,details,14,8)
 
 fixed=weld(details,'AttachedScutesFeetAndMouth');moving=weld(upper_details,'UpperJawDetails')
 bpy.context.scene.cursor.location=(0,-.70,2.68)

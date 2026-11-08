@@ -128,7 +128,7 @@ func pose(amount: float) -> void:
   tangent=tangent.normalized();var side:=previous-tangent*previous.dot(tangent)
   if side.length()<.01: side=tangent.cross(Vector3.FORWARD)
   side=side.normalized();previous=side
-  samples.append(Vector4(p.x,p.y,p.z,lerpf(.106,.082,i/31.0)*(1+.035*sin(clock*.8+i*.33))))
+  samples.append(Vector4(p.x,p.y,p.z,lerpf(.155,.118,i/31.0)*(1+.035*sin(clock*.8+i*.33))))
   normals.append(side)
  skin.set_shader_parameter("points",samples);skin.set_shader_parameter("frames",normals)
  mane.set_shader_parameter("points",samples);mane.set_shader_parameter("frames",normals)
@@ -161,7 +161,7 @@ func draw_trail(trace: PackedVector3Array, rotation_value: Vector3, jaw_value: f
    var side:=previous-tangent*previous.dot(tangent)
    if side.length()<.001:side=tangent.cross(Vector3.FORWARD)
    side=side.normalized();previous=side
-   frames.append(side);positions.append(Vector4(p.x,p.y,p.z,lerpf(.105,.082,d/total)))
+   frames.append(side);positions.append(Vector4(p.x,p.y,p.z,lerpf(.154,.118,d/total)))
    bound=AABB(p,Vector3.ZERO) if i==0 else bound.expand(p)
   section.neck.custom_aabb=bound.grow(.4);section.hair.custom_aabb=bound.grow(.4)
   section.skin.set_shader_parameter("points",positions);section.skin.set_shader_parameter("frames",frames)

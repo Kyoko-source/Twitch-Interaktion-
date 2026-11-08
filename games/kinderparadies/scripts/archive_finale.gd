@@ -14,8 +14,10 @@ var duration:=0.0
 
 func build(world: PlayWorld) -> void:
  w=world;name="ArchiveFinale"
+ # Seated on the floor with its back against the south archive wall (z=-7.8),
+ # knees drawn up and wrists shackled out to either side at shoulder height.
  var remains: Node3D=(load("res://assets/finale/archive-remains.glb") as PackedScene).instantiate()
- remains.name="ChainedRemains";remains.position=Vector3(-13.05,.035,-8.65);remains.rotation.y=-PI/2;add_child(remains)
+ remains.name="ChainedRemains";remains.position=Vector3(-13.05,.60,-7.93);remains.rotation=Vector3(-PI/2,0,0);add_child(remains)
  for mesh in remains.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var material:=mesh.get_active_material(i) as StandardMaterial3D
@@ -23,17 +25,20 @@ func build(world: PlayWorld) -> void:
     material=material.duplicate();mesh.set_surface_override_material(i,material);material.roughness=.96;material.metallic_specular=.12
     if material.resource_name=="Ancient human bone":
      material.albedo_texture=load("res://assets/aged-plaster.png");material.uv1_triplanar=true;material.uv1_scale=Vector3.ONE*6;material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.23
- w.box(remains,Vector3(0,.14,-.1),Vector3(.67,.25,2.0),w.materials.dark,true).hide()
+    elif material.resource_name=="Mummified leathery remnant":
+     material.normal_enabled=true;material.normal_texture=w.atmosphere.micro_normal;material.normal_scale=.3
+ w.box(remains,Vector3(0,.0,-.13),Vector3(.75,.65,.30),w.materials.dark,true).hide()
  for joint in ["LeftWrist","RightWrist","LeftAnkle","RightAnkle"]:
   var point:=remains.find_child(joint,true,false) as Node3D
   var p: Vector3=point.global_position-global_position
-  _restraint(p,p+Vector3(-.32,0,.34 if joint.begins_with("Left") else -.34),joint)
+  var anchor:=p+(Vector3(-.2,.75,.12) if joint.ends_with("Wrist") else Vector3(0,-.55,.08))
+  _restraint(p,anchor,joint)
  _recorder()
  voice=AudioStreamPlayer.new();voice.name="MarelleRecording";voice.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;voice.stream=load(RECORDING);voice.volume_db=-1.5;voice.bus="NightVoice" if AudioServer.get_bus_index("NightVoice")>=0 else "Master";add_child(voice)
  duration=voice.stream.get_length();voice.finished.connect(_finished_recording)
 
 func _restraint(wrist: Vector3, anchor: Vector3, label: String) -> void:
- anchor.y=.05
+ anchor.y=maxf(.05,anchor.y)
  var root:=Node3D.new();root.name="Chain"+label;add_child(root)
  var iron:=w.mat(Color("786650"),null,.68,.8);iron.normal_enabled=true;iron.normal_texture=w.atmosphere.micro_normal;iron.normal_scale=.4
  w.box(root,anchor-Vector3(0,.018,0),Vector3(.15,.034,.15),iron)

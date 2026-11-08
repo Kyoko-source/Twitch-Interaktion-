@@ -43,7 +43,7 @@ if(-not (Test-Path -LiteralPath $taskMenuSong)){throw 'Put Abandoned Arcade.mp3 
 Copy-Item -LiteralPath $taskMenuSong -Destination (Join-Path $taskProject 'assets/menu/abandoned-arcade.mp3') -Force
 Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--editor','--import','--quit')
 Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--','--self-test')
-$taskExports=@('Windows','Web')
+$taskExports=@('Windows')
 if($WithQA){$taskExports+='Web QA'}
 foreach($taskPreset in $taskExports){
  Invoke-NachtwacheEngine -EngineArgs @('--headless','--path',$taskProject,'--export-release',$taskPreset)

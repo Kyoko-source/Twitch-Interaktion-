@@ -129,6 +129,21 @@ func run(game: Node3D) -> void:
    author.pose(game,Vector3(-12.55,.0,-30.1),Vector3(-13.43,1.4,-31.22));game.player.torch_body.hide()
    await capture(game,output,"03-cooking-%d"%int(time))
   game._quit();return
+ if "--remains-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  var remains: Node3D=game.world.archive.finale.get_node("ChainedRemains")
+  var bounds:=AABB();var first:=true
+  for mesh in remains.find_children("*","MeshInstance3D",true,false):
+   var local: AABB=(remains.global_transform.affine_inverse()*mesh.global_transform)*mesh.get_aabb()
+   bounds=local if first else bounds.merge(local);first=false
+  var centre:=remains.to_global(bounds.get_center())
+  game.player.lamp.show()
+  author.pose(game,Vector3(centre.x,.05,centre.z-2.0),centre)
+  await capture(game,output,"01-remains-front")
+  author.pose(game,Vector3(centre.x+1.3,.05,centre.z-1.4),centre)
+  await capture(game,output,"02-remains-angle")
+  game._quit();return
  if "--visitors-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   var author=load("res://art-direction/itch_capture.gd").new()
