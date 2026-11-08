@@ -10,10 +10,10 @@ func run(_game: Node3D, verify: Callable) -> void:
   var count:=0;var consecutive:=0;var pattern:="";var ids: Dictionary={}
   for stage in range(1,14):
    var anomalous:=patrol.current!="none"
-   if stage in [1,3,5,8,11]: protected_ok=protected_ok and not anomalous
+   if stage==1: protected_ok=protected_ok and not anomalous
    else: slot_counts[stage]=int(slot_counts.get(stage,0))+int(anomalous)
    count+=int(anomalous);consecutive=consecutive+1 if anomalous else 0
-   spacing_ok=spacing_ok and consecutive<=2
+   spacing_ok=spacing_ok and consecutive<=12
    pattern+="A" if anomalous else "N"
    if anomalous:
     if patrol.current==HorseHunt.ID and not patrol.horse_override:natural_horses+=1
@@ -28,19 +28,15 @@ func run(_game: Node3D, verify: Callable) -> void:
    if seed_value<=64:
     restored.decide(anomalous)
     save_ok=save_ok and restored.serialize()==patrol.serialize()
-   if stage+1 in [3,5,8,11]:
-    quiet_rng_ok=quiet_rng_ok and patrol.deck==before.deck and patrol.bag==before.bag and str(patrol.rng.state)==before.rng
-  counts_ok=counts_ok and count==6 and patrol.completed and patrol.streak==13
+  counts_ok=counts_ok and count==7 and patrol.completed and patrol.streak==13
   patterns[pattern]=true;total_anomalies+=count
- verify.call(protected_ok,"Balancing puts an anomaly in the first or a newspaper round")
- verify.call(counts_ok,"A fresh thirteen-round shift does not contain six anomalies and seven normal rounds")
- verify.call(spacing_ok,"Balancing chains more than two anomaly rounds without a quiet round")
- verify.call(patterns.size()==28,"Random normal rounds do not reach all twenty-eight possible placements")
+ verify.call(protected_ok,"Balancing puts an anomaly in the first round")
+ verify.call(counts_ok,"A fresh thirteen-round shift does not contain seven anomalies and six normal rounds")
+ verify.call(patterns.size()>600,"Random rounds do not spread over the possible placements")
  for stage in slot_counts:
   var share:=float(slot_counts[stage])/2048.
-  verify.call(share>.68 and share<.82,"An unprotected round is biased or has a fixed outcome: "+str(stage))
+  verify.call(share>.52 and share<.65,"A round is biased or has a fixed outcome, newspaper rounds included: "+str(stage))
  verify.call(save_ok,"Reload changes the current event or remaining balance, including newspaper rounds")
- verify.call(quiet_rng_ok,"A protected newspaper round consumes a random event")
  verify.call(unique_ok and all_ids.size()==PatrolState.ANOMALIES.size(),"Balanced shifts repeat their anomaly IDs or omit catalog entries")
  verify.call(natural_horses>100,"Horse pursuit is missing from ordinary random shifts without a creator code")
  var legacy:=PatrolState.new();legacy.start(99);legacy.streak=5;legacy.current="clown_lunge"

@@ -85,11 +85,20 @@ var bag: Array[String] = []
 var completed := false
 var horse_override:=false
 var history: Array = []
+# Multiplayer: player 2's thirteen planned rounds (an anomaly id or "none").
+# Survives start() so a death replays the same planned shift.
+var plan: Array[String] = []
+
+static func catalog() -> Array:
+ var rows: Array=[]
+ for anomaly in ANOMALIES:rows.append({"id":anomaly.id,"name":anomaly.name,"zone":anomaly.zone})
+ return rows
 
 func start(seed_value: int = 0) -> void:
  rng.seed = seed_value if seed_value != 0 else Time.get_ticks_usec()
  streak=0;best=0;errors=0;rounds=0;seconds=0;current="none";completed=false;horse_override=false
  visited.clear();deck.clear();bag.clear();history.clear()
+ if plan.size()==GOAL: current=plan[0]
 
 func _shuffle(items: Array[String]) -> void:
  for i in range(items.size()-1,0,-1):
@@ -99,15 +108,15 @@ func _shuffle(items: Array[String]) -> void:
 func _next() -> void:
  horse_override=false
  visited.clear()
- if ArchiveState.is_newspaper_round(streak+1):
-  current="none"
+ if plan.size()==GOAL:
+  current=plan[clampi(streak,0,GOAL-1)]
   return
  if deck.is_empty():
-  # A full shift has eight random slots: round one and the four newspaper
-  # rounds are already normal. Six anomalies here yield six versus seven
-  # over all thirteen rounds, with no fixed order or adjacent three scares.
+  # Every round after the first is drawn at random, including the four
+  # newspaper rounds (their papers still appear; they are no longer safe).
+  # Twelve slots, seven anomalies: seven versus six over all thirteen rounds.
   # Restored decks keep their order so updates never reroll a saved shift.
-  deck.assign(["normal","normal","anomaly","anomaly","anomaly","anomaly","anomaly","anomaly"])
+  deck.assign(["normal","normal","normal","normal","normal","anomaly","anomaly","anomaly","anomaly","anomaly","anomaly","anomaly"])
   _shuffle(deck)
  if deck.pop_back()=="normal":
   current="none"
@@ -144,7 +153,7 @@ static func describe(id: String) -> String:
  return "Es gab keine Anomalie. Der Rundgang war normal."
 
 func serialize() -> Dictionary:
- return {"version":1,"horse_override":horse_override,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state)}
+ return {"version":1,"horse_override":horse_override,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state),"plan":plan}
 
 func restore(data: Dictionary) -> bool:
  var valid_ids: Array[String]=["none"]
@@ -169,8 +178,9 @@ func restore(data: Dictionary) -> bool:
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
  visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==GOAL
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
+ plan.clear()
+ var saved_plan=data.get("plan",[])
+ if saved_plan is Array and saved_plan.size()==GOAL and saved_plan.all(func(id):return id in valid_ids):plan.assign(saved_plan)
  horse_override=data.get("horse_override",false)==true and current=="horse_clown_hunt"
  if completed: current="none";horse_override=false
- # Old saves may contain an anomaly on a now-protected newspaper round.
- if not completed and not horse_override and ArchiveState.is_newspaper_round(streak+1): current="none"
  return true

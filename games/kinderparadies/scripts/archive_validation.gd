@@ -1,20 +1,30 @@
 extends RefCounted
 
 func run(game: Node3D, verify: Callable) -> void:
- for seed_value in range(1,17):
+ # Newspaper rounds are ordinary random rounds now: across many shifts they
+ # must sometimes carry an anomaly, and a saved one must survive a reload.
+ var newspaper_anomalies:=0
+ for seed_value in range(1,41):
   var patrol:=PatrolState.new();patrol.start(seed_value)
   for stage in range(1,14):
-   if stage in [3,5,8,11]: verify.call(patrol.current=="none","Newspaper round has an anomaly: seed %d, round %d"%[seed_value,stage])
-   var before:=patrol.serialize().duplicate(true)
+   if stage in [3,5,8,11] and patrol.current!="none":newspaper_anomalies+=1
    patrol.decide(patrol.current!="none")
-   if stage+1 in [3,5,8,11]:
-    verify.call(patrol.bag==before.bag and patrol.deck==before.deck and str(patrol.rng.state)==before.rng,"Newspaper round consumes a random event")
+ verify.call(newspaper_anomalies>20,"Newspaper rounds 3, 5, 8 and 11 are still always anomaly-free")
  for stage in [3,5,8,11]:
   var previous:=PatrolState.new();previous.start(42);previous.streak=stage-1;previous.current="clown_lunge"
-  var saved:=previous.serialize().duplicate(true)
-  var migrated:=PatrolState.new()
-  verify.call(migrated.restore(JSON.parse_string(JSON.stringify(saved))) and migrated.current=="none" and migrated.streak==stage-1,"Old newspaper save keeps its anomaly or loses progress")
-  verify.call(migrated.decide(false).correct,"Green door is not correct on a restored newspaper round")
+  var reloaded:=PatrolState.new()
+  verify.call(reloaded.restore(JSON.parse_string(JSON.stringify(previous.serialize()))) and reloaded.current=="clown_lunge" and reloaded.streak==stage-1,"A newspaper round loses its saved anomaly on reload")
+ # Multiplayer: a shift follows player 2's plan round by round, replays it
+ # from round one after a death and keeps it through save and reload.
+ var planned:=PatrolState.new();planned.plan.assign(["clown_lunge","none","balls_float","none","none","none","none","none","none","none","none","none","wc_ceiling_guest"]);planned.start(7)
+ var follows:=planned.current=="clown_lunge"
+ planned.decide(true);follows=follows and planned.current=="none"
+ planned.decide(false);follows=follows and planned.current=="balls_float"
+ planned.decide(false);follows=follows and planned.streak==0 and planned.current=="clown_lunge"
+ var replanned:=PatrolState.new()
+ follows=follows and replanned.restore(JSON.parse_string(JSON.stringify(planned.serialize()))) and replanned.plan==planned.plan and replanned.current=="clown_lunge"
+ verify.call(follows,"Multiplayer plan is not followed, lost on death or lost on reload")
+ verify.call(PatrolState.catalog().size()==PatrolState.ANOMALIES.size() and PatrolState.catalog().all(func(row):return str(row.id).is_valid_identifier() or str(row.id).to_lower()==str(row.id)),"Multiplayer anomaly catalog is incomplete")
  var ordinary:=PatrolState.new();ordinary.start(42);ordinary.streak=3;ordinary.current="clown_lunge"
  var ordinary_restore:=PatrolState.new()
  verify.call(ordinary_restore.restore(ordinary.serialize()) and ordinary_restore.current=="clown_lunge","Ordinary round loses its saved anomaly")

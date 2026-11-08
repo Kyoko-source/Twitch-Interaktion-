@@ -11,8 +11,8 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(retired not in ids and PatrolState.REPLACEMENTS[retired] in ids,"A retired anomaly is still selectable or lacks a replacement")
   for streak in [3,4]:
    var data:=legacy.serialize();data.current=retired;data.bag=[retired];data.streak=streak
-   var restored:=PatrolState.new();var expected: String="none" if streak==4 else PatrolState.REPLACEMENTS[retired]
-   verify.call(restored.restore(data) and restored.streak==streak and restored.current==expected and restored.bag==[PatrolState.REPLACEMENTS[retired]],"A legacy save loses progress or violates the newspaper-round rule")
+   var restored:=PatrolState.new();var expected: String=PatrolState.REPLACEMENTS[retired]
+   verify.call(restored.restore(data) and restored.streak==streak and restored.current==expected and restored.bag==[PatrolState.REPLACEMENTS[retired]],"A legacy save loses progress or its replaced anomaly")
  for id in NightTerrors.SCENARIOS:
   game._build_world(id);game._resume();game.player.active=false
   await game.get_tree().physics_frame;await game.get_tree().physics_frame

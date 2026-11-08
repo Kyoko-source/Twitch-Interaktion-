@@ -10,7 +10,7 @@ func run(game: Node3D,verify: Callable) -> void:
    if patrol.current==HorseHunt.ID:natural=patrol;break
    patrol.decide(patrol.current!="none")
   if natural:break
- verify.call(natural!=null and not natural.horse_override and natural.streak+1 not in [1,3,5,8,11],"Horse hunt cannot be drawn naturally outside newspaper rounds")
+ verify.call(natural!=null and not natural.horse_override and natural.streak+1!=1,"Horse hunt cannot be drawn naturally in a random round")
  if not natural:return
  game.state=natural;game._build_world(natural.current);game._resume();game.player.active=false
  var hunt: HorseHunt=game.world.horse_hunt

@@ -31,6 +31,8 @@ const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motio
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var captions: AfterPlayCaptions
+var mp: MultiplayerLink
+var mp_starting:=false
 var dialogue: GuardDialogue
 var menu_camera: Camera3D
 var menu_light: SpotLight3D
@@ -155,9 +157,17 @@ func _build_world_responsive(anomaly: String,progress: Callable=Callable(),revea
   _stop_scene_audio(next);remove_child(next);next.queue_free();return
  world=next;_connect_world(anomaly);next.visible=reveal;world_loading=false
 
+func _start_multiplayer_shift(plan: Array) -> void:
+ # Player 2 has planned all thirteen rounds on the website.
+ if phase not in ["menu","settings","multiplayer"]:return
+ state.plan.assign(plan);mp_starting=true;_request_shift();mp_starting=false
+
 func _request_shift() -> void:
  ending_preview=false
  if world_loading:return
+ if not mp_starting:
+  state.plan.clear()
+  if mp and mp.active():mp.stop()
  if menu_reference_ready:_new_shift();return
  secret_ending=false;archive.clear();archive_selected="";archive_input=""
  dialogue.reset()
@@ -167,7 +177,7 @@ func _request_shift() -> void:
  var shade:=ColorRect.new();shade.color=Color.BLACK;shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
  var label:=_label("Die nächste Schicht beginnt …",27);label.position=Vector2(670,500);label.size=Vector2(580,70);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;menu.add_child(label)
  var bar:=ProgressBar.new();bar.position=Vector2(710,590);bar.size=Vector2(500,7);bar.show_percentage=false;menu.add_child(bar);_telemetry()
- await _build_world_responsive("none",func(value: float):bar.value=value*100)
+ await _build_world_responsive(state.current,func(value: float):bar.value=value*100)
  _sync_parking_key();_begin_intro()
 
 func _stop_scene_audio(root: Node) -> void:
@@ -202,6 +212,7 @@ func _ui() -> void:
  transition_shade=ColorRect.new();transition_shade.color=Color(0,0,0,0);transition_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);transition_shade.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(transition_shade);transition_shade.hide()
  death_label=_label("",70);death_label.add_theme_font_override("font",title_font);death_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER);death_label.offset_left=-600;death_label.offset_right=600;death_label.offset_top=-60;death_label.offset_bottom=80;death_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;death_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;root.add_child(death_label);death_label.hide()
  captions=AfterPlayCaptions.new();add_child(captions);captions.build()
+ mp=MultiplayerLink.new();add_child(mp);mp.build(self);mp.plan_ready.connect(_start_multiplayer_shift)
  dialogue=GuardDialogue.new();add_child(dialogue);dialogue.build(self)
 
 func _label(value: String, size: int=18, color: Color=Color("eee7d6")) -> Label:
@@ -267,10 +278,11 @@ func _new_shift() -> void:
  chalk_drawing=""
  if is_instance_valid(world) and world.chalk:world.chalk.restore("")
  archive.clear();archive_selected="";archive_input=""
+ if not (mp and mp.active()):state.plan.clear()
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
- if menu_reference_ready:
+ if menu_reference_ready and state.current=="none":
   menu_reference_ready=false;world.archive.sync(archive,1);world.film.sync(false);player.reset_pose()
- else:_build_world("none")
+ else:menu_reference_ready=false;_build_world(state.current)
  _sync_parking_key();_begin_intro()
 
 func _begin_intro() -> void:
@@ -525,6 +537,7 @@ func _save(next_round: bool=false) -> void:
 
 func _process(delta: float) -> void:
  if dialogue:dialogue.tick(delta)
+ if mp:mp.tick(delta)
  if player and player.presence:player.presence.set_active(phase=="play" and player.active)
  if player and player.hands:player.hands.tick(delta,phase=="play")
  if is_instance_valid(world) and world.tactile:world.tactile.tick(delta,phase=="play")
@@ -658,7 +671,9 @@ func _board_lift(_red: bool) -> void:
 func _finish_lift(red: bool) -> void:
  if phase!="lift": return
  if state.completed: _show_patrol_ending();return
+ var finished_round:=state.streak+1
  last_result=state.decide(red)
+ if mp:mp.event("Runde %d: %s Tür – %s"%[finished_round,"Rote" if red else "Grüne","richtig" if last_result.get("correct",false) else "falsch"])
  if not last_result.get("correct",false): _door_death(red);return
  if state.completed: _show_patrol_ending();return
  arrival_pending=true;_save(true)
@@ -671,6 +686,7 @@ func _arrival(wake: bool) -> void:
 func _door_death(red: bool) -> void:
  if phase not in ["play","lift"]: return
  survived=state.streak;last_result=state.decide(red)
+ if mp:mp.event("Falsche %s Tür in Runde %d – Spieler 1 wurde erwischt. Die Schicht beginnt von vorn."%["rote" if red else "grüne",survived+1])
  phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
  archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
  door_failure.start_patrol(world,player.camera);_telemetry()
@@ -679,7 +695,9 @@ func _door_death(red: bool) -> void:
 
 func _horse_attack_started() -> void:
  if phase!="play":return
- survived=state.streak;phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
+ survived=state.streak
+ if mp:mp.event("Das Pferd hat Spieler 1 in Runde %d erwischt."%(survived+1))
+ phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
  archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
 
 func _horse_killed() -> void:
@@ -692,7 +710,7 @@ func _wake_after_death() -> void:
  await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
  await get_tree().create_timer(1.65).timeout
  if phase=="quitting": return
- death_label.hide();_build_world("none");_arrival(true);await _fade(0,.7)
+ death_label.hide();_build_world(state.current);_arrival(true);await _fade(0,.7)
 
 func _fade(alpha: float, duration: float) -> void:
  transition_shade.show()
@@ -714,6 +732,7 @@ func _escape_happyland() -> void:
  secret_ending=true;_show_ending(3)
 
 func _show_patrol_ending() -> void:
+ if mp:mp.event("Alle 13 Runden geschafft!")
  _show_ending(1)
 
 func _show_ending(number: int) -> void:
@@ -759,6 +778,7 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase=="code": _resume()
   elif phase=="surveillance": _close_watch()
   elif phase in ["help","settings"]: _return_from_panel()
+  elif phase=="multiplayer": mp.stop();_main_menu()
   get_viewport().set_input_as_handled()
  if phase!="play": return
  if archive.ending=="recording" and memories.visible: get_viewport().set_input_as_handled();return

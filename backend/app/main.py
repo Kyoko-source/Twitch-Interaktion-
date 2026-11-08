@@ -17,6 +17,7 @@ from .live_news import router as live_news_router
 from .purchase_alerts import router as purchase_alerts_router
 from .farm import router as farm_router
 from .nullsignal import router as nullsignal_router
+from .afterplay_mp import router as afterplay_mp_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
@@ -49,6 +50,7 @@ app.include_router(live_news_router)
 app.include_router(purchase_alerts_router)
 app.include_router(farm_router)
 app.include_router(nullsignal_router)
+app.include_router(afterplay_mp_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,

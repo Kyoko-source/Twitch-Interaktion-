@@ -117,6 +117,6 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(game.world.terrors.triggered,"Seated throne visitor cannot be discovered")
  var state:=PatrolState.new();state.start(270)
  for round_number in range(1,14):
-  if round_number in [1,3,5,8,11]: verify.call(state.current=="none","Expansion broke protected newspaper round "+str(round_number))
+  if round_number==1: verify.call(state.current=="none","Expansion puts an anomaly in the first round")
   state.decide(state.current!="none")
  game._new_shift();game.intro.skip()

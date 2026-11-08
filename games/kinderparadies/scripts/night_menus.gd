@@ -21,20 +21,42 @@ static func backdrop(g: Node3D, darken: bool=false) -> void:
 static func nav_style(selected: bool, hovered: bool=false) -> StyleBoxFlat:
  var style:=StyleBoxFlat.new();style.bg_color=Color(.21,.17,.09,.45) if selected or hovered else Color.TRANSPARENT;style.border_width_left=3 if selected or hovered else 0;style.border_color=Color("b6a16d");style.content_margin_left=27;style.content_margin_right=20;style.content_margin_top=5;style.content_margin_bottom=5;return style
 
+static func multiplayer(g: Node3D) -> void:
+ # Player 2 joins on the website with this code and plans all 13 rounds.
+ g.phase="multiplayer";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.position=Vector2(110,150);column.custom_minimum_size=Vector2(900,0);column.add_theme_constant_override("separation",22);g.menu.add_child(column)
+ var title: Label=g._label("MULTIPLAYER",64,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ column.add_child(g._paragraph("Spieler 2 öffnet auf der Webseite unter Spiele → After Play den Reiter „After Play Multiplayer“ und gibt diesen Code ein. Er legt für alle 13 Runden fest, welche Anomalie passiert, und schaut dir danach über die Überwachungskameras zu.",21))
+ var code_label: Label=g._label("······",128,Color("eee5cf"));code_label.name="MultiplayerCode";code_label.add_theme_font_override("font",menu_font(600,18));column.add_child(code_label)
+ var status_label: Label=g._label("",24,Color("cbbb95"));status_label.name="MultiplayerStatus";column.add_child(status_label)
+ var site: Label=g._label("62.238.49.219  ·  Spiele  ·  After Play  ·  After Play Multiplayer",18,Color("8f8c80"));column.add_child(site)
+ var row:=HBoxContainer.new();row.add_theme_constant_override("separation",16);column.add_child(row)
+ var retry: Button=g._button("Neuen Code holen",func():g.mp.start());retry.custom_minimum_size=Vector2(320,56);row.add_child(retry)
+ var back: Button=g._button("Abbrechen",func():g.mp.stop();g._main_menu(),true);back.custom_minimum_size=Vector2(260,56);row.add_child(back)
+ var refresh:=func():
+  if not is_instance_valid(code_label):return
+  code_label.text=(g.mp.code.substr(0,3)+" "+g.mp.code.substr(3)) if g.mp.code.length()==6 else "······"
+  status_label.text=AfterPlayLanguage.t(g.mp.message)
+  status_label.add_theme_color_override("font_color",Color("d98c7e") if g.mp.status=="error" else Color("cbbb95"))
+ for connection in g.mp.changed.get_connections():g.mp.changed.disconnect(connection.callable)
+ g.mp.changed.connect(refresh)
+ if not g.mp.active():g.mp.start()
+ refresh.call();back.grab_focus();g._telemetry()
+
 static func home(g: Node3D) -> void:
  clear(g);backdrop(g)
  var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
  for i in range(items.size()):
   var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,494+i*62);button.custom_minimum_size=Vector2(540,58);button.size=Vector2(540,58);button.disabled=i==1 and not g._can_continue();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",31)
   button.add_theme_stylebox_override("normal",nav_style(i==0));button.add_theme_stylebox_override("hover",nav_style(true,true));button.add_theme_stylebox_override("pressed",nav_style(true,true));button.add_theme_stylebox_override("disabled",nav_style(false));button.add_theme_stylebox_override("focus",nav_style(false,true))
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v4.3.3",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.4.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

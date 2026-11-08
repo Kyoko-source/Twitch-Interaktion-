@@ -46,7 +46,7 @@ func run(game: Node3D,verify: Callable) -> void:
  var transform:=horse.mask.transform;var jaw_angle:=horse.jaw.rotation.x;var time:=horse.clock
  horse.tick(2,false)
  verify.call(horse.mask.transform==transform and horse.jaw.rotation.x==jaw_angle and horse.clock==time,"Ceiling creature ignores pause")
- verify.call(w.current=="none" and w.terrors.spec.is_empty(),"Normal horse motion introduces an anomaly into a newspaper round")
+ verify.call(w.current=="none" and w.terrors.spec.is_empty(),"Normal horse motion introduces an anomaly into a normal round")
  var layout:=SceneAudit.placement(w)
  verify.call(layout.doors.is_empty() and layout.art.is_empty() and layout.furniture.is_empty(),"Scene corrections obstruct circulation or wall artwork: "+JSON.stringify(layout))
  game._build_world("vent_strike");game.player.active=false;horse=game.world.room_horror.creature

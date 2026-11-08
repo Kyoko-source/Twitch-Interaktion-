@@ -6,6 +6,24 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--mp-qa" in OS.get_cmdline_user_args():
+  game._main_menu();NightMenus.multiplayer(game)
+  for i in range(600):
+   await game.get_tree().process_frame
+   if game.mp.status!="connecting":break
+  await capture(game,output,"mp-00-code")
+  var f:=FileAccess.open(output.path_join("mp-code.txt"),FileAccess.WRITE);f.store_string(game.mp.code);f.close()
+  print("MPQA code ",game.mp.code," status ",game.mp.status)
+  var waited:=0.
+  while game.mp.status!="playing" and waited<60.:
+   await game.get_tree().create_timer(.25).timeout;waited+=.25
+  print("MPQA plan ",game.mp.plan," phase ",game.phase)
+  while game.world_loading or game.phase=="loading":await game.get_tree().process_frame
+  game.intro.skip();game.player.active=false
+  print("MPQA current ",game.state.current," plan0 ",game.state.plan[0] if game.state.plan.size() else "")
+  await game.get_tree().create_timer(4.).timeout
+  await capture(game,output,"mp-01-playing")
+  game.get_tree().quit();return
  if "--wc-qa" in OS.get_cmdline_user_args():
   game._build_world("wc_ceiling_guest");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
   var t: NightTerrors=game.world.terrors
