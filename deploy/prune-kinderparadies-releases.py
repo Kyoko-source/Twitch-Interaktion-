@@ -33,34 +33,38 @@ def validate_tree(path, parent):
     return size
 
 
-def live_release(root):
+def live_links(root):
+    # The Web export is no longer rebuilt, so "web" and "downloads" can now
+    # legitimately point at different releases: downloads tracks every
+    # publish, web stays frozen on whichever release last shipped one.
     parent = root / 'releases'
     if root.resolve() != root or parent.resolve() != parent:
         raise ValueError('Release root must not be linked')
-    paths = []
+    paths = {}
     for name in ('web', 'downloads'):
         link = root / name
         if not link.is_symlink():
+            if name == 'web':
+                continue
             raise ValueError(f'Expected a live symlink: {link}')
         target = link.resolve(strict=True)
         if target.name != name or target.parent.parent != parent:
             raise ValueError(f'Live link leaves release root: {link}')
-        paths.append(target.parent)
-    if paths[0] != paths[1]:
-        raise ValueError('Live web and downloads belong to different releases')
-    return paths[0]
+        paths[name] = target.parent
+    return paths
 
 
 def plan(root=ROOT):
     root = Path(root).absolute()
-    current = live_release(root)
+    links = live_links(root)
+    current = links['downloads']
     parent = root / 'releases'
     current_version = version(current)
     candidates = [p for p in parent.iterdir() if RELEASE.fullmatch(p.name)]
     # Ignore newer, possibly still uploading releases.
     older = [p for p in candidates if version(p) < current_version]
     previous = max(older, key=lambda p: (version(p), p.stat().st_mtime_ns), default=None)
-    keep = {current} | ({previous} if previous else set())
+    keep = {current} | ({previous} if previous else set()) | ({links['web']} if 'web' in links else set())
     for path in keep:
         validate_tree(path, parent)
         manifest = json.loads((path / 'downloads/release.json').read_text('utf-8-sig'))
@@ -81,7 +85,7 @@ def prune(root=ROOT, apply=False):
     print(json.dumps(result), flush=True)
     if apply:
         for path, _ in remove:
-            if live_release(root) != current:
+            if live_links(root)['downloads'] != current:
                 raise ValueError('Live release changed during cleanup')
             validate_tree(path, root / 'releases')
             shutil.rmtree(path)
