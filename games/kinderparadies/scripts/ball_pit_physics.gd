@@ -14,6 +14,9 @@ var running:=false
 var player: NightGuard
 var kicks:=0
 var configured:=false
+var rustle: AudioStreamPlayer
+var rustles: Array[AudioStream]=[]
+var wading:=0.0
 
 func build(world: PlayWorld) -> void:
  w=world;name="PhysicalBallPit"
@@ -25,6 +28,10 @@ func build(world: PlayWorld) -> void:
   var shape:=CollisionShape3D.new();shape.shape=sphere;body.add_child(shape);add_child(body)
   body.global_position=w.balls.to_global(w.ball_transforms[i].origin)
   bodies.append(body);starts.append(body.global_position);suspended.append(Vector3.ZERO);spinning.append(Vector3.ZERO)
+
+ # Hollow plastic balls knocking together while the guard wades through.
+ rustle=AudioStreamPlayer.new();rustle.name="BallPitRustle";rustle.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;rustle.volume_db=-80;add_child(rustle)
+ for v in range(1,5):rustles.append(load("res://assets/ballpit-v433/wade-%d.ogg"%v))
  _render()
 
 func configure() -> void:
@@ -40,6 +47,7 @@ func _floating(i: int) -> bool:
 func tick(active: bool, guard: NightGuard) -> void:
  player=guard
  var enabled:=active and configured and w.current!="balls_missing"
+ if not enabled and rustle:rustle.stop()
  if enabled!=running:
   running=enabled
   for i in range(bodies.size()):
@@ -57,7 +65,10 @@ func tick(active: bool, guard: NightGuard) -> void:
 func _physics_process(delta: float) -> void:
  if not running or not is_instance_valid(player): return
  var speed:=Vector2(player.velocity.x,player.velocity.z).length()
+ wading=move_toward(wading,0.,delta*2.5)
+ if rustle.playing:rustle.volume_db=linear_to_db(maxf(.0001,wading))-5.
  if speed<.15 and absf(player.velocity.y)<.5: return
+ var touched:=0
  for i in range(bodies.size()):
   if _floating(i): continue
   var body:=bodies[i];var offset:=body.global_position-player.global_position
@@ -65,8 +76,13 @@ func _physics_process(delta: float) -> void:
   offset.y=0
   if offset.length_squared()>.53*.53: continue
   var push: Vector3=(offset.normalized()+Vector3(player.velocity.x,0,player.velocity.z).normalized()*.45).normalized()
+  touched+=1
   body.sleeping=false;body.apply_central_impulse((push*minf(2.5,speed*.65)+Vector3.UP*.20)*body.mass*delta*13)
   kicks+=1
+ if touched>0:
+  wading=minf(1.,maxf(wading,clampf(speed/4.,.25,1.)*clampf(touched/6.,.4,1.)))
+  if not rustle.playing:
+   rustle.stream=rustles[randi()%rustles.size()];rustle.pitch_scale=randf_range(.92,1.08);rustle.volume_db=linear_to_db(wading)-5.;rustle.play()
 
 func _render() -> void:
  var inverse:=w.balls.global_transform.affine_inverse()
@@ -80,3 +96,4 @@ func snapshot() -> Dictionary:
   if body.linear_velocity.length()>.06: moving+=1
   if body.sleeping: sleeping+=1
  return {"count":bodies.size(),"running":running,"moving":moving,"sleeping":sleeping,"kicks":kicks,"radius":RADIUS,"floating":120 if w.current=="balls_float" else 0}
+

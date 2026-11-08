@@ -63,11 +63,16 @@ var path_s:=0.0
 var window_normal:=Vector3.ZERO
 var warning_light: OmniLight3D
 var tether: MeshInstance3D
+var lunge_at:=-1.0
+var lunge_from:=Vector3.ZERO
+var scream: AudioStreamPlayer
+var face_light: OmniLight3D
 
 func build(world: PlayWorld) -> void:
  w=world;name="NightTerrors"
  audio=AudioStreamPlayer3D.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.max_distance=20;audio.unit_size=6;audio.volume_db=-4;add_child(audio)
  audio.stream=load("res://assets/annex/clown-sting.wav")
+ scream=AudioStreamPlayer.new();scream.name="FaceScream";scream.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;scream.volume_db=0;add_child(scream)
  footsteps=AudioStreamPlayer3D.new();footsteps.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;footsteps.max_distance=13;footsteps.unit_size=2;footsteps.volume_db=-14;add_child(footsteps)
  var steps: AudioStreamWAV=load("res://assets/ambience-v193/ghost-run.wav").duplicate();steps.loop_mode=AudioStreamWAV.LOOP_FORWARD;steps.loop_end=int(steps.get_length()*steps.mix_rate);footsteps.stream=steps
 
@@ -111,6 +116,8 @@ func configure(value: String) -> void:
  if spec.mode=="ambush": actor.hide()
  if spec.mode=="throne":
   shape.disabled=true
+ if spec.mode in ["pursuit","tube"]:
+  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);actor.add_child(face_light)
  if spec.mode in ["ambush","rush","drop"]:
   warning_light=OmniLight3D.new();warning_light.light_color=Color("bba788");warning_light.light_energy=0;warning_light.omni_range=2.8;warning_light.position=Vector3(0,1.6,.8);actor.add_child(warning_light)
  if spec.mode=="queue":
@@ -135,6 +142,7 @@ func configure(value: String) -> void:
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  audio.stream_paused=not active
+ scream.stream_paused=not active
  footsteps.stream_paused=not active
  if anticipation: anticipation.stream_paused=not active
  if spec.is_empty(): return
@@ -150,6 +158,9 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   primed=true;anticipation.position=target;anticipation.play()
  if not triggered and elapsed>.8 and eligible and w.encounters.visible_to(player,target,radius):
   triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0;actor.show()
+  if spec.mode in ["ceiling","drop"]:
+   # Hanging guests shriek right into your ear, not a distant low drone.
+   scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
  if not triggered:
   visual.rotation.y=sin(elapsed*.53)*.12
   if primed and spec.mode not in ["hands","window","vent"]:
@@ -176,6 +187,7 @@ func focus_point() -> Vector3:
  return target
 
 func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
+ if spec.mode=="pursuit" and _face_lunge(player,1.9,4.2):return
  if spec.mode in ["pursuit","crawl","crossing","peek","rush","ambush"]:
   var to_player:=player.position-actor.position;to_player.y=0
   var duration:=4.7 if spec.mode in ["pursuit","crawl"] else 2.3 if spec.mode=="rush" else 1.3
@@ -211,10 +223,15 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
   visual.rotation.z=PI+sin(attack*17)*maxf(0,1-attack)*.20
   if attack>1.6: finished=true
  elif spec.mode=="tube":
+  if in_tube and _face_lunge(player,1.5,2.2 if id=="tube_burst" else 3.4):return
   if in_tube:
    var nearest:=CrawlTubes.nearest(player.position);path_s=move_toward(path_s,maxf(.9,nearest.s-(1.0 if id=="tube_burst" else 1.7)),delta*(3.2 if id=="tube_burst" else 1.5))
    actor.position=CrawlTubes.route(path_s)+Vector3(0,-.76,0)
    var direction:=CrawlTubes.tangent(path_s);actor.rotation.y=atan2(direction.x,direction.z)
+   # Clawing itself forward hand over hand, head up and fixed on you.
+   var stride:=attack*9.
+   for i in range(arms.size()):arms[i].rotation=Vector3(-1.55+sin(stride+i*PI)*.45,0,(-.25 if i==0 else .25))
+   visual.position.y=.20+absf(sin(stride))*.03
   if attack>4.8: finished=true
  elif spec.mode=="vent":
   var pulse:=sin(clampf(attack/1.6,0,1)*PI)
@@ -228,10 +245,63 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
    var direction:=player.position-actor.position;actor.rotation.y=atan2(direction.x,direction.z)
   if spec.mode=="hands": visual.position.y=1.0+pulse*.28
   elif spec.mode=="mouth": visual.position.y=-1.08+pulse*.30
-  elif spec.mode=="ceiling": visual.position.y=-pulse*.38
+  elif spec.mode=="ceiling":
+   # Swings on its rope like a pendulum, head first, straight at you.
+   var snap:=1.-pow(1.-clampf(attack/.2,0,1),4)
+   var toward:=player.global_position-actor.global_position;toward.y=0
+   if toward.length()>.05:
+    var axis:=Vector3.UP.cross(toward.normalized()).normalized()
+    var swing:=(.62*snap-.18*clampf((attack-.5)/1.,0,1))*(1.+.06*sin(attack*31.))
+    actor.quaternion=Quaternion(axis,-swing)
+   visual.rotation.y=sin(attack*23.)*.25*pulse
+   for i in range(arms.size()):arms[i].rotation.x=-1.3*snap+sin(attack*29.+i)*.15
   if attack>1.6:
    finished=true
    if spec.mode=="mouth": visual.position.y=-.88
+   if spec.mode=="ceiling": actor.quaternion=Quaternion(Vector3.FORWARD,.12)
+
+# A pursuing visitor that reaches you does not just stop: in a split second
+# it is in your face, arms up, screaming, under a stuttering light. Then it is
+# back where it stood, twisted, as the clue for the red door.
+func _face_lunge(player: NightGuard,reach: float,patience: float) -> bool:
+ var to_player:=player.position-actor.position
+ if spec.mode!="tube":to_player.y=0
+ if lunge_at<0:
+  if to_player.length()>reach and attack<patience:return false
+  lunge_at=attack;lunge_from=actor.global_position
+  scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);shock=1.0;footsteps.stop()
+  player.fright=maxf(player.fright,1.)
+ var t:=attack-lunge_at
+ if t>.72 or attack>5.6:
+  finished=true;lunge_at=1e9;face_light.light_energy=0
+  if spec.mode=="tube":
+   # Gone back into the dark end of the tube, flat on its belly again.
+   actor.global_position=origin;visual.rotation=Vector3(1.25,0,0);visual.position=Vector3(0,.20,0)
+   var rig:=visual.find_child("HeadRig",true,false) as Node3D
+   if rig:rig.rotation=Vector3(-1.25,0,0)
+  else:actor.global_position=origin;visual.position=Vector3(0,-.12,0);visual.rotation=Vector3(0,0,.17)
+  for arm in arms:arm.rotation=Vector3.ZERO
+  return true
+ var eye:=player.camera.global_transform;var forward:=-eye.basis.z;forward.y=0;forward=forward.normalized() if forward.length()>.1 else Vector3.FORWARD
+ # Head level with the eyes, a forearm's length away.
+ var head_rig:=visual.find_child("HeadRig",true,false) as Node3D
+ var head_offset:=(head_rig.global_position-actor.global_position) if head_rig else Vector3(0,1.75,0)
+ var target:=eye.origin+forward*(.42 if spec.mode=="tube" else .5)-head_offset-Vector3(0,.04,0)
+ var k:=1.-pow(1.-clampf(t/.14,0,1),4)
+ var jerk:=Vector3(sin(floorf(t*16.)*12.9)*.05,0,0)*clampf(t/.14,0,1)
+ actor.global_position=lunge_from.lerp(target,k)+jerk
+ actor.rotation.y=atan2(-forward.x,-forward.z)
+ if spec.mode=="tube":visual.rotation=Vector3(1.25-.3*k+.05*sin(t*41.),.06*sin(t*29.),.08*sin(t*37.))
+ else:visual.position=Vector3.ZERO;visual.rotation=Vector3(-.16*k+.05*sin(t*41.),.06*sin(t*29.),.08*sin(t*37.))
+ var head:=visual.find_child("HeadRig",true,false) as Node3D
+ var crawler: bool=spec.mode=="tube"
+ if head:head.rotation=Vector3((-.95 if crawler else 0.)+.1*sin(t*47.),.18*sin(t*39.),.14*sin(t*53.))
+ for i in range(arms.size()):
+  if crawler:arms[i].rotation=Vector3(-1.75+.2*sin(t*33.+i),0,(-.45 if i==0 else .45)*k)
+  else:arms[i].rotation=Vector3(-1.5*k+.12*sin(t*33.+i),0,(-.55 if i==0 else .55)*k)
+ face_light.light_energy=(1.4 if int(t*22.)%3 else .25)*k
+ shock=1.0
+ return true
 
 func snapshot() -> Dictionary:
  return {"id":id,"elapsed":elapsed,"triggered":triggered,"finished":finished,"attack":attack,"shock":shock,"position":[actor.position.x,actor.position.y,actor.position.z] if is_instance_valid(actor) else [],"visible":is_instance_valid(actor) and actor.visible,"zone":spec.get("zone",""),"mode":spec.get("mode",""),"audio":audio.playing,"sound":audio.stream.resource_path,"paused":audio.stream_paused,"steps":footsteps.playing,"steps_paused":footsteps.stream_paused,"remnant":is_instance_valid(marker)}

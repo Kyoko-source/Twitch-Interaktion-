@@ -151,12 +151,11 @@ ell('Pooled blood on the mouth floor',(0,-3.2,.68,),(.62,.46,.02),wetblood,detai
 for side in (-1,1):
  for i in range(5):
   t=rng.uniform(.08,.85);y=-5.0+t*3.3;x=side*(.84+.72*math.sin(t*math.pi*.55))
-  drop=rng.uniform(.45,1.05)
-  line('Dried blood drip',[(x,y,2.65),(x+rng.uniform(-.03,.03),y,2.65-drop*.6),(x,y,2.65-drop)],rng.uniform(.012,.028),blood,upper_details)
- for i in range(4):
-  t=rng.uniform(.1,.7);y=-4.6+t*2.8
-  x0=side*(1.1+.5*t)
-  line('Jaw corner blood streak',[(x0*.78,y,.95),(x0*.86,y-.05,.6),(x0*.9,y-.02,.32)],rng.uniform(.02,.04),blood,details)
+  # Short runs that cling to the gum and swell into a glossy bead, instead
+  # of long straight cords hanging between the teeth.
+  drop=rng.uniform(.07,.2);w=rng.uniform(.028,.045)
+  ell('Blood run on the gum',(x,y,2.7-drop*.35),(w*.75,w*.5,drop*.5+.02),blood,upper_details,12,10)
+  ell('Swelling blood drop',(x,y-.006,2.7-drop*.78),(w*.7,w*.55,drop*.32+.012),wetblood,upper_details,12,8)
 for i in range(22):
  t=rng.uniform(0,1);y=-.4+6.6*t;side=rng.choice([-1,1])
  x,z=back_surface(y,side)

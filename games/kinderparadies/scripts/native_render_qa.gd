@@ -6,6 +6,46 @@ func run(game: Node3D) -> void:
   if arg.begins_with("--capture-dir="): output=arg.trim_prefix("--capture-dir=")
  DirAccess.make_dir_recursive_absolute(output)
  game.settings.quality=2;game.settings.volume=0;game._apply_settings()
+ if "--wc-qa" in OS.get_cmdline_user_args():
+  game._build_world("wc_ceiling_guest");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var t: NightTerrors=game.world.terrors
+  game.player.global_position=Vector3(22.4,.03,7.1);game.player.lamp.show()
+  game.player.look_at(Vector3(24.0,game.player.global_position.y,7.15));game.player.camera.rotation=Vector3(.12,0,0)
+  t.tick(0,true,game.player);await capture(game,output,"wc-00-hanging")
+  t.triggered=true;t.attack=0.
+  for i in range(12):t.tick(1./60.,true,game.player)
+  await capture(game,output,"wc-01-swing")
+  game.get_tree().quit();return
+ if "--tube-qa" in OS.get_cmdline_user_args():
+  game._build_world("tube_burst");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var t: NightTerrors=game.world.terrors
+  game.player.global_position=CrawlTubes.route(7.2)+Vector3(0,-.72,0);game.player.lamp.show();game.player.set_crouch(true);game.player.camera.position.y=.8
+  var ahead:=CrawlTubes.route(9.8);game.player.look_at(Vector3(ahead.x,game.player.global_position.y,ahead.z));game.player.camera.rotation=Vector3.ZERO
+  t.tick(0,true,game.player);await capture(game,output,"tube-00-start")
+  t.triggered=true;t.attack=0.
+  while t.lunge_at<0 and t.attack<4.:t.tick(1./60.,true,game.player)
+  print("TUBEQA attack=",t.attack," lunge=",t.lunge_at," in_tube=",game.world.tubes.contains_original(game.player.position)," finished=",t.finished," arms=",t.arms.size()," vis=",t.visual.rotation)
+  await capture(game,output,"tube-01-approach")
+  for i in range(9):t.tick(1./60.,true,game.player)
+  print("TUBEQA2 attack=",t.attack," lunge=",t.lunge_at," finished=",t.finished," vis=",t.visual.rotation," arm=",t.arms[0].rotation if t.arms.size() else Vector3.ZERO)
+  await capture(game,output,"tube-02-face")
+  game.get_tree().quit();return
+ if "--v433-qa" in OS.get_cmdline_user_args():
+  game._build_world("screen_visitor");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var t: NightTerrors=game.world.terrors
+  var from: Vector3=t.actor.global_position
+  game.player.global_position=from+Vector3(0,0,2.4);game.player.rotation=Vector3.ZERO;game.player.camera.rotation=Vector3.ZERO;game.player.lamp.show()
+  game.player.look_at(Vector3(from.x,game.player.global_position.y,from.z))
+  await capture(game,output,"v433-00-visitor-standing")
+  t.triggered=true;t.attack=0.
+  for i in range(14):t.tick(1./60.,true,game.player)
+  await capture(game,output,"v433-01-visitor-closing")
+  for i in range(12):t.tick(1./60.,true,game.player)
+  await capture(game,output,"v433-02-visitor-face")
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(9.6,0,15.2),Vector3(12.3,1.6,12.6));await capture(game,output,"v433-03-croc-mouth")
+  author.pose(game,Vector3(10.6,0,14.0),Vector3(12.0,1.8,12.6));await capture(game,output,"v433-04-croc-teeth")
+  game.get_tree().quit();return
  if "--v431-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.tick(1.5);game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   await capture(game,output,"v431-00-phone")

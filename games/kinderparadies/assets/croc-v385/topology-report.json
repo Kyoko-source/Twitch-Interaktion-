@@ -10,13 +10,13 @@
     "non_manifold_edges": 0
   },
   "AttachedScutesFeetAndMouth": {
-    "vertices": 17468,
-    "faces": 20016,
+    "vertices": 17276,
+    "faces": 19792,
     "non_manifold_edges": 0
   },
   "UpperJawDetails": {
-    "vertices": 12686,
-    "faces": 14184,
+    "vertices": 14406,
+    "faces": 16064,
     "non_manifold_edges": 0
   }
 }
