@@ -129,6 +129,15 @@ func run(game: Node3D) -> void:
    author.pose(game,Vector3(-12.55,.0,-30.1),Vector3(-13.43,1.4,-31.22));game.player.torch_body.hide()
    await capture(game,output,"03-cooking-%d"%int(time))
   game._quit();return
+ if "--clown-ceiling-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false
+  var author=load("res://art-direction/itch_capture.gd").new()
+  author.pose(game,Vector3(-12.1,0,-33.2),Vector3(-13.6,3.3,-31.1))
+  game.player.torch_body.show()
+  await capture(game,output,"01-ceiling-up")
+  author.pose(game,Vector3(-13.9,0,-33.4),Vector3(-13.7,3.3,-31.0))
+  await capture(game,output,"02-ceiling-up2")
+  game._quit();return
  if "--remains-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   var author=load("res://art-direction/itch_capture.gd").new()

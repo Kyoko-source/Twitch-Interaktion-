@@ -13,6 +13,9 @@ void fragment() {
  ALBEDO = blond * mix(.69,1.0,grime);
  ALPHA = smoothstep(0.0,.10,UV.x) * smoothstep(0.0,.10,1.0-UV.x);
  ALPHA_SCISSOR_THRESHOLD = .08;
- ROUGHNESS = .82;
- SPECULAR = .22;
+ // Near-zero specular: the kitchen's flickering, shadow-casting light was
+ // catching each of the (now much denser) individual strands as a distinct
+ // glint, reading as a field of sparkles rather than matted hair.
+ ROUGHNESS = .97;
+ SPECULAR = .04;
 }
