@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'games/kinderparadies/assets'
 OUT = ASSETS / 'visitors-v421'
 OUT.mkdir(parents=True, exist_ok=True)
-HEAD_SCALE = .58
-HEAD_AT = Vector((0, -.035, 1.84))
+HEAD_SCALE = .74
+HEAD_AT = Vector((0, -.045, 1.835))
 SHOULDER = 1.55
 
 
@@ -282,6 +282,11 @@ def build_head(kind, mats):
     head.scale = (HEAD_SCALE,) * 3; head.location = HEAD_AT
     bpy.context.view_layer.objects.active = head; bpy.ops.object.select_all(action='DESELECT'); head.select_set(True)
     bpy.ops.object.transform_apply(location=True, scale=True)
+    # The eye/mouth/throat surgery above roughly doubles the scanned head's
+    # density; collapse it back down so four of these stay cheap to render.
+    dec = head.modifiers.new('d', 'DECIMATE'); dec.ratio = .30
+    bpy.ops.object.modifier_apply(modifier='d')
+    for p in head.data.polygons: p.use_smooth = True
     head.name = 'Head'
     return head
 
@@ -451,8 +456,11 @@ def build(kind):
     for side, key in ((-1, 'ArmL'), (1, 'ArmR')):
         pts = arm_points(side); limb = skinned(key + ' limb', pts, [(0, 1), (1, 2), (2, 3), (3, 4)], skin, 2)
         bits = [limb]
-        if False:
-            sleeve = garment(key + ' sleeve', 14, 28, 1.60, 1.12 if kind != 'ragged' else 1.30, .07, .065, garment_m, 0., [limb], .1, flare=.25, frames=35, centre=V((side * .24, -.01, 0)))
+        # Sleeves run down to near the wrist; ragged's left arm keeps a torn,
+        # missing sleeve on purpose, everyone else is covered to the forearm.
+        if kind != 'ragged' or side > 0:
+            bottom = .92 if not seated else .82
+            sleeve = garment(key + ' sleeve', 16, 28, 1.60, bottom, .075, .07, garment_m, 0., [limb], .12, flare=.22, frames=40, centre=V((side * .25, -.01, 0)))
             bits.append(sleeve)
         clear_collision([limb])
         bits += hand(key, side, skin, nail, pts[-1][0], .55 if not seated else .95)
