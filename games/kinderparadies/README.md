@@ -1,5 +1,31 @@
 # After Play — Kinderparadies
 
+## Neu abgemischte Schrecktöne (4.2.1)
+
+Alle Jumpscare-Geräusche sind neu und mehrschichtig abgemischt statt je ein
+einzelnes, leicht verschobenes Monster-Take zu verwenden: eine Größen-Ebene
+(tiefer gestimmte Dopplung), ein Akzent aus dem neuen CC0-Kreaturenpaket
+(Brüllen, Schreien, Knurren statt derselben zehn Stimmen von vorher), eine
+kurze Hall-/Echofahne und stärkere Sättigung für Aggression. Jede der zehn
+Klangfamilien (rabbit, clown, ossuary, crawler, window, fall, crowd, charge,
+whisper, crocodile) sowie Pferd, Granny und Tür klingen jetzt hörbar
+unterscheidbar und deutlich lauter (−1 bis −2,4 dBFS Spitzenpegel statt
+einheitlich −5 dBFS). Granny bleibt absichtlich eine unveränderte menschliche
+Stimme ohne Tonhöhenverschiebung. Der Pferde-Angriffsschrei (erster/zweiter
+Kontakt) ist am lautesten und am stärksten geschichtet; der finale, dritte
+Angriffsschrei bekommt zusätzlich eine tiefe Bass-Ebene. Die Verfolgungslaute
+des Pferdes (`joint-*.ogg`, bisher ein dünnes Metallknarren) sind jetzt ein
+nasses, nach Atem und Gurgeln klingendes Geräusch mit leichter
+Bitcrusher-Körnung. Quellen: `tools/make-after-play-scare-audio-v421.py`,
+`tools/boost-after-play-horse-fatal-v421.py`. Zusätzliches Rohmaterial: "80
+CC0 creature SFX" von rubberduck, CC0 1.0. Prüfung: `--self-test
+--quality-only` (prüft u. a., dass alle vier Varianten je Familie real und
+unterschiedlich sind).
+
+Diese Datei-für-Datei-Abmischung wurde nur numerisch geprüft (Pegel,
+Verzerrung, Stille, spektrale Unterscheidbarkeit) — nicht angehört. Vor der
+Veröffentlichung sollte sie im Spiel gegengehört werden.
+
 ## Neu aufgebaute Nachtbesucher
 
 Alle vier wandernden Schreckbesucher (Kapuzenfigur, gespaltenes Gesicht,

@@ -49,6 +49,15 @@ Fotomontage, Beschriftungen, Kamerasystem und CCTV-Bildeffekte sind Projektarbei
 After Play 3.0: Neue Kreaturenaufnahmen von Ogrebane, Monster Sound Effects Pack,
 CC0 1.0: https://opengameart.org/content/monster-sound-effects-pack
 Daraus wurden eigene Schreckeffekte in zehn Klangfamilien erstellt.
+
+NEU ABGEMISCHTE SCHRECKTOENE (4.2.1)
+Alle Schreckgeraeusche (zehn Klangfamilien, Pferd, Granny, Tuer sowie die
+Verfolgungslaute des Pferdes) wurden neu und mehrschichtig abgemischt:
+groesser, lauter und je Figur unterscheidbar. Zusaetzliche Rohaufnahmen:
+"80 CC0 creature SFX" von rubberduck, CC0 1.0:
+https://opengameart.org/content/80-cc0-creature-sfx
+Granny behaelt bewusst eine unveraenderte menschliche Stimme ohne
+Tonhoehenverschiebung. Quelle: tools/make-after-play-scare-audio-v421.py.
 Neue Oberflaechen und gescannter Vorratsschrank: Poly Haven, CC0 1.0.
 https://polyhaven.com/a/rusty_painted_metal
 https://polyhaven.com/a/dirty_tiles
