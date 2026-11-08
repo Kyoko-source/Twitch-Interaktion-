@@ -33,7 +33,7 @@ func build(g: Node3D) -> void:
  text=DialogueText.new();text.name="TypewrittenGuardComment";text.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(text)
  text.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);text.offset_top=-232;text.offset_bottom=-232
  add_child(letters);letters.build(g.player)
- typing=AudioStreamPlayer.new();typing.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;typing.volume_db=-35;add_child(typing)
+ typing=AudioStreamPlayer.new();typing.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;typing.volume_db=-21;add_child(typing)
  var click:=AudioStreamWAV.new();click.format=AudioStreamWAV.FORMAT_16_BITS;click.mix_rate=16000
  var data:=PackedByteArray();data.resize(640)
  var noise:=RandomNumberGenerator.new();noise.seed=406

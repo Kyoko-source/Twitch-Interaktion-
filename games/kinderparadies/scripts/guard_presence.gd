@@ -20,6 +20,11 @@ var suspended:=true
 func build(player: NightGuard) -> void:
  guard=player;name="PlayerBodyPresence"
  breath=AudioStreamPlayer.new();breath.name="NightguardBreathing";breath.stream=load("res://assets/player-v402/breathing.ogg");breath.stream.loop=true;breath.volume_db=-80;breath.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(breath)
+ # A soft low-pass takes the close nasal hiss out of the recording.
+ if AudioServer.get_bus_index("PlayerBreath")<0:
+  AudioServer.add_bus();var bus:=AudioServer.bus_count-1;AudioServer.set_bus_name(bus,"PlayerBreath");AudioServer.set_bus_send(bus,"Master")
+  var soften:=AudioEffectLowPassFilter.new();soften.cutoff_hz=1400.;soften.resonance=.5;AudioServer.add_bus_effect(bus,soften)
+ breath.bus="PlayerBreath"
  cloth=AudioStreamPlayer.new();cloth.name="UniformAgainstCrawlTube";cloth.stream=load("res://assets/polish/impact-cloth.wav");cloth.volume_db=-31;cloth.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(cloth)
 
 func set_active(active: bool) -> void:
@@ -30,14 +35,14 @@ func tick(delta: float) -> void:
  if suspended:return
  var velocity:=Vector3(guard.velocity.x,0,guard.velocity.z)
  var speed:=velocity.length()
- effort=move_toward(effort,1. if speed>3.4 and guard.is_on_floor() else 0.,delta*(.17 if speed>3.4 else .055))
+ effort=move_toward(effort,1. if speed>3.4 and guard.is_on_floor() else 0.,delta*(.17 if speed>3.4 else .11))
  breath_clock+=delta*(1.+effort*.8)
  var volume:=clampf(sound_amount,0.,1.)
- if effort>.06 and volume>0:
+ if effort>.3 and volume>0:
   if not breath.playing:breath.play()
   # Fatigue changes loudness only. Pitch shifting a close nasal recording makes
   # the guard sound like one of the creatures, especially during recovery.
-  breath.volume_db=linear_to_db(volume)+lerpf(-23.,-10.,effort)
+  breath.volume_db=linear_to_db(volume)+lerpf(-36.,-21.,smoothstep(.3,1.,effort))
  else:breath.stop()
  cloth_clock=maxf(0.,cloth_clock-delta)
  var g:=guard.get_parent()
