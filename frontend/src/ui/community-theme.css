@@ -285,7 +285,10 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 
-.gameLaunch4 .gameLaunchArtwork { background-image:url('/assets/farm/meadow.png'); background-size:cover; background-position:center; }
-.gameLaunch5{--game-color:#ff9c52;background:#14232b;}
-.gameLaunch5 .gameLaunchArtwork{background-image:url('/assets/nullsignal/workshop.png');background-size:cover;background-position:center 55%;}
-.gameLaunch6 { --game-color: #879d94; background: #172826; }.gameLaunch6 .gameLaunchArtwork { background-image: url('/assets/nachtwache/windows-v1.9.3.png'); background-size: cover; background-position: 55% 50%; }
+.gameLaunch4 { --game-color: #7fcf4a; background: #16210f; }
+.gameLaunch5 { --game-color: #ff9c52; background: #24170f; }
+.gameLaunch6 { --game-color: #d2453f; background: #22100f; }
+.gameLaunch4 .gameLaunchArtwork, .gameLaunch5 .gameLaunchArtwork, .gameLaunch6 .gameLaunchArtwork { background-size: auto 100%; background-position: left center; }
+.gameLaunch4 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-quatschfarm.webp'); }
+.gameLaunch5 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-nullsignal.webp'); }
+.gameLaunch6 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-after-play.webp'); }
