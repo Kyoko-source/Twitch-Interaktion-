@@ -23,7 +23,7 @@ from threading import Lock
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .auth import current_user
 from . import ratelimit
@@ -241,7 +241,17 @@ class CreatureIn(BaseModel):
     hidden_hp: bool = True
     visible: bool = True
     notes: str = Field("", max_length=2000)
+    art: str = Field("", pattern=r"^[a-z0-9-]{0,32}$")
+    image_url: str = Field("", max_length=500)
     count: int = Field(1, ge=1, le=12)
+
+    @field_validator("image_url")
+    @classmethod
+    def https_only(cls, value: str) -> str:
+        value = value.strip()
+        if value and not value.startswith("https://"):
+            raise ValueError("Kreaturenbilder bitte als https-Link.")
+        return value
 
 
 class Action(BaseModel):
@@ -316,11 +326,17 @@ def clamp_pos(state: dict, x: Any, y: Any) -> tuple[int, int]:
     return max(0, min(state["map"]["cols"] - 1, x)), max(0, min(state["map"]["rows"] - 1, y))
 
 
-def free_spot(state: dict) -> tuple[int, int]:
-    taken = {(e["x"], e["y"]) for pool in (state["characters"], state["creatures"]) for e in pool.values()}
-    for y in range(1, state["map"]["rows"]):
-        for x in range(1, state["map"]["cols"]):
-            if (x, y) not in taken:
+def free_spot(state: dict, size: int = 1) -> tuple[int, int]:
+    """First spot where a size×size token overlaps no other token."""
+    taken = set()
+    for pool in (state["characters"], state["creatures"]):
+        for e in pool.values():
+            n = int(e.get("size", 1) or 1)
+            taken.update((e["x"] + dx, e["y"] + dy) for dx in range(n) for dy in range(n))
+    cols, rows = state["map"]["cols"], state["map"]["rows"]
+    for y in range(1, rows - size + 1):
+        for x in range(1, cols - size + 1):
+            if all((x + dx, y + dy) not in taken for dx in range(size) for dy in range(size)):
                 return x, y
     return 0, 0
 
@@ -476,11 +492,11 @@ def apply(state: dict, username: str, a: dict) -> None:
         same = sum(1 for c in state["creatures"].values() if c["base"] == body.name)
         for i in range(body.count):
             cid = secrets.token_hex(4)
-            x, y = free_spot(state)
+            x, y = free_spot(state, body.size)
             label = body.name if body.count == 1 and same == 0 else f"{body.name} {same + i + 1}"
             state["creatures"][cid] = {"id": cid, "name": label, "base": body.name, "hp": body.max_hp, "max_hp": body.max_hp, "ac": body.ac,
                                        "init_bonus": body.init_bonus, "color": body.color, "size": body.size, "hidden_hp": body.hidden_hp,
-                                       "visible": body.visible, "notes": body.notes, "x": x, "y": y, "conditions": []}
+                                       "visible": body.visible, "notes": body.notes, "art": body.art, "image_url": body.image_url, "x": x, "y": y, "conditions": []}
         log(state, "system", username, f"{body.count}× {body.name} {'erscheint' if body.count == 1 else 'erscheinen'}." if body.visible else f"{body.count}× {body.name} versteckt platziert.", secret=not body.visible)
         return
 
@@ -490,7 +506,7 @@ def apply(state: dict, username: str, a: dict) -> None:
             raise HTTPException(404, "Kreatur nicht gefunden.")
         c = state["creatures"][cid]
         fields = a.get("fields") or {}
-        merged = CreatureIn.model_validate({**{k: c[k] for k in ("name", "max_hp", "ac", "init_bonus", "color", "size", "hidden_hp", "visible", "notes")},
+        merged = CreatureIn.model_validate({**{k: c.get(k, "") for k in ("name", "max_hp", "ac", "init_bonus", "color", "size", "hidden_hp", "visible", "notes", "art", "image_url")},
                                             **{k: v for k, v in fields.items() if k in CreatureIn.model_fields and k != "count"}})
         was_visible = c["visible"]
         c.update({k: v for k, v in merged.model_dump().items() if k != "count"})
@@ -660,5 +676,11 @@ def get_room(code: str, since: int = 0, user: dict = Depends(current_user)):
 def room_action(code: str, body: Action, request: Request, user: dict = Depends(current_user)):
     ratelimit.hit(request, "dnd-action", 240, 60)
     username = str(user["username"])
-    state, version = get_store().mutate(code.upper(), lambda s: apply(s, username, body.model_dump()))
+    try:
+        state, version = get_store().mutate(code.upper(), lambda s: apply(s, username, body.model_dump()))
+    except ValidationError as exc:
+        first = exc.errors()[0] if exc.errors() else {}
+        message = str(first.get("msg", "Ungültige Eingabe.")).removeprefix("Value error, ")
+        field = ".".join(str(p) for p in first.get("loc", ()))
+        raise HTTPException(422, f"{field}: {message}" if field else message) from None
     return view(state, version, username)

@@ -1,0 +1,220 @@
+/* Dungeons and Dragons v2: portraits, tutorial, rules guide,
+   cinematic banners and map effects. Loaded after dnd.css. */
+
+/* ---------- monster portraits ---------- */
+.monsterArt { position: relative; display: inline-grid; place-items: center; flex: none; width: 56px; height: 56px; overflow: hidden; border-radius: 26%;
+  background: radial-gradient(70% 60% at 50% 38%, color-mix(in srgb, var(--tok) 55%, #1a1030) 0%, color-mix(in srgb, var(--tok) 18%, #0b0716) 62%, #07050d 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tok) 55%, transparent), inset 0 -14px 22px rgba(0, 0, 0, .55); }
+.monsterArt::before { content: ""; position: absolute; inset: 0; background: repeating-radial-gradient(circle at 50% 120%, transparent 0 6px, rgba(255, 255, 255, .025) 6px 7px); pointer-events: none; }
+.monsterArt svg { position: relative; width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .55)); }
+.monsterArt img { width: 100%; height: 100%; object-fit: cover; }
+.monsterArt.isPlain b { position: relative; color: #fff; font: 700 15px var(--font-display, inherit); text-shadow: 0 0 10px var(--tok); }
+.monsterArt .mEye { filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, .7)); animation: eyeGlow 3.4s ease-in-out infinite; }
+.monsterArt .mFlame { transform-box: fill-box; transform-origin: 50% 100%; animation: flameLick 1.6s ease-in-out infinite; }
+.monsterArt .mWisp { transform-box: fill-box; transform-origin: 50% 100%; animation: flameLick 3s ease-in-out infinite; }
+@keyframes eyeGlow { 0%, 100% { opacity: 1; } 46% { opacity: .6; } 50% { opacity: .08; } 54% { opacity: .9; } }
+@keyframes flameLick { 50% { transform: scaleY(1.06) skewX(2deg); } }
+
+/* hero parade */
+.heroParade { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; margin-top: -4px; }
+.paradeArt { width: 64px; height: 64px; animation: paradeBob 4s ease-in-out calc(var(--i) * -.45s) infinite; transition: transform .2s; }
+.paradeArt:hover { transform: scale(1.14) rotate(-4deg); }
+@keyframes paradeBob { 50% { translate: 0 -6px; } }
+
+/* bestiary grid with portraits */
+.creaturePanel h4 small { margin-left: 6px; color: #9d8fbf; font-weight: 400; font-size: 11px; font-family: var(--font-body, inherit); }
+.monsterGrid button { grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 9px; align-items: center; padding: 6px 8px 6px 6px; transition: background .15s, box-shadow .15s, transform .15s; }
+.monsterGrid button .monsterArt { grid-row: 1 / 3; width: 44px; height: 44px; transition: transform .25s cubic-bezier(.2, 1.6, .4, 1); }
+.monsterGrid button:hover { transform: translateY(-2px); }
+.monsterGrid button:hover .monsterArt { transform: scale(1.12) rotate(-5deg); }
+.monsterGrid button:active .monsterArt { transform: scale(.9); }
+.creaturePreview { display: flex; align-items: end; gap: 12px; }
+.creaturePreview .monsterArt { width: 64px; height: 64px; }
+.creaturePreview label { flex: 1; }
+.creatureList li { grid-template-columns: 40px 1fr; }
+.listArt { width: 40px; height: 40px; }
+.initList li:has(.initArt) { grid-template-columns: 38px auto 1fr auto; }
+.initArt { width: 30px; height: 30px; }
+.initList li.isTurn .initArt { box-shadow: 0 0 0 2px var(--gold), 0 0 14px var(--gold); }
+
+/* selected card */
+.selectedCard { animation: cardIn .3s cubic-bezier(.2, .9, .3, 1.2); }
+.selectedCard.isMonster { grid-template-columns: 112px minmax(0, 1fr); align-items: start; gap: 14px; }
+.selMain { display: grid; gap: 10px; min-width: 0; }
+.selArt { width: 112px; height: 112px; border-radius: 22px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tok) 60%, transparent), 0 0 30px color-mix(in srgb, var(--tok) 30%, transparent); }
+.selLore { margin: 0; color: #cdbfe6; font-size: 13px; line-height: 1.5; font-style: italic; }
+.selAttacks { display: grid; gap: 6px; }
+.attackRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.attackRow button { min-height: 32px; padding: 4px 10px; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+.attackRow .dmgRoll { color: #ffb0bc; border-color: rgba(255, 79, 109, .45); }
+.attackRow small { color: #9d8fbf; font-size: 11px; }
+.selHpQuick { display: block; }
+.selDm select { min-height: 34px; max-width: 170px; font-size: 12px; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+
+/* ---------- map effects ---------- */
+.token .tokenFace:has(.monsterArt) { padding: 0; }
+.token .monsterArt { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
+.tokenSummon { position: absolute; inset: -30%; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: conic-gradient(from 0deg, transparent, var(--tok), transparent 30%, var(--tok) 50%, transparent 70%, var(--tok), transparent);
+  -webkit-mask: radial-gradient(circle, transparent 52%, #000 54%, #000 62%, transparent 64%); mask: radial-gradient(circle, transparent 52%, #000 54%, #000 62%, transparent 64%);
+  animation: summonRing 1.1s ease-out; }
+.token { animation: tokenIn .7s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes tokenIn { 0% { scale: 0; rotate: -90deg; opacity: 0; } 60% { opacity: 1; } 100% { scale: 1; rotate: 0deg; } }
+@keyframes summonRing { 0% { opacity: 1; transform: scale(.4) rotate(0); } 100% { opacity: 0; transform: scale(1.4) rotate(200deg); } }
+.token.isHit .tokenFace { animation: tokenHit .5s ease; }
+.token.isHealed .tokenFace { animation: tokenHeal .9s ease; }
+@keyframes tokenHit { 0%, 100% { transform: none; } 15% { transform: translateX(-4px) rotate(-6deg); filter: brightness(1.8) drop-shadow(0 0 10px #ff2f4f); } 35% { transform: translateX(4px) rotate(5deg); } 55% { transform: translateX(-2px); } }
+@keyframes tokenHeal { 0%, 100% { filter: none; } 40% { filter: brightness(1.5) drop-shadow(0 0 10px #45f0a0); } }
+.token.isDown .tokenFace { transition: filter .6s; }
+.tokenSkull { position: absolute; color: #fff; filter: drop-shadow(0 0 6px #000) drop-shadow(0 0 10px #ff4f6d); pointer-events: none; animation: numberPop .5s cubic-bezier(.2, 1.6, .4, 1); }
+.hpFloat { position: absolute; left: 50%; top: -6px; z-index: 6; translate: -50% 0; pointer-events: none; white-space: nowrap; font-weight: 800; font-size: 18px; font-family: var(--font-display, inherit); animation: hpFloat 1.5s cubic-bezier(.2, .8, .3, 1) forwards; }
+.hpFloat.dmg { color: #ff5a6e; text-shadow: 0 0 10px #ff2f4f, 0 2px 0 #2a0008, 0 0 2px #000; }
+.hpFloat.heal { color: #5dffb0; text-shadow: 0 0 10px #12c46e, 0 2px 0 #002a14, 0 0 2px #000; }
+@keyframes hpFloat { 0% { opacity: 0; transform: translateY(6px) scale(.5); } 15% { opacity: 1; transform: translateY(-6px) scale(1.25); } 100% { opacity: 0; transform: translateY(-40px) scale(1); } }
+.token.isTurn .tokenFace { animation: turnPulse 1.8s ease-in-out infinite; }
+@keyframes turnPulse { 50% { box-shadow: 0 0 0 2px var(--gold), 0 0 24px var(--gold); } }
+
+/* ---------- dice overlay extras ---------- */
+.rollStage { position: relative; display: grid; place-items: center; }
+.rollRing { position: absolute; width: 200px; height: 200px; border-radius: 50%; border: 2px solid rgba(255, 79, 216, .6); box-shadow: 0 0 30px rgba(255, 79, 216, .5), inset 0 0 30px rgba(181, 108, 255, .4); animation: ringBurst 1s ease-out .4s both; }
+.isCrit .rollRing { border-color: var(--gold, #ffc65a); box-shadow: 0 0 40px #ffc65a, inset 0 0 30px rgba(255, 198, 90, .5); }
+.isFumble .rollStage { animation: fumbleShake .5s ease .6s; }
+@keyframes ringBurst { 0% { transform: scale(.3); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes fumbleShake { 20% { transform: translateX(-10px) rotate(-4deg); } 40% { transform: translateX(8px) rotate(3deg); } 60% { transform: translateX(-6px); } 80% { transform: translateX(3px); } }
+.rollSparks { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.rollSparks i { position: absolute; width: 6px; height: 18px; border-radius: 4px; background: linear-gradient(#ffc65a, #ff7a1a); box-shadow: 0 0 10px #ffc65a;
+  transform: rotate(var(--a)) translateY(0); opacity: 0; animation: spark .9s ease-out calc(.5s + var(--d)) forwards; }
+@keyframes spark { 0% { opacity: 1; transform: rotate(var(--a)) translateY(-20px) scaleY(1.4); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(-150px) scaleY(.4); } }
+
+/* ---------- cinematic banners ---------- */
+.sceneBanner { position: fixed; inset: 0; z-index: 79; display: grid; place-items: center; pointer-events: none; animation: bannerLife 5.2s ease forwards; }
+.sceneBar { position: absolute; left: 0; right: 0; height: 12vh; background: #000; animation: barIn .6s cubic-bezier(.2, .8, .3, 1) both; }
+.sceneBar.top { top: 0; transform-origin: top; }
+.sceneBar.bottom { bottom: 0; transform-origin: bottom; }
+.sceneCard { max-width: min(720px, 90vw); padding: 26px 34px; text-align: center; border-radius: 20px; background: radial-gradient(80% 120% at 50% 0%, rgba(255, 198, 90, .18), transparent 70%), rgba(8, 5, 16, .92);
+  box-shadow: 0 0 0 1px rgba(255, 198, 90, .45), 0 30px 90px rgba(0, 0, 0, .7), 0 0 60px rgba(255, 140, 60, .2); animation: sceneIn 1s cubic-bezier(.2, .8, .3, 1) .2s both; }
+.sceneCard small { color: #ffc65a; letter-spacing: .3em; text-transform: uppercase; font-size: 11px; font-weight: 700; }
+.sceneCard h3 { margin: 8px 0 10px; font-size: clamp(28px, 4vw, 48px); line-height: 1.05; background: linear-gradient(95deg, #fff, #ffd9a0 50%, #ff9a6a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 18px rgba(255, 160, 90, .5)); }
+.sceneCard p { margin: 0; color: #e6dacb; line-height: 1.6; font-style: italic; }
+@keyframes barIn { from { transform: scaleY(0); } }
+@keyframes sceneIn { from { opacity: 0; transform: translateY(18px) scale(.96); filter: blur(6px); } }
+@keyframes bannerLife { 0%, 88% { opacity: 1; } 100% { opacity: 0; } }
+.turnBanner { position: fixed; z-index: 78; left: 50%; top: 96px; translate: -50% 0; display: grid; justify-items: center; gap: 2px; padding: 10px 28px; border-radius: 999px; pointer-events: none;
+  background: rgba(10, 6, 20, .92); box-shadow: 0 0 0 1px rgba(181, 108, 255, .55), 0 0 30px rgba(181, 108, 255, .35); animation: turnIn 2.4s cubic-bezier(.2, .8, .3, 1) forwards; }
+.turnBanner small { color: #ffc65a; letter-spacing: .2em; text-transform: uppercase; font-size: 10px; font-weight: 700; }
+.turnBanner strong { color: #fff; font-size: 20px; font-family: var(--font-display, inherit); }
+.turnBanner.isMine { background: linear-gradient(135deg, rgba(255, 198, 90, .3), rgba(255, 79, 109, .3)), rgba(10, 6, 20, .95); box-shadow: 0 0 0 1.5px #ffc65a, 0 0 40px rgba(255, 198, 90, .5); }
+.turnBanner.isMine strong { font-size: 26px; color: #ffc65a; text-shadow: 0 0 16px #ffc65a; }
+@keyframes turnIn { 0% { opacity: 0; transform: translateY(-20px) scale(.8); } 12% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+
+/* ---------- panels in motion ---------- */
+.tabBody > * { animation: tabIn .28s ease; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(8px); } }
+.tableLoading { display: grid; justify-items: center; gap: 14px; padding: 60px 20px; color: #cbbde6; }
+.tableLoading .dieIcon { --die: #b56cff; animation: turnSpin 1.6s linear infinite; }
+.lobbyCard, .roomCard { transition: transform .2s, box-shadow .2s; }
+.lobbyCard:hover, .roomCard:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0, 0, 0, .35), 0 0 30px rgba(181, 108, 255, .18); }
+.practiceCard { background: radial-gradient(90% 80% at 100% 0%, rgba(123, 211, 90, .2), transparent 60%), linear-gradient(160deg, rgba(36, 24, 60, .7), rgba(14, 9, 26, .8)) padding-box, linear-gradient(135deg, #7bd35a, #ffc65a 50%, #b56cff) border-box; }
+.practiceCard h3 svg { color: #9dff7a; filter: drop-shadow(0 0 8px #7bd35a); }
+.practiceArt { display: flex; gap: 8px; }
+.practiceArt .monsterArt { width: 46px; height: 46px; animation: paradeBob 3s ease-in-out infinite; }
+.practiceArt .monsterArt:nth-child(2) { animation-delay: -1s; }
+.practiceArt .monsterArt:nth-child(3) { animation-delay: -2s; }
+.lobbyTabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 16px; background: rgba(12, 8, 22, .7); box-shadow: inset 0 0 0 1px rgba(181, 108, 255, .2); justify-self: start; }
+.lobbyTabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px; background: none; box-shadow: none; color: #cbbde6; text-shadow: none; }
+.lobbyTabs button:hover { background: rgba(181, 108, 255, .14); transform: none; box-shadow: none; }
+.lobbyTabs button.active { color: #fff; background: linear-gradient(135deg, rgba(139, 92, 255, .5), rgba(255, 79, 216, .25)); box-shadow: 0 0 18px rgba(181, 108, 255, .35); }
+.dndLobby, .lobbyPane { display: grid; gap: 16px; }
+
+/* ---------- tutorial ---------- */
+.tourLayer { position: fixed; inset: 0; z-index: 90; }
+.tourSpot { position: fixed; border-radius: 14px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(4, 2, 10, .72), 0 0 0 2px #ffc65a, 0 0 30px 6px rgba(255, 198, 90, .55);
+  transition: left .35s cubic-bezier(.2, .8, .3, 1), top .35s cubic-bezier(.2, .8, .3, 1), width .35s cubic-bezier(.2, .8, .3, 1), height .35s cubic-bezier(.2, .8, .3, 1); animation: spotPulse 2s ease-in-out infinite; }
+.tourSpot.isCenter { left: 50%; top: 40%; width: 0; height: 0; box-shadow: 0 0 0 9999px rgba(4, 2, 10, .72); animation: none; }
+@keyframes spotPulse { 50% { box-shadow: 0 0 0 9999px rgba(4, 2, 10, .72), 0 0 0 2px #ffc65a, 0 0 46px 12px rgba(255, 198, 90, .7); } }
+.tourBubble { position: fixed; z-index: 91; display: grid; gap: 10px; padding: 16px 18px; border-radius: 18px; color: #e8dcff;
+  background: linear-gradient(160deg, rgba(40, 26, 70, .98), rgba(14, 9, 26, .98)) padding-box, linear-gradient(135deg, #ffc65a, #ff4fd8 50%, #b56cff) border-box; border: 1.5px solid transparent;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6), 0 0 40px rgba(255, 79, 216, .25); animation: bubbleIn .35s cubic-bezier(.2, 1.3, .4, 1); }
+.tourBubble header { display: flex; align-items: center; gap: 8px; color: #ffc65a; }
+.tourBubble header small { color: #b8a9d6; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.tourBubble header .quietIcon { margin-left: auto; }
+.tourBubble h4 { margin: 0; color: #fff; font-size: 18px; font-family: var(--font-display, inherit); }
+.tourBubble p { margin: 0; font-size: 14px; line-height: 1.55; }
+.tourBubble footer { display: flex; justify-content: space-between; gap: 8px; }
+.tourBubble footer button { display: inline-flex; align-items: center; gap: 6px; }
+.tourProgress { height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.tourProgress span { display: block; height: 100%; background: linear-gradient(90deg, #ffc65a, #ff4fd8); box-shadow: 0 0 10px #ff4fd8; transition: width .35s ease; }
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(.95); } }
+.helpToggle.active { color: #1d1300; background: #ffc65a; border-color: #ffc65a; box-shadow: 0 0 18px rgba(255, 198, 90, .6); }
+.helpHint { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; color: #ffe2a8; font-size: 13px; background: rgba(255, 198, 90, .1); box-shadow: inset 0 0 0 1px rgba(255, 198, 90, .4); animation: tabIn .3s ease; }
+.helpMode [data-tip] { cursor: help !important; }
+.helpMode [data-tip]:not(.battleWrap):not(.tableLog):not(.creatureForm):not(.monsterGrid):not(.abilityGrid):not(.skillList):hover { outline: 2px dashed rgba(255, 198, 90, .85); outline-offset: 3px; }
+.helpMode button[data-tip]:not(.token)::after { content: "?"; position: absolute; top: -7px; right: -7px; z-index: 3; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: #ffc65a; color: #1d1300; font-weight: 800; font-size: 10px; line-height: 1; box-shadow: 0 0 8px #ffc65a; pointer-events: none; }
+.helpMode button[data-tip]:not(.token) { position: relative; }
+.helpRing { position: fixed; z-index: 89; border-radius: 12px; pointer-events: none; box-shadow: 0 0 0 2px #ffc65a, 0 0 24px rgba(255, 198, 90, .6); animation: bubbleIn .25s ease; }
+.helpBubble { z-index: 92; }
+.helpBubble header { gap: 10px; }
+.helpBubble header h4 { flex: 1; }
+.helpQ { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #ffc65a; color: #1d1300; font-weight: 800; box-shadow: 0 0 12px #ffc65a; }
+
+/* ---------- rules guide ---------- */
+.dndGuide { display: grid; gap: 14px; }
+.guideHead { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.guideSearch { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 12px; background: rgba(8, 5, 16, .7); box-shadow: inset 0 0 0 1px rgba(181, 108, 255, .35); color: #b8a9d6; }
+.guideSearch input { flex: 1; border: 0; background: none; box-shadow: none; padding-left: 0; }
+.guideSelect { display: grid; gap: 4px; font-size: 12px; color: #b8a9d6; flex: 1 1 200px; }
+.dndGuide:not(.isCompact) .guideSelect { display: none; }
+.guideTopics { display: flex; flex-wrap: wrap; gap: 6px; }
+.guideTopics button { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 6px 12px; font-size: 13px; background: rgba(255, 255, 255, .04); box-shadow: inset 0 0 0 1px rgba(181, 108, 255, .2); color: #d8cbf2; text-shadow: none; }
+.guideTopics button:hover { background: rgba(181, 108, 255, .16); transform: translateY(-1px); }
+.guideTopics button.active { color: #fff; background: linear-gradient(135deg, rgba(139, 92, 255, .5), rgba(255, 79, 216, .25)); box-shadow: inset 0 0 0 1px rgba(220, 170, 255, .55), 0 0 16px rgba(181, 108, 255, .35); }
+.guideBody { display: grid; gap: 16px; animation: tabIn .3s ease; }
+.guideTopic { display: grid; gap: 8px; }
+.guideTopic h3 { display: flex; align-items: center; gap: 10px; margin: 4px 0; color: #fff; font-size: 20px; }
+.guideTopic h3 svg { color: #ffc65a; filter: drop-shadow(0 0 8px rgba(255, 198, 90, .6)); }
+.guideItem { border-radius: 14px; background: rgba(255, 255, 255, .035); box-shadow: inset 0 0 0 1px rgba(181, 108, 255, .16); transition: background .2s, box-shadow .2s; }
+.guideItem.isOpen { background: linear-gradient(160deg, rgba(60, 36, 100, .35), rgba(14, 9, 26, .5)); box-shadow: inset 0 0 0 1px rgba(220, 170, 255, .4), 0 0 24px rgba(181, 108, 255, .14); }
+.guideQ { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 10px 14px; text-align: left; background: none; box-shadow: none; color: #fff; font-weight: 600; text-shadow: none; }
+.guideQ:hover { background: rgba(181, 108, 255, .1); transform: none; box-shadow: none; }
+.guideQ svg { flex: none; color: #c9a8ff; transition: transform .3s cubic-bezier(.2, .8, .3, 1); }
+.guideItem.isOpen .guideQ svg { transform: rotate(180deg); color: #ffc65a; }
+.guideA { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.2, .8, .3, 1); }
+.guideItem.isOpen .guideA { grid-template-rows: 1fr; }
+.guideA > div { overflow: hidden; min-height: 0; padding: 0 16px; color: #ddd0f2; font-size: 14px; line-height: 1.65; opacity: 0; transform: translateY(-6px); transition: opacity .3s, transform .3s, padding .35s; }
+.guideItem.isOpen .guideA > div { padding: 0 16px 16px; opacity: 1; transform: none; }
+.guideA p { margin: 0 0 10px; }
+.guideA b { color: #fff; }
+.guideA code { padding: 1px 6px; border-radius: 6px; background: rgba(255, 198, 90, .14); color: #ffd98a; }
+.guideSteps, .guideList { margin: 0 0 10px; padding-left: 22px; display: grid; gap: 6px; }
+.guideSteps li::marker { color: #ffc65a; font-weight: 700; }
+.guideList li::marker { color: #ff4fd8; }
+.guideTip { display: flex; gap: 10px; align-items: start; margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: rgba(62, 232, 255, .08); box-shadow: inset 3px 0 0 #3ee8ff; color: #c9f6ff; font-size: 13px; }
+.guideTip svg { flex: none; margin-top: 2px; color: #3ee8ff; }
+.guideTable { width: 100%; margin: 4px 0 12px; border-collapse: collapse; font-size: 13px; }
+.guideTable th { text-align: left; color: #ffc65a; font-weight: 700; border-bottom: 1px solid rgba(255, 198, 90, .35); padding: 6px 8px; }
+.guideTable td { padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.guideTable tr:hover td { background: rgba(181, 108, 255, .08); }
+.guideFacts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.guideFacts span { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, .06); font-size: 12px; }
+.guideClass { box-shadow: inset 3px 0 0 var(--cls); padding-left: 12px; }
+.guideMonster { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: start; }
+.guideMonster .monsterArt { width: 96px; height: 96px; border-radius: 20px; }
+.guideCredit { margin: 0; color: #8f82ad; font-size: 11px; }
+.dndGuide.isCompact .guideTopic h3 { font-size: 16px; }
+.dndGuide.isCompact .guideMonster { grid-template-columns: 64px minmax(0, 1fr); }
+.dndGuide.isCompact .guideMonster .monsterArt { width: 64px; height: 64px; }
+
+@media (max-width: 680px) {
+  .selectedCard.isMonster { grid-template-columns: 76px minmax(0, 1fr); }
+  .selArt { width: 76px; height: 76px; }
+  .guideMonster { grid-template-columns: 64px minmax(0, 1fr); }
+  .guideMonster .monsterArt { width: 64px; height: 64px; }
+  .paradeArt { width: 48px; height: 48px; }
+  .turnBanner { top: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .monsterArt .mEye, .monsterArt .mFlame, .monsterArt .mWisp, .paradeArt, .practiceArt .monsterArt, .token, .tokenSummon, .token .tokenFace, .hpFloat, .rollRing, .rollSparks i,
+  .sceneBar, .sceneCard, .turnBanner, .tabBody > *, .tourSpot, .tourBubble, .selectedCard, .guideBody, .tableLoading .dieIcon { animation: none !important; }
+  .guideA, .guideA > div, .tourSpot { transition: none; }
+}

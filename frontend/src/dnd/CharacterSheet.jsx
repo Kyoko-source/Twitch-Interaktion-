@@ -58,11 +58,11 @@ export function CharacterSheet({ character, canEdit, onSave, onRoll, onHp, usern
       </div>
       {canEdit && !creating && (editing
         ? <div className="sheetActions"><button type="button" className="ghost" onClick={() => setEditing(false)}><X size={16} />Abbrechen</button><button type="button" disabled={busy} onClick={save}><Save size={16} />Speichern</button></div>
-        : <button type="button" className="ghost" onClick={() => setEditing(true)}><Pencil size={16} />Bearbeiten</button>)}
+        : <button type="button" className="ghost" data-tip="sheet-edit" onClick={() => setEditing(true)}><Pencil size={16} />Bearbeiten</button>)}
     </header>
 
     {editing && <section className="sheetBuild">
-      <div className="classPicker">{CLASSES.map((c) => <button type="button" key={c.name} className={draft.char_class === c.name ? "active" : ""} style={{ "--cls": c.color }} onClick={() => chooseClass(c.name)}>
+      <div className="classPicker" data-tip="sheet-class">{CLASSES.map((c) => <button type="button" key={c.name} className={draft.char_class === c.name ? "active" : ""} style={{ "--cls": c.color }} onClick={() => chooseClass(c.name)}>
         <strong>{c.name}</strong><small>W{c.die} · {c.blurb}</small></button>)}</div>
       <div className="sheetRow">
         <label>Volk<select value={draft.species} onChange={(e) => { const s = SPECIES.find((x) => x.name === e.target.value); set({ species: e.target.value, speed: s?.speed || 30 }); }}>{SPECIES.map((s) => <option key={s.name}>{s.name}</option>)}</select></label>
@@ -76,7 +76,7 @@ export function CharacterSheet({ character, canEdit, onSave, onRoll, onHp, usern
     </section>}
 
     <section className="vitals">
-      <div className="vital hpVital">
+      <div className="vital hpVital" data-tip="sheet-hp">
         <Heart size={18} />
         <div className="vitalHp">
           {editing ? <span className="vitalInputs"><input type="number" value={draft.hp} onChange={(e) => set({ hp: e.target.value })} aria-label="Aktuelle TP" /> / <input type="number" value={draft.max_hp} onChange={(e) => set({ max_hp: e.target.value })} aria-label="Maximale TP" /></span>
@@ -85,14 +85,14 @@ export function CharacterSheet({ character, canEdit, onSave, onRoll, onHp, usern
         </div>
         {!editing && onHp && <HpQuick onHp={onHp} />}
       </div>
-      <div className="vital"><Shield size={18} /><span>RK</span>{editing ? <input type="number" value={draft.ac} onChange={(e) => set({ ac: e.target.value })} /> : <strong>{sheet.ac}</strong>}</div>
-      <button type="button" className="vital rollable" onClick={() => roll("Initiative", mod(sheet.abilities.dex))}><Sparkles size={18} /><span>Init</span><strong>{signed(mod(sheet.abilities.dex))}</strong></button>
-      <div className="vital"><Wind size={18} /><span>Tempo</span>{editing ? <input type="number" value={draft.speed} onChange={(e) => set({ speed: e.target.value })} /> : <strong>{sheet.speed}</strong>}</div>
-      <div className="vital"><span>Übung</span><strong>{signed(prof)}</strong></div>
-      <div className="vital"><span>Passive Wahrn.</span><strong>{passive}</strong></div>
+      <div className="vital" data-tip="sheet-ac"><Shield size={18} /><span>RK</span>{editing ? <input type="number" value={draft.ac} onChange={(e) => set({ ac: e.target.value })} /> : <strong>{sheet.ac}</strong>}</div>
+      <button type="button" className="vital rollable" data-tip="sheet-init" onClick={() => roll("Initiative", mod(sheet.abilities.dex))}><Sparkles size={18} /><span>Init</span><strong>{signed(mod(sheet.abilities.dex))}</strong></button>
+      <div className="vital" data-tip="sheet-speed"><Wind size={18} /><span>Tempo</span>{editing ? <input type="number" value={draft.speed} onChange={(e) => set({ speed: e.target.value })} /> : <strong>{sheet.speed}</strong>}</div>
+      <div className="vital" data-tip="sheet-prof"><span>Übung</span><strong>{signed(prof)}</strong></div>
+      <div className="vital" data-tip="sheet-passive"><span>Passive Wahrn.</span><strong>{passive}</strong></div>
     </section>
 
-    <section className="abilityGrid">
+    <section className="abilityGrid" data-tip="sheet-abilities">
       {ABILITIES.map((a) => <div key={a.key} className="abilityBox">
         <button type="button" className="rollable" disabled={editing} onClick={() => roll(`${a.name}-Probe`, mod(sheet.abilities[a.key]))}>
           <span>{a.short}</span><strong>{signed(mod(sheet.abilities[a.key]))}</strong>
@@ -100,10 +100,10 @@ export function CharacterSheet({ character, canEdit, onSave, onRoll, onHp, usern
         {editing ? <input type="number" min="1" max="30" value={draft.abilities[a.key]} onChange={(e) => setAbility(a.key, e.target.value)} aria-label={a.name} /> : <small>{sheet.abilities[a.key]}</small>}
         <button type="button" className={`saveChip ${sheet.saves.includes(a.key) ? "isProf" : ""}`} disabled={editing} onClick={() => roll(`Rettungswurf ${a.name}`, saveBonus(a.key))}>RW {signed(saveBonus(a.key))}</button>
       </div>)}
-      {editing && <button type="button" className="ghost arrayButton" onClick={standardArray}><Dices size={16} />Standardwerte für {draft.char_class}</button>}
+      {editing && <button type="button" className="ghost arrayButton" data-tip="sheet-array" onClick={standardArray}><Dices size={16} />Standardwerte für {draft.char_class}</button>}
     </section>
 
-    <section className="skillList">
+    <section className="skillList" data-tip="sheet-skills">
       {SKILLS.map((s) => {
         const proficient = sheet.skills.includes(s.key);
         const allowed = !editing || info.skills.includes(s.key) || proficient;
@@ -114,14 +114,14 @@ export function CharacterSheet({ character, canEdit, onSave, onRoll, onHp, usern
       })}
     </section>
 
-    <section className="sheetNotes">
+    <section className="sheetNotes" data-tip="sheet-notes">
       {[["inventory", "Ausrüstung"], ["features", "Merkmale & Talente"], ["spells", "Zauber"], ["notes", "Notizen"]].map(([key, label]) => <label key={key}>{label}
         {editing ? <textarea rows={key === "notes" ? 3 : 4} value={draft[key]} onChange={(e) => set({ [key]: e.target.value })} /> : <p>{sheet[key] || "—"}</p>}
       </label>)}
       {editing && <label>Profilbild (https-Link)<input value={draft.avatar_url} onChange={(e) => set({ avatar_url: e.target.value })} placeholder="optional" /></label>}
       <label>Gold{editing ? <input type="number" min="0" value={draft.gold} onChange={(e) => set({ gold: e.target.value })} /> : <p>{sheet.gold} GM</p>}</label>
     </section>
-    {creating && <button type="button" className="sheetCreate" disabled={busy || !draft.name.trim()} onClick={save}><Swords size={18} />Charakter an den Tisch bringen</button>}
+    {creating && <button type="button" className="sheetCreate" data-tip="sheet-create" disabled={busy || !draft.name.trim()} onClick={save}><Swords size={18} />Charakter an den Tisch bringen</button>}
   </div>;
 }
 

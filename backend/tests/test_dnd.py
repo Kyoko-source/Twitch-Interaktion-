@@ -110,6 +110,16 @@ class DndTableTests(unittest.TestCase):
         self.as_("dm").post(f"/api/dnd/rooms/{self.code}/leave")
         self.assertEqual(self.as_("dm").get(f"/api/dnd/rooms/{self.code}").status_code, 404)
 
+    def test_creature_art_and_image(self):
+        ok = self.act("dm", type="creature.add", name="Goblin", art="goblin", image_url="https://example.org/g.png")
+        self.assertEqual(ok.status_code, 200, ok.text)
+        goblin = next(iter(ok.json()["creatures"].values()))
+        self.assertEqual((goblin["art"], goblin["image_url"]), ("goblin", "https://example.org/g.png"))
+        self.assertEqual(self.act("dm", type="creature.add", name="X", image_url="http://evil").status_code, 422)
+        self.assertEqual(self.act("dm", type="creature.add", name="X", art="../bad").status_code, 422)
+        moved = self.act("dm", type="creature.update", id=goblin["id"], fields={"art": "wolf"}).json()
+        self.assertEqual(moved["creatures"][goblin["id"]]["art"], "wolf")
+
 
 if __name__ == "__main__":
     unittest.main()
