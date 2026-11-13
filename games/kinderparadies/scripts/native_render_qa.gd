@@ -23,6 +23,7 @@ func run(game: Node3D) -> void:
   print("MPQA current ",game.state.current," plan0 ",game.state.plan[0] if game.state.plan.size() else "")
   await game.get_tree().create_timer(4.).timeout
   await capture(game,output,"mp-01-playing")
+  var plan_map:=MultiplayerLink.outline(game.world);print("MPQA map walls ",plan_map.walls.size()," bounds ",plan_map.bounds," sent ",game.mp.map_sent)
   game.get_tree().quit();return
  if "--wc-qa" in OS.get_cmdline_user_args():
   game._build_world("wc_ceiling_guest");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)

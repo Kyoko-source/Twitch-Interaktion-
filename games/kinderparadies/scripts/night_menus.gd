@@ -26,7 +26,7 @@ static func multiplayer(g: Node3D) -> void:
  g.phase="multiplayer";clear(g);backdrop(g,true)
  var column:=VBoxContainer.new();column.position=Vector2(110,150);column.custom_minimum_size=Vector2(900,0);column.add_theme_constant_override("separation",22);g.menu.add_child(column)
  var title: Label=g._label("MULTIPLAYER",64,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
- column.add_child(g._paragraph("Spieler 2 öffnet auf der Webseite unter Spiele → After Play den Reiter „After Play Multiplayer“ und gibt diesen Code ein. Er legt für alle 13 Runden fest, welche Anomalie passiert, und schaut dir danach über die Überwachungskameras zu.",21))
+ column.add_child(g._paragraph("Spieler 2 öffnet auf der Webseite unter Spiele → After Play den Reiter „After Play Multiplayer“ und gibt diesen Code ein. Er legt für alle 13 Runden fest, welche Anomalie passiert, und verfolgt dich danach live auf einer Karte.",21))
  var code_label: Label=g._label("······",128,Color("eee5cf"));code_label.name="MultiplayerCode";code_label.add_theme_font_override("font",menu_font(600,18));column.add_child(code_label)
  var status_label: Label=g._label("",24,Color("cbbb95"));status_label.name="MultiplayerStatus";column.add_child(status_label)
  var site: Label=g._label("62.238.49.219  ·  Spiele  ·  After Play  ·  After Play Multiplayer",18,Color("8f8c80"));column.add_child(site)
@@ -56,7 +56,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v4.4.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.4.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

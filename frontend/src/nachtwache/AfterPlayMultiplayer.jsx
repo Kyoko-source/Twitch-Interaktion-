@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Eye,LogIn,Shuffle,Trash2,Play,Radio} from 'lucide-react';
+import {Eye,LogIn,Shuffle,Trash2,Play,Radio,MapPin} from 'lucide-react';
 import './multiplayer.css';
 
 const API='/api/afterplay/mp/sessions';
@@ -20,7 +20,7 @@ function remembered(){
 
 // Player 2 of the spectator multiplayer: join with the six-digit code from
 // the Windows game, plan all thirteen rounds by drag and drop, then follow
-// player 1 live through the security cameras.
+// player 1 live on a floor plan of the venue with a glowing position dot.
 export function AfterPlayMultiplayer(){
   const [session,setSession]=useState(remembered);
   const [code,setCode]=useState('');
@@ -53,13 +53,13 @@ export function AfterPlayMultiplayer(){
         if(alive){setView(body);setError('');}
       }catch(problem){if(alive)setError(problem.message);}
     };
-    poll();const timer=setInterval(poll,800);
+    poll();const timer=setInterval(poll,500);
     return()=>{alive=false;clearInterval(timer);};
   },[session]);
 
   if(!session)return <section className="mpPanel mpJoin">
     <h3><Radio size={20}/>After Play Multiplayer</h3>
-    <p>Spieler 1 startet die Windows-Version und wählt im Hauptmenü <strong>Multiplayer</strong>. Dort erscheint ein sechsstelliger Code. Gib ihn hier ein: Du planst dann für alle 13 Runden, welche Anomalie passiert, und verfolgst die Schicht live über die Überwachungskameras.</p>
+    <p>Spieler 1 startet die Windows-Version und wählt im Hauptmenü <strong>Multiplayer</strong>. Dort erscheint ein sechsstelliger Code. Gib ihn hier ein: Du planst dann für alle 13 Runden, welche Anomalie passiert, und verfolgst die Schicht live auf einer Karte des Kinderparadieses.</p>
     <form onSubmit={join}>
       <input inputMode="numeric" autoComplete="off" maxLength={7} placeholder="000000" aria-label="Sechsstelliger Code" value={code} onChange={e=>setCode(e.target.value.replace(/[^\d ]/g,''))}/>
       <button type="submit" disabled={busy}><LogIn size={18}/>Beitreten</button>
@@ -129,19 +129,54 @@ function Planner({session,view,error,onLeave}){
   </section>;
 }
 
+function useFloorPlan(session,ready){
+  const [plan,setPlan]=useState(null);
+  useEffect(()=>{
+    if(!ready||plan)return undefined;
+    let alive=true;
+    call(`/${session.code}/map`,{headers:{'X-Viewer-Token':session.token}}).then(body=>{if(alive)setPlan(body);}).catch(()=>{});
+    return()=>{alive=false;};
+  },[session,ready,plan]);
+  return plan;
+}
+
+// Top-down outline of the venue. Game x runs right, game z runs down the
+// page; the dot glides between position updates and a small wedge shows
+// which way player 1 is looking.
+function FloorMap({plan,state,stale}){
+  if(!plan)return <div className="mpNoSignal">Karte wird geladen …</div>;
+  const [x0,z0,x1,z1]=plan.bounds;const pad=1.2;
+  const box=`${x0-pad} ${z0-pad} ${x1-x0+pad*2} ${z1-z0+pad*2}`;
+  const here=typeof state.x==='number'&&typeof state.z==='number';
+  const yaw=(state.yaw||0)*180/Math.PI;
+  return <svg className="mpMap" viewBox={box} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Karte, Spieler 1 im Raum ${state.zone||'unbekannt'}`}>
+    <defs>
+      <radialGradient id="mpGlow"><stop offset="0" stopColor="#ffe08a" stopOpacity=".95"/><stop offset=".35" stopColor="#ffb347" stopOpacity=".5"/><stop offset="1" stopColor="#ff8a2a" stopOpacity="0"/></radialGradient>
+    </defs>
+    <g className="mpWalls">{plan.walls.map((w,i)=><polygon key={i} points={`${w[0]},${w[1]} ${w[2]},${w[3]} ${w[4]},${w[5]} ${w[6]},${w[7]}`}/>)}</g>
+    <g className="mpRooms">{plan.rooms.map(room=><text key={room.name} x={room.x} y={room.z} className={room.name===state.zone?'mpRoomNow':''}>{room.name}</text>)}</g>
+    {here&&<g className={`mpDot ${stale?'mpStale':''}`} style={{transform:`translate(${state.x}px,${state.z}px)`}}>
+      <circle r="2.6" fill="url(#mpGlow)" className="mpPulse"/>
+      <path d="M0 0 L-1.1 2.6 A2.8 2.8 0 0 0 1.1 2.6 Z" className="mpCone" style={{transform:`rotate(${-yaw}deg)`}}/>
+      <circle r=".42" className="mpCore"/>
+    </g>}
+  </svg>;
+}
+
 function Live({session,view,error,onLeave}){
   const names=useMemo(()=>Object.fromEntries(view.catalog.map(a=>[a.id,a.name])),[view.catalog]);
   const state=view.state||{};
   const round=Math.max(1,Math.min(ROUNDS,state.round||1));
-  const frame=view.frame_seq?`${API}/${session.code}/frame.jpg?token=${encodeURIComponent(session.token)}&seq=${view.frame_seq}`:null;
+  const plan=useFloorPlan(session,view.has_map);
+  const stale=view.state_age==null||view.state_age>5;
   const events=[...(view.events||[])].reverse();
   const phase={waiting:'Wartet auf den Start',play:'Spielt',pause:'Pausiert',ending:'Abspann',death:'Erwischt',failure:'Falsche Tür',intro:'Im Aufzug'}[state.phase]||state.phase||'—';
   return <section className="mpPanel mpLive">
     <header className="mpHead"><h3><Eye size={19}/>Spiel {session.code} · Live</h3><button type="button" className="mpGhost" onClick={onLeave}>Verlassen</button></header>
     <div className="mpLiveGrid">
-      <figure className="mpCamera">
-        {frame?<img src={frame} alt={`Überwachungskamera ${state.camera||''}`}/>:<div className="mpNoSignal">Kein Kamerasignal</div>}
-        <figcaption><span className="mpRec"/>CAM · {state.camera||state.zone||'—'}</figcaption>
+      <figure className="mpCamera mpMapFrame">
+        <FloorMap plan={plan} state={state} stale={stale}/>
+        <figcaption><MapPin size={14}/>{stale?'KEIN SIGNAL':`ORTUNG · ${state.zone||'—'}`}</figcaption>
       </figure>
       <aside className="mpStatus">
         <dl>

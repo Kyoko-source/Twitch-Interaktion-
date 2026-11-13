@@ -4,19 +4,19 @@ Player 1 runs the Windows game and opens "Multiplayer": the game creates a
 session here and shows a six-digit code. Player 2 enters that code on the
 website, plans all thirteen rounds (an anomaly or nothing for each) and
 saves; the game then starts the shift with that plan. While player 1 plays,
-the game posts its live state and the current security-camera frame, which
-player 2 watches on the website.
+the game posts its live state including player 1's position, and once a
+floor-plan outline of the venue, so player 2 follows a glowing dot on a map.
 
 Sessions live in memory only and expire after a few hours; no account is
 needed. Each side gets its own secret token, so knowing the code alone lets
-nobody post frames or overwrite a saved plan.
+nobody post positions or overwrite a saved plan.
 """
 import secrets
 import time
 from threading import RLock
 from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 router = APIRouter(prefix="/api/afterplay/mp", tags=["afterplay-multiplayer"])
@@ -25,7 +25,7 @@ ROUNDS = 13
 SESSION_TTL = 4 * 3600
 IDLE_TTL = 45 * 60
 MAX_SESSIONS = 400
-MAX_FRAME_BYTES = 350_000
+MAX_WALLS = 4000
 MAX_EVENTS = 40
 
 
@@ -40,7 +40,8 @@ class CreateSession(BaseModel):
     model_config = ConfigDict(extra="forbid")
     version: str = Field(default="", max_length=20)
     catalog: list[Anomaly] = Field(min_length=1, max_length=200)
-    cameras: list[str] = Field(default_factory=list, max_length=24)
+    # Sent by 4.4.0 builds that still streamed camera pictures; ignored.
+    cameras: list[str] = Field(default_factory=list, max_length=24, exclude=True)
 
 
 class Plan(BaseModel):
@@ -54,9 +55,27 @@ class LiveState(BaseModel):
     round: int = Field(default=0, ge=0, le=14)
     streak: int = Field(default=0, ge=0, le=13)
     zone: str = Field(default="", max_length=60)
-    camera: str = Field(default="", max_length=60)
     current: str = Field(default="", max_length=64)
+    camera: str = Field(default="", max_length=60, exclude=True)  # 4.4.0 builds; ignored
+    x: float | None = Field(default=None, ge=-500, le=500)
+    z: float | None = Field(default=None, ge=-500, le=500)
+    yaw: float | None = Field(default=None, ge=-7, le=7)
     events: list[str] = Field(default_factory=list, max_length=10)
+
+
+class Room(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=60)
+    x: float = Field(ge=-500, le=500)
+    z: float = Field(ge=-500, le=500)
+
+
+class FloorPlan(BaseModel):
+    """Wall footprints as quads [x1, z1, ..., x4, z4] in game metres."""
+    model_config = ConfigDict(extra="forbid")
+    walls: list[list[float]] = Field(min_length=1, max_length=MAX_WALLS)
+    rooms: list[Room] = Field(default_factory=list, max_length=30)
+    bounds: list[float] = Field(min_length=4, max_length=4)
 
 
 class Session:
@@ -66,21 +85,20 @@ class Session:
         self.host_token = secrets.token_urlsafe(24)
         self.viewer_token: str | None = None
         self.catalog = [a.model_dump() for a in body.catalog]
-        self.cameras = list(body.cameras)
         self.version = body.version
         self.plan: list[str] | None = None
-        self.state: dict = {"phase": "waiting", "round": 0, "streak": 0, "zone": "", "camera": "", "current": ""}
+        self.state: dict = {"phase": "waiting", "round": 0, "streak": 0, "zone": "", "current": "", "x": None, "z": None, "yaw": None}
         self.events: list[dict] = []
-        self.frame: bytes | None = None
-        self.frame_at = 0.0
-        self.frame_seq = 0
+        self.map: dict | None = None
+        self.state_at = 0.0
         self.created = now
         self.touched = now
 
     def public(self) -> dict:
-        return {"code": self.code, "version": self.version, "catalog": self.catalog, "cameras": self.cameras,
+        return {"code": self.code, "version": self.version, "catalog": self.catalog,
                 "plan": self.plan, "state": self.state, "events": self.events[-MAX_EVENTS:],
-                "frame_seq": self.frame_seq, "frame_age": round(time.time() - self.frame_at, 1) if self.frame else None,
+                "has_map": self.map is not None,
+                "state_age": round(time.time() - self.state_at, 1) if self.state_at else None,
                 "joined": self.viewer_token is not None}
 
 
@@ -179,21 +197,21 @@ def post_state(code: str, body: LiveState, x_host_token: str | None = Header(def
     with store.lock:
         session.state = body.model_dump(exclude={"events"})
         now = time.time()
+        session.state_at = now
         for text in body.events:
             session.events.append({"t": now, "text": text[:200]})
         del session.events[:-MAX_EVENTS]
     return {"ok": True}
 
 
-@router.put("/sessions/{code}/frame")
-async def post_frame(code: str, request: Request, x_host_token: str | None = Header(default=None)):
+@router.put("/sessions/{code}/map")
+def post_map(code: str, body: FloorPlan, x_host_token: str | None = Header(default=None)):
     session = _host(code, x_host_token)
-    data = await request.body()
-    if len(data) > MAX_FRAME_BYTES or not data.startswith(b"\xff\xd8"):
-        raise HTTPException(400, "Kamerabild ungültig.")
+    if any(len(w) != 8 or any(abs(v) > 500 for v in w) for w in body.walls):
+        raise HTTPException(400, "Grundriss ungültig.")
     with store.lock:
-        session.frame = data; session.frame_at = time.time(); session.frame_seq += 1
-    return {"seq": session.frame_seq}
+        session.map = body.model_dump()
+    return {"ok": True}
 
 
 @router.get("/sessions/{code}/view")
@@ -201,9 +219,9 @@ def view(code: str, x_viewer_token: str | None = Header(default=None)):
     return _viewer(code, x_viewer_token).public()
 
 
-@router.get("/sessions/{code}/frame.jpg")
-def frame(code: str, token: str = "", seq: int = 0):
-    session = _viewer(code, token)
-    if not session.frame:
-        return Response(status_code=204)
-    return Response(session.frame, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+@router.get("/sessions/{code}/map")
+def get_map(code: str, x_viewer_token: str | None = Header(default=None)):
+    session = _viewer(code, x_viewer_token)
+    if session.map is None:
+        raise HTTPException(404, "Noch kein Grundriss.")
+    return session.map
