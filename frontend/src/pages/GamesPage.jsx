@@ -6,7 +6,7 @@ import { ChickenJump } from "../jump/ChickenJump";
 import { ChickenSnake } from "../snake/ChickenSnake";
 import { gameMeta, routeParts } from "./shared";
 const PeppleSurvivor = lazy(() => import("../survivor/PeppleSurvivor").then((module) => ({ default: module.PeppleSurvivor })));
-const Quatschfarm = lazy(() => import("../farm/Quatschfarm").then((module) => ({ default: module.Quatschfarm })));
+const DungeonsAndDragons = lazy(() => import("../dnd/DndTable").then((module) => ({ default: module.DungeonsAndDragons })));
 const Nullsignal = lazy(() => import("../nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
 const AfterPlay = lazy(() => import("../nachtwache/Nachtwache").then((module) => ({ default: module.AfterPlay })));
 
@@ -17,7 +17,7 @@ export function GamesPage({ user }) {
     const [, nextGame] = routeParts();
     if (nextGame === "chicken-racer") return "chicken-flipper";
     if (nextGame === "nachtwache") return "after-play";
-    return gameMeta[nextGame] && nextGame !== "dnd" ? nextGame : "chicken-jump";
+    return gameMeta[nextGame] ? nextGame : "chicken-jump";
   };
   const [game, setGameState] = useState(gameFromRoute);
   function setGame(nextGame) {
@@ -38,7 +38,7 @@ export function GamesPage({ user }) {
     "chicken-snake": <ChickenSnake user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-snake" refreshKey={refreshKey} />} />,
     "chicken-flipper": <PepplePinball user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />} />,
     "braincell-survivor": <Suspense fallback={<div className="notice">Lade Pepple Survivor …</div>}><PeppleSurvivor user={user} renderScoreboard={(refreshKey) => <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />} /></Suspense>,
-    "quatschfarm": <Suspense fallback={<div className="notice">Dein Bauernhof lädt …</div>}><Quatschfarm key={user?.username || "guest"} user={user} /></Suspense>,
+    dnd: <Suspense fallback={<div className="notice">Der Spieltisch wird aufgebaut …</div>}><DungeonsAndDragons user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     "nullsignal": <Suspense fallback={<div className="notice">NULLSIGNAL wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>,
     "after-play": <Suspense fallback={<div className="notice">After Play wird vorbereitet …</div>}><AfterPlay/></Suspense>,
   }[game];
@@ -53,10 +53,10 @@ export function GamesPage({ user }) {
         </div>
         <Zap size={64} />
       </div>
-      {game !== "quatschfarm" && game !== "nullsignal" && game !== "after-play" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
+      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
-          <button className={game === id ? "active" : ""} key={id} onClick={() => id !== "dnd" && setGame(id)} disabled={id === "dnd"} type="button">
+          <button className={game === id ? "active" : ""} key={id} onClick={() => setGame(id)} type="button">
             <Gamepad2 size={16} /> {meta.title}
           </button>
         ))}

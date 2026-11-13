@@ -111,13 +111,13 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .inlineLink:hover { color: #e2cbff; background: none; }
 .gameLaunchList { display: grid; gap: 11px; }
 .gameLaunch { --game-color: #ad7733; position: relative; width: 100%; height: 66px; display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 0 16px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--game-color) 65%, #25212d); border-radius: 8px; color: #f7f2fa; background: #221b17; text-align: left; }
-.gameLaunch1 { --game-color: #3c8582; background: #122729; }
-.gameLaunch2 { --game-color: #9e6cdb; background: #28183d; }
-.gameLaunch3 { --game-color: #a64e82; background: #311a2c; }
+.gameLaunch-chicken-snake { --game-color: #3c8582; background: #122729; }
+.gameLaunch-chicken-flipper { --game-color: #9e6cdb; background: #28183d; }
+.gameLaunch-braincell-survivor { --game-color: #a64e82; background: #311a2c; }
 .gameLaunchArtwork { position: absolute; inset: 0; background-color: #141219; background-image: url('/assets/aviary-game-banners.png'); background-repeat: no-repeat; background-size: auto 400%; background-position: left 0%; transition: transform .25s ease; }
-.gameLaunch1 .gameLaunchArtwork { background-position-y: 33.333333%; }
-.gameLaunch2 .gameLaunchArtwork { background-position-y: 66.666667%; }
-.gameLaunch3 .gameLaunchArtwork { background-position-y: 100%; }
+.gameLaunch-chicken-snake .gameLaunchArtwork { background-position-y: 33.333333%; }
+.gameLaunch-chicken-flipper .gameLaunchArtwork { background-position-y: 66.666667%; }
+.gameLaunch-braincell-survivor .gameLaunchArtwork { background-position-y: 100%; }
 .gameLaunch strong { position: relative; z-index: 1; margin-left: 43%; margin-right: auto; font-size: 14px; font-weight: 650; white-space: nowrap; text-shadow: 0 1px 5px #111015; }
 .gamePlayIcon { position: relative; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; background: color-mix(in srgb, var(--game-color) 62%, #19171f); }
 .gameLaunch:hover { background: #292334; border-color: var(--game-color); }
@@ -285,10 +285,10 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 
-.gameLaunch4 { --game-color: #7fcf4a; background: #16210f; }
-.gameLaunch5 { --game-color: #ff9c52; background: #24170f; }
-.gameLaunch6 { --game-color: #d2453f; background: #22100f; }
-.gameLaunch4 .gameLaunchArtwork, .gameLaunch5 .gameLaunchArtwork, .gameLaunch6 .gameLaunchArtwork { background-size: auto 100%; background-position: left center; }
-.gameLaunch4 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-quatschfarm.webp'); }
-.gameLaunch5 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-nullsignal.webp'); }
-.gameLaunch6 .gameLaunchArtwork { background-image: url('/assets/aviary-banner-after-play.webp'); }
+.gameLaunch-dnd { --game-color: #ff4f6d; background: #200b14; }
+.gameLaunch-nullsignal { --game-color: #ff9c52; background: #24170f; }
+.gameLaunch-after-play { --game-color: #d2453f; background: #22100f; }
+.gameLaunch-dnd .gameLaunchArtwork, .gameLaunch-nullsignal .gameLaunchArtwork, .gameLaunch-after-play .gameLaunchArtwork { background-size: auto 100%; background-position: left center; }
+.gameLaunch-dnd .gameLaunchArtwork { background-image: url('/assets/aviary-banner-dnd.webp'); }
+.gameLaunch-nullsignal .gameLaunchArtwork { background-image: url('/assets/aviary-banner-nullsignal.webp'); }
+.gameLaunch-after-play .gameLaunchArtwork { background-image: url('/assets/aviary-banner-after-play.webp'); }
