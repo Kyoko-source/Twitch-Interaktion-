@@ -8,7 +8,7 @@ if($taskVersion -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid release version'}
 $taskCommit=(& git -C $taskRepo rev-parse HEAD).Trim()
 if($taskCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid Git revision'}
 foreach($taskFile in @("after-play-windows-v$taskVersion.zip",'release.json')){if(-not (Test-Path -LiteralPath (Join-Path $taskBuild $taskFile))){throw "Missing release artifact: $taskFile"}}
-foreach($taskCheck in @(@("after-play-windows-v$taskVersion.zip",$taskManifest.windows_sha256))){
+foreach($taskCheck in @(,@("after-play-windows-v$taskVersion.zip",$taskManifest.windows_sha256))){
  if((Get-FileHash -LiteralPath (Join-Path $taskBuild $taskCheck[0]) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCheck[1]){throw "Release checksum mismatch: $($taskCheck[0])"}
 }
 if(-not [IO.File]::ReadAllText((Join-Path $taskRepo 'frontend/src/nachtwache/Nachtwache.jsx')).Contains("/downloads/after-play-windows-v$taskVersion.zip")){throw 'Website download link does not match the release'}
