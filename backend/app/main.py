@@ -42,10 +42,10 @@ PURCHASE_CATEGORIES = {
     "Out of Stream Rewards",
 }
 CHAT_STYLE_SHOP_ITEMS = [
-    {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich ueber deine Chatbalken.", "price": 300, "category": "Chat Animation", "style": "sparkle"},
-    {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Suess, rosa und weich pulsierend mit kleinen Herzchen.", "price": 450, "category": "Chat Animation", "style": "cotton"},
+    {"id": "chat-style-sparkle", "name": "Chat Animation: Sternenfunkeln", "description": "Goldene Glitzersterne laufen weich über deine Chatbalken.", "price": 300, "category": "Chat Animation", "style": "sparkle"},
+    {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Süß, rosa und weich pulsierend mit kleinen Herzchen.", "price": 450, "category": "Chat Animation", "style": "cotton"},
     {"id": "chat-style-neon", "name": "Chat Animation: Neon Pulse", "description": "Cooler Cyber-Look mit wandernder Neon-Kante.", "price": 600, "category": "Chat Animation", "style": "neon"},
-    {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz fuer deine Nachrichten.", "price": 900, "category": "Chat Animation", "style": "royal"},
+    {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz für deine Nachrichten.", "price": 900, "category": "Chat Animation", "style": "royal"},
 ]
 
 app = FastAPI(title="Aviary API")
@@ -206,7 +206,7 @@ class SystematicsDocument(BaseModel):
 def clean_username(username: str) -> str:
     value = username.strip()
     if not USERNAME_RE.match(value):
-        raise HTTPException(status_code=400, detail="Ungueltiger Twitch-Name")
+        raise HTTPException(status_code=400, detail="Ungültiger Twitch-Name")
     return value
 
 
@@ -217,12 +217,12 @@ def rows(path: str) -> list[dict[str, Any]]:
 def default_systematics() -> dict[str, Any]:
     return {
         "title": "Tier-Systematik",
-        "description": "Ein frei bearbeitbarer Baukasten fuer Klassen, Gruppen, Arten oder eigene Kategorien.",
+        "description": "Ein frei bearbeitbarer Baukasten für Klassen, Gruppen, Arten oder eigene Kategorien.",
         "nodes": [
             {"id": "root", "title": "Lebewesen", "subtitle": "Startpunkt", "color": "#ffcf8a", "image_url": "", "x": 420, "y": 48},
             {"id": "animals", "title": "Tiere", "subtitle": "Animalia", "color": "#b46cff", "image_url": "", "x": 250, "y": 210},
-            {"id": "birds", "title": "Voegel", "subtitle": "Aves", "color": "#7af4dc", "image_url": "", "x": 585, "y": 210},
-            {"id": "chicken", "title": "Huehnervoegel", "subtitle": "Galliformes", "color": "#ff6fb7", "image_url": "", "x": 585, "y": 380},
+            {"id": "birds", "title": "Vögel", "subtitle": "Aves", "color": "#7af4dc", "image_url": "", "x": 585, "y": 210},
+            {"id": "chicken", "title": "Hühnervögel", "subtitle": "Galliformes", "color": "#ff6fb7", "image_url": "", "x": 585, "y": 380},
         ],
         "links": [
             {"source": "root", "target": "animals"},
@@ -459,7 +459,7 @@ def rank_name(points: int) -> str:
         return "Stammgast"
     if points >= 250:
         return "Nestling"
-    return "Frisch geschluepft"
+    return "Frisch geschlüpft"
 
 
 @app.get("/api/health")
@@ -907,7 +907,7 @@ def create_wish(payload: WishCreate, user: dict[str, Any] = Depends(current_user
         {"username": user["username"], "title": payload.title.strip(), "description": payload.description.strip(), "active": True},
         returning=False,
     )
-    return {"message": "Wunsch wurde veroeffentlicht."}
+    return {"message": "Wunsch wurde veröffentlicht."}
 
 
 @app.get("/api/scores/{game}")
@@ -1034,7 +1034,7 @@ def admin_create_news(payload: NewsCreate) -> dict[str, str]:
 @app.delete("/api/admin/news/{post_id}", dependencies=[Depends(require_admin)])
 def admin_delete_news(post_id: str) -> dict[str, str]:
     supabase().delete(f"news_posts?id=eq.{quote(post_id)}")
-    return {"message": "News geloescht."}
+    return {"message": "News gelöscht."}
 
 
 @app.post("/api/admin/shop", dependencies=[Depends(require_admin)])
@@ -1077,7 +1077,7 @@ def admin_create_event(payload: EventCreate) -> dict[str, str]:
 def admin_delete_event(event_id: str) -> dict[str, str]:
     supabase().delete(f"event_signups?event_id=eq.{quote(event_id)}")
     supabase().delete(f"events?id=eq.{quote(event_id)}")
-    return {"message": "Event geloescht."}
+    return {"message": "Event gelöscht."}
 
 
 @app.delete("/api/admin/wishes/{wish_id}", dependencies=[Depends(require_admin)])

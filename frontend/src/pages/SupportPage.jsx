@@ -37,12 +37,12 @@ export function SupportPage({ user }) {
         {message && <div className="notice">{message}</div>}
       </form>
       <div className="panel">
-        <h2>Wuensche</h2>
+        <h2>Wünsche</h2>
         {user && (
           <form className="form" onSubmit={sendWish}>
             <label>Titel<input value={wish.title} onChange={(event) => setWish({ ...wish, title: event.target.value })} /></label>
             <label>Beschreibung<textarea value={wish.description} onChange={(event) => setWish({ ...wish, description: event.target.value })} /></label>
-            <button type="submit">Wunsch veroeffentlichen</button>
+            <button type="submit">Wunsch veröffentlichen</button>
           </form>
         )}
         <div className="list">{wishes.map((item) => <article className="miniCard" key={item.id}><strong>{item.title}</strong><span>{item.description}</span></article>)}</div>

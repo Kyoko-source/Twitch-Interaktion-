@@ -52,7 +52,7 @@ export function AdminPage() {
   async function approveRegistration(id, username) {
     try {
       const result = await adminCall(`/api/admin/registration/${id}/approve`, { method: "POST", body: "{}" });
-      setMessage(`Code fuer ${username}: ${result.code}`);
+      setMessage(`Code für ${username}: ${result.code}`);
       setReloadKey((value) => value + 1);
     } catch (err) {
       setMessage(err.message);

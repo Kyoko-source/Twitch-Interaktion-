@@ -90,7 +90,7 @@ export function GalleryPage({ user, setPage }) {
         <div>
           <p className="kicker">Hall of Fame</p>
           <h1>Kreativwand</h1>
-          <p>Male direkt im Browser, veroeffentliche dein Bild und gib den Werken der Community Reaktionen.</p>
+          <p>Male direkt im Browser, veröffentliche dein Bild und gib den Werken der Community Reaktionen.</p>
         </div>
         <Palette size={64} />
       </div>
@@ -103,10 +103,10 @@ export function GalleryPage({ user, setPage }) {
             <label>Strich<input type="range" min="2" max="28" value={size} onChange={(event) => setSize(event.target.value)} /></label>
           </div>
           <div className="gameActions">
-            <button type="submit">In Hall of Fame veroeffentlichen</button>
+            <button type="submit">In Hall of Fame veröffentlichen</button>
             <button className="ghost" onClick={clearCanvas} type="button">Leeren</button>
           </div>
-          {!user && <div className="notice">Zum Veroeffentlichen bitte einloggen.</div>}
+          {!user && <div className="notice">Zum Veröffentlichen bitte einloggen.</div>}
           {message && <div className="notice">{message}</div>}
         </form>
         <div className="paintSurface">

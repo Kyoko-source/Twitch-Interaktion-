@@ -63,7 +63,7 @@ def current_user(authorization: str | None = Header(default=None)) -> dict[str, 
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[TOKEN_ALGORITHM])
     except JWTError as exc:
-        raise HTTPException(status_code=401, detail="Session ist ungueltig") from exc
+        raise HTTPException(status_code=401, detail="Session ist ungültig") from exc
     username = str(payload.get("sub") or "").strip()
     user = get_user(username)
     if not user:

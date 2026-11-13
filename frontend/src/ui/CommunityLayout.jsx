@@ -15,7 +15,7 @@ export function MemberAvatar({ user, className = "communityAvatar" }) {
   return <span className={className} aria-hidden="true">{user?.avatar_url && !failed ? <img src={user.avatar_url} onError={() => setFailed(true)} alt="" /> : String(user?.username || "AV").slice(0, 2)}</span>;
 }
 
-export function AppShell({ page, setPage, user, onLogout, nav, children }) {
+export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const railRef = useRef(null);
   const menuRef = useRef(null);
@@ -55,6 +55,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, children }) {
       <div className="railBrand"><button className="communityBrand" type="button" onClick={() => navigate("home")} aria-label="Aviary Home"><Crown size={29} strokeWidth={1.7} /><span>Aviary<span className="brandDot">.</span></span></button><button className="railClose quietIcon" aria-label="Menü schließen" onClick={() => setMenuOpen(false)} type="button"><X size={21} /></button></div>
       <nav>{groups.map((group) => <div className="railGroup" key={group.label}><p>{group.label}</p>{group.ids.map((id) => {
         const item = nav.find((entry) => entry.id === id);
+        if (!item || hiddenIds.includes(id)) return null;
         const Icon = item.icon;
         return <button key={id} type="button" className={`railLink ${page === id ? "isActive" : ""}`} aria-current={page === id ? "page" : undefined} onClick={() => navigate(id)}><Icon size={18} strokeWidth={1.7} /><span>{item.label}</span>{page === id && <span className="activeDot" />}</button>;
       })}</div>)}</nav>

@@ -21,11 +21,11 @@ export const gameMeta = {
   "chicken-jump": { title: "Chicken Jump", accent: "#ffcf8a", text: "Spring über Zäune, sammle Federn und erspiele dir Chickens." },
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Sammle goldene Eier und jage mit deiner Jade-Schlange den nächsten Rekord." },
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
-  "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie moeglich Chickens." },
+  "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie möglich Chickens." },
   "quatschfarm": { title: "Quatschfarm", accent: "#f4c76c", text: "Deine Tiere. Deine Stimmen. Dein Chaos." },
   "nullsignal": { title: "NULLSIGNAL", accent: "#ff9c52", text: "Zwei Stimmen. Eine Chance. Entschärft gemeinsam eine echte 3D-Bombe." },
   "after-play": { title: "After Play", accent: "#b5b995", text: "Kinderparadies. Dreizehn Rundgänge. Erkenne, was sich verändert hat." },
-  dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die grosse DnD-Lobby kommt als eigenes Modul zurueck." },
+  dnd: { title: "Dungeons and Dragons", accent: "#c88956", text: "Die große DnD-Lobby kommt als eigenes Modul zurück." },
 };
 
 export const roleMeta = {
@@ -110,7 +110,7 @@ export function CardGrid({ title, items, render }) {
   return (
     <section className="stack">
       <h2>{title}</h2>
-      <div className="grid">{items.length ? items.map(render) : <div className="notice">Noch keine Eintraege.</div>}</div>
+      <div className="grid">{items.length ? items.map(render) : <div className="notice">Noch keine Einträge.</div>}</div>
     </section>
   );
 }
@@ -120,7 +120,7 @@ export function EmptyLogin({ setPage }) {
     <section className="narrow">
       <div className="panel">
         <h1>Bitte anmelden</h1>
-        <p>Dieser Bereich gehoert zu deinem Aviary-Profil.</p>
+        <p>Dieser Bereich gehört zu deinem Aviary-Profil.</p>
         <button onClick={() => setPage("login")} type="button">Zum Login</button>
       </div>
     </section>

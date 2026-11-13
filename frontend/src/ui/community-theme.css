@@ -197,6 +197,7 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .gameTabs button.active, .adminTabs button.active, .segmented button.active, .chatModeTabs button.active { background: #352641; color: #dcc0ff; border-color: #75548d; box-shadow: none; }
 .systematicsEditor { top: 24px; }
 .systematicsBoardWrap { min-width: 0; }
+.systematicsLayout.viewOnly { grid-template-columns: minmax(0, 1fr); }
 .systematicsBoard { background-color: #151219; border-color: #342c41; }
 .systemNode { box-shadow: 0 6px 14px #0003; }
 .chatModeTabs { gap: 6px; }

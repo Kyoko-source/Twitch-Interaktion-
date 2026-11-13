@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { GitBranch, Image as ImageIcon, Link2, Lock, MousePointer2, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { api } from "../api";
+import { userRole } from "./shared";
 
-export function SystematicsPage() {
+export function SystematicsPage({ user }) {
+  // Visitors only look at the tree; the builder is for the admin account.
+  const isAdmin = userRole(user) === "admin";
   const boardRef = useRef(null);
+  const centred = useRef(false);
   const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });
   const [selectedId, setSelectedId] = useState("");
   const [newBox, setNewBox] = useState({ parentId: "", title: "Neue Box", subtitle: "Beschreibung", color: "#b46cff", template: "custom" });
@@ -26,6 +30,16 @@ export function SystematicsPage() {
       })
       .catch((err) => setMessage(err.message));
   }, [reloadKey]);
+
+  // The tree is laid out on a wide fixed canvas; on narrow screens start with
+  // its root in view instead of the empty left edge.
+  useEffect(() => {
+    const board = boardRef.current;
+    const root = doc.nodes[0];
+    if (centred.current || !board || !root) return;
+    centred.current = true;
+    board.scrollLeft = Math.max(0, Number(root.x || 0) + 82 - board.clientWidth / 2);
+  }, [doc.nodes]);
 
   function updateDoc(patch) {
     setDoc((current) => ({ ...current, ...patch }));
@@ -83,7 +97,7 @@ export function SystematicsPage() {
     }
     if (connectFrom !== nodeId) {
       if (descendantsForNode(doc, nodeId).has(connectFrom)) {
-        setMessage("Diese Verbindung wuerde eine Schleife bauen. Bitte anders einsortieren.");
+        setMessage("Diese Verbindung würde eine Schleife bauen. Bitte anders einsortieren.");
         setConnectFrom("");
         return;
       }
@@ -185,9 +199,9 @@ export function SystematicsPage() {
         </div>
         <GitBranch size={68} />
       </div>
-      <div className="systematicsLayout">
+      <div className={`systematicsLayout ${isAdmin ? "" : "viewOnly"}`}>
         <div className="systematicsBoardWrap">
-          <div className="systematicsToolbar">
+          {isAdmin && <div className="systematicsToolbar">
             <div>
               <span className={editing ? "editBadge active" : "editBadge"}>{editing ? "Admin Bearbeitung aktiv" : "Nur Ansicht"}</span>
               {connectFrom && <span className="editBadge active">Zielbox anklicken: verbindet und sortiert automatisch</span>}
@@ -199,7 +213,7 @@ export function SystematicsPage() {
               <button className="ghost" onClick={() => setDoc((current) => autoLayoutSystematics(current))} disabled={!editing} type="button"><RefreshCw size={16} /> Auto sortieren</button>
               <button className="ghost" onClick={save} disabled={!editing} type="button"><Save size={16} /> Speichern</button>
             </div>
-          </div>
+          </div>}
           <div className="systematicsBoard" ref={boardRef}>
             <svg className="systematicsLinks" viewBox="0 0 1080 650" preserveAspectRatio="none">
               {doc.links.map((link) => {
@@ -231,7 +245,7 @@ export function SystematicsPage() {
             ))}
           </div>
         </div>
-        <aside className="systematicsEditor">
+        {isAdmin && <aside className="systematicsEditor">
           <div className="panel form">
             <h2><Lock size={18} /> Admin</h2>
             <label>Admin Passwort<input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} /></label>
@@ -241,8 +255,8 @@ export function SystematicsPage() {
           <div className="panel form systematicsQuickAdd">
             <h2><Plus size={18} /> Neue Box</h2>
             <div className="builderHint">
-              <strong>1. Ziel waehlen</strong>
-              <span>Beispiel: fuer Huhn erst `Voegel` oder `Huehnervoegel` auswaehlen, dann einfuegen.</span>
+              <strong>1. Ziel wählen</strong>
+              <span>Beispiel: für Huhn erst `Vögel` oder `Hühnervögel` auswählen, dann einfügen.</span>
             </div>
             <label>Gehört zu
               <select disabled={!editing} value={newBox.parentId || selected?.id || ""} onChange={(event) => setNewBox({ ...newBox, parentId: event.target.value })}>
@@ -257,14 +271,14 @@ export function SystematicsPage() {
               <strong>{newBox.title}</strong>
               <small>{newBox.subtitle}</small>
             </div>
-            <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfuegen</button>
+            <button onClick={() => addNode({ parentId: newBox.parentId })} disabled={!editing || !newBox.parentId} type="button"><Plus size={16} /> Unter dieser Box einfügen</button>
           </div>
           {selected && (
             <div className="panel form selectedBoxEditor">
               <h2><MousePointer2 size={18} /> Box bearbeiten</h2>
               {selectedPath && <div className="builderHint"><strong>Aktueller Pfad</strong><span>{selectedPath}</span></div>}
               <div className="editorActions">
-                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufuegen</button>
+                <button onClick={() => addNode({ parentId: selected.id, title: "Neue Unterbox" })} disabled={!editing} type="button">Kind hinzufügen</button>
                 <button className="ghost dangerButton" onClick={deleteNode} disabled={!editing || doc.nodes.length <= 1} type="button"><Trash2 size={16} /></button>
               </div>
               <label>Diese Box gehört zu
@@ -304,7 +318,7 @@ export function SystematicsPage() {
               {doc.links.map((link) => <button disabled={!editing} onClick={() => removeLink(link.source, link.target)} type="button" key={`${link.source}-${link.target}`}>{nodeById.get(link.source)?.title}{" -> "}{nodeById.get(link.target)?.title}</button>)}
             </div>
           </div>
-        </aside>
+        </aside>}
       </div>
     </section>
   );
@@ -317,12 +331,12 @@ export function TypeIcon() {
 export const systematicsTemplates = [
   { id: "custom", label: "Eigene Box", title: "Neue Box", subtitle: "Beschreibung", color: "#b46cff" },
   { id: "kingdom", label: "Reich", title: "Tierreich", subtitle: "Animalia", color: "#ffcf8a" },
-  { id: "class", label: "Klasse", title: "Voegel", subtitle: "Aves", color: "#7af4dc" },
-  { id: "order", label: "Ordnung", title: "Huehnervoegel", subtitle: "Galliformes", color: "#ff6fb7" },
+  { id: "class", label: "Klasse", title: "Vögel", subtitle: "Aves", color: "#7af4dc" },
+  { id: "order", label: "Ordnung", title: "Hühnervögel", subtitle: "Galliformes", color: "#ff6fb7" },
   { id: "family", label: "Familie", title: "Fasanenartige", subtitle: "Phasianidae", color: "#c88956" },
-  { id: "genus", label: "Gattung", title: "Kammhuehner", subtitle: "Gallus", color: "#b46cff" },
+  { id: "genus", label: "Gattung", title: "Kammhühner", subtitle: "Gallus", color: "#b46cff" },
   { id: "species", label: "Art", title: "Haushuhn", subtitle: "Gallus gallus domesticus", color: "#ffcf8a" },
-  { id: "mammal", label: "Saeugetier", title: "Saeugetiere", subtitle: "Mammalia", color: "#7af4dc" },
+  { id: "mammal", label: "Säugetier", title: "Säugetiere", subtitle: "Mammalia", color: "#7af4dc" },
   { id: "reptile", label: "Reptil", title: "Reptilien", subtitle: "Reptilia", color: "#8edb75" },
 ];
 

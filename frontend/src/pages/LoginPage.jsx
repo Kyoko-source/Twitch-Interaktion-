@@ -41,7 +41,7 @@ export function LoginPage({ onLogin }) {
           <label>Twitch-Name<input value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
           <label>Passwort<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
           {mode === "complete" && <label>Einmalcode<input value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} /></label>}
-          <button type="submit">{mode === "login" ? "Anmelden" : mode === "complete" ? "Registrierung abschliessen" : "Anfragen"}</button>
+          <button type="submit">{mode === "login" ? "Anmelden" : mode === "complete" ? "Registrierung abschließen" : "Anfragen"}</button>
         </form>
         {message && <div className="notice">{message}</div>}
       </div>

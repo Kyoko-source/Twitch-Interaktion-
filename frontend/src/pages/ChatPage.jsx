@@ -84,7 +84,7 @@ export function ChatPage({ user, setPage }) {
         setMessages(next);
         setNotice("");
       } catch (err) {
-        if (alive) setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausfuehren." : err.message);
+        if (alive) setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausführen." : err.message);
       } finally {
         if (alive) setLoading(false);
       }
@@ -124,7 +124,7 @@ export function ChatPage({ user, setPage }) {
     const text = body.trim();
     if (!text) return;
     if (mode === "private" && !selectedUser) {
-      setNotice("Waehle zuerst ein Mitglied fuer den privaten Chat.");
+      setNotice("Wähle zuerst ein Mitglied für den privaten Chat.");
       return;
     }
     const path = mode === "global" ? "/api/chat/global" : `/api/chat/private/${encodeURIComponent(selectedUser)}`;
@@ -134,7 +134,7 @@ export function ChatPage({ user, setPage }) {
       setBody("");
       setNotice("");
     } catch (err) {
-      setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausfuehren." : err.message);
+      setNotice(err.message.includes("chat_messages") ? "Chat-Tabelle fehlt noch. Bitte add_chat_tables.sql in Supabase ausführen." : err.message);
     }
   }
 
@@ -178,7 +178,7 @@ export function ChatPage({ user, setPage }) {
           <div className="chatWindowHead">
             <div>
               <span>{mode === "global" ? "Globalchat" : "Privater Chat"}</span>
-              <strong>{mode === "global" ? "Alle online im Aviary" : currentTarget?.username || "Mitglied waehlen"}</strong>
+              <strong>{mode === "global" ? "Alle online im Aviary" : currentTarget?.username || "Mitglied wählen"}</strong>
             </div>
             {mode === "private" && currentTarget && <RoleBadge user={currentTarget} />}
           </div>
@@ -221,7 +221,7 @@ export function ChatPage({ user, setPage }) {
             <input
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              placeholder={mode === "global" ? "Nachricht an alle Online-Mitglieder..." : selectedUser ? `Nachricht an ${selectedUser}...` : "Erst Mitglied links waehlen..."}
+              placeholder={mode === "global" ? "Nachricht an alle Online-Mitglieder..." : selectedUser ? `Nachricht an ${selectedUser}...` : "Erst Mitglied links wählen..."}
               maxLength={1200}
               disabled={mode === "private" && !selectedUser}
             />
