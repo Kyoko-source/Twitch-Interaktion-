@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
+import secrets
 from typing import Any
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from jose import JWTError, jwt
 from passlib.hash import pbkdf2_sha256
 
 from .config import get_settings
 from .supabase import supabase
 from .economy import economy
+from . import ratelimit
 
 
 TOKEN_ALGORITHM = "HS256"
@@ -37,7 +39,11 @@ def verify_password(password: str, password_hash: str | None) -> bool:
         except ValueError:
             return False
     legacy_hash = hashlib.sha256(f"{password}{LEGACY_PASSWORD_SALT}".encode("utf-8")).hexdigest()
-    return legacy_hash == password_hash
+    return secrets.compare_digest(legacy_hash, password_hash)
+
+
+def needs_rehash(password_hash: str | None) -> bool:
+    return bool(password_hash) and not password_hash.startswith("$pbkdf2-sha256$")
 
 
 def hash_password(password: str) -> str:
@@ -70,6 +76,15 @@ def current_user(authorization: str | None = Header(default=None)) -> dict[str, 
     return user
 
 
-def require_admin(x_admin_password: str | None = Header(default=None)) -> None:
-    if x_admin_password != get_settings().admin_password:
+ADMIN_FAIL_LIMIT = 8
+ADMIN_FAIL_WINDOW = 15 * 60
+
+
+def require_admin(request: Request, x_admin_password: str | None = Header(default=None)) -> None:
+    expected = get_settings().admin_password
+    if not expected:
+        raise HTTPException(status_code=403, detail="Adminbereich ist auf dem Server nicht eingerichtet")
+    ratelimit.check(request, "admin", ADMIN_FAIL_LIMIT, ADMIN_FAIL_WINDOW)
+    if not x_admin_password or not secrets.compare_digest(x_admin_password.encode("utf-8"), expected.encode("utf-8")):
+        ratelimit.record(request, "admin")
         raise HTTPException(status_code=403, detail="Admin-Passwort falsch")

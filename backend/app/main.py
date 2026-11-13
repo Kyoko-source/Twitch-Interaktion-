@@ -1,16 +1,19 @@
+import os
 import re
 import secrets
 import json
+from threading import Lock
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from .auth import create_access_token, current_user, hash_password, require_admin, verify_password
+from .auth import create_access_token, current_user, hash_password, needs_rehash, require_admin, verify_password
+from . import ratelimit
 from .config import get_settings
 from .supabase import supabase
 from .live_news import router as live_news_router
@@ -382,22 +385,39 @@ def user_role(username: str, fallback: Any = None) -> str:
     return stored or normalize_role(fallback)
 
 
+CHAT_LOCK = Lock()
+CHAT_GLOBAL_KEEP = 600
+CHAT_PRIVATE_KEEP = 3000
+
+
 def load_chat_messages() -> list[dict[str, Any]]:
-    try:
-        if not CHAT_MESSAGES_FILE.exists():
-            return []
-        data = json.loads(CHAT_MESSAGES_FILE.read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else []
-    except (OSError, json.JSONDecodeError):
+    if not CHAT_MESSAGES_FILE.exists():
         return []
+    try:
+        data = json.loads(CHAT_MESSAGES_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        # Never answer with an empty history that the next save would persist.
+        raise HTTPException(503, "Chat ist gerade nicht lesbar") from error
+    return data if isinstance(data, list) else []
 
 
 def save_chat_messages(messages: list[dict[str, Any]]) -> None:
+    public = [m for m in messages if m.get("channel") != "private"][-CHAT_GLOBAL_KEEP:]
+    private = [m for m in messages if m.get("channel") == "private"][-CHAT_PRIVATE_KEEP:]
+    keep = {id(m) for m in (*public, *private)}
+    trimmed = [m for m in messages if id(m) in keep]
     CHAT_MESSAGES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CHAT_MESSAGES_FILE.write_text(json.dumps(messages[-600:], ensure_ascii=False, indent=2), encoding="utf-8")
+    temp = CHAT_MESSAGES_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps(trimmed, ensure_ascii=False), encoding="utf-8")
+    os.replace(temp, CHAT_MESSAGES_FILE)
 
 
 def store_chat_message(channel: str, sender: str, body: str, recipient: str | None = None) -> dict[str, Any]:
+    with CHAT_LOCK:
+        return _store_chat_message(channel, sender, body, recipient)
+
+
+def _store_chat_message(channel: str, sender: str, body: str, recipient: str | None = None) -> dict[str, Any]:
     messages = load_chat_messages()
     message = {
         "id": secrets.token_hex(12),
@@ -447,12 +467,24 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+LOGIN_FAIL_LIMIT = 10
+LOGIN_FAIL_WINDOW = 15 * 60
+
+
 @app.post("/api/auth/login")
-def login(payload: LoginRequest) -> dict[str, Any]:
+def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
+    ratelimit.check(request, "login", LOGIN_FAIL_LIMIT, LOGIN_FAIL_WINDOW)
     username = clean_username(payload.username)
     user = single_user(username)
     if not user or not verify_password(payload.password, user.get("password_hash")):
+        ratelimit.record(request, "login")
         raise HTTPException(status_code=401, detail="Login fehlgeschlagen")
+    if needs_rehash(user.get("password_hash")):
+        # Old accounts used one fixed salt for everyone; upgrade on success.
+        try:
+            supabase().patch(f"users?username=eq.{quote(username)}", {"password_hash": hash_password(payload.password)})
+        except HTTPException:
+            pass
     if economy().access(str(user["username"]))["banned"]:
         raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
     return {"token": create_access_token(username), "user": public_user(user)}
@@ -464,7 +496,8 @@ def me(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
 
 
 @app.post("/api/auth/registration-requests")
-def request_registration(payload: RegistrationRequest) -> dict[str, str]:
+def request_registration(payload: RegistrationRequest, request: Request) -> dict[str, str]:
+    ratelimit.hit(request, "register", 5, 60 * 60)
     username = clean_username(payload.username)
     if single_user(username):
         raise HTTPException(status_code=409, detail="User existiert bereits")
@@ -480,7 +513,8 @@ def request_registration(payload: RegistrationRequest) -> dict[str, str]:
 
 
 @app.post("/api/auth/complete-registration")
-def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
+def complete_registration(payload: RegistrationComplete, request: Request) -> dict[str, Any]:
+    ratelimit.check(request, "login", LOGIN_FAIL_LIMIT, LOGIN_FAIL_WINDOW)
     username = clean_username(payload.username)
     if economy().access(username)["banned"]:
         raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
@@ -497,6 +531,7 @@ def complete_registration(payload: RegistrationComplete) -> dict[str, Any]:
             approved_request = request_row
             break
     if not approved_request:
+        ratelimit.record(request, "login")
         raise HTTPException(status_code=400, detail="Name, Passwort oder Einmalcode stimmt nicht")
 
     existing = single_user(username)
@@ -601,7 +636,8 @@ def chat_global(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, 
 
 
 @app.post("/api/chat/global")
-def create_global_message(payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def create_global_message(request: Request, payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    ratelimit.hit(request, "chat", 30, 60)
     body = payload.body.strip()
     if not body:
         raise HTTPException(status_code=400, detail="Nachricht ist leer")
@@ -621,7 +657,8 @@ def chat_private(username: str, user: dict[str, Any] = Depends(current_user)) ->
 
 
 @app.post("/api/chat/private/{username}")
-def create_private_message(username: str, payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def create_private_message(request: Request, username: str, payload: ChatCreate, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    ratelimit.hit(request, "chat", 30, 60)
     recipient = clean_username(username)
     sender = str(user["username"])
     if recipient == sender:
@@ -847,7 +884,8 @@ def wishes() -> list[dict[str, Any]]:
 
 
 @app.post("/api/support")
-def create_support(payload: SupportCreate) -> dict[str, str]:
+def create_support(payload: SupportCreate, request: Request) -> dict[str, str]:
+    ratelimit.hit(request, "support", 6, 60 * 60)
     supabase().post(
         "support_messages",
         {

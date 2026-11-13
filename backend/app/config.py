@@ -1,3 +1,5 @@
+import secrets
+import sys
 from functools import lru_cache
 from os import getenv
 
@@ -9,8 +11,18 @@ class Settings:
         self.supabase_service_key = (
             getenv("SUPABASE_SERVICE_KEY") or getenv("SUPABASE_KEY") or self.supabase_anon_key
         )
-        self.jwt_secret = getenv("AVIARY_JWT_SECRET") or getenv("SECRET_KEY") or "change-me-in-production"
-        self.admin_password = getenv("AVIARY_ADMIN_PASSWORD") or "einsmarello"
+        # No built-in fallbacks: this repository is public, so any default here
+        # would be a published password. Without a JWT secret every restart
+        # gets a random one (users must log in again); without an admin
+        # password the admin area stays locked.
+        self.jwt_secret = getenv("AVIARY_JWT_SECRET") or getenv("SECRET_KEY") or ""
+        if len(self.jwt_secret) < 16 or self.jwt_secret == "change-me-in-production":
+            print("WARNING: AVIARY_JWT_SECRET is missing or too short; using a random per-process secret.", file=sys.stderr)
+            self.jwt_secret = secrets.token_urlsafe(48)
+        self.admin_password = getenv("AVIARY_ADMIN_PASSWORD") or ""
+        if len(self.admin_password) < 12 or self.admin_password in {"einsmarello", "bitte-admin-passwort-setzen"}:
+            print("WARNING: AVIARY_ADMIN_PASSWORD is missing, too short or a published default; admin area disabled.", file=sys.stderr)
+            self.admin_password = ""
         self.public_base_url = getenv("PUBLIC_BASE_URL") or "http://62.238.49.219"
         self.cors_origins = [
             origin.strip()
