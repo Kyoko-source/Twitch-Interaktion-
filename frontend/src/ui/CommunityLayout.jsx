@@ -93,12 +93,28 @@ export function Dashboard({ user, data, loading, error, setPage, games, roleBadg
   const earned = user?.level_progress || 0;
   const target = user?.level_target || 250;
   return <section className="communityDashboard">
-    <div className="dashboardIntro"><div><h1>{user ? "Schön, dass du da bist." : "Willkommen im Aviary."}</h1><p>Dein Platz für Games, Rewards und Community.</p></div><button className="outlineButton" type="button" onClick={() => setPage(user ? "profile" : "login")}><User size={16} />{user ? "Profil anzeigen" : "Jetzt anmelden"}</button></div>
-    <section className={`welcomeStrip ${!user ? "welcomeGuest" : ""}`} aria-label="Dein Fortschritt">
+    <section className="neonHero" aria-label="Willkommen">
+      <div className="neonHeroCopy">
+        <span className="kicker">{user ? `Hey ${user.username}` : "Community von einsmarello"}</span>
+        <h1>{user ? <>Bereit für den <em>nächsten Highscore?</em></> : <>Spielen. Sammeln. <em>Glänzen.</em></>}</h1>
+        <p>Minispiele zocken, Chickens verdienen und im Shop gegen echte Stream-Momente eintauschen. Dein Schwarm wartet schon.</p>
+        <div className="neonHeroActions">
+          <button type="button" onClick={() => setPage("games")}><Play size={18} fill="currentColor" strokeWidth={0} />Jetzt spielen</button>
+          <button type="button" className="ghost" onClick={() => setPage(user ? "shop" : "login")}>{user ? <><ShoppingBasket size={18} />Zum Shop</> : <><LogIn size={18} />Mitmachen</>}</button>
+        </div>
+      </div>
+      <div className="neonHeroStats">
+        <div className="neonStat" style={{ "--stat": "#b56cff" }}><Users /><span><strong>{number(data.stats?.users)}</strong><small>Mitglieder im Schwarm</small></span></div>
+        <div className="neonStat" style={{ "--stat": "#ffc65a" }}><ShoppingBasket /><span><strong>{number(data.stats?.chickens)}</strong><small>Chickens erspielt</small></span></div>
+        <div className="neonStat" style={{ "--stat": "#45f0a0" }}><Sparkles /><span><strong>{online.length}</strong><small><span className="liveDot" style={{ display: "inline-block", marginRight: 6 }} />gerade online</small></span></div>
+      </div>
+      <img className="neonMascot" src="/assets/aviary-mascot.png" alt="" />
+    </section>
+    {user && <section className={`welcomeStrip ${!user ? "welcomeGuest" : ""}`} aria-label="Dein Fortschritt">
       <MemberAvatar user={user} className="communityAvatar welcomeAvatar" />
       <div className="welcomeProgress"><div className="welcomeName"><h2>{user?.username || "Dein nächstes Abenteuer wartet."}</h2>{user && roleBadge}</div>{user ? <><div className="progressCaption"><span>Level {level}</span><small>{earned} / {target} Chickens zum nächsten Level</small></div><div className="communityProgress" role="progressbar" aria-label="Fortschritt zum nächsten Level" aria-valuenow={earned} aria-valuemin={0} aria-valuemax={target}><span style={{ width: `${earned / target * 100}%` }} /></div></> : <p>Spiel mit, sammle Chickens und werde Teil unseres Schwarms.</p>}</div>
       <img className="welcomeMascot" src="/assets/aviary-mascot.png" alt="" />
-    </section>
+    </section>}
     {error && <div className="notice error" role="alert">Die Community-Daten konnten nicht geladen werden. Bitte versuche es später erneut.</div>}
     {loading && <div className="notice" role="status">Deine Community wird geladen …</div>}
     <div className="dashboardColumns">
