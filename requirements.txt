@@ -1,6 +1,0 @@
-streamlit
-pandas
-requests
-altair
-pillow
-streamlit-drawable-canvas-fix==0.9.7

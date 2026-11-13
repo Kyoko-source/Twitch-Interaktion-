@@ -16,7 +16,7 @@ class Settings:
         # gets a random one (users must log in again); without an admin
         # password the admin area stays locked.
         self.jwt_secret = getenv("AVIARY_JWT_SECRET") or getenv("SECRET_KEY") or ""
-        if len(self.jwt_secret) < 16 or self.jwt_secret == "change-me-in-production":
+        if len(self.jwt_secret) < 16 or self.jwt_secret in {"change-me-in-production", "bitte-langen-zufaelligen-wert-setzen"}:
             print("WARNING: AVIARY_JWT_SECRET is missing or too short; using a random per-process secret.", file=sys.stderr)
             self.jwt_secret = secrets.token_urlsafe(48)
         self.admin_password = getenv("AVIARY_ADMIN_PASSWORD") or ""

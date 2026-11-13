@@ -1,81 +1,72 @@
-# Twitch-Interaktion-
+# Twitch-Interaktion – Community-Webseite
 
-## Railway Deployment
+Community-Seite rund um den Twitch-Kanal: Mitglieder, Chat, Hühner-Wirtschaft
+mit Shop, Ranglisten, Events, Hall of Fame, Minispiele und OBS-Overlays für den
+Stream. Live unter `https://62.238.49.219`.
 
-Das Repository enthält ein `Dockerfile` und eine `railway.json` für Railway.
-Folgende Variablen müssen im Railway-Service gesetzt werden:
+## Aufbau
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_KEY`
-- `TWITCH_CLIENT_ID`
-- `TWITCH_CLIENT_SECRET`
-- `TWITCH_REDIRECT_URI`
+| Ordner | Inhalt |
+|---|---|
+| `frontend/` | React/Vite-Webseite. Seiten liegen in `src/pages/`, die Minispiele in eigenen Ordnern (`snake/`, `jump/`, `pinball/`, `survivor/`, `farm/`, `nullsignal/`, `nachtwache/`). |
+| `backend/` | FastAPI. `app/main.py` enthält die Community-Endpunkte, Wirtschaft (`economy.py`), Live-News, Kaufalarme, Quatschfarm, Nullsignal und After-Play-Multiplayer liegen in eigenen Modulen. |
+| `deploy/` | Docker Compose (Backend, Frontend/nginx, Caddy mit HTTPS) und Veröffentlichungsskripte. |
+| `database/supabase/` | SQL-Skripte, mit denen die Supabase-Tabellen angelegt wurden. |
+| `games/kinderparadies/` | Das Godot-Spiel *After Play* (eigene README). |
+| `assets/` | Original-Musik und Kanaltrailer. |
+| `docs/` | Notizen zu einzelnen Bereichen (Hühner/Shop, Nachtwache, Nullsignal). |
 
-`TWITCH_REDIRECT_URI` muss auf die öffentliche Railway-Domain zeigen. Railway setzt
-`PORT` automatisch; der Container startet Streamlit auf diesem Port.
+Daten: Konten, News, Shop-Katalog, Events und Galerie liegen in Supabase. Das
+Hühner-Guthaben, Spielrunden, Käufe und Alarme liegen transaktional in SQLite
+unter `/data` im Backend-Container, ebenso Chat, Rollen und Systematik.
 
-## Hetzner Deployment
-
-Für einen eigenen Hetzner-Server liegen vorbereitete Dateien im Ordner `deploy/`:
-
-- `deploy/docker-compose.hetzner.yml`
-- `deploy/Caddyfile`
-- `deploy/.env.example`
-- `deploy/HETZNER.md`
-
-Die Kurzfassung: Server mit Ubuntu 24.04 erstellen, Domain auf die Server-IP zeigen lassen, Docker installieren, Repository nach `/opt/twitch-interaktion` klonen, `deploy/.env` ausfüllen und mit Docker Compose starten.
-
-Die vollständige Schritt-für-Schritt-Anleitung steht in `deploy/HETZNER.md`.
-
-## Neue Web-App ohne Streamlit
-
-Der Umbau von Streamlit zu einer klassischen Web-App liegt parallel in:
-
-- `backend/`: FastAPI API fuer Supabase, Login, Profile, Shop, Events, Support und Admin-Grundfunktionen
-- `frontend/`: React/Vite Frontend
-- `deploy/docker-compose.web.yml`: Docker Compose fuer Backend + Frontend + Caddy
-
-Lokaler Start fuer die neue Variante:
+## Lokal starten
 
 ```bash
 cd backend
+pip install -r requirements.txt
 uvicorn app.main:app --reload
+
 cd ../frontend
 npm install
 npm run dev
 ```
 
-Auf dem Server kann die neue Variante spaeter mit `deploy/docker-compose.web.yml` statt `deploy/docker-compose.hetzner.yml` gestartet werden.
+Das Backend braucht dieselben Umgebungsvariablen wie auf dem Server (siehe
+`deploy/.env.example`).
 
-## Supabase Datenbank
+## Tests
 
-Falls du die neue Gast-Registrierung nutzen möchtest, lege in der Supabase-Tabelle `users` die Spalte `password_hash` an.
-
-Du kannst dazu den SQL-Editor in Supabase verwenden und folgenden Befehl ausführen:
-
-```sql
-ALTER TABLE public.users
-ADD COLUMN IF NOT EXISTS password_hash text;
+```bash
+cd backend && PYTHONPATH=tests python -m unittest discover -s tests
+cd frontend && npm run build && npx playwright test
 ```
 
-Alternativ findest du die gleiche Migration in der Datei `add_password_hash_column.sql`.
+## Server
 
-## Daily Rewards
+Ubuntu-Server mit Docker. Repository in `/opt/twitch-interaktion`, Zugangsdaten
+in `deploy/.env` (Vorlage: `deploy/.env.example`, die echte Datei ist nie in
+Git). **`AVIARY_JWT_SECRET` und `AVIARY_ADMIN_PASSWORD` müssen gesetzt sein**:
+Das Repository ist öffentlich, es gibt deshalb keine eingebauten Standardwerte.
 
-Für die täglichen Login-Belohnungen muss zusätzlich die Tabelle `daily_rewards` angelegt werden.
-Die Migration liegt in `add_daily_rewards_table.sql` und kann im Supabase SQL-Editor ausgeführt werden.
+Erstinstallation (einmalig):
 
-## News, Patch Notes, Shop-Kategorien und Bestrafungsrad
+```bash
+apt update && apt install -y ca-certificates curl git
+curl -fsSL https://get.docker.com | sh
+git clone https://github.com/Kyoko-source/Twitch-Interaktion-.git /opt/twitch-interaktion
+cd /opt/twitch-interaktion && cp deploy/.env.example deploy/.env && nano deploy/.env
+docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env up -d --build
+```
 
-Für den News-Reiter muss `add_news_posts_table.sql` ausgeführt werden.
-Für bearbeitbare Patch Notes im Admin-Bereich muss `add_patch_notes_table.sql` ausgeführt werden.
-Für Shop-Kategorien, Kaufstatus und das Bestrafungsrad muss `add_shop_categories_and_wheel.sql` ausgeführt werden.
+Update nach einem Push auf `main`:
 
-## Chicken-Markt
+```bash
+cd /opt/twitch-interaktion
+git pull --ff-only
+docker compose -f deploy/docker-compose.web.yml --env-file deploy/.env up -d --build backend frontend
+```
 
-Für den Kurs-Reiter mit Marktgegenständen, Käufen, Verkäufen und Profil-Inventar muss `add_market_tables.sql` ausgeführt werden.
-
-## Dungeons and Dragons
-
-Für den Dungeons-and-Dragons-Reiter mit Lobbys, Party und Würfelchronik muss `add_dnd_tables.sql` ausgeführt werden.
+HTTPS und die HTTP-Ausnahmen für OBS-Overlays: `deploy/WEB-HTTPS.md`.
+After-Play-Releases (Spiel-ZIP und Webseite): `docs/NACHTWACHE.md` und
+`deploy/publish-kinderparadies.ps1`.
