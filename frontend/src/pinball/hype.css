@@ -2,7 +2,7 @@
 .pbStage { container-type: size; }
 .pbHypeRoot { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
 
-.pbGirl { position: absolute; top: 1%; height: 34%; max-height: 300px; aspect-ratio: 3 / 4; transition: transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.pbGirl { position: absolute; top: 1%; height: 40%; max-height: 380px; aspect-ratio: 15 / 28; transition: transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
 .pbGirl .pbChibi { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 18px #0009); }
 .pbGirl-left { left: 0; transform: translateX(-115%) rotate(-18deg); transform-origin: 0% 100%; }
 .pbGirl-right { right: 0; transform: translateX(115%) rotate(18deg); transform-origin: 100% 100%; }
@@ -18,7 +18,7 @@
 .pbChibi[data-mood="cheer"] .pbArm-l { animation: pbWaveL 0.34s ease-in-out infinite alternate; }
 .pbChibi[data-mood="cheer"] .pbArm-r { animation: pbWaveR 0.34s ease-in-out infinite alternate-reverse; }
 .pbChibi .pbSparkles { animation: pbTwinkle 0.4s steps(2) infinite; }
-.pbChibi .pbAhoge { transform-origin: 120px 58px; animation: pbAhoge 0.6s ease-in-out infinite alternate; }
+.pbChibi .pbAhoge { transform-origin: 150px 62px; animation: pbAhoge 0.6s ease-in-out infinite alternate; }
 
 .pbBubble {
   position: absolute;
@@ -33,20 +33,21 @@
   box-shadow: 4px 4px 0 #ff3fb4;
   animation: pbBubbleIn 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
 }
-.pbGirl-left .pbBubble { top: 96%; left: 12%; }
-.pbGirl-right .pbBubble { top: 96%; right: 12%; box-shadow: -4px 4px 0 #3fe7ff; }
+.pbGirl-left .pbBubble { top: 92%; left: 8%; }
+.pbGirl-right .pbBubble { top: 92%; right: 8%; box-shadow: -4px 4px 0 #3fe7ff; }
 .pbBubble { font-size: clamp(11px, 3.4cqw, 18px); }
 
 /* Wide fullscreen: the girls live in the empty space left and right of the cabinet. */
 @media (min-aspect-ratio: 5/4) {
-  .pbFull .pbGirl { top: auto; bottom: 1%; height: 74%; max-height: none; }
+  .pbFull .pbGirl { top: auto; bottom: 1%; height: 88%; max-height: none; }
   .pbFull .pbGirl-left { left: 2%; transform: none; }
   .pbFull .pbGirl-right { right: 2%; transform: none; }
   .pbFull .pbGirl .pbChibi { animation: pbGirlBob 0.9s ease-in-out infinite alternate; }
   .pbFull .pbGirl.show .pbChibi { animation-duration: 0.45s; }
   .pbFull .pbGirl[data-mood="cheer"] .pbChibi, .pbFull .pbGirl[data-mood="hype"] .pbChibi { animation: pbGirlJump 0.32s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }
-  .pbFull .pbBubble { top: -2%; left: 50%; right: auto; transform: translateX(-50%); font-size: clamp(16px, 2.2vw, 30px); }
-  .pbFull .pbGirl-left .pbBubble, .pbFull .pbGirl-right .pbBubble { left: 50%; right: auto; }
+  .pbFull .pbBubble { top: 6%; font-size: clamp(16px, 2vw, 28px); }
+  .pbFull .pbGirl-left .pbBubble { left: 74%; right: auto; }
+  .pbFull .pbGirl-right .pbBubble { right: 74%; left: auto; }
   .pbFull .pbStreak { left: 3%; top: 3%; bottom: auto; font-size: clamp(60px, 13vh, 160px); }
 }
 
@@ -155,8 +156,8 @@
 @keyframes pbGirlBob { from { transform: translateY(0); } to { transform: translateY(-2.5%); } }
 @keyframes pbGirlJump { from { transform: translateY(0) scale(1, 1); } to { transform: translateY(-9%) scale(0.97, 1.03); } }
 @keyframes pbGirlShake { from { transform: translateX(-1.5%); } to { transform: translateX(1.5%); } }
-@keyframes pbWaveL { from { transform: rotate(112deg); } to { transform: rotate(150deg); } }
-@keyframes pbWaveR { from { transform: rotate(-112deg); } to { transform: rotate(-150deg); } }
+@keyframes pbWaveL { from { transform: rotate(138deg); } to { transform: rotate(170deg); } }
+@keyframes pbWaveR { from { transform: rotate(-138deg); } to { transform: rotate(-170deg); } }
 @keyframes pbTwinkle { 50% { opacity: 0.2; } }
 @keyframes pbAhoge { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
 @keyframes pbBubbleIn { 0% { opacity: 0; transform: scale(0.3) rotate(-10deg); } 100% { opacity: 1; } }
