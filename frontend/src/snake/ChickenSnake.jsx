@@ -1,17 +1,45 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Crown, Flag, Maximize, Minimize, Moon, Pause, Play, RefreshCw, Save, Trophy, Volume2, VolumeX } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Crown, Flag, Maximize, Minimize, Moon, Music, Pause, Play, RefreshCw, Save, Trophy, Volume2, VolumeX } from "lucide-react";
 import { api } from "../api";
 import { useGameRewards } from "../economy/useGameRewards";
 import { mountSnakeGame } from "./SnakeScene";
 import "./snake.css";
 
-const INITIAL = { status: "loading", score: 0, eggs: 0, level: 1, length: 5, combo: 0, reason: "" };
+const INITIAL = { status: "loading", score: 0, eggs: 0, level: 1, length: 5, combo: 0, bestCombo: 0, reason: "", cause: "", frenzy: false, slow: false };
 const KEYS = { arrowup: "up", w: "up", arrowdown: "down", s: "down", arrowleft: "left", a: "left", arrowright: "right", d: "right" };
 const number = (value) => Number(value).toLocaleString("de-DE");
 
 function readMuted() {
   try { return localStorage.getItem("aviary-snake-muted") === "true"; } catch { return false; }
 }
+function readMusic() {
+  try { return localStorage.getItem("aviary-snake-music") !== "false"; } catch { return true; }
+}
+
+// Count-up for the final score.
+function RollingScore({ value }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const start = performance.now(), ms = Math.min(1600, 400 + value * 2);
+    let frame = 0;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / ms);
+      setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <>{number(shown)}</>;
+}
+
+const LEGEND = [
+  ["egg", "Goldenes Ei", "10 Punkte × Combo"],
+  ["rainbow", "Regenbogen-Ei", "Fieber: doppelte Punkte"],
+  ["crystal", "Zeitkristall", "Zeitlupe für 6 Sekunden"],
+  ["star", "Häutungs-Stern", "Schwanz wird kürzer"],
+  ["thorn", "Dornenranke", "Ab Level 3 – tödlich!"],
+];
 
 function KeyHint() {
   return <span className="snakeKeyHint"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>/ Pfeiltasten</span><i>·</i><span><kbd>P</kbd> Pause</span></span>;
@@ -42,6 +70,7 @@ export function ChickenSnake({ user, renderScoreboard }) {
   const mounted = useRef(false), submitLock = useRef(false);
   const [run, setRun] = useState(INITIAL);
   const [muted, setMuted] = useState(readMuted);
+  const [musicOn, setMusicOn] = useState(readMusic);
   const [expanded, setExpanded] = useState(false);
   const [fallbackFullscreen, setFallbackFullscreen] = useState(false);
   const [message, setMessage] = useState("");
@@ -61,18 +90,17 @@ export function ChickenSnake({ user, renderScoreboard }) {
     setRun(INITIAL); setAssetError("");
     mountSnakeGame(canvas.current, (next) => { if (!disposed) setRun(next); }, (event) => {
       if (disposed) return;
-      let text = "";
-      if (event.type === "level") text = `Level ${event.level} · Das Tempo steigt!`;
-      if (event.type === "eat" && event.combo > 1) text = `Sammelserie ×${event.combo}`;
-      if (text) {
-        clearTimeout(feedbackTimer.current); setFeedback(text);
-        feedbackTimer.current = setTimeout(() => setFeedback(""), 1800);
+      // Big moments also pulse the frame around the garden.
+      if (["level", "bonus", "collision"].includes(event.type) || (event.type === "eat" && event.combo >= 3)) {
+        clearTimeout(feedbackTimer.current); setFeedback(event.type);
+        feedbackTimer.current = setTimeout(() => setFeedback(""), 700);
       }
     }).then((instance) => {
       game = instance;
       if (disposed) { game.destroy(); return; }
       scene.current = game;
       game.setMuted(readMuted());
+      game.setMusic(readMusic());
     }).catch((error) => { if (!disposed) setAssetError(error.message); });
     return () => { disposed = true; game?.destroy(); scene.current = null; };
   }, [assetAttempt]);
@@ -159,6 +187,12 @@ export function ChickenSnake({ user, renderScoreboard }) {
     finally { submitLock.current = false; }
   }
 
+  function toggleMusic() {
+    const next = !musicOn;
+    setMusicOn(next); scene.current?.setMusic(next);
+    try { localStorage.setItem("aviary-snake-music", String(next)); } catch { /* Optional preference. */ }
+  }
+
   function toggleSound() {
     const next = !muted;
     setMuted(next); scene.current?.setMuted(next);
@@ -194,15 +228,19 @@ export function ChickenSnake({ user, renderScoreboard }) {
   const active = run.status === "playing", paused = run.status === "paused", ended = run.status === "ended";
   const fullscreenActive = expanded || fallbackFullscreen;
   const newRecord = ended && record !== null && run.score > record;
-  const endTitle = run.reason === "won" ? "Der Garten gehört dir!" : run.reason === "collision" ? "Deine Spur war schneller." : "Gut geschlängelt!";
+  useEffect(() => {
+    if (newRecord) scene.current?.audio.voice("vo-f-new-highscore", 0.9);
+  }, [newRecord]);
+  const endTitle = run.reason === "won" ? "Der Garten gehört dir!" : run.reason === "collision" ? run.cause === "thorn" ? "Die Dornen waren stärker." : "Deine Spur war schneller." : "Gut geschlängelt!";
 
   return (
-    <section ref={root} className={`snakeGame ${fallbackFullscreen ? "isExpanded" : ""}`} data-status={run.status} aria-label="Chicken Snake">
+    <section ref={root} className={`snakeGame ${fallbackFullscreen ? "isExpanded" : ""} ${run.frenzy && run.status === "playing" ? "isFrenzy" : ""} ${run.slow && run.status === "playing" ? "isSlow" : ""} ${feedback ? `pulse-${feedback}` : ""}`} data-status={run.status} aria-label="Chicken Snake">
       <header className="snakeHeader">
         <div><h2>Chicken Snake</h2><p>Kleine Schlange. Große Ambitionen.</p></div>
         <dl className="snakeHud" aria-live="off">
           <div><dt>Score</dt><dd data-testid="snake-score">{number(run.score)}</dd></div>
           <div><dt>Level</dt><dd>{run.level}</dd></div>
+          <div className={run.combo >= 2 ? "isHot" : ""}><dt>Combo</dt><dd>×{Math.max(1, run.combo)}</dd></div>
           <div><dt>Rekord</dt><dd>{record === null ? "–" : number(record)}</dd></div>
         </dl>
       </header>
@@ -213,16 +251,18 @@ export function ChickenSnake({ user, renderScoreboard }) {
           onPointerCancel={() => { gesture.current = null; }} onLostPointerCapture={() => { gesture.current = null; }} />
         <span className="snakeWorld"><Moon size={15} fill="currentColor" /> Nachtgarten</span>
         <div className="snakeStageTools">
+          <SnakeButton type="button" aria-label={musicOn ? "Musik ausschalten" : "Musik einschalten"} title={musicOn ? "Musik ausschalten" : "Musik einschalten"} aria-pressed={musicOn} className={musicOn ? "" : "isOff"} onClick={toggleMusic}><Music size={19} /></SnakeButton>
           <SnakeButton type="button" aria-label={muted ? "Sound einschalten" : "Sound ausschalten"} title={muted ? "Sound einschalten" : "Sound ausschalten"} aria-pressed={!muted} onClick={toggleSound}>{muted ? <VolumeX size={20} /> : <Volume2 size={20} />}</SnakeButton>
           <SnakeButton type="button" aria-label={fullscreenActive ? "Vollbild schließen" : "Vollbild öffnen"} title={fullscreenActive ? "Vollbild schließen" : "Vollbild öffnen"} onClick={fullscreen}>{fullscreenActive ? <Minimize size={19} /> : <Maximize size={19} />}</SnakeButton>
         </div>
-        {active && feedback && <div className="snakeFeedback" key={feedback}>{feedback}</div>}
+        {(run.frenzy || run.slow) && active && <div className="snakePowerChips">{run.frenzy && <span className="frenzy">FIEBER ×2</span>}{run.slow && <span className="slow">ZEITLUPE</span>}</div>}
         {!active && <div className={`snakeOverlay ${ended ? "isEnded" : ""} ${assetError ? "isError" : ""}`}>
           <div className="snakeOverlayContent">
             {ended && <span className="snakeEndIcon">{newRecord || run.reason === "won" ? <Crown size={26} /> : <Trophy size={24} />}</span>}
             <h3>{assetError ? "Ein Blatt hängt fest." : run.status === "loading" ? "Der Garten erwacht …" : paused ? "Einmal durchatmen." : ended ? endTitle : "Hungrig auf den Highscore?"}</h3>
-            <p>{assetError || (paused ? "Dein Spiel wartet auf dich." : ended ? `${run.eggs} ${run.eggs === 1 ? "goldenes Ei" : "goldene Eier"} · Level ${run.level} · Länge ${run.length}` : "Sammle goldene Eier. Wachse über dich hinaus.")}</p>
-            {ended && <strong className="snakeFinalScore">{number(run.score)}<span>Punkte</span></strong>}
+            <p>{assetError || (paused ? "Dein Spiel wartet auf dich." : ended ? `${run.eggs} ${run.eggs === 1 ? "goldenes Ei" : "goldene Eier"} · Level ${run.level} · Länge ${run.length} · beste Combo ×${Math.max(1, run.bestCombo || 0)}` : "Sammle goldene Eier. Wachse über dich hinaus.")}</p>
+            {ended && <strong className={`snakeFinalScore ${newRecord ? "isRecord" : ""}`}><RollingScore value={run.score} /><span>Punkte</span></strong>}
+            {run.status === "ready" && !assetError && <ul className="snakeLegend">{LEGEND.map(([kind, title, text]) => <li key={kind}><i className={`snakeIcon-${kind}`} aria-hidden="true" /><b>{title}</b><span>{text}</span></li>)}</ul>}
             {newRecord && <p className="snakeRecordNotice">Neuer Rekord? Speichern und im Stream feiern!</p>}
             {ended && user && run.score > 0 && <SnakeButton type="button" className="snakePrimary" disabled={rewards.saving || rewards.submitted} onClick={save}>
               <Save size={18} /> {rewards.saving ? "Speichert …" : rewards.submitted ? "Runde gewertet" : "Score speichern"}
@@ -260,7 +300,7 @@ export function ChickenSnake({ user, renderScoreboard }) {
       </div>
 
       <div className="snakeBelow">
-        <div className="snakeRecordGuide"><div className="snakeEggArt" aria-hidden="true" /><div><h3>Dein nächster Rekord</h3><p>Score speichern und Chickens sichern.</p><small>Ränder sind Portale. Deine eigene Spur ist die Gefahr.<br />10 Punkte pro Ei. Alle 5 Eier steigt das Tempo.</small></div></div>
+        <div className="snakeRecordGuide"><div className="snakeEggArt" aria-hidden="true" /><div><h3>Dein nächster Rekord</h3><p>Score speichern und Chickens sichern.</p><small>Ränder sind Portale. Deine eigene Spur ist die Gefahr.<br />Schnell hintereinander gefressene Eier zählen bis ×5. Alle 5 Eier steigt das Tempo, ab Level 3 wachsen Dornen.</small></div></div>
         <div className="snakeScores"><h3><Trophy size={18} /> Rangliste</h3>{renderScoreboard?.(refreshKey)}</div>
       </div>
     </section>

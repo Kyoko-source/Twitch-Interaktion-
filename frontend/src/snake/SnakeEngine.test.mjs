@@ -14,19 +14,63 @@ test("buffered corner inputs cannot reverse into the neck between simulation tic
   assert.equal(game.status, "playing");
 });
 
-test("eggs grow the snake and keep the historical ten-point scale; speed increases gradually", () => {
+test("eggs grow the snake; quick eggs build a combo multiplier and speed increases gradually", () => {
   const events = [];
-  const game = new SnakeEngine({ onEvent: (event) => events.push(event), random: () => 0 }); game.start();
+  const game = new SnakeEngine({ onEvent: (event) => events.push(event), random: () => 0.99 }); game.start();
   for (let i = 0; i < 6; i++) game.step();
   assert.equal(game.score, 10); assert.equal(game.snake.length, 6);
   assert.equal(game.previous.length, 6); assert.equal(game.interval, 155);
   for (let i = 0; i < 4; i++) {
     game.food = { x: game.snake[0].x + 1, y: game.snake[0].y }; game.step();
   }
-  assert.equal(game.level, 2); assert.equal(game.score, 50);
-  assert.equal(game.interval, 148); assert.equal(game.combo, 5);
+  // 10 + 20 + 30 + 40 + 50: every egg inside the combo window is worth more.
+  assert.equal(game.level, 2); assert.equal(game.score, 150);
+  assert.equal(game.interval, 148); assert.equal(game.combo, 5); assert.equal(game.bestCombo, 5);
   assert.equal(events.filter((event) => event.type === "level").length, 1);
-  assert.equal(events.filter((event) => event.type === "eat").length, 5);
+  assert.deepEqual(events.filter((event) => event.type === "eat").map((event) => event.points), [10, 20, 30, 40, 50]);
+});
+
+test("a slow egg resets the combo", () => {
+  const game = new SnakeEngine({ random: () => 0.99 }); game.start();
+  game.food = { x: 9, y: 10 }; game.step();
+  game.elapsed += 5000;
+  game.food = { x: 10, y: 10 }; game.step();
+  assert.equal(game.combo, 1); assert.equal(game.score, 20);
+});
+
+test("bonus items: rainbow doubles points, crystal slows time, star sheds the tail, all expire", () => {
+  const events = [];
+  const game = new SnakeEngine({ onEvent: (event) => events.push(event), random: () => 0.99 }); game.start();
+  game.bonus = { kind: "rainbow", x: 9, y: 10, until: 7000 }; game.step();
+  assert.equal(game.score, 50); assert.equal(game.frenzy, true);
+  game.food = { x: 10, y: 10 }; game.step();
+  assert.equal(game.score, 70, "frenzy doubles the egg");
+  game.bonus = { kind: "crystal", x: 11, y: 10, until: 7000 }; game.step();
+  assert.equal(game.slow, true); assert.equal(game.interval, Math.round(155 * 1.6));
+  for (let i = 0; i < 4; i++) { game.food = { x: game.snake[0].x + 1, y: 10 }; game.step(); }
+  const length = game.snake.length;
+  game.bonus = { kind: "star", x: game.snake[0].x + 1, y: 10, until: game.elapsed + 7000 }; game.step();
+  assert.equal(game.snake.length, length - 3);
+  game.bonus = { kind: "star", x: 0, y: 0, until: game.elapsed + 100 };
+  game.advance(150);
+  assert.equal(game.bonus, null);
+  assert.ok(events.some((event) => event.type === "bonusExpire"));
+  game.frenzyUntil = game.elapsed + 10; game.advance(20);
+  assert.ok(events.some((event) => event.type === "frenzyEnd"));
+});
+
+test("thorns grow from level three, never right in front of the head, and are deadly", () => {
+  const events = [];
+  const game = new SnakeEngine({ onEvent: (event) => events.push(event), random: () => 0.5 }); game.start();
+  for (let i = 0; i < 10; i++) { game.food = { x: (game.snake[0].x + 1) % game.cols, y: game.snake[0].y }; game.step(); }
+  assert.equal(game.level, 3);
+  assert.equal(game.thorns.length, 2);
+  const head = game.snake[0];
+  for (const thorn of game.thorns) assert.ok(game.distance(thorn, head) >= 6);
+  assert.ok(events.some((event) => event.type === "thorns"));
+  game.thorns = [{ x: (head.x + 1) % game.cols, y: head.y }];
+  game.food = { x: 0, y: 0 }; game.step();
+  assert.equal(game.reason, "collision"); assert.equal(game.cause, "thorn");
 });
 
 test("portal wrapping stays safe and emits feedback without extra points", () => {
@@ -81,7 +125,7 @@ test("a real body collision ends once and does not award the food behind it", ()
   const game = new SnakeEngine({ onEvent: (event) => events.push(event) }); game.start();
   game.snake = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }, { x: 1, y: 2 }, { x: 0, y: 2 }];
   game.direction = DIRECTIONS.right; game.step(); game.step(); game.finish();
-  assert.equal(game.reason, "collision"); assert.equal(game.score, 0);
+  assert.equal(game.reason, "collision"); assert.equal(game.cause, "self"); assert.equal(game.score, 0);
   assert.equal(events.filter((event) => event.type === "collision").length, 1);
 });
 

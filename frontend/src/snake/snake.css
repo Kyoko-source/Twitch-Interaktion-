@@ -143,4 +143,54 @@
   .snakeGame:fullscreen .snakeMobileControls p, .snakeGame.isExpanded .snakeMobileControls p { display: none; }
   .snakeGame:fullscreen .snakeStage, .snakeGame.isExpanded .snakeStage { min-height: 0; }
 }
+/* ================= makeover: hype layer ================= */
+.snakeHud > div:nth-child(4) dd { color: #ffb1e6; }
+.snakeHud > div.isHot dd { animation: snakeHot 0.5s ease-in-out infinite alternate; text-shadow: 0 0 16px #ff7ad9; }
+@keyframes snakeHot { to { transform: scale(1.18); } }
+.snakeStage { transition: box-shadow 0.25s, border-color 0.25s; }
+.snakeGame.pulse-eat .snakeStage { animation: snakePulse 0.45s ease-out; }
+.snakeGame.pulse-level .snakeStage { animation: snakePulseBig 0.7s ease-out; }
+.snakeGame.pulse-bonus .snakeStage { animation: snakePulseBig 0.7s ease-out; }
+.snakeGame.pulse-collision .snakeStage { animation: snakeHit 0.6s ease-out; }
+@keyframes snakePulse { 0% { box-shadow: 0 0 0 4px #ffe1a1aa, 0 0 50px #ffe1a188; } 100% { box-shadow: 0 0 0 5px #32617412, 0 8px 35px #0004; } }
+@keyframes snakePulseBig { 0% { transform: scale(1.012); box-shadow: 0 0 0 6px #81f4d3, 0 0 90px #81f4d3aa; } 100% { transform: none; box-shadow: 0 0 0 5px #32617412, 0 8px 35px #0004; } }
+@keyframes snakeHit { 0% { box-shadow: 0 0 0 6px #ff5a7a, 0 0 90px #ff2a4a; border-color: #ff5a7a; } 100% { box-shadow: 0 0 0 5px #32617412; } }
+.snakeGame.isFrenzy .snakeStage { border-color: #ff7ad9; box-shadow: 0 0 0 3px #ff7ad9, 0 0 40px #ff7ad9aa, 0 0 80px #7ad8ff66; }
+.snakeGame.isFrenzy .snakeStage::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 4px #ff7ad9, inset 0 0 40px #ff7ad988; animation: snakeFrenzy 1.2s linear infinite; }
+@keyframes snakeFrenzy { to { filter: hue-rotate(360deg); } }
+.snakeGame.isSlow .snakeStage { border-color: #7ad8ff; box-shadow: 0 0 0 4px #7ad8ff55, 0 0 60px #2a6aff66; }
+
+.snakeStageTools button.isOff { opacity: 0.5; }
+.snakePowerChips { position: absolute; left: 50%; bottom: 14px; z-index: 3; display: flex; gap: 8px; transform: translateX(-50%); pointer-events: none; }
+.snakePowerChips span { padding: 5px 12px; border-radius: 999px; font: 900 11px/1.3 Inter, "Segoe UI", sans-serif; letter-spacing: .12em; color: #10131c; animation: snakeChip 0.5s ease-in-out infinite alternate; }
+.snakePowerChips .frenzy { background: linear-gradient(90deg, #ff7ad9, #ffe066, #7ad8ff); box-shadow: 0 0 18px #ff7ad9; }
+.snakePowerChips .slow { background: #7ad8ff; box-shadow: 0 0 18px #7ad8ff; }
+@keyframes snakeChip { to { transform: scale(1.08); } }
+
+.snakeOverlayContent { width: min(520px, 100%); }
+.snakeOverlay h3 { animation: snakeTitle 0.6s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes snakeTitle { from { opacity: 0; transform: translateY(-14px) scale(.85); } }
+.snakeLegend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; margin: 0 0 20px; padding: 0; list-style: none; text-align: left; }
+.snakeLegend li { display: grid; grid-template-columns: 26px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: #ffffff08; animation: snakeLegend 0.4s ease both; }
+.snakeLegend li:nth-child(2) { animation-delay: .06s; } .snakeLegend li:nth-child(3) { animation-delay: .12s; } .snakeLegend li:nth-child(4) { animation-delay: .18s; } .snakeLegend li:nth-child(5) { animation-delay: .24s; }
+@keyframes snakeLegend { from { opacity: 0; transform: translateX(-10px); } }
+.snakeLegend i { grid-row: span 2; width: 22px; height: 22px; }
+.snakeLegend b { font-size: 12px; color: #f0f6ff; }
+.snakeLegend span { font-size: 11px; color: #a9bcc6; }
+.snakeIcon-egg { border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, #fff, #ffd34a 45%, #b87400); box-shadow: 0 0 10px #ffd34a88; }
+.snakeIcon-rainbow { border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background: conic-gradient(#ff7ad9, #ffe066, #8dffcf, #7ad8ff, #c79bff, #ff7ad9); box-shadow: 0 0 10px #ff7ad988; animation: snakeFrenzy 2s linear infinite; }
+.snakeIcon-crystal { clip-path: polygon(50% 0, 82% 40%, 50% 100%, 18% 40%); background: linear-gradient(180deg, #e8fbff, #7ad8ff 50%, #2a6aff); }
+.snakeIcon-star { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: #ffe066; }
+.snakeIcon-thorn { clip-path: polygon(50% 0, 60% 30%, 95% 20%, 70% 50%, 100% 75%, 62% 70%, 50% 100%, 38% 70%, 0 75%, 30% 50%, 5% 20%, 40% 30%); background: radial-gradient(circle, #ff3b6b 0 18%, #2a0f3a 22%); box-shadow: inset 0 0 0 1px #b14cff; }
+
+.snakeFinalScore { animation: snakeScoreIn 0.6s cubic-bezier(.2, 1.7, .4, 1) both; }
+@keyframes snakeScoreIn { from { opacity: 0; transform: scale(.4); } }
+.snakeFinalScore.isRecord { background: linear-gradient(90deg, #ffe1a1, #ff7ad9, #8dffcf, #ffe1a1); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: snakeScoreIn 0.6s cubic-bezier(.2, 1.7, .4, 1) both, snakeShine 1.2s linear infinite; filter: drop-shadow(0 0 14px #ffe1a1aa); }
+.snakeFinalScore.isRecord span { -webkit-text-fill-color: #a7bac7; }
+@keyframes snakeShine { to { background-position: 200% 0; } }
+.snakeEndIcon { animation: snakeTitle 0.6s cubic-bezier(.2, 1.6, .4, 1) both; }
+
+@media (max-width: 800px), (max-height: 700px) { .snakeLegend { display: none; } }
+@media (prefers-reduced-motion: reduce) { .snakeGame.isFrenzy .snakeStage::after { animation: none !important; } }
+
 @media (prefers-reduced-motion: reduce) { .snakeGame *, .snakeGame *::before { animation: none !important; transition: none !important; } }
