@@ -1,401 +1,115 @@
 import { test, expect } from "@playwright/test";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
-test("five real target contacts arm the jackpot and grant exactly one extra multiball", async ({
-  page,
-}) => {
-  await openPinball(page);
-  await page.keyboard.press("Space");
-  for (let index = 0; index < 5; index++) {
-    await page.locator(".pinballMount").evaluate((el, index) => {
-      const g = el.__pinballGame,
-        target = g.targets[index],
-        p = target.body.translation(),
-        ball = g.balls[0];
-      ball.body.setTranslation(
-        {
-          x: p.x + (index < 2 ? 0.5 : 0),
-          y: 0.15,
-          z: p.z + (index < 2 ? 0 : 0.5),
-        },
-        true,
-      );
-      ball.body.setLinvel(
-        { x: index < 2 ? -4 : 0, y: 0, z: index < 2 ? 0 : -4 },
-        true,
-      );
-    }, index);
-    await expect
-      .poll(() =>
-        page
-          .locator(".pinballMount")
-          .evaluate(
-            (el, index) => Boolean(el.__pinballGame.bank & (1 << index)),
-            index,
-          ),
-      )
-      .toBe(true);
-  }
-  await expect(page.locator(".pinballBigCombo")).toContainText("JACKPOT LIT");
-  await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame,
-      target = g.bumpers[1],
-      ball = g.balls[0];
-    ball.body.setTranslation(
-      { x: target.x, y: 0.15, z: target.z + 0.68 },
-      true,
-    );
-    ball.body.setLinvel({ x: 0, y: 0, z: -4 }, true);
+async function mockApi(page, { user = null } = {}) {
+  const starts = [], scores = [];
+  await page.route("**/api/**", async (route) => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    let json = [];
+    if (path.endsWith("/auth/me")) json = { user };
+    else if (path.endsWith("/game-runs")) { starts.push(request.postDataJSON()); json = { run_id: `pin-run-${starts.length}-abcdefghijklmnop` }; }
+    else if (path.endsWith("/scores") && request.method() === "POST") { scores.push(request.postDataJSON()); json = { message: "Score gespeichert. +5 Chickens!", wallet: user }; }
+    return route.fulfill({ json });
   });
-  await expect.poll(async () => (await state(page)).liveBalls.length).toBe(2);
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => el.__pinballGame.score),
-  ).toBeGreaterThan(25000);
-  const lives = await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame;
-    g.saveUntil = 0;
-    g.balls[1].body.setBodyType(2, true);
-    g.balls[0].body.setTranslation({ x: 0, y: 0.15, z: 2.75 }, true);
-    g.balls[0].body.setLinvel({ x: 0, y: 0, z: 3 }, true);
-    return g.ball;
-  });
-  await expect.poll(async () => (await state(page)).liveBalls.length).toBe(1);
-  expect(
-    await page.locator(".pinballMount").evaluate((el) => el.__pinballGame.ball),
-  ).toBe(lives);
-});
-
-test("high speed and a 100 ms frame stall do not send the ball through rails", async ({
-  page,
-}) => {
-  await openPinball(page);
-  await page.keyboard.press("Space");
-  await page.keyboard.press("F3");
-  for (const direction of [-1, 1]) {
-    await page.locator(".pinballMount").evaluate((el, direction) => {
-      const ball = el.__pinballGame.balls[0];
-      ball.body.setTranslation({ x: 0, y: 0.15, z: 0.7 }, true);
-      ball.body.setLinvel({ x: direction * 35, y: 0, z: 0 }, true);
-      const end = performance.now() + 100;
-      while (performance.now() < end) {}
-    }, direction);
-    await page.waitForTimeout(300);
-    const ball = (await state(page)).liveBalls[0];
-    expect(Math.abs(ball.position.x)).toBeLessThan(2.4);
-    expect(
-      Math.hypot(ball.velocity.x, ball.velocity.y, ball.velocity.z),
-    ).toBeLessThanOrEqual(16.01);
-  }
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate(
-        (el) => el.__pinballGame.debugMesh.geometry.attributes.position.count,
-      ),
-  ).toBeGreaterThan(100);
-});
-
-test("one minute of real physics with flipper input stays bounded and keeps scoring", async ({
-  page,
-}) => {
-  await openPinball(page);
-  const result = await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame,
-      start = g.time;
-    g.paused = true;
-    let outside = false,
-      peakSpeed = 0;
-    for (let i = 0; i < 7200 && g.status !== "gameover"; i++) {
-      if (g.status === "ready") {
-        g.paused = false;
-        g.plunger = 0.65;
-        g.launch();
-        g.paused = true;
-      }
-      const ball = g.balls.find((b) => !b.ready && !b.falling);
-      const p = ball?.body.translation(),
-        v = ball?.body.linvel();
-      g.keys.left = Boolean(
-        p && p.x < 0.2 && p.z > 2.45 && (v.z > 0 || p.z > 2.9),
-      );
-      g.keys.right = Boolean(
-        p && p.x > -0.2 && p.z > 2.45 && (v.z > 0 || p.z > 2.9),
-      );
-      g.step();
-      if (i % 4 === 0) g.visuals(1 / 30);
-      for (const b of g.balls) {
-        const p = b.body.translation(),
-          v = b.body.linvel();
-        if (!b.falling && (Math.abs(p.x) > 2.45 || p.z < -4.5)) outside = true;
-        peakSpeed = Math.max(peakSpeed, Math.hypot(v.x, v.y, v.z));
-      }
-    }
-    return {
-      elapsed: g.time - start,
-      hits: g.hits,
-      score: g.score,
-      outside,
-      peakSpeed,
-      balls: g.ball,
-    };
-  });
-  expect(result.outside, JSON.stringify(result)).toBe(false);
-  expect(result.peakSpeed).toBeLessThanOrEqual(16.01);
-  expect(result.elapsed).toBeGreaterThan(15);
-  // The harder table intentionally yields fewer automatic hits; it must still
-  // sustain real contacts and score without breaking containment or physics.
-  expect(result.hits).toBeGreaterThan(4);
-  expect(result.score).toBeGreaterThan(3000);
-});
+  return { starts, scores };
+}
 
 async function openPinball(page) {
-  await page.route("**/api/**", (route) =>
-    route.fulfill({
-      json: route.request().url().includes("auth/me") ? { user: null } : [],
-    }),
-  );
-  await page.goto("/#games");
-  await page
-    .getByRole("button", { name: "PEPPLE Pinball", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Spiel starten", exact: true }),
-  ).toBeEnabled({ timeout: 20000 });
-  await page
-    .getByRole("button", { name: "Spiel starten", exact: true })
-    .click();
-  await expect(page.locator(".neonPinball")).toHaveAttribute(
-    "data-status",
-    "ready",
-  );
-}
-const state = (page) =>
-  page
-    .locator(".pinballMount")
-    .evaluate((el) => el.__pinballGame.getPhysicsDiagnostics());
-
-test("short and full plunger shots physically exit the lane, pause and mute preserve the game", async ({
-  page,
-}) => {
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await openPinball(page);
-  for (const hold of [80, 1500]) {
-    if (hold > 100)
-      await page
-        .getByRole("button", { name: "Neu starten", exact: true })
-        .click();
-    await page.keyboard.down("Space");
-    await page.waitForTimeout(hold);
-    await page.keyboard.up("Space");
-    await expect
-      .poll(async () => (await state(page)).liveBalls.some((b) => b.entered), {
-        timeout: 8000,
-      })
-      .toBe(true);
-    expect((await state(page)).liveBalls.every((b) => b.ccd)).toBe(true);
-    await expect(page.locator(".neonPinball")).toHaveAttribute(
-      "data-status",
-      "play",
-    );
-  }
-  const gameId = await page.locator(".pinballMount").evaluate((el) => {
-    window.pinballIdentity = el.__pinballGame;
-    return el.__pinballGame.score;
-  });
-  await page
-    .getByRole("button", { name: "Sound ausschalten", exact: true })
-    .click();
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => window.pinballIdentity === el.__pinballGame),
-  ).toBe(true);
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => el.__pinballGame.score),
-  ).toBeGreaterThanOrEqual(gameId);
-  await page.keyboard.press("Escape");
-  await expect(page.locator(".neonPinball")).toHaveAttribute(
-    "data-status",
-    "paused",
-  );
-
-  const position = await state(page);
-  await page.waitForTimeout(250);
-  expect(await state(page)).toEqual(position);
-  await page.getByRole("button", { name: "Weiter", exact: true }).click();
-  await page.screenshot({ path: join(tmpdir(), "pinball-desktop.png") });
-  expect(errors).toEqual([]);
-});
-
-test("real bumper contacts produce points, combos and effects; idle contact cannot farm points", async ({
-  page,
-}) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await openPinball(page);
-  await page.keyboard.press("Space");
-  for (let i = 0; i < 3; i++) {
-    // A fixture places an incoming ball outside a bumper. Rapier must make the contact.
-    await page.locator(".pinballMount").evaluate((el, index) => {
-      const g = el.__pinballGame,
-        b = g.balls[0],
-        target = g.bumpers[index];
-      b.body.setTranslation({ x: target.x, y: 0.15, z: target.z + 0.68 }, true);
-      b.body.setLinvel({ x: 0, y: 0, z: -4 }, true);
-    }, i);
-    await expect
-      .poll(async () => (await state(page)).hits)
-      .toBeGreaterThanOrEqual(i + 1);
-  }
-  await expect(page.locator(".pinballBigCombo")).toContainText("COMBO");
-  await expect(page.locator(".pinballFloat").first()).toBeVisible();
-  const diagnostics = await state(page);
-  expect(diagnostics.hits).toBeGreaterThanOrEqual(3);
-  await page.screenshot({ path: join(tmpdir(), "pinball-combo.png") });
-  await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame,
-      b = g.balls[0];
-    b.body.setTranslation({ x: 0, y: 0.15, z: 1.0 }, true);
-    b.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    b.body.setBodyType(2, true);
-  });
-  const hits = (await state(page)).hits;
-  await page.waitForTimeout(700);
-  expect((await state(page)).hits).toBe(hits);
+  await page.goto("/#games/chicken-flipper");
+  await page.waitForFunction(() => document.querySelector(".pbStage")?.__pinball?.renderer?.composer, null, { timeout: 30000 });
+  return errors;
+}
+const game = (page, fn, arg) => page.locator(".pbStage").evaluate((el, [src, a]) => new Function("s", "a", src)(el.__pinball, a), [fn, arg]);
+
+test("table renders, Enter starts, the plunger launches the ball out of the shooter lane", async ({ page }) => {
+  await mockApi(page);
+  const errors = await openPinball(page);
+  await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => game(page, "return s.engine.status")).toBe("ready");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(1400);
+  await page.keyboard.up("Space");
+  await expect.poll(() => game(page, "return s.engine.status")).toBe("play");
+  await expect.poll(() => game(page, "return s.engine.world.balls[0]?.y ?? 99")).toBeLessThan(16);
+  const lit = await game(page, `s.renderer.composer.render(0); const r = s.renderer.renderer, gl = r.getContext(); const w = r.domElement.width, h = r.domElement.height, d = new Uint8Array(4 * 64);
+    let bright = 0; for (let i = 0; i < 40; i++) { gl.readPixels(Math.floor(w * (0.2 + 0.015 * i)), Math.floor(h * 0.5), 8, 8, gl.RGBA, gl.UNSIGNED_BYTE, d); for (let k = 0; k < d.length; k += 4) if (d[k] + d[k + 1] + d[k + 2] > 60) bright++; } return bright;`);
+  expect(lit).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 
-test("flippers strike upwards, central drain is physically open, three drains end a round", async ({
-  page,
-}) => {
+test("flipper keys raise the bats and a cradled ball is shot back up the table", async ({ page }) => {
+  await mockApi(page);
   await openPinball(page);
-  await page.keyboard.press("Space");
-  await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame,
-      b = g.balls[0];
-    b.body.setTranslation({ x: -0.55, y: 0.15, z: 2.8 }, true);
-    b.body.setLinvel({ x: 0, y: 0, z: 3 }, true);
-  });
-  await page.keyboard.down("a");
-  await page.waitForTimeout(150);
-  expect((await state(page)).liveBalls[0].velocity.z).toBeLessThan(-3);
-  await page.keyboard.up("a");
-  for (let remaining = 2; remaining >= 0; remaining--) {
-    if (remaining < 2) {
-      await expect(page.locator(".neonPinball")).toHaveAttribute(
-        "data-status",
-        "ready",
-        { timeout: 4000 },
-      );
-      await page.keyboard.press("Space");
-    }
-    await page.locator(".pinballMount").evaluate((el) => {
-      const g = el.__pinballGame,
-        b = g.balls[0];
-      g.saveUntil = 0;
-      b.body.setTranslation({ x: 0, y: 0.15, z: 2.75 }, true);
-      b.body.setLinvel({ x: 0, y: 0, z: 2.8 }, true);
-      window.drainPath = [];
-      const step = g.step.bind(g);
-      g.step = () => {
-        step();
-        if (g.balls.includes(b))
-          window.drainPath.push({
-            ...b.body.translation(),
-            falling: b.falling,
-          });
-      };
-    });
-    await expect
-      .poll(async () =>
-        page.locator(".pinballMount").evaluate((el) => el.__pinballGame.ball),
-      )
-      .toBe(remaining);
-    const path = await page.evaluate(() => window.drainPath);
-    expect(path.some((p) => p.z > 3.65)).toBe(true);
-    expect(path.some((p) => p.falling && p.y < 0.12)).toBe(true);
-  }
-  await expect(page.locator(".neonPinball")).toHaveAttribute(
-    "data-status",
-    "gameover",
-  );
-  await page.getByRole("button", { name: "Neue Runde", exact: true }).click();
-  expect((await state(page)).liveBalls).toHaveLength(1);
+  await page.keyboard.press("Enter");
+  await game(page, "const e = s.engine; e.status = 'play'; const b = e.world.balls[0]; b.x = 1.5; b.y = 13.9; b.vx = 0.6; b.vy = 6;");
+  await page.keyboard.down("KeyA");
+  await page.waitForTimeout(1500);
+  expect(await game(page, "return s.engine.table.flipL.angle")).toBeLessThan(0);
+  await page.keyboard.up("KeyA");
+  await page.waitForTimeout(280);
+  await page.keyboard.down("KeyA");
+  await expect.poll(() => game(page, "return s.engine.world.balls[0].y"), { timeout: 3000 }).toBeLessThan(13);
+  await page.keyboard.up("KeyA");
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(() => game(page, "return s.engine.table.flipR.angle")).toBeGreaterThan(Math.PI);
+  await page.keyboard.up("ArrowRight");
 });
 
-test("mobile touch: charge/release and both flippers, framed nonblank 3D scene", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("three VIP locks start a three-ball multiball and the side panel follows", async ({ page }) => {
+  await mockApi(page);
   await openPinball(page);
-  const stage = page.locator(".pinballStage");
-  await stage.scrollIntoViewIfNeeded();
-  const box = await stage.boundingBox();
-  expect(box.width).toBeLessThan(390);
-  const cdp = await page.context().newCDPSession(page);
-  async function press(name) {
-    const button = page.getByRole("button", { name, exact: true });
-    await button.scrollIntoViewIfNeeded();
-    const b = await button.boundingBox();
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2, id: 0 }],
-    });
-  }
-  async function release() {
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
-  }
-  await press("Plunger");
-  await page.waitForTimeout(500);
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => el.__pinballGame.plunger),
-  ).toBeGreaterThan(0.1);
-  await release();
-  await expect
-    .poll(async () => (await state(page)).liveBalls.some((b) => b.entered), {
-      timeout: 8000,
-    })
-    .toBe(true);
-  await press("Linker Flipper");
-  await page.waitForTimeout(120);
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => el.__pinballGame.keys.left),
-  ).toBe(true);
-  await release();
-  await press("Rechter Flipper");
-  await page.waitForTimeout(120);
-  expect(
-    await page
-      .locator(".pinballMount")
-      .evaluate((el) => el.__pinballGame.keys.right),
-  ).toBe(true);
-  await release();
-  const pixels = await page.locator(".pinballMount").evaluate((el) => {
-    const g = el.__pinballGame,
-      gl = g.renderer.getContext(),
-      w = g.renderer.domElement.width,
-      h = g.renderer.domElement.height,
-      data = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    let bright = 0;
-    for (let i = 0; i < data.length; i += 4)
-      if (data[i] + data[i + 1] + data[i + 2] > 150) bright++;
-    return bright / (w * h);
-  });
-  expect(pixels).toBeGreaterThan(0.035);
-  await stage.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: join(tmpdir(), "pinball-mobile.png") });
+  await page.keyboard.press("Enter");
+  await game(page, `const e = s.engine; e.status = 'play'; e.switchHit(); const b = e.world.balls[0];
+    for (let n = 0; n < 3; n++) { for (const d of e.table.drops) d.enabled = true; for (const d of e.table.drops) e.dropHit(d); b.held = null; b.ignoreScoopUntil = 0; e.scoop(b); }`);
+  await expect(page.locator(".pbLockRow")).toContainText("MULTIBALL!");
+  await expect.poll(() => game(page, "return s.engine.world.balls.length"), { timeout: 8000 }).toBe(3);
+});
+
+test("game over submits the score once for a logged-in player", async ({ page }) => {
+  const { starts, scores } = await mockApi(page, { user: { username: "magical_kyoko_", role: "admin", chickens: 10, chickens_earned: 10, level: 1 } });
+  await openPinball(page);
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await expect.poll(() => starts.length).toBe(1);
+  expect(starts[0].game).toBe("chicken-flipper");
+  await game(page, `const e = s.engine; e.score = 1234560; e.ball = 3; e.status = 'play'; e.ballSaveUntil = 0; e.ballSaveArmed = false; e.drain(e.world.balls[0]);`);
+  await expect(page.getByRole("button", { name: "Nochmal spielen" })).toBeVisible({ timeout: 12000 });
+  await expect.poll(() => scores.length).toBe(1);
+  expect(scores[0]).toMatchObject({ game: "chicken-flipper", run_id: "pin-run-1-abcdefghijklmnop" });
+  expect(scores[0].score).toBeGreaterThanOrEqual(1234560);
+  await expect(page.locator(".pbMessage")).toContainText("Score gespeichert");
+});
+
+test("pause freezes the simulation and P resumes it", async ({ page }) => {
+  await mockApi(page);
+  await openPinball(page);
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("KeyP");
+  await expect(page.getByRole("button", { name: "Weiter" }).first()).toBeVisible();
+  const t0 = await game(page, "return s.engine.time");
+  await page.waitForTimeout(400);
+  expect(await game(page, "return s.engine.time")).toBe(t0);
+  await page.keyboard.press("KeyP");
+  await expect.poll(() => game(page, "return s.engine.time")).toBeGreaterThan(t0);
+});
+
+test("phone: touch buttons and table halves work the flippers", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await openPinball(page);
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  const left = page.getByRole("button", { name: "Linker Flipper" });
+  await expect(left).toBeVisible();
+  const box = await left.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await expect.poll(() => game(page, "return s.engine.table.flipL.pressed")).toBe(true);
+  await page.mouse.up();
+  await expect.poll(() => game(page, "return s.engine.table.flipL.pressed")).toBe(false);
+  const stage = await page.locator(".pbStage").boundingBox();
+  await page.locator(".pbStage").dispatchEvent("pointerdown", { pointerId: 7, pointerType: "touch", clientX: stage.x + stage.width * 0.8, clientY: stage.y + stage.height * 0.7 });
+  await expect.poll(() => game(page, "return s.engine.table.flipR.pressed")).toBe(true);
+  await page.locator(".pbStage").dispatchEvent("pointerup", { pointerId: 7, pointerType: "touch", clientX: stage.x + stage.width * 0.8, clientY: stage.y + stage.height * 0.7 });
+  await expect.poll(() => game(page, "return s.engine.table.flipR.pressed")).toBe(false);
 });

@@ -4,11 +4,10 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test:jump": "npm run build && playwright test chicken-jump.spec.mjs",
-    "test:pinball": "npm run build && playwright test pinball.spec.mjs",
+    "test:pinball": "node --test src/pinball/engine.test.mjs && npm run build && playwright test pinball.spec.mjs",
     "test:snake": "node --test src/snake/SnakeEngine.test.mjs && npm run build && playwright test chicken-snake.spec.mjs"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "^0.20.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
     "@vitejs/plugin-react": "^5.1.1",

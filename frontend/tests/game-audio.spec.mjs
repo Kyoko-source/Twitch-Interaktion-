@@ -23,15 +23,12 @@ test('Survivor plays decoded weapon samples, no oscillator melody or MP3 loop, m
   await page.waitForTimeout(200);const count=await page.evaluate(()=>window.sampleProof.played.length);await page.waitForTimeout(500);expect(await page.evaluate(()=>window.sampleProof.played.length)).toBe(count);
 });
 
-test('Pinball uses quiet impact files and has zero continuous rolling oscillator; held flipper no longer powers a rescue',async({page})=>{
-  await watchAudio(page);await page.goto('/#games/chicken-flipper');await page.getByRole('button',{name:'Spiel starten',exact:true}).click();await page.keyboard.press('Space');
-  const state=await page.locator('.pinballMount').evaluate(async node=>{
-    const g=node.__pinballGame;g.paused=true;await g.audio.samples.load('bumper');g.audio.play('bumper');
-    const ball=g.balls[0],flipper=g.flippers[0],item=[...g.contacts.values()].find(i=>i.kind==='flipper'&&i.flipper===flipper);
-    g.keys.left=true;flipper.moving=false;flipper.angle=flipper.active;ball.body.setTranslation({x:-.55,y:.15,z:2.8},true);ball.body.setLinvel({x:0,y:0,z:3},true);item.lastHit=-100;g.contact(ball,item);const held=ball.body.linvel().z;
-    flipper.moving=true;item.lastHit=-100;g.contact(ball,item);return {held,timed:ball.body.linvel().z,gravity:g.world.gravity.z,length:flipper.len,save:g.saveUntil-g.time};
-  });
-  expect(state.held).toBe(3);expect(state.timed).toBeLessThan(-8);expect(state.gravity).toBe(4.2);expect(state.length).toBe(.9);expect(state.save).toBeLessThanOrEqual(2.5);
-  await expect.poll(()=>page.evaluate(()=>window.sampleProof.played.length)).toBeGreaterThan(0);
-  const proof=await page.evaluate(()=>window.sampleProof);expect(proof.oscillators).toBe(0);expect(proof.played.every(p=>!p.loop)).toBe(true);
+test('Pinball plays real CC0 samples for parts and jingles, never an oscillator or looping buffer',async({page})=>{
+  await watchAudio(page);await page.goto('/#games/chicken-flipper');
+  await page.waitForFunction(()=>document.querySelector('.pbStage')?.__pinball?.renderer?.composer,null,{timeout:30000});
+  await page.getByRole('button',{name:'Spiel starten',exact:true}).click();
+  await page.locator('.pbStage').evaluate(async node=>{const s=node.__pinball;await s.audio.load('bumper-thump');await s.audio.load('jackpot');s.engine.emit('bumper',{index:0,x:4,y:5});s.engine.emit('jackpot',{value:1});});
+  await page.keyboard.down('KeyA');await page.waitForTimeout(150);await page.keyboard.up('KeyA');
+  await expect.poll(()=>page.evaluate(()=>window.sampleProof.played.length)).toBeGreaterThan(1);
+  const proof=await page.evaluate(()=>window.sampleProof);expect(proof.oscillators).toBe(0);expect(proof.played.every(p=>!p.loop)).toBe(true);expect(proof.played.some(p=>p.energy>0)).toBe(true);
 });
