@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { CalendarDays, Gamepad2, GitBranch, Home, MessageCircle, Newspaper, Palette, Shield, ShoppingBasket, Trophy, User, Users } from "lucide-react";
+import { CalendarDays, Gamepad2, Gift, GitBranch, Home, MessageCircle, Newspaper, Palette, Shield, ShoppingBasket, Trophy, User, Users } from "lucide-react";
 import { api } from "../api";
 
 export const nav = [
   { id: "home", label: "Home", icon: Home },
+  { id: "advent", label: "Marelles Adventskalender", icon: Gift },
   { id: "news", label: "News", icon: Newspaper },
   { id: "members", label: "Mitglieder", icon: Users },
   { id: "chat", label: "Chat", icon: MessageCircle },

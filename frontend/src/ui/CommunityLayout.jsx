@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, ChevronRight, Crown, Gamepad2, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Trophy, Users, X } from "lucide-react";
 
 const groups = [
-  { label: "Übersicht", ids: ["home"] },
+  { label: "Übersicht", ids: ["home", "advent"] },
   { label: "Community", ids: ["news", "members", "chat", "events", "gallery"] },
   { label: "Spielen & Sammeln", ids: ["games", "leaderboard", "shop"] },
   { label: "Konto", ids: ["profile", "systematics", "admin"] },

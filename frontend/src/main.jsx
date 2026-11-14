@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { api, setToken } from "./api";
 import { AppShell } from "./ui/CommunityLayout";
 import { AdminPage } from "./pages/AdminPage";
+import { AdventPage } from "./pages/AdventPage";
 import { ChatPage } from "./pages/ChatPage";
 import { EventsPage } from "./pages/EventsPage";
 import { GalleryPage } from "./pages/GalleryPage";
@@ -96,6 +97,7 @@ function App() {
   const content = useMemo(() => {
     if (page === "nullsignal") return <Suspense fallback={<div className="notice">Handbuch wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>;
     if (page === "home") return <HomePage user={user} setPage={setPage} />;
+    if (page === "advent") return <AdventPage user={user} />;
     if (page === "login") return <LoginPage onLogin={(nextUser) => { setSessionNotice(""); setUser(nextUser); setPage("home"); }} />;
     if (page === "news") return <ListPage title="News" path="/api/news" render={(item) => <article className="card" key={item.id}><h3>{item.title}</h3><p>{item.body}</p></article>} />;
     if (page === "members") return <MembersPage user={user} setPage={setPage} />;

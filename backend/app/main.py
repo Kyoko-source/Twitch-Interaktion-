@@ -22,6 +22,7 @@ from .farm import router as farm_router
 from .nullsignal import router as nullsignal_router
 from .afterplay_mp import router as afterplay_mp_router
 from .dnd import router as dnd_router
+from .advent import router as advent_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
@@ -56,6 +57,7 @@ app.include_router(farm_router)
 app.include_router(nullsignal_router)
 app.include_router(afterplay_mp_router)
 app.include_router(dnd_router)
+app.include_router(advent_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
