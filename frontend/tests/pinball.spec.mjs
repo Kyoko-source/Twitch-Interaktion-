@@ -145,6 +145,19 @@ test("combos slam giant numbers, the girls cheer and the hit streak counts up", 
   await expect(page.locator(".pbStreak")).toContainText("12");
   await game(page, "s.engine.streak = 30; s.engine.breakStreak();");
   await expect(page.locator(".pbSlam em")).toHaveText("BREAKER");
-  await expect(page.locator(".pbGirl-right")).toHaveAttribute("data-mood", "shock");
+  await expect(page.locator(".pbGirl-right")).not.toHaveAttribute("data-mood", "shock");
   await expect(page.locator(".pbStreak")).toHaveCount(0);
+});
+
+test("the girls only pop in for combos, not for other events or permanently in fullscreen", async ({ page }) => {
+  await mockApi(page);
+  await openPinball(page);
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("KeyF");
+  await game(page, "const e = s.engine; e.status = 'play'; e.emit('multiball'); e.emit('drain'); e.emit('tilt');");
+  await page.waitForTimeout(600);
+  await expect(page.locator(".pbGirl.show")).toHaveCount(0);
+  await game(page, "const e = s.engine; e.lastMajorAt = e.time; e.combo = 1; e.major('rampL', 25000, 'DJ');");
+  await expect(page.locator(".pbGirl.show")).toHaveCount(2);
+  await expect(page.locator(".pbGirl.show")).toHaveCount(0, { timeout: 5000 });
 });

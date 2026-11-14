@@ -40,8 +40,10 @@
 /* Wide fullscreen: the girls live in the empty space left and right of the cabinet. */
 @media (min-aspect-ratio: 5/4) {
   .pbFull .pbGirl { top: auto; bottom: 1%; height: 88%; max-height: none; }
-  .pbFull .pbGirl-left { left: 2%; transform: none; }
-  .pbFull .pbGirl-right { right: 2%; transform: none; }
+  .pbFull .pbGirl-left { left: 2%; transform: translateX(-130%) rotate(-8deg); }
+  .pbFull .pbGirl-left.show { transform: none; }
+  .pbFull .pbGirl-right { right: 2%; transform: translateX(130%) rotate(8deg); }
+  .pbFull .pbGirl-right.show { transform: none; }
   .pbFull .pbGirl .pbChibi { animation: pbGirlBob 0.9s ease-in-out infinite alternate; }
   .pbFull .pbGirl.show .pbChibi { animation-duration: 0.45s; }
   .pbFull .pbGirl[data-mood="cheer"] .pbChibi, .pbFull .pbGirl[data-mood="hype"] .pbChibi { animation: pbGirlJump 0.32s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }

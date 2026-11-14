@@ -9,7 +9,6 @@ const LINES = {
   big: ["JACKPOT!!", "Reich! Reich!", "Kawaii~!", "Unglaublich!!", "Du bist ein Gott!"],
   sad: ["Nooo…", "Schade~", "Nächstes Mal!", "Uuuh…"],
   shock: ["Hey!! Nicht schubsen!", "Eeeh?!", "Vorsicht!!"],
-  peek: ["Du schaffst das!", "Ziel auf die Rampe!", "Fighto~!", "Ich glaub an dich!", "Combo! Combo!", "Mehr! Mehr!", "Hihi~"],
   streak: ["{n} Treffer!!", "Unaufhaltsam!", "x{n}! Waaah!"],
 };
 // Optional artwork: drop images into /assets/pinball/crew/ and list them in manifest.json,
@@ -46,7 +45,11 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
   bestRef.current = best;
 
   useEffect(() => {
+    // The girls only pop in for combos (shot combos and hit-streak milestones).
+    const GIRL_EVENTS = new Set(["combo", "streak"]);
+    let current = "";
     const girl = (who, mood, line, ms = 2600) => {
+      if (!GIRL_EVENTS.has(current)) return;
       clearTimeout(timers.current[who]);
       busyUntil.current = Math.max(busyUntil.current, Date.now() + ms);
       setGirls((g) => ({ ...g, [who]: { mood, show: true, line, nonce: Math.random() } }));
@@ -68,6 +71,7 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
       timers.current.hype = setTimeout(() => setHype(null), ms);
     };
     const handler = (type, d = {}) => {
+      current = type;
       switch (type) {
         case "combo": {
           const n = d.count;
@@ -103,14 +107,8 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
     };
     const s = sysRef.current;
     s.hype = handler;
-    // Idle peeks while a ball is in play keep the girls around between big moments.
-    const peek = setInterval(() => {
-      const st = s.engine?.status;
-      if (st !== "play" || Date.now() < busyUntil.current || Math.random() < 0.4) return;
-      girl(Math.random() < 0.5 ? "mimi" : "luna", Math.random() < 0.5 ? "wink" : "idle", pick(LINES.peek), 2400);
-    }, 9000);
     const t = timers.current;
-    return () => { clearInterval(peek); if (s.hype === handler) s.hype = null; Object.values(t).forEach(clearTimeout); };
+    return () => { if (s.hype === handler) s.hype = null; Object.values(t).forEach(clearTimeout); };
   }, [sysRef, reduced]);
 
   const streak = snap.streak || 0;
