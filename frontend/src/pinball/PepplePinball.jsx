@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowDown, ChevronsLeft, ChevronsRight, HelpCircle, Maximize, Music, Pause, Play, RefreshCw, Volume2, VolumeX } from "lucide-react";
+import { ArrowDown, ChevronsLeft, ChevronsRight, HelpCircle, Maximize, Minimize, Music, Pause, Play, RefreshCw, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { MISSIONS } from "./engine.js";
 import "./pinball.css";
@@ -8,6 +8,11 @@ const BEST_KEY = "pepple-pinball-best-v2";
 const readBest = () => { try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch { return 0; } };
 const writeBest = (v) => { try { localStorage.setItem(BEST_KEY, String(v)); } catch { /* storage blocked */ } };
 const fmt = (n) => Math.round(n || 0).toLocaleString("de-DE");
+const AUDIO_KEY = "pepple-pinball-audio-v1";
+const readAudio = () => {
+  const base = { sfx: 0.8, music: 0.7, sfxOn: true, musicOn: true };
+  try { return { ...base, ...JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}") }; } catch { return base; }
+};
 const INITIAL = { status: "loading", score: 0, ball: 1, ballsTotal: 3, bonusX: 1, locks: 0, missionsDone: [false, false, false, false, false], combo: 0, plunger: 0, stats: {} };
 
 export function PepplePinball({ user, renderScoreboard }) {
@@ -16,8 +21,9 @@ export function PepplePinball({ user, renderScoreboard }) {
   const sys = useRef({});
   const [snap, setSnap] = useState(INITIAL);
   const [paused, setPaused] = useState(false);
-  const [sfxOn, setSfxOn] = useState(true);
-  const [musicOn, setMusicOn] = useState(true);
+  const [vol, setVol] = useState(readAudio);
+  const [volOpen, setVolOpen] = useState(false);
+  const [full, setFull] = useState(false);
   const [help, setHelp] = useState(false);
   const [message, setMessage] = useState("");
   const [best, setBest] = useState(readBest);
@@ -34,6 +40,8 @@ export function PepplePinball({ user, renderScoreboard }) {
         if (cancelled) return;
         const engine = new PinballEngine();
         const audio = new PinballAudio();
+        const saved = readAudio();
+        audio.sfxVolume = saved.sfx; audio.musicVolume = saved.music; audio.sfxOn = saved.sfxOn; audio.musicOn = saved.musicOn;
         const renderer = new PinballRenderer(stageRef.current, engine, { quality: matchMedia("(max-width: 720px)").matches ? "low" : "high" });
         const dmd = new DMD(dmdRef.current);
         Object.assign(s, { engine, audio, renderer, dmd });
@@ -104,6 +112,26 @@ export function PepplePinball({ user, renderScoreboard }) {
   }
   const togglePause = () => { const st = sys.current.engine?.status; if (st === "ready" || st === "play" || st === "bonus") setPausedState(!pausedRef.current); };
 
+  // Fullscreen: native where the browser allows it, otherwise (iPhone) a fixed full-window cabinet.
+  const fullRef = useRef(false);
+  function setFullscreen(on) {
+    const machine = shellRef.current?.querySelector(".pbMachine");
+    fullRef.current = on; setFull(on);
+    if (on) {
+      const req = machine?.requestFullscreen || machine?.webkitRequestFullscreen;
+      if (req) Promise.resolve(req.call(machine, { navigationUI: "hide" })).catch(() => {});
+    } else if (document.fullscreenElement || document.webkitFullscreenElement) {
+      Promise.resolve((document.exitFullscreen || document.webkitExitFullscreen)?.call(document)).catch(() => {});
+    }
+  }
+  const toggleFull = () => setFullscreen(!fullRef.current);
+  useEffect(() => {
+    const sync = () => { if (!(document.fullscreenElement || document.webkitFullscreenElement) && fullRef.current) { fullRef.current = false; setFull(false); } };
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    return () => { document.removeEventListener("fullscreenchange", sync); document.removeEventListener("webkitfullscreenchange", sync); };
+  }, []);
+
   // Keyboard.
   useEffect(() => {
     const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable;
@@ -114,6 +142,8 @@ export function PepplePinball({ user, renderScoreboard }) {
       s.audio.ensure();
       const st = s.engine.status;
       if ((st === "attract" || st === "gameover") && (k === "Enter" || (k === "Space" && !e.repeat))) { start(); return; }
+      if (k === "KeyF" && !e.repeat) { toggleFull(); return; }
+      if (k === "Escape" && fullRef.current) { setFullscreen(false); return; }
       if (k === "KeyP" || k === "Escape") { if (!e.repeat) togglePause(); return; }
       if (pausedRef.current || e.repeat) return;
       if (k === "KeyA" || k === "ArrowLeft" || k === "ShiftLeft") s.engine.setFlipper("left", true);
@@ -165,25 +195,57 @@ export function PepplePinball({ user, renderScoreboard }) {
 
   const st = snap.status;
   const active = st === "ready" || st === "play" || st === "bonus";
-  const toggleSfx = () => { const v = !sfxOn; setSfxOn(v); sys.current.audio?.setSfx(v); };
-  const toggleMusic = () => { const v = !musicOn; setMusicOn(v); sys.current.audio?.setMusic(v); };
-  const fullscreen = () => shellRef.current?.querySelector(".pbMachine")?.requestFullscreen?.().catch(() => {});
+  const updateVol = (patch) => {
+    const next = { ...vol, ...patch };
+    setVol(next);
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify(next)); } catch { /* storage blocked */ }
+    const a = sys.current.audio;
+    if (!a) return;
+    a.ensure();
+    if ("sfx" in patch) a.setSfxVolume(next.sfx);
+    if ("music" in patch) a.setMusicVolume(next.music);
+    if ("sfxOn" in patch) a.setSfx(next.sfxOn);
+    if ("musicOn" in patch) a.setMusic(next.musicOn);
+    if ("sfx" in patch && next.sfxOn) a.play("bumper-ping", { gain: 0.5, gap: 0.12 });
+  };
 
   return (
-    <section className="pbShell" ref={shellRef} data-status={paused ? "paused" : st} aria-label="PEPPLE Pinball">
+    <section className={`pbShell${full ? " pbFull" : ""}`} ref={shellRef} data-status={paused ? "paused" : st} aria-label="PEPPLE Pinball">
       <header className="pbHeader">
         <div><span>AFTER HOURS CLUB · FLIPPER</span><h2>PEPPLE Pinball</h2></div>
         <div className="pbTools">
           <button type="button" onClick={() => setHelp(!help)} aria-pressed={help} title="Regeln & Steuerung"><HelpCircle size={18} /></button>
-          <button type="button" onClick={toggleMusic} aria-pressed={!musicOn} title={musicOn ? "Musik aus" : "Musik an"} className={musicOn ? "" : "off"}><Music size={18} /></button>
-          <button type="button" onClick={toggleSfx} aria-pressed={!sfxOn} title={sfxOn ? "Sound aus" : "Sound an"}>{sfxOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+          <button type="button" onClick={() => setVolOpen(!volOpen)} aria-expanded={volOpen} title="Lautstärke" aria-label="Lautstärke">{vol.sfxOn || vol.musicOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button type="button" onClick={togglePause} disabled={!active} title={paused ? "Weiter" : "Pause"} aria-label={paused ? "Weiter" : "Pause"}>{paused ? <Play size={18} /> : <Pause size={18} />}</button>
           <button type="button" onClick={start} disabled={st === "loading" || st === "error"} title="Neues Spiel" aria-label="Neues Spiel"><RefreshCw size={18} /></button>
-          <button type="button" onClick={fullscreen} title="Vollbild" aria-label="Vollbild"><Maximize size={18} /></button>
+          <button type="button" onClick={toggleFull} title="Vollbild (F)" aria-label="Vollbild"><Maximize size={18} /></button>
         </div>
       </header>
       <div className="pbLayout">
         <div className="pbMachine">
+          {full && (
+            <div className="pbFsBar">
+              <button type="button" onClick={() => setVolOpen(!volOpen)} aria-label="Lautstärke" title="Lautstärke"><SlidersHorizontal size={18} /></button>
+              <button type="button" onClick={togglePause} disabled={!active} aria-label={paused ? "Weiter" : "Pause"} title={paused ? "Weiter" : "Pause"}>{paused ? <Play size={18} /> : <Pause size={18} />}</button>
+              <button type="button" onClick={start} disabled={st === "loading" || st === "error"} aria-label="Neues Spiel" title="Neues Spiel"><RefreshCw size={18} /></button>
+              <button type="button" onClick={() => setFullscreen(false)} aria-label="Vollbild beenden" title="Vollbild beenden (Esc)"><Minimize size={18} /></button>
+            </div>
+          )}
+          {volOpen && (
+            <div className="pbVolume" role="group" aria-label="Lautstärke">
+              <div className="pbVolRow">
+                <button type="button" onClick={() => updateVol({ sfxOn: !vol.sfxOn })} aria-pressed={!vol.sfxOn} aria-label={vol.sfxOn ? "Effekte stumm" : "Effekte an"}>{vol.sfxOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+                <label><span>Effekte</span><input type="range" min="0" max="100" value={Math.round(vol.sfx * 100)} aria-label="Lautstärke Effekte" onChange={(e) => updateVol({ sfx: Number(e.target.value) / 100, sfxOn: true })} /></label>
+                <b>{vol.sfxOn ? Math.round(vol.sfx * 100) : 0}%</b>
+              </div>
+              <div className="pbVolRow">
+                <button type="button" onClick={() => updateVol({ musicOn: !vol.musicOn })} aria-pressed={!vol.musicOn} aria-label={vol.musicOn ? "Musik stumm" : "Musik an"} className={vol.musicOn ? "" : "muted"}><Music size={18} /></button>
+                <label><span>Musik</span><input type="range" min="0" max="100" value={Math.round(vol.music * 100)} aria-label="Lautstärke Musik" onChange={(e) => updateVol({ music: Number(e.target.value) / 100, musicOn: true })} /></label>
+                <b>{vol.musicOn ? Math.round(vol.music * 100) : 0}%</b>
+              </div>
+              <button type="button" className="pbVolClose" onClick={() => setVolOpen(false)}>Fertig</button>
+            </div>
+          )}
           <canvas ref={dmdRef} className="pbDmd" aria-label={`Anzeige: ${fmt(snap.score)} Punkte`} role="img" />
           <div className="pbStage" ref={stageRef} onPointerDown={onStageDown} onPointerUp={onStageUp} onPointerCancel={onStageUp}>
             {st === "loading" && <div className="pbOverlay"><div className="pbSpinner" /><p>Tisch wird aufgebaut …</p></div>}
@@ -234,7 +296,7 @@ export function PepplePinball({ user, renderScoreboard }) {
                 <li><kbd>A</kbd>/<kbd>←</kbd>/<kbd>Shift</kbd> linker · <kbd>D</kbd>/<kbd>→</kbd> rechter Flipper</li>
                 <li><kbd>Leertaste</kbd> halten = Plunger spannen</li>
                 <li><kbd>Q</kbd>/<kbd>E</kbd>/<kbd>W</kbd> Tisch anstoßen – zu oft = TILT</li>
-                <li><kbd>P</kbd> Pause · am Handy: linke/rechte Tischhälfte tippen</li>
+                <li><kbd>P</kbd> Pause · <kbd>F</kbd> Vollbild · am Handy: linke/rechte Tischhälfte tippen</li>
               </ul>
               <h3>So holst du Punkte</h3>
               <ul>

@@ -13,6 +13,8 @@ const JINGLES = new Set(["multiball", "jackpot", "super-jackpot", "skill-shot", 
 export class PinballAudio {
   constructor() {
     this.sfxOn = true;
+    this.sfxVolume = 0.8;
+    this.musicVolume = 0.7;
     this.musicOn = true;
     this.buffers = new Map();
     this.last = new Map();
@@ -31,7 +33,7 @@ export class PinballAudio {
     const limiter = c.createDynamicsCompressor();
     limiter.threshold.value = -10; limiter.knee.value = 14; limiter.ratio.value = 10; limiter.attack.value = 0.002; limiter.release.value = 0.12;
     this.master.connect(limiter).connect(c.destination);
-    this.sfx = c.createGain(); this.sfx.gain.value = this.sfxOn ? 1 : 0; this.sfx.connect(this.master);
+    this.sfx = c.createGain(); this.sfx.gain.value = this.sfxOn ? this.sfxVolume : 0; this.sfx.connect(this.master);
     for (const name of SFX) this.load(name);
     return c;
   }
@@ -77,7 +79,7 @@ export class PinballAudio {
     this.track = { name, el };
     if (this.musicOn) { el.play().catch(() => {}); this.fade(el, this.musicLevel(), 900); }
   }
-  musicLevel() { return !this.musicOn ? 0 : performance.now() < this.duckUntil ? 0.12 : 0.42; }
+  musicLevel() { return !this.musicOn ? 0 : (performance.now() < this.duckUntil ? 0.12 : 0.42) * this.musicVolume * 1.4; }
   duck(seconds) {
     this.duckUntil = performance.now() + seconds * 1000;
     if (this.track) this.fade(this.track.el, this.musicLevel(), 120);
@@ -94,7 +96,15 @@ export class PinballAudio {
     }, 30);
   }
 
-  setSfx(on) { this.sfxOn = on; if (this.sfx) this.sfx.gain.value = on ? 1 : 0; }
+  setSfx(on) { this.sfxOn = on; if (this.sfx) this.sfx.gain.value = on ? this.sfxVolume : 0; }
+  setSfxVolume(v) {
+    this.sfxVolume = Math.max(0, Math.min(1, v));
+    if (this.sfx) this.sfx.gain.setTargetAtTime(this.sfxOn ? this.sfxVolume : 0, this.ctx.currentTime, 0.03);
+  }
+  setMusicVolume(v) {
+    this.musicVolume = Math.max(0, Math.min(1, v));
+    if (this.track) this.fade(this.track.el, this.musicLevel(), 150);
+  }
   setMusic(on) {
     this.musicOn = on;
     if (!this.track) return;

@@ -113,3 +113,24 @@ test("phone: touch buttons and table halves work the flippers", async ({ page })
   await page.locator(".pbStage").dispatchEvent("pointerup", { pointerId: 7, pointerType: "touch", clientX: stage.x + stage.width * 0.8, clientY: stage.y + stage.height * 0.7 });
   await expect.poll(() => game(page, "return s.engine.table.flipR.pressed")).toBe(false);
 });
+
+test("fullscreen mode fills the window and volume sliders change and remember the mix", async ({ page }) => {
+  await mockApi(page);
+  await openPinball(page);
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Vollbild" }).click();
+  await expect(page.locator(".pbShell")).toHaveClass(/pbFull/);
+  const box = await page.locator(".pbMachine").boundingBox();
+  expect(box.height).toBeGreaterThan(900);
+  await page.locator(".pbFsBar").getByRole("button", { name: "Lautstärke" }).click();
+  await page.getByRole("slider", { name: "Lautstärke Effekte" }).fill("30");
+  await page.getByRole("slider", { name: "Lautstärke Musik" }).fill("10");
+  await expect.poll(() => game(page, "return [s.audio.sfxVolume, s.audio.musicVolume]")).toEqual([0.3, 0.1]);
+  await page.getByRole("button", { name: "Effekte stumm" }).click();
+  await expect.poll(() => game(page, "return s.audio.sfxOn")).toBe(false);
+  await page.locator(".pbFsBar").getByRole("button", { name: "Vollbild beenden" }).click();
+  await expect(page.locator(".pbShell")).not.toHaveClass(/pbFull/);
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector(".pbStage")?.__pinball?.audio, null, { timeout: 30000 });
+  expect(await game(page, "return [s.audio.sfxVolume, s.audio.musicVolume, s.audio.sfxOn]")).toEqual([0.3, 0.1, false]);
+});

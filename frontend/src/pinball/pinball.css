@@ -35,9 +35,62 @@ body:has(.pbShell[data-status="ready"]) .supportFab { visibility: hidden; }
   border: 2px solid transparent;
   box-shadow: 0 30px 80px -30px #ff3fb455, 0 0 0 1px #00000055 inset, 0 2px 0 #ffffff14 inset;
 }
-.pbMachine:fullscreen { display: flex; flex-direction: column; justify-content: center; padding: 1vh; border-radius: 0; background: #050208; }
-.pbMachine:fullscreen .pbStage { height: calc(100vh - 25vw * 0.25 - 4vh); }
-.pbMachine:fullscreen .pbDmd { max-width: min(100%, 70vh); margin: 0 auto 8px; }
+/* Fullscreen cabinet: used with the native Fullscreen API and as the fallback on iPhone. */
+.pbMachine { position: relative; }
+body:has(.pbFull) { overflow: hidden; }
+.pbFull .pbMachine,
+.pbMachine:fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100vw;
+  height: 100dvh;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(circle at 50% 30%, #1d0833 0%, #050208 70%);
+}
+.pbFull .pbDmd, .pbMachine:fullscreen .pbDmd { flex: none; width: min(100%, 62dvh, 900px); margin: 0; }
+.pbFull .pbStage, .pbMachine:fullscreen .pbStage { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; border-radius: 10px; }
+.pbFull .pbTouch, .pbMachine:fullscreen .pbTouch { flex: none; width: min(100%, 560px); margin-top: 0; }
+.pbFsBar { position: absolute; z-index: 6; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 6px; }
+.pbFsBar button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 1px solid #ffffff2a; background: #0b0412cc; color: #fff; backdrop-filter: blur(6px); cursor: pointer; }
+.pbFsBar button:hover:not(:disabled) { border-color: #ff3fb4; }
+.pbFsBar button:disabled { opacity: 0.4; }
+@media (max-width: 720px) {
+  .pbFsBar { top: calc(min(100vw - 16px, 62dvh, 900px) / 4 + 18px + env(safe-area-inset-top)); right: 14px; gap: 4px; }
+  .pbFsBar button { width: 34px; height: 34px; border-radius: 10px; }
+}
+
+/* Volume panel */
+.pbVolume {
+  position: absolute;
+  z-index: 7;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  gap: 12px;
+  width: min(320px, calc(100% - 24px));
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #ffffff22;
+  background: linear-gradient(180deg, #2a1240f2, #12061ef2);
+  box-shadow: 0 20px 50px -20px #000, 0 0 0 1px #ff3fb433;
+  backdrop-filter: blur(10px);
+  animation: pbFade 0.18s ease;
+}
+.pbFull .pbVolume, .pbMachine:fullscreen .pbVolume { top: calc(62px + env(safe-area-inset-top)); }
+.pbVolRow { display: grid; grid-template-columns: 38px 1fr 44px; align-items: center; gap: 10px; }
+.pbVolRow > button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 10px; border: 1px solid #ffffff22; background: #ffffff0d; color: #fff; cursor: pointer; }
+.pbVolRow > button.muted, .pbVolRow > button[aria-pressed="true"] { color: #8f7aa8; }
+.pbVolRow label { display: grid; gap: 4px; font-size: 12px; font-weight: 800; color: var(--pb-muted); }
+.pbVolRow b { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.pbVolRow input[type="range"] { width: 100%; height: 26px; margin: 0; accent-color: #ff3fb4; cursor: pointer; }
+.pbVolClose { justify-self: end; padding: 7px 16px; border: 0; border-radius: 999px; font-weight: 800; color: #1a0628; background: linear-gradient(90deg, #ffd36b, #ff8fd6); cursor: pointer; }
 
 .pbDmd {
   display: block;
