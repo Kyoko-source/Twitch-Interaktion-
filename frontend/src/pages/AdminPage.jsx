@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, Plus, Shield, Trash2 } from "lucide-react";
+import { Check, Plus, Shield, Trash2, X } from "lucide-react";
 import { ShopAlertsAdmin } from "../economy/ShopAlertsAdmin";
 import { AdminMembers, AdminPoints } from "../economy/AdminMembers";
 import { api } from "../api";
@@ -59,6 +59,17 @@ export function AdminPage() {
     }
   }
 
+  async function rejectRegistration(id, username) {
+    if (!window.confirm(`Registrierung von ${username} ablehnen?`)) return;
+    try {
+      await adminCall(`/api/admin/registration/${id}/reject`, { method: "POST", body: "{}" });
+      setMessage(`Anfrage von ${username} abgelehnt.`);
+      setReloadKey((value) => value + 1);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
   const tabs = [
     ["registrations", "Registrierungen"],
     ["points", "Chickens"],
@@ -97,7 +108,7 @@ export function AdminPage() {
           <div className="segmented adminTabs">
             {tabs.map(([id, label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} type="button" key={id}>{label}</button>)}
           </div>
-          {tab === "registrations" && <div className="grid">{overview.registration_requests.map((item) => <article className="card" key={item.id}><h3>{item.username}</h3><p>{item.status}</p><button onClick={() => approveRegistration(item.id, item.username)} type="button"><Check size={16} /> Genehmigen</button></article>)}</div>}
+          {tab === "registrations" && <div className="grid">{overview.registration_requests.map((item) => <article className="card" key={item.id}><h3>{item.username}</h3><p>{item.status}</p><div className="registrationActions"><button onClick={() => approveRegistration(item.id, item.username)} type="button"><Check size={16} /> Genehmigen</button><button className="ghost danger" onClick={() => rejectRegistration(item.id, item.username)} type="button"><X size={16} /> Ablehnen</button></div></article>)}</div>}
           {tab === "points" && <AdminPoints users={overview.users} adminCall={adminCall} onUpdated={() => setReloadKey((value) => value + 1)} />}
           {tab === "roles" && <AdminMembers users={overview.users} adminCall={adminCall} onUpdated={() => setReloadKey((value) => value + 1)} />}
           {tab === "news" && (

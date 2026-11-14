@@ -1024,6 +1024,13 @@ def approve_registration(request_id: str) -> dict[str, str]:
     return {"code": code}
 
 
+@app.post("/api/admin/registration/{request_id}/reject", dependencies=[Depends(require_admin)])
+def reject_registration(request_id: str) -> dict[str, str]:
+    # Only still-pending requests can be rejected; the name can simply request again later.
+    supabase().delete(f"registration_requests?id=eq.{quote(request_id)}&status=eq.pending")
+    return {"message": "Anfrage abgelehnt."}
+
+
 @app.post("/api/admin/news", dependencies=[Depends(require_admin)])
 def admin_create_news(payload: NewsCreate) -> dict[str, str]:
     supabase().post(

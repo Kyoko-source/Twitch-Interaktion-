@@ -3985,3 +3985,5 @@ textarea {
     flex-direction: column;
   }
 }
+
+.registrationActions { display: flex; flex-wrap: wrap; gap: 8px; }
