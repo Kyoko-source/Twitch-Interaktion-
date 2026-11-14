@@ -293,6 +293,8 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .gameLaunch-nullsignal .gameLaunchArtwork { background-image: url('/assets/aviary-banner-nullsignal.webp'); }
 .gameLaunch-after-play .gameLaunchArtwork { background-image: url('/assets/aviary-banner-after-play.webp'); }
 .gameLaunch-slots { --game-color: #b56cff; background: #1c0a30; }
+.gameLaunch-chicken-defense { --game-color: #ff6a4a; background: #2a1a0c; }
+.gameLaunch-chicken-defense .gameLaunchArtwork { background-image: url('/assets/aviary-banner-defense.webp'); background-size: auto 100%; background-position: left center; }
 .gameLaunch-slots .gameLaunchArtwork { background-image: url('/assets/aviary-banner-slots.webp'); background-size: auto 100%; background-position: left center; }
 .communityBalances .balCredits svg { color: #3fe7ff; }
 .communityBalances .balGsc svg { color: #ffc94a; }

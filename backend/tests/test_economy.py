@@ -225,11 +225,11 @@ class EconomyTests(unittest.TestCase):
             run = self.store.start_run("alice", game, now=100000)["run_id"]
             result = self.store.complete_run("alice", game, run, {"score": 100}, now=100030, legacy_best=0)
             self.assertTrue(result["is_highscore"])
-        self.assertEqual(len(self.store.alerts(now=100030)["events"]), 4)
+        self.assertEqual(len(self.store.alerts(now=100030)["events"]), len(SCORE_DIVISORS))
         run = self.store.start_run("bob", "chicken-jump", now=100000)["run_id"]
         result = self.store.complete_run("bob", "chicken-jump", run, {"score": 100000}, now=100030, legacy_best=None)
         self.assertFalse(result["is_highscore"])
-        self.assertEqual(len(self.store.alerts(now=100030)["events"]), 4)
+        self.assertEqual(len(self.store.alerts(now=100030)["events"]), len(SCORE_DIVISORS))
 
     def test_concurrent_tied_record_saves_only_schedule_one_announcement(self):
         runs = [(user, self.store.start_run(user, "chicken-jump", now=100000)["run_id"]) for user in ["alice", "bob"]]

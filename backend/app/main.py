@@ -257,7 +257,12 @@ def score_table(game: str) -> str | None:
         "chicken-snake": "chicken_snake_scores",
         "chicken-flipper": "chicken_racer_scores",
         "braincell-survivor": "braincell_survivor_scores",
+        "chicken-defense": LEDGER_ONLY,
     }.get(game)
+
+
+# Newer games keep their scores only in the local economy ledger (no Supabase table).
+LEDGER_ONLY = "__ledger__"
 
 
 def single_user(username: str) -> dict[str, Any] | None:
@@ -981,6 +986,8 @@ def scores(game: str) -> list[dict[str, Any]]:
     if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
     current = economy().scores(game)
+    if table == LEDGER_ONLY:
+        return sorted(current, key=lambda score: (-int(score.get("score") or 0), str(score.get("created_at") or "")))[:100]
     try:
         legacy = rows(f"{table}?select=*&order=score.desc,created_at.asc&limit=100")
     except HTTPException as error:
@@ -999,6 +1006,8 @@ def save_score(payload: ScoreCreate, user: dict[str, Any] = Depends(current_user
     if not table:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
     try:
+        if table == LEDGER_ONLY:
+            raise HTTPException(status_code=404, detail="ledger only")
         history = rows(f"{table}?select=score&order=score.desc&limit=1")
         legacy_best = max(0, int(history[0].get("score") or 0)) if history else 0
     except HTTPException as error:

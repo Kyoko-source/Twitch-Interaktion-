@@ -1,0 +1,122 @@
+/* ================= Chicken Defense ================= */
+.cdShell { --cream: #fff4dc; --wood: #7a4a24; --wood-dark: #4a2a12; --red: #d8402a; --gold: #ffcf4a; --leaf: #5aa83a; position: relative; color: #fff; }
+.cdHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 12px; }
+.cdHeader span { color: var(--gold); font-size: 11px; font-weight: 900; letter-spacing: .2em; }
+.cdHeader h2 { margin: 4px 0 0; font: italic 900 clamp(26px, 3.4vw, 38px)/1 Inter, system-ui, sans-serif; color: #fff; text-shadow: 0 3px 0 var(--red), 0 0 24px #ffcf4a66; }
+.cdHud { display: flex; gap: 8px; margin: 0; }
+.cdHud > div { min-width: 86px; padding: 6px 12px; border-radius: 12px; background: linear-gradient(180deg, #fff8e8, #f0dcb0); border: 2px solid var(--wood); box-shadow: 0 3px 0 var(--wood-dark); text-align: center; color: var(--wood-dark); }
+.cdHud dt { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: #8a5a2a; }
+.cdHud dd { margin: 2px 0 0; font: 900 22px/1.1 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.cdHud .hot { border-color: var(--red); animation: cdHot .5s ease-in-out infinite alternate; }
+.cdHud .hot dd { color: var(--red); }
+@keyframes cdHot { to { transform: scale(1.08); box-shadow: 0 3px 0 var(--wood-dark), 0 0 20px #ff4a5a; } }
+
+.cdStage { position: relative; overflow: hidden; border-radius: 18px; border: 4px solid var(--wood); box-shadow: 0 0 0 3px var(--wood-dark), 0 18px 40px #0007; background: #3f8a3a; }
+.isDanger .cdStage { animation: cdDanger 1s ease-in-out infinite alternate; }
+@keyframes cdDanger { to { box-shadow: 0 0 0 3px var(--wood-dark), 0 0 40px #ff2a3a; border-color: #ff4a5a; } }
+.isChaos .cdStage { border-color: #8a1a2a; }
+.cdCanvas { display: block; width: 100%; height: auto; aspect-ratio: 22 / 13; cursor: pointer; touch-action: manipulation; }
+.cdCanvas.isPlacing { cursor: crosshair; }
+.cdStageTools { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; gap: 6px; }
+.cdStageTools button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 10px; border: 2px solid var(--wood); background: #fff4dcee; color: var(--wood-dark); cursor: pointer; }
+.cdStageTools button.off { opacity: .5; }
+.cdMods { position: absolute; top: 12px; left: 50%; z-index: 3; display: flex; gap: 6px; transform: translateX(-50%); }
+.cdMods span { padding: 4px 10px; border-radius: 999px; font: 900 11px/1.3 Inter, sans-serif; letter-spacing: .12em; color: #fff; background: linear-gradient(90deg, #d8202a, #ff4fd8); box-shadow: 0 0 14px #ff2a5a; animation: cdModPulse .6s ease-in-out infinite alternate; }
+@keyframes cdModPulse { to { transform: scale(1.08); } }
+
+.cdWaveBar { position: absolute; left: 10px; bottom: 10px; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cdWaveBtn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; border: 2px solid var(--wood-dark); font: 900 15px/1 Inter, system-ui, sans-serif; color: var(--wood-dark); background: linear-gradient(180deg, #fff8e8, #e8c890); box-shadow: 0 4px 0 var(--wood-dark); cursor: pointer; }
+.cdWaveBtn.ready { color: #fff; background: linear-gradient(180deg, #ff6a4a, var(--red)); animation: cdReady 0.8s ease-in-out infinite alternate; }
+.cdWaveBtn em { font-style: normal; font-size: 12px; padding: 2px 7px; border-radius: 999px; background: #ffcf4a; color: #4a2a00; }
+.cdWaveBtn:disabled { opacity: .75; cursor: default; animation: none; }
+.cdWaveBtn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-dark); }
+@keyframes cdReady { to { box-shadow: 0 4px 0 var(--wood-dark), 0 0 22px #ff6a4a; } }
+.cdSpeed { display: flex; overflow: hidden; border-radius: 10px; border: 2px solid var(--wood-dark); box-shadow: 0 3px 0 var(--wood-dark); }
+.cdSpeed button { display: inline-flex; align-items: center; gap: 2px; padding: 7px 10px; border: 0; border-right: 1px solid #c8a070; background: #fff4dc; color: var(--wood-dark); font-weight: 900; font-size: 13px; cursor: pointer; }
+.cdSpeed button:last-child { border-right: 0; }
+.cdSpeed button.active, .cdSpeed button[aria-pressed="true"] { background: var(--gold); }
+
+.cdOverlay { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle, #1a100888 0%, #0a0604cc 100%); }
+.cdCard { width: min(480px, 100%); padding: 24px; border-radius: 20px; text-align: center; color: var(--wood-dark); background: linear-gradient(180deg, #fffaf0, #f6e2b8); border: 3px solid var(--wood); box-shadow: 0 6px 0 var(--wood-dark), 0 20px 50px #0008; animation: cdCardIn .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes cdCardIn { from { opacity: 0; transform: scale(.7) rotate(-3deg); } }
+.cdCard h3 { margin: 0 0 8px; font: italic 900 30px/1.1 Inter, system-ui, sans-serif; color: var(--red); text-shadow: 0 2px 0 #fff; }
+.cdCard p { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: #5a3a1a; }
+.cdHow { margin: 0 0 16px; padding: 10px 14px; list-style: none; border-radius: 12px; background: #fff; text-align: left; font-size: 13px; color: #5a3a1a; }
+.cdHow li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.cdHow li + li { margin-top: 6px; }
+.cdHow b { display: inline-block; padding: 1px 7px; border-radius: 6px; background: #f6e2b8; color: var(--wood-dark); text-align: center; font-size: 12px; }
+.cdPrimary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 220px; padding: 14px 20px; border-radius: 14px; border: 2px solid #8a1a10; font: 900 18px/1 Inter, system-ui, sans-serif; color: #fff; background: linear-gradient(180deg, #ff6a4a, var(--red)); box-shadow: 0 5px 0 #8a1a10; cursor: pointer; }
+.cdPrimary:disabled { filter: grayscale(.6); cursor: default; }
+.cdSecondary { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px auto 0; padding: 8px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--wood); font-weight: 800; cursor: pointer; }
+.cdOverIcon { display: inline-grid; place-items: center; width: 52px; height: 52px; margin-bottom: 6px; border-radius: 50%; color: #fff; background: var(--red); box-shadow: 0 0 20px #ff6a4a; }
+.cdFinal { display: grid; margin: 0 0 16px; font: italic 900 52px/1 Inter, system-ui, sans-serif; color: var(--red); }
+.cdFinal span { font: 800 11px/1.4 Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #8a5a2a; font-style: normal; }
+.cdHint { font-size: 12px !important; }
+.cdHint a { color: var(--red); }
+.cdMsg { margin: 10px 0 0 !important; font-size: 13px !important; font-weight: 700; color: #2a7a2a !important; }
+
+/* dock: towers + panel */
+.cdDock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 12px; margin-top: 12px; }
+.cdTowers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.cdTower { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 14px; border: 2px solid var(--wood); background: linear-gradient(180deg, #fffaf0, #f2dcae); color: var(--wood-dark); box-shadow: 0 4px 0 var(--wood-dark); cursor: pointer; transition: transform .12s; }
+.cdTower:hover:not(:disabled) { transform: translateY(-2px); }
+.cdTower.active { border-color: var(--red); background: linear-gradient(180deg, #fff, #ffd8b0); box-shadow: 0 4px 0 #8a1a10, 0 0 18px #ff6a4a; }
+.cdTower.poor { filter: saturate(.4); opacity: .75; }
+.cdTower.locked { filter: grayscale(1); opacity: .5; cursor: default; }
+.cdTower b { font-size: 11.5px; line-height: 1.15; text-align: center; }
+.cdTower span { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; color: #8a5a2a; }
+.cdKey { position: absolute; top: 4px; left: 6px; font: 900 10px/1 Inter, sans-serif; font-style: normal; color: #b08050; }
+.cdTowerIcon { display: block; }
+
+.cdPanel { position: relative; display: grid; align-content: start; gap: 10px; padding: 12px; border-radius: 16px; border: 2px solid var(--wood); background: linear-gradient(180deg, #fffaf0, #f2dcae); color: var(--wood-dark); box-shadow: 0 4px 0 var(--wood-dark); }
+.cdPanelHead { display: flex; align-items: center; gap: 10px; }
+.cdPanelHead b { display: block; font-size: 15px; }
+.cdPanelHead small { color: #8a5a2a; font-weight: 700; }
+.cdStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; }
+.cdStats div { padding: 5px 6px; border-radius: 8px; background: #fff; text-align: center; }
+.cdStats dt { font-size: 10px; font-weight: 800; color: #a87a4a; text-transform: uppercase; letter-spacing: .06em; }
+.cdStats dd { margin: 1px 0 0; font-weight: 900; font-size: 15px; }
+.cdBranches { display: grid; gap: 6px; }
+.cdBranches button { display: grid; grid-template-columns: 36px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 2px solid #c8a070; background: #fff; color: var(--wood-dark); text-align: left; cursor: pointer; animation: cdBranchIn .35s ease both; }
+.cdBranches button:nth-child(2) { animation-delay: .06s; } .cdBranches button:nth-child(3) { animation-delay: .12s; }
+@keyframes cdBranchIn { from { opacity: 0; transform: translateX(10px); } }
+.cdBranches button:hover:not(:disabled) { border-color: var(--red); box-shadow: 0 0 12px #ff6a4a88; }
+.cdBranches button:disabled { opacity: .55; cursor: default; }
+.cdBranches .cdTowerIcon { grid-row: span 2; }
+.cdBranches b { font-size: 13px; }
+.cdBranches small { grid-column: 2; font-size: 11px; color: #8a5a2a; line-height: 1.3; }
+.cdBranches em { grid-row: span 2; grid-column: 3; display: inline-flex; align-items: center; gap: 2px; font-style: normal; font-weight: 900; font-size: 12px; padding: 3px 7px; border-radius: 999px; background: var(--gold); }
+.cdPanelActions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cdPanelActions button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: 10px; border: 2px solid #c8a070; background: #fff; color: var(--wood-dark); font-weight: 800; font-size: 12.5px; cursor: pointer; }
+.cdPanelActions .up { border-color: #2a7a2a; background: linear-gradient(180deg, #8aff8a, #3ab83a); color: #0a3a0a; }
+.cdPanelActions .up em { font-style: normal; padding: 1px 6px; border-radius: 999px; background: #fff8; }
+.cdPanelActions .sell { margin-left: auto; border-color: #a8402a; color: #a8402a; }
+.cdPanelActions button:disabled { opacity: .5; cursor: default; }
+.cdPanelHint { margin: 0; font-size: 13px; line-height: 1.5; color: #5a3a1a; }
+.cdPanelHint small { color: #8a5a2a; }
+.cdGiveUp { justify-self: end; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 0; background: transparent; color: #a87a4a; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+.cdScores { margin-top: 16px; }
+.cdScores h3 { display: flex; align-items: center; gap: 8px; }
+
+.cdShell.isFull { overflow: auto; padding: 10px 16px 20px; background: #1a2a12; }
+.cdShell.isFull .cdStage { max-width: calc((100dvh - 290px) * 22 / 13); margin: 0 auto; }
+
+@media (max-width: 980px) {
+  .cdDock { grid-template-columns: minmax(0, 1fr); }
+  .cdTowers { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .cdTowers { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .cdTower { flex: 0 0 92px; scroll-snap-align: start; }
+  .cdHud > div { min-width: 0; padding: 4px 8px; }
+  .cdHud dd { font-size: 17px; }
+  .cdWaveBtn { padding: 8px 10px; font-size: 12px; }
+  .cdWaveBar { position: static; justify-content: space-between; padding: 6px; gap: 4px; background: #2a1a0c; }
+  .cdSpeed button { padding: 5px 7px; font-size: 11px; }
+  .cdStageTools button { width: 32px; height: 32px; }
+  .cdCard { padding: 16px; }
+  .cdCard h3 { font-size: 22px; }
+  .cdHow { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cdShell * { animation: none !important; } }

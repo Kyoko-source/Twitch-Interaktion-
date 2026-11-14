@@ -24,8 +24,8 @@ MAX_GSC_PER_SECOND = 20_000  # plausibility ceiling for a submitted pinball scor
 ROUND_CAP = 25
 MIN_RUN_SECONDS = 15
 LEVEL_SIZE = 250
-SCORE_DIVISORS = {"chicken-jump": 100, "chicken-snake": 10, "chicken-flipper": 2500, "braincell-survivor": 200}
-GAME_TITLES = {"chicken-jump": "Chicken Jump", "chicken-snake": "Chicken Snake", "chicken-flipper": "PEPPLE Pinball", "braincell-survivor": "Pepple Survivor"}
+SCORE_DIVISORS = {"chicken-jump": 100, "chicken-snake": 10, "chicken-flipper": 2500, "braincell-survivor": 200, "chicken-defense": 200}
+GAME_TITLES = {"chicken-jump": "Chicken Jump", "chicken-snake": "Chicken Snake", "chicken-flipper": "PEPPLE Pinball", "braincell-survivor": "Pepple Survivor", "chicken-defense": "Chicken Defense"}
 GAME_TITLES["nullsignal"] = "NULLSIGNAL"
 PUNISHMENT_CATEGORIES = {"Bestrafungs Ideen", "Idee Bestrafungsrad"}
 

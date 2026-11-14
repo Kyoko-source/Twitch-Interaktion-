@@ -9,6 +9,7 @@ const PeppleSurvivor = lazy(() => import("../survivor/PeppleSurvivor").then((mod
 const DungeonsAndDragons = lazy(() => import("../dnd/DndTable").then((module) => ({ default: module.DungeonsAndDragons })));
 const Nullsignal = lazy(() => import("../nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
 const ChickenJackpot = lazy(() => import("../slots/ChickenJackpot").then((module) => ({ default: module.ChickenJackpot })));
+const ChickenDefense = lazy(() => import("../defense/ChickenDefense").then((module) => ({ default: module.ChickenDefense })));
 const AfterPlay = lazy(() => import("../nachtwache/Nachtwache").then((module) => ({ default: module.AfterPlay })));
 
 export const Scoreboard = GameScoreboard;
@@ -38,6 +39,7 @@ export function GamesPage({ user }) {
     "chicken-jump": <ChickenJump user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-jump" refreshKey={refreshKey} />} />,
     "chicken-snake": <ChickenSnake user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-snake" refreshKey={refreshKey} />} />,
     "chicken-flipper": <PepplePinball user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />} />,
+    "chicken-defense": <Suspense fallback={<div className="notice">Die Hühner beziehen Stellung …</div>}><ChickenDefense user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-defense" refreshKey={refreshKey} />} /></Suspense>,
     "braincell-survivor": <Suspense fallback={<div className="notice">Lade Pepple Survivor …</div>}><PeppleSurvivor user={user} renderScoreboard={(refreshKey) => <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />} /></Suspense>,
     slots: <Suspense fallback={<div className="notice">Der Automat wird angeschaltet …</div>}><ChickenJackpot user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     dnd: <Suspense fallback={<div className="notice">Der Spieltisch wird aufgebaut …</div>}><DungeonsAndDragons user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
