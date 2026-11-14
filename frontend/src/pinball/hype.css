@@ -165,3 +165,7 @@
   .pbGirl, .pbGirl .pbChibi, .pbChibi .pbArm, .pbStreak b, .pbStreak.hot, .pbSlam strong, .pbSlam em, .pbSlam small, .pbChibi .pbAhoge, .pbChibi .pbSparkles { animation: none !important; transition: none !important; }
   .pbLines, .pbFlash { display: none; }
 }
+
+/* Image-based crew (AI artwork drop-in). */
+.pbGirl .pbChibiImg { object-fit: contain; object-position: bottom center; user-select: none; }
+.pbGirl-right .pbChibiImg { transform-origin: bottom center; }

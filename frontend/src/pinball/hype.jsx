@@ -12,6 +12,27 @@ const LINES = {
   peek: ["Du schaffst das!", "Ziel auf die Rampe!", "Fighto~!", "Ich glaub an dich!", "Combo! Combo!", "Mehr! Mehr!", "Hihi~"],
   streak: ["{n} Treffer!!", "Unaufhaltsam!", "x{n}! Waaah!"],
 };
+// Optional artwork: drop images into /assets/pinball/crew/ and list them in manifest.json,
+// e.g. { "mimi": { "idle": "mimi-idle.webp", "cheer": "mimi-cheer.webp" }, "luna": { ... } }.
+// Missing moods fall back to the character's idle image, missing characters to the SVG drawing.
+let crewArt = null;
+const crewReady = fetch("/assets/pinball/crew/manifest.json")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((m) => {
+    crewArt = m && typeof m === "object" ? m : null;
+    for (const set of Object.values(crewArt || {})) for (const file of Object.values(set || {})) { const img = new Image(); img.src = `/assets/pinball/crew/${file}`; }
+  })
+  .catch(() => { crewArt = null; });
+
+function CrewFigure({ who, mood }) {
+  const [, force] = useState(0);
+  useEffect(() => { if (!crewArt) crewReady.then(() => force((n) => n + 1)); }, []);
+  const set = crewArt?.[who];
+  const file = set?.[mood] || set?.idle;
+  if (!file) return <ChibiGirl who={who} mood={mood} />;
+  return <img className={`pbChibi pbChibiImg pbChibi-${who}`} data-mood={mood} src={`/assets/pinball/crew/${file}`} alt="" draggable="false" />;
+}
+
 const pick = (list, n) => list[Math.floor(Math.random() * list.length)].replace("{n}", n);
 const fmt = (n) => Math.round(n || 0).toLocaleString("de-DE");
 
@@ -97,7 +118,7 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
     <div className="pbHypeRoot" ref={rootRef} aria-hidden="true">
       {["mimi", "luna"].map((who) => (
         <div key={who} className={`pbGirl pbGirl-${who === "mimi" ? "left" : "right"}${girls[who].show ? " show" : ""}`} data-mood={girls[who].mood}>
-          <ChibiGirl who={who} mood={girls[who].mood} />
+          <CrewFigure who={who} mood={girls[who].mood} />
           {girls[who].line && <span key={girls[who].nonce} className="pbBubble">{girls[who].line}</span>}
         </div>
       ))}
