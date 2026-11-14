@@ -10,6 +10,7 @@ export const TIPS = {
   code: { t: "Tischcode", d: "Ein Klick kopiert den sechsstelligen Code. Schick ihn deinen Freunden: Sie geben ihn in der Lobby unter „Mit Code beitreten“ ein. Der Link in der Adresszeile funktioniert auch." },
   party: { t: "Wer sitzt am Tisch?", d: "Alle Mitglieder mit Rolle. Die Krone markiert den Dungeon Master, gedimmte Namen sind Zuschauer." },
   lobby: { t: "Zur Lobby", d: "Zurück zur Tischübersicht. Du bleibst Mitglied und kannst jederzeit über „Deine Tische“ zurückkehren." },
+  end: { t: "Tisch beenden", d: "Beendet die Runde für alle und löscht den Tisch mit allen Charakteren, Kreaturen und dem Protokoll. Das kann nur der Dungeon Master oder ein Admin." },
   leave: { t: "Tisch verlassen", d: "Du verlässt die Runde endgültig, dein Charakter wird entfernt." },
   tour: { t: "Tutorial", d: "Startet diese geführte Tour noch einmal." },
   help: { t: "Erklärmodus", d: "Solange er an ist, löst ein Klick auf einen Knopf nichts aus, sondern erklärt ihn. Nochmal klicken schaltet ihn aus." },
@@ -73,7 +74,7 @@ export const TIPS = {
 };
 
 const DM_TOUR = ["welcome", "code", "party", "map", ["tab-creatures", "creatures"], ["cr-bestiary", "creatures"], ["cr-custom", "creatures"], ["cr-list", "creatures"], "token",
-  ["combat-start", "combat"], ["dice-rack", "dice"], ["dice-mode", "dice"], ["dice-hidden", "dice"], ["tp-scene", "table"], ["tp-map", "table"], "log", "log-ic", ["tab-guide", "guide"], "help", "done"];
+  ["combat-start", "combat"], ["dice-rack", "dice"], ["dice-mode", "dice"], ["dice-hidden", "dice"], ["tp-scene", "table"], ["tp-map", "table"], "log", "log-ic", ["tab-guide", "guide"], "help", "end", "done"];
 const PLAYER_TOUR = ["welcome", "code", "party", ["tab-sheet", "sheet"], ["sheet-abilities", "sheet"], ["sheet-skills", "sheet"], ["sheet-hp", "sheet"], "map", "token",
   ["dice-rack", "dice"], ["dice-mode", "dice"], ["dice-roll", "dice"], ["combat-list", "combat"], "log", "log-ic", ["tab-guide", "guide"], "help", "done"];
 

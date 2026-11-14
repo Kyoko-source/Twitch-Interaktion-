@@ -110,7 +110,7 @@ class Store:
                 db.execute("ROLLBACK")
                 raise
 
-    def listing(self, username: str) -> list[dict]:
+    def listing(self, username: str, admin: bool = False) -> list[dict]:
         cutoff = time.time() - ROOM_IDLE_DAYS * 86400
         with self.db() as db:
             rows = db.execute("SELECT state, updated FROM rooms WHERE updated > ? ORDER BY updated DESC LIMIT 200", (cutoff,)).fetchall()
@@ -118,12 +118,13 @@ class Store:
         for raw, updated in rows:
             state = json.loads(raw)
             member = state["members"].get(username)
-            if not member and state.get("locked"):
+            if not member and state.get("locked") and not admin:
                 continue
             players = [u for u, m in state["members"].items() if m["role"] == "player"]
             out.append({"code": state["code"], "name": state["name"], "dm": state["dm"], "players": len(players),
                         "max_players": MAX_PLAYERS, "locked": bool(state.get("locked")), "my_role": member["role"] if member else None,
-                        "updated": updated, "scene": state.get("scene", {}).get("title", "")})
+                        "updated": updated, "scene": state.get("scene", {}).get("title", ""),
+                        "can_close": admin or state["dm"] == username})
         return out
 
 
@@ -614,9 +615,14 @@ class JoinRequest(BaseModel):
     role: Literal["player", "spectator"] = "player"
 
 
+def is_site_admin(user: dict) -> bool:
+    from .main import user_role  # late import: main imports this module
+    return user_role(str(user.get("username") or ""), user.get("role")) == "admin"
+
+
 @router.get("/rooms")
 def list_rooms(user: dict = Depends(current_user)):
-    return get_store().listing(str(user["username"]))
+    return get_store().listing(str(user["username"]), is_site_admin(user))
 
 
 @router.post("/rooms")
@@ -656,6 +662,20 @@ def leave_room(code: str, user: dict = Depends(current_user)):
             return "delete"
         if username in state["members"]:
             apply(state, state["dm"], {"type": "member.kick", "username": username})
+
+    get_store().mutate(code.upper(), change)
+    return {"ok": True}
+
+
+@router.post("/rooms/{code}/close")
+def close_room(code: str, user: dict = Depends(current_user)):
+    username = str(user["username"])
+    admin = is_site_admin(user)
+
+    def change(state):
+        if username != state["dm"] and not admin:
+            raise HTTPException(403, "Nur der Dungeon Master oder ein Admin kann diesen Tisch beenden.")
+        return "delete"
 
     get_store().mutate(code.upper(), change)
     return {"ok": True}

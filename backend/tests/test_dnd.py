@@ -35,6 +35,24 @@ class DndTableTests(unittest.TestCase):
     def act(self, user, **action):
         return self.as_(user).post(f"/api/dnd/rooms/{self.code}/action", json=action)
 
+    def test_close_room(self):
+        original = dnd.is_site_admin
+        dnd.is_site_admin = lambda user: user["username"] == "boss"
+        try:
+            self.as_("anna").post(f"/api/dnd/rooms/{self.code}/join", json={"role": "player"})
+            listed = {r["code"]: r for r in self.as_("anna").get("/api/dnd/rooms").json()}
+            self.assertFalse(listed[self.code]["can_close"])
+            self.assertEqual(self.as_("anna").post(f"/api/dnd/rooms/{self.code}/close").status_code, 403)
+            listed = {r["code"]: r for r in self.as_("boss").get("/api/dnd/rooms").json()}
+            self.assertTrue(listed[self.code]["can_close"])
+            self.assertEqual(self.as_("boss").post(f"/api/dnd/rooms/{self.code}/close").status_code, 200)
+            self.assertEqual(self.as_("dm").get(f"/api/dnd/rooms/{self.code}").status_code, 404)
+            code = self.as_("dm").post("/api/dnd/rooms", json={"name": "Zweiter"}).json()["code"]
+            self.assertTrue({r["code"]: r for r in self.as_("dm").get("/api/dnd/rooms").json()}[code]["can_close"])
+            self.assertEqual(self.as_("dm").post(f"/api/dnd/rooms/{code}/close").status_code, 200)
+        finally:
+            dnd.is_site_admin = original
+
     def test_dice_expressions(self):
         for _ in range(200):
             r = dnd.roll_expression("2d6+3")

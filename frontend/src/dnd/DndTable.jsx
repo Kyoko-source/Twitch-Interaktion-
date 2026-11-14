@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, Copy, Crown, DoorOpen, Eye, GraduationCap, HelpCircle, LogIn, Map as MapIcon, Plus, ScrollText, Shield, Skull, Sparkles, Swords, Users } from "lucide-react";
+import { BookOpen, Copy, Crown, DoorOpen, Eye, GraduationCap, HelpCircle, LogIn, Map as MapIcon, Plus, ScrollText, Shield, Skull, Sparkles, Swords, Trash2, Users } from "lucide-react";
 import { api } from "../api";
 import { BattleMap } from "./BattleMap";
 import { CharacterSheet } from "./CharacterSheet";
@@ -57,6 +57,12 @@ function Lobby({ onOpen }) {
     try { const r = await api("/api/dnd/rooms", { method: "POST", body: JSON.stringify({ name: name.trim() }) }); onOpen(r.code); }
     catch (err) { setError(err.message); }
   }
+  async function close(room) {
+    if (!window.confirm(`Tisch „${room.name}“ beenden? Alle Charaktere, Kreaturen und das Protokoll werden gelöscht.`)) return;
+    setError("");
+    try { await api(`/api/dnd/rooms/${room.code}/close`, { method: "POST" }); setRooms((list) => (list || []).filter((r) => r.code !== room.code)); }
+    catch (err) { setError(err.message); }
+  }
   async function join(code, role) {
     setError("");
     try { await api(`/api/dnd/rooms/${code}/join`, { method: "POST", body: JSON.stringify({ role }) }); onOpen(code); }
@@ -109,15 +115,15 @@ function Lobby({ onOpen }) {
         </div>
       </div>
       {error && <div className="notice error">{error}</div>}
-      {mine.length > 0 && <><h3 className="lobbyHeading">Deine Tische</h3><div className="roomGrid">{mine.map((r) => <RoomCard key={r.code} room={r} onOpen={() => onOpen(r.code)} />)}</div></>}
+      {mine.length > 0 && <><h3 className="lobbyHeading">Deine Tische</h3><div className="roomGrid">{mine.map((r) => <RoomCard key={r.code} room={r} onOpen={() => onOpen(r.code)} onClose={close} />)}</div></>}
       <h3 className="lobbyHeading">Offene Tische</h3>
-      {rooms === null ? <div className="notice">Lade Tische …</div> : open.length ? <div className="roomGrid">{open.map((r) => <RoomCard key={r.code} room={r} onJoin={join} />)}</div>
+      {rooms === null ? <div className="notice">Lade Tische …</div> : open.length ? <div className="roomGrid">{open.map((r) => <RoomCard key={r.code} room={r} onJoin={join} onClose={close} />)}</div>
         : <div className="notice">Gerade ist kein offener Tisch frei. Eröffne doch selbst einen!</div>}
     </div>}
   </div>;
 }
 
-function RoomCard({ room, onOpen, onJoin }) {
+function RoomCard({ room, onOpen, onJoin, onClose }) {
   const full = room.players >= room.max_players;
   return <article className="roomCard">
     <header><strong>{room.name}</strong><small><Crown size={13} />{room.dm}</small></header>
@@ -125,6 +131,7 @@ function RoomCard({ room, onOpen, onJoin }) {
     <div className="roomMeta"><span><Users size={14} />{room.players}/{room.max_players} Helden</span><code>{room.code}</code></div>
     {onOpen ? <button type="button" onClick={onOpen}><DoorOpen size={16} />{room.my_role === "dm" ? "Tisch öffnen" : "Weiterspielen"}</button>
       : <div className="roomJoin"><button type="button" disabled={full} onClick={() => onJoin(room.code, "player")}><Swords size={16} />Mitspielen</button><button type="button" className="ghost" onClick={() => onJoin(room.code, "spectator")}><Eye size={16} />Zuschauen</button></div>}
+    {room.can_close && <button type="button" className="ghost danger roomClose" onClick={() => onClose(room)}><Trash2 size={15} />{room.my_role === "dm" ? "Tisch beenden" : "Tisch beenden (Admin)"}</button>}
   </article>;
 }
 
@@ -202,6 +209,12 @@ function Table({ code, user, onExit }) {
   const canControl = (ref) => isDm || (ref.startsWith("c:") && view.characters[ref.slice(2)]?.owner === user.username);
   const nameOf = (ref) => (ref.startsWith("c:") ? view.characters[ref.slice(2)]?.name : view.creatures[ref.slice(2)]?.name) || "?";
   const roll = (expr, label, as, extra = {}) => act({ type: "roll", expr, label, mode, as: as || mine?.name || "", ...extra }).catch(() => {});
+  const canEnd = isDm || String(user.role || "").toLowerCase() === "admin";
+  const endTable = async () => {
+    if (!window.confirm("Tisch für alle beenden? Alle Charaktere, Kreaturen und das Protokoll werden gelöscht.")) return;
+    try { await api(`/api/dnd/rooms/${code}/close`, { method: "POST" }); } catch (e) { setToast(e.message); return; }
+    onExit();
+  };
   const leave = async () => {
     try { await api(`/api/dnd/rooms/${code}/leave`, { method: "POST" }); } catch (e) { setToast(e.message); return; }
     onExit();
@@ -222,6 +235,7 @@ function Table({ code, user, onExit }) {
         <button type="button" className="ghost" data-tip="tour" onClick={() => { setHelpMode(false); setTouring(true); }}><GraduationCap size={16} />Tutorial</button>
         <button type="button" className={`ghost helpToggle ${helpMode ? "active" : ""}`} data-tip="help" data-help-pass aria-pressed={helpMode} onClick={() => setHelpMode(!helpMode)} title="Erklärmodus: Klick auf einen Knopf erklärt ihn"><HelpCircle size={16} />{helpMode ? "Erklärmodus an" : "?"}</button>
         <button type="button" className="ghost" data-tip="lobby" onClick={onExit}>Lobby</button>
+        {canEnd && <button type="button" className="ghost danger" data-tip="end" onClick={endTable}><Trash2 size={16} />Tisch beenden</button>}
         {!isDm && <button type="button" className="ghost danger" data-tip="leave" onClick={() => window.confirm("Tisch verlassen? Dein Charakter wird entfernt.") && leave()}><DoorOpen size={16} />Verlassen</button>}
       </div>
     </header>

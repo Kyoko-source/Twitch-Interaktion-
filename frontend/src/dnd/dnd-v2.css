@@ -218,3 +218,4 @@
   .sceneBar, .sceneCard, .turnBanner, .tabBody > *, .tourSpot, .tourBubble, .selectedCard, .guideBody, .tableLoading .dieIcon { animation: none !important; }
   .guideA, .guideA > div, .tourSpot { transition: none; }
 }
+.roomCard .roomClose { justify-self: start; font-size: 12px; padding: 6px 12px; }
