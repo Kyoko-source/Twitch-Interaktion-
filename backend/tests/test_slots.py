@@ -52,23 +52,46 @@ class SlotTests(unittest.TestCase):
         middle = next(w for w in result["wins"] if w["line"] == 0)
         self.assertEqual((middle["symbol"], middle["count"]), ("seven", 4))
         self.assertEqual(result["scatter"]["count"], 3)
-        self.assertEqual(result["win"], int(10 * slots.GSC_PER_CREDIT * (sum(w["mult"] for w in result["wins"]) + 2)))
+        self.assertEqual(result["win"], int(10 * slots.GSC_PER_CREDIT * (sum(w["mult"] for w in result["wins"]) + slots.SCATTER[3])))
+        self.assertEqual(result["scatter"]["free_spins"], 8)
         wild_run = slots.evaluate(grid_from_rows([["wild"] * 5, ["cherry", "lemon", "grape", "bell", "bar"], ["lemon", "grape", "bell", "bar", "cherry"]]), 2)
         self.assertEqual(wild_run["wins"][0]["symbol"], "wild")
-        self.assertGreaterEqual(wild_run["win"], 2 * slots.GSC_PER_CREDIT * 300)  # 5 wilds on the middle line = 300x
+        self.assertGreaterEqual(wild_run["win"], 2 * slots.GSC_PER_CREDIT * slots.PAY["wild"][2])  # 5 wilds on the middle line
 
-    def test_return_to_player_is_a_soft_sink(self):
+    def test_return_to_player_including_the_egg_bonus_is_a_soft_sink(self):
         rng = random.Random(4)
-        n, paid = 60_000, 0.0
+        n, paid, bonuses = 120_000, 0, 0
         for _ in range(n):
-            paid += slots.evaluate(slots.draw(rng), 10)["multiplier"]
-        self.assertGreater(paid / n, 0.88)
-        self.assertLess(paid / n, 0.98)
+            result = slots.play(1, rng)
+            paid += result["win"]
+            bonuses += result["bonus"] is not None
+        rtp = paid / (n * slots.GSC_PER_CREDIT)
+        self.assertGreater(rtp, 0.86)
+        self.assertLess(rtp, 1.0)
+        self.assertGreater(bonuses, n / 120, "the Egg Bonus must come around regularly")
+
+    def test_egg_bonus_triples_wins_counts_retriggers_and_respects_the_cap(self):
+        three_eggs = grid_from_rows([["egg", "cherry", "egg", "lemon", "egg"], ["bell", "bar", "grape", "lemon", "cherry"], ["grape", "lemon", "bell", "cherry", "bar"]])
+        sevens = grid_from_rows([["seven"] * 5, ["cherry", "lemon", "grape", "bell", "bar"], ["lemon", "grape", "bell", "bar", "cherry"]])
+        tripled = slots.evaluate(sevens, 1, slots.FREE_MULT)
+        self.assertEqual(tripled["win"], int(slots.GSC_PER_CREDIT * slots.PAY["seven"][2] * slots.FREE_MULT))
+        draws = iter([three_eggs] + [three_eggs] * 10 + [sevens] * 100)
+        original = slots.draw
+        slots.draw = lambda rng=None: next(draws)
+        try:
+            result = slots.play(2)
+        finally:
+            slots.draw = original
+        bonus = result["bonus"]
+        self.assertEqual(bonus["awarded"], slots.FREE_CAP)
+        self.assertEqual(len(bonus["spins"]), slots.FREE_CAP)
+        self.assertEqual(result["win"], result["base_win"] + bonus["win"])
+        self.assertEqual(bonus["spins"][0]["extra_spins"], 8)
 
     def test_spin_costs_credits_pays_gsc_and_is_idempotent(self):
         slots.draw = lambda rng=None: [["seven", "cherry", "lemon"], ["seven", "bell", "bar"], ["seven", "cherry", "lemon"], ["seven", "bell", "bar"], ["seven", "cherry", "lemon"]]
         data = self.spin(bet=2, request_id="same-request-0001-aaaa").json()
-        self.assertGreaterEqual(data["win"], 2 * slots.GSC_PER_CREDIT * 75)
+        self.assertGreaterEqual(data["win"], 2 * slots.GSC_PER_CREDIT * slots.PAY["seven"][2])
         self.assertEqual(data["wallet"]["credits"], 48)
         self.assertEqual(data["wallet"]["gsc"], data["win"])
         self.assertEqual(data["wallet"]["chickens"], 500, "slots never touch Chickens directly")

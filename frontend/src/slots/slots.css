@@ -1,134 +1,219 @@
-/* ================= Chicken Jackpot: maximum casino ================= */
-.slShell { position: relative; color: #fff; }
+/* ================= Chicken Jackpot: royal chicken casino ================= */
+.slShell { --gold: #ffcf4a; --gold-hi: #fff3c4; --gold-lo: #8a4a00; --violet: #9a4dff; --pink: #ff4fd8; position: relative; color: #fff; }
 .slHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 14px; }
-.slHeader span { color: #ffc94a; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; }
-.slHeader h2 { margin: 4px 0 0; font-size: 32px; background: linear-gradient(90deg, #fff, #ffd36b 40%, #ff3fb4 70%, #3fe7ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.slHeader span { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.18em; }
+.slHeader h2 { margin: 4px 0 0; font-size: 32px; background: linear-gradient(90deg, #fff, var(--gold) 40%, var(--pink) 70%, #c48bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.slOff { opacity: 0.35; }
 
+.slStage { position: relative; display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); align-items: end; gap: 8px; max-width: 1220px; margin: 0 auto; }
+
+/* ---------------------------------------------------------------- cabinet */
 .slCabinet {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 26px clamp(14px, 3vw, 34px) 22px;
-  border-radius: 34px;
+  padding: 16px clamp(14px, 3vw, 34px) 22px;
+  border-radius: 40px 40px 30px 30px;
   background:
-    radial-gradient(circle at 50% 0%, #7a1030 0%, transparent 55%),
-    linear-gradient(170deg, #3a0a24 0%, #14040f 55%, #240818 100%);
-  border: 4px solid #ffd36b;
-  box-shadow: 0 0 0 5px #6a2a00, 0 0 80px #ff3fb455, 0 40px 90px -30px #000, inset 0 0 60px #ff3b4e33;
+    radial-gradient(circle at 50% -10%, #b65cff66 0%, transparent 55%),
+    radial-gradient(circle at 50% 110%, #ff4fd833 0%, transparent 50%),
+    linear-gradient(170deg, #3a1468 0%, #1a0632 55%, #2a0a48 100%);
+  border: 4px solid var(--gold);
+  box-shadow: 0 0 0 5px #4a1f00, 0 0 0 9px #2a0a48, 0 0 90px #9a4dff66, 0 40px 90px -30px #000, inset 0 0 70px #9a4dff44;
+  transition: box-shadow 0.4s, border-color 0.4s;
 }
 .slCabinet.pbQuake { animation: pbQuake 0.5s cubic-bezier(0.3, 0, 0.3, 1); }
-.slBeams { z-index: -1; opacity: 0.55; }
-.isSpinning .slBeams { animation-duration: 3s; opacity: 0.8; }
-.isBig .slBeams { animation-duration: 1.2s; opacity: 1; }
+.slBeams { z-index: -1; opacity: 0.35; }
+.lights-spin .slBeams { animation-duration: 3s; opacity: 0.6; }
+.lights-win .slBeams { animation-duration: 2s; opacity: 0.8; }
+.lights-big .slBeams, .lights-bonus .slBeams { animation-duration: 1s; opacity: 1; }
+.inBonus .slCabinet {
+  border-color: #fff3c4;
+  background: radial-gradient(circle at 50% -10%, #ffcf4a55 0%, transparent 55%), radial-gradient(circle at 50% 110%, #ff8a1f44 0%, transparent 55%), linear-gradient(170deg, #4a1a5a 0%, #2a0a2a 55%, #4a1a10 100%);
+  box-shadow: 0 0 0 5px #4a1f00, 0 0 0 9px #5a2a00, 0 0 120px #ffcf4aaa, inset 0 0 90px #ff8a1f55;
+  animation: slBonusGlow 1.2s ease-in-out infinite alternate;
+}
+@keyframes slBonusGlow { to { box-shadow: 0 0 0 5px #4a1f00, 0 0 0 9px #8a4a00, 0 0 160px #ff4fd8cc, inset 0 0 110px #ffcf4a66; } }
 
-/* Marquee */
+/* crown + marquee */
+.slTop { position: relative; display: grid; justify-items: center; margin-bottom: 12px; }
+.slTopCrown { width: 92px; height: 46px; margin-bottom: -8px; filter: drop-shadow(0 0 14px #ffcf4a); animation: slCrownBob 2.6s ease-in-out infinite; }
+@keyframes slCrownBob { 50% { transform: translateY(-4px) rotate(-2deg); } }
 .slMarquee {
   position: relative;
-  margin: 0 auto 16px;
   width: fit-content;
   padding: 12px 34px;
   border-radius: 20px;
-  background: linear-gradient(180deg, #2a0510, #0c0206);
-  border: 3px solid #ffd36b;
-  font: italic 900 clamp(26px, 5vw, 50px) / 1 Inter, system-ui, sans-serif;
+  background: linear-gradient(180deg, #2a0a48, #0c0218);
+  border: 3px solid var(--gold);
+  font: italic 900 clamp(24px, 4.6vw, 48px) / 1 Inter, system-ui, sans-serif;
   letter-spacing: 0.06em;
-  color: #fff3c4;
-  text-shadow: 0 0 18px #ffc94a, 0 0 40px #ff3fb4, 3px 3px 0 #7a1a00;
-  animation: slMarqueePump 0.6s ease-in-out infinite alternate;
+  color: var(--gold-hi);
+  text-shadow: 0 0 18px var(--gold), 0 0 40px var(--violet), 3px 3px 0 #5a1b00;
+  animation: slMarqueePump 0.9s ease-in-out infinite alternate;
 }
-.slMarquee b { color: #ff3fb4; animation: pbBlinkFast 0.3s steps(2) infinite; }
+.slMarquee b { color: var(--pink); animation: pbBlinkFast 0.6s steps(2) infinite; }
 .slMarquee .pbBulbs { inset: -12px; border-radius: 28px; }
-@keyframes slMarqueePump { to { text-shadow: 0 0 30px #ffc94a, 0 0 70px #ff3fb4, 3px 3px 0 #7a1a00; transform: scale(1.03); } }
+.lights-big .slMarquee, .lights-bonus .slMarquee { animation-duration: 0.3s; }
+@keyframes slMarqueePump { to { text-shadow: 0 0 30px var(--gold), 0 0 70px var(--pink), 3px 3px 0 #5a1b00; transform: scale(1.03); } }
 
 /* LED read-outs */
-.slLeds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 760px; margin: 0 auto 14px; }
-.slLeds div { padding: 8px 12px; border-radius: 12px; background: #0b0503; border: 2px solid #5a3412; box-shadow: inset 0 0 14px #000; text-align: center; }
-.slLeds small { display: block; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; color: #c88a3a; }
-.slLeds strong { font: 900 clamp(20px, 3.4vw, 32px) / 1.1 ui-monospace, "Consolas", monospace; color: #ff8a2a; text-shadow: 0 0 10px #ff6a00, 0 0 22px #ff6a0088; font-variant-numeric: tabular-nums; }
-.slLeds .hot strong { color: #ffe08a; animation: pbBlinkFast 0.25s steps(2) infinite; }
+.slLeds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 780px; margin: 0 auto 12px; }
+.slLeds div { padding: 8px 12px; border-radius: 12px; background: #07020c; border: 2px solid #5a2a8a; box-shadow: inset 0 0 14px #000; text-align: center; }
+.slLeds small { display: block; font-size: 10px; font-weight: 900; letter-spacing: 0.18em; color: #c48bff; }
+.slLeds strong { font: 900 clamp(18px, 3vw, 30px) / 1.15 ui-monospace, "Consolas", monospace; color: #ffb04a; text-shadow: 0 0 10px #ff8a00, 0 0 22px #ff8a0088; font-variant-numeric: tabular-nums; }
+.slLeds .hot strong { color: var(--gold-hi); animation: pbBlinkFast 0.25s steps(2) infinite; }
 
-/* Reel window */
+/* bonus bar */
+.slBonusBar { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 780px; margin: 0 auto 12px; padding: 8px 16px; border-radius: 16px; background: linear-gradient(90deg, #5a1a00, #8a2a6a, #5a1a00); border: 2px solid var(--gold-hi); box-shadow: 0 0 30px #ffcf4a99; font-weight: 900; letter-spacing: 0.08em; animation: slBarIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.slBonusBar b { font-size: clamp(16px, 2.6vw, 24px); color: var(--gold-hi); text-shadow: 0 0 12px var(--gold); }
+.slBonusBar em { font-style: normal; font-size: 13px; color: #ffd0f4; animation: pbBlinkFast 0.5s steps(2) infinite; }
+.slBonusBar i { position: absolute; left: 0; bottom: 0; height: 4px; width: calc(var(--p) * 100%); background: linear-gradient(90deg, var(--gold), var(--pink)); transition: width 0.4s; }
+.slBonusEgg { width: 34px; height: 34px; animation: slEggWobble 0.6s ease-in-out infinite alternate; }
+@keyframes slBarIn { from { transform: scale(0.6); opacity: 0; } }
+
+/* ---------------------------------------------------------------- reel window */
+.slWindowWrap { position: relative; max-width: 780px; margin: 0 auto; }
+.slWindowWrap.tense .slWindow { animation: slTense 0.12s linear infinite alternate; box-shadow: 0 0 0 3px #4a1f00, 0 0 90px var(--pink), inset 0 0 12px #0008; }
+@keyframes slTense { from { translate: -2px 0; } to { translate: 2px 1px; } }
+.slBulbRing { position: absolute; inset: -16px; pointer-events: none; z-index: 7; }
+.slBulbRing span { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #ffe08a 45%, #c98a0a); box-shadow: 0 0 8px #ffcf4a, 0 0 16px #ffcf4a88; animation: slBulbChase 1.8s linear infinite; animation-delay: calc(var(--i) * -0.041s); }
+@keyframes slBulbChase { 0%, 70% { opacity: 0.25; transform: scale(0.8); } 80% { opacity: 1; transform: scale(1.25); } 100% { opacity: 0.25; transform: scale(0.8); } }
+.lights-spin .slBulbRing span { animation-duration: 0.55s; animation-delay: calc(var(--i) * -0.0125s); }
+.lights-tense .slBulbRing span { background: radial-gradient(circle at 35% 30%, #fff, #ff7a9a 45%, #b8002a); box-shadow: 0 0 10px #ff2a5a, 0 0 20px #ff2a5a; animation: slBulbPulse 0.36s ease-in-out infinite alternate; }
+.lights-win .slBulbRing span { animation: slBulbBlink 0.32s steps(1) infinite; }
+.lights-win .slBulbRing span:nth-child(odd) { animation-delay: -0.16s; }
+.lights-big .slBulbRing span, .lights-bonus .slBulbRing span { animation: slBulbChase 0.4s linear infinite, slBulbHue 1.2s linear infinite; animation-delay: calc(var(--i) * -0.009s), 0s; }
+@keyframes slBulbPulse { from { opacity: 0.3; } to { opacity: 1; transform: scale(1.2); } }
+@keyframes slBulbBlink { 0% { opacity: 1; transform: scale(1.2); } 50% { opacity: 0.15; transform: scale(0.8); } }
+@keyframes slBulbHue { to { filter: hue-rotate(360deg); } }
+
 .slWindow {
   position: relative;
+  container-type: inline-size;
   z-index: 6;
-  max-width: 760px;
-  margin: 0 auto;
   padding: 12px;
   border-radius: 22px;
-  background: linear-gradient(180deg, #ffd36b, #b8740a 50%, #ffd36b);
-  box-shadow: 0 0 0 3px #5a2a00, 0 0 40px #ffc94a88, inset 0 0 12px #0008;
+  background: linear-gradient(180deg, #fff3c4, #ffcf4a 18%, #b8740a 50%, #ffcf4a 82%, #fff3c4);
+  box-shadow: 0 0 0 3px #4a1f00, 0 0 40px #ffcf4a88, inset 0 0 12px #0008;
 }
-.slWindow.tense { animation: slTense 0.15s linear infinite alternate; box-shadow: 0 0 0 3px #5a2a00, 0 0 80px #ff3fb4, inset 0 0 12px #0008; }
-@keyframes slTense { from { translate: -2px 0; } to { translate: 2px 1px; } }
-.slReels { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 8px; border-radius: 14px; background: #08020a; }
+.slReels { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; padding: 7px; border-radius: 14px; background: #0a0214; }
 .slReel {
-  --cell: clamp(62px, 11vw, 116px);
+  --cell: clamp(58px, 10.6vw, 116px);
   position: relative;
   height: calc(var(--cell) * 3);
   overflow: hidden;
   border-radius: 10px;
-  background: linear-gradient(180deg, #2a1240 0%, #fff4e8 18%, #ffffff 50%, #fff4e8 82%, #2a1240 100%);
-  box-shadow: inset 0 14px 18px -10px #000c, inset 0 -14px 18px -10px #000c;
+  background: linear-gradient(180deg, #1a0632 0%, #f6ecff 16%, #ffffff 50%, #f6ecff 84%, #1a0632 100%);
+  box-shadow: inset 0 16px 18px -10px #000d, inset 0 -16px 18px -10px #000d;
 }
-.slStrip { display: flex; flex-direction: column; }
-.slReel.moving .slStrip { animation: slSpinLoop 0.16s linear infinite; filter: blur(3px) brightness(1.1); }
-.slReel.tenseReel .slStrip { animation-duration: 0.32s; }
-.slReel.tenseReel { box-shadow: inset 0 0 30px #ff3fb4, 0 0 26px #ff3fb4; }
-.slReel:not(.moving) .slStrip { animation: slLand 0.42s cubic-bezier(0.2, 1.8, 0.4, 1); }
-@keyframes slSpinLoop { from { transform: translateY(calc(var(--cell) * -6)); } to { transform: translateY(0); } }
-@keyframes slLand { 0% { transform: translateY(calc(var(--cell) * -0.6)); } 100% { transform: none; } }
-.slCell { display: grid; place-items: center; height: var(--cell); padding: 8%; }
-.slSym { width: 100%; height: 100%; filter: drop-shadow(0 3px 2px #0005); }
-.slCell.hit .slSym { animation: slHit 0.45s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #ffd36b) drop-shadow(0 0 22px #ff3fb4); }
-.slCell.inLine { background: radial-gradient(circle, #ffe08a99 0%, transparent 70%); }
-@keyframes slHit { to { transform: scale(1.14) rotate(-4deg); } }
+.slStrip { display: flex; flex-direction: column; will-change: transform; }
+.slReel.tenseReel { box-shadow: inset 0 0 34px var(--pink), 0 0 30px var(--pink); background: linear-gradient(180deg, #4a0632 0%, #ffe4f6 16%, #fff 50%, #ffe4f6 84%, #4a0632 100%); }
+.slCell { position: relative; display: grid; place-items: center; height: var(--cell); padding: 7%; flex: none; }
+.slGlass { position: absolute; inset: 12px; z-index: 2; border-radius: 14px; pointer-events: none; background: linear-gradient(165deg, #ffffff30 0%, #ffffff00 28%, #ffffff00 70%, #ffffff14 100%); }
 
-.slLine { position: absolute; inset: 20px; width: calc(100% - 40px); height: calc(100% - 40px); pointer-events: none; overflow: visible; }
-.slLine polyline { fill: none; stroke: #ff3fb4; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px #ff3fb4) drop-shadow(0 0 14px #ffd36b); vector-effect: non-scaling-stroke; stroke-dasharray: 2000; animation: slDraw 0.6s ease-out; }
+/* symbols */
+.slSym { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px #2a0a4855); }
+.slSym * { transform-box: fill-box; transform-origin: center; }
+.symTwinkle { animation: slTwinkle 1.8s ease-in-out infinite; }
+.symTwinkle.late { animation-delay: -0.9s; }
+@keyframes slTwinkle { 0%, 100% { opacity: 0.2; transform: scale(0.5) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(45deg); } }
+.slCell.hit .slSym { filter: drop-shadow(0 0 8px #ffcf4a) drop-shadow(0 0 20px var(--pink)); }
+.slCell.hit .symBody { animation: slPop 0.5s ease-in-out infinite alternate; }
+@keyframes slPop { to { transform: scale(1.12) rotate(-3deg); } }
+.slCell.hit .symWingL { transform-origin: right center; animation: slFlapL 0.18s ease-in-out infinite alternate; }
+.slCell.hit .symWingR { transform-origin: left center; animation: slFlapR 0.18s ease-in-out infinite alternate; }
+@keyframes slFlapL { to { transform: rotate(28deg); } }
+@keyframes slFlapR { to { transform: rotate(-28deg); } }
+.slCell.hit .symHop { animation: slHop 0.36s ease-in-out infinite alternate; }
+@keyframes slHop { to { transform: translateY(-8%); } }
+.slCell.hit .symCrown { animation: slCrownSpin 0.9s ease-in-out infinite; }
+@keyframes slCrownSpin { 50% { transform: translateY(-10%) rotate(10deg) scale(1.1); } }
+.slCell.hit .symSwing { transform-origin: top center; animation: slSwing 0.3s ease-in-out infinite alternate; }
+@keyframes slSwing { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+.slCell.hit .symSpinY { animation: slSpinY 0.8s linear infinite; }
+@keyframes slSpinY { 0% { transform: scaleX(1); } 25% { transform: scaleX(0.1); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(0.1); } 100% { transform: scaleX(1); } }
+.slCell.hit .symWobble, .slBonusEgg .symWobble { animation: slEggWobble 0.22s ease-in-out infinite alternate; }
+@keyframes slEggWobble { from { transform: rotate(-9deg); } to { transform: rotate(9deg) scale(1.06); } }
+.symCrack { opacity: 0; }
+.slCell.hit .symCrack { opacity: 1; animation: pbBlinkFast 0.3s steps(2) infinite; }
+.slCell.hit .symFeather { transform-origin: bottom left; animation: slSway 0.4s ease-in-out infinite alternate; }
+@keyframes slSway { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+.slCell.hit .symLeafL { transform-origin: bottom right; animation: slFlapR 0.25s ease-in-out infinite alternate; }
+.slCell.hit .symLeafR { transform-origin: bottom left; animation: slFlapL 0.25s ease-in-out infinite alternate; }
+.slCell.hit .symSevenText { animation: slSevenGlow 0.3s steps(2) infinite; }
+@keyframes slSevenGlow { 50% { filter: brightness(1.6) drop-shadow(0 0 6px #fff); } }
+.slCell.hit .symRibbon { animation: pbBlinkFast 0.4s steps(2) infinite; }
+.slCell.inLine { background: radial-gradient(circle, #ffe08acc 0%, #ff4fd844 45%, transparent 72%); }
+.slCell.inLine::after { content: ""; position: absolute; inset: 4%; border-radius: 12px; border: 3px solid #ffcf4a; box-shadow: 0 0 14px #ffcf4a, inset 0 0 14px #ffcf4a88; animation: pbBlinkFast 0.4s steps(2) infinite; }
+
+.slLine { position: absolute; inset: 19px; z-index: 3; width: calc(100% - 38px); height: calc(100% - 38px); pointer-events: none; overflow: visible; }
+.slLine polyline { fill: none; stroke: var(--pink); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px var(--pink)) drop-shadow(0 0 14px #ffcf4a); vector-effect: non-scaling-stroke; stroke-dasharray: 2000; animation: slDraw 0.45s ease-out; }
 @keyframes slDraw { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
 
-/* Win box over the reels */
-.slWinBox { position: absolute; inset: 0; z-index: 6; display: grid; place-content: center; justify-items: center; gap: 4px; pointer-events: none; background: radial-gradient(circle, #1a0628cc 0%, #1a062800 70%); animation: pbCasinoIn 0.25s ease both; }
-.slWinBox small { font-weight: 900; color: #fff3c4; text-shadow: 0 2px 6px #000; letter-spacing: 0.06em; }
+/* ---------------------------------------------------------------- win display */
+.slWinBox { position: absolute; left: 50%; bottom: 18px; z-index: 6; display: grid; justify-items: center; gap: 2px; padding: 8px 26px; border-radius: 999px; pointer-events: none; transform: translateX(-50%); background: #12042acc; border: 2px solid #ffcf4a; box-shadow: 0 0 30px #ffcf4a88; animation: slBoxIn 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.slWinBox .slWinValue { font-size: clamp(26px, 4.6vw, 44px); }
+.slWinBox small { font-weight: 900; color: var(--gold-hi); text-shadow: 0 2px 6px #000; letter-spacing: 0.05em; font-size: 12px; }
+@keyframes slBoxIn { from { opacity: 0; transform: translateX(-50%) scale(0.5); } }
+.slWinBox.mid, .slWinBox.big, .slWinBox.bonusTotal { inset: 0; bottom: auto; left: 0; transform: none; place-content: center; padding: 0; border: 0; border-radius: 22px; box-shadow: none; background: radial-gradient(circle, #1a0632dd 0%, #1a063200 72%); animation: pbCasinoIn 0.25s ease both; }
+.slWinBox.mid .slWinValue { font-size: min(104px, calc(88cqw / (var(--chars) * 0.62))); }
+.slWinBox.big .slWinValue, .slWinBox.bonusTotal .slWinValue { font-size: min(150px, calc(80cqw / (var(--chars) * 0.62))); }
+.slWinHead { font: italic 900 clamp(20px, 3.6vw, 36px) / 1 Inter, system-ui, sans-serif; color: var(--gold-hi); letter-spacing: 0.08em; text-shadow: 0 0 20px var(--pink), 3px 3px 0 #5a1b00; animation: pbTierSlam 0.6s cubic-bezier(0.2, 1.8, 0.35, 1) both; }
 .slWinValue {
   display: inline-block;
   font: italic 900 clamp(44px, 9vw, 110px) / 1 Inter, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
-  padding: 0 0.1em;
-  background: linear-gradient(90deg, #fff, #ffe08a, #ff9a2a, #ff3fb4, #ffe08a, #fff);
+  padding: 0 0.12em;
+  background: linear-gradient(90deg, #fff, #ffe08a, #ff9a2a, var(--pink), #c48bff, #ffe08a, #fff);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  -webkit-text-stroke: 0.03em #3a1200;
-  filter: drop-shadow(0 0 20px #ffc94a) drop-shadow(4px 4px 0 #3a1200);
+  -webkit-text-stroke: 0.03em #2a0a48;
+  filter: drop-shadow(0 0 20px #ffcf4a) drop-shadow(4px 4px 0 #2a0a48);
   transform: scale(var(--grow));
   animation: pbRainbowSlide 0.6s linear infinite, pbMoneyShake 0.05s linear infinite alternate;
   --shake: 3px;
 }
-.slWinValue.done { animation: pbMoneyBoom 0.6s cubic-bezier(0.2, 1.8, 0.4, 1) both, pbMoneyGlow 0.25s 0.6s ease-in-out infinite alternate, pbRainbowSlide 0.4s linear infinite; transform: scale(1.3); }
-.slWinBox.big .slWinValue { font-size: clamp(56px, 12vw, 150px); }
+.slWinValue.done { animation: pbMoneyBoom 0.6s cubic-bezier(0.2, 1.8, 0.4, 1) both, pbMoneyGlow 0.25s 0.6s ease-in-out infinite alternate, pbRainbowSlide 0.4s linear infinite; transform: scale(1.2); }
+.slWinBox:not(.mid):not(.big):not(.bonusTotal) .slWinValue.done { transform: scale(1.05); }
 
-/* Lever */
-.slLever { position: absolute; right: 6px; top: 200px; width: 46px; height: 230px; padding: 0; border: 0; background: transparent; cursor: pointer; z-index: 4; }
+/* splash for the bonus */
+.slSplash { position: absolute; inset: 0; z-index: 9; display: grid; place-content: center; justify-items: center; gap: 8px; border-radius: 22px; background: radial-gradient(circle, #5a1a00ee 0%, #2a0a48dd 60%, #1a063299 100%); animation: pbCasinoIn 0.2s ease both; text-align: center; }
+.slSplash strong { font: italic 900 clamp(40px, 9vw, 100px) / 1 Inter, system-ui, sans-serif; background: linear-gradient(90deg, #fff3c4, #ffcf4a, #ff4fd8, #ffcf4a, #fff3c4); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 0.025em #2a0a48; filter: drop-shadow(0 0 24px #ffcf4a) drop-shadow(4px 4px 0 #2a0a48); animation: pbTierSlam 0.7s cubic-bezier(0.2, 1.8, 0.35, 1) both, pbRainbowSlide 0.5s linear infinite; }
+.slSplash span { font-weight: 900; font-size: clamp(14px, 2.4vw, 22px); letter-spacing: 0.1em; color: #fff; text-shadow: 0 0 12px var(--pink); animation: pbBlinkFast 0.5s steps(2) 0.7s infinite; }
+.slSplashEggs { display: flex; gap: 10px; }
+.slSplashEggs .slSym { width: clamp(50px, 9vw, 90px); height: clamp(50px, 9vw, 90px); animation: slEggJump 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) infinite alternate; filter: drop-shadow(0 0 20px #ffcf4a); }
+.slSplashEggs .slSym:nth-child(2) { animation-delay: -0.17s; }
+.slSplashEggs .slSym:nth-child(3) { animation-delay: -0.34s; }
+@keyframes slEggJump { from { transform: translateY(10px) rotate(-8deg); } to { transform: translateY(-16px) rotate(8deg) scale(1.08); } }
+
+/* floating win amounts */
+.slPopups { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+.slPopups b { position: absolute; transform: translate(-50%, -50%); font: italic 900 clamp(18px, 2.6vw, 28px) / 1 Inter, system-ui, sans-serif; color: var(--gold-hi); -webkit-text-stroke: 1px #2a0a48; text-shadow: 0 0 12px #ffcf4a, 2px 2px 0 #2a0a48; animation: slFloat 1.5s ease-out both; white-space: nowrap; }
+@keyframes slFloat { 0% { opacity: 0; transform: translate(-50%, -20%) scale(0.4); } 15% { opacity: 1; transform: translate(-50%, -60%) scale(1.25); } 100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
+
+.slFx { position: absolute; inset: 0; z-index: 8; width: 100%; height: 100%; pointer-events: none; }
+
+/* ---------------------------------------------------------------- lever + controls */
+.slLever { position: absolute; right: 4px; top: 240px; width: 46px; height: 230px; padding: 0; border: 0; background: transparent; cursor: pointer; z-index: 4; }
 .slLever:disabled { cursor: default; }
-.slLever span { position: absolute; left: 18px; top: 34px; width: 10px; height: 170px; border-radius: 6px; background: linear-gradient(90deg, #8a8a98, #f4f4fa, #8a8a98); transform-origin: 50% 100%; transition: transform 0.18s ease-in; }
-.slLever i { position: absolute; left: 4px; top: 0; width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 10%, #ff3fb4 40%, #8a0048 100%); box-shadow: 0 0 20px #ff3fb4; transition: transform 0.18s ease-in; }
+.slLever span { position: absolute; left: 18px; top: 34px; width: 10px; height: 170px; border-radius: 6px; background: linear-gradient(90deg, #8a6a3a, #fff3c4, #8a6a3a); transform-origin: 50% 100%; transition: transform 0.18s ease-in; }
+.slLever i { position: absolute; left: 4px; top: 0; width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 10%, #c48bff 40%, #4a1590 100%); box-shadow: 0 0 20px var(--violet); transition: transform 0.18s ease-in; }
 .slLever.pulled span { transform: scaleY(-0.2); }
 .slLever.pulled i { transform: translateY(150px); }
-.slLever:not(:disabled):hover i { box-shadow: 0 0 34px #ff3fb4, 0 0 8px #fff; }
+.slLever:not(:disabled):hover i { box-shadow: 0 0 34px var(--pink), 0 0 8px #fff; }
 
-/* Controls */
-.slControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; }
-.slBet { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 999px; background: #0008; border: 2px solid #ffd36b66; }
-.slBet button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 0; background: #ffd36b; color: #3a1200; cursor: pointer; }
+.slControls { position: relative; z-index: 9; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; }
+.slBet { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 999px; background: #0008; border: 2px solid #ffcf4a66; }
+.slBet button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 0; background: var(--gold); color: #3a1200; cursor: pointer; }
 .slBet button:disabled { opacity: 0.35; cursor: default; }
 .slBet span { display: grid; min-width: 64px; text-align: center; }
-.slBet small { font-size: 10px; font-weight: 900; letter-spacing: 0.16em; color: #ffc94a; }
+.slBet small { font-size: 10px; font-weight: 900; letter-spacing: 0.16em; color: var(--gold); }
 .slBet b { font-size: 24px; }
 .slSpin {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-width: 170px;
   height: 74px;
   border: 0;
@@ -136,52 +221,127 @@
   font: italic 900 32px/1 Inter, system-ui, sans-serif;
   letter-spacing: 0.08em;
   color: #3a1200;
-  background: radial-gradient(circle at 40% 30%, #fff8d0 0%, #ffd36b 35%, #ff9a2a 80%);
-  box-shadow: 0 8px 0 #8a4a00, 0 0 40px #ffc94a, inset 0 -6px 14px #b8740a;
+  background: radial-gradient(circle at 40% 30%, #fff8d0 0%, #ffcf4a 35%, #ff9a2a 80%);
+  box-shadow: 0 8px 0 #8a4a00, 0 0 40px #ffcf4a, inset 0 -6px 14px #b8740a;
   cursor: pointer;
   animation: slSpinPulse 0.8s ease-in-out infinite alternate;
 }
-.slSpin:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 3px 0 #8a4a00, 0 0 40px #ffc94a; }
+.slSpin:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 3px 0 #8a4a00, 0 0 40px #ffcf4a; }
 .slSpin:disabled { animation: none; filter: saturate(0.4) brightness(0.8); cursor: default; }
-.slSpin.login { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; padding: 0 26px; }
-@keyframes slSpinPulse { to { box-shadow: 0 8px 0 #8a4a00, 0 0 70px #ff3fb4, inset 0 -6px 14px #b8740a; } }
-.slAuto { display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border-radius: 999px; border: 2px solid #3fe7ff; background: #0a2a3a; color: #bff6ff; font-weight: 900; cursor: pointer; }
-.slAuto.on { background: #3fe7ff; color: #04202a; animation: pbBlinkFast 0.5s steps(2) infinite; }
+.slSpin.isStop { color: #fff; background: radial-gradient(circle at 40% 30%, #ffc4e8 0%, #ff4fd8 40%, #9a1a7a 85%); box-shadow: 0 8px 0 #5a0a48, 0 0 40px var(--pink); font-size: 26px; }
+.slSpin.login { font-size: 20px; padding: 0 26px; }
+@keyframes slSpinPulse { to { box-shadow: 0 8px 0 #8a4a00, 0 0 70px var(--pink), inset 0 -6px 14px #b8740a; } }
+.slAuto { display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border-radius: 999px; border: 2px solid #c48bff; background: #2a0a48; color: #ecdcff; font-weight: 900; cursor: pointer; }
+.slAuto.on { background: #c48bff; color: #1a0632; animation: pbBlinkFast 0.5s steps(2) infinite; }
 .slAuto:disabled { opacity: 0.4; cursor: default; }
-.slMsg { margin: 12px auto 0; max-width: 620px; padding: 10px 14px; border-radius: 12px; background: #ff3b4e33; text-align: center; font-weight: 700; }
-.slFine { margin: 12px auto 0; max-width: 720px; text-align: center; font-size: 12px; color: #d8b8c8; }
+.slMsg { position: relative; z-index: 9; margin: 12px auto 0; max-width: 620px; padding: 10px 14px; border-radius: 12px; background: #ff3b4e33; text-align: center; font-weight: 700; }
+.slFine { position: relative; z-index: 9; margin: 12px auto 0; max-width: 720px; text-align: center; font-size: 12px; color: #d4c0ec; }
+.slSpin.buy { display: inline-grid; place-items: center; padding: 0 24px; font-size: 20px; text-decoration: none; color: #04202a; background: radial-gradient(circle at 40% 30%, #e0fdff 0%, #3fe7ff 40%, #1f8fc2 85%); box-shadow: 0 8px 0 #0a4a6a, 0 0 40px #3fe7ff; }
 
-/* Big-win party layer */
-.slParty { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+/* ---------------------------------------------------------------- big win party */
+.slParty { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 .slStrobe { animation: pbStrobe 1s steps(1) infinite; }
-.slCut { position: absolute; bottom: 0; height: 44%; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 18%; border: 3px solid #fff; filter: drop-shadow(0 0 18px #ff3fb4); animation: slCutIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
-.slCut.left { left: -4%; clip-path: polygon(0 0, 100% 6%, 92% 100%, 0 94%); }
-.slCut.right { right: -4%; clip-path: polygon(0 6%, 100% 0, 100% 94%, 8% 100%); border-color: #3fe7ff; animation-delay: 0.12s; }
-.slCut.left { --from: -130%; }
-.slCut.right { --from: 130%; }
+.slCut { position: absolute; bottom: 0; height: 44%; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 18%; border: 3px solid #fff; filter: drop-shadow(0 0 18px var(--pink)); animation: slCutIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.slCut.left { left: -4%; clip-path: polygon(0 0, 100% 6%, 92% 100%, 0 94%); --from: -130%; }
+.slCut.right { right: -4%; clip-path: polygon(0 6%, 100% 0, 100% 94%, 8% 100%); border-color: #c48bff; animation-delay: 0.12s; --from: 130%; }
 @keyframes slCutIn { from { transform: translateX(var(--from)) rotate(-8deg); } }
 
-/* Paytable */
-.slPaytable { max-width: 980px; margin: 16px auto 0; padding: 18px; border-radius: 20px; background: #1a0628; border: 1px solid #ffd36b55; }
-.slPaytable h3 { margin: 0 0 12px; color: #ffd36b; }
+/* ---------------------------------------------------------------- royal bird mascot */
+.slBird { position: relative; width: 100%; max-width: 210px; justify-self: end; margin-bottom: 30px; }
+.slBird svg { display: block; width: 100%; overflow: visible; }
+.slBird svg * { transform-box: fill-box; transform-origin: center; }
+.slBubble { position: absolute; left: 50%; bottom: 100%; z-index: 2; width: max-content; max-width: 200px; margin-bottom: 4px; padding: 9px 14px; border-radius: 16px; color: #2a0a48; background: #fff; font-weight: 900; font-size: 15px; text-align: center; box-shadow: 0 6px 0 #c48bff, 0 0 24px #ff4fd888; transform: translateX(-50%); animation: slBubble 0.35s cubic-bezier(0.2, 1.8, 0.4, 1) both; }
+.slBubble::after { content: ""; position: absolute; left: 50%; top: 100%; border: 9px solid transparent; border-top-color: #fff; transform: translateX(-50%); }
+@keyframes slBubble { from { opacity: 0; transform: translateX(-50%) scale(0.3) rotate(-8deg); } }
+
+.rbAll { transform-origin: bottom center !important; animation: rbBreathe 2.6s ease-in-out infinite; }
+@keyframes rbBreathe { 50% { transform: scale(1.02, 0.98); } }
+.rbLids rect { transform-origin: top center !important; transform: scaleY(0); animation: rbBlink 4.2s infinite; }
+@keyframes rbBlink { 0%, 93%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1); } }
+.rbHappy, .rbSweat, .rbTear { opacity: 0; transition: opacity 0.2s; }
+.rbWing.left { transform-origin: right top !important; }
+.rbWing.right { transform-origin: left top !important; }
+.rbCrown { transform-origin: bottom center !important; }
+.rbAura { opacity: 0.35; transition: opacity 0.3s; }
+
+.mood-spin .rbAll { animation: rbBob 0.32s ease-in-out infinite alternate; }
+@keyframes rbBob { to { transform: translateY(-5%); } }
+.mood-spin .rbWing.left { animation: rbFlapL 0.32s ease-in-out infinite alternate; }
+.mood-spin .rbWing.right { animation: rbFlapR 0.32s ease-in-out infinite alternate; }
+
+.mood-tense .rbAll { animation: rbShake 0.08s linear infinite alternate; }
+@keyframes rbShake { from { transform: translateX(-2%); } to { transform: translateX(2%) rotate(1deg); } }
+.mood-tense .rbSweat { opacity: 1; animation: rbDrip 0.8s ease-in infinite; }
+@keyframes rbDrip { to { transform: translateY(20px); opacity: 0; } }
+.mood-tense .rbEyes { transform: scale(1.12); }
+.mood-tense .rbLids rect { animation: none; }
+
+.mood-win .rbAll { animation: rbJump 0.42s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }
+@keyframes rbJump { from { transform: translateY(0) scale(1.04, 0.94); } to { transform: translateY(-14%) scale(0.97, 1.04); } }
+.mood-win .rbWing.left, .mood-big .rbWing.left, .mood-bonus .rbWing.left { animation: rbFlapL 0.14s ease-in-out infinite alternate; }
+.mood-win .rbWing.right, .mood-big .rbWing.right, .mood-bonus .rbWing.right { animation: rbFlapR 0.14s ease-in-out infinite alternate; }
+@keyframes rbFlapL { to { transform: rotate(38deg); } }
+@keyframes rbFlapR { to { transform: rotate(-38deg); } }
+.mood-win .rbEyes, .mood-big .rbEyes { opacity: 0; }
+.mood-win .rbHappy, .mood-big .rbHappy { opacity: 1; }
+.mood-win .rbBeakLow, .mood-big .rbBeakLow, .mood-bonus .rbBeakLow, .mood-spin .rbBeakLow { animation: rbChatter 0.16s ease-in-out infinite alternate; }
+@keyframes rbChatter { to { transform: translateY(5px); } }
+.mood-win .rbAura { opacity: 0.8; }
+
+.mood-big .rbAll { animation: rbDance 0.5s ease-in-out infinite; }
+@keyframes rbDance { 0% { transform: translateY(0) rotate(-10deg); } 25% { transform: translateY(-18%) rotate(0deg) scale(1.05); } 50% { transform: translateY(0) rotate(10deg); } 75% { transform: translateY(-18%) rotate(0deg) scale(1.05); } 100% { transform: translateY(0) rotate(-10deg); } }
+.mood-big .rbCrown { animation: rbCrownFly 0.5s ease-in-out infinite; }
+@keyframes rbCrownFly { 50% { transform: translateY(-30%) rotate(-14deg); } }
+.mood-big .rbAura, .mood-bonus .rbAura { opacity: 1; animation: rbAuraPulse 0.4s ease-in-out infinite alternate; }
+@keyframes rbAuraPulse { to { transform: scale(1.15); filter: hue-rotate(60deg); } }
+
+.mood-bonus .rbAll { animation: rbJump 0.3s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }
+.mood-bonus .rbEyes { transform: scale(1.15); }
+
+.mood-sad .rbAll { animation: none; transform: translateY(3%) scale(1.03, 0.96); }
+.mood-sad .rbCrown { transform: rotate(-16deg) translate(-8%, 6%); }
+.mood-sad .rbTear { opacity: 1; animation: rbDrip 1.2s ease-in infinite; }
+.mood-sad .rbWing.left { transform: rotate(-8deg); }
+.mood-sad .rbWing.right { transform: rotate(8deg); }
+
+/* ---------------------------------------------------------------- paytable */
+.slPaytable { max-width: 1220px; margin: 16px auto 0; padding: 18px; border-radius: 20px; background: #1a0632; border: 1px solid #ffcf4a55; }
+.slPaytable h3 { margin: 0 0 12px; color: var(--gold); }
 .slPaytable h3 small { color: #c8b0d8; font-weight: 600; font-size: 12px; }
-.slPayGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.slPayGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
 .slPayGrid > div { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; background: #ffffff0a; }
 .slPayGrid .slSym { width: 56px; height: 56px; flex: none; }
 .slPayGrid span { display: grid; gap: 2px; font-size: 13px; }
-.slPayGrid em { font-size: 11px; color: #ffc94a; }
+.slPayGrid strong { color: var(--gold-hi); }
+.slPayGrid em { font-size: 11px; color: var(--gold); }
 .slPaytable p { margin: 12px 0 0; font-size: 13px; color: #d8c8f0; }
 
+/* ---------------------------------------------------------------- fullscreen */
+.slShell.isFull { overflow: auto; padding: 12px 20px 24px; background: radial-gradient(circle at 50% 0%, #3a1468, #0c0218 70%); }
+.slShell.isFull .slStage { max-width: min(1400px, calc((100dvh - 120px) * 1.55)); }
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width: 1050px) {
+  .slStage { grid-template-columns: minmax(0, 1fr); }
+  .slBird { position: absolute; z-index: 12; left: -6px; top: 4px; width: 104px; margin: 0; pointer-events: none; }
+  .slBubble { left: 100%; bottom: auto; top: 10px; transform: none; font-size: 12px; max-width: 140px; animation-name: slBubbleSide; }
+  .slBubble::after { left: -8px; top: 14px; border: 8px solid transparent; border-right-color: #fff; border-left: 0; transform: none; }
+  @keyframes slBubbleSide { from { opacity: 0; transform: scale(0.3); } }
+}
 @media (max-width: 720px) {
   .slLever { display: none; }
-  .slCabinet { padding: 18px 10px; border-radius: 22px; }
+  .slCabinet { padding: 14px 10px 18px; border-radius: 26px; }
   .slSpin { min-width: 140px; height: 64px; font-size: 26px; }
   .slCut { height: 26%; }
+  .slLeds { grid-template-columns: repeat(2, 1fr); }
+  .slBird { width: 78px; }
+  .slTopCrown { width: 64px; height: 32px; }
+  .slBulbRing { inset: -10px; }
+  .slBulbRing span { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; }
+  .slReels { gap: 4px; padding: 4px; }
+  .slWindow { padding: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .slMarquee, .slMarquee b, .slSpin, .slAuto.on, .slWindow.tense, .slReel.moving .slStrip, .slCell.hit .slSym, .slWinValue, .slCut, .slStrobe, .slBeams { animation: none !important; }
+  .slMarquee, .slMarquee b, .slSpin, .slAuto.on, .slWindowWrap.tense .slWindow, .slCell.hit *, .slWinValue, .slCut, .slStrobe, .slBeams, .slBulbRing span, .slBird *, .slTopCrown, .inBonus .slCabinet, .slSplash *, .symTwinkle { animation: none !important; }
   .slStrobe, .slBeams { display: none; }
 }
-
-.slSpin.buy { display: inline-grid; place-items: center; padding: 0 24px; font-size: 20px; text-decoration: none; color: #04202a; background: radial-gradient(circle at 40% 30%, #e0fdff 0%, #3fe7ff 40%, #1f8fc2 85%); box-shadow: 0 8px 0 #0a4a6a, 0 0 40px #3fe7ff; }
-@media (max-width: 720px) { .slLeds { grid-template-columns: repeat(2, 1fr); } }
