@@ -76,6 +76,8 @@ export class PinballEngine {
     this.kickbackLit = true;
     this.tiltMeter = 0;
     this.tilted = false;
+    this.flipPresses = [];
+    this.spamWarnedAt = undefined;
     this.ballSaveUntil = 0;
     this.ballSaveArmed = true;
     this.combo = 0;
@@ -108,6 +110,7 @@ export class PinballEngine {
     f.pressed = down && live;
     if (down && live) {
       this.emit("flipper", { side, up: true });
+      if (this.status === "play") this.checkFlipperSpam();
       // Lane change: rotate the lit top lanes like a real machine.
       if (this.lanesLit.some(Boolean) && !this.lanesLit.every(Boolean)) {
         const l = this.lanesLit;
@@ -130,6 +133,24 @@ export class PinballEngine {
     ball.vx = 0;
     if (this.status === "ready") { this.status = "play"; this.launchedAt = this.time; }
     this.emit("launch", { charge });
+  }
+
+  // Hammering both flippers non-stop is spam: first a warning, keep going and the ball is lost.
+  checkFlipperSpam() {
+    const now = this.time;
+    this.flipPresses = (this.flipPresses || []).filter((t) => now - t < 1.5);
+    this.flipPresses.push(now);
+    if (this.flipPresses.length < 11) return;
+    this.flipPresses = [];
+    if (this.spamWarnedAt !== undefined && now - this.spamWarnedAt < 8) {
+      this.spamWarnedAt = undefined;
+      this.tilt("SPAM-TILT", "FLIPPER-SPAM VERBOTEN");
+      this.emit("spamTilt");
+      return;
+    }
+    this.spamWarnedAt = now;
+    this.say("NICHT SPAMMEN!", "NOCHMAL = BALL WEG", 2200, "flash", 7);
+    this.emit("spamWarning");
   }
 
   nudge(dir) {
@@ -458,12 +479,12 @@ export class PinballEngine {
     }
   }
 
-  tilt() {
+  tilt(title = "TILT", sub = "") {
     this.tilted = true;
     this.table.flipL.pressed = false;
     this.table.flipR.pressed = false;
     this.mission = null;
-    this.say("TILT", "", 4000, "flash", 9);
+    this.say(title, sub, 4000, "flash", 9);
     this.emit("tilt");
   }
 
@@ -612,7 +633,7 @@ export class PinballEngine {
         this.score += total;
         this.emit("bonusTotal", { total, base, bonusX: this.bonusX });
       } });
-      at += 3.6;
+      at += 6.4; // the payout rolls ~3.8s, then the explosion gets its moment
     } else at += 1.0;
     this.timers.push({ at, fn: () => this.nextBall() });
   }

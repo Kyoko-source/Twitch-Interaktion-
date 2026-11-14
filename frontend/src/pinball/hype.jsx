@@ -114,6 +114,8 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
         case "ballSave": girl("luna", "cheer", "Gerettet! Puh~", 2000); break;
         case "drain": both("sad", LINES.sad, 2600); break;
         case "tilt": slam("TILT", "", { tone: "red", scale: 1.2 }); quake(2); both("shock", LINES.shock, 3000); break;
+        case "spamWarning": slam("STOP", "NICHT SPAMMEN!", { sub: "Nochmal = Ball weg", tone: "red", scale: 1.1, flash: true, ms: 1800 }); quake(1.4); break;
+        case "spamTilt": slam("SPAM", "TILT!", { sub: "Ball verloren", tone: "red", scale: 1.25, flash: true, ms: 2200 }); quake(2.4); break;
         case "tiltWarning": girl("mimi", "shock", "Nicht so wild!!", 1800); break;
         case "gameStart": both("cheer", ["Let's go!!", "Showtime~!", "Viel Glück!"], 2400); break;
         case "gameOver":

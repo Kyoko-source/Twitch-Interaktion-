@@ -9,6 +9,7 @@ const SFX = [
   "vo-combo", "vo-combo-breaker", "vo-flawless", "vo-winner", "vo-fight", "vo-sudden-death", "vo-multi",
   "vo-f-congratulations", "vo-f-level-up", "vo-f-mission-completed", "vo-f-mission-failed", "vo-f-new-highscore", "vo-f-power-up",
   "vo-f-go", "vo-f-correct", "vo-f-ready", "vo-f-game-over", "vo-f-hurry-up",
+  "coin-1", "coin-2", "coin-3", "coin-4", "coin-5",
   "vo-num-2", "vo-num-3", "vo-num-4", "vo-num-5", "vo-num-6", "vo-num-7", "vo-num-8", "vo-num-9", "vo-num-10",
 ];
 const MUSIC = { attract: "/music/pinball/attract.mp3", play: "/music/pinball/play.mp3", multiball: "/music/pinball/multiball.mp3" };
@@ -168,6 +169,8 @@ export class PinballAudio {
       case "gameOver": this.play("game-over", { gain: 0.8 }); this.music("attract"); break;
       case "tilt": this.play("tilt", { gain: 0.8 }); break;
       case "tiltWarning": this.play("tilt-warning", { gain: 0.7 }); break;
+      case "spamWarning": this.play("tilt-warning", { gain: 0.9 }); this.play("tilt-warning", { gain: 0.7, delay: 0.25, gap: 0 }); break;
+      case "spamTilt": this.play("tilt", { gain: 0.9 }); break;
       case "kickback": this.play("kickback", { gain: 0.9 }); break;
       case "launch": this.play("launch", { gain: 0.5 + d.charge * 0.4 }); if (d.charge > 0.7) this.play("launch-zap", { gain: 0.2 }); break;
       case "plunger": this.play("plunger", { gain: 0.4 }); break;

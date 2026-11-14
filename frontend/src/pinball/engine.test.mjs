@@ -104,7 +104,7 @@ test("extra ball is collected at the right ramp and played after the drain", () 
   b.rail = null;
   e.ballSaveUntil = 0; e.ballSaveArmed = false;
   e.drain(b);
-  run(e, 10);
+  run(e, 14);
   assert.equal(e.status, "ready");
   assert.equal(e.ball, 1, "shoot again keeps the ball number");
   assert.equal(e.extraBalls, 0);
@@ -130,7 +130,7 @@ test("three nudges in a row tilt the machine: dead flippers, no bonus", () => {
   const before = e.score;
   e.ballSaveUntil = 0;
   e.drain(b);
-  run(e, 10);
+  run(e, 14);
   assert.equal(e.score, before, "tilted ball scores no bonus");
   assert.equal(e.ball, 2);
 });
@@ -144,7 +144,7 @@ test("end of ball bonus is multiplied by the BAR lanes bonus multiplier", () => 
   e.ballSaveUntil = 0; e.ballSaveArmed = false;
   const before = e.score;
   e.drain(b);
-  run(e, 10);
+  run(e, 14);
   assert.equal(e.score - before, 2 * 10_000 * 2);
 });
 
@@ -154,7 +154,7 @@ test("three balls and the game is over", () => {
   for (let n = 0; n < 3; n++) {
     e.status = "play"; e.ballSaveUntil = 0; e.ballSaveArmed = false;
     e.drain(e.world.balls[0]);
-    run(e, 10);
+    run(e, 14);
   }
   assert.equal(e.status, "gameover");
 });
@@ -172,4 +172,20 @@ test("a ball resting on the raised flipper rolls down and can be shot", () => {
   run(e, 0.15);
   assert.ok(b.vy < -10, "ball was shot upward");
   assert.ok(b.x > LAYOUT.wallL && b.x < LAYOUT.wallR);
+});
+
+test("flipper spam: first a warning, keep spamming and the ball is tilted away", async () => {
+  const { e, b } = launched();
+  const seen = events(e);
+  const spam = () => { for (let i = 0; i < 12; i++) { e.setFlipper(i % 2 ? "left" : "right", true); run(e, 0.05); e.setFlipper(i % 2 ? "left" : "right", false); run(e, 0.05); } };
+  // Normal play speed never triggers it.
+  for (let i = 0; i < 10; i++) { e.setFlipper("left", true); run(e, 0.2); e.setFlipper("left", false); run(e, 0.2); }
+  assert.ok(!seen.includes("spamWarning"));
+  spam();
+  assert.ok(seen.includes("spamWarning"));
+  assert.equal(e.tilted, false);
+  spam();
+  assert.ok(seen.includes("spamTilt"));
+  assert.equal(e.tilted, true);
+  assert.equal(e.table.flipL.pressed, false);
 });
