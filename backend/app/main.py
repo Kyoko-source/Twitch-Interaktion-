@@ -36,6 +36,7 @@ USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
 CHAT_STYLES_FILE = Path("/data/chat_styles.json")
 CHAT_STYLE_PURCHASES_FILE = Path("/data/chat_style_purchases.json")
+CHAT_READS_FILE = Path("/data/chat_reads.json")
 PURCHASE_CATEGORY_FALLBACK = "In Stream Rewards"
 PURCHASE_CATEGORIES = {
     "In Stream Rewards",
@@ -457,6 +458,52 @@ def private_chat_rows(me: str, other: str) -> list[dict[str, Any]]:
     return messages[-120:]
 
 
+CHAT_READS_LOCK = Lock()
+
+
+def load_chat_reads() -> dict[str, dict[str, str]]:
+    try:
+        data = json.loads(CHAT_READS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(me): {str(k): str(v) for k, v in seen.items()} for me, seen in data.items() if isinstance(seen, dict)}
+
+
+def mark_private_read(me: str, other: str, until: str) -> None:
+    """Remember the newest message of a conversation that `me` has seen."""
+    if not until:
+        return
+    with CHAT_READS_LOCK:
+        reads = load_chat_reads()
+        if reads.get(me, {}).get(other, "") >= until:
+            return
+        reads.setdefault(me, {})[other] = until
+        CHAT_READS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temp = CHAT_READS_FILE.with_suffix(".tmp")
+        temp.write_text(json.dumps(reads, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp, CHAT_READS_FILE)
+
+
+def private_unread_summary(me: str) -> dict[str, Any]:
+    seen = load_chat_reads().get(me, {})
+    by_sender: dict[str, dict[str, Any]] = {}
+    for message in load_chat_messages():
+        if message.get("channel") != "private" or message.get("recipient_username") != me:
+            continue
+        sender = str(message.get("sender_username") or "")
+        created = str(message.get("created_at") or "")
+        if not sender or created <= seen.get(sender, ""):
+            continue
+        entry = by_sender.setdefault(sender, {"username": sender, "count": 0})
+        entry["count"] += 1
+        body = str(message.get("body") or "")
+        entry.update(last_id=message.get("id"), last_at=created, last_body=body[:140] + ("…" if len(body) > 140 else ""))
+    conversations = sorted(by_sender.values(), key=lambda item: item["last_at"], reverse=True)
+    return {"total": sum(item["count"] for item in conversations), "conversations": conversations}
+
+
 def rank_name(points: int) -> str:
     if points >= 10000:
         return "Aviary Legende"
@@ -662,7 +709,16 @@ def chat_private(username: str, user: dict[str, Any] = Depends(current_user)) ->
         raise HTTPException(status_code=400, detail="Du kannst dir nicht selbst schreiben")
     if not single_user(other):
         raise HTTPException(status_code=404, detail="Mitglied nicht gefunden")
-    return enrich_chat_messages(private_chat_rows(me, other))
+    conversation = private_chat_rows(me, other)
+    incoming = [str(m.get("created_at") or "") for m in conversation if m.get("sender_username") == other]
+    if incoming:
+        mark_private_read(me, other, max(incoming))
+    return enrich_chat_messages(conversation)
+
+
+@app.get("/api/chat/unread")
+def chat_unread(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    return private_unread_summary(str(user["username"]))
 
 
 @app.post("/api/chat/private/{username}")

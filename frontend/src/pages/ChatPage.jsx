@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Mail, MessageCircle, Send, Users } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, Mail, MessageCircle, Send, Users } from "lucide-react";
+import { refreshChatUnread, setActiveChat } from "../ui/ChatNotifier";
 import { api } from "../api";
 import { Avatar, EmptyLogin, PanelTitle, RoleBadge } from "./shared";
 
@@ -16,7 +17,7 @@ export function chatStyleClass(style) {
   return `chatStyle-${["sparkle", "cotton", "neon", "royal"].includes(style) ? style : "default"}`;
 }
 
-export function ChatPage({ user, setPage }) {
+export function ChatPage({ user, setPage, unread = { total: 0, conversations: [] } }) {
   const initialTarget = useMemo(() => {
     try {
       return localStorage.getItem("aviary_chat_target") || "";
@@ -33,6 +34,21 @@ export function ChatPage({ user, setPage }) {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [styleState, setStyleState] = useState({ selected: "default", styles: [] });
+  const unreadRef = useRef(new Set());
+  unreadRef.current = new Set(unread.conversations.map((item) => item.username));
+  const [notifyPermission, setNotifyPermission] = useState(() => ("Notification" in window ? Notification.permission : "unsupported"));
+
+  // Popups and the unread counter skip the conversation that is open right now.
+  useEffect(() => {
+    setActiveChat(mode === "private" ? selectedUser : "");
+    return () => setActiveChat("");
+  }, [mode, selectedUser]);
+
+  useEffect(() => {
+    function openFromToast(event) { setSelectedUser(event.detail.username); setMode("private"); }
+    window.addEventListener("aviary-open-chat", openFromToast);
+    return () => window.removeEventListener("aviary-open-chat", openFromToast);
+  }, []);
 
   useEffect(() => {
     try {
@@ -81,6 +97,7 @@ export function ChatPage({ user, setPage }) {
       try {
         const next = await api(path);
         if (!alive) return;
+        if (mode === "private" && unreadRef.current.has(selectedUser)) refreshChatUnread();
         setMessages(next);
         setNotice("");
       } catch (err) {
@@ -100,8 +117,12 @@ export function ChatPage({ user, setPage }) {
 
   if (!user) return <EmptyLogin setPage={setPage} />;
 
+  const unreadBy = new Map(unread.conversations.map((item) => [item.username, item.count]));
+
   const onlineNames = new Set(onlineUsers.map((member) => member.username));
-  const selectableUsers = users.filter((member) => member.username && member.username !== user.username);
+  const selectableUsers = users
+    .filter((member) => member.username && member.username !== user.username)
+    .sort((a, b) => (unreadBy.get(b.username) || 0) - (unreadBy.get(a.username) || 0));
   const currentTarget = selectableUsers.find((member) => member.username === selectedUser);
 
   async function chooseStyle(style) {
@@ -145,10 +166,11 @@ export function ChatPage({ user, setPage }) {
           <p className="kicker">Live Schwarmfunk</p>
           <h1>Chat</h1>
           <p>Global mit allen Online-Mitgliedern schreiben oder direkt private Nachrichten senden.</p>
+          {notifyPermission === "default" && <p className="chatNotifyHint"><button type="button" className="ghost" onClick={() => Notification.requestPermission().then(setNotifyPermission).catch(() => {})}><Bell size={16} /> Desktop-Benachrichtigungen aktivieren</button><small>Dann siehst du neue Nachrichten auch, wenn die Seite im Hintergrund ist.</small></p>}
         </div>
         <div className="chatModeTabs" role="tablist" aria-label="Chatmodus">
           <button className={mode === "global" ? "active" : ""} onClick={() => setMode("global")} type="button"><MessageCircle size={17} /> Global</button>
-          <button className={mode === "private" ? "active" : ""} onClick={() => setMode("private")} type="button"><Mail size={17} /> Privat</button>
+          <button className={mode === "private" ? "active" : ""} onClick={() => setMode("private")} type="button"><Mail size={17} /> Privat{unread.total > 0 && <em className="chatUnreadCount">{unread.total}</em>}</button>
         </div>
       </div>
       <div className="chatLayout">
@@ -168,8 +190,8 @@ export function ChatPage({ user, setPage }) {
             {selectableUsers.map((member) => (
               <button className={selectedUser === member.username && mode === "private" ? "active" : ""} key={member.username} onClick={() => { setSelectedUser(member.username); setMode("private"); }} type="button">
                 <Avatar user={member} />
-                <span><b>{member.username}</b><small>{onlineNames.has(member.username) ? "Online" : "Offline"}</small></span>
-                {onlineNames.has(member.username) && <i />}
+                <span><b>{member.username}</b><small>{unreadBy.get(member.username) ? "Neue Nachricht" : onlineNames.has(member.username) ? "Online" : "Offline"}</small></span>
+                {unreadBy.get(member.username) ? <em className="chatUnreadCount">{unreadBy.get(member.username)}</em> : onlineNames.has(member.username) && <i />}
               </button>
             ))}
           </div>

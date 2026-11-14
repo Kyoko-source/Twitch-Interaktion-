@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronRight, Coins, Crown, Gamepad2, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Ticket, Trophy, Users, X } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronRight, Coins, Crown, Gamepad2, Home, LogIn, LogOut, Mail, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Ticket, Trophy, Users, X } from "lucide-react";
 import { gscShort } from "../economy/CasinoCashier";
 
 const groups = [
@@ -16,13 +16,13 @@ export function MemberAvatar({ user, className = "communityAvatar" }) {
   return <span className={className} aria-hidden="true">{user?.avatar_url && !failed ? <img src={user.avatar_url} onError={() => setFailed(true)} alt="" /> : String(user?.username || "AV").slice(0, 2)}</span>;
 }
 
-export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], children }) {
+export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], chatUnread = 0, children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const railRef = useRef(null);
   const menuRef = useRef(null);
   const label = nav.find((item) => item.id === page)?.label || (page === "login" ? "Anmelden" : "Support");
 
-  useEffect(() => { document.title = `${label} · Aviary`; }, [label]);
+  useEffect(() => { document.title = `${chatUnread ? `(${chatUnread}) ` : ""}${label} · Aviary`; }, [label, chatUnread]);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 900px)");
     const closeOnDesktop = () => { if (!media.matches) setMenuOpen(false); };
@@ -58,7 +58,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
         const item = nav.find((entry) => entry.id === id);
         if (!item || hiddenIds.includes(id)) return null;
         const Icon = item.icon;
-        return <button key={id} type="button" className={`railLink ${page === id ? "isActive" : ""}`} aria-current={page === id ? "page" : undefined} onClick={() => navigate(id)}><Icon size={18} strokeWidth={1.7} /><span>{item.label}</span>{page === id && <span className="activeDot" />}</button>;
+        return <button key={id} type="button" className={`railLink ${page === id ? "isActive" : ""}`} aria-current={page === id ? "page" : undefined} onClick={() => navigate(id)}><Icon size={18} strokeWidth={1.7} /><span>{item.label}</span>{id === "chat" && chatUnread > 0 ? <span className="navBadge" aria-label={`${chatUnread} ungelesen`}>{chatUnread > 99 ? "99+" : chatUnread}</span> : page === id && <span className="activeDot" />}</button>;
       })}</div>)}</nav>
       <button className="dailyRewardLink" type="button" onClick={() => navigate("games")}><Gamepad2 size={25} strokeWidth={1.6} /><span><strong>Chickens verdienen</strong><small>Spielen, sammeln, Rewards holen.</small></span><ChevronRight size={16} /></button>
       <div className="railFooter">Ein Platz für unseren Schwarm.</div>
@@ -68,6 +68,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
         <div className="pageBreadcrumb"><button ref={menuRef} className="mobileMenu quietIcon" type="button" onClick={() => setMenuOpen(true)} aria-label="Menü öffnen" aria-expanded={menuOpen} aria-controls="main-navigation"><Menu size={22} /></button><Home size={17} strokeWidth={1.7} /><ChevronRight size={14} /><span>{label}</span></div>
         <div className="headerUtilities">
           {user && <div className="communityBalances"><span className="balChickens"><ShoppingBasket size={16} /><strong>{number(user.chickens)}</strong><span>Chickens</span></span><span className="balCredits" title="Credits: 1 Credit = 1 Runde Pinball oder 1 Spin"><Ticket size={16} /><strong>{number(user.credits)}</strong><span>Credits</span></span><span className="balGsc" title={`Glücksspiel-Coins: ${number(user.gsc)}`}><Coins size={16} /><strong>{gscShort(user.gsc)}</strong><span>GSC</span></span></div>}
+          {user && <button className="quietIcon chatBell" type="button" onClick={() => navigate("chat")} title={chatUnread ? `${chatUnread} ungelesene Nachricht${chatUnread === 1 ? "" : "en"}` : "Nachrichten"} aria-label={chatUnread ? `${chatUnread} ungelesene Nachrichten` : "Nachrichten"}><Mail size={18} />{chatUnread > 0 && <span className="navBadge">{chatUnread > 99 ? "99+" : chatUnread}</span>}</button>}
           {user ? <><button className="accountLink" type="button" onClick={() => navigate("profile")} aria-label={`Profil von ${user.username} öffnen`}><MemberAvatar user={user} /><span>{user.username}</span></button><button className="quietIcon logoutButton" onClick={onLogout} title="Abmelden" aria-label="Abmelden" type="button"><LogOut size={17} /></button></> : <button className="signInButton" onClick={() => navigate("login")} type="button"><LogIn size={16} /> Anmelden</button>}
         </div>
       </header>

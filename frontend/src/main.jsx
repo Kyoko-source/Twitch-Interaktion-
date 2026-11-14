@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { api, setToken } from "./api";
 import { AppShell } from "./ui/CommunityLayout";
+import { ChatToasts, useChatUnread } from "./ui/ChatNotifier";
 import { AdminPage } from "./pages/AdminPage";
 import { AdventPage } from "./pages/AdventPage";
 import { ChatPage } from "./pages/ChatPage";
@@ -37,6 +38,7 @@ function App() {
   const [page, setPageState] = useState(pageFromRoute);
   const [user, setUser] = useState(null);
   const [sessionNotice, setSessionNotice] = useState("");
+  const chatUnread = useChatUnread(user);
 
   function setPage(next) {
     setPageState(next.split("/")[0]);
@@ -101,7 +103,7 @@ function App() {
     if (page === "login") return <LoginPage onLogin={(nextUser) => { setSessionNotice(""); setUser(nextUser); setPage("home"); }} />;
     if (page === "news") return <ListPage title="News" path="/api/news" render={(item) => <article className="card" key={item.id}><h3>{item.title}</h3><p>{item.body}</p></article>} />;
     if (page === "members") return <MembersPage user={user} setPage={setPage} />;
-    if (page === "chat") return <ChatPage user={user} setPage={setPage} />;
+    if (page === "chat") return <ChatPage user={user} setPage={setPage} unread={chatUnread.summary} />;
     if (page === "profile") return <ProfilePage user={user} setUser={setUser} setPage={setPage} />;
     if (page === "shop") return <ShopPage user={user} setPage={setPage} />;
     if (page === "leaderboard") return <LeaderboardPage />;
@@ -111,12 +113,13 @@ function App() {
     if (page === "gallery") return <GalleryPage user={user} setPage={setPage} />;
     if (page === "admin") return <AdminPage />;
     return <SupportPage user={user} />;
-  }, [page, user]);
+  }, [page, user, chatUnread.summary]);
 
   return (
-    <AppShell nav={nav} hiddenIds={isAdmin(user) ? [] : ["admin"]} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
+    <AppShell chatUnread={chatUnread.summary.total} nav={nav} hiddenIds={isAdmin(user) ? [] : ["admin"]} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
       {sessionNotice && <p className="notice" role="alert">{sessionNotice}</p>}
       {content}
+      <ChatToasts toasts={chatUnread.toasts} dismiss={chatUnread.dismiss} setPage={setPage} />
     </AppShell>
   );
 }

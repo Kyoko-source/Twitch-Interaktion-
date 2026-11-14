@@ -1,0 +1,20 @@
+.chatToasts { position: fixed; z-index: 3000; right: 20px; bottom: 20px; display: grid; gap: 10px; width: min(360px, calc(100vw - 32px)); }
+.chatToast { position: relative; display: flex; gap: 12px; padding: 14px 40px 14px 14px; border-radius: 16px; color: #fff; background: linear-gradient(140deg, rgba(48, 22, 82, .97), rgba(20, 10, 36, .97)); border: 1px solid rgba(255, 79, 216, .45); box-shadow: 0 16px 40px rgba(0, 0, 0, .5), 0 0 30px rgba(181, 108, 255, .35); animation: chatToastIn .35s cubic-bezier(.2, 1.4, .4, 1); }
+.chatToast .communityAvatar { flex: none; width: 40px; height: 40px; font-size: 14px; }
+.chatToast > div { min-width: 0; display: grid; gap: 6px; }
+.chatToast header { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #e3cdfa; }
+.chatToast header b { color: #fff; }
+.chatToast header em { margin-left: 2px; padding: 1px 7px; border-radius: 999px; font-style: normal; font-weight: 800; font-size: 11px; background: #ff4fd8; color: #fff; }
+.chatToast p { margin: 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chatToast > div > button { justify-self: start; padding: 6px 14px; border: 0; border-radius: 999px; font-weight: 700; font-size: 13px; color: #fff; cursor: pointer; background: linear-gradient(90deg, #b56cff, #ff4fd8); }
+.chatToastClose { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; color: #cdb8e6; background: transparent; cursor: pointer; }
+.chatToastClose:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+@keyframes chatToastIn { from { opacity: 0; transform: translateY(16px) scale(.96); } }
+
+.navBadge { margin-left: auto; min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; color: #fff; background: #ff4fd8; box-shadow: 0 0 12px rgba(255, 79, 216, .7); }
+.chatBell { position: relative; }
+.chatBell .navBadge { position: absolute; top: -4px; right: -6px; margin: 0; min-width: 18px; padding: 0 5px; line-height: 17px; font-size: 10px; animation: chatBellPulse 1.6s ease-in-out infinite; }
+@keyframes chatBellPulse { 50% { box-shadow: 0 0 2px rgba(255, 79, 216, .4); } }
+.chatUnreadCount { margin-left: auto; min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; color: #fff; background: #ff4fd8; }
+.chatNotifyHint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .chatToast, .chatBell .navBadge { animation: none; } }
