@@ -10,6 +10,8 @@ export function AdminPage() {
   const [password, setPassword] = useState("");
   const [overview, setOverview] = useState(null);
   const [message, setMessage] = useState("");
+  const [approvedCode, setApprovedCode] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState("registrations");
   const [reloadKey, setReloadKey] = useState(0);
   const [news, setNews] = useState({ title: "", body: "", image_url: "" });
@@ -53,6 +55,8 @@ export function AdminPage() {
     try {
       const result = await adminCall(`/api/admin/registration/${id}/approve`, { method: "POST", body: "{}" });
       setMessage(`Code für ${username}: ${result.code}`);
+      setCopied(false);
+      setApprovedCode({ username, code: result.code });
       setReloadKey((value) => value + 1);
     } catch (err) {
       setMessage(err.message);
@@ -97,6 +101,19 @@ export function AdminPage() {
         <button onClick={load} type="button">Dashboard laden</button>
         {message && <div className="notice">{message}</div>}
       </div>
+      {approvedCode && (
+        <div className="approvalCodeModal" role="dialog" aria-modal="true" aria-label={`Einmalcode für ${approvedCode.username}`}>
+          <div className="approvalCodeCard">
+            <h2>Registrierung genehmigt</h2>
+            <p>Gib <b>{approvedCode.username}</b> diesen Einmalcode. Er wird nur jetzt angezeigt und nirgends gespeichert.</p>
+            <code data-testid="approval-code">{approvedCode.code}</code>
+            <div className="registrationActions">
+              <button type="button" onClick={() => navigator.clipboard?.writeText(approvedCode.code).then(() => setCopied(true)).catch(() => {})}>{copied ? <><Check size={16} /> Kopiert</> : "Code kopieren"}</button>
+              <button type="button" className="ghost" onClick={() => setApprovedCode(null)}>Fertig</button>
+            </div>
+          </div>
+        </div>
+      )}
       {overview && (
         <>
           <div className="adminStats">
