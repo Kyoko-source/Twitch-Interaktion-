@@ -41,12 +41,12 @@ test("shop: one currency, category filters, successful debit updates header and 
   const { purchases } = await setup(page);
   await page.goto("/#shop");
   await expect(page.locator(".shopRewardCard")).toHaveCount(3);
-  await expect(page.locator(".communityBalances")).toHaveText("650Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("650Chickens");
   await page.getByRole("button", { name: "Bestrafungs Ideen", exact: true }).click();
   await expect(page.locator(".shopRewardCard")).toHaveCount(2);
   await page.getByRole("button", { name: "Für 450 Chickens kaufen", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("erscheint im Stream");
-  await expect(page.locator(".communityBalances")).toHaveText("200Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("200Chickens");
   await expect(page.getByRole("button", { name: "Noch 250 Chickens" })).toBeDisabled();
   expect(purchases).toHaveLength(1);
   expect(purchases[0].request_id).toMatch(/^[a-f0-9]{40}$/);
@@ -67,7 +67,7 @@ test("games: Jump and Snake register real rounds, submit bound scores and credit
   await expect(page.getByText("Score gespeichert. +3 Chickens!", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Runde gewertet" })).toBeDisabled();
   expect(scores[0]).toMatchObject({ game: "chicken-jump", run_id: "test-run-1-abcdefghijklmnop" });
-  await expect(page.locator(".communityBalances")).toHaveText("653Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("653Chickens");
   await page.getByRole("button", { name: "Chicken Snake", exact: true }).click();
   await page.getByRole("button", { name: "Spiel starten", exact: true }).click();
   await expect.poll(() => starts.length).toBe(2);
@@ -75,10 +75,10 @@ test("games: Jump and Snake register real rounds, submit bound scores and credit
   await page.getByRole("button", { name: "Runde abschließen", exact: true }).click();
   await expect(page.getByRole("button", { name: "Score speichern", exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole("button", { name: "Score speichern", exact: true }).click();
-  await expect(page.locator(".communityBalances")).toHaveText("656Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("656Chickens");
   expect(scores[1]).toMatchObject({ game: "chicken-snake", run_id: "test-run-2-abcdefghijklmnop" });
   await page.getByRole("button", { name: "PEPPLE Pinball", exact: true }).click();
-  await page.getByRole("button", { name: "Spiel starten", exact: true }).click();
+  await page.getByRole("button", { name: /Spiel starten · 1 Credit/ }).click();
   await expect.poll(() => starts.length).toBe(3);
   expect(starts[2].game).toBe("chicken-flipper");
   await page.getByRole("button", { name: "Pepple Survivor", exact: true }).click();

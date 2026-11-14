@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from app.economy import EconomyStore, SCORE_DIVISORS
+from app.economy import CREDIT_GAMES, EconomyStore, SCORE_DIVISORS
 from app import main, purchase_alerts, migrate_chickens
 from app.auth import current_user
 
@@ -31,13 +31,33 @@ class EconomyTests(unittest.TestCase):
         return self.store.complete_run(username, game, run["run_id"], {"score": score}, now=start + seconds)
 
     def test_all_games_credit_only_chickens_and_time_and_score_bound_rewards(self):
-        for index, (game, divisor) in enumerate(SCORE_DIVISORS.items()):
+        chicken_games = [(g, d) for g, d in SCORE_DIVISORS.items() if g not in CREDIT_GAMES]
+        for index, (game, divisor) in enumerate(chicken_games):
             result = self.run_score(game, start=100000 + index * 1000, seconds=35, score=divisor * 10)
             self.assertEqual(result["chickens_awarded"], 3)
-        self.assertEqual(self.store.balance("alice")["chickens"], 12)
-        self.assertEqual(self.store.balance("alice")["chickens_earned"], 12)
+        self.assertEqual(self.store.balance("alice")["chickens"], 3 * len(chicken_games))
+        self.assertEqual(self.store.balance("alice")["chickens_earned"], 3 * len(chicken_games))
         self.assertEqual(self.run_score(seconds=14)["chickens_awarded"], 0)
         self.assertEqual(self.run_score(seconds=30, score=99)["chickens_awarded"], 0)
+
+    def test_pinball_costs_a_credit_and_pays_gsc_not_chickens(self):
+        with self.assertRaises(HTTPException) as no_credit:
+            self.store.start_run("alice", "chicken-flipper", now=100000)
+        self.assertEqual(no_credit.exception.status_code, 402)
+        with self.store.connection(write=True) as db:
+            db.execute("UPDATE wallets SET credits=2 WHERE username=?", ("alice",))
+        run = self.store.start_run("alice", "chicken-flipper", now=100000)
+        self.assertEqual(run["wallet"]["credits"], 1)
+        result = self.store.complete_run("alice", "chicken-flipper", run["run_id"], {"score": 2_000_000}, now=100300)
+        self.assertEqual(result["chickens_awarded"], 0)
+        self.assertEqual(result["gsc_awarded"], 200_000)
+        self.assertIn("GSC", result["message"])
+        wallet = self.store.balance("alice")
+        self.assertEqual((wallet["chickens"], wallet["gsc"], wallet["credits"]), (0, 200_000, 1))
+        # A score far beyond what the playing time allows is capped.
+        run = self.store.start_run("alice", "chicken-flipper", now=200000)
+        capped = self.store.complete_run("alice", "chicken-flipper", run["run_id"], {"score": 999_999_999}, now=200020)
+        self.assertEqual(capped["gsc_awarded"], 20 * 20_000)
 
     def test_repeat_submission_is_idempotent_and_tampering_cannot_recredit(self):
         run = self.store.start_run("alice", "chicken-jump", now=100000)["run_id"]
@@ -199,6 +219,8 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual((events[0]["username"], events[0]["kind"], events[0]["item_name"], events[0]["score"]), ("alice", "highscore", "Chicken Jump", 1001))
 
     def test_records_are_independent_per_game_and_unknown_legacy_is_not_announced(self):
+        with self.store.connection(write=True) as db:
+            db.execute("UPDATE wallets SET credits=5 WHERE username=?", ("alice",))
         for index, game in enumerate(SCORE_DIVISORS):
             run = self.store.start_run("alice", game, now=100000)["run_id"]
             result = self.store.complete_run("alice", game, run, {"score": 100}, now=100030, legacy_best=0)

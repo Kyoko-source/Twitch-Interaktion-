@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ChevronsLeft, ChevronsRight, HelpCircle, Maximize, Minimize, Music, Pause, Play, RefreshCw, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
-import { useGameRewards } from "../economy/useGameRewards";
+import { publishWallet, useGameRewards } from "../economy/useGameRewards";
 import { MISSIONS } from "./engine.js";
 import { HypeLayer, StreakMeter } from "./hype.jsx";
 import "./pinball.css";
@@ -30,6 +30,7 @@ export function PepplePinball({ user, renderScoreboard }) {
   const [best, setBest] = useState(readBest);
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState("");
+  const [needCredit, setNeedCredit] = useState("");
   const pausedRef = useRef(false);
   const [reducedMotion] = useState(() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } });
 
@@ -90,7 +91,8 @@ export function PepplePinball({ user, renderScoreboard }) {
     if (sys.current.audio) sys.current.audio.best = best;
     sys.current.onGameOver = async ({ score }) => {
       if (score > best) { setBest(score); writeBest(score); }
-      if (!user) { setMessage("Melde dich an, damit dein Score in die Rangliste kommt."); return; }
+      if (!user) { setMessage("Übungsrunde beendet. Melde dich an und spiele mit Credits, um GSC zu gewinnen."); return; }
+      if (sys.current.practice) { setMessage("Übungsrunde ohne Wertung beendet. Mit einem Credit spielst du um GSC."); return; }
       try {
         const st = sys.current.engine.stats;
         const result = await rewards.submitRound({ score, level: Math.max(1, Math.min(10000, st.missions + 1)), round: Math.max(1, Math.min(1000, st.bestCombo || 1)) });
@@ -100,12 +102,21 @@ export function PepplePinball({ user, renderScoreboard }) {
     };
   }, [best, user, rewards]);
 
-  function start() {
+  // A rated round costs one credit; guests and players without credits can play a practice round.
+  async function start({ practice = false } = {}) {
     const s = sys.current;
-    if (!s.engine) return;
+    if (!s.engine || s.starting) return;
     s.audio.ensure();
-    rewards.beginRound();
     setMessage("");
+    s.practice = practice || !user;
+    if (!s.practice) {
+      s.starting = true;
+      const round = await rewards.beginRound();
+      s.starting = false;
+      if (!round) { setNeedCredit(rewards.lastError.current || "Keine Credits mehr."); return; }
+      if (round.wallet) publishWallet(user.username, round.wallet);
+    }
+    setNeedCredit("");
     s.engine.start();
     setPausedState(false);
     shellRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -223,7 +234,7 @@ export function PepplePinball({ user, renderScoreboard }) {
           <button type="button" onClick={() => setHelp(!help)} aria-pressed={help} title="Regeln & Steuerung"><HelpCircle size={18} /></button>
           <button type="button" onClick={() => setVolOpen(!volOpen)} aria-expanded={volOpen} title="Lautstärke" aria-label="Lautstärke">{vol.sfxOn || vol.musicOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button type="button" onClick={togglePause} disabled={!active} title={paused ? "Weiter" : "Pause"} aria-label={paused ? "Weiter" : "Pause"}>{paused ? <Play size={18} /> : <Pause size={18} />}</button>
-          <button type="button" onClick={start} disabled={st === "loading" || st === "error"} title="Neues Spiel" aria-label="Neues Spiel"><RefreshCw size={18} /></button>
+          <button type="button" onClick={() => start()} disabled={st === "loading" || st === "error"} title="Neues Spiel" aria-label="Neues Spiel"><RefreshCw size={18} /></button>
           <button type="button" onClick={toggleFull} title="Vollbild (F)" aria-label="Vollbild"><Maximize size={18} /></button>
         </div>
       </header>
@@ -233,7 +244,7 @@ export function PepplePinball({ user, renderScoreboard }) {
             <div className="pbFsBar">
               <button type="button" onClick={() => setVolOpen(!volOpen)} aria-label="Lautstärke" title="Lautstärke"><SlidersHorizontal size={18} /></button>
               <button type="button" onClick={togglePause} disabled={!active} aria-label={paused ? "Weiter" : "Pause"} title={paused ? "Weiter" : "Pause"}>{paused ? <Play size={18} /> : <Pause size={18} />}</button>
-              <button type="button" onClick={start} disabled={st === "loading" || st === "error"} aria-label="Neues Spiel" title="Neues Spiel"><RefreshCw size={18} /></button>
+              <button type="button" onClick={() => start()} disabled={st === "loading" || st === "error"} aria-label="Neues Spiel" title="Neues Spiel"><RefreshCw size={18} /></button>
               <button type="button" onClick={() => setFullscreen(false)} aria-label="Vollbild beenden" title="Vollbild beenden (Esc)"><Minimize size={18} /></button>
             </div>
           )}
@@ -259,8 +270,19 @@ export function PepplePinball({ user, renderScoreboard }) {
             {(st === "attract" || st === "gameover") && !error && (
               <div className="pbOverlay pbStart">
                 {st === "gameover" ? <><span>LAST CALL</span><strong>{fmt(snap.score)}</strong>{snap.score >= best && snap.score > 0 && <em>Neuer Rekord!</em>}</> : <><span>AFTER HOURS CLUB</span><strong>PEPPLE</strong></>}
-                <button type="button" onClick={start}><Play size={20} fill="currentColor" />{st === "gameover" ? "Nochmal spielen" : "Spiel starten"}</button>
-                <small>Enter oder Leertaste</small>
+                {user ? (
+                  <>
+                    <button type="button" onClick={() => start()}><Play size={20} fill="currentColor" />{st === "gameover" ? "Nochmal spielen" : "Spiel starten"} · 1 Credit</button>
+                    <small>Du hast {user.credits ?? 0} Credit{(user.credits ?? 0) === 1 ? "" : "s"} · Score ÷ 10 = GSC · Enter</small>
+                    {needCredit && <p className="pbNeedCredit" role="alert">{needCredit} <a href="#shop">Credits im Shop kaufen</a></p>}
+                    <button type="button" className="pbPractice" onClick={() => start({ practice: true })}>Übungsrunde ohne Wertung</button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => start({ practice: true })}><Play size={20} fill="currentColor" />Übungsrunde starten</button>
+                    <small>Angemeldet spielst du mit Credits um Glücksspiel-Coins · Enter</small>
+                  </>
+                )}
                 {st === "gameover" && <dl className="pbStats"><div><dt>Rampen</dt><dd>{snap.stats.ramps || 0}</dd></div><div><dt>Orbits</dt><dd>{snap.stats.orbits || 0}</dd></div><div><dt>Jackpots</dt><dd>{snap.stats.jackpots || 0}</dd></div><div><dt>Missionen</dt><dd>{snap.stats.missions || 0}</dd></div><div><dt>Beste Combo</dt><dd>{snap.stats.bestCombo || 0}x</dd></div></dl>}
               </div>
             )}

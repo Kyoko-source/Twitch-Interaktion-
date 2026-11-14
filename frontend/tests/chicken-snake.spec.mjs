@@ -75,7 +75,7 @@ test("real self collision ends play; failed saving is retryable and successful d
   await expect(page.getByRole("status")).toHaveText("Kurz offline. Bitte erneut speichern.");
   await page.getByRole("button", { name: "Score speichern", exact: true }).evaluate((button) => { button.click(); button.click(); });
   await expect(page.getByRole("button", { name: "Runde gewertet", exact: true })).toBeDisabled();
-  await expect(page.locator(".communityBalances")).toHaveText("103Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("103Chickens");
   expect(saves).toHaveLength(2); // Failed request plus exactly one retry.
   expect(saves[1]).toEqual({ game: "chicken-snake", run_id: "snake-registered-round-1", score: 10, level: 1 });
   expect(starts).toHaveLength(1);

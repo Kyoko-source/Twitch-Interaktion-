@@ -26,7 +26,7 @@ test('Survivor plays decoded weapon samples, no oscillator melody or MP3 loop, m
 test('Pinball plays real CC0 samples for parts and jingles, never an oscillator or looping buffer',async({page})=>{
   await watchAudio(page);await page.goto('/#games/chicken-flipper');
   await page.waitForFunction(()=>document.querySelector('.pbStage')?.__pinball?.renderer?.composer,null,{timeout:30000});
-  await page.getByRole('button',{name:'Spiel starten',exact:true}).click();
+  await page.getByRole('button',{name:'Übungsrunde starten',exact:true}).click();
   await page.locator('.pbStage').evaluate(async node=>{const s=node.__pinball;await s.audio.load('bumper-thump');await s.audio.load('jackpot');s.engine.emit('bumper',{index:0,x:4,y:5});s.engine.emit('jackpot',{value:1});});
   await page.keyboard.down('KeyA');await page.waitForTimeout(150);await page.keyboard.up('KeyA');
   await expect.poll(()=>page.evaluate(()=>window.sampleProof.played.length)).toBeGreaterThan(1);

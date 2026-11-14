@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronRight, Crown, Gamepad2, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Trophy, Users, X } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronRight, Coins, Crown, Gamepad2, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Ticket, Trophy, Users, X } from "lucide-react";
+import { gscShort } from "../economy/CasinoCashier";
 
 const groups = [
   { label: "Übersicht", ids: ["home", "advent"] },
@@ -66,7 +67,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
       <header className="communityTopbar">
         <div className="pageBreadcrumb"><button ref={menuRef} className="mobileMenu quietIcon" type="button" onClick={() => setMenuOpen(true)} aria-label="Menü öffnen" aria-expanded={menuOpen} aria-controls="main-navigation"><Menu size={22} /></button><Home size={17} strokeWidth={1.7} /><ChevronRight size={14} /><span>{label}</span></div>
         <div className="headerUtilities">
-          {user && <div className="communityBalances"><span><ShoppingBasket size={16} /><strong>{number(user.chickens)}</strong><span>Chickens</span></span></div>}
+          {user && <div className="communityBalances"><span className="balChickens"><ShoppingBasket size={16} /><strong>{number(user.chickens)}</strong><span>Chickens</span></span><span className="balCredits" title="Credits: 1 Credit = 1 Runde Pinball oder 1 Spin"><Ticket size={16} /><strong>{number(user.credits)}</strong><span>Credits</span></span><span className="balGsc" title={`Glücksspiel-Coins: ${number(user.gsc)}`}><Coins size={16} /><strong>{gscShort(user.gsc)}</strong><span>GSC</span></span></div>}
           {user ? <><button className="accountLink" type="button" onClick={() => navigate("profile")} aria-label={`Profil von ${user.username} öffnen`}><MemberAvatar user={user} /><span>{user.username}</span></button><button className="quietIcon logoutButton" onClick={onLogout} title="Abmelden" aria-label="Abmelden" type="button"><LogOut size={17} /></button></> : <button className="signInButton" onClick={() => navigate("login")} type="button"><LogIn size={16} /> Anmelden</button>}
         </div>
       </header>

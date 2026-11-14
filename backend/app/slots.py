@@ -1,10 +1,10 @@
-"""Chicken Jackpot: a 5x3 video slot played with the site's virtual Chickens.
+"""Chicken Jackpot: a 5x3 video slot. A spin costs Credits (bought with Chickens in the shop)
+and pays Glücksspiel-Coins (GSC) - big numbers that only turn back into Chickens at the
+casino cashier's steep rate.
 
-All randomness and money handling happens here, inside one SQLite transaction on the
-economy ledger: the bet is debited, the reels are drawn with a CSPRNG, the win is credited
-and the spin is stored (idempotent by request id). Return to player is ~93% (verified by
-simulation), so the slot is a soft Chicken sink. A daily net-win cap keeps lucky streaks from
-draining the stream shop.
+All randomness and accounting happens here, inside one SQLite transaction on the economy
+ledger: credits are debited, the reels are drawn with a CSPRNG, GSC are credited and the spin
+is stored (idempotent by request id). Return to player is ~93% of the GSC stake value.
 """
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ from .economy import economy
 
 router = APIRouter(prefix="/api/slots", tags=["slots"])
 CET = timezone(timedelta(hours=1))
-BETS = [2, 5, 10, 20, 50]
-DAILY_NET_WIN_CAP = 300
+BETS = [1, 2, 5, 10]          # credits per spin
+GSC_PER_CREDIT = 10_000       # stake value of one credit in Glücksspiel-Coins
 REELS, ROWS = 5, 3
 WEIGHTS = {"cherry": 20, "lemon": 18, "grape": 15, "bell": 10, "bar": 7, "seven": 4, "wild": 3, "egg": 3}
 # Multiplier of the TOTAL bet for 3 / 4 / 5 matching from the leftmost reel.
@@ -79,7 +79,7 @@ def evaluate(grid: list[list[str]], bet: int) -> dict[str, Any]:
         mult = SCATTER[min(len(eggs), 5)]
         total += mult
         scatter = {"count": len(eggs), "mult": mult, "cells": eggs}
-    win = int(bet * total)  # whole Chickens only
+    win = int(bet * GSC_PER_CREDIT * total)  # paid in GSC
     return {"wins": wins, "scatter": scatter, "multiplier": total, "win": win}
 
 
@@ -95,8 +95,8 @@ def ensure_table(db) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS slot_spins_user ON slot_spins(username, created)")
 
 
-def net_today(db, username: str, now: float) -> int:
-    return int(db.execute("SELECT COALESCE(SUM(win - bet), 0) FROM slot_spins WHERE username=? AND created>=?", (username, day_start(now))).fetchone()[0])
+def won_today(db, username: str, now: float) -> int:
+    return int(db.execute("SELECT COALESCE(SUM(win), 0) FROM slot_spins WHERE username=? AND created>=?", (username, day_start(now))).fetchone()[0])
 
 
 class Spin(BaseModel):
@@ -112,9 +112,9 @@ def info(user: dict = Depends(current_user)) -> dict[str, Any]:
     with store.connection(write=True) as db:
         ensure_table(db)
         wallet = store.wallet(db, username)
-        net = net_today(db, username, now)
-    return {"bets": BETS, "pay": PAY, "scatter": SCATTER, "lines": LINES, "weights": WEIGHTS, "rtp": 0.93,
-            "wallet": wallet, "today": {"net": net, "cap": DAILY_NET_WIN_CAP}}
+        won = won_today(db, username, now)
+    return {"bets": BETS, "gsc_per_credit": GSC_PER_CREDIT, "pay": PAY, "scatter": SCATTER, "lines": LINES, "weights": WEIGHTS, "rtp": 0.93,
+            "wallet": wallet, "today": {"won": won}}
 
 
 @router.post("/spin")
@@ -133,14 +133,12 @@ def spin(body: Spin, request: Request, user: dict = Depends(current_user)) -> di
             if previous["username"] != username:
                 raise HTTPException(409, "Diese Anfrage gehört zu einem anderen Spieler.")
             result = json.loads(previous["result"])
-            return {**result, "wallet": store.wallet(db, username), "today": {"net": net_today(db, username, now), "cap": DAILY_NET_WIN_CAP}, "duplicate": True}
-        if net_today(db, username, now) >= DAILY_NET_WIN_CAP:
-            raise HTTPException(429, f"Glückssträhne! Du hast heute schon {DAILY_NET_WIN_CAP} Chickens am Automaten gewonnen. Morgen geht's weiter.")
-        if store.wallet(db, username)["chickens"] < body.bet:
-            raise HTTPException(400, "Nicht genug Chickens für diesen Einsatz.")
+            return {**result, "wallet": store.wallet(db, username), "today": {"won": won_today(db, username, now)}, "duplicate": True}
+        if store.wallet(db, username)["credits"] < body.bet:
+            raise HTTPException(402, "Nicht genug Credits. Credits gibt es im Shop (10 Chickens pro Credit).")
         grid = draw()
         result = {"grid": grid, "bet": body.bet, **evaluate(grid, body.bet)}
         db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
-        db.execute("UPDATE wallets SET chickens = chickens - ? + ? WHERE username=?", (body.bet, result["win"], username))
+        db.execute("UPDATE wallets SET credits = credits - ?, gsc = gsc + ? WHERE username=?", (body.bet, result["win"], username))
         db.execute("INSERT INTO slot_spins VALUES (?, ?, ?, ?, ?, ?)", (body.request_id, username, body.bet, result["win"], now, json.dumps(result)))
-        return {**result, "wallet": store.wallet(db, username), "today": {"net": net_today(db, username, now), "cap": DAILY_NET_WIN_CAP}, "duplicate": False}
+        return {**result, "wallet": store.wallet(db, username), "today": {"won": won_today(db, username, now)}, "duplicate": False}

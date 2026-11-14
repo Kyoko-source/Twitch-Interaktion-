@@ -140,6 +140,9 @@ body:has(.pbFull) { overflow: hidden; }
 .pbStart > button { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; padding: 14px 26px; border: 0; border-radius: 999px; font-size: 17px; font-weight: 900; color: #1a0628; background: linear-gradient(90deg, #ffd36b, #ff8fd6); box-shadow: 0 10px 30px -8px #ff3fb4aa; cursor: pointer; transition: transform 0.12s, box-shadow 0.2s; }
 .pbStart > button:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 14px 36px -8px #ff3fb4; }
 .pbStart > small { color: var(--pb-muted); font-size: 12px; }
+.pbStart > .pbPractice { padding: 9px 18px; font-size: 13px; color: #fff; background: #ffffff14; border: 1px solid #ffffff33; box-shadow: none; }
+.pbNeedCredit { margin: 0; max-width: 320px; padding: 8px 12px; border-radius: 12px; background: #ff3b4e33; color: #fff; font-size: 13px; font-weight: 700; }
+.pbNeedCredit a { display: block; margin-top: 4px; color: #ffd36b; }
 .pbStats { display: grid; grid-template-columns: repeat(5, auto); gap: 6px 14px; margin: 12px 0 0; }
 .pbStats div { display: grid; gap: 2px; }
 .pbStats dt { color: var(--pb-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }

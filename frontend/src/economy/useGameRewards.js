@@ -17,11 +17,16 @@ export function useGameRewards(game, user) {
   const pending = useRef(null);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const lastError = useRef("");
 
+  // Returns the started round (or null). Credit games reject with 402 when no credit is left;
+  // the reason is kept in lastError for the caller.
   const beginRound = useCallback(() => {
     setSubmitted(false);
     pending.current = null;
-    activeRound.current = userRef.current ? api("/api/game-runs", { method: "POST", body: JSON.stringify({ game }) }).catch(() => null) : null;
+    lastError.current = "";
+    activeRound.current = userRef.current ? api("/api/game-runs", { method: "POST", body: JSON.stringify({ game }) }).catch((e) => { lastError.current = e.message; return null; }) : null;
+    return activeRound.current;
   }, [game]);
 
   const submitRound = useCallback((score) => {
@@ -41,5 +46,5 @@ export function useGameRewards(game, user) {
     operation.catch(() => { if (pending.current === operation) pending.current = null; }).finally(() => setSaving(false));
     return operation;
   }, [game]);
-  return { beginRound, submitRound, submitted, saving };
+  return { beginRound, submitRound, submitted, saving, lastError };
 }

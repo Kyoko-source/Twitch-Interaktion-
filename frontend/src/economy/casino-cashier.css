@@ -1,0 +1,43 @@
+.cashier {
+  position: relative;
+  padding: 24px;
+  border-radius: 24px;
+  color: #fff;
+  background: radial-gradient(circle at 15% 0%, #7a1030 0%, transparent 50%), linear-gradient(160deg, #2a0818, #12040e 60%, #1c0820);
+  border: 3px solid #ffd36b;
+  box-shadow: 0 0 0 4px #6a2a00, 0 0 50px #ff3fb444;
+}
+.cashierBulbs { position: absolute; inset: -11px; border-radius: 32px; pointer-events: none; }
+.cashierBulbs::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 6px;
+  background: repeating-conic-gradient(from 0deg, #fff6c4 0 3deg, transparent 3deg 9deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: drop-shadow(0 0 6px #ffd36b);
+  animation: cashierChase 0.6s steps(2) infinite;
+}
+@keyframes cashierChase { 50% { opacity: 0.2; } }
+.cashier header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 16px; }
+.cashier header span { color: #ffc94a; font-size: 11px; font-weight: 900; letter-spacing: 0.2em; }
+.cashier header h2 { margin: 4px 0 6px; font-size: clamp(22px, 3vw, 30px); background: linear-gradient(90deg, #fff, #ffd36b 50%, #ff8fd6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cashier header p { margin: 0; max-width: 560px; color: #e6d0dc; font-size: 14px; }
+.cashierWallet { display: flex; gap: 10px; }
+.cashierWallet div { display: grid; justify-items: center; min-width: 120px; padding: 10px 14px; border-radius: 14px; background: #0b0503; border: 2px solid #5a3412; }
+.cashierWallet svg { color: #ffc94a; }
+.cashierWallet strong { font: 900 24px/1.2 ui-monospace, Consolas, monospace; color: #ff9a2a; text-shadow: 0 0 10px #ff6a00; }
+.cashierWallet small { font-size: 11px; font-weight: 800; color: #c88a3a; letter-spacing: 0.1em; }
+.cashierGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.cashierBox { padding: 16px; border-radius: 18px; background: #ffffff0a; border: 1px solid #ffd36b33; }
+.cashierBox h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 16px; color: #ffd36b; }
+.cashierBox h3 small { margin-left: auto; color: #c8b0c8; font-weight: 600; font-size: 12px; }
+.cashierPacks { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+.cashierPacks button { display: grid; justify-items: center; gap: 2px; padding: 12px 6px; border-radius: 14px; border: 0; cursor: pointer; color: #2a0f00; background: radial-gradient(circle at 40% 25%, #fff8d0, #ffd36b 45%, #ff9a2a); box-shadow: 0 5px 0 #8a4a00; transition: transform 0.1s; }
+.cashierPacks button.swap { color: #04202a; background: radial-gradient(circle at 40% 25%, #e0fdff, #3fe7ff 45%, #1f8fc2); box-shadow: 0 5px 0 #0a4a6a; }
+.cashierPacks button:hover:not(:disabled) { transform: translateY(-2px) scale(1.03); }
+.cashierPacks button:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+.cashierPacks button:disabled { filter: grayscale(0.8) brightness(0.6); cursor: default; }
+.cashierPacks b { font: italic 900 28px/1 Inter, system-ui, sans-serif; }
+.cashierPacks span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.cashierPacks em { font-style: normal; font-size: 12px; font-weight: 800; }
+.cashierFine { margin: 14px 0 0; font-size: 12px; color: #b9a0b8; }
+@media (prefers-reduced-motion: reduce) { .cashierBulbs::before { animation: none; } }

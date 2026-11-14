@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Gamepad2, Gift, Radio, ShoppingBasket, Sparkles } from "lucide-react";
 import { api } from "../api";
 import { publishWallet, requestId } from "./useGameRewards";
+import { CasinoCashier } from "./CasinoCashier";
 import "./economy.css";
 
 export function CommunityShop({ user, setPage, data, loading, error }) {
@@ -41,6 +42,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
   return <section className="stack shopPage">
     <div className="sectionHero"><div><h1>Deine Chickens. Dein Stream-Moment.</h1><p>Spiele, sammle und mach dem Streamer das Leben ein bisschen spannender.</p></div><div className="shopWallet"><ShoppingBasket size={22} /><span><strong>{Number(user?.chickens || 0).toLocaleString("de-DE")}</strong><small>Chickens verfügbar</small></span></div></div>
     <div className="shopEarnBanner"><Gamepad2 size={22} /><span><strong>Verdiene deine Rewards im Spiel.</strong><small>Bis zu 25 Chickens pro Runde · maximal 120 pro Tag · ab 15 Sekunden Spielzeit.</small></span><button className="inlineLink" type="button" onClick={() => setPage("games")}>Jetzt spielen<ArrowRight size={16} /></button></div>
+    <CasinoCashier user={user} setPage={setPage} />
     <div className="shopCategoryTabs" role="group" aria-label="Shop-Kategorien">{categories.map((value) => <button key={value} type="button" aria-pressed={category === value} className={category === value ? "active" : ""} onClick={() => setCategory(value)}>{value}</button>)}</div>
     {message && <div className={`notice ${message.error ? "error" : "purchaseSuccess"}`} role={message.error ? "alert" : "status"}>{!message.error && <Check size={18} />}{message.text}</div>}
     {loading && <div className="notice" role="status">Shop wird geladen …</div>}

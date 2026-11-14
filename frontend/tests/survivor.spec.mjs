@@ -53,7 +53,7 @@ test("desktop: real WASD, pause, save exact final state once and visible persona
   await expect(page.getByRole("button", { name: "Runde gewertet" })).toBeDisabled();
   expect(saves).toHaveLength(1);
   expect(saves[0]).toMatchObject({ game: "braincell-survivor", run_id: "survivor-round-1", score: 1234, kills: 17, build: "bolt:1" });
-  await expect(page.locator(".communityBalances")).toHaveText("104Chickens");
+  await expect(page.locator(".communityBalances .balChickens")).toHaveText("104Chickens");
   await expect(page.locator(".gameScores")).toContainText("Kyoko1.234");
   expect(errors).toEqual([]);
 });

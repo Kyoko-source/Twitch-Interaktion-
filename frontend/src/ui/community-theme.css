@@ -292,3 +292,6 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .gameLaunch-dnd .gameLaunchArtwork { background-image: url('/assets/aviary-banner-dnd.webp'); }
 .gameLaunch-nullsignal .gameLaunchArtwork { background-image: url('/assets/aviary-banner-nullsignal.webp'); }
 .gameLaunch-after-play .gameLaunchArtwork { background-image: url('/assets/aviary-banner-after-play.webp'); }
+.communityBalances .balCredits svg { color: #3fe7ff; }
+.communityBalances .balGsc svg { color: #ffc94a; }
+@media (max-width: 700px) { .communityBalances .balCredits > span, .communityBalances .balGsc > span { display: none; } }

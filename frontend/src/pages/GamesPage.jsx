@@ -55,7 +55,8 @@ export function GamesPage({ user }) {
         </div>
         <Zap size={64} />
       </div>
-      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && game !== "slots" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
+      {(game === "chicken-flipper" || game === "slots") && <div className="gameEarningInfo">Casino-Spiel: 1 Credit pro Runde bzw. Spin (Credits gibt es im Shop für 10 Chickens). Du gewinnst Glücksspiel-Coins (GSC), die du im Shop gegen Chickens tauschst.</div>}
+      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && game !== "slots" && game !== "chicken-flipper" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => setGame(id)} type="button">

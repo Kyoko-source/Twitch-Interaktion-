@@ -17,6 +17,10 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 DAILY_CAP = 120
+# Credit games (one credit per round) pay Glücksspiel-Coins instead of Chickens.
+CREDIT_GAMES = {"chicken-flipper"}
+GSC_PER_SCORE = 10          # 2.000.000 pinball points -> 200.000 GSC
+MAX_GSC_PER_SECOND = 20_000  # plausibility ceiling for a submitted pinball score
 ROUND_CAP = 25
 MIN_RUN_SECONDS = 15
 LEVEL_SIZE = 250
@@ -70,7 +74,8 @@ class EconomyStore:
         # Additive upgrade of the live ledger; existing balances/events are retained.
         with self.connection(write=True) as db:
             for table, fields in {
-                "runs": {"is_highscore": "INTEGER NOT NULL DEFAULT 0"},
+                "runs": {"is_highscore": "INTEGER NOT NULL DEFAULT 0", "gsc": "INTEGER NOT NULL DEFAULT 0"},
+                "wallets": {"credits": "INTEGER NOT NULL DEFAULT 0", "gsc": "INTEGER NOT NULL DEFAULT 0"},
                 "alerts": {"kind": "TEXT NOT NULL DEFAULT 'purchase'", "game": "TEXT", "score": "INTEGER"},
                 "adjustments": {"request_id": "TEXT"},
             }.items():
@@ -79,6 +84,11 @@ class EconomyStore:
                     if field not in existing:
                         db.execute(f"ALTER TABLE {table} ADD COLUMN {field} {definition}")
             db.execute("CREATE UNIQUE INDEX IF NOT EXISTS adjustments_request ON adjustments(request_id) WHERE request_id IS NOT NULL")
+            db.execute("""CREATE TABLE IF NOT EXISTS casino_ledger (
+                request_id TEXT PRIMARY KEY, username TEXT NOT NULL, kind TEXT NOT NULL,
+                chickens INTEGER NOT NULL DEFAULT 0, credits INTEGER NOT NULL DEFAULT 0, gsc INTEGER NOT NULL DEFAULT 0,
+                created REAL NOT NULL)""")
+            db.execute("CREATE INDEX IF NOT EXISTS casino_ledger_user ON casino_ledger(username, created)")
 
     @contextmanager
     def connection(self, *, write=False):
@@ -106,10 +116,10 @@ class EconomyStore:
 
     @staticmethod
     def wallet(db, username):
-        row = db.execute("SELECT chickens, earned FROM wallets WHERE username=?", (username,)).fetchone()
-        balance, earned = (row["chickens"], row["earned"]) if row else (0, 0)
+        row = db.execute("SELECT chickens, earned, credits, gsc FROM wallets WHERE username=?", (username,)).fetchone()
+        balance, earned, credits, gsc = (row["chickens"], row["earned"], row["credits"], row["gsc"]) if row else (0, 0, 0, 0)
         return {"chickens": balance, "chickens_earned": earned, "level": earned // LEVEL_SIZE + 1,
-                "level_progress": earned % LEVEL_SIZE, "level_target": LEVEL_SIZE}
+                "level_progress": earned % LEVEL_SIZE, "level_target": LEVEL_SIZE, "credits": credits, "gsc": gsc}
 
     def balances(self):
         with self.connection() as db:
@@ -134,11 +144,17 @@ class EconomyStore:
         now = time.time() if now is None else now
         with self.connection(write=True) as db:
             self.require_ready(db)
+            run_id = str(uuid4())
+            if game in CREDIT_GAMES:
+                db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
+                if self.wallet(db, username)["credits"] < 1:
+                    raise HTTPException(402, "Keine Credits mehr. Im Shop gibt es Credits (10 Chickens pro Spiel).")
+                db.execute("UPDATE wallets SET credits=credits-1 WHERE username=?", (username,))
+                db.execute("INSERT INTO casino_ledger VALUES (?, ?, 'credit-use', 0, -1, 0, ?)", (f"run:{run_id}", username, now))
             # One active earning round per account, even across tabs or games.
             db.execute("DELETE FROM runs WHERE username=? AND completed IS NULL", (username,))
-            run_id = str(uuid4())
             db.execute("INSERT INTO runs(id, username, game, started) VALUES (?, ?, ?, ?)", (run_id, username, game, now))
-            return {"run_id": run_id, "minimum_seconds": MIN_RUN_SECONDS, "daily_cap": DAILY_CAP, "round_cap": ROUND_CAP}
+            return {"run_id": run_id, "minimum_seconds": MIN_RUN_SECONDS, "daily_cap": DAILY_CAP, "round_cap": ROUND_CAP, "wallet": self.wallet(db, username)}
 
     def complete_run(self, username, game, run_id, payload, now=None, legacy_best=None):
         now = time.time() if now is None else now
@@ -150,7 +166,7 @@ class EconomyStore:
             if run["completed"] is not None:
                 if json.loads(run["payload"]) != payload:
                     raise HTTPException(409, "Diese Runde wurde bereits mit einem anderen Ergebnis eingereicht.")
-                return self._score_result(db, username, run["reward"], duplicate=True, is_highscore=bool(run["is_highscore"]))
+                return self._score_result(db, username, run["reward"], duplicate=True, is_highscore=bool(run["is_highscore"]), gsc=run["gsc"] if game in CREDIT_GAMES else None)
             elapsed = now - run["started"]
             if not math.isfinite(elapsed) or elapsed < 0 or elapsed > 7200:
                 raise HTTPException(409, "Diese Runde ist abgelaufen. Bitte starte eine neue Runde.")
@@ -164,20 +180,29 @@ class EconomyStore:
             skill_reward = score // SCORE_DIVISORS[game]
             time_reward = int(elapsed // 10)
             reward = min(ROUND_CAP, skill_reward, time_reward, max(0, DAILY_CAP - earned_today)) if elapsed >= MIN_RUN_SECONDS else 0
+            gsc = 0
+            if game in CREDIT_GAMES:
+                # Credit games pay Glücksspiel-Coins, never Chickens. Plausibility: no more than
+                # what the score rate allows for the time actually played.
+                reward = 0
+                gsc = min(score // GSC_PER_SCORE, int(max(0, elapsed) * MAX_GSC_PER_SECOND)) if elapsed >= MIN_RUN_SECONDS else 0
             if game == "braincell-survivor" and payload.get("seconds_survived", 0) > elapsed + 5:
                 raise HTTPException(400, "Die angegebene Spielzeit passt nicht zu dieser Runde.")
             db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
-            db.execute("UPDATE wallets SET chickens=chickens+?, earned=earned+? WHERE username=?", (reward, reward, username))
-            db.execute("UPDATE runs SET completed=?, score=?, payload=?, reward=?, reward_day=?, is_highscore=? WHERE id=?", (now, score, json.dumps(payload, sort_keys=True), reward, day, int(is_highscore), run_id))
+            db.execute("UPDATE wallets SET chickens=chickens+?, earned=earned+?, gsc=gsc+? WHERE username=?", (reward, reward, gsc, username))
+            db.execute("UPDATE runs SET completed=?, score=?, payload=?, reward=?, reward_day=?, is_highscore=?, gsc=? WHERE id=?", (now, score, json.dumps(payload, sort_keys=True), reward, day, int(is_highscore), gsc, run_id))
             if is_highscore:
                 self._queue_alert(db, f"highscore:{run_id}", username, GAME_TITLES[game], "Highscore", 0, now, kind="highscore", game=game, score=score)
-            return self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward), is_highscore=is_highscore)
+            return self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward), is_highscore=is_highscore, gsc=gsc if game in CREDIT_GAMES else None)
 
-    def _score_result(self, db, username, reward, duplicate=False, daily_remaining=None, is_highscore=False):
+    def _score_result(self, db, username, reward, duplicate=False, daily_remaining=None, is_highscore=False, gsc=None):
         message = "Diese Runde wurde bereits gewertet." if duplicate else (f"Score gespeichert. +{reward} Chickens!" if reward else "Score gespeichert. Für Chickens: mindestens 15 Sekunden spielen und Punkte sammeln; Tageslimit 120.")
+        if gsc is not None and not duplicate:
+            message = f"Score gespeichert. +{gsc:,} GSC!".replace(",", ".")
         if is_highscore and not duplicate:
-            message = f"Neuer Highscore! Dein Rekord erscheint im Stream. +{reward} Chickens." if reward else "Neuer Highscore! Dein Rekord erscheint im Stream."
-        return {"message": message, "chickens_awarded": 0 if duplicate else reward,
+            message = (f"Neuer Highscore! Dein Rekord erscheint im Stream. +{gsc:,} GSC.".replace(",", ".") if gsc is not None
+                       else f"Neuer Highscore! Dein Rekord erscheint im Stream. +{reward} Chickens." if reward else "Neuer Highscore! Dein Rekord erscheint im Stream.")
+        return {"message": message, "chickens_awarded": 0 if duplicate else reward, "gsc_awarded": 0 if duplicate or gsc is None else gsc,
                 "daily_remaining": daily_remaining, "wallet": self.wallet(db, username), "duplicate": duplicate,
                 "is_highscore": is_highscore, "highscore_alert_queued": is_highscore and not duplicate}
 
@@ -226,9 +251,8 @@ class EconomyStore:
                        for row in db.execute("SELECT id,item_name,price,created FROM purchases WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
             events += [{"id": f"adjustment:{row['id']}", "label": "Admin-Gutschrift" if row["delta"] >= 0 else "Admin-Abzug", "kind": "adjustment", "amount": row["delta"], "created": row["created"]}
                        for row in db.execute("SELECT id,delta,created FROM adjustments WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
-            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='slot_spins'").fetchone():
-                events += [{"id": f"slot:{row['request_id']}", "label": "Chicken Jackpot", "kind": "slots", "amount": row["win"] - row["bet"], "created": row["created"]}
-                           for row in db.execute("SELECT request_id,bet,win,created FROM slot_spins WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
+            events += [{"id": f"casino:{row['request_id']}", "label": "Credits gekauft" if row["kind"] == "credits" else "GSC eingetauscht", "kind": "casino", "amount": row["chickens"], "created": row["created"]}
+                       for row in db.execute("SELECT request_id,kind,chickens,created FROM casino_ledger WHERE username=? AND chickens<>0 ORDER BY created DESC LIMIT 50", (username,))]
             return {"wallet": wallet, "summary": {"earned": wallet["chickens_earned"], "adjustments": adjustments, "spent": spent},
                     "transactions": sorted(events, key=lambda row: row["created"], reverse=True)[:50]}
 

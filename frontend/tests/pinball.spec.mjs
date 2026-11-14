@@ -25,7 +25,7 @@ const game = (page, fn, arg) => page.locator(".pbStage").evaluate((el, [src, a])
 test("table renders, Enter starts, the plunger launches the ball out of the shooter lane", async ({ page }) => {
   await mockApi(page);
   const errors = await openPinball(page);
-  await expect(page.getByRole("button", { name: "Spiel starten" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Spiel starten|Übungsrunde starten/ })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect.poll(() => game(page, "return s.engine.status")).toBe("ready");
   await page.keyboard.down("Space");
@@ -70,7 +70,7 @@ test("three VIP locks start a three-ball multiball and the side panel follows", 
 test("game over submits the score once for a logged-in player", async ({ page }) => {
   const { starts, scores } = await mockApi(page, { user: { username: "magical_kyoko_", role: "admin", chickens: 10, chickens_earned: 10, level: 1 } });
   await openPinball(page);
-  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /Spiel starten|Übungsrunde starten/ }).click();
   await expect.poll(() => starts.length).toBe(1);
   expect(starts[0].game).toBe("chicken-flipper");
   await game(page, `const e = s.engine; e.score = 1234560; e.ball = 3; e.status = 'play'; e.ballSaveUntil = 0; e.ballSaveArmed = false; e.drain(e.world.balls[0]);`);
@@ -98,7 +98,7 @@ test("phone: touch buttons and table halves work the flippers", async ({ page })
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
   await openPinball(page);
-  await page.getByRole("button", { name: "Spiel starten" }).click();
+  await page.getByRole("button", { name: /Spiel starten|Übungsrunde starten/ }).click();
   const left = page.getByRole("button", { name: "Linker Flipper" });
   await expect(left).toBeVisible();
   await left.dispatchEvent("pointerdown", { pointerId: 3, pointerType: "touch", isPrimary: true });

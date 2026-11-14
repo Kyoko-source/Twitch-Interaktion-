@@ -24,6 +24,7 @@ from .afterplay_mp import router as afterplay_mp_router
 from .dnd import router as dnd_router
 from .advent import router as advent_router
 from .slots import router as slots_router
+from .casino import router as casino_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
@@ -61,6 +62,7 @@ app.include_router(afterplay_mp_router)
 app.include_router(dnd_router)
 app.include_router(advent_router)
 app.include_router(slots_router)
+app.include_router(casino_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
