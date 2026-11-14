@@ -95,7 +95,7 @@
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: minmax(120px, 15vw);
+  grid-auto-rows: clamp(170px, 14vw, 230px);
   grid-auto-flow: dense;
   gap: clamp(8px, 1.4vw, 16px);
   max-width: 1100px;
@@ -234,12 +234,15 @@
   100% { transform: translate(calc(var(--x) * 1.15), calc(var(--y) * -1 + 260px)) rotate(calc(var(--r) * 2)); opacity: 0; }
 }
 
-@media (max-width: 900px) {
-  .advGrid { grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(110px, 22vw); }
+/* Below ~1350px the sidebar leaves too little room for six readable doors. */
+@media (max-width: 1350px) {
+  .advGrid { grid-template-columns: repeat(4, 1fr); grid-auto-rows: clamp(170px, 19vw, 230px); }
+  .advDoor.wide.narrowSingle { grid-column: span 1; }
 }
 @media (max-width: 560px) {
   .advShell { padding: 16px 12px; border-radius: 18px; }
-  .advGrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 96px; }
+  .advGrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 104px; }
+  .advDoor.wide.narrowSingle { grid-column: span 2; }
   .advCount div { min-width: 54px; }
   .advCount b { font-size: 24px; }
   .advBow { transform: scale(0.75); }
@@ -257,10 +260,17 @@
 .advShell.isTest { box-shadow: 0 40px 90px -40px #000, inset 0 0 0 3px #3fe7ff88; }
 
 /* Opened doors carry their full text; the VIRUS box explains itself. */
-.advInside { align-content: center; gap: 4px; overflow: hidden; }
-.advInside em { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; font-style: normal; font-size: clamp(11px, 1.05vw, 13px); line-height: 1.3; color: #e6d9fb; }
-.advDoor.wide .advInside em { -webkit-line-clamp: 5; font-size: clamp(12px, 1.2vw, 15px); }
-.advMore { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--k); opacity: 0.85; }
+.advInside { align-content: center; gap: 3px; overflow: hidden; container-type: size; }
+.advInside svg { width: min(24px, 11cqh); height: min(24px, 11cqh); }
+.advInside b { font-size: min(11px, 5cqh); }
+.advInside span { font-size: min(15px, 7cqh, 9cqw); }
+/* Font size follows the tile height and the text length (--fh), so every text fits completely. */
+.advInside em { display: block; font-style: normal; font-weight: 600; font-size: clamp(10px, calc(var(--fh, 5) * 1cqh), 14px); line-height: 1.28; color: #f1e8ff; overflow-wrap: anywhere; hyphens: auto; }
+.advMore { font-style: normal; font-size: min(10px, 4.4cqh); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--k); opacity: 0.85; }
 .advVirusText { max-width: 600px; margin: 0; text-align: center; font-size: 15px; line-height: 1.45; color: #ffe1e4; }
 .advVirus.off .advVirusText { color: #d6ffe4; }
-@media (max-width: 560px) { .advInside em { -webkit-line-clamp: 3; } .advMore { display: none; } }
+/* Phones: tiles are tiny, show a short preview and let the tap open the full text. */
+@media (max-width: 560px) {
+  .advInside em { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 10px; }
+  .advInside svg { display: none; }
+}

@@ -168,10 +168,10 @@ export function AdventPage({ user }) {
           const Icon = kind?.icon;
           const state = door.opened ? "open" : door.unlocked ? "ready" : "locked";
           return (
-            <div key={day} className={`advDoor ${state} ${WIDE.includes(day) ? "wide" : ""} ${opening === day ? "opening" : ""}`} style={{ "--wrap": WRAP[day % WRAP.length], "--i": slot }}>
+            <div key={day} className={`advDoor ${state} ${WIDE.includes(day) ? "wide" : ""} ${day === 11 || day === 17 ? "narrowSingle" : ""} ${opening === day ? "opening" : ""}`} style={{ "--wrap": WRAP[day % WRAP.length], "--i": slot }}>
               {door.opened && (
                 <button type="button" className={`advInside ${kind.cls}`} onClick={() => setReveal(door)} aria-label={`Türchen ${day}: ${kind.label} – ${door.item.title}`}>
-                  <Icon size={24} /><b>{kind.label}</b><span>{door.item.title}</span><em>{door.item.text}</em><i className="advMore">Details ansehen</i>
+                  <Icon size={24} /><b>{kind.label}</b><span>{door.item.title}</span><em style={{ "--fh": door.item.text.length > 170 ? 4.3 : door.item.text.length > 120 ? 4.8 : door.item.text.length > 70 ? 5.4 : 6.2 }}>{door.item.text}</em><i className="advMore">Antippen für Details</i>
                 </button>
               )}
               <button type="button" className="advLid" disabled={!can || busy} onClick={() => setConfirm(day)} aria-label={door.opened ? `Türchen ${day} ist offen` : door.unlocked ? `Türchen ${day} öffnen` : `Türchen ${day} – ab ${day}. Dezember`} tabIndex={door.opened ? -1 : 0}>
