@@ -145,6 +145,7 @@ export function AdventPage({ user }) {
       {virus && (
         <section className={`advVirus ${virus.off ? "off" : ""}`} aria-label="VIRUS-Countdown">
           <div className="advVirusHead"><Skull size={26} /><div><strong data-text={virus.off ? "VIRUS DEAKTIVIERT" : "VIRUS AKTIV"}>{virus.off ? "VIRUS DEAKTIVIERT" : "VIRUS AKTIV"}</strong><small>24-Stunden-Stream bis {new Date(virus.deadline).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" })} · {virus.months} Monate{virus.months < 6 ? " (1 Monat abgezogen!)" : ""}</small></div></div>
+          <p className="advVirusText">{virus.off ? "Der 24-Stunden-Stream ist geschafft – der Virus wurde mit dem Passwort deaktiviert." : <>Bestrafung aus Türchen 1: Bis zum Ende dieses Countdowns <b>muss ein 24-Stunden-Stream</b> stattgefunden haben. Erst danach darf der Virus mit dem Passwort abgeschaltet werden. Öffnet sich das Türchen „ZEITMANAGEMENT“, wird 1 Monat abgezogen.</>}</p>
           {virus.off ? <p className="advVirusOff">Abgeschaltet am {dateLabel(virus.off.at)}.</p> : virusLeft > 0 ? <Countdown ms={virusLeft} /> : <p className="advVirusOff">ZEIT ABGELAUFEN!</p>}
           {!virus.off && (
             <form className="advVirusForm" onSubmit={virusOff}>
@@ -170,7 +171,7 @@ export function AdventPage({ user }) {
             <div key={day} className={`advDoor ${state} ${WIDE.includes(day) ? "wide" : ""} ${opening === day ? "opening" : ""}`} style={{ "--wrap": WRAP[day % WRAP.length], "--i": slot }}>
               {door.opened && (
                 <button type="button" className={`advInside ${kind.cls}`} onClick={() => setReveal(door)} aria-label={`Türchen ${day}: ${kind.label} – ${door.item.title}`}>
-                  <Icon size={28} /><b>{kind.label}</b><span>{door.item.title}</span>
+                  <Icon size={24} /><b>{kind.label}</b><span>{door.item.title}</span><em>{door.item.text}</em><i className="advMore">Details ansehen</i>
                 </button>
               )}
               <button type="button" className="advLid" disabled={!can || busy} onClick={() => setConfirm(day)} aria-label={door.opened ? `Türchen ${day} ist offen` : door.unlocked ? `Türchen ${day} öffnen` : `Türchen ${day} – ab ${day}. Dezember`} tabIndex={door.opened ? -1 : 0}>

@@ -255,3 +255,12 @@
 .advTestBar button.on { border-color: #3fe7ff; background: #3fe7ff26; box-shadow: 0 0 18px #3fe7ff55; }
 .advTestNote { margin: 0; padding: 8px 14px; border-radius: 12px; background: repeating-linear-gradient(135deg, #3fe7ff22 0 12px, #3fe7ff0d 12px 24px); border: 1px dashed #3fe7ff; color: #cff8ff; font-size: 13px; font-weight: 800; }
 .advShell.isTest { box-shadow: 0 40px 90px -40px #000, inset 0 0 0 3px #3fe7ff88; }
+
+/* Opened doors carry their full text; the VIRUS box explains itself. */
+.advInside { align-content: center; gap: 4px; overflow: hidden; }
+.advInside em { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; font-style: normal; font-size: clamp(11px, 1.05vw, 13px); line-height: 1.3; color: #e6d9fb; }
+.advDoor.wide .advInside em { -webkit-line-clamp: 5; font-size: clamp(12px, 1.2vw, 15px); }
+.advMore { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--k); opacity: 0.85; }
+.advVirusText { max-width: 600px; margin: 0; text-align: center; font-size: 15px; line-height: 1.45; color: #ffe1e4; }
+.advVirus.off .advVirusText { color: #d6ffe4; }
+@media (max-width: 560px) { .advInside em { -webkit-line-clamp: 3; } .advMore { display: none; } }
