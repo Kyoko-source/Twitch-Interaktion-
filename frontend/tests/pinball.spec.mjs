@@ -161,3 +161,18 @@ test("the girls only pop in for combos, not for other events or permanently in f
   await expect(page.locator(".pbGirl.show")).toHaveCount(2);
   await expect(page.locator(".pbGirl.show")).toHaveCount(0, { timeout: 5000 });
 });
+
+test("only one flipper can be up: the newer press drops the other bat", async ({ page }) => {
+  await mockApi(page);
+  await openPinball(page);
+  await page.keyboard.press("Enter");
+  await game(page, "s.engine.status = 'play';");
+  await page.keyboard.down("KeyA");
+  await expect.poll(() => game(page, "return s.engine.table.flipL.pressed")).toBe(true);
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(() => game(page, "return [s.engine.table.flipL.pressed, s.engine.table.flipR.pressed]")).toEqual([false, true]);
+  await expect.poll(() => game(page, "return s.engine.bothHints")).toBe(1);
+  await page.keyboard.up("ArrowRight");
+  await page.keyboard.up("KeyA");
+  expect(await game(page, "return [s.engine.table.flipL.pressed, s.engine.table.flipR.pressed]")).toEqual([false, false]);
+});

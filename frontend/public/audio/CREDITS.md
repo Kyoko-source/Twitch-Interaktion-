@@ -15,9 +15,11 @@ continuous Web Audio oscillator is used. The user's MP3 tracks are separate.
 
 ## PEPPLE Pinball (`audio/pinball/`, `music/pinball/`)
 
+Main in-game track (not CC0): `music/pinball/arcade-rush.mp3`, "Arcade Rush" (made with Suno), supplied by the site owner.
+
 All CC0 (public domain), credited anyway:
 - Sound effects: Kenney Impact Sounds, Digital Audio, Interface Sounds, Sci-fi Sounds and Music Jingles (https://kenney.nl). Licence: `audio/pinball/Kenney-License.txt`.
-- `music/pinball/play.mp3`: "Synth Wave" by Pro Sensory, https://opengameart.org/content/synth-wave
+- `music/pinball/play.mp3`: "Synth Wave" by Pro Sensory, https://opengameart.org/content/synth-wave (no longer used in play)
 - `music/pinball/multiball.mp3`: "Synthwave House Loop" by Fupi, https://opengameart.org/content/synthwave-house-loop
 - `music/pinball/attract.mp3`: "arcade background music" by aqrezes, https://opengameart.org/content/arcade-background-music
 

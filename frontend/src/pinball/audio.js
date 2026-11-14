@@ -12,7 +12,7 @@ const SFX = [
   "coin-1", "coin-2", "coin-3", "coin-4", "coin-5",
   "vo-num-2", "vo-num-3", "vo-num-4", "vo-num-5", "vo-num-6", "vo-num-7", "vo-num-8", "vo-num-9", "vo-num-10",
 ];
-const MUSIC = { attract: "/music/pinball/attract.mp3", play: "/music/pinball/play.mp3", multiball: "/music/pinball/multiball.mp3" };
+const MUSIC = { attract: "/music/pinball/attract.mp3", play: "/music/pinball/arcade-rush.mp3", multiball: "/music/pinball/multiball.mp3" };
 const JINGLES = new Set(["multiball", "jackpot", "super-jackpot", "skill-shot", "mission-start", "mission-complete", "extra-ball", "game-over", "bonus-total", "new-ball", "game-start", "wizard"]);
 
 export class PinballAudio {
@@ -84,7 +84,7 @@ export class PinballAudio {
     this.track = { name, el };
     if (this.musicOn) { el.play().catch(() => {}); this.fade(el, this.musicLevel(), 900); }
   }
-  musicLevel() { return !this.musicOn ? 0 : (performance.now() < this.duckUntil ? 0.12 : 0.42) * this.musicVolume * 1.4; }
+  musicLevel() { return !this.musicOn ? 0 : (performance.now() < this.duckUntil ? 0.2 : 0.55) * this.musicVolume * 1.4; }
   duck(seconds) {
     this.duckUntil = performance.now() + seconds * 1000;
     if (this.track) this.fade(this.track.el, this.musicLevel(), 120);

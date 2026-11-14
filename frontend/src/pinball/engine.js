@@ -47,6 +47,7 @@ export class PinballEngine {
   }
 
   resetGameState() {
+    this.bothHints = 0;
     this.score = 0;
     this.ball = 1;
     this.extraBalls = 0;
@@ -109,6 +110,16 @@ export class PinballEngine {
     const live = ["ready", "play"].includes(this.status) && !this.tilted;
     f.pressed = down && live;
     if (down && live) {
+      // Only one flipper at a time: holding both up would make the table far too easy.
+      // The newer press wins and the other bat drops.
+      const other = side === "left" ? this.table.flipR : this.table.flipL;
+      if (other.pressed) {
+        other.pressed = false;
+        this.emit("flipper", { side: side === "left" ? "right" : "left", up: false });
+        this.emit("flipperBlocked", { side });
+        this.bothHints = (this.bothHints || 0) + 1;
+        if (this.bothHints <= 2) this.say("NUR EIN FLIPPER!", "BEIDE ZUGLEICH GEHT NICHT", 1500, "flash", 6);
+      }
       this.emit("flipper", { side, up: true });
       if (this.status === "play") this.checkFlipperSpam();
       // Lane change: rotate the lit top lanes like a real machine.
