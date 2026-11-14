@@ -257,7 +257,17 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px soli
 .communityProgress { height: 9px; background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(200, 150, 255, .15); }
 .communityProgress > span, .progressTrack > span { background: linear-gradient(90deg, var(--neon-purple), var(--neon-pink), var(--neon-gold)); box-shadow: 0 0 14px rgba(255, 79, 216, .6); }
 .progressTrack { background: rgba(255, 255, 255, .07); }
-.welcomeMascot { filter: drop-shadow(0 0 24px rgba(181, 108, 255, .55)); }
+.welcomeMascot { position: absolute; right: 30px; top: 50%; bottom: auto; width: 124px; height: auto; transform: translateY(-50%); display: grid; place-items: center; pointer-events: none; }
+.welcomeMascot img { position: relative; z-index: 1; width: 100%; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .5)) drop-shadow(0 0 18px rgba(181, 108, 255, .55)); animation: mascotFloat 4.2s ease-in-out infinite; transform-origin: 50% 0; -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent); mask-image: radial-gradient(closest-side, #000 72%, transparent); }
+.mascotHalo { position: absolute; inset: -6% -16%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 140, 230, .45), rgba(181, 108, 255, .22) 55%, transparent); filter: blur(6px); animation: mascotHalo 4.2s ease-in-out infinite; }
+.welcomeMascot i { position: absolute; z-index: 2; width: 7px; height: 7px; background: #fff3c4; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); filter: drop-shadow(0 0 4px #ffd36b); opacity: 0; animation: mascotTwinkle 3s ease-in-out infinite; }
+.welcomeMascot i:nth-of-type(1) { left: -6%; top: 30%; }
+.welcomeMascot i:nth-of-type(2) { right: -8%; top: 14%; width: 10px; height: 10px; animation-delay: 1s; }
+.welcomeMascot i:nth-of-type(3) { right: 2%; bottom: 22%; animation-delay: 2s; }
+@keyframes mascotFloat { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-5px) rotate(1.5deg); } }
+@keyframes mascotHalo { 0%, 100% { opacity: .75; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes mascotTwinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+@media (prefers-reduced-motion: reduce) { .welcomeMascot img, .mascotHalo, .welcomeMascot i { animation: none; } }
 
 .communitySectionHeading h2 { font-size: 18px; font-weight: 700; color: #fff; }
 .communitySectionHeading h2::after { content: ""; display: block; width: 34px; height: 3px; margin-top: 8px; border-radius: 3px; background: var(--grad-neon); box-shadow: 0 0 12px rgba(255, 79, 216, .6); }

@@ -216,7 +216,7 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
   .dashboardPanel { padding: 16px; } .communitySectionHeading h2 { font-size: 15px; }
   .gameLaunch strong { margin-left: 29%; font-size: 12px; } .gameLaunch { gap: 8px; padding: 0 10px; }
   .communityBalances { gap: 12px; padding-right: 15px; } .accountLink > span:last-child { max-width: 100px; }
-  .welcomeProgress { width: calc(100% - 210px); } .welcomeMascot { width: 130px; right: 16px; }
+  .welcomeProgress { width: calc(100% - 250px); } .welcomeMascot { width: 100px; right: 14px; }
 }
 @media (max-width: 900px) {
   .communityWorkspace { margin-left: 0; }

@@ -109,12 +109,12 @@ export function Dashboard({ user, data, loading, error, setPage, games, roleBadg
         <div className="neonStat" style={{ "--stat": "#ffc65a" }}><ShoppingBasket /><span><strong>{number(data.stats?.chickens)}</strong><small>Chickens erspielt</small></span></div>
         <div className="neonStat" style={{ "--stat": "#45f0a0" }}><Sparkles /><span><strong>{online.length}</strong><small><span className="liveDot" style={{ display: "inline-block", marginRight: 6 }} />gerade online</small></span></div>
       </div>
-      <img className="neonMascot" src="/assets/aviary-mascot.png" alt="" />
+      <img className="neonMascot" src="/assets/aviary-mascot-v2.webp" alt="" />
     </section>
     {user && <section className={`welcomeStrip ${!user ? "welcomeGuest" : ""}`} aria-label="Dein Fortschritt">
       <MemberAvatar user={user} className="communityAvatar welcomeAvatar" />
       <div className="welcomeProgress"><div className="welcomeName"><h2>{user?.username || "Dein nächstes Abenteuer wartet."}</h2>{user && roleBadge}</div>{user ? <><div className="progressCaption"><span>Level {level}</span><small>{earned} / {target} Chickens zum nächsten Level</small></div><div className="communityProgress" role="progressbar" aria-label="Fortschritt zum nächsten Level" aria-valuenow={earned} aria-valuemin={0} aria-valuemax={target}><span style={{ width: `${earned / target * 100}%` }} /></div></> : <p>Spiel mit, sammle Chickens und werde Teil unseres Schwarms.</p>}</div>
-      <img className="welcomeMascot" src="/assets/aviary-mascot.png" alt="" />
+      <span className="welcomeMascot" aria-hidden="true"><span className="mascotHalo" /><i /><i /><i /><img src="/assets/aviary-mascot-bust.webp" alt="" /></span>
     </section>}
     {error && <div className="notice error" role="alert">Die Community-Daten konnten nicht geladen werden. Bitte versuche es später erneut.</div>}
     {loading && <div className="notice" role="status">Deine Community wird geladen …</div>}
