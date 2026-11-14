@@ -101,11 +101,9 @@ test("phone: touch buttons and table halves work the flippers", async ({ page })
   await page.getByRole("button", { name: "Spiel starten" }).click();
   const left = page.getByRole("button", { name: "Linker Flipper" });
   await expect(left).toBeVisible();
-  const box = await left.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
+  await left.dispatchEvent("pointerdown", { pointerId: 3, pointerType: "touch", isPrimary: true });
   await expect.poll(() => game(page, "return s.engine.table.flipL.pressed")).toBe(true);
-  await page.mouse.up();
+  await left.dispatchEvent("pointerup", { pointerId: 3, pointerType: "touch", isPrimary: true });
   await expect.poll(() => game(page, "return s.engine.table.flipL.pressed")).toBe(false);
   const stage = await page.locator(".pbStage").boundingBox();
   await page.locator(".pbStage").dispatchEvent("pointerdown", { pointerId: 7, pointerType: "touch", clientX: stage.x + stage.width * 0.8, clientY: stage.y + stage.height * 0.7 });
