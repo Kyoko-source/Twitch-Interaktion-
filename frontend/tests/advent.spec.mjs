@@ -5,25 +5,30 @@ const ITEMS = {
   5: { id: "task-only-up", kind: "task", title: "Only Up", text: "Spiele 60 Minuten Only Up." },
 };
 
-function calendar(opened, { admin, virusOff = null }) {
+function calendar(opened, { admin, virusOff = null, publisher = false }) {
   const now = new Date("2026-12-05T20:00:00Z");
   const doors = Array.from({ length: 24 }, (_, i) => {
     const day = i + 1, at = new Date(Date.UTC(2026, 10, 30, 23) + i * 86400000);
     const d = { day, unlocks_at: at.toISOString(), unlocked: now >= at, opened: opened.includes(day) };
-    if (d.opened) Object.assign(d, { opened_at: at.toISOString(), opened_by: "marello", item: ITEMS[day] });
+    if (d.opened) Object.assign(d, { opened_at: at.toISOString(), opened_by: "marello", item: ITEMS[day] || ITEMS[5] });
     return d;
   });
-  return { year: 2026, now: now.toISOString(), starts_at: doors[0].unlocks_at, doors, can_open: admin, virus: { started_at: doors[0].unlocks_at, deadline: "2027-05-31T23:00:00+00:00", months: 6, off: virusOff } };
+  return { year: 2026, now: now.toISOString(), starts_at: doors[0].unlocks_at, doors, can_open: admin, can_test: publisher, virus: { started_at: doors[0].unlocks_at, deadline: "2027-05-31T23:00:00+00:00", months: 6, off: virusOff } };
 }
 
-async function setup(page, admin) {
+async function setup(page, admin, publisher = false) {
   const opened = [1];
+  const testOpened = [];
   const calls = { open: [], off: [] };
   let off = null;
   await page.route("**/api/**", async (route) => {
     const req = route.request(), path = new URL(req.url()).pathname;
-    if (path.endsWith("/auth/me")) return route.fulfill({ json: { user: admin ? { username: "marello", role: "admin" } : null } });
-    if (path.endsWith("/advent")) return route.fulfill({ json: calendar(opened, { admin, virusOff: off }) });
+    if (path.endsWith("/auth/me")) return route.fulfill({ json: { user: admin ? { username: "marello", role: publisher ? "publisher" : "admin" } : null } });
+    if (path.endsWith("/advent/test/reset")) { calls.reset = (calls.reset || 0) + 1; testOpened.length = 0; return route.fulfill({ json: { ...calendar(testOpened, { admin }), test: true, doors: calendar(testOpened, { admin }).doors.map((d) => ({ ...d, unlocked: true })) } }); }
+    const t = path.match(/advent\/test\/(\d+)\/open/);
+    if (t) { calls.testOpen = [...(calls.testOpen || []), Number(t[1])]; testOpened.push(Number(t[1])); }
+    if (path.endsWith("/advent/test") || t) { const c = calendar(testOpened, { admin }); return route.fulfill({ json: { ...c, test: true, doors: c.doors.map((d) => ({ ...d, unlocked: true })) } }); }
+    if (path.endsWith("/advent")) return route.fulfill({ json: calendar(opened, { admin, virusOff: off, publisher }) });
     const m = path.match(/advent\/(\d+)\/open/);
     if (m) { calls.open.push(Number(m[1])); opened.push(Number(m[1])); return route.fulfill({ json: calendar(opened, { admin, virusOff: off }) }); }
     if (path.endsWith("/virus/off")) {
@@ -66,4 +71,30 @@ test("viewers cannot open doors but can switch the virus off only with the right
   await page.getByRole("button", { name: "Deaktivieren" }).click();
   await expect(page.locator(".advVirus")).toContainText("VIRUS DEAKTIVIERT");
   expect(calls.off.map((c) => c.password)).toEqual(["falsch", "richtig"]);
+});
+
+test("publisher test mode unlocks every door separately from the real calendar and can be reset", async ({ page }) => {
+  const calls = await setup(page, true, true);
+  page.on("dialog", (d) => d.accept());
+  await page.goto("/#advent");
+  await page.getByRole("button", { name: "Testmodus (nur Publisher)" }).click();
+  await expect(page.locator(".advTestNote")).toContainText("TESTMODUS");
+  await page.getByRole("button", { name: "Türchen 24 öffnen" }).click();
+  await page.getByRole("button", { name: "Aufmachen!" }).click();
+  await expect(page.locator(".advReveal")).toBeVisible();
+  expect(calls.testOpen).toEqual([24]);
+  expect(calls.open).toEqual([]);
+  await page.getByRole("button", { name: "Schließen" }).click();
+  await page.getByRole("button", { name: "Test zurücksetzen" }).click();
+  await expect(page.getByRole("button", { name: "Türchen 24 öffnen" })).toBeEnabled();
+  expect(calls.reset).toBe(1);
+  await page.getByRole("button", { name: "Testmodus beenden" }).click();
+  await expect(page.getByRole("button", { name: "Türchen 24 – ab 24. Dezember" })).toBeDisabled();
+});
+
+test("plain admins do not see the publisher test mode", async ({ page }) => {
+  await setup(page, true, false);
+  await page.goto("/#advent");
+  await expect(page.getByRole("button", { name: "Türchen 5 öffnen" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Testmodus/ })).toHaveCount(0);
 });

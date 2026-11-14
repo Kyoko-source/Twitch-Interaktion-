@@ -115,8 +115,18 @@ def add_months(moment: datetime, months: int) -> datetime:
 def is_site_admin(user: dict | None) -> bool:
     if not user:
         return False
+    return site_role(user) in ("admin", "publisher")
+
+
+def site_role(user: dict | None) -> str:
+    if not user:
+        return "member"
     from .main import user_role  # late import: main imports this module
-    return user_role(str(user.get("username") or ""), user.get("role")) == "admin"
+    return user_role(str(user.get("username") or ""), user.get("role"))
+
+
+def is_publisher(user: dict | None) -> bool:
+    return site_role(user) == "publisher"
 
 
 def optional_user(authorization: str | None = Header(default=None)) -> dict | None:
@@ -128,24 +138,89 @@ def optional_user(authorization: str | None = Header(default=None)) -> dict | No
         return None
 
 
-def view(state: dict[str, Any], user: dict | None, now: datetime) -> dict[str, Any]:
+def test_box(state: dict[str, Any]) -> dict[str, Any]:
+    """Admin-only sandbox: same contents and order, separate opened/virus state."""
+    box = state.setdefault("test", {})
+    box.setdefault("opened", {})
+    box.setdefault("virus_off", None)
+    return box
+
+
+def view(state: dict[str, Any], user: dict | None, now: datetime, test: bool = False) -> dict[str, Any]:
     year = state["year"]
     by_id = {item["id"]: item for item in ITEMS}
     admin = is_site_admin(user)
+    src = test_box(state) if test else state
     doors = []
     for day in range(1, DAYS + 1):
-        opened = state["opened"].get(str(day))
-        door = {"day": day, "unlocks_at": unlock_at(year, day).isoformat(), "unlocked": now >= unlock_at(year, day), "opened": bool(opened)}
+        opened = src["opened"].get(str(day))
+        door = {"day": day, "unlocks_at": unlock_at(year, day).isoformat(), "unlocked": test or now >= unlock_at(year, day), "opened": bool(opened)}
         if opened:
             door.update(opened_at=opened["at"], opened_by=opened["by"], item=by_id[state["order"][day - 1]])
         doors.append(door)
     virus = None
-    opened_ids = {state["order"][int(day) - 1]: info for day, info in state["opened"].items()}
+    opened_ids = {state["order"][int(day) - 1]: info for day, info in src["opened"].items()}
     if "punish-virus" in opened_ids:
         start = datetime.fromisoformat(opened_ids["punish-virus"]["at"]).astimezone(CET)
         months = VIRUS_MONTHS - (1 if "punish-time" in opened_ids else 0)
-        virus = {"started_at": start.isoformat(), "deadline": add_months(start, months).isoformat(), "months": months, "off": state.get("virus_off")}
-    return {"year": year, "now": now.isoformat(), "starts_at": unlock_at(year, 1).isoformat(), "doors": doors, "can_open": admin, "virus": virus}
+        virus = {"started_at": start.isoformat(), "deadline": add_months(start, months).isoformat(), "months": months, "off": src.get("virus_off")}
+    return {"year": year, "now": now.isoformat(), "starts_at": unlock_at(year, 1).isoformat(), "doors": doors, "can_open": admin, "can_test": is_publisher(user), "virus": virus, "test": test}
+
+
+def require_admin_user(user: dict | None) -> dict:
+    if not user:
+        raise HTTPException(401, "Nicht angemeldet")
+    if not is_site_admin(user):
+        raise HTTPException(403, "Nur Admins dürfen Türchen öffnen.")
+    return user
+
+
+def require_publisher(user: dict | None) -> dict:
+    require_admin_user(user)
+    if not is_publisher(user):
+        raise HTTPException(403, "Den Testmodus darf nur die Rolle Publisher benutzen.")
+    return user
+
+
+def do_open(day: int, user: dict | None, test: bool) -> dict[str, Any]:
+    if test:
+        require_publisher(user)
+    require_admin_user(user)
+    if not 1 <= day <= DAYS:
+        raise HTTPException(404, "Dieses Türchen gibt es nicht.")
+    now = utcnow()
+    with LOCK:
+        state = load_state(season_year(now))
+        src = test_box(state) if test else state
+        if not test and now < unlock_at(state["year"], day):
+            raise HTTPException(409, f"Türchen {day} darf erst am {day}.12. geöffnet werden.")
+        if str(day) in src["opened"]:
+            raise HTTPException(409, "Dieses Türchen ist schon offen.")
+        src["opened"][str(day)] = {"at": now.isoformat(), "by": str(user["username"])}
+        save_state(state)
+    return view(state, user, now, test)
+
+
+class VirusOff(BaseModel):
+    password: str = Field(min_length=1, max_length=200)
+
+
+def do_virus_off(body: VirusOff, request: Request, user: dict | None, test: bool) -> dict[str, Any]:
+    ratelimit.hit(request, "advent-virus", 8, 15 * 60)
+    secret = os.getenv("AVIARY_ADVENT_VIRUS_PASSWORD", "")
+    if not secret or not hmac.compare_digest(body.password.encode(), secret.encode()):
+        raise HTTPException(403, "Falsches Passwort. Der Countdown läuft weiter.")
+    now = utcnow()
+    with LOCK:
+        state = load_state(season_year(now))
+        src = test_box(state) if test else state
+        opened_ids = {state["order"][int(d) - 1] for d in src["opened"]}
+        if "punish-virus" not in opened_ids:
+            raise HTTPException(409, "Der VIRUS-Countdown läuft noch gar nicht.")
+        if not src.get("virus_off"):
+            src["virus_off"] = {"at": now.isoformat(), "by": str(user["username"]) if user else "Passwort"}
+            save_state(state)
+    return view(state, user, now, test)
 
 
 @router.get("")
@@ -158,41 +233,42 @@ def calendar(user: dict | None = Depends(optional_user)) -> dict[str, Any]:
 
 @router.post("/{day}/open")
 def open_door(day: int, user: dict | None = Depends(optional_user)) -> dict[str, Any]:
-    if not user:
-        raise HTTPException(401, "Nicht angemeldet")
-    if not is_site_admin(user):
-        raise HTTPException(403, "Nur Admins dürfen Türchen öffnen.")
-    if not 1 <= day <= DAYS:
-        raise HTTPException(404, "Dieses Türchen gibt es nicht.")
-    now = utcnow()
-    with LOCK:
-        state = load_state(season_year(now))
-        if now < unlock_at(state["year"], day):
-            raise HTTPException(409, f"Türchen {day} darf erst am {day}.12. geöffnet werden.")
-        if str(day) in state["opened"]:
-            raise HTTPException(409, "Dieses Türchen ist schon offen.")
-        state["opened"][str(day)] = {"at": now.isoformat(), "by": str(user["username"])}
-        save_state(state)
-    return view(state, user, now)
-
-
-class VirusOff(BaseModel):
-    password: str = Field(min_length=1, max_length=200)
+    return do_open(day, user, test=False)
 
 
 @router.post("/virus/off")
 def virus_off(body: VirusOff, request: Request, user: dict | None = Depends(optional_user)) -> dict[str, Any]:
-    ratelimit.hit(request, "advent-virus", 8, 15 * 60)
-    secret = os.getenv("AVIARY_ADVENT_VIRUS_PASSWORD", "")
-    if not secret or not hmac.compare_digest(body.password.encode(), secret.encode()):
-        raise HTTPException(403, "Falsches Passwort. Der Countdown läuft weiter.")
+    return do_virus_off(body, request, user, test=False)
+
+
+# ------------------------------------------------------------------ admin test mode
+
+@router.get("/test")
+def test_calendar(user: dict | None = Depends(optional_user)) -> dict[str, Any]:
+    require_publisher(user)
     now = utcnow()
     with LOCK:
         state = load_state(season_year(now))
-        opened_ids = {state["order"][int(d) - 1] for d in state["opened"]}
-        if "punish-virus" not in opened_ids:
-            raise HTTPException(409, "Der VIRUS-Countdown läuft noch gar nicht.")
-        if not state.get("virus_off"):
-            state["virus_off"] = {"at": now.isoformat(), "by": str(user["username"]) if user else "Passwort"}
-            save_state(state)
-    return view(state, user, now)
+    return view(state, user, now, test=True)
+
+
+@router.post("/test/reset")
+def test_reset(user: dict | None = Depends(optional_user)) -> dict[str, Any]:
+    require_publisher(user)
+    now = utcnow()
+    with LOCK:
+        state = load_state(season_year(now))
+        state["test"] = {"opened": {}, "virus_off": None}
+        save_state(state)
+    return view(state, user, now, test=True)
+
+
+@router.post("/test/{day}/open")
+def test_open(day: int, user: dict | None = Depends(optional_user)) -> dict[str, Any]:
+    return do_open(day, user, test=True)
+
+
+@router.post("/test/virus/off")
+def test_virus_off(body: VirusOff, request: Request, user: dict | None = Depends(optional_user)) -> dict[str, Any]:
+    require_publisher(user)
+    return do_virus_off(body, request, user, test=True)

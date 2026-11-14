@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { GitBranch, Image as ImageIcon, Link2, Lock, MousePointer2, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { api } from "../api";
-import { userRole } from "./shared";
+import { isAdmin as isAdminRole } from "./shared";
 
 export function SystematicsPage({ user }) {
   // Visitors only look at the tree; the builder is for the admin account.
-  const isAdmin = userRole(user) === "admin";
+  const isAdmin = isAdminRole(user);
   const boardRef = useRef(null);
   const centred = useRef(false);
   const [doc, setDoc] = useState({ title: "Systematik", description: "", nodes: [], links: [] });

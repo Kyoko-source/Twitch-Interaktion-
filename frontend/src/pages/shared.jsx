@@ -29,6 +29,7 @@ export const gameMeta = {
 };
 
 export const roleMeta = {
+  publisher: { label: "Publisher", color: "#ffc94a" },
   admin: { label: "Admin", color: "#ff3048" },
   moderator: { label: "Moderator", color: "#ff4fc3" },
   vip: { label: "VIP", color: "#a855ff" },
@@ -38,6 +39,12 @@ export const roleMeta = {
 export function userRole(user) {
   const role = String(user?.role || "member").toLowerCase();
   return roleMeta[role] ? role : "member";
+}
+
+// Publisher is the top role and has every admin right.
+export function isAdmin(user) {
+  const role = userRole(user);
+  return role === "admin" || role === "publisher";
 }
 
 export function RoleBadge({ user, role }) {

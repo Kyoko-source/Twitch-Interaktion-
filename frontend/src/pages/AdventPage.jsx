@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Gift, KeyRound, Lock, Skull, Sparkles, Star, X } from "lucide-react";
+import { ExternalLink, FlaskConical, Gift, KeyRound, Lock, RotateCcw, Skull, Sparkles, Star, X } from "lucide-react";
 import { api } from "../api";
 import "./advent.css";
 
@@ -52,6 +52,8 @@ export function AdventPage({ user }) {
   const [opening, setOpening] = useState(null);
   const [pw, setPw] = useState("");
   const [pwMsg, setPwMsg] = useState("");
+  const [testMode, setTestMode] = useState(false);
+  const base = testMode ? "/api/advent/test" : "/api/advent";
   const offset = useRef(0);
   const known = useRef(null);
 
@@ -74,18 +76,19 @@ export function AdventPage({ user }) {
 
   useEffect(() => {
     let alive = true;
-    const load = () => api("/api/advent").then((d) => alive && apply(d)).catch((e) => alive && setError(e.message));
+    known.current = null;
+    const load = () => api(base).then((d) => alive && apply(d)).catch((e) => alive && setError(e.message));
     load();
     const poll = setInterval(load, 20000);
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => { alive = false; clearInterval(poll); clearInterval(tick); };
-  }, [apply, user?.username]);
+  }, [apply, base, user?.username]);
 
   async function openDoor(day) {
     setBusy(true); setConfirm(null); setError("");
     setOpening(day);
     try {
-      const next = await api(`/api/advent/${day}/open`, { method: "POST", body: "{}" });
+      const next = await api(`${base}/${day}/open`, { method: "POST", body: "{}" });
       await new Promise((r) => setTimeout(r, 650));
       apply(next, { announce: false });
       showReveal(next.doors[day - 1]);
@@ -96,9 +99,16 @@ export function AdventPage({ user }) {
   async function virusOff(e) {
     e.preventDefault();
     setPwMsg("");
-    try { apply(await api("/api/advent/virus/off", { method: "POST", body: JSON.stringify({ password: pw }) }), { announce: false }); setPw(""); }
+    try { apply(await api(`${base}/virus/off`, { method: "POST", body: JSON.stringify({ password: pw }) }), { announce: false }); setPw(""); }
     catch (err) { setPwMsg(err.message); }
   }
+
+  async function resetTest() {
+    if (!window.confirm("Testmodus zurücksetzen? Alle Test-Türchen werden wieder geschlossen.")) return;
+    setError("");
+    try { apply(await api("/api/advent/test/reset", { method: "POST", body: "{}" }), { announce: false }); } catch (e) { setError(e.message); }
+  }
+  function toggleTest() { setReveal(null); setConfirm(null); setPw(""); setPwMsg(""); setData(null); setTestMode(!testMode); }
 
   const serverNow = now + offset.current;
   if (!data) return <section className="advShell"><Snow count={40} /><div className="advLoading">{error || "Der Kalender wird ausgepackt …"}</div></section>;
@@ -109,17 +119,26 @@ export function AdventPage({ user }) {
   const virusLeft = virus ? new Date(virus.deadline).getTime() - serverNow : 0;
 
   return (
-    <section className="advShell">
+    <section className={`advShell${testMode ? " isTest" : ""}`}>
       <Snow />
       <div className="advAurora" aria-hidden="true" />
       <header className="advHero">
         <p className="advKicker"><Sparkles size={16} /> {data.year} · 24 Türchen · Geschenke, Aufgaben &amp; Bestrafungen</p>
         <h1><span>Marelles</span> Adventskalender</h1>
-        {serverNow < start ? (
-          <><p className="advLead">Das erste Türchen öffnet am 1. Dezember um 0:00 Uhr.</p><Countdown ms={start - serverNow} big /></>
+        {data.test ? (
+          <p className="advLead">Testmodus: Alle 24 Türchen sind sofort offen – nur für Publisher sichtbar.</p>
+        ) : serverNow < start ? (
+          <><p className="advLead"><b>Türchen 1 kann geöffnet werden in:</b><br />(1. Dezember, 0:00 Uhr)</p><Countdown ms={start - serverNow} big /></>
         ) : next ? (
           <><p className="advLead">{ready.length ? `${ready.length} Türchen ${ready.length === 1 ? "wartet" : "warten"} aufs Öffnen!` : "Alle verfügbaren Türchen sind offen."} Nächstes Türchen ({next.day}) in:</p><Countdown ms={new Date(next.unlocks_at).getTime() - serverNow} /></>
         ) : <p className="advLead">Frohe Weihnachten! Alle 24 Türchen sind da.</p>}
+        {(data.can_test || testMode) && (
+          <div className="advTestBar">
+            <button type="button" className={testMode ? "on" : ""} onClick={toggleTest} aria-pressed={testMode}><FlaskConical size={16} />{testMode ? "Testmodus beenden" : "Testmodus (nur Publisher)"}</button>
+            {testMode && <button type="button" onClick={resetTest}><RotateCcw size={16} />Test zurücksetzen</button>}
+          </div>
+        )}
+        {testMode && <p className="advTestNote" role="status">TESTMODUS – nichts hiervon ist echt. Zuschauer sehen davon nichts, der echte Kalender bleibt unberührt.</p>}
         <p className="advRole">{data.can_open ? "Du bist Admin: Klick auf ein leuchtendes Türchen, um es zu öffnen." : "Die Türchen öffnet ein Admin – live im Stream. Geöffnete Türchen kann jeder ansehen."}</p>
       </header>
 

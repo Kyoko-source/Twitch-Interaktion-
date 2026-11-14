@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Ban, LogOut, Shield, ShieldOff, Unlock } from "lucide-react";
 import { requestId } from "./useGameRewards";
 
-const ROLES = { member: "Mitglied", vip: "VIP", moderator: "Moderator", admin: "Admin" };
+const ROLES = { member: "Mitglied", vip: "VIP", moderator: "Moderator", admin: "Admin", publisher: "Publisher" };
 export function AdminMembers({ users, adminCall, onUpdated }) {
   const [query, setQuery] = useState(""), [draft, setDraft] = useState({});
   const [action, setAction] = useState(null), [reason, setReason] = useState("");

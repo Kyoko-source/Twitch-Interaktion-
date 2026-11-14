@@ -209,7 +209,7 @@ function Table({ code, user, onExit }) {
   const canControl = (ref) => isDm || (ref.startsWith("c:") && view.characters[ref.slice(2)]?.owner === user.username);
   const nameOf = (ref) => (ref.startsWith("c:") ? view.characters[ref.slice(2)]?.name : view.creatures[ref.slice(2)]?.name) || "?";
   const roll = (expr, label, as, extra = {}) => act({ type: "roll", expr, label, mode, as: as || mine?.name || "", ...extra }).catch(() => {});
-  const canEnd = isDm || String(user.role || "").toLowerCase() === "admin";
+  const canEnd = isDm || ["admin", "publisher"].includes(String(user.role || "").toLowerCase());
   const endTable = async () => {
     if (!window.confirm("Tisch für alle beenden? Alle Charaktere, Kreaturen und das Protokoll werden gelöscht.")) return;
     try { await api(`/api/dnd/rooms/${code}/close`, { method: "POST" }); } catch (e) { setToast(e.message); return; }

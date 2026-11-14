@@ -27,7 +27,8 @@ from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
-USER_ROLES = {"admin", "moderator", "vip", "member"}
+USER_ROLES = {"publisher", "admin", "moderator", "vip", "member"}
+# Publisher is the top role: every admin right plus publisher-only tools (e.g. the advent test mode).
 SYSTEMATICS_FILE = Path("/data/systematics.json")
 USER_ROLES_FILE = Path("/data/user_roles.json")
 CHAT_MESSAGES_FILE = Path("/data/chat_messages.json")
@@ -127,7 +128,7 @@ class PointsUpdate(BaseModel):
 
 class RoleUpdate(BaseModel):
     username: str
-    role: Literal["admin", "moderator", "vip", "member"]
+    role: Literal["publisher", "admin", "moderator", "vip", "member"]
 
 
 class MemberAction(BaseModel):

@@ -248,3 +248,10 @@
   .advSnow, .advAurora, .advRays, .advConfetti { display: none; }
   .advDoor, .advLid, .advDoor.ready .advLid, .advHero h1, .advVirus, .advReveal, .advKind strong, .advKind svg, .advReadyTag { animation: none !important; transition: none !important; }
 }
+
+/* Admin test mode. */
+.advTestBar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.advTestBar button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid #ffffff2e; background: #ffffff10; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; }
+.advTestBar button.on { border-color: #3fe7ff; background: #3fe7ff26; box-shadow: 0 0 18px #3fe7ff55; }
+.advTestNote { margin: 0; padding: 8px 14px; border-radius: 12px; background: repeating-linear-gradient(135deg, #3fe7ff22 0 12px, #3fe7ff0d 12px 24px); border: 1px dashed #3fe7ff; color: #cff8ff; font-size: 13px; font-weight: 800; }
+.advShell.isTest { box-shadow: 0 40px 90px -40px #000, inset 0 0 0 3px #3fe7ff88; }

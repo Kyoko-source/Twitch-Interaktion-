@@ -617,7 +617,7 @@ class JoinRequest(BaseModel):
 
 def is_site_admin(user: dict) -> bool:
     from .main import user_role  # late import: main imports this module
-    return user_role(str(user.get("username") or ""), user.get("role")) == "admin"
+    return user_role(str(user.get("username") or ""), user.get("role")) in ("admin", "publisher")
 
 
 @router.get("/rooms")

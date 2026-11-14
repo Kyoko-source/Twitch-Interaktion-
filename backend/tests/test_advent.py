@@ -19,9 +19,10 @@ class AdventTests(unittest.TestCase):
         os.environ["AVIARY_ADVENT_FILE"] = str(Path(self.folder.name) / "advent.json")
         os.environ["AVIARY_ADVENT_VIRUS_PASSWORD"] = "test-secret"
         self.now = datetime(2026, 11, 30, 23, 59, tzinfo=CET)
-        self._utcnow, self._admin = advent.utcnow, advent.is_site_admin
+        self._utcnow, self._admin, self._pub = advent.utcnow, advent.is_site_admin, advent.is_publisher
         advent.utcnow = lambda: self.now.astimezone(timezone.utc)
-        advent.is_site_admin = lambda user: bool(user) and user["username"] == "boss"
+        advent.is_site_admin = lambda user: bool(user) and user["username"] in ("boss", "pub")
+        advent.is_publisher = lambda user: bool(user) and user["username"] == "pub"
         app = FastAPI(); app.include_router(advent.router)
 
         def fake(x_test_user: str | None = Header(default=None)):
@@ -30,7 +31,7 @@ class AdventTests(unittest.TestCase):
         self.client = TestClient(app)
 
     def tearDown(self):
-        advent.utcnow, advent.is_site_admin = self._utcnow, self._admin
+        advent.utcnow, advent.is_site_admin, advent.is_publisher = self._utcnow, self._admin, self._pub
         os.environ.pop("AVIARY_ADVENT_FILE", None)
         os.environ.pop("AVIARY_ADVENT_VIRUS_PASSWORD", None)
         self.folder.cleanup()
@@ -93,6 +94,32 @@ class AdventTests(unittest.TestCase):
         self.post("/1/open", "boss")
         codes = [self.post("/virus/off", json={"password": f"x{i}"}).status_code for i in range(10)]
         self.assertIn(429, codes)
+
+    def test_publisher_test_mode_is_separate_and_resettable(self):
+        self.assertEqual(self.client.get("/api/advent/test").status_code, 401)
+        self.assertEqual(self.client.get("/api/advent/test", headers={"X-Test-User": "anna"}).status_code, 403)
+        self.assertEqual(self.client.get("/api/advent/test", headers={"X-Test-User": "boss"}).status_code, 403, "admins are not publishers")
+        self.assertEqual(self.post("/test/1/open", "boss").status_code, 403)
+        self.assertFalse(self.get("boss").json()["can_test"])
+        self.assertTrue(self.get("pub").json()["can_test"])
+        self.assertTrue(self.get("pub").json()["can_open"], "publisher keeps every admin right")
+        data = self.client.get("/api/advent/test", headers={"X-Test-User": "pub"}).json()
+        self.assertTrue(data["test"])
+        self.assertTrue(all(d["unlocked"] for d in data["doors"]), "every door is unlocked in test mode, even in November")
+        for day in range(1, 25):
+            self.assertEqual(self.post(f"/test/{day}/open", "pub").status_code, 200)
+        data = self.post("/test/virus/off", "pub", json={"password": "test-secret"}).json()
+        self.assertEqual(sum(d["opened"] for d in data["doors"]), 24)
+        self.assertEqual(data["virus"]["months"], 5)
+        self.assertTrue(data["virus"]["off"])
+        live = self.get().json()
+        self.assertFalse(any(d["opened"] for d in live["doors"]), "the real calendar is untouched")
+        self.assertIsNone(live["virus"])
+        self.assertEqual(self.post("/test/reset", "anna").status_code, 403)
+        data = self.post("/test/reset", "pub").json()
+        self.assertFalse(any(d["opened"] for d in data["doors"]))
+        self.assertEqual(self.post("/test/1/open", "anna").status_code, 403)
+
 
 
 if __name__ == "__main__":

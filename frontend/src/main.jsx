@@ -16,7 +16,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { ShopPage } from "./pages/ShopPage";
 import { SupportPage } from "./pages/SupportPage";
 import { SystematicsPage } from "./pages/SystematicsPage";
-import { ListPage, nav, routeParts, userRole } from "./pages/shared";
+import { ListPage, isAdmin, nav, routeParts } from "./pages/shared";
 const Nullsignal = lazy(() => import("./nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
 import "./economy/account-tools.css";
 import "./styles.css";
@@ -114,7 +114,7 @@ function App() {
   }, [page, user]);
 
   return (
-    <AppShell nav={nav} hiddenIds={userRole(user) === "admin" ? [] : ["admin"]} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
+    <AppShell nav={nav} hiddenIds={isAdmin(user) ? [] : ["admin"]} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>
       {sessionNotice && <p className="notice" role="alert">{sessionNotice}</p>}
       {content}
     </AppShell>
