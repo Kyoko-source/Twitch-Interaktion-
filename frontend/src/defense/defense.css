@@ -1,5 +1,5 @@
 /* ================= Chicken Defense ================= */
-.cdShell { --cream: #fff4dc; --wood: #7a4a24; --wood-dark: #4a2a12; --red: #d8402a; --gold: #ffcf4a; --leaf: #5aa83a; position: relative; color: #fff; }
+.cdShell { min-width: 0; max-width: 100%; --cream: #fff4dc; --wood: #7a4a24; --wood-dark: #4a2a12; --red: #d8402a; --gold: #ffcf4a; --leaf: #5aa83a; position: relative; color: #fff; }
 .cdHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 12px; }
 .cdHeader span { color: var(--gold); font-size: 11px; font-weight: 900; letter-spacing: .2em; }
 .cdHeader h2 { margin: 4px 0 0; font: italic 900 clamp(26px, 3.4vw, 38px)/1 Inter, system-ui, sans-serif; color: #fff; text-shadow: 0 3px 0 var(--red), 0 0 24px #ffcf4a66; }
@@ -75,7 +75,13 @@
   .cdHow { display: none; }
 }
 /* ---------- shop: collectible tower cards ---------- */
-.cdShop { display: grid; grid-template-columns: repeat(10, minmax(104px, 1fr)); gap: 10px; margin-top: 14px; overflow-x: auto; padding: 6px 4px 10px; scroll-snap-type: x proximity; }
+.cdShop { width: 100%; max-width: 100%; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 112px; gap: 10px; margin-top: 6px; overflow-x: auto; padding: 8px 4px 12px; scroll-snap-type: x proximity; scrollbar-color: #c8a070 #2a1a0c; }
+.cdShopTabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.cdShopTabs button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 2px solid #7a4a24; background: #fff4dc; color: #4a2a12; font-weight: 900; font-size: 13px; cursor: pointer; box-shadow: 0 3px 0 #4a2a12; }
+.cdShopTabs button i { font-style: normal; padding: 0 6px; border-radius: 999px; background: #e8c890; font-size: 11px; }
+.cdShopTabs button.on { color: #fff; background: linear-gradient(180deg, #ff6a4a, #d8402a); border-color: #8a1a10; }
+.cdShopTabs button.on i { background: #fff3; }
+.cdBranchImg { display: block; background-repeat: no-repeat; filter: drop-shadow(0 3px 4px #0004); }
 .cdCard2 { --tc: #d8402a; --tr: #ffcf4a; position: relative; display: grid; grid-template-rows: auto 1fr auto auto auto; justify-items: center; gap: 4px; min-width: 104px; padding: 0 0 8px; overflow: hidden; border-radius: 16px; border: 3px solid #7a4a24; background: radial-gradient(circle at 50% 38%, #fffaf0 0%, #f6e2b8 60%, #e8c890 100%); color: #4a2a12; box-shadow: 0 5px 0 #4a2a12, 0 8px 18px #0006; cursor: pointer; scroll-snap-align: start; transition: transform .16s cubic-bezier(.2, 1.6, .4, 1), box-shadow .16s; }
 .cdCard2::before { content: ""; position: absolute; inset: 22px 10px auto; height: 70%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--tr) 45%, transparent), transparent 70%); opacity: .7; pointer-events: none; }
 .cdCard2:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 11px 0 #4a2a12, 0 16px 28px #0007, 0 0 24px color-mix(in srgb, var(--tr) 70%, transparent); }
@@ -163,6 +169,6 @@
   .cdBranchArt { width: 60px; height: 60px; grid-row: span 2; }
   .cdModal h3 { font-size: 24px; }
 }
-@media (max-width: 620px) { .cdShop { grid-template-columns: repeat(10, 100px); } }
+@media (max-width: 620px) { .cdShop { grid-auto-columns: 100px; } }
 
 @media (prefers-reduced-motion: reduce) { .cdShell * { animation: none !important; } }

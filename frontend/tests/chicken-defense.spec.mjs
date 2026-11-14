@@ -59,8 +59,8 @@ test("build towers, play a wave, upgrade to a branch, lose and save the score", 
   await page.keyboard.press("Escape");
   await expect(page.locator(".cdModal")).toHaveCount(0);
   // A busy board for the screenshot.
-  await game(page, `const e = g.engine; const spots = [[7,5],[11,6],[16,8],[12,2],[16,5],[2,7],[7,11],[10,12],[18,4],[15,12]];
-    ["frost","mortar","sniper","wizard","golden","tesla","rocket","medic","dark","gatling"].forEach((k, i) => { const t = e.build(k, spots[i][0], spots[i][1]); if (t) { e.upgrade(t.id); e.upgrade(t.id); e.upgrade(t.id, Object.keys(e.constructor && t ? {} : {})[0]); } });
+  await game(page, `const e = g.engine; e.wave = 20; const plan = [["archer",7,5,"volley"],["samurai",11,6,"guard"],["beekeeper",16,8,null],["disco",12,2,"mirrorBall"],["viking",16,5,null],["volcano",2,7,"ash"],["cosmos",7,11,null],["ghost",10,12,"lantern"],["vampire",18,4,"batSwarm"],["paintball",15,12,"marked"],["portal",13,8,null],["bubble",6,3,"foam"],["chef",2,5,null],["lumberjack",11,8,null],["necro",16,3,"cursed"],["magnet",7,7,null]];
+    for (const [k, c, r, b] of plan) { const t = e.build(k, c, r); if (t) { e.upgrade(t.id); e.upgrade(t.id); if (b) e.upgrade(t.id, b); } }
     e.startWave(); const kinds = ["runner","spider","fox","raccoon","knight","pilot","robohawk","slime","chicks","bomber","healer","shadow","ice","boar","toxic","mech","hydra"];
     kinds.forEach((k, i) => e.spawn(k, i % 2 ? "a" : "b", 2 + i * 1.6));
     e.spawn("golem", "a", 24); e.spawn("dragon", "b", 10);`);
@@ -82,7 +82,7 @@ test("phone layout fits and the tower bar scrolls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/#games/chicken-defense");
   await page.getByRole("button", { name: "Spiel starten" }).click();
-  await expect(page.locator(".cdCard2")).toHaveCount(10);
+  await expect(page.locator(".cdCard2")).toHaveCount(30);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (shots) await page.locator(".cdShell").screenshot({ path: `${shots}/cd-phone.png` });
 });

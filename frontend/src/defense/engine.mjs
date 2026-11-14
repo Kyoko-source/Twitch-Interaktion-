@@ -109,8 +109,202 @@ export const TOWERS = {
       void: { name: "Leerenstrahl", desc: "Dauerstrahl, der immer heißer wird.", apply: (s) => ({ ...s, type: "beam", dps: s.damage * 1.4, range: s.range + 0.8 }) },
     },
   },
+  // ---------------------------------------------------------------- set 3
+  archer: {
+    name: "Bogen-Huhn", cost: 80, unlock: 2, type: "bullet", range: 3.6, rate: 1.4, damage: 16, air: true, speed: 18, art: "sprite",
+    desc: "Schnelle Pfeile auf große Distanz.",
+    branches: {
+      piercing: { name: "Durchbohrender Pfeil", desc: "Ignoriert Rüstung, mehr Schaden.", apply: (s) => ({ ...s, pierce: true, damage: s.damage * 1.4 }) },
+      volley: { name: "Pfeilregen", desc: "Vier Pfeile auf vier Ziele.", apply: (s) => ({ ...s, multi: 4 }) },
+      hawk: { name: "Falkenauge", desc: "Riesige Reichweite, Krits, sieht Schatten.", apply: (s) => ({ ...s, range: s.range + 2.5, crit: 0.3, critMult: 3, reveal: 3 }) },
+    },
+  },
+  bubble: {
+    name: "Blasen-Huhn", cost: 95, unlock: 3, type: "bullet", range: 2.4, rate: 1.2, damage: 6, air: true, speed: 7, slow: 0.35, slowTime: 2, art: "sprite",
+    desc: "Seifenblasen bremsen Gegner aus.",
+    branches: {
+      foam: { name: "Schaum-Stoß", desc: "Schaum bremst alles im Umkreis.", apply: (s) => ({ ...s, splash: 1.0, slow: 0.5 }) },
+      shieldPop: { name: "Schutzblase", desc: "Blockt 2 Diebe pro Welle.", apply: (s) => ({ ...s, shields: 2 }) },
+      tidal: { name: "Flutwelle", desc: "Spült Gegner ein Stück zurück.", apply: (s) => ({ ...s, pull: 0.6, damage: s.damage * 1.5 }) },
+    },
+  },
+  samurai: {
+    name: "Samurai-Huhn", cost: 120, unlock: 4, type: "melee", range: 1.6, rate: 2.2, damage: 22, cleave: 0.7, air: true, art: "sprite",
+    desc: "Blitzschnelle Schwerthiebe im Nahkampf.",
+    branches: {
+      swift: { name: "Blitzhieb", desc: "Doppelt so viele Hiebe.", apply: (s) => ({ ...s, rate: s.rate * 2 }) },
+      guard: { name: "Wachhaltung", desc: "Jeder Hieb lähmt kurz.", apply: (s) => ({ ...s, stun: 0.45, damage: s.damage * 1.2 }) },
+      stormBlade: { name: "Sturmklinge", desc: "Hiebe springen auf 4 Gegner.", apply: (s) => ({ ...s, chain: 4 }) },
+    },
+  },
+  chef: {
+    name: "Koch-Huhn", cost: 110, unlock: 5, type: "bullet", range: 2.5, rate: 0.9, damage: 18, splash: 0.8, air: true, speed: 8, art: "sprite",
+    desc: "Wirft heißes Essen mit Flächenschaden.",
+    branches: {
+      hotSauce: { name: "Scharfe Soße", desc: "Verbrennt Gegner über Zeit.", apply: (s) => ({ ...s, poison: s.damage * 1.5, poisonTime: 3 }) },
+      snack: { name: "Snack-Buff", desc: "Türme in der Nähe +30 % stärker.", apply: (s) => ({ ...s, buff: 0.3 }) },
+      feast: { name: "Festmahl-Bombe", desc: "Riesige Essensexplosion.", apply: (s) => ({ ...s, splash: 1.6, damage: s.damage * 1.8, rate: s.rate * 0.75 }) },
+    },
+  },
+  bakery: {
+    name: "Bäcker-Huhn", cost: 170, unlock: 5, type: "bullet", range: 2.4, rate: 0.8, damage: 16, splash: 0.8, air: false, speed: 7, income: 12, art: "sprite",
+    desc: "Wirft Donuts und backt nach jeder Welle etwas Korn.",
+    branches: {
+      donut: { name: "Donut-Bombe", desc: "Große Donut-Explosionen.", apply: (s) => ({ ...s, splash: 1.4, damage: s.damage * 1.8 }) },
+      sugar: { name: "Zuckerrausch", desc: "Türme in der Nähe +25 % Tempo und Schaden.", apply: (s) => ({ ...s, buff: 0.25 }) },
+      oven: { name: "Ofenhitze", desc: "Hinterlässt glühende Krümel.", apply: (s) => ({ ...s, zone: { kind: "fire", dps: s.damage * 0.8, time: 3 } }) },
+    },
+  },
+  beekeeper: {
+    name: "Imker-Huhn", cost: 130, unlock: 6, type: "bullet", range: 2.6, rate: 2.2, damage: 7, air: true, speed: 7, poison: 4, poisonTime: 2, art: "sprite",
+    desc: "Bienen jagen Gegner und stechen nach.",
+    branches: {
+      swarm: { name: "Honigschwarm", desc: "Drei Bienen auf drei Ziele.", apply: (s) => ({ ...s, multi: 3 }) },
+      hive: { name: "Königinnen-Stock", desc: "Ein Bienenschwarm sticht alles im Umkreis.", apply: (s) => ({ ...s, type: "pulse", splash: s.range, rate: 2, damage: s.damage * 0.8, pulseFx: "bees" }) },
+      sticky: { name: "Klebefalle", desc: "Honig verlangsamt stark.", apply: (s) => ({ ...s, slow: 0.55, slowTime: 2.2 }) },
+    },
+  },
+  sandstorm: {
+    name: "Sandsturm-Huhn", cost: 140, unlock: 6, type: "pulse", range: 2.2, rate: 1.5, damage: 6, splash: 2.2, air: true, slow: 0.35, slowTime: 0.8, pulseFx: "sand", art: "sprite",
+    desc: "Ein Sandsturm bremst und schleift alles in der Nähe.",
+    branches: {
+      devil: { name: "Staubteufel", desc: "Größerer, stärkerer Sturm.", apply: (s) => ({ ...s, range: s.range + 1, splash: s.splash + 1, damage: s.damage * 2 }) },
+      quicksand: { name: "Treibsand", desc: "Gegner kommen kaum noch voran.", apply: (s) => ({ ...s, slow: 0.7 }) },
+      sunflare: { name: "Sonnenflare", desc: "Glühender Sand verbrennt.", apply: (s) => ({ ...s, poison: s.damage * 3, poisonTime: 2 }) },
+    },
+  },
+  paintball: {
+    name: "Paintball-Huhn", cost: 150, unlock: 7, type: "bullet", range: 2.6, rate: 3, damage: 4, air: true, speed: 13, mark: 0.2, markTime: 3, art: "sprite",
+    desc: "Markiert Gegner mit Farbe: sie nehmen mehr Schaden.",
+    branches: {
+      colorSplash: { name: "Farbklecks", desc: "Farbe spritzt auf Nachbarn.", apply: (s) => ({ ...s, splash: 0.8 }) },
+      marked: { name: "Zielmarkierung", desc: "Markierte nehmen +50 % Schaden.", apply: (s) => ({ ...s, mark: 0.5 }) },
+      rainbow: { name: "Regenbogen-Salve", desc: "Drei Ziele, Farbe verlangsamt.", apply: (s) => ({ ...s, multi: 3, slow: 0.3, slowTime: 1.5 }) },
+    },
+  },
+  junkyard: {
+    name: "Schrott-Huhn", cost: 160, unlock: 7, type: "shell", range: 3.2, rate: 0.7, damage: 28, splash: 0.9, air: false, art: "sprite",
+    desc: "Schleudert Schrott. Nur Bodenziele.",
+    branches: {
+      scrapCannon: { name: "Schrottkanone", desc: "Doppelter Schaden.", apply: (s) => ({ ...s, damage: s.damage * 2 }) },
+      boltMine: { name: "Bolzenminen", desc: "Hinterlässt explosive Bolzen.", apply: (s) => ({ ...s, zone: { kind: "fire", dps: s.damage * 0.7, time: 4 } }) },
+      recycle: { name: "Recycling-Kern", desc: "+40 Korn nach jeder Welle.", apply: (s) => ({ ...s, income: 40 }) },
+    },
+  },
+  viking: {
+    name: "Wikinger-Huhn", cost: 180, unlock: 8, type: "melee", range: 1.7, rate: 1.1, damage: 45, cleave: 0.9, air: false, art: "sprite",
+    desc: "Schwere Axthiebe treffen ganze Gruppen.",
+    branches: {
+      berserk: { name: "Berserker-Axt", desc: "Fast doppelt so schnell.", apply: (s) => ({ ...s, rate: s.rate * 1.8 }) },
+      longboat: { name: "Langboot-Raubzug", desc: "Wirft drei Äxte auf Distanz.", apply: (s) => ({ ...s, type: "bullet", range: 3.2, multi: 3, speed: 9, air: true, cleave: 0 }) },
+      rune: { name: "Runenwut", desc: "Magische Hiebe springen weiter.", apply: (s) => ({ ...s, chain: 3, magic: true }) },
+    },
+  },
+  gravity: {
+    name: "Schwerkraft-Huhn", cost: 220, unlock: 9, type: "pulse", range: 2.4, rate: 0.6, damage: 30, splash: 2.4, air: true, slow: 0.3, slowTime: 1, pulseFx: "gravity", art: "sprite",
+    desc: "Gravitationswellen drücken Gegner nieder.",
+    branches: {
+      heavyPull: { name: "Starker Zug", desc: "Zieht Gegner weit zurück.", apply: (s) => ({ ...s, pull: 1.0 }) },
+      orbit: { name: "Orbit-Feld", desc: "Dauerhaftes Bremsfeld.", apply: (s) => ({ ...s, rate: 3, damage: s.damage * 0.35, slow: 0.5, slowTime: 0.5 }) },
+      crush: { name: "Zermalm-Kern", desc: "Riesiger Schaden, ignoriert Rüstung.", apply: (s) => ({ ...s, damage: s.damage * 2.2, pierce: true }) },
+    },
+  },
+  disco: {
+    name: "Disco-Huhn", cost: 240, unlock: 10, type: "pulse", range: 2.4, rate: 0.5, damage: 8, splash: 2.4, air: true, dance: 0.3, buff: 0.1, pulseFx: "disco", art: "sprite",
+    desc: "Gegner fangen an zu tanzen, Türme feiern mit (+10 %).",
+    branches: {
+      laserGroove: { name: "Laser-Groove", desc: "Laserstrahlen springen auf 5 Gegner.", apply: (s) => ({ ...s, type: "chain", chain: 5, damage: 40, rate: 0.9 }) },
+      fever: { name: "Tanzfieber", desc: "Doppelt so viele Tänzer.", apply: (s) => ({ ...s, dance: 0.6 }) },
+      mirrorBall: { name: "Spiegelkugel", desc: "Türme in der Nähe +35 %.", apply: (s) => ({ ...s, buff: 0.35, range: s.range + 1 }) },
+    },
+  },
+  lumberjack: {
+    name: "Holzfäller-Huhn", cost: 200, unlock: 10, type: "melee", range: 1.6, rate: 0.7, damage: 80, cleave: 0.6, air: false, art: "sprite",
+    desc: "Gewaltige Axthiebe gegen dicke Brocken.",
+    branches: {
+      timber: { name: "Baumfäller", desc: "Mehr als doppelter Schaden.", apply: (s) => ({ ...s, damage: s.damage * 2.2 }) },
+      logRoll: { name: "Rollender Stamm", desc: "Stämme rollen und schieben zurück.", apply: (s) => ({ ...s, type: "pulse", splash: 2.4, range: 2.4, rate: 0.5, pull: 0.7, pulseFx: "log" }) },
+      fort: { name: "Waldfestung", desc: "Blockt 2 Diebe pro Welle.", apply: (s) => ({ ...s, shields: 2 }) },
+    },
+  },
+  volcano: {
+    name: "Vulkan-Huhn", cost: 260, unlock: 11, type: "shell", range: 3.4, rate: 0.45, damage: 40, splash: 1.1, air: false, zone: { kind: "fire", dps: 16, time: 2 }, art: "sprite",
+    desc: "Lavabomben hinterlassen brennenden Boden.",
+    branches: {
+      lavaBurst: { name: "Lava-Ausbruch", desc: "Größere, heißere Bomben.", apply: (s) => ({ ...s, damage: s.damage * 1.7, splash: s.splash * 1.3 }) },
+      ash: { name: "Aschewolke", desc: "Asche bremst alles darin.", apply: (s) => ({ ...s, zone: { kind: "ash", dps: s.damage * 0.3, time: 4, slow: 0.5 } }) },
+      totem: { name: "Magma-Totem", desc: "Brennt alles im Umkreis.", apply: (s) => ({ ...s, type: "pulse", splash: s.range * 0.8, rate: 1.2, damage: s.damage * 0.6, poison: s.damage * 0.6, poisonTime: 2, pulseFx: "lava" }) },
+    },
+  },
+  vampire: {
+    name: "Vampir-Huhn", cost: 230, unlock: 12, type: "bullet", range: 2.8, rate: 1, damage: 30, air: true, speed: 10, drain: 1, art: "sprite",
+    desc: "Saugt bei jedem Treffer 1 Korn ab.",
+    branches: {
+      bloodDrain: { name: "Blutdurst", desc: "Kills holen manchmal ein Ei zurück.", apply: (s) => ({ ...s, eggChance: 0.06, drain: 2 }) },
+      batSwarm: { name: "Fledermaus-Schwarm", desc: "Vier Fledermäuse auf vier Ziele.", apply: (s) => ({ ...s, multi: 4, damage: s.damage * 0.75 }) },
+      nightVeil: { name: "Nachtschleier", desc: "Sieht Schatten, kritische Bisse.", apply: (s) => ({ ...s, reveal: 3, crit: 0.3, critMult: 3 }) },
+    },
+  },
+  ghost: {
+    name: "Geister-Huhn", cost: 210, unlock: 12, type: "bullet", range: 3, rate: 1, damage: 24, air: true, speed: 8, magic: true, reveal: 2.5, art: "sprite",
+    desc: "Geisterlicht deckt Schatten-Raben auf.",
+    branches: {
+      wail: { name: "Geistergeheul", desc: "Ein Schrei lähmt alles im Umkreis.", apply: (s) => ({ ...s, type: "pulse", splash: s.range, rate: 0.5, stun: 0.6, pulseFx: "ghost" }) },
+      phase: { name: "Phasenwechsel", desc: "Geht durch jede Rüstung.", apply: (s) => ({ ...s, pierce: true, damage: s.damage * 1.6 }) },
+      lantern: { name: "Seelenlaterne", desc: "Weites Licht, verlangsamt.", apply: (s) => ({ ...s, reveal: 4.5, slow: 0.35, slowTime: 1.5 }) },
+    },
+  },
+  portal: {
+    name: "Portal-Huhn", cost: 300, unlock: 13, type: "warp", range: 2.6, rate: 0.35, damage: 15, warp: 4, warpCount: 1, air: false, art: "sprite",
+    desc: "Teleportiert den vordersten Gegner weit zurück.",
+    branches: {
+      gate: { name: "Warp-Tor", desc: "Teleportiert drei Gegner auf einmal.", apply: (s) => ({ ...s, warpCount: 3 }) },
+      mirror: { name: "Spiegelschuss", desc: "Portalschüsse springen auf 4 Gegner.", apply: (s) => ({ ...s, type: "bullet", chain: 4, damage: 45, rate: 1, speed: 10, air: true }) },
+      rift: { name: "Riss-Sturm", desc: "Ein Riss zieht alles zurück.", apply: (s) => ({ ...s, type: "pulse", splash: s.range, rate: 0.5, damage: 40, pull: 0.7, air: true, pulseFx: "hole" }) },
+    },
+  },
+  necro: {
+    name: "Nekro-Huhn", cost: 280, unlock: 14, type: "pulse", range: 2.5, rate: 0.8, damage: 10, splash: 2.5, air: true, poison: 14, poisonTime: 3, pulseFx: "curse", art: "sprite",
+    desc: "Ein Fluch zehrt an allen Gegnern in der Nähe.",
+    branches: {
+      bones: { name: "Knochenruf", desc: "Schleudert drei Knochen.", apply: (s) => ({ ...s, type: "bullet", multi: 3, damage: 35, rate: 1.2, speed: 9 }) },
+      cursed: { name: "Fluch-Aura", desc: "Größerer, stärkerer Fluch, verlangsamt.", apply: (s) => ({ ...s, range: s.range + 1, splash: s.splash + 1, poison: s.poison * 2, slow: 0.25, slowTime: 1 }) },
+      legion: { name: "Gräberlegion", desc: "+50 % Beute, Kills holen Eier zurück.", apply: (s) => ({ ...s, treasure: 0.5, eggChance: 0.05 }) },
+    },
+  },
+  magnet: {
+    name: "Magnet-Huhn", cost: 260, unlock: 15, type: "pulse", range: 2.4, rate: 0.8, damage: 12, splash: 2.4, air: true, shred: 1, pulseFx: "magnet", art: "sprite",
+    desc: "Reißt Gegnern die Rüstung vom Leib.",
+    branches: {
+      ironPull: { name: "Eisenzug", desc: "Zieht Gegner zurück.", apply: (s) => ({ ...s, pull: 0.8 }) },
+      scrap: { name: "Schrottsturm", desc: "Dreifacher Schaden.", apply: (s) => ({ ...s, damage: s.damage * 3 }) },
+      polarity: { name: "Polwechsel", desc: "Lähmt alles im Umkreis.", apply: (s) => ({ ...s, stun: 0.6, shred: 2 }) },
+    },
+  },
+  cosmos: {
+    name: "Kosmos-Huhn", cost: 450, unlock: 18, type: "starfall", range: 30, rate: 0.7, damage: 90, splash: 1.0, air: true, art: "sprite",
+    desc: "Sternschnuppen schlagen überall auf der Karte ein.",
+    branches: {
+      starfall: { name: "Sternenregen", desc: "Doppelt so viele Sterne.", apply: (s) => ({ ...s, rate: s.rate * 2 }) },
+      nebula: { name: "Nebelstrahl", desc: "Ein gewaltiger Dauerstrahl.", apply: (s) => ({ ...s, type: "beam", dps: s.damage * 1.6, range: 3.6 }) },
+      halo: { name: "Kosmischer Ring", desc: "Alle Türme in Reichweite +30 %.", apply: (s) => ({ ...s, buff: 0.3, buffRange: 3.5 }) },
+    },
+  },
 };
-export const TOWER_ORDER = ["gatling", "frost", "mortar", "sniper", "wizard", "golden", "tesla", "rocket", "medic", "dark"];
+export const TOWER_ORDER = Object.keys(TOWERS).sort((a, b) => TOWERS[a].unlock - TOWERS[b].unlock || TOWERS[a].cost - TOWERS[b].cost);
+// Shop filters
+export const TOWER_ROLES = {
+  angriff: ["bullet", "sniper", "melee", "chain", "beam", "starfall"],
+  flaeche: ["shell", "pulse"],
+  kontrolle: ["warp"],
+};
+export function towerRole(kind) {
+  const s = TOWERS[kind];
+  if (s.type === "econ" || s.type === "aura" || s.income || s.buff) return "support";
+  if (s.slow || s.stun || s.type === "warp" || s.mark || s.dance || s.shred) return "kontrolle";
+  if (s.splash || s.type === "shell" || s.type === "pulse" || s.chain) return "flaeche";
+  return "angriff";
+}
 export const MAX_LEVEL = 3;
 
 // Enemy roster (art: the concept sheet). size = drawn height in tiles.
@@ -133,9 +327,9 @@ export const ENEMIES = {
   toxic: { name: "Gift-Ingenieur", hp: 120, speed: 0.85, bounty: 18, steal: 1, size: 1.0, jam: { radius: 1.9, factor: 0.55 }, desc: "Stört Türme: sie feuern langsamer." },
   mech: { name: "Mech-Huhn", hp: 420, speed: 0.6, bounty: 35, steal: 3, size: 1.15, armor: 10, immune: ["stun", "freeze", "pull"], desc: "Stahl auf Beinen." },
   hydra: { name: "Dreikopf-Huhn", hp: 600, speed: 0.7, bounty: 50, steal: 3, size: 1.2, split: { kind: "runner", n: 3, hp: 1.6 }, desc: "Zerfällt in drei Renn-Hühner." },
-  golem: { name: "Fels-Golem", hp: 2200, speed: 0.5, bounty: 220, steal: 5, size: 1.7, armor: 8, boss: true, immune: ["stun", "freeze", "pull"], desc: "Boss: unaufhaltsamer Fels." },
-  lava: { name: "Lava-Titan", hp: 2600, speed: 0.48, bounty: 380, steal: 6, size: 1.75, armor: 7, boss: true, immune: ["freeze", "pull"], spawnAt: [0.66, 0.33], desc: "Boss: speit Schleim-Eier." },
-  dragon: { name: "Drachenkönig", hp: 3200, speed: 0.55, bounty: 700, steal: 10, size: 1.9, armor: 9, boss: true, flying: true, immune: ["stun", "freeze", "pull", "slow"], desc: "Endboss: fliegt, brennt, regiert." },
+  golem: { name: "Fels-Golem", hp: 2200, speed: 0.5, bounty: 220, steal: 5, size: 1.7, armor: 5, boss: true, immune: ["stun", "freeze", "pull"], desc: "Boss: unaufhaltsamer Fels." },
+  lava: { name: "Lava-Titan", hp: 2400, speed: 0.48, bounty: 380, steal: 6, size: 1.75, armor: 4, boss: true, immune: ["freeze", "pull"], spawnAt: [0.66, 0.33], desc: "Boss: speit Schleim-Eier." },
+  dragon: { name: "Drachenkönig", hp: 2300, speed: 0.5, bounty: 700, steal: 10, size: 1.9, armor: 6, boss: true, flying: true, immune: ["stun", "freeze", "pull", "slow"], desc: "Endboss: fliegt, brennt, regiert." },
 };
 export const BOSS_ORDER = ["golem", "lava", "dragon"];
 // Wave in which each enemy first appears.
@@ -384,9 +578,10 @@ export class DefenseEngine {
 
   spawn(kind, pathKey, distance = 0, scaleWave = this.wave) {
     const spec = ENEMIES[kind];
-    let hp = spec.hp * hpScale(scaleWave);
+    // Bosses scale more gently and keep their base armour, so a strong defence can always win.
+    let hp = spec.hp * (spec.boss ? Math.pow(hpScale(scaleWave), 0.75) : hpScale(scaleWave));
     let speed = spec.speed * (1 + Math.min(0.5, scaleWave * 0.008));
-    let armor = (spec.armor || 0) * (1 + scaleWave / 25);
+    let armor = (spec.armor || 0) * (spec.boss ? 1 : 1 + scaleWave / 50);
     if (this.mods.includes("turbo")) speed *= 1.45;
     if (this.mods.includes("panzer")) armor += 6;
     if (this.mods.includes("schwarm")) hp *= 0.6;
@@ -394,6 +589,7 @@ export class DefenseEngine {
       id: nextId++, kind, path: pathKey, d: distance, hp, maxHp: hp, speed, armor, slowUntil: 0, slowFactor: 1, stunUntil: 0, dots: [],
       flying: !!spec.flying, x: 0, y: 0, dx: 1, dy: 0, regen: this.mods.includes("regen") ? 0.03 : 0, immune: spec.immune || [], spawned: 0,
       fx: PATH_DATA[pathKey].points[0][0], fy: PATH_DATA[pathKey].points[0][1],
+      // boss flyers keep the "flying" flag (only anti-air towers hit them) but follow the path
     };
     if (e.flying && pathKey === "a" && this.mods.includes("himmel") && !spec.boss) { e.fx = -1; e.fy = this.random() * ROWS; }
     this.place(e);
@@ -404,7 +600,8 @@ export class DefenseEngine {
   }
 
   place(e) {
-    if (e.flying) {
+    // Boss flyers circle along the path (a straight dash would be unbeatable).
+    if (e.flying && !ENEMIES[e.kind].boss) {
       const total = Math.hypot(NEST.x - e.fx, NEST.y - e.fy);
       const t = Math.max(0, Math.min(1, e.d / total));
       e.x = e.fx + (NEST.x - e.fx) * t; e.y = e.fy + (NEST.y - e.fy) * t;
@@ -420,7 +617,8 @@ export class DefenseEngine {
   damage(e, amount, source, opts = {}) {
     if (e.hp <= 0) return 0;
     const armor = opts.pierce ? 0 : opts.magic ? e.armor / 2 : e.armor;
-    const real = Math.max(amount * 0.25, amount - armor);
+    if (e.markUntil > this.time) amount *= 1 + e.markMult;
+    const real = Math.max(amount * 0.35, amount - armor);
     e.hp -= real;
     e.hitAt = this.time;
     const spec = ENEMIES[e.kind];
@@ -445,7 +643,11 @@ export class DefenseEngine {
     this.korn += bounty;
     this.score += bounty * 10;
     this.kills++;
-    if (source) source.kills++;
+    if (source) {
+      source.kills++;
+      const chance = this.stats(source).eggChance;
+      if (chance && this.eggs < START_EGGS && this.random() < chance) { this.eggs++; this.emit("eggSaved", { x: e.x, y: e.y }); }
+    }
     this.emit("kill", { enemy: e, bounty });
     if (spec.split) {
       for (let i = 0; i < spec.split.n; i++) {
@@ -475,7 +677,7 @@ export class DefenseEngine {
   visible(e) {
     const stealth = ENEMIES[e.kind].stealth;
     if (!stealth) return true;
-    return this.towers.some((t) => dist(t, e) <= stealth);
+    return this.towers.some((t) => dist(t, e) <= Math.max(stealth, this.stats(t).reveal || 0));
   }
 
   /** Toxic engineers jam towers close to them. */
@@ -492,9 +694,9 @@ export class DefenseEngine {
   buffFor(tower) {
     let b = 0;
     for (const m of this.towers) {
-      if (m === tower || m.kind !== "medic") continue;
+      if (m === tower) continue;
       const s = this.stats(m);
-      if (dist(m, tower) <= s.range) b = Math.max(b, s.buff);
+      if (s.buff && dist(m, tower) <= (s.buffRange || s.range)) b = Math.max(b, s.buff);
     }
     return 1 + b;
   }
@@ -536,7 +738,7 @@ export class DefenseEngine {
       }
     }
     for (const z of this.zones) {
-      for (const e of this.enemies) if (e.hp > 0 && !e.flying && dist(e, z) <= z.r) this.damage(e, z.dps * dt, z.source, { pierce: true });
+      for (const e of this.enemies) if (e.hp > 0 && !e.flying && dist(e, z) <= z.r) { this.damage(e, z.dps * dt, z.source, { pierce: true }); if (z.slow) this.applyEffects(e, { slow: z.slow, slowTime: 0.3 }); }
     }
     this.zones = this.zones.filter((z) => z.until > this.time);
     for (const t of this.towers) this.act(t, dt);
@@ -552,10 +754,8 @@ export class DefenseEngine {
     let bonus = 20 + this.wave * 4, income = 0, healed = 0;
     for (const t of this.towers) {
       const s = this.stats(t);
-      if (s.type === "econ") {
-        income += s.income;
-        if (s.interest) income += Math.min(200, Math.floor(this.korn * s.interest));
-      }
+      if (s.income) income += s.income;
+      if (s.interest) income += Math.min(200, Math.floor(this.korn * s.interest));
       if (s.heal && this.eggs < START_EGGS) { this.eggs = Math.min(START_EGGS, this.eggs + s.heal); healed += s.heal; }
     }
     this.korn += bonus + income;
@@ -573,11 +773,14 @@ export class DefenseEngine {
     t.cooldown -= dt * buff * t.jammed;
     if (s.type === "pulse") {
       if (t.cooldown > 0) return;
-      const inRange = this.enemies.filter((e) => e.hp > 0 && (s.air || !e.flying) && dist(e, t) <= s.splash);
+      const inRange = this.enemies.filter((e) => e.hp > 0 && (s.air || !e.flying) && dist(e, t) <= s.splash && this.visible(e));
       if (!inRange.length) return;
       t.cooldown = 1 / s.rate;
       for (const e of inRange) {
-        this.damage(e, s.damage * buff, t);
+        this.damage(e, s.damage * buff, t, { pierce: s.pierce });
+        if (s.poison) this.applyEffects(e, { poison: s.poison * buff, poisonTime: s.poisonTime, tower: t });
+        if (s.shred) e.armor = Math.max(0, e.armor - s.shred);
+        if (s.dance && !e.immune.includes("stun") && this.random() < s.dance) { e.stunUntil = Math.max(e.stunUntil, this.time + 1); e.danceUntil = this.time + 1; }
         if (s.slow) this.applyEffects(e, { slow: s.slow, slowTime: s.slowTime });
         if (s.stun && !e.immune.includes("stun")) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun);
         if (s.pull && !e.immune.includes("pull") && !e.flying) { e.d = Math.max(0, e.d - s.pull); this.place(e); }
@@ -585,8 +788,32 @@ export class DefenseEngine {
       this.emit("pulse", { tower: t, radius: s.splash, fx: s.pulseFx || (s.pull ? "hole" : "gravity") });
       return;
     }
+    if (s.type === "starfall") {
+      if (t.cooldown > 0) return;
+      const pool = this.enemies.filter((e) => e.hp > 0 && this.visible(e));
+      if (!pool.length) return;
+      t.cooldown = 1 / s.rate;
+      const victim = pool[Math.floor(this.random() * pool.length)];
+      this.projectiles.push({ id: nextId++, kind: "star", x: victim.x - 3, y: victim.y - 8, sx: victim.x - 3, sy: victim.y - 8, tx: victim.x, ty: victim.y, t: 0, dur: 0.5, damage: s.damage * buff, splash: s.splash, tower: t });
+      this.emit("shoot", { tower: t });
+      return;
+    }
     const targets = this.targetsFor(t, s);
     const target = targets[0];
+    if (s.type === "warp") {
+      if (!target) return;
+      t.angle = Math.atan2(target.y - t.y, target.x - t.x);
+      if (t.cooldown > 0) return;
+      t.cooldown = 1 / s.rate;
+      const victims = targets.filter((e) => !ENEMIES[e.kind].boss && !e.immune.includes("pull") && !e.flying).slice(0, s.warpCount);
+      for (const e of victims) {
+        const from = { x: e.x, y: e.y };
+        e.d = Math.max(0, e.d - s.warp); this.place(e);
+        this.damage(e, s.damage * buff, t);
+        this.emit("warp", { from, to: { x: e.x, y: e.y } });
+      }
+      return;
+    }
     if (s.type === "beam") {
       if (!target) { t.target = null; t.firing = false; t.heat = Math.max(0, t.heat - dt * 2); return; }
       if (t.target !== target.id) { t.target = target.id; t.heat = 0; }
@@ -615,6 +842,17 @@ export class DefenseEngine {
       this.emit("zap", { tower: t, points, emp: !!s.stun });
       return;
     }
+    if (s.type === "melee") {
+      const hit = [target];
+      if (s.chain) { let last = target; for (let i = 1; i < s.chain; i++) { const next = this.enemies.find((e) => e.hp > 0 && !hit.includes(e) && dist(e, last) < 1.6); if (!next) break; hit.push(next); last = next; } }
+      for (const e of hit) {
+        this.damage(e, dmg, t, { magic: s.magic });
+        if (s.stun && !e.immune.includes("stun")) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun);
+        if (s.cleave) for (const o of this.enemies) if (o !== e && o.hp > 0 && (s.air || !o.flying) && dist(o, e) <= s.cleave) this.damage(o, dmg * 0.6, t, { magic: s.magic });
+      }
+      this.emit("slash", { tower: t, points: hit.map((e) => ({ x: e.x, y: e.y })), radius: s.cleave || 0.5 });
+      return;
+    }
     if (s.type === "sniper") {
       const crit = s.crit && this.random() < s.crit;
       this.damage(target, dmg * (crit ? s.critMult : 1), t, { pierce: s.pierce, crit });
@@ -638,13 +876,14 @@ export class DefenseEngine {
     const shots = s.multi ? targets.slice(0, s.multi) : [target];
     for (const victim of shots) {
       this.projectiles.push({ id: nextId++, kind: t.kind, x: t.x, y: t.y, target: victim.id, speed: s.speed, damage: dmg, splash: s.splash, slow: s.slow, slowTime: s.slowTime,
-        poison: s.poison ? s.poison * buff : 0, poisonTime: s.poisonTime, freeze: s.freeze, freezeTime: s.freezeTime, magic: s.magic, chain: s.chain, cluster: s.cluster, zone: s.zone, branch: t.branch, tower: t });
+        poison: s.poison ? s.poison * buff : 0, poisonTime: s.poisonTime, freeze: s.freeze, freezeTime: s.freezeTime, magic: s.magic, chain: s.chain, cluster: s.cluster, zone: s.zone, branch: t.branch, tower: t,
+        mark: s.mark, markTime: s.markTime, pull: s.pull, pierce: s.pierce, crit: s.crit, critMult: s.critMult, drain: s.drain });
     }
     this.emit("shoot", { tower: t });
   }
 
   fly(p, dt) {
-    if (p.kind === "shell") {
+    if (p.kind === "shell" || p.kind === "star") {
       p.t += dt;
       if (p.t < 0) return;
       const k = Math.min(1, p.t / p.dur);
@@ -665,12 +904,15 @@ export class DefenseEngine {
   }
 
   impact(p, target) {
-    const opts = { magic: p.magic };
-    if (p.splash) this.explode({ ...p, x: target.x, y: target.y });
+    const crit = p.crit && this.random() < p.crit;
+    const opts = { magic: p.magic, pierce: p.pierce, crit };
+    if (p.drain) { this.korn += p.drain; }
+    if (p.splash) this.explode({ ...p, x: target.x, y: target.y, damage: p.damage * (crit ? p.critMult : 1) });
     else {
-      this.damage(target, p.damage, p.tower, opts);
+      this.damage(target, p.damage * (crit ? p.critMult : 1), p.tower, opts);
       this.applyEffects(target, p);
     }
+    if (crit) this.emit("crit", { x: target.x, y: target.y });
     if (p.chain > 1) {
       const hit = [target];
       let last = target;
@@ -687,16 +929,19 @@ export class DefenseEngine {
 
   applyEffects(e, p) {
     if (e.hp <= 0) return;
+    if (p.mark) { e.markUntil = this.time + (p.markTime || 3); e.markMult = Math.max(e.markUntil > this.time && e.markMult ? e.markMult : 0, p.mark); }
+    if (p.pull && !e.immune.includes("pull") && !e.flying && !ENEMIES[e.kind].boss) { e.d = Math.max(0, e.d - p.pull); this.place(e); }
     if (p.slow && !e.immune.includes("slow")) {
       e.slowFactor = this.time < e.slowUntil ? Math.min(e.slowFactor, 1 - p.slow) : 1 - p.slow;
       e.slowUntil = Math.max(e.slowUntil, this.time + p.slowTime);
     }
-    if (p.poison) e.dots.push({ dps: p.poison, until: this.time + p.poisonTime, source: p.tower, kind: "poison" });
+    if (p.poison) { if (e.dots.length > 6) e.dots.shift(); e.dots.push({ dps: p.poison, until: this.time + p.poisonTime, source: p.tower, kind: "poison" }); }
     if (p.freeze && this.random() < p.freeze && !e.immune.includes("freeze")) { e.stunUntil = this.time + p.freezeTime; e.frozenUntil = this.time + p.freezeTime; this.emit("freeze", { x: e.x, y: e.y }); }
   }
 
   explode(p) {
     const shell = p.kind === "shell";
+    if (p.kind === "star") this.emit("starHit", { x: p.x, y: p.y });
     for (const e of this.enemies) {
       if (e.hp <= 0 || (shell && e.flying)) continue;
       const d = dist(e, p);

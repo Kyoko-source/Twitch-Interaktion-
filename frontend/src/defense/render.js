@@ -9,7 +9,7 @@ const easeOutBack = (t) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1,
 
 function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
 
-export { drawTower, TOWER_COLORS, BRANCH_STYLE } from "./towers.js";
+export { drawTower, TOWER_COLORS, BRANCH_STYLE, branchIcon, towerArtReady, SPRITE_TOWERS } from "./towers.js";
 
 // ------------------------------------------------------------------ enemy art (sprite atlas)
 const ATLAS = { runner: [0, 32, 192, 160], spider: [192, 19, 192, 173], fox: [384, 24, 192, 168], raccoon: [576, 32, 192, 160], knight: [768, 32, 192, 160], pilot: [0, 246, 192, 138], robohawk: [192, 266, 192, 118], slime: [384, 226, 192, 158], chicks: [576, 251, 192, 133], bomber: [768, 195, 192, 189], healer: [0, 415, 192, 161], shadow: [192, 408, 192, 168], ice: [384, 434, 192, 142], boar: [576, 441, 192, 135], toxic: [768, 429, 192, 147], golem: [0, 586, 192, 182], hydra: [194, 576, 187, 192], lava: [384, 593, 192, 175], mech: [576, 586, 192, 182], dragon: [768, 621, 192, 147] };
@@ -30,7 +30,7 @@ function drawEnemy(ctx, e, time, atlas, visible = true) {
   const w = box ? h * (box[2] / box[3]) : h;
   const face = e.dx < 0 ? -1 : 1;
   const now = e.engineTime || 0;
-  const frozen = e.frozenUntil > now, stunned = e.stunUntil > now;
+  const frozen = e.frozenUntil > now, stunned = e.stunUntil > now && !(e.danceUntil > now), dancing = e.danceUntil > now;
   const step = frozen || stunned ? 0 : Math.sin(time * 11 * Math.min(2, e.speed) + e.id);
   ctx.save();
   ctx.translate(px(e.x), px(e.y));
@@ -49,6 +49,7 @@ function drawEnemy(ctx, e, time, atlas, visible = true) {
   if (e.flying) { lift = -12 + Math.sin(time * 5 + e.id) * 4; rot = Math.sin(time * 3 + e.id) * 0.08; }
   else if (e.kind === "slime" || e.kind === "slimelet") { sx = 1 + Math.sin(time * 7 + e.id) * 0.08; sy = 2 - sx; }
   else { lift = -Math.abs(step) * 3; sy = 1 + Math.abs(step) * 0.05; sx = 2 - sy; rot = step * 0.05; }
+  if (dancing) { rot = Math.sin(time * 14 + e.id) * 0.35; lift -= Math.abs(Math.sin(time * 14 + e.id)) * 6; }
   ctx.translate(0, lift);
   ctx.rotate(rot);
   ctx.scale(face * sx, sy);
@@ -69,6 +70,8 @@ function drawEnemy(ctx, e, time, atlas, visible = true) {
   ctx.save(); ctx.translate(px(e.x), px(e.y) + lift * 0.5);
   const s = h * 0.45;
   if (e.slowUntil > now) { ctx.fillStyle = "rgba(122,216,255,0.3)"; ctx.beginPath(); ctx.ellipse(0, -h * 0.1, w * 0.48, h * 0.42, 0, 0, TAU); ctx.fill(); }
+  if (dancing) { ctx.fillStyle = ["#ff7ad9", "#7ad8ff", "#ffe066"][Math.floor(time * 3) % 3]; ctx.font = "900 14px 'Segoe UI Symbol', sans-serif"; ctx.fillText("♪", w * 0.35, -h * 0.7 + Math.sin(time * 8) * 4); }
+  if (e.markUntil > now) { ctx.fillStyle = "rgba(255,58,184,0.85)"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-w * 0.2 + i * w * 0.2, -h * 0.3 + (i % 2) * 6, 3.5, 0, TAU); ctx.fill(); } }
   if (e.dots?.length) { ctx.fillStyle = "rgba(120,255,90,0.28)"; ctx.beginPath(); ctx.ellipse(0, -h * 0.1, w * 0.45, h * 0.4, 0, 0, TAU); ctx.fill(); }
   if (frozen) {
     ctx.fillStyle = "rgba(200,240,255,0.55)"; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 1.5;
@@ -377,12 +380,32 @@ export class DefenseRenderer {
       }
       case "pulse": {
         const x = px(ev.tower.x), y = px(ev.tower.y), r = ev.radius * T;
+        const PULSE = { bees: ["#ffd34a", "#1a1a1a"], sand: ["#e8c070", "#c8902a"], disco: ["#ff7ad9", "#7ad8ff", "#ffe066", "#7aff7a"], log: ["#8a5a2a", "#c8a070"], lava: ["#ff6a1a", "#ffcf4a"], ghost: ["#9af0ff", "#ffffff"], curse: ["#7aff5a", "#5a2a8a"], magnet: ["#ff4a5a", "#5a7aff"] }[ev.fx];
+        if (PULSE) {
+          this.ring(x, y, PULSE[0], r, 0.5);
+          this.burst(x, y, ev.fx === "disco" ? 18 : 10, PULSE, 0.9, ev.fx === "sand" || ev.fx === "log" ? "fluff" : ev.fx === "disco" ? "star" : "spark", 3);
+          if (ev.fx === "ghost") this.ring(x, y, "#ffffff", r * 0.6, 0.4);
+          break;
+        }
         if (ev.fx === "snow") { this.burst(x, y, 10, ["#ffffff", "#bff1ff"], 0.9, "flake", 2.5); this.ring(x, y, "rgba(200,240,255,0.7)", r, 0.4); }
         else if (ev.fx === "hole") { this.ring(x, y, "#a04aff", r, 0.6); this.fx.push({ kind: "vortex", x, y, vx: 0, vy: 0, age: 0, life: 0.6, size: r }); }
         else { this.ring(x, y, "#c48bff", r, 0.5); this.ring(x, y, "#ffffff", r * 0.6, 0.35); if (!this.reduced) this.shake = Math.max(this.shake, 0.05); }
         break;
       }
       case "freeze": this.burst(px(ev.x), px(ev.y), 12, ["#ffffff", "#bff1ff"], 0.7, "flake", 3); break;
+      case "slash": {
+        for (const p of ev.points) { this.fx.push({ kind: "slash", x: px(p.x), y: px(p.y), vx: 0, vy: 0, age: 0, life: 0.22, size: 18 + ev.radius * T * 0.6, angle: Math.random() * TAU, color: ev.tower.kind === "samurai" ? "#ff8ac8" : "#fff3c4" }); this.burst(px(p.x), px(p.y), 5, ["#ffffff", "#ffd0e0"], 0.6); }
+        break;
+      }
+      case "warp": {
+        const a = { x: px(ev.from.x), y: px(ev.from.y) }, b = { x: px(ev.to.x), y: px(ev.to.y) };
+        this.fx.push({ kind: "vortex", x: a.x, y: a.y, vx: 0, vy: 0, age: 0, life: 0.6, size: 26 }); this.fx.push({ kind: "vortex", x: b.x, y: b.y, vx: 0, vy: 0, age: 0, life: 0.6, size: 26 });
+        this.bolts.push({ points: [a, b], age: 0, life: 0.2, magic: true }); this.burst(b.x, b.y, 14, ["#b08aff", "#ffffff"], 0.8, "star", 3);
+        break;
+      }
+      case "starHit": { const x = px(ev.x), y = px(ev.y); this.fx.push({ kind: "glow", x, y, vx: 0, vy: 0, age: 0, life: 0.4, size: 70, color: "255,240,160" }); this.burst(x, y, 24, ["#fff8c0", "#ffe066", "#c48bff"], 1.3, "star", 4); this.ring(x, y, "#fff3a0", 50, 0.45); if (!this.reduced) this.shake = Math.max(this.shake, 0.08); break; }
+      case "crit": this.text(px(ev.x), px(ev.y) - 20, "KRIT!", "#ff4a5a", 18); break;
+      case "eggSaved": this.text(px(ev.x), px(ev.y) - 22, "+1 Ei", "#fff1d0", 18); this.burst(px(ev.x), px(ev.y), 10, ["#fff1d0", "#ffffff"], 0.7, "star", 3); break;
       case "shielded": this.ring(px(NEST.x) + 16, px(NEST.y), "#5dff8c", 70, 0.6); this.text(px(NEST.x), px(NEST.y) - 30, "GEBLOCKT!", "#5dff8c", 18); break;
       case "revive": this.flash = 1; this.flashColor = "93,255,140"; this.banner("WIEDERBELEBT!", "Das Nest bekommt 10 Eier zurück", "#5dff8c", 2.4, 1.2); this.burst(px(NEST.x), px(NEST.y), 50, ["#5dff8c", "#ffffff", "#fff1dc"], 1.4, "feather", 4); break;
       case "kill": {
@@ -617,6 +640,46 @@ export class DefenseRenderer {
       const g = ctx.createRadialGradient(x, y, 0.5, x, y, 10); g.addColorStop(0, "#ffffff"); g.addColorStop(0.35, p.branch === "freezeEggs" ? "#7ad8ff" : "#d08aff"); g.addColorStop(1, "rgba(160,74,255,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 10, 0, TAU); ctx.fill();
       if (Math.random() < 0.4) this.burst(x, y, 1, ["#d08aff"], 0.2);
+    } else if (p.kind === "star") {
+      if (p.t < 0) { ctx.restore(); return; }
+      const k = Math.min(1, p.t / p.dur);
+      const sx = px(p.sx + (p.tx - p.sx) * k), sy = px(p.sy + (p.ty - p.sy) * k);
+      ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createLinearGradient(sx - 60, sy - 160, sx, sy); g.addColorStop(0, "rgba(255,240,160,0)"); g.addColorStop(1, "rgba(255,240,160,0.9)");
+      ctx.strokeStyle = g; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(sx - 60, sy - 160); ctx.lineTo(sx, sy); ctx.stroke();
+      ctx.fillStyle = "#fff8c0"; ctx.translate(sx, sy); ctx.rotate(time * 8);
+      ctx.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 4 : 10; ctx.lineTo(Math.cos((i / 10) * TAU) * r, Math.sin((i / 10) * TAU) * r); } ctx.fill();
+    } else if (p.kind === "archer") {
+      ctx.translate(x, y); ctx.rotate(p.angle || 0); ctx.strokeStyle = "#6a4420"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(6, 0); ctx.stroke();
+      ctx.fillStyle = "#c0c8d0"; ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(4, -3); ctx.lineTo(4, 3); ctx.fill(); ctx.fillStyle = "#3a8a2a"; ctx.fillRect(-11, -2.5, 4, 5);
+    } else if (p.kind === "beekeeper") {
+      ctx.translate(x, y); const f = Math.sin(time * 60) * 2;
+      ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.ellipse(-1, -3, 3, 2 + f * 0.3, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#ffcf2a"; ctx.beginPath(); ctx.ellipse(0, 0, 4, 3, 0, 0, TAU); ctx.fill(); ctx.fillStyle = "#1a1a1a"; ctx.fillRect(-1, -3, 1.5, 6);
+    } else if (p.kind === "chef") {
+      ctx.translate(x, y); ctx.rotate(time * 10); ctx.fillStyle = "#c86a2a"; ctx.beginPath(); ctx.ellipse(0, 0, 6, 4, 0, 0, TAU); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillRect(4, -1, 5, 2);
+    } else if (p.kind === "bakery") {
+      ctx.translate(x, y); ctx.rotate(time * 8); ctx.strokeStyle = "#ff7ab8"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.stroke(); ctx.strokeStyle = "#e8a060"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 7, 0, TAU); ctx.stroke();
+    } else if (p.kind === "paintball") {
+      const col = ["#ff3ab8", "#3ae8ff", "#ffe03a", "#7aff3a"][p.id % 4];
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 4, 0, TAU); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.arc(x - 1.5, y - 1.5, 1.4, 0, TAU); ctx.fill();
+    } else if (p.kind === "bubble") {
+      ctx.strokeStyle = "rgba(200,240,255,0.9)"; ctx.lineWidth = 1.5; ctx.fillStyle = "rgba(160,220,255,0.25)";
+      ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x - 2.5, y - 2.5, 1.6, 0, TAU); ctx.fill();
+    } else if (p.kind === "vampire") {
+      ctx.translate(x, y); const f = Math.sin(time * 40) * 0.6; ctx.fillStyle = "#2a0a1a";
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-6, -6 * f - 2, -10, 0); ctx.quadraticCurveTo(-5, 1, 0, 2); ctx.quadraticCurveTo(5, 1, 10, 0); ctx.quadraticCurveTo(6, -6 * f - 2, 0, 0); ctx.fill();
+      ctx.fillStyle = "#ff2a4a"; ctx.fillRect(-1.5, -1, 1, 1); ctx.fillRect(0.5, -1, 1, 1);
+    } else if (p.kind === "ghost") {
+      ctx.globalCompositeOperation = "lighter"; const g = ctx.createRadialGradient(x, y, 0, x, y, 10); g.addColorStop(0, "#ffffff"); g.addColorStop(0.4, "#9af0ff"); g.addColorStop(1, "rgba(120,220,255,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 10, 0, TAU); ctx.fill();
+    } else if (p.kind === "necro") {
+      ctx.translate(x, y); ctx.rotate(time * 12); ctx.fillStyle = "#f0e8d8"; ctx.fillRect(-6, -1.5, 12, 3); ctx.beginPath(); ctx.arc(-6, -2, 2, 0, TAU); ctx.arc(-6, 2, 2, 0, TAU); ctx.arc(6, -2, 2, 0, TAU); ctx.arc(6, 2, 2, 0, TAU); ctx.fill();
+    } else if (p.kind === "viking") {
+      ctx.translate(x, y); ctx.rotate(time * 16); ctx.strokeStyle = "#6a4420"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.stroke();
+      ctx.fillStyle = "#c0c8d0"; ctx.beginPath(); ctx.moveTo(4, -6); ctx.quadraticCurveTo(10, 0, 4, 6); ctx.lineTo(3, 0); ctx.closePath(); ctx.fill();
+    } else if (p.kind === "portal") {
+      ctx.translate(x, y); ctx.rotate(time * 10); ctx.strokeStyle = "#b08aff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, 6, 0, 4.5); ctx.stroke(); ctx.fillStyle = "#2a0a4a"; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
     } else if (p.kind === "rocket") {
       ctx.translate(x, y); ctx.rotate(p.angle || 0);
       ctx.fillStyle = "#e8e0d0"; ctx.fillRect(-7, -2.5, 12, 5); ctx.fillStyle = "#d82a2a"; ctx.beginPath(); ctx.moveTo(5, -2.5); ctx.lineTo(9, 0); ctx.lineTo(5, 2.5); ctx.fill();
@@ -634,6 +697,7 @@ export class DefenseRenderer {
       ctx.save(); ctx.globalAlpha = Math.min(1, left * 2) * 0.75;
       const g = ctx.createRadialGradient(x, y, 2, x, y, r);
       if (z.kind === "toxic") { g.addColorStop(0, "rgba(140,255,80,0.55)"); g.addColorStop(1, "rgba(60,160,30,0)"); }
+      else if (z.kind === "ash") { g.addColorStop(0, "rgba(120,110,110,0.6)"); g.addColorStop(1, "rgba(60,50,50,0)"); }
       else { g.addColorStop(0, "rgba(255,200,60,0.6)"); g.addColorStop(0.5, "rgba(255,90,20,0.45)"); g.addColorStop(1, "rgba(160,20,0,0)"); }
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
       for (let i = 0; i < 6; i++) {
@@ -677,7 +741,7 @@ export class DefenseRenderer {
       f.age += dt; f.x += f.vx * dt; f.y += f.vy * dt;
       if (f.kind === "casing" || f.kind === "debris") { f.vy += 420 * dt; f.vx *= 0.97; }
       if (f.kind !== "text" && f.kind !== "ring" && f.kind !== "smoke") { f.vx *= 0.95; f.vy = f.vy * 0.95 + (f.kind === "feather" || f.kind === "flake" ? 40 : 260) * dt; }
-      const k = f.age / f.life;
+      const k = Math.max(0, Math.min(1, f.age / f.life));
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - k);
       if (f.kind === "text") {
         const pop = Math.min(1, f.age / 0.15);
@@ -692,6 +756,10 @@ export class DefenseRenderer {
         g.addColorStop(0, "#ffffff"); g.addColorStop(0.4, f.color); g.addColorStop(1, "rgba(255,200,80,0)");
         ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(f.size * 1.6, 0); ctx.lineTo(0, -f.size * 0.6); ctx.lineTo(-f.size * 0.4, 0); ctx.lineTo(0, f.size * 0.6); ctx.closePath(); ctx.fill();
         ctx.beginPath(); ctx.arc(0, 0, f.size * 0.7, 0, TAU); ctx.fill();
+      } else if (f.kind === "slash") {
+        ctx.globalCompositeOperation = "lighter"; ctx.translate(f.x, f.y); ctx.rotate(f.angle);
+        ctx.strokeStyle = f.color; ctx.lineWidth = 5 * (1 - k) + 1; ctx.shadowColor = f.color; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(0, 0, f.size, -0.9 + k * 1.6, 0.6 + k * 1.6); ctx.stroke();
       } else if (f.kind === "casing") {
         ctx.translate(f.x, f.y); ctx.rotate(f.age * f.spin); ctx.fillStyle = "#e8b020"; ctx.fillRect(-1, -2.5, 2, 5);
       } else if (f.kind === "debris") {
@@ -722,7 +790,7 @@ export class DefenseRenderer {
       } else if (f.kind === "vortex") {
         ctx.translate(f.x, f.y); ctx.rotate(f.age * 12);
         ctx.strokeStyle = "rgba(160,74,255,0.8)"; ctx.lineWidth = 3;
-        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0, 0, f.size * (1 - k) * (0.4 + i * 0.25), i * 2, i * 2 + 2.4); ctx.stroke(); }
+        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0, 0, Math.max(0.1, f.size * (1 - k) * (0.4 + i * 0.25)), i * 2, i * 2 + 2.4); ctx.stroke(); }
       } else if (f.kind === "smoke") {
         ctx.fillStyle = "rgba(80,70,60,0.5)"; ctx.beginPath(); ctx.arc(f.x, f.y, f.size * (0.6 + k), 0, TAU); ctx.fill();
       } else if (f.kind === "pop") { // popcorn

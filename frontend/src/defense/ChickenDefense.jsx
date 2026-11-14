@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronsRight, Coins, Crosshair, Egg, Expand, FastForward, Flag, Lock, Music, Pause, Play, RefreshCw, Save, Shrink, SlidersHorizontal, Swords, Trash2, Trophy, Volume2, VolumeX, X, Zap } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
-import { CHAOS_MODS, COLS, DefenseEngine, MAX_LEVEL, ROWS, START_EGGS, TOWERS, TOWER_ORDER, branchCost, towerStats, upgradeCost } from "./engine.mjs";
-import { BRANCH_STYLE, DefenseRenderer, TOWER_COLORS, drawTower, T } from "./render.js";
+import { CHAOS_MODS, COLS, DefenseEngine, MAX_LEVEL, ROWS, START_EGGS, TOWERS, TOWER_ORDER, branchCost, towerRole, towerStats, upgradeCost } from "./engine.mjs";
+import { BRANCH_STYLE, DefenseRenderer, TOWER_COLORS, branchIcon, drawTower, towerArtReady, T } from "./render.js";
 import { DefenseAudio } from "./audio.js";
 import "./defense.css";
 
@@ -24,10 +24,11 @@ function TowerIcon({ kind, size = 52, level = 1, branch = null, animate = false,
       ctx.translate(32, 40);
       drawTower(ctx, kind, level, angle, time, false, 0, branch);
     };
-    if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) { paint(0); return undefined; }
+    let alive = true;
+    if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) { paint(0); towerArtReady.then(() => alive && paint(0)); return () => { alive = false; }; }
     const loop = (now) => { paint(now / 1000); frame = requestAnimationFrame(loop); };
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => { alive = false; cancelAnimationFrame(frame); };
   }, [kind, size, level, branch, animate, angle]);
   return <canvas ref={ref} className="cdTowerIcon" style={{ width: size, height: size }} aria-hidden="true" />;
 }
@@ -38,8 +39,18 @@ function powerBars(kind) {
   const dps = s.type === "beam" ? s.dps : s.type === "econ" || s.type === "aura" ? 0 : s.damage * s.rate * (s.splash ? 1.6 : 1) * (s.chain ? 2 : 1);
   return [Math.min(1, dps / 80), Math.min(1, s.range / 6), s.type === "econ" || s.type === "aura" ? 0 : Math.min(1, s.rate / 5)];
 }
-const TYPE_LABEL = { bullet: "Geschütz", shell: "Artillerie", sniper: "Präzision", chain: "Blitz", pulse: "Fläche", beam: "Strahl", econ: "Wirtschaft", aura: "Support" };
-const SHORT = { gatling: "Gatling", frost: "Frost", mortar: "Mörser", sniper: "Sniper", wizard: "Zauber", golden: "Gold", tesla: "Tesla", rocket: "Raketen", medic: "Sani", dark: "Dunkel" };
+const TYPE_LABEL = { bullet: "Geschütz", shell: "Artillerie", sniper: "Präzision", chain: "Blitz", pulse: "Fläche", beam: "Strahl", econ: "Wirtschaft", aura: "Support", melee: "Nahkampf", warp: "Teleport", starfall: "Kosmisch" };
+const ROLE_TABS = [["alle", "Alle"], ["angriff", "Angriff"], ["flaeche", "Fläche"], ["kontrolle", "Kontrolle"], ["support", "Support"]];
+
+function BranchIcon({ kind, branch, size = 84 }) {
+  const icon = branchIcon(kind, branch);
+  if (!icon) return null;
+  const k = size / 72;
+  return <span className="cdBranchImg" aria-hidden="true" style={{ width: size, height: size, backgroundImage: `url(${icon.url})`, backgroundSize: `${720 * k}px ${432 * k}px`, backgroundPosition: `-${icon.x * k}px -${icon.y * k}px` }} />;
+}
+const SHORT = { gatling: "Gatling", frost: "Frost", mortar: "Mörser", sniper: "Sniper", wizard: "Zauber", golden: "Gold", tesla: "Tesla", rocket: "Raketen", medic: "Sani", dark: "Dunkel",
+  archer: "Bogen", bubble: "Blasen", samurai: "Samurai", chef: "Koch", bakery: "Bäcker", beekeeper: "Imker", sandstorm: "Sandsturm", paintball: "Paintball", junkyard: "Schrott", viking: "Wikinger",
+  gravity: "Schwerkraft", disco: "Disco", lumberjack: "Holzfäller", volcano: "Vulkan", vampire: "Vampir", ghost: "Geist", portal: "Portal", necro: "Nekro", magnet: "Magnet", cosmos: "Kosmos" };
 
 function TowerCard({ kind, index, active, locked, poor, onPick, disabled }) {
   const spec = TOWERS[kind];
@@ -49,7 +60,7 @@ function TowerCard({ kind, index, active, locked, poor, onPick, disabled }) {
   return (
     <button type="button" className={`cdCard2${active ? " active" : ""}${locked ? " locked" : ""}${poor && !locked ? " poor" : ""}`} style={{ "--tc": col.badge, "--tr": col.ring }}
       onClick={onPick} disabled={disabled} aria-pressed={active} title={spec.desc} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <span className="cdCardTitle"><i>{(index + 1) % 10}</i>{SHORT[kind]}</span>
+      <span className="cdCardTitle">{index < 10 && <i>{(index + 1) % 10}</i>}{SHORT[kind]}</span>
       <span className="cdCardArt"><TowerIcon kind={kind} size={78} animate={(hover || active) && !locked} /></span>
       <span className="cdCardType">{TYPE_LABEL[spec.type]}</span>
       {!locked && <span className="cdCardBars" aria-hidden="true">{bars.map((b, i) => <i key={i} style={{ "--v": b }} title={["Schaden", "Reichweite", "Tempo"][i]} />)}</span>}
@@ -112,7 +123,7 @@ function UpgradeModal({ tower, korn, onClose, onUpgrade, onSell, onTarget }) {
                 const style = BRANCH_STYLE[tower.kind][key];
                 return (
                   <button key={key} type="button" disabled={korn < branchCost(tower.kind)} onClick={() => onUpgrade(key)} style={{ "--bc": style[0] }}>
-                    <span className="cdBranchArt"><TowerIcon kind={tower.kind} size={84} level={4} branch={key} animate /></span>
+                    <span className="cdBranchArt">{branchIcon(tower.kind, key) ? <BranchIcon kind={tower.kind} branch={key} size={78} /> : <TowerIcon kind={tower.kind} size={84} level={4} branch={key} animate />}</span>
                     <b><span className="glyph">{style[1]}</span> {b.name}</b>
                     <small>{b.desc}</small>
                     <em><Coins size={12} /> {branchCost(tower.kind)}</em>
@@ -176,7 +187,9 @@ export function ChickenDefense({ user, renderScoreboard }) {
   const [sfxOn, setSfxOn] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
   const [volumeOpen, setVolumeOpen] = useState(false);
+  const [role, setRole] = useState("alle");
   const pausedByModal = useRef(false);
+  const shopRef = useRef(TOWER_ORDER);
   const [full, setFull] = useState(false);
   const [message, setMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -238,8 +251,10 @@ export function ChickenDefense({ user, renderScoreboard }) {
         if (now - lastSync > 150) { lastSync = now; sync(); }
       }
       if (engine.towers.some((t) => t.firing) && !pausedRef.current) audio.play("beam");
-      renderer.draw(now / 1000, pausedRef.current ? 0 : dt * Math.min(1.5, speedRef.current));
       frame = requestAnimationFrame(loop);
+      // A drawing glitch must never freeze the game: reset the effect lists and keep going.
+      try { renderer.draw(now / 1000, pausedRef.current ? 0 : dt * Math.min(1.5, speedRef.current)); }
+      catch (err) { renderer.fx = []; renderer.bolts = []; if (!renderer.warned) { renderer.warned = true; console.warn("Chicken Defense draw error", err); } }
     };
     frame = requestAnimationFrame(loop);
     sync();
@@ -330,7 +345,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
       if (!root.current?.isConnected || sys.current.engine?.status !== "playing") return;
       const k = keys.current;
       const n = Number(ev.key);
-      if (/^[0-9]$/.test(ev.key)) { k.choose(TOWER_ORDER[n === 0 ? 9 : n - 1]); return; }
+      if (/^[0-9]$/.test(ev.key)) { const kind = shopRef.current[n === 0 ? 9 : n - 1]; if (kind) k.choose(kind); return; }
       if (ev.key === "Escape") { k.setPlacing(null); k.setSelected(null); }
       else if (ev.code === "Space") { ev.preventDefault(); k.nextWave(); }
       else if (ev.key === "u" || ev.key === "U") k.upgrade();
@@ -349,6 +364,8 @@ export function ChickenDefense({ user, renderScoreboard }) {
 
   const e = sys.current.engine;
   const tower = selected && e ? e.towers.find((t) => t.id === selected) : null;
+  const shopList = TOWER_ORDER.filter((kind) => role === "alle" || towerRole(kind) === role);
+  shopRef.current = shopList;
   const playing = snap.status === "playing", ended = snap.status === "ended";
   const canCall = playing && snap.queued === 0;
   const early = playing && snap.waveActive && snap.enemies > 0;
@@ -420,8 +437,11 @@ export function ChickenDefense({ user, renderScoreboard }) {
         )}
       </div>
 
+      <div className="cdShopTabs" role="tablist" aria-label="Turm-Kategorien">
+        {ROLE_TABS.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={role === key} className={role === key ? "on" : ""} onClick={() => setRole(key)}>{label} <i>{key === "alle" ? TOWER_ORDER.length : TOWER_ORDER.filter((k) => towerRole(k) === key).length}</i></button>)}
+      </div>
       <div className="cdShop" role="group" aria-label="Türme kaufen">
-        {TOWER_ORDER.map((kind, i) => {
+        {shopList.map((kind, i) => {
           const spec = TOWERS[kind];
           const locked = Math.max(1, snap.wave) < spec.unlock;
           return <TowerCard key={kind} kind={kind} index={i} active={placing === kind} locked={locked} poor={snap.korn < spec.cost} disabled={!playing || locked} onPick={() => choose(kind)} />;

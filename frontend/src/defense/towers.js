@@ -1,3 +1,4 @@
+import { TOWERS } from "./engine.mjs";
 // Chicken tower art. Every level changes the look: L1 wooden crate, L2 stone ring,
 // L3 fortress with gold trim and flag, L4 (branch) adds a rune circle, a coloured aura
 // and branch gear. (0,0) is the tile centre, art is ~48 px wide at scale 1.
@@ -94,6 +95,7 @@ function pedestal(ctx, kind, level, branch, time) {
 
 // ------------------------------------------------------------------ the tower
 export function drawTower(ctx, kind, level = 1, angle = -Math.PI / 2, time = 0, firing = false, recoil = 0, branch = null) {
+  if (SPRITE_TOWERS[kind]) { drawSpriteTower(ctx, kind, level, angle, time, firing, recoil, branch); return; }
   const col = TOWER_COLORS[kind];
   const lv = Math.min(level, 3);
   const bstyle = branch ? BRANCH_STYLE[kind][branch] : null;
@@ -283,6 +285,98 @@ export function drawTower(ctx, kind, level = 1, angle = -Math.PI / 2, time = 0, 
 
 /** Where the muzzle is, relative to the tower centre (for flashes). */
 export function muzzle(kind, level, angle) {
-  const reach = { gatling: 26, frost: 26, mortar: 26, sniper: 36, wizard: 26, rocket: 30, tesla: 0, dark: 22, golden: 0, medic: 20 }[kind] + level * 2;
+  const reach = ({ gatling: 26, frost: 26, mortar: 26, sniper: 36, wizard: 26, rocket: 30, tesla: 0, dark: 22, golden: 0, medic: 20 }[kind] ?? 24) + level * 2;
   return { x: Math.cos(angle) * reach, y: -4 - (level - 1) * 1.5 + Math.sin(angle) * reach };
+}
+
+// ------------------------------------------------------------------ sprite towers (concept sheets)
+export const SPRITE_TOWERS = { beekeeper: [0, 45, 200, 155], gravity: [200, 47, 200, 153], samurai: [400, 45, 200, 155], volcano: [600, 44, 200, 156], portal: [800, 47, 200, 153], chef: [0, 233, 200, 167], paintball: [200, 228, 200, 172], necro: [400, 227, 200, 173], disco: [600, 232, 200, 168], bubble: [800, 233, 200, 167], viking: [0, 447, 200, 153], magnet: [200, 445, 200, 155], sandstorm: [400, 445, 200, 155], vampire: [600, 445, 200, 155], archer: [800, 444, 200, 156], junkyard: [0, 638, 200, 162], ghost: [200, 640, 200, 160], bakery: [400, 636, 200, 164], cosmos: [600, 639, 200, 161], lumberjack: [800, 640, 200, 160] };
+const SPRITE_ORDER = Object.keys(SPRITE_TOWERS);
+export const TOWER_ATLAS_URL = "/assets/defense/towers.webp";
+export const BRANCH_ICON_URL = "/assets/defense/branch-icons.webp";
+const SPRITE_COLORS = {
+  beekeeper: ["#e8a800", "#ffd34a"], gravity: ["#8a3aff", "#c48bff"], samurai: ["#c8202a", "#ff7a8a"], volcano: ["#e8501a", "#ffb04a"], portal: ["#6a3ad8", "#b08aff"],
+  chef: ["#c8402a", "#ffcf4a"], paintball: ["#d82aa8", "#ff7ad9"], necro: ["#5a2a8a", "#7aff5a"], disco: ["#b02ad8", "#ff7ad9"], bubble: ["#2a8ad8", "#9ad8ff"],
+  viking: ["#a8402a", "#ffcf4a"], magnet: ["#5a3ad8", "#ff4a5a"], sandstorm: ["#c88a2a", "#ffd88a"], vampire: ["#8a1a3a", "#ff4a6a"], archer: ["#3a8a2a", "#9adf5a"],
+  junkyard: ["#a8402a", "#c8a070"], ghost: ["#3a6ab8", "#9af0ff"], bakery: ["#c82a7a", "#ffb0d8"], cosmos: ["#5a2ab8", "#ffe066"], lumberjack: ["#a82a2a", "#5aa83a"],
+};
+for (const [kind, [badge, ring]] of Object.entries(SPRITE_COLORS)) {
+  TOWER_COLORS[kind] = { body: "#fffaf0", ring, badge };
+  BRANCH_STYLE[kind] = Object.fromEntries(Object.keys(TOWERS[kind].branches).map((key, i) => [key, [[ring, badge, "#ffe066"][i], "✦"]]));
+}
+
+let towerAtlas = null, iconAtlas = null;
+export const towerArtReady = typeof Image === "undefined" ? Promise.resolve() : Promise.all([
+  new Promise((resolve) => { towerAtlas = new Image(); towerAtlas.onload = resolve; towerAtlas.onerror = resolve; towerAtlas.src = TOWER_ATLAS_URL; }),
+  new Promise((resolve) => { iconAtlas = new Image(); iconAtlas.onload = resolve; iconAtlas.onerror = resolve; iconAtlas.src = BRANCH_ICON_URL; }),
+]);
+
+/** Position of a branch icon (72 px cells, 10 per row) in the icon atlas. */
+export function branchIcon(kind, branch) {
+  const i = SPRITE_ORDER.indexOf(kind);
+  if (i < 0) return null;
+  const k = Object.keys(TOWERS[kind].branches).indexOf(branch);
+  const idx = i * 3 + k;
+  return { x: (idx % 10) * 72, y: Math.floor(idx / 10) * 72, size: 72, url: BRANCH_ICON_URL };
+}
+
+export function drawSpriteTower(ctx, kind, level = 1, angle = 0, time = 0, firing = false, recoil = 0, branch = null) {
+  const box = SPRITE_TOWERS[kind];
+  const lv = Math.min(level, 3);
+  const [badge, ring] = SPRITE_COLORS[kind];
+  const bcol = branch ? BRANCH_STYLE[kind][branch][0] : ring;
+  const scale = [0.8, 0.9, 1.0][lv - 1] + (branch ? 0.08 : 0);
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.32)"; ctx.beginPath(); ctx.ellipse(0, 14, 24 * scale, 8, 0, 0, TAU); ctx.fill();
+  if (branch) {
+    ctx.save(); ctx.translate(0, 12); ctx.scale(1, 0.42); ctx.rotate(time * 0.8);
+    ctx.strokeStyle = bcol; ctx.lineWidth = 2.5; ctx.shadowColor = bcol; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(0, 0, 34, 0, TAU); ctx.stroke();
+    ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; ctx.fillStyle = bcol; ctx.beginPath(); ctx.arc(Math.cos(a) * 34, Math.sin(a) * 34, 2.8, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  } else if (lv >= 2) {
+    ctx.save(); ctx.translate(0, 12); ctx.scale(1, 0.4);
+    ctx.strokeStyle = "#ffcf4a"; ctx.lineWidth = 3; ctx.shadowColor = "#ffcf4a"; ctx.shadowBlur = lv >= 3 ? 14 : 6;
+    ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.stroke(); ctx.restore();
+  }
+  if (lv >= 3 || branch) {
+    const g = ctx.createRadialGradient(0, -14, 2, 0, -14, 40);
+    g.addColorStop(0, `${branch ? bcol : "#ffe066"}55`); g.addColorStop(1, `${branch ? bcol : "#ffe066"}00`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, -14, 40, 0, TAU); ctx.fill();
+  }
+  const h = 58 * scale, w = h * (box[2] / box[3]);
+  const face = Math.cos(angle) >= 0 ? 1 : -1;
+  const bob = Math.sin(time * 3 + kind.length) * 1;
+  const ready = towerAtlas?.complete && towerAtlas.naturalWidth;
+  ctx.save();
+  ctx.translate(0, bob);
+  ctx.scale(face * (1 + recoil * 0.06), 1 - recoil * 0.06);
+  if (ready) ctx.drawImage(towerAtlas, box[0], box[1], box[2], box[3], -w / 2, 18 - h, w, h);
+  else { ctx.fillStyle = badge; ctx.beginPath(); ctx.ellipse(0, -10, 16, 18, 0, 0, TAU); ctx.fill(); }
+  if (firing && ready) { ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.25; ctx.drawImage(towerAtlas, box[0], box[1], box[2], box[3], -w / 2, 18 - h, w, h); }
+  ctx.restore();
+  if (lv >= 3) for (let i = 0; i < 4; i++) {
+    const a = time * 1.6 + (i * TAU) / 4;
+    ctx.fillStyle = branch ? bcol : "#fff3a0";
+    ctx.beginPath(); ctx.arc(Math.cos(a) * 26, -16 + Math.sin(a) * 9, 1.8 + Math.sin(time * 6 + i), 0, TAU); ctx.fill();
+  }
+  for (let i = 0; i < lv; i++) {
+    const sx = (i - (lv - 1) / 2) * 9;
+    ctx.save(); ctx.translate(sx, 22); ctx.fillStyle = "#ffe066"; ctx.strokeStyle = "#8a5200"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 1.8 : 4.2; ctx.lineTo(Math.cos((k / 10) * TAU - Math.PI / 2) * r, Math.sin((k / 10) * TAU - Math.PI / 2) * r); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  if (branch) {
+    const icon = branchIcon(kind, branch);
+    const by = 18 - h - 10 + Math.sin(time * 3) * 2;
+    ctx.save();
+    ctx.fillStyle = "#fff8e8"; ctx.strokeStyle = bcol; ctx.lineWidth = 2.5; ctx.shadowColor = bcol; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(0, by, 12, 0, TAU); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+    if (icon && iconAtlas?.complete && iconAtlas.naturalWidth) ctx.drawImage(iconAtlas, icon.x, icon.y, 72, 72, -11, by - 11, 22, 22);
+    ctx.restore();
+  }
+  ctx.restore();
 }

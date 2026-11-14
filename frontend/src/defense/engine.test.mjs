@@ -5,8 +5,8 @@ import { BLOCKED, DefenseEngine, ENEMIES, PATH_DATA, START_EGGS, START_KORN, TOW
 const seeded = (seed = 7) => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 const run = (game, seconds, step = 1 / 60) => { for (let t = 0; t < seconds; t += step) game.update(step); };
 
-test("all ten towers exist with three upgrade branches each", () => {
-  assert.equal(TOWER_ORDER.length, 10);
+test("all thirty towers exist with three upgrade branches each", () => {
+  assert.equal(TOWER_ORDER.length, 30);
   for (const kind of TOWER_ORDER) assert.equal(Object.keys(TOWERS[kind].branches).length, 3, kind);
 });
 
@@ -178,4 +178,49 @@ test("enemy abilities: bombers stun towers, healers heal, shadows hide, engineer
   const slimes = game.enemies.filter((e) => e.kind === "slime").length;
   game.damage(lava, lava.maxHp * 0.5);
   assert.equal(game.enemies.filter((e) => e.kind === "slime").length, slimes + 3);
+});
+
+test("new tower mechanics: melee cleave, warp, starfall, paint marks, armor shred, ghost light, vampire drain and egg rescue", () => {
+  const events = [];
+  const game = new DefenseEngine({ onEvent: (e) => events.push(e.type), random: () => 0.01 }); game.start();
+  game.korn = 99999; game.wave = 20;
+  const run1 = (t) => { for (let i = 0; i < 30; i++) game.act(t, 1 / 30); };
+  // samurai cleaves neighbours
+  const sam = game.build("samurai", 10, 6);
+  const a = game.spawn("fox", "a", 0), b = game.spawn("fox", "a", 0);
+  a.x = 9; a.y = 5; b.x = 9.3; b.y = 5.2; a.d = 20; b.d = 19.9;
+  const hpB = b.hp; run1(sam);
+  assert.ok(b.hp < hpB); assert.ok(events.includes("slash"));
+  // portal warps the frontmost enemy back
+  const portal = game.build("portal", 13, 6);
+  const runner = game.spawn("boar", "a", 25); runner.x = 13; runner.y = 5;
+  const before = runner.d; run1(portal);
+  assert.ok(runner.d < before - 3); assert.ok(events.includes("warp"));
+  // cosmos rains stars anywhere
+  const cosmos = game.build("cosmos", 2, 4);
+  run1(cosmos);
+  assert.ok(game.projectiles.some((p) => p.kind === "star"));
+  // paint marks increase damage taken
+  const target = game.spawn("knight", "a", 5);
+  game.applyEffects(target, { mark: 0.5, markTime: 3 });
+  const marked = game.damage(target, 50, null, { pierce: true });
+  const plain = game.damage(game.spawn("knight", "a", 6), 50, null, { pierce: true });
+  assert.ok(marked > plain);
+  // magnet shreds armour
+  const magnet = game.build("magnet", 6, 7);
+  const mech = game.spawn("mech", "a", 0); mech.x = 6; mech.y = 6.5;
+  const armor = mech.armor; magnet.cooldown = 0; game.act(magnet, 0.01);
+  assert.ok(mech.armor < armor);
+  // ghost light reveals shadow ravens from further away
+  const ghost = game.build("ghost", 16, 2);
+  const shadow = game.spawn("shadow", "a", 0); shadow.x = 16; shadow.y = 4.3;
+  assert.equal(game.visible(shadow), true); void ghost;
+  // vampire drains Korn per hit, blood drain can rescue eggs
+  const vamp = game.build("vampire", 3, 6);
+  game.korn = 100;
+  game.impact({ damage: 5, drain: 2, tower: vamp }, game.spawn("fox", "a", 3));
+  assert.equal(game.korn, 102);
+  vamp.level = 4; vamp.branch = "bloodDrain"; game.eggs = 10;
+  game.damage(game.spawn("fox", "a", 3), 1e9, vamp);
+  assert.equal(game.eggs, 11); assert.ok(events.includes("eggSaved"));
 });
