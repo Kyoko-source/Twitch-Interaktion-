@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ChevronsLeft, ChevronsRight, HelpCircle, Maximize, Minimize, Music, Pause, Play, RefreshCw, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { MISSIONS } from "./engine.js";
-import { HypeLayer } from "./hype.jsx";
+import { HypeLayer, StreakMeter } from "./hype.jsx";
 import "./pinball.css";
 
 const BEST_KEY = "pepple-pinball-best-v2";
@@ -50,6 +50,7 @@ export function PepplePinball({ user, renderScoreboard }) {
         Object.assign(s, { engine, audio, renderer, dmd });
         engine.on((type, d) => audio.handle(type, d));
         engine.on((type, d) => s.hype?.(type, d));
+        engine.on((type, d) => s.casino?.(type, d));
         engine.on((type, d) => { if (type === "gameOver") s.onGameOver?.(d); });
         stageRef.current.__pinball = s;
         await renderer.init();
@@ -275,6 +276,7 @@ export function PepplePinball({ user, renderScoreboard }) {
           </div>
         </div>
         <aside className="pbSide">
+          <div className="pbCard pbStreakCard"><StreakMeter streak={snap.streak || 0} best={snap.stats?.bestStreak || 0} variant="side" /></div>
           <div className="pbCard pbScore">
             <span>SCORE</span><strong>{fmt(snap.score)}</strong>
             <div className="pbRow"><em>Ball {Math.min(snap.ball, 3)}{snap.extraBalls ? ` +${snap.extraBalls}` : ""}</em><em>Bonus {snap.bonusX}x</em><em>Rekord {fmt(Math.max(best, snap.score))}</em></div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChibiGirl } from "./crew.jsx";
+import { BonusCasino } from "./casino.jsx";
 import "./hype.css";
 
 // "In your face" layer: giant slam text, speed lines, cabinet quake, the osu!-style hit streak
@@ -34,6 +35,21 @@ function CrewFigure({ who, mood }) {
 
 const pick = (list, n) => list[Math.floor(Math.random() * list.length)].replace("{n}", n);
 const fmt = (n) => Math.round(n || 0).toLocaleString("de-DE");
+
+// osu!-style combo counter. Heat levels: 10 blink, 25 gold flicker, 50 rainbow + shake, 100 fire.
+export function StreakMeter({ streak = 0, best = 0, variant = "stage" }) {
+  const heat = streak >= 100 ? "fire" : streak >= 50 ? "rainbow" : streak >= 25 ? "gold" : streak >= 10 ? "hot" : streak >= 1 ? "on" : "off";
+  return (
+    <div className={`pbStreakMeter v-${variant} heat-${heat}`} aria-label={`Combo ${streak}`}>
+      <div className="pbStreakNum">
+        <b key={streak} data-text={streak}>{streak}</b><i>×</i>
+        {streak > 0 && <span key={`r${streak}`} className="pbStreakRing" />}
+      </div>
+      <small>COMBO</small>
+      {variant === "side" && <em>Beste Serie: {best}</em>}
+    </div>
+  );
+}
 
 export function HypeLayer({ sysRef, snap, best, reduced }) {
   const [girls, setGirls] = useState({ mimi: { mood: "idle", show: false, line: "" }, luna: { mood: "idle", show: false, line: "" } });
@@ -120,11 +136,8 @@ export function HypeLayer({ sysRef, snap, best, reduced }) {
           {girls[who].line && <span key={girls[who].nonce} className="pbBubble">{girls[who].line}</span>}
         </div>
       ))}
-      {streak >= 3 && (
-        <div className={`pbStreak${streak >= 50 ? " hot" : streak >= 25 ? " warm" : ""}`}>
-          <b key={streak}>{streak}<i>×</i></b>
-        </div>
-      )}
+      {streak >= 3 && <div className="pbStreak"><StreakMeter streak={streak} /></div>}
+      <BonusCasino sysRef={sysRef} />
       {hype && (
         <div key={hype.key} className={`pbSlam tone-${hype.tone}`} style={{ "--slam": hype.scale, "--fit": Math.min(1, 3.4 / hype.big.length), "--fitw": Math.min(1, 6.5 / Math.max(1, hype.word.length)) }}>
           {hype.flash && <span className="pbFlash" />}

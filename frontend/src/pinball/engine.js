@@ -596,18 +596,24 @@ export class PinballEngine {
     ].filter(([, v]) => v > 0);
     const base = lines.reduce((a, [, v]) => a + v, 0);
     const total = base * this.bonusX;
-    let at = this.time + 1.2;
-    this.bonusLines = [];
-    for (const [label, v] of lines) {
-      this.timers.push({ at, fn: () => { this.say(label, fmt(v), 650, "count", 8); this.emit("bonusStep", { label, value: v }); } });
-      at += 0.7;
-    }
-    this.timers.push({ at, fn: () => {
-      this.say("BONUS " + this.bonusX + "X", fmt(total), 1500, "flash", 8);
-      this.score += total;
-      this.emit("bonusTotal", { total });
-    } });
-    at += 1.8;
+    // Casino-style count: every line gets time to roll up, then the multiplier slams in,
+    // then the grand total rolls up. Nothing to count (tilt / empty ball) skips straight on.
+    let at = this.time + 1.0;
+    if (base > 0) {
+      this.emit("bonusStart", { lines: lines.length, bonusX: this.bonusX });
+      for (const [label, v] of lines) {
+        this.timers.push({ at, fn: () => { this.say(label, fmt(v), 900, "count", 8); this.emit("bonusStep", { label, value: v }); } });
+        at += 1.1;
+      }
+      this.timers.push({ at, fn: () => this.emit("bonusMult", { base, bonusX: this.bonusX }) });
+      at += 0.9;
+      this.timers.push({ at, fn: () => {
+        this.say("BONUS " + this.bonusX + "X", fmt(total), 2600, "flash", 8);
+        this.score += total;
+        this.emit("bonusTotal", { total, base, bonusX: this.bonusX });
+      } });
+      at += 3.6;
+    } else at += 1.0;
     this.timers.push({ at, fn: () => this.nextBall() });
   }
 

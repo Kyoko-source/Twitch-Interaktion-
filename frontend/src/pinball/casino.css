@@ -1,0 +1,125 @@
+/* ============ Casino-style end-of-ball bonus ============ */
+.pbCasino {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #2a0a00cc 0%, #05020ae6 70%);
+  animation: pbCasinoIn 0.35s ease both;
+}
+@keyframes pbCasinoIn { from { opacity: 0; } }
+.pbCasinoPanel {
+  position: relative;
+  width: min(94%, 600px);
+  padding: 30px 26px 26px;
+  border-radius: 26px;
+  text-align: center;
+  color: #fff;
+  background: radial-gradient(circle at 50% 0%, #7a1020 0%, #2a0510 55%, #12020a 100%);
+  border: 4px solid #ffd36b;
+  box-shadow: 0 0 0 4px #7a3a00, 0 0 60px #ffc94a88, inset 0 0 40px #ff3b4e44;
+  animation: pbCasinoPop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+@keyframes pbCasinoPop { from { transform: scale(0.4) rotate(-6deg); } }
+
+/* Marquee bulbs chasing around the frame. */
+.pbBulbs { position: absolute; inset: -14px; border-radius: 34px; pointer-events: none; }
+.pbBulbs::before, .pbBulbs::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 8px;
+  background: repeating-conic-gradient(from 0deg, #fff6c4 0 3deg, transparent 3deg 9deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: drop-shadow(0 0 6px #ffd36b);
+  animation: pbBulbChase 0.5s steps(2) infinite;
+}
+.pbBulbs::after { background: repeating-conic-gradient(from 6deg, #ff3fb4 0 3deg, transparent 3deg 9deg); filter: drop-shadow(0 0 6px #ff3fb4); animation-delay: 0.25s; }
+@keyframes pbBulbChase { 0% { opacity: 1; } 50% { opacity: 0.15; } 100% { opacity: 1; } }
+.phase-total .pbBulbs::before, .phase-total .pbBulbs::after { animation-duration: 0.18s; }
+
+.pbCasinoPanel header {
+  margin-bottom: 14px;
+  font: italic 900 clamp(26px, 5cqw, 42px) / 1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  background: linear-gradient(180deg, #fff 10%, #ffd36b 55%, #ff9a2a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 16px #ffc94a) drop-shadow(3px 3px 0 #5a1b00);
+}
+.pbCasinoPanel header b { -webkit-text-fill-color: #ff3fb4; animation: pbBlinkFast 0.4s steps(2) infinite; }
+@keyframes pbBlinkFast { 50% { opacity: 0.2; } }
+
+.pbCasinoPanel ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.pbCasinoPanel li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #ffffff12, #ffffff05);
+  border: 1px solid #ffd36b44;
+  animation: pbRowIn 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+@keyframes pbRowIn { from { opacity: 0; transform: translateX(-60px) scale(0.8); } }
+.pbCasinoPanel li span { font-weight: 900; letter-spacing: 0.08em; color: #ffe6b0; font-size: clamp(14px, 2.6cqw, 20px); }
+.pbCasinoPanel li b { font: 900 clamp(20px, 4cqw, 32px) / 1 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums; color: #fff; text-shadow: 0 0 14px #ffc94a; }
+.pbCasinoPanel li.done b { animation: pbLand 0.35s cubic-bezier(0.2, 1.8, 0.4, 1); color: #ffd36b; }
+@keyframes pbLand { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+
+.pbCasinoMult { display: flex; justify-content: center; align-items: baseline; gap: 16px; margin: 8px 0 4px; }
+.pbCasinoMult span { font: 900 clamp(22px, 4cqw, 34px) / 1 Inter, system-ui, sans-serif; color: #ffe6b0; font-variant-numeric: tabular-nums; }
+.pbCasinoMult strong {
+  font: italic 900 clamp(52px, 11cqw, 96px) / 1 Inter, system-ui, sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 3px #ff3fb4;
+  text-shadow: 0 0 30px #ff3fb4, 5px 5px 0 #5a0030;
+  animation: pbMultSlam 0.6s cubic-bezier(0.2, 1.8, 0.4, 1) both, pbMultPulse 0.5s 0.6s ease-in-out infinite alternate;
+}
+@keyframes pbMultSlam { 0% { opacity: 0; transform: scale(4) rotate(-20deg); filter: blur(8px); } 100% { opacity: 1; transform: rotate(-6deg); filter: none; } }
+@keyframes pbMultPulse { to { transform: rotate(-6deg) scale(1.12); } }
+
+.pbCasinoTotal { position: relative; margin-top: 10px; }
+.pbCasinoTotal small { display: block; font-weight: 900; letter-spacing: 0.3em; color: #ffd36b; font-size: 13px; animation: pbBlinkFast 0.5s steps(2) infinite; }
+.pbCasinoTotal strong {
+  display: inline-block;
+  font: italic 900 clamp(46px, 13cqw, 120px) / 1 Inter, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  padding: 0 0.1em;
+  background: linear-gradient(180deg, #fff 5%, #ffe08a 40%, #ff9a2a 75%, #b85a00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.03em #3a1200;
+  filter: drop-shadow(0 0 calc(10px + var(--grow) * 18px) #ffc94a) drop-shadow(4px 4px 0 #3a1200);
+  transform: scale(var(--grow));
+  animation: pbMoneyShake 0.07s linear infinite alternate;
+}
+@keyframes pbMoneyShake { from { translate: calc(var(--shake) * -1) 0; } to { translate: var(--shake) calc(var(--shake) * -0.5); } }
+.pbCasinoTotal.done strong { animation: pbMoneyBoom 0.5s cubic-bezier(0.2, 1.8, 0.4, 1) both, pbMoneyGlow 0.4s 0.5s ease-in-out infinite alternate; transform: scale(1.55); }
+@keyframes pbMoneyBoom { 0% { transform: scale(2.2); filter: drop-shadow(0 0 60px #fff); } 100% { transform: scale(1.55); } }
+@keyframes pbMoneyGlow { to { filter: drop-shadow(0 0 46px #ffd36b) drop-shadow(4px 4px 0 #3a1200) brightness(1.25); } }
+
+.pbCoins { position: absolute; left: -40%; right: -40%; top: -260px; height: 600px; pointer-events: none; overflow: visible; }
+.pbCoins i {
+  position: absolute;
+  top: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8d0 0 18%, #ffd36b 35%, #c98a12 70%, #7a4a00 100%);
+  box-shadow: 0 0 10px #ffc94a;
+  animation: pbCoinFall ease-in forwards;
+  opacity: 0;
+}
+@keyframes pbCoinFall { 0% { opacity: 1; transform: translateY(-40px) rotateY(0) rotate(0); } 100% { opacity: 0.9; transform: translateY(620px) rotateY(var(--r)) rotate(var(--r)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pbCasino, .pbCasinoPanel, .pbBulbs::before, .pbBulbs::after, .pbCasinoPanel li, .pbCasinoMult strong, .pbCasinoTotal strong, .pbCasinoTotal small, .pbCoins { animation: none !important; }
+}

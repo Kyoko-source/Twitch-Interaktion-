@@ -50,24 +50,60 @@
   .pbFull .pbBubble { top: 6%; font-size: clamp(16px, 2vw, 28px); }
   .pbFull .pbGirl-left .pbBubble { left: 74%; right: auto; }
   .pbFull .pbGirl-right .pbBubble { right: 74%; left: auto; }
-  .pbFull .pbStreak { left: 3%; top: 3%; bottom: auto; font-size: clamp(60px, 13vh, 160px); }
+  .pbFull .pbStreak { left: 3%; top: 2%; }
+  .pbFull .pbStreakMeter { --size: clamp(90px, 17vh, 220px); }
 }
 
-/* osu!-style hit streak counter. */
-.pbStreak {
-  position: absolute;
-  left: 12px;
-  bottom: 10px;
-  font: italic 900 clamp(30px, 6.5vmin, 60px) / 1 Inter, system-ui, sans-serif;
-  color: #fff;
-  letter-spacing: -0.03em;
-  -webkit-text-stroke: 2px #1a0628;
-  text-shadow: 0 0 18px #ff3fb4, 4px 4px 0 #ff3fb4;
+/* osu!-style combo counter (stage, fullscreen side and sidebar card). */
+.pbStreak { position: absolute; left: 10px; top: 8px; }
+/* On wide layouts the sidebar card shows the combo, the table stays clear. */
+@media (min-width: 1021px) { .pbShell:not(.pbFull) .pbStreak { display: none; } }
+.pbStreakMeter { display: inline-grid; justify-items: start; line-height: 1; color: #fff; font-family: Inter, system-ui, sans-serif; }
+.pbStreakNum { position: relative; display: flex; align-items: baseline; }
+.pbStreakNum b {
+  position: relative;
+  display: inline-block;
+  font-size: var(--size, clamp(46px, 12cqw, 84px));
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  padding-right: 0.06em;
+  background: linear-gradient(180deg, #fff 15%, var(--c2, #ffb3e2) 60%, var(--c3, #ff3fb4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.035em #1a0628;
+  filter: drop-shadow(0 0 14px var(--glow, #ff3fb4)) drop-shadow(0.05em 0.05em 0 #1a0628);
+  transform-origin: 20% 90%;
+  animation: pbStreakBump 0.28s cubic-bezier(0.2, 1.9, 0.4, 1);
 }
-.pbStreak b { display: inline-block; animation: pbBump 0.22s cubic-bezier(0.2, 1.8, 0.4, 1); transform-origin: 0% 100%; }
-.pbStreak i { font-size: 0.55em; font-style: normal; margin-left: 2px; }
-.pbStreak.warm { text-shadow: 0 0 22px #ffc94a, 4px 4px 0 #ff8a2a; }
-.pbStreak.hot { text-shadow: 0 0 30px #ff3fb4, 4px 4px 0 #3fe7ff, -4px -2px 0 #ffc94a; animation: pbHotPulse 0.5s ease-in-out infinite alternate; }
+.pbStreakNum i { font-size: calc(var(--size, clamp(46px, 12cqw, 84px)) * 0.42); font-style: normal; font-weight: 900; color: var(--c3, #ff3fb4); margin-left: 0.08em; text-shadow: 0 0 12px var(--glow, #ff3fb4); }
+.pbStreakRing { position: absolute; left: 0.2em; top: 50%; width: 1.4em; height: 1.4em; margin-top: -0.7em; border-radius: 50%; border: 4px solid var(--glow, #ff3fb4); font-size: var(--size, clamp(46px, 12cqw, 84px)); pointer-events: none; animation: pbStreakRing 0.45s ease-out forwards; }
+.pbStreakMeter small { margin-top: 2px; font-weight: 900; letter-spacing: 0.4em; font-size: calc(var(--size, clamp(46px, 12cqw, 84px)) * 0.2); color: var(--c2, #ffb3e2); text-shadow: 0 0 10px var(--glow, #ff3fb4); }
+.pbStreakMeter em { margin-top: 8px; font-style: normal; font-size: 12px; font-weight: 700; color: #b9a7d6; letter-spacing: 0.05em; }
+@keyframes pbStreakBump { 0% { transform: scale(1.7) rotate(-6deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes pbStreakRing { 0% { opacity: 1; transform: scale(0.5); } 100% { opacity: 0; transform: scale(2.4); } }
+
+/* Heat levels. */
+.pbStreakMeter.heat-off b { opacity: 0.35; filter: none; }
+.pbStreakMeter.heat-hot { --glow: #ff3fb4; }
+.pbStreakMeter.heat-hot b { animation: pbStreakBump 0.28s cubic-bezier(0.2, 1.9, 0.4, 1), pbStreakBlink 0.5s steps(2) 0.28s infinite; }
+.pbStreakMeter.heat-gold { --c2: #ffe08a; --c3: #ff9a2a; --glow: #ffc94a; }
+.pbStreakMeter.heat-gold b { animation: pbStreakBump 0.28s cubic-bezier(0.2, 1.9, 0.4, 1), pbStreakFlicker 0.25s steps(2) 0.28s infinite; }
+.pbStreakMeter.heat-rainbow { --glow: #3fe7ff; }
+.pbStreakMeter.heat-rainbow b { background-image: linear-gradient(90deg, #ff3fb4, #ffc94a, #5dff8c, #3fe7ff, #b06bff, #ff3fb4); background-size: 220% 100%; animation: pbStreakBump 0.28s cubic-bezier(0.2, 1.9, 0.4, 1), pbRainbow 0.7s linear infinite, pbStreakShake 0.09s linear infinite alternate; }
+.pbStreakMeter.heat-fire { --c2: #ffd36b; --c3: #ff3b1f; --glow: #ff6a00; }
+.pbStreakMeter.heat-fire b { animation: pbStreakBump 0.28s cubic-bezier(0.2, 1.9, 0.4, 1), pbStreakFire 0.15s steps(2) infinite, pbStreakShake 0.06s linear infinite alternate; }
+@keyframes pbStreakBlink { 50% { filter: drop-shadow(0 0 34px var(--glow)) drop-shadow(0.05em 0.05em 0 #1a0628) brightness(1.5); } }
+@keyframes pbStreakFlicker { 50% { filter: drop-shadow(0 0 40px var(--glow)) drop-shadow(0.05em 0.05em 0 #1a0628) brightness(1.6); } }
+@keyframes pbStreakShake { from { translate: -2px 1px; } to { translate: 2px -1px; } }
+@keyframes pbStreakFire { 50% { filter: drop-shadow(0 -8px 30px #ff3b1f) drop-shadow(0 0 50px #ffc94a) brightness(1.4); } }
+
+/* Sidebar card next to the game. */
+.pbStreakCard { display: grid; place-items: center; padding: 18px 12px; overflow: hidden; background: radial-gradient(circle at 50% 30%, #3a0f4a, #140820 70%); }
+.pbStreakCard .pbStreakMeter { --size: clamp(64px, 7vw, 110px); justify-items: center; }
+.pbStreakCard:has(.heat-rainbow), .pbStreakCard:has(.heat-fire) { animation: pbCardPulse 0.4s ease-in-out infinite alternate; }
+@keyframes pbCardPulse { to { box-shadow: 0 0 40px #ff3fb488, inset 0 0 30px #ffc94a44; } }
 
 /* Giant slam text. */
 .pbSlam { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; --c1: #fff; --c2: #ff8fd6; --c3: #ff3fb4; --glow: #ff3fb4; }
@@ -165,7 +201,7 @@
 @keyframes pbBubbleIn { 0% { opacity: 0; transform: scale(0.3) rotate(-10deg); } 100% { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pbGirl, .pbGirl .pbChibi, .pbChibi .pbArm, .pbStreak b, .pbStreak.hot, .pbSlam strong, .pbSlam em, .pbSlam small, .pbChibi .pbAhoge, .pbChibi .pbSparkles { animation: none !important; transition: none !important; }
+  .pbGirl, .pbGirl .pbChibi, .pbChibi .pbArm, .pbStreakNum b, .pbStreakRing, .pbStreakCard, .pbSlam strong, .pbSlam em, .pbSlam small, .pbChibi .pbAhoge, .pbChibi .pbSparkles { animation: none !important; transition: none !important; }
   .pbLines, .pbFlash { display: none; }
 }
 

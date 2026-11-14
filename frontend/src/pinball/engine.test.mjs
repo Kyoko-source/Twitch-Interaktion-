@@ -104,7 +104,7 @@ test("extra ball is collected at the right ramp and played after the drain", () 
   b.rail = null;
   e.ballSaveUntil = 0; e.ballSaveArmed = false;
   e.drain(b);
-  run(e, 8);
+  run(e, 10);
   assert.equal(e.status, "ready");
   assert.equal(e.ball, 1, "shoot again keeps the ball number");
   assert.equal(e.extraBalls, 0);
@@ -130,7 +130,7 @@ test("three nudges in a row tilt the machine: dead flippers, no bonus", () => {
   const before = e.score;
   e.ballSaveUntil = 0;
   e.drain(b);
-  run(e, 6);
+  run(e, 10);
   assert.equal(e.score, before, "tilted ball scores no bonus");
   assert.equal(e.ball, 2);
 });
@@ -144,7 +144,7 @@ test("end of ball bonus is multiplied by the BAR lanes bonus multiplier", () => 
   e.ballSaveUntil = 0; e.ballSaveArmed = false;
   const before = e.score;
   e.drain(b);
-  run(e, 6);
+  run(e, 10);
   assert.equal(e.score - before, 2 * 10_000 * 2);
 });
 
@@ -154,7 +154,7 @@ test("three balls and the game is over", () => {
   for (let n = 0; n < 3; n++) {
     e.status = "play"; e.ballSaveUntil = 0; e.ballSaveArmed = false;
     e.drain(e.world.balls[0]);
-    run(e, 6);
+    run(e, 10);
   }
   assert.equal(e.status, "gameover");
 });
