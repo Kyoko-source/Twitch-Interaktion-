@@ -4,10 +4,10 @@ import { join } from "node:path";
 
 test("failed graphics show retry instead of an endless loader; retry loads a playable scene", async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({ json: route.request().url().includes("auth/me") ? { user: null } : [] }));
-  await page.route("**/assets/chicken-jump-ai-v1.png", route => route.abort());
+  await page.route("**/assets/jump/sprites.webp", route => route.abort());
   await page.goto("/#games/chicken-jump");
   await expect(page.getByRole("button", { name: "Erneut laden", exact: true })).toBeEnabled({ timeout: 18000 });
-  await page.unroute("**/assets/chicken-jump-ai-v1.png");
+  await page.unroute("**/assets/jump/sprites.webp");
   await page.getByRole("button", { name: "Erneut laden", exact: true }).click();
   await expect(page.getByRole("button", { name: "Loslaufen", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Loslaufen", exact: true }).click();
