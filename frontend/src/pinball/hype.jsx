@@ -16,21 +16,23 @@ const LINES = {
 // e.g. { "mimi": { "idle": "mimi-idle.webp", "cheer": "mimi-cheer.webp" }, "luna": { ... } }.
 // Missing moods fall back to the character's idle image, missing characters to the SVG drawing.
 let crewArt = null;
-const crewReady = fetch("/assets/pinball/crew/manifest.json")
+// The manifest is fetched uncached and its "version" busts the week-long image cache.
+const crewFile = (file) => `/assets/pinball/crew/${file}?v=${crewArt?.version || 1}`;
+const crewReady = fetch("/assets/pinball/crew/manifest.json", { cache: "no-store" })
   .then((r) => (r.ok ? r.json() : null))
   .then((m) => {
     crewArt = m && typeof m === "object" ? m : null;
-    for (const set of Object.values(crewArt || {})) for (const file of Object.values(set || {})) { const img = new Image(); img.src = `/assets/pinball/crew/${file}`; }
+    for (const [who, set] of Object.entries(crewArt || {})) if (who !== "version" && set && typeof set === "object") for (const file of Object.values(set)) { const img = new Image(); img.src = crewFile(file); }
   })
   .catch(() => { crewArt = null; });
 
 function CrewFigure({ who, mood }) {
   const [, force] = useState(0);
   useEffect(() => { if (!crewArt) crewReady.then(() => force((n) => n + 1)); }, []);
-  const set = crewArt?.[who];
+  const set = who === "version" ? null : crewArt?.[who];
   const file = set?.[mood] || set?.idle;
   if (!file) return <ChibiGirl who={who} mood={mood} />;
-  return <img className={`pbChibi pbChibiImg pbChibi-${who}`} data-mood={mood} src={`/assets/pinball/crew/${file}`} alt="" draggable="false" />;
+  return <img className={`pbChibi pbChibiImg pbChibi-${who}`} data-mood={mood} src={crewFile(file)} alt="" draggable="false" />;
 }
 
 const pick = (list, n) => list[Math.floor(Math.random() * list.length)].replace("{n}", n);
