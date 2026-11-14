@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { api, setToken } from "./api";
 import { AppShell } from "./ui/CommunityLayout";
 import { ChatToasts, useChatUnread } from "./ui/ChatNotifier";
+import { PurchaseCelebration } from "./economy/PurchaseCelebration";
 import { AdminPage } from "./pages/AdminPage";
 import { AdventPage } from "./pages/AdventPage";
 import { ChatPage } from "./pages/ChatPage";
@@ -120,6 +121,7 @@ function App() {
       {sessionNotice && <p className="notice" role="alert">{sessionNotice}</p>}
       {content}
       <ChatToasts toasts={chatUnread.toasts} dismiss={chatUnread.dismiss} setPage={setPage} />
+      <PurchaseCelebration />
     </AppShell>
   );
 }

@@ -45,7 +45,12 @@ test("shop: one currency, category filters, successful debit updates header and 
   await page.getByRole("button", { name: "Bestrafungs Ideen", exact: true }).click();
   await expect(page.locator(".shopRewardCard")).toHaveCount(2);
   await page.getByRole("button", { name: "Für 450 Chickens kaufen", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("erscheint im Stream");
+  await expect(page.locator(".purchaseSuccess")).toContainText("erscheint im Stream");
+  await expect(page.locator(".buyCelebration")).toContainText("GEKAUFT!");
+  if (process.env.SHOP_SHOT) { await page.waitForTimeout(1000); await page.screenshot({ path: process.env.SHOP_SHOT }); }
+  await expect(page.locator(".buyCelebration")).toContainText("3 Squats");
+  await expect(page.locator(".buyCelebration")).toContainText("−450 Chickens");
+  await expect(page.locator(".balChickens .balDelta")).toHaveText("−450");
   await expect(page.locator(".communityBalances .balChickens")).toHaveText("200Chickens");
   await expect(page.getByRole("button", { name: "Noch 250 Chickens" })).toBeDisabled();
   expect(purchases).toHaveLength(1);

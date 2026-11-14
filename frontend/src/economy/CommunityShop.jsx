@@ -3,6 +3,7 @@ import { ArrowRight, Check, Gamepad2, Gift, Radio, ShoppingBasket, Sparkles } fr
 import { api } from "../api";
 import { publishWallet, requestId } from "./useGameRewards";
 import { CasinoCashier } from "./CasinoCashier";
+import { celebratePurchase, preloadPurchaseSounds } from "./PurchaseCelebration";
 import "./economy.css";
 
 export function CommunityShop({ user, setPage, data, loading, error }) {
@@ -20,9 +21,11 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
     return () => { alive = false; };
   }, [user?.username]);
 
-  async function buy(item) {
+  async function buy(item, event) {
+    const from = event?.currentTarget?.getBoundingClientRect?.();
     if (pending.current) return;
     if (!user) { setPage("login"); return; }
+    preloadPurchaseSounds();
     pending.current = true;
     const key = String(item.id);
     if (!attempts.current.has(key)) attempts.current.set(key, requestId());
@@ -34,6 +37,14 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
       attempts.current.delete(key);
       if (item.style) setOwned((current) => new Set([...current, item.style]));
       setMessage({ text: result.message, error: false });
+      const punishment = ["Bestrafungs Ideen", "Idee Bestrafungsrad"].includes(item.category);
+      celebratePurchase({
+        kind: item.style ? "style" : punishment ? "punishment" : "reward",
+        title: item.name,
+        sub: punishment ? "Erscheint gleich live im Stream!" : item.style ? "Im Chat unter Chat-Animationen auswählbar." : result.message,
+        cost: `−${Number(item.price).toLocaleString("de-DE")} Chickens`,
+        from,
+      });
     } catch (err) {
       setMessage({ text: err.message, error: true });
     } finally { pending.current = false; setBuying(null); }
@@ -56,7 +67,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
         <span className="shopRewardCategory">{item.category || "Reward"}</span><h2>{item.name}</h2>
         <p>{item.description || item.desc || (punishment ? "Du kaufst die Bestrafung – dein Name und deine Auswahl erscheinen live im Stream." : "Ein Reward für deinen nächsten Community-Moment.")}</p>
         <div className="shopRewardPrice"><ShoppingBasket size={15} /><strong>{Number(item.price).toLocaleString("de-DE")}</strong><span>Chickens</span></div>
-        <button type="button" className={isOwned || missing ? "ghost" : ""} disabled={Boolean(buying) || Boolean(isOwned) || Boolean(user && missing)} onClick={() => buy(item)}>{buying === String(item.id) ? "Wird gekauft …" : isOwned ? "Bereits freigeschaltet" : !user ? "Zum Kaufen anmelden" : missing ? `Noch ${missing.toLocaleString("de-DE")} Chickens` : `Für ${Number(item.price).toLocaleString("de-DE")} Chickens kaufen`}</button>
+        <button type="button" className={isOwned || missing ? "ghost" : ""} disabled={Boolean(buying) || Boolean(isOwned) || Boolean(user && missing)} onClick={(event) => buy(item, event)}>{buying === String(item.id) ? "Wird gekauft …" : isOwned ? "Bereits freigeschaltet" : !user ? "Zum Kaufen anmelden" : missing ? `Noch ${missing.toLocaleString("de-DE")} Chickens` : `Für ${Number(item.price).toLocaleString("de-DE")} Chickens kaufen`}</button>
       </article>;
     })}</div>
     {!loading && !error && !items.length && <div className="notice">In dieser Kategorie gibt es noch keine Rewards.</div>}

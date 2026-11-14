@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Coins, Ticket } from "lucide-react";
 import { api } from "../api";
 import { publishWallet, requestId } from "./useGameRewards";
+import { celebratePurchase, preloadPurchaseSounds } from "./PurchaseCelebration";
 import "./casino-cashier.css";
 
 export const gscText = (n) => Math.round(n || 0).toLocaleString("de-DE");
@@ -24,9 +25,11 @@ export function CasinoCashier({ user, setPage }) {
     api("/api/casino").then(setInfo).catch(() => {});
   }, [user?.username]);
 
-  async function act(path, body, key) {
+  async function act(path, body, key, event, show) {
+    const from = event?.currentTarget?.getBoundingClientRect?.();
     if (!user) { setPage?.("login"); return; }
     if (busy) return;
+    preloadPurchaseSounds();
     if (!ids.current.has(key)) ids.current.set(key, requestId());
     setBusy(key); setMessage(null);
     try {
@@ -35,6 +38,7 @@ export function CasinoCashier({ user, setPage }) {
       setInfo(result);
       publishWallet(user.username, result.wallet);
       setMessage({ text: result.message, error: false });
+      if (show) celebratePurchase({ ...show, from });
     } catch (e) { setMessage({ text: e.message, error: true }); }
     setBusy("");
   }
@@ -63,7 +67,7 @@ export function CasinoCashier({ user, setPage }) {
             {packs.map((count) => {
               const cost = count * price, missing = user && (w.chickens ?? 0) < cost;
               return (
-                <button key={count} type="button" className="credit" disabled={Boolean(busy) || Boolean(missing)} onClick={() => act("/api/casino/credits", { count }, `c${count}`)}>
+                <button key={count} type="button" className="credit" disabled={Boolean(busy) || Boolean(missing)} onClick={(event) => act("/api/casino/credits", { count }, `c${count}`, event, { kind: "credits", title: `${count} Credit${count > 1 ? "s" : ""}`, sub: "Bereit für Pinball und Chicken Jackpot!", cost: `−${cost} Chickens`, gain: `+${count} Credit${count > 1 ? "s" : ""}` })}>
                   <b>{count}</b><span>Credit{count > 1 ? "s" : ""}</span><em>{busy === `c${count}` ? "…" : `${cost} Chickens`}</em>
                 </button>
               );
@@ -76,7 +80,7 @@ export function CasinoCashier({ user, setPage }) {
             {exchange.map((p) => {
               const missing = user && (w.gsc ?? 0) < p.gsc;
               return (
-                <button key={p.chickens} type="button" className="swap" disabled={Boolean(busy) || Boolean(missing) || p.chickens > left} onClick={() => act("/api/casino/exchange", { chickens: p.chickens }, `x${p.chickens}`)}>
+                <button key={p.chickens} type="button" className="swap" disabled={Boolean(busy) || Boolean(missing) || p.chickens > left} onClick={(event) => act("/api/casino/exchange", { chickens: p.chickens }, `x${p.chickens}`, event, { kind: "exchange", title: `${p.chickens} Chickens`, sub: "Deine Glücksspiel-Coins wurden ausgezahlt.", cost: `−${gscShort(p.gsc)} GSC`, gain: `+${p.chickens} Chickens` })}>
                   <b>{p.chickens}</b><span>Chickens</span><em>{busy === `x${p.chickens}` ? "…" : `${gscShort(p.gsc)} GSC`}</em>
                 </button>
               );

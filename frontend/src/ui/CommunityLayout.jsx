@@ -10,6 +10,28 @@ const groups = [
 ];
 const number = (value) => Number(value || 0).toLocaleString("de-DE");
 
+// Flashes and shows "+5" / "−450" whenever a balance changes (purchases, wins, payouts).
+function useBalanceDelta(value) {
+  const prev = useRef(value);
+  const [change, setChange] = useState(null);
+  useEffect(() => {
+    const before = prev.current;
+    prev.current = value;
+    if (before == null || value == null || before === value) return undefined;
+    setChange({ delta: value - before, key: Math.random() });
+    const timer = setTimeout(() => setChange(null), 1600);
+    return () => clearTimeout(timer);
+  }, [value]);
+  return change;
+}
+
+function Balance({ className, value, shown, icon: Icon, label, title, short }) {
+  const change = useBalanceDelta(value);
+  const dir = change ? (change.delta > 0 ? "up" : "down") : "";
+  const text = change ? `${change.delta > 0 ? "+" : "−"}${short(Math.abs(change.delta))}` : "";
+  return <span className={`${className}${change ? ` balFlash ${dir}` : ""}`} title={title} key={change?.key}><Icon size={16} /><strong>{shown}</strong><span>{label}</span>{change && <em className={`balDelta ${dir}`} aria-hidden="true">{text}</em>}</span>;
+}
+
 export function MemberAvatar({ user, className = "communityAvatar" }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [user?.avatar_url]);
@@ -67,7 +89,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
       <header className="communityTopbar">
         <div className="pageBreadcrumb"><button ref={menuRef} className="mobileMenu quietIcon" type="button" onClick={() => setMenuOpen(true)} aria-label="Menü öffnen" aria-expanded={menuOpen} aria-controls="main-navigation"><Menu size={22} /></button><Home size={17} strokeWidth={1.7} /><ChevronRight size={14} /><span>{label}</span></div>
         <div className="headerUtilities">
-          {user && <div className="communityBalances"><span className="balChickens"><ShoppingBasket size={16} /><strong>{number(user.chickens)}</strong><span>Chickens</span></span><span className="balCredits" title="Credits: 1 Credit = 1 Runde Pinball oder 1 Spin"><Ticket size={16} /><strong>{number(user.credits)}</strong><span>Credits</span></span><span className="balGsc" title={`Glücksspiel-Coins: ${number(user.gsc)}`}><Coins size={16} /><strong>{gscShort(user.gsc)}</strong><span>GSC</span></span></div>}
+          {user && <div className="communityBalances"><Balance className="balChickens" value={user.chickens} shown={number(user.chickens)} icon={ShoppingBasket} label="Chickens" short={number} /><Balance className="balCredits" title="Credits: 1 Credit = 1 Runde Pinball oder 1 Spin" value={user.credits} shown={number(user.credits)} icon={Ticket} label="Credits" short={number} /><Balance className="balGsc" title={`Glücksspiel-Coins: ${number(user.gsc)}`} value={user.gsc} shown={gscShort(user.gsc)} icon={Coins} label="GSC" short={gscShort} /></div>}
           {user && <button className="quietIcon chatBell" type="button" onClick={() => navigate("chat")} title={chatUnread ? `${chatUnread} ungelesene Nachricht${chatUnread === 1 ? "" : "en"}` : "Nachrichten"} aria-label={chatUnread ? `${chatUnread} ungelesene Nachrichten` : "Nachrichten"}><Mail size={18} />{chatUnread > 0 && <span className="navBadge">{chatUnread > 99 ? "99+" : chatUnread}</span>}</button>}
           {user ? <><button className="accountLink" type="button" onClick={() => navigate("profile")} aria-label={`Profil von ${user.username} öffnen`}><MemberAvatar user={user} /><span>{user.username}</span></button><button className="quietIcon logoutButton" onClick={onLogout} title="Abmelden" aria-label="Abmelden" type="button"><LogOut size={17} /></button></> : <button className="signInButton" onClick={() => navigate("login")} type="button"><LogIn size={16} /> Anmelden</button>}
         </div>
