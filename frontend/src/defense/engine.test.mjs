@@ -55,7 +55,7 @@ test("enemies walk the path, leaks steal eggs and the game ends at zero", () => 
   fox.d = PATH_DATA.a.length - 0.01; run(game, 0.2);
   assert.equal(game.eggs, START_EGGS - ENEMIES.fox.steal);
   assert.ok(events.includes("leak"));
-  game.eggs = 1; game.spawn("badger", "a", PATH_DATA.a.length - 0.01); run(game, 0.2);
+  game.eggs = 1; game.spawn("boar", "a", PATH_DATA.a.length - 0.01); run(game, 0.2);
   assert.equal(game.status, "ended"); assert.ok(events.includes("gameOver"));
 });
 
@@ -107,7 +107,7 @@ test("a tower shoots, kills pay Korn and score, a cleared wave pays a bonus", ()
 test("calling the next wave early pays a bonus", () => {
   const game = new DefenseEngine({ random: seeded(5) }); game.start();
   game.startWave(); run(game, 30);
-  game.spawn("badger", "a");
+  game.spawn("boar", "a");
   const before = game.korn;
   assert.equal(game.startWave(), true);
   assert.ok(game.korn > before);
@@ -116,8 +116,11 @@ test("calling the next wave early pays a bonus", () => {
 test("escalation: exponential hit points, bosses every ten waves, second path at 12, chaos from 15", () => {
   assert.ok(hpScale(10) > 2 && hpScale(10) < 3, "gentle start");
   assert.ok(hpScale(30) > 60);
-  assert.ok(makeWave(10, seeded()).some((s) => s.kind === "wolf"));
-  assert.ok(!makeWave(9, seeded()).some((s) => s.kind === "wolf"));
+  assert.ok(makeWave(10, seeded()).some((s) => s.kind === "golem"));
+  assert.ok(makeWave(20, seeded()).some((s) => s.kind === "lava"));
+  assert.ok(makeWave(30, seeded()).some((s) => s.kind === "dragon"));
+  assert.ok(!makeWave(9, seeded()).some((s) => ENEMIES[s.kind].boss));
+  assert.ok(!makeWave(5, seeded()).some((s) => s.kind === "boar"), "tough enemies come later");
   assert.ok(makeWave(25, seeded()).length > makeWave(5, seeded()).length * 2.5);
   assert.ok(makeWave(12, seeded()).some((s) => s.path === "b"));
   assert.ok(!makeWave(11, seeded()).some((s) => s.path === "b"));
@@ -128,10 +131,10 @@ test("escalation: exponential hit points, bosses every ten waves, second path at
 
 test("rat kings split, shells skip crows, frost slows, poison ticks, sniper pierce ignores armor", () => {
   const game = new DefenseEngine({ random: seeded() }); game.start();
-  const king = game.spawn("ratking", "a", 5);
-  game.damage(king, 1e9);
-  assert.equal(game.enemies.filter((e) => e.kind === "rat").length, ENEMIES.ratking.split);
-  const fox = game.spawn("fox", "a", 8), crow = game.spawn("crow", "a", 0);
+  const slime = game.spawn("slime", "a", 5);
+  game.damage(slime, 1e9);
+  assert.equal(game.enemies.filter((e) => e.kind === "slimelet").length, ENEMIES.slime.split.n);
+  const fox = game.spawn("fox", "a", 8), crow = game.spawn("pilot", "a", 0);
   crow.x = fox.x; crow.y = fox.y;
   const crowHp = crow.hp, foxHp = fox.hp;
   game.explode({ kind: "shell", x: fox.x, y: fox.y, splash: 1, damage: 10 });
@@ -141,7 +144,38 @@ test("rat kings split, shells skip crows, frost slows, poison ticks, sniper pier
   game.applyEffects(fox, { poison: 30, poisonTime: 2 });
   const hp = fox.hp; run(game, 0.5);
   assert.ok(fox.hp < hp - 10);
-  const badger = game.spawn("badger", "a", 2);
-  const a = game.damage(badger, 10, null), b = game.damage(badger, 10, null, { pierce: true });
+  const boar = game.spawn("boar", "a", 2);
+  const a = game.damage(boar, 10, null), b = game.damage(boar, 10, null, { pierce: true });
   assert.ok(b > a);
+});
+
+test("enemy abilities: bombers stun towers, healers heal, shadows hide, engineers jam, raccoons steal Korn, ice ignores slow, the lava titan spawns slimes", () => {
+  const events = [];
+  const game = new DefenseEngine({ onEvent: (e) => events.push(e.type), random: seeded() }); game.start();
+  game.korn = 5000; game.wave = 20;
+  const t = game.build("gatling", 5, 3);
+  const bomber = game.spawn("bomber", "a", 6.5);
+  bomber.x = 5; bomber.y = 2;
+  game.damage(bomber, 1e9);
+  assert.ok(t.disabledUntil > game.time); assert.ok(events.includes("bomb"));
+  const healer = game.spawn("healer", "a", 3), hurt = game.spawn("fox", "a", 3.2);
+  hurt.hp = hurt.maxHp / 2; run(game, 0.5);
+  assert.ok(hurt.hp > hurt.maxHp / 2);
+  void healer;
+  const shadow = game.spawn("shadow", "a", 20);
+  assert.equal(game.visible(shadow), false);
+  shadow.x = t.x + 1; shadow.y = t.y;
+  assert.equal(game.visible(shadow), true);
+  const toxic = game.spawn("toxic", "a", 1); toxic.x = t.x; toxic.y = t.y + 1;
+  assert.ok(game.jamFor(t) < 1);
+  const korn = game.korn;
+  game.spawn("raccoon", "a", PATH_DATA.a.length - 0.01); run(game, 0.05);
+  assert.equal(game.korn, korn - ENEMIES.raccoon.stealKorn);
+  const ice = game.spawn("ice", "a", 1);
+  game.applyEffects(ice, { slow: 0.5, slowTime: 2 });
+  assert.equal(ice.slowUntil, 0);
+  const lava = game.spawn("lava", "a", 5);
+  const slimes = game.enemies.filter((e) => e.kind === "slime").length;
+  game.damage(lava, lava.maxHp * 0.5);
+  assert.equal(game.enemies.filter((e) => e.kind === "slime").length, slimes + 3);
 });

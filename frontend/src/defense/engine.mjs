@@ -113,21 +113,40 @@ export const TOWERS = {
 export const TOWER_ORDER = ["gatling", "frost", "mortar", "sniper", "wizard", "golden", "tesla", "rocket", "medic", "dark"];
 export const MAX_LEVEL = 3;
 
+// Enemy roster (art: the concept sheet). size = drawn height in tiles.
 export const ENEMIES = {
-  fox: { name: "Fuchs", hp: 42, speed: 1.15, bounty: 6, steal: 1, size: 0.36 },
-  rat: { name: "Ratte", hp: 18, speed: 2.1, bounty: 3, steal: 1, size: 0.26 },
-  crow: { name: "Krähe", hp: 34, speed: 1.55, bounty: 8, steal: 1, size: 0.32, flying: true },
-  badger: { name: "Dachs", hp: 160, speed: 0.72, bounty: 16, steal: 2, size: 0.44, armor: 3 },
-  ratking: { name: "Rattenkönig", hp: 130, speed: 0.95, bounty: 14, steal: 2, size: 0.42, split: 4 },
-  wolf: { name: "Wolf", hp: 2000, speed: 0.55, bounty: 220, steal: 5, size: 0.62, armor: 7, boss: true },
+  runner: { name: "Renn-Huhn", hp: 24, speed: 2.0, bounty: 4, steal: 1, size: 0.8, desc: "Schnell und nervig." },
+  fox: { name: "Flieger-Fuchs", hp: 42, speed: 1.15, bounty: 6, steal: 1, size: 0.95, desc: "Der Klassiker unter den Eierdieben." },
+  chicks: { name: "Küken-Bande", hp: 13, speed: 2.4, bounty: 2, steal: 1, size: 0.7, pack: 4, desc: "Kommt immer im Rudel." },
+  spider: { name: "Eier-Spinne", hp: 30, speed: 1.65, bounty: 4, steal: 1, size: 0.75, desc: "Krabbelt flink über den Weg." },
+  pilot: { name: "Flieger-Huhn", hp: 36, speed: 1.5, bounty: 8, steal: 1, size: 0.85, flying: true, desc: "Fliegt direkt zum Nest." },
+  slime: { name: "Schleim-Ei", hp: 90, speed: 0.9, bounty: 10, steal: 1, size: 0.9, split: { kind: "slimelet", n: 2 }, desc: "Platzt in zwei kleine Schleime." },
+  slimelet: { name: "Mini-Schleim", hp: 30, speed: 1.35, bounty: 3, steal: 1, size: 0.55, sprite: "slime", desc: "" },
+  knight: { name: "Ritter-Huhn", hp: 110, speed: 0.8, bounty: 12, steal: 1, size: 0.95, armor: 5, desc: "Schild und Rüstung." },
+  raccoon: { name: "Waschbär-Dieb", hp: 60, speed: 1.3, bounty: 11, steal: 1, stealKorn: 40, size: 0.95, desc: "Klaut auch dein Korn!" },
+  healer: { name: "Druiden-Huhn", hp: 70, speed: 0.95, bounty: 14, steal: 1, size: 0.95, heal: 0.06, desc: "Heilt Gegner in der Nähe." },
+  bomber: { name: "Bomben-Huhn", hp: 70, speed: 1.05, bounty: 12, steal: 2, size: 0.95, bomb: { radius: 1.4, stun: 2.5 }, desc: "Explodiert und lähmt Türme." },
+  boar: { name: "Panzer-Eber", hp: 260, speed: 0.7, bounty: 22, steal: 2, size: 1.05, armor: 7, desc: "Ein gepanzerter Brocken." },
+  shadow: { name: "Schatten-Rabe", hp: 60, speed: 1.4, bounty: 14, steal: 1, size: 0.9, stealth: 1.6, desc: "Unsichtbar, bis er nah an einem Turm ist." },
+  robohawk: { name: "Robo-Falke", hp: 80, speed: 2.0, bounty: 14, steal: 1, size: 0.85, flying: true, armor: 4, desc: "Schnell, fliegt, gepanzert." },
+  ice: { name: "Eis-Vogel", hp: 95, speed: 1.25, bounty: 14, steal: 1, size: 0.9, flying: true, immune: ["slow", "freeze"], desc: "Immun gegen Kälte." },
+  toxic: { name: "Gift-Ingenieur", hp: 120, speed: 0.85, bounty: 18, steal: 1, size: 1.0, jam: { radius: 1.9, factor: 0.55 }, desc: "Stört Türme: sie feuern langsamer." },
+  mech: { name: "Mech-Huhn", hp: 420, speed: 0.6, bounty: 35, steal: 3, size: 1.15, armor: 10, immune: ["stun", "freeze", "pull"], desc: "Stahl auf Beinen." },
+  hydra: { name: "Dreikopf-Huhn", hp: 600, speed: 0.7, bounty: 50, steal: 3, size: 1.2, split: { kind: "runner", n: 3, hp: 1.6 }, desc: "Zerfällt in drei Renn-Hühner." },
+  golem: { name: "Fels-Golem", hp: 2200, speed: 0.5, bounty: 220, steal: 5, size: 1.7, armor: 8, boss: true, immune: ["stun", "freeze", "pull"], desc: "Boss: unaufhaltsamer Fels." },
+  lava: { name: "Lava-Titan", hp: 2600, speed: 0.48, bounty: 380, steal: 6, size: 1.75, armor: 7, boss: true, immune: ["freeze", "pull"], spawnAt: [0.66, 0.33], desc: "Boss: speit Schleim-Eier." },
+  dragon: { name: "Drachenkönig", hp: 3200, speed: 0.55, bounty: 700, steal: 10, size: 1.9, armor: 9, boss: true, flying: true, immune: ["stun", "freeze", "pull", "slow"], desc: "Endboss: fliegt, brennt, regiert." },
 };
+export const BOSS_ORDER = ["golem", "lava", "dragon"];
+// Wave in which each enemy first appears.
+export const ENEMY_UNLOCK = { fox: 1, runner: 1, chicks: 2, spider: 3, pilot: 4, slime: 5, knight: 6, raccoon: 7, healer: 8, bomber: 9, boar: 11, shadow: 12, robohawk: 13, ice: 14, toxic: 16, mech: 18, hydra: 22 };
 
 export const CHAOS_MODS = {
   turbo: { name: "TURBO", desc: "Alle Gegner +45 % Tempo" },
   panzer: { name: "PANZER", desc: "Alle Gegner +6 Rüstung" },
   schwarm: { name: "SCHWARM", desc: "Doppelt so viele, aber schwächer" },
   regen: { name: "REGENERATION", desc: "Gegner heilen sich" },
-  himmel: { name: "LUFTANGRIFF", desc: "Krähen-Schwärme aus allen Richtungen" },
+  himmel: { name: "LUFTANGRIFF", desc: "Flieger-Schwärme aus allen Richtungen" },
 };
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -210,27 +229,28 @@ export function makeWave(wave, random = Math.random, mods = []) {
   const swarm = mods.includes("schwarm") ? 2 : 1;
   const base = Math.round((3 + wave * 1.3 + Math.pow(wave, 1.45) * 0.3) * swarm);
   const gap = Math.max(0.16, 0.95 - wave * 0.028) / (swarm > 1 ? 1.6 : 1);
-  const pool = ["fox"];
-  if (wave >= 3) pool.push("rat");
-  if (wave >= 7) pool.push("rat");
-  if (wave >= 4) pool.push("crow");
-  if (wave >= 7) pool.push("badger");
-  if (wave >= 8) pool.push("ratking");
-  if (wave >= 18) pool.push("badger", "crow", "ratking");
+  const pool = [];
+  for (const [kind, from] of Object.entries(ENEMY_UNLOCK)) {
+    if (wave < from) continue;
+    // fresh enemies are rarer at first, then become regulars
+    const weight = wave - from < 2 ? 1 : ["fox", "runner", "chicks"].includes(kind) && wave > 12 ? 1 : 2;
+    for (let i = 0; i < weight; i++) pool.push(kind);
+  }
   let t = 0;
   for (let i = 0; i < base; i++) {
     let kind = pool[Math.floor(random() * pool.length)];
     if (wave <= 3 && i < 3) kind = "fox";
-    const pack = kind === "rat" ? 3 : 1;
+    const pack = ENEMIES[kind].pack || 1;
     for (let p = 0; p < pack; p++) {
       list.push({ kind, path: paths[(i + p) % paths.length], delay: t });
-      t += kind === "rat" ? gap * 0.35 : gap;
+      t += pack > 1 ? gap * 0.3 : gap;
     }
   }
-  if (mods.includes("himmel")) for (let i = 0; i < 6 + wave; i++) list.push({ kind: "crow", path: paths[i % paths.length], delay: random() * t });
+  if (mods.includes("himmel")) for (let i = 0; i < 6 + wave; i++) list.push({ kind: i % 3 ? "pilot" : "robohawk", path: paths[i % paths.length], delay: random() * t });
   if (wave % 10 === 0) {
-    const bosses = Math.max(1, Math.floor(wave / 20) + (wave >= 30 ? 1 : 0));
-    for (let i = 0; i < bosses; i++) list.push({ kind: "wolf", path: paths[i % paths.length], delay: t + 1.5 + i * 3 });
+    const tier = wave / 10;
+    const bosses = tier <= 3 ? [BOSS_ORDER[tier - 1]] : BOSS_ORDER.slice(0, Math.min(3, tier - 2));
+    bosses.forEach((kind, i) => list.push({ kind, path: paths[i % paths.length], delay: t + 1.5 + i * 4 }));
   }
   return list.sort((x, y) => x.delay - y.delay);
 }
@@ -274,6 +294,7 @@ export class DefenseEngine {
     this.leaks = 0;
     this.shields = 0;
     this.revived = false;
+    this.seen = new Set();
   }
 
   start() { this.reset("playing"); this.onEvent({ type: "start" }); }
@@ -360,13 +381,14 @@ export class DefenseEngine {
     if (this.mods.includes("schwarm")) hp *= 0.6;
     const e = {
       id: nextId++, kind, path: pathKey, d: distance, hp, maxHp: hp, speed, armor, slowUntil: 0, slowFactor: 1, stunUntil: 0, dots: [],
-      flying: !!spec.flying, x: 0, y: 0, dx: 1, dy: 0, regen: this.mods.includes("regen") ? 0.03 : 0,
+      flying: !!spec.flying, x: 0, y: 0, dx: 1, dy: 0, regen: this.mods.includes("regen") ? 0.03 : 0, immune: spec.immune || [], spawned: 0,
       fx: PATH_DATA[pathKey].points[0][0], fy: PATH_DATA[pathKey].points[0][1],
     };
-    if (e.flying && pathKey === "a" && this.mods.includes("himmel")) { e.fx = -1; e.fy = this.random() * ROWS; }
+    if (e.flying && pathKey === "a" && this.mods.includes("himmel") && !spec.boss) { e.fx = -1; e.fy = this.random() * ROWS; }
     this.place(e);
     this.enemies.push(e);
     if (spec.boss) this.emit("boss", { enemy: e });
+    else if (spec.desc && !this.seen.has(kind)) { this.seen.add(kind); this.emit("newEnemy", { kind }); }
     return e;
   }
 
@@ -390,6 +412,14 @@ export class DefenseEngine {
     const real = Math.max(amount * 0.25, amount - armor);
     e.hp -= real;
     e.hitAt = this.time;
+    const spec = ENEMIES[e.kind];
+    if (spec.spawnAt && e.hp > 0) {
+      while (e.spawned < spec.spawnAt.length && e.hp / e.maxHp < spec.spawnAt[e.spawned]) {
+        e.spawned++;
+        for (let i = 0; i < 3; i++) this.spawn("slime", e.path, Math.max(0, e.d + 0.4 - i * 0.4));
+        this.emit("bossSpawn", { enemy: e });
+      }
+    }
     if (opts.crit) e.critAt = this.time;
     if (e.hp <= 0) this.kill(e, source);
     return real;
@@ -406,20 +436,45 @@ export class DefenseEngine {
     this.kills++;
     if (source) source.kills++;
     this.emit("kill", { enemy: e, bounty });
-    if (spec.split) for (let i = 0; i < spec.split; i++) {
-      const child = this.spawn("rat", e.path, Math.max(0, e.d - i * 0.35));
-      child.hp = child.maxHp = child.maxHp * 0.7;
+    if (spec.split) {
+      for (let i = 0; i < spec.split.n; i++) {
+        const child = this.spawn(spec.split.kind, e.path, Math.max(0, e.d - i * 0.35));
+        if (spec.split.hp) child.hp = child.maxHp = child.maxHp * spec.split.hp;
+        if (e.flying) { child.flying = false; }
+      }
+    }
+    if (spec.bomb) {
+      const hit = this.towers.filter((t) => dist(t, e) <= spec.bomb.radius);
+      for (const t of hit) t.disabledUntil = this.time + spec.bomb.stun;
+      this.emit("bomb", { x: e.x, y: e.y, radius: spec.bomb.radius, towers: hit.length });
     }
   }
 
   targetsFor(tower, stats) {
-    const list = this.enemies.filter((e) => e.hp > 0 && (stats.air || !e.flying) && dist(e, tower) <= stats.range);
+    const list = this.enemies.filter((e) => e.hp > 0 && (stats.air || !e.flying) && dist(e, tower) <= stats.range && this.visible(e));
     if (!list.length) return list;
     const progress = (e) => (e.flying ? e.d * 1.2 : e.d);
     if (tower.targeting === "strong") list.sort((a, b) => b.hp - a.hp);
     else if (tower.targeting === "last") list.sort((a, b) => progress(a) - progress(b));
     else list.sort((a, b) => progress(b) - progress(a));
     return list;
+  }
+
+  /** Shadow ravens can only be targeted close to a tower. */
+  visible(e) {
+    const stealth = ENEMIES[e.kind].stealth;
+    if (!stealth) return true;
+    return this.towers.some((t) => dist(t, e) <= stealth);
+  }
+
+  /** Toxic engineers jam towers close to them. */
+  jamFor(tower) {
+    let f = 1;
+    for (const e of this.enemies) {
+      const jam = ENEMIES[e.kind].jam;
+      if (jam && e.hp > 0 && dist(e, tower) <= jam.radius) f = Math.min(f, jam.factor);
+    }
+    return f;
   }
 
   /** Damage / rate multiplier from medic towers nearby. */
@@ -443,6 +498,8 @@ export class DefenseEngine {
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
       if (e.regen) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * e.regen * dt);
+      const heal = ENEMIES[e.kind].heal;
+      if (heal) for (const o of this.enemies) if (o !== e && o.hp > 0 && o.hp < o.maxHp && dist(o, e) <= 1.6) o.hp = Math.min(o.maxHp, o.hp + o.maxHp * heal * dt);
       if (e.dots.length) {
         e.dots = e.dots.filter((d) => d.until > this.time);
         for (const d of e.dots) this.damage(e, d.dps * dt, d.source, { pierce: true });
@@ -458,7 +515,9 @@ export class DefenseEngine {
         if (this.shields > 0) { this.shields--; this.emit("shielded", { enemy: e }); continue; }
         this.eggs = Math.max(0, this.eggs - steal);
         this.leaks++;
-        this.emit("leak", { enemy: e, steal });
+        const korn = Math.min(this.korn, ENEMIES[e.kind].stealKorn || 0);
+        this.korn -= korn;
+        this.emit("leak", { enemy: e, steal, korn });
         if (this.eggs <= 0 && !this.revived) {
           const reviver = this.towers.find((t) => this.stats(t).revive);
           if (reviver) { this.revived = true; this.eggs = this.stats(reviver).revive; this.emit("revive", { tower: reviver }); }
@@ -496,8 +555,11 @@ export class DefenseEngine {
   act(t, dt) {
     const s = this.stats(t);
     if (s.type === "econ" || s.type === "aura") { t.firing = false; return; }
+    t.disabled = this.time < (t.disabledUntil || 0);
+    if (t.disabled) { t.firing = false; return; }
     const buff = this.buffFor(t);
-    t.cooldown -= dt * buff;
+    t.jammed = this.jamFor(t);
+    t.cooldown -= dt * buff * t.jammed;
     if (s.type === "pulse") {
       if (t.cooldown > 0) return;
       const inRange = this.enemies.filter((e) => e.hp > 0 && (s.air || !e.flying) && dist(e, t) <= s.splash);
@@ -506,8 +568,8 @@ export class DefenseEngine {
       for (const e of inRange) {
         this.damage(e, s.damage * buff, t);
         if (s.slow) this.applyEffects(e, { slow: s.slow, slowTime: s.slowTime });
-        if (s.stun) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun);
-        if (s.pull && !ENEMIES[e.kind].boss) { e.d = Math.max(0, e.d - s.pull); this.place(e); }
+        if (s.stun && !e.immune.includes("stun")) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun);
+        if (s.pull && !e.immune.includes("pull") && !e.flying) { e.d = Math.max(0, e.d - s.pull); this.place(e); }
       }
       this.emit("pulse", { tower: t, radius: s.splash, fx: s.pulseFx || (s.pull ? "hole" : "gravity") });
       return;
@@ -538,7 +600,7 @@ export class DefenseEngine {
         hit.push(next); last = next;
       }
       const points = [{ x: t.x, y: t.y }, ...hit.map((e) => ({ x: e.x, y: e.y }))];
-      hit.forEach((e, i) => { this.damage(e, dmg * Math.pow(0.8, i), t); if (s.stun) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun); });
+      hit.forEach((e, i) => { this.damage(e, dmg * Math.pow(0.8, i), t); if (s.stun && !e.immune.includes("stun")) e.stunUntil = Math.max(e.stunUntil, this.time + s.stun); });
       this.emit("zap", { tower: t, points, emp: !!s.stun });
       return;
     }
@@ -614,12 +676,12 @@ export class DefenseEngine {
 
   applyEffects(e, p) {
     if (e.hp <= 0) return;
-    if (p.slow) {
+    if (p.slow && !e.immune.includes("slow")) {
       e.slowFactor = this.time < e.slowUntil ? Math.min(e.slowFactor, 1 - p.slow) : 1 - p.slow;
       e.slowUntil = Math.max(e.slowUntil, this.time + p.slowTime);
     }
     if (p.poison) e.dots.push({ dps: p.poison, until: this.time + p.poisonTime, source: p.tower, kind: "poison" });
-    if (p.freeze && this.random() < p.freeze && !ENEMIES[e.kind].boss) { e.stunUntil = this.time + p.freezeTime; e.frozenUntil = this.time + p.freezeTime; this.emit("freeze", { x: e.x, y: e.y }); }
+    if (p.freeze && this.random() < p.freeze && !e.immune.includes("freeze")) { e.stunUntil = this.time + p.freezeTime; e.frozenUntil = this.time + p.freezeTime; this.emit("freeze", { x: e.x, y: e.y }); }
   }
 
   explode(p) {

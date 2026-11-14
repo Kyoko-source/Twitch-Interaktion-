@@ -57,12 +57,13 @@ test("build towers, play a wave, upgrade to a branch, lose and save the score", 
   // A busy board for the screenshot.
   await game(page, `const e = g.engine; const spots = [[7,5],[11,6],[16,8],[12,2],[16,5],[2,7],[7,11],[10,12],[18,4],[15,12]];
     ["frost","mortar","sniper","wizard","golden","tesla","rocket","medic","dark","gatling"].forEach((k, i) => { const t = e.build(k, spots[i][0], spots[i][1]); if (t) { e.upgrade(t.id); e.upgrade(t.id); e.upgrade(t.id, Object.keys(e.constructor && t ? {} : {})[0]); } });
-    e.startWave(); for (let i = 0; i < 25; i++) e.spawn(["fox","rat","crow","badger","ratking"][i % 5], i % 2 ? "a" : "b", i * 0.8);
-    e.spawn("wolf", "a", 20);`);
+    e.startWave(); const kinds = ["runner","spider","fox","raccoon","knight","pilot","robohawk","slime","chicks","bomber","healer","shadow","ice","boar","toxic","mech","hydra"];
+    kinds.forEach((k, i) => e.spawn(k, i % 2 ? "a" : "b", 2 + i * 1.6));
+    e.spawn("golem", "a", 24); e.spawn("dragon", "b", 10);`);
   await page.waitForTimeout(2500);
   if (shots) await page.locator(".cdShell").screenshot({ path: `${shots}/cd-battle.png` });
 
-  await game(page, "g.engine.eggs = 1; g.engine.spawn('wolf', 'a', 40);");
+  await game(page, "g.engine.eggs = 1; g.engine.towers.forEach((t) => { t.disabledUntil = 1e9; }); g.engine.spawn('lava', 'a', 40);");
   await expect(page.getByText("Das Nest ist leer!")).toBeVisible({ timeout: 30_000 });
   if (shots) { await page.waitForTimeout(1500); await page.locator(".cdShell").screenshot({ path: `${shots}/cd-over.png` }); }
   await page.getByRole("button", { name: "Score speichern" }).click();
