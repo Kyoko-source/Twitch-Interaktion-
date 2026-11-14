@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ChevronsLeft, ChevronsRight, HelpCircle, Maximize, Minimize, Music, Pause, Play, RefreshCw, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { MISSIONS } from "./engine.js";
+import { HypeLayer } from "./hype.jsx";
 import "./pinball.css";
 
 const BEST_KEY = "pepple-pinball-best-v2";
@@ -30,6 +31,7 @@ export function PepplePinball({ user, renderScoreboard }) {
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState("");
   const pausedRef = useRef(false);
+  const [reducedMotion] = useState(() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } });
 
   useEffect(() => {
     let cancelled = false, frame = 0;
@@ -41,11 +43,13 @@ export function PepplePinball({ user, renderScoreboard }) {
         const engine = new PinballEngine();
         const audio = new PinballAudio();
         const saved = readAudio();
+        audio.best = readBest();
         audio.sfxVolume = saved.sfx; audio.musicVolume = saved.music; audio.sfxOn = saved.sfxOn; audio.musicOn = saved.musicOn;
         const renderer = new PinballRenderer(stageRef.current, engine, { quality: matchMedia("(max-width: 720px)").matches ? "low" : "high" });
         const dmd = new DMD(dmdRef.current);
         Object.assign(s, { engine, audio, renderer, dmd });
         engine.on((type, d) => audio.handle(type, d));
+        engine.on((type, d) => s.hype?.(type, d));
         engine.on((type, d) => { if (type === "gameOver") s.onGameOver?.(d); });
         stageRef.current.__pinball = s;
         await renderer.init();
@@ -82,6 +86,7 @@ export function PepplePinball({ user, renderScoreboard }) {
   // Keep the latest callbacks reachable from the game loop.
   useEffect(() => {
     sys.current.best = best;
+    if (sys.current.audio) sys.current.audio.best = best;
     sys.current.onGameOver = async ({ score }) => {
       if (score > best) { setBest(score); writeBest(score); }
       if (!user) { setMessage("Melde dich an, damit dein Score in die Rangliste kommt."); return; }
@@ -260,6 +265,7 @@ export function PepplePinball({ user, renderScoreboard }) {
             )}
             {paused && <div className="pbOverlay pbStart"><span>PAUSE</span><strong>{fmt(snap.score)}</strong><button type="button" onClick={() => setPausedState(false)}><Play size={20} fill="currentColor" />Weiter</button></div>}
             {st === "ready" && !paused && <div className="pbPlungeHint">Leertaste halten & loslassen<br /><small>Flipper-Tasten verschieben die Skill-Shot-Bahn</small></div>}
+            <HypeLayer sysRef={sys} snap={snap} best={best} reduced={reducedMotion} />
             <div className="pbPlungeMeter" aria-hidden="true"><i style={{ height: `${snap.plunger * 100}%` }} /><b /></div>
           </div>
           <div className="pbTouch">

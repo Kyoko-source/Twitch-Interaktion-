@@ -1,0 +1,167 @@
+/* ===================== Hype layer: girls, giant slams, hit streak ===================== */
+.pbStage { container-type: size; }
+.pbHypeRoot { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+
+.pbGirl { position: absolute; top: 1%; height: 34%; max-height: 300px; aspect-ratio: 3 / 4; transition: transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.pbGirl .pbChibi { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 18px #0009); }
+.pbGirl-left { left: 0; transform: translateX(-115%) rotate(-18deg); transform-origin: 0% 100%; }
+.pbGirl-right { right: 0; transform: translateX(115%) rotate(18deg); transform-origin: 100% 100%; }
+.pbGirl-left.show { transform: translateX(-14%) rotate(8deg); }
+.pbGirl-right.show { transform: translateX(14%) rotate(-8deg); }
+.pbGirl.show .pbChibi { animation: pbGirlBob 0.5s ease-in-out infinite alternate; }
+.pbGirl[data-mood="cheer"].show .pbChibi, .pbGirl[data-mood="hype"].show .pbChibi { animation: pbGirlJump 0.32s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }
+.pbGirl[data-mood="shock"].show .pbChibi { animation: pbGirlShake 0.08s linear infinite alternate; }
+.pbGirl[data-mood="sad"].show .pbChibi { animation: none; transform: translateY(6%) rotate(-3deg); }
+.pbChibi .pbArm { transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.pbChibi[data-mood="hype"] .pbArm-l { animation: pbWaveL 0.22s ease-in-out infinite alternate; }
+.pbChibi[data-mood="hype"] .pbArm-r { animation: pbWaveR 0.22s ease-in-out infinite alternate; }
+.pbChibi[data-mood="cheer"] .pbArm-l { animation: pbWaveL 0.34s ease-in-out infinite alternate; }
+.pbChibi[data-mood="cheer"] .pbArm-r { animation: pbWaveR 0.34s ease-in-out infinite alternate-reverse; }
+.pbChibi .pbSparkles { animation: pbTwinkle 0.4s steps(2) infinite; }
+.pbChibi .pbAhoge { transform-origin: 120px 58px; animation: pbAhoge 0.6s ease-in-out infinite alternate; }
+
+.pbBubble {
+  position: absolute;
+  top: 2%;
+  padding: 8px 13px;
+  border-radius: 18px;
+  border: 3px solid #1a0628;
+  background: #fff;
+  color: #1a0628;
+  font: italic 900 clamp(13px, 1.6vw, 18px) / 1.15 Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  box-shadow: 4px 4px 0 #ff3fb4;
+  animation: pbBubbleIn 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+.pbGirl-left .pbBubble { top: 96%; left: 12%; }
+.pbGirl-right .pbBubble { top: 96%; right: 12%; box-shadow: -4px 4px 0 #3fe7ff; }
+.pbBubble { font-size: clamp(11px, 3.4cqw, 18px); }
+
+/* Wide fullscreen: the girls live in the empty space left and right of the cabinet. */
+@media (min-aspect-ratio: 5/4) {
+  .pbFull .pbGirl { top: auto; bottom: 1%; height: 74%; max-height: none; }
+  .pbFull .pbGirl-left { left: 2%; transform: none; }
+  .pbFull .pbGirl-right { right: 2%; transform: none; }
+  .pbFull .pbGirl .pbChibi { animation: pbGirlBob 0.9s ease-in-out infinite alternate; }
+  .pbFull .pbGirl.show .pbChibi { animation-duration: 0.45s; }
+  .pbFull .pbGirl[data-mood="cheer"] .pbChibi, .pbFull .pbGirl[data-mood="hype"] .pbChibi { animation: pbGirlJump 0.32s cubic-bezier(0.3, 0, 0.5, 1) infinite alternate; }
+  .pbFull .pbBubble { top: -2%; left: 50%; right: auto; transform: translateX(-50%); font-size: clamp(16px, 2.2vw, 30px); }
+  .pbFull .pbGirl-left .pbBubble, .pbFull .pbGirl-right .pbBubble { left: 50%; right: auto; }
+  .pbFull .pbStreak { left: 3%; top: 3%; bottom: auto; font-size: clamp(60px, 13vh, 160px); }
+}
+
+/* osu!-style hit streak counter. */
+.pbStreak {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  font: italic 900 clamp(30px, 6.5vmin, 60px) / 1 Inter, system-ui, sans-serif;
+  color: #fff;
+  letter-spacing: -0.03em;
+  -webkit-text-stroke: 2px #1a0628;
+  text-shadow: 0 0 18px #ff3fb4, 4px 4px 0 #ff3fb4;
+}
+.pbStreak b { display: inline-block; animation: pbBump 0.22s cubic-bezier(0.2, 1.8, 0.4, 1); transform-origin: 0% 100%; }
+.pbStreak i { font-size: 0.55em; font-style: normal; margin-left: 2px; }
+.pbStreak.warm { text-shadow: 0 0 22px #ffc94a, 4px 4px 0 #ff8a2a; }
+.pbStreak.hot { text-shadow: 0 0 30px #ff3fb4, 4px 4px 0 #3fe7ff, -4px -2px 0 #ffc94a; animation: pbHotPulse 0.5s ease-in-out infinite alternate; }
+
+/* Giant slam text. */
+.pbSlam { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; --c1: #fff; --c2: #ff8fd6; --c3: #ff3fb4; --glow: #ff3fb4; }
+.pbSlam.tone-gold { --c2: #ffe08a; --c3: #ff9a2a; --glow: #ffc94a; }
+.pbSlam.tone-cyan { --c2: #9ff6ff; --c3: #1fb8ff; --glow: #3fe7ff; }
+.pbSlam.tone-green { --c2: #b6ffcb; --c3: #1fd86a; --glow: #5dff8c; }
+.pbSlam.tone-red { --c2: #ffb0b0; --c3: #ff2a4a; --glow: #ff3b4e; }
+.pbSlam strong, .pbSlam em {
+  position: relative;
+  display: block;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.88;
+  letter-spacing: -0.05em;
+  padding: 0 0.12em;
+  background: linear-gradient(180deg, var(--c1) 8%, var(--c2) 48%, var(--c3) 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 0.035em #1a0628;
+  filter: drop-shadow(0 0 28px var(--glow)) drop-shadow(0.06em 0.06em 0 #1a0628);
+}
+.pbSlam strong { font-size: calc(min(30cqh, 30cqw) * var(--slam, 1) * var(--fit, 1)); animation: pbSlamIn 1.35s cubic-bezier(0.15, 0.9, 0.3, 1) both; }
+.pbSlam em { margin-top: -0.05em; font-size: calc(min(12cqh, 13cqw) * var(--slam, 1) * var(--fitw, 1)); animation: pbSlamWord 1.35s cubic-bezier(0.15, 0.9, 0.3, 1) both; }
+.pbSlam strong::after, .pbSlam em::after {
+  opacity: 0.38 !important;
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  padding: 0 0.12em;
+  color: #3fe7ff;
+  -webkit-text-stroke: 0;
+  background: none;
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  animation: pbRgb 0.12s steps(2) infinite;
+}
+.pbSlam small { margin-top: 0.3em; font: 900 clamp(18px, min(5cqh, 7cqw), 56px) / 1 Inter, system-ui, sans-serif; color: #fff; -webkit-text-stroke: 1.5px #1a0628; text-shadow: 0 0 16px var(--glow); animation: pbSlamWord 1.35s ease both; font-variant-numeric: tabular-nums; }
+.pbSlam.tone-rainbow strong, .pbSlam.tone-rainbow em {
+  background-image: linear-gradient(90deg, #ff3fb4, #ffc94a, #5dff8c, #3fe7ff, #b06bff, #ff3fb4);
+  background-size: 200% 100%;
+}
+.pbSlam.tone-rainbow strong { animation: pbSlamIn 1.35s cubic-bezier(0.15, 0.9, 0.3, 1) both, pbRainbow 0.6s linear infinite; }
+.pbSlam.tone-rainbow em { animation: pbSlamWord 1.35s cubic-bezier(0.15, 0.9, 0.3, 1) both, pbRainbow 0.6s linear infinite; }
+.pbLines {
+  position: absolute;
+  inset: -60%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.26) 0deg 1.3deg, transparent 1.3deg 7deg);
+  -webkit-mask: radial-gradient(circle, transparent 18%, #000 42%);
+  mask: radial-gradient(circle, transparent 18%, #000 42%);
+  animation: pbLines 1.2s ease-out both;
+}
+.pbFlash { position: absolute; inset: 0; background: radial-gradient(circle, #fff 0%, var(--glow) 55%, transparent 100%); animation: pbFlash 0.38s ease-out both; mix-blend-mode: screen; }
+
+.pbMachine.pbQuake { animation: pbQuake 0.5s cubic-bezier(0.3, 0, 0.3, 1); }
+
+@keyframes pbSlamIn {
+  0% { opacity: 0; transform: scale(3.4) rotate(-14deg); }
+  9% { opacity: 1; transform: scale(0.86) rotate(-5deg); }
+  17% { transform: scale(1.12) rotate(-6deg); }
+  26% { transform: scale(1) rotate(-6deg); }
+  72% { opacity: 1; transform: scale(1.04) rotate(-6deg); }
+  100% { opacity: 0; transform: scale(1.3) translateY(-10%) rotate(-6deg); }
+}
+@keyframes pbSlamWord {
+  0%, 8% { opacity: 0; transform: translateX(40%) skewX(-20deg); }
+  18% { opacity: 1; transform: translateX(-4%) skewX(-6deg); }
+  26% { transform: translateX(0) skewX(-6deg); }
+  74% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-20%) skewX(-6deg); }
+}
+@keyframes pbRgb { 0% { transform: translate(-0.04em, 0.02em); } 100% { transform: translate(0.03em, -0.02em); } }
+@keyframes pbRainbow { to { background-position: 200% 0; } }
+@keyframes pbLines { 0% { opacity: 0; transform: rotate(0deg) scale(0.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: rotate(25deg) scale(1.15); } }
+@keyframes pbFlash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+@keyframes pbQuake {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(calc(var(--quake, 1) * -9px), calc(var(--quake, 1) * 5px)) rotate(-0.4deg); }
+  25% { transform: translate(calc(var(--quake, 1) * 8px), calc(var(--quake, 1) * -6px)) rotate(0.4deg); }
+  40% { transform: translate(calc(var(--quake, 1) * -6px), calc(var(--quake, 1) * 3px)); }
+  60% { transform: translate(calc(var(--quake, 1) * 4px), calc(var(--quake, 1) * -2px)); }
+  80% { transform: translate(calc(var(--quake, 1) * -2px), 1px); }
+  100% { transform: none; }
+}
+@keyframes pbBump { 0% { transform: scale(1.45); } 100% { transform: scale(1); } }
+@keyframes pbHotPulse { to { transform: scale(1.06); } }
+@keyframes pbGirlBob { from { transform: translateY(0); } to { transform: translateY(-2.5%); } }
+@keyframes pbGirlJump { from { transform: translateY(0) scale(1, 1); } to { transform: translateY(-9%) scale(0.97, 1.03); } }
+@keyframes pbGirlShake { from { transform: translateX(-1.5%); } to { transform: translateX(1.5%); } }
+@keyframes pbWaveL { from { transform: rotate(112deg); } to { transform: rotate(150deg); } }
+@keyframes pbWaveR { from { transform: rotate(-112deg); } to { transform: rotate(-150deg); } }
+@keyframes pbTwinkle { 50% { opacity: 0.2; } }
+@keyframes pbAhoge { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+@keyframes pbBubbleIn { 0% { opacity: 0; transform: scale(0.3) rotate(-10deg); } 100% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pbGirl, .pbGirl .pbChibi, .pbChibi .pbArm, .pbStreak b, .pbStreak.hot, .pbSlam strong, .pbSlam em, .pbSlam small, .pbChibi .pbAhoge, .pbChibi .pbSparkles { animation: none !important; transition: none !important; }
+  .pbLines, .pbFlash { display: none; }
+}

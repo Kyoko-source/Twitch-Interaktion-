@@ -22,3 +22,5 @@ All CC0 (public domain), credited anyway:
 - `music/pinball/attract.mp3`: "arcade background music" by aqrezes, https://opengameart.org/content/arcade-background-music
 
 Music files were loudness-normalised (-17 LUFS) and re-encoded to MP3; nothing else was changed. The pinball uses no synthesized tones or oscillators; music can be switched off in the game.
+- Announcer voices (`audio/pinball/vo-*.ogg`): Kenney Voiceover Pack and Voiceover Pack: Fighter, CC0 (https://kenney.nl).
+- The chibi girls Mimi and Luna are original SVG drawings in `src/pinball/crew.jsx`.

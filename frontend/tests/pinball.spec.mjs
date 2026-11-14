@@ -134,3 +134,19 @@ test("fullscreen mode fills the window and volume sliders change and remember th
   await page.waitForFunction(() => document.querySelector(".pbStage")?.__pinball?.audio, null, { timeout: 30000 });
   expect(await game(page, "return [s.audio.sfxVolume, s.audio.musicVolume, s.audio.sfxOn]")).toEqual([0.3, 0.1, false]);
 });
+
+test("combos slam giant numbers, the girls cheer and the hit streak counts up", async ({ page }) => {
+  await mockApi(page);
+  await openPinball(page);
+  await page.keyboard.press("Enter");
+  await game(page, "const e = s.engine; e.status = 'play'; for (let i = 0; i < 12; i++) e.switchHit(); e.lastMajorAt = e.time; e.combo = 2; e.major('rampR', 25000, 'NEON');");
+  await expect(page.locator(".pbSlam strong")).toHaveText("3×");
+  await expect(page.locator(".pbSlam em")).toHaveText("COMBO!");
+  await expect(page.locator(".pbGirl.show")).toHaveCount(2);
+  await expect(page.locator(".pbGirl-left")).toHaveAttribute("data-mood", "cheer");
+  await expect(page.locator(".pbStreak")).toContainText("12");
+  await game(page, "s.engine.streak = 30; s.engine.breakStreak();");
+  await expect(page.locator(".pbSlam em")).toHaveText("BREAKER");
+  await expect(page.locator(".pbGirl-right")).toHaveAttribute("data-mood", "shock");
+  await expect(page.locator(".pbStreak")).toHaveCount(0);
+});

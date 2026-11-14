@@ -6,6 +6,10 @@ const SFX = [
   "skill-shot", "mission-start", "mission-complete", "mission-fail", "extra-ball", "extra-ball-lit", "combo", "ball-save",
   "drain", "game-over", "tilt", "tilt-warning", "kickback", "launch", "plunger", "rail-clack", "ball-click", "bonus-step",
   "bonus-total", "vip-lit", "bumper-level", "lanes-complete", "mission-lit", "ball-search", "new-ball", "game-start", "wizard", "launch-zap",
+  "vo-combo", "vo-combo-breaker", "vo-flawless", "vo-winner", "vo-fight", "vo-sudden-death", "vo-multi",
+  "vo-f-congratulations", "vo-f-level-up", "vo-f-mission-completed", "vo-f-mission-failed", "vo-f-new-highscore", "vo-f-power-up",
+  "vo-f-go", "vo-f-correct", "vo-f-ready", "vo-f-game-over", "vo-f-hurry-up",
+  "vo-num-2", "vo-num-3", "vo-num-4", "vo-num-5", "vo-num-6", "vo-num-7", "vo-num-8", "vo-num-9", "vo-num-10",
 ];
 const MUSIC = { attract: "/music/pinball/attract.mp3", play: "/music/pinball/play.mp3", multiball: "/music/pinball/multiball.mp3" };
 const JINGLES = new Set(["multiball", "jackpot", "super-jackpot", "skill-shot", "mission-start", "mission-complete", "extra-ball", "game-over", "bonus-total", "new-ball", "game-start", "wizard"]);
@@ -116,8 +120,18 @@ export class PinballAudio {
     else { if (this.musicOn) this.track?.el.play().catch(() => {}); this.ctx?.resume().catch(() => {}); }
   }
 
+  // Announcer voice (CC0 Kenney voiceover packs); one line at a time.
+  voice(name, delay = 0) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (now + delay < (this.voiceFree || 0)) return;
+    this.voiceFree = now + delay + 1.1;
+    this.play(name, { gain: 1, gap: 0.2, delay });
+  }
+
   // Map engine events to sounds.
   handle(type, d = {}) {
+    this.voiceFor(type, d);
     const panOf = (x) => (x === undefined ? 0 : (x - 4.65) / 6);
     switch (type) {
       case "flipper": this.play(d.up ? "flipper-up" : "flipper-down", { gain: d.up ? 0.7 : 0.35, rate: d.up ? 1.05 : 0.9, pan: d.side === "left" ? -0.3 : 0.3, gap: 0.02 }); break;
@@ -165,6 +179,28 @@ export class PinballAudio {
       case "ballSearch": this.play("ball-search", { gain: 0.6 }); break;
       case "newBall": case "shootAgain": this.play("new-ball", { gain: 0.7 }); break;
       case "gameStart": this.play("game-start", { gain: 0.8 }); this.music("play"); break;
+      default: break;
+    }
+  }
+
+  voiceFor(type, d) {
+    switch (type) {
+      case "combo": if (d.count >= 2 && d.count <= 10) { this.voiceFree = 0; this.voice(`vo-num-${d.count}`); this.voiceFree = 0; this.voice("vo-combo", 0.62); } else this.voice("vo-combo"); break;
+      case "jackpot": this.voice(d.wizard ? "vo-multi" : "vo-f-power-up", 0.4); break;
+      case "superJackpot": this.voice("vo-flawless", 0.5); break;
+      case "multiball": this.voice("vo-fight", 0.6); break;
+      case "wizard": this.voice("vo-sudden-death", 0.6); break;
+      case "skillShot": this.voice("vo-winner", 0.3); break;
+      case "missionStart": this.voice("vo-f-go", 0.5); break;
+      case "missionComplete": this.voice("vo-f-mission-completed", 0.5); break;
+      case "missionFail": this.voice("vo-f-mission-failed"); break;
+      case "missionHurry": this.voice("vo-f-hurry-up"); break;
+      case "extraBall": this.voice("vo-f-level-up", 0.5); break;
+      case "lock": this.voice("vo-f-correct", 0.3); break;
+      case "streak": this.voice(d.count >= 50 ? "vo-f-congratulations" : "vo-combo"); break;
+      case "streakBreak": this.voiceFree = 0; this.voice("vo-combo-breaker"); break;
+      case "gameStart": this.voice("vo-f-ready", 0.3); break;
+      case "gameOver": this.voice(d.score > (this.best || 0) && d.score > 0 ? "vo-f-new-highscore" : "vo-f-game-over", 0.8); break;
       default: break;
     }
   }

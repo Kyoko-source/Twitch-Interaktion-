@@ -62,7 +62,8 @@ export class PinballEngine {
     this.multiballsPlayed = 0;
     this.extraBallLit = false;
     this.skillValue = 500_000;
-    this.stats = { ramps: 0, orbits: 0, bumpers: 0, drops: 0, lanes: 0, spins: 0, jackpots: 0, bestCombo: 0, missions: 0 };
+    this.stats = { ramps: 0, orbits: 0, bumpers: 0, drops: 0, lanes: 0, spins: 0, jackpots: 0, bestCombo: 0, missions: 0, bestStreak: 0 };
+    this.streak = 0;
     this.resetBallState();
   }
 
@@ -160,6 +161,13 @@ export class PinballEngine {
   }
   switchHit() {
     this.lastSwitch = this.time;
+    if (this.status === "play" && !this.tilted) {
+      // osu!-style hit streak: every switch counts, losing the ball breaks it.
+      this.streak++;
+      this.stats.bestStreak = Math.max(this.stats.bestStreak, this.streak);
+      const s = this.streak;
+      if (s === 10 || s === 25 || s === 50 || s === 75 || (s >= 100 && s % 50 === 0)) this.emit("streak", { count: s });
+    }
     if (this.skillActive && this.status === "play" && this.time - (this.launchedAt || 0) > 0.2) this.skillActive = false;
     if (this.ballSaveArmed && this.status === "play") { this.ballSaveArmed = false; this.ballSaveUntil = this.time + 8; }
   }
@@ -486,6 +494,7 @@ export class PinballEngine {
     }
     for (const due of this.timers.filter((t) => this.time >= t.at)) { this.timers = this.timers.filter((x) => x !== due); due.fn(); }
     if (this.status !== "play") return;
+    if (this.mission && !this.mission.hurried && this.mission.until - this.time < 10) { this.mission.hurried = true; this.emit("missionHurry"); }
     if (this.mission && this.time > this.mission.until) {
       this.say("MISSION VORBEI", `${this.mission.progress}/${this.mission.goal}`, 1800, "zoom", 3);
       this.emit("missionFail");
@@ -535,10 +544,16 @@ export class PinballEngine {
     this.emit("scoopOut");
   }
 
+  breakStreak() {
+    if (this.streak >= 15) this.emit("streakBreak", { count: this.streak });
+    this.streak = 0;
+  }
+
   drain(b, lost = false) {
     this.world.removeBall(b);
     this.emit("drainBall", { lost });
     if (this.status !== "play" && this.status !== "ready") return;
+    if (this.world.balls.length + (this.pendingServes || 0) === 0) this.breakStreak();
     if (!this.tilted && (this.time < this.ballSaveUntil || lost || (this.ballSaveArmed && this.status === "play"))) {
       this.say("BALL GERETTET", "", 1500, "flash", 4);
       this.emit("ballSave");
@@ -663,6 +678,7 @@ export class PinballEngine {
       vipLit: this.vipLit,
       extraBallLit: this.extraBallLit,
       combo: this.time - this.lastMajorAt < 4.5 ? this.combo : 0,
+      streak: this.streak,
       plunger: this.plungerCharge,
       ballSave: this.time < this.ballSaveUntil,
       tilt: this.tilted,
