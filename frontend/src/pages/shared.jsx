@@ -23,6 +23,7 @@ export const gameMeta = {
   "chicken-snake": { title: "Chicken Snake", accent: "#7af4dc", text: "Sammle goldene Eier und jage mit deiner Jade-Schlange den nächsten Rekord." },
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie möglich Chickens." },
+  slots: { title: "Chicken Jackpot", accent: "#ffd36b", text: "Der überladene Neon-Slotautomat: 5 Walzen, 10 Linien, Mega-Wins – nur mit virtuellen Chickens." },
   dnd: { title: "Dungeons and Dragons", accent: "#ff4f6d", text: "Euer eigener Pen-&-Paper-Tisch mit DM, Helden, Battlemap und echten Würfeln." },
   "nullsignal": { title: "NULLSIGNAL", accent: "#ff9c52", text: "Zwei Stimmen. Eine Chance. Entschärft gemeinsam eine echte 3D-Bombe." },
   "after-play": { title: "After Play", accent: "#b5b995", text: "Kinderparadies. Dreizehn Rundgänge. Erkenne, was sich verändert hat." },

@@ -226,6 +226,9 @@ class EconomyStore:
                        for row in db.execute("SELECT id,item_name,price,created FROM purchases WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
             events += [{"id": f"adjustment:{row['id']}", "label": "Admin-Gutschrift" if row["delta"] >= 0 else "Admin-Abzug", "kind": "adjustment", "amount": row["delta"], "created": row["created"]}
                        for row in db.execute("SELECT id,delta,created FROM adjustments WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='slot_spins'").fetchone():
+                events += [{"id": f"slot:{row['request_id']}", "label": "Chicken Jackpot", "kind": "slots", "amount": row["win"] - row["bet"], "created": row["created"]}
+                           for row in db.execute("SELECT request_id,bet,win,created FROM slot_spins WHERE username=? ORDER BY created DESC LIMIT 50", (username,))]
             return {"wallet": wallet, "summary": {"earned": wallet["chickens_earned"], "adjustments": adjustments, "spent": spent},
                     "transactions": sorted(events, key=lambda row: row["created"], reverse=True)[:50]}
 

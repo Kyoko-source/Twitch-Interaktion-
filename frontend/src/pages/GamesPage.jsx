@@ -8,6 +8,7 @@ import { gameMeta, routeParts } from "./shared";
 const PeppleSurvivor = lazy(() => import("../survivor/PeppleSurvivor").then((module) => ({ default: module.PeppleSurvivor })));
 const DungeonsAndDragons = lazy(() => import("../dnd/DndTable").then((module) => ({ default: module.DungeonsAndDragons })));
 const Nullsignal = lazy(() => import("../nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
+const ChickenJackpot = lazy(() => import("../slots/ChickenJackpot").then((module) => ({ default: module.ChickenJackpot })));
 const AfterPlay = lazy(() => import("../nachtwache/Nachtwache").then((module) => ({ default: module.AfterPlay })));
 
 export const Scoreboard = GameScoreboard;
@@ -38,6 +39,7 @@ export function GamesPage({ user }) {
     "chicken-snake": <ChickenSnake user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-snake" refreshKey={refreshKey} />} />,
     "chicken-flipper": <PepplePinball user={user} renderScoreboard={(refreshKey) => <Scoreboard game="chicken-flipper" refreshKey={refreshKey} />} />,
     "braincell-survivor": <Suspense fallback={<div className="notice">Lade Pepple Survivor …</div>}><PeppleSurvivor user={user} renderScoreboard={(refreshKey) => <Scoreboard game="braincell-survivor" refreshKey={refreshKey} />} /></Suspense>,
+    slots: <Suspense fallback={<div className="notice">Der Automat wird angeschaltet …</div>}><ChickenJackpot user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     dnd: <Suspense fallback={<div className="notice">Der Spieltisch wird aufgebaut …</div>}><DungeonsAndDragons user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     "nullsignal": <Suspense fallback={<div className="notice">NULLSIGNAL wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>,
     "after-play": <Suspense fallback={<div className="notice">After Play wird vorbereitet …</div>}><AfterPlay/></Suspense>,
@@ -53,7 +55,7 @@ export function GamesPage({ user }) {
         </div>
         <Zap size={64} />
       </div>
-      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
+      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && game !== "slots" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => setGame(id)} type="button">
