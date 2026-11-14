@@ -176,6 +176,16 @@ export function pointOnPath(path, d) {
   return { x: last.x2, y: last.y2, dx: Math.sign(last.x2 - last.x1), dy: Math.sign(last.y2 - last.y1) };
 }
 
+// Farm scenery that occupies tiles (no towers there).
+export const DECOR = [
+  { kind: "barn", c: 18, r: 0, w: 4, h: 3 },
+  { kind: "windmill", c: 20, r: 10, w: 2, h: 3 },
+  { kind: "pond", c: 0, r: 10, w: 3, h: 3 },
+  { kind: "tree", c: 0, r: 0, w: 1, h: 1 }, { kind: "tree", c: 7, r: 0, w: 1, h: 1 }, { kind: "tree", c: 12, r: 0, w: 1, h: 1 },
+  { kind: "tree", c: 0, r: 7, w: 1, h: 1 }, { kind: "tree", c: 16, r: 12, w: 1, h: 1 },
+  { kind: "hay", c: 9, r: 12, w: 1, h: 1 }, { kind: "hay", c: 15, r: 0, w: 1, h: 1 },
+];
+
 // Every tile the paths cover cannot hold a tower.
 function pathTiles() {
   const set = new Set();
@@ -189,6 +199,7 @@ function pathTiles() {
     }
   }
   for (const [dx, dy] of [[0, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]]) set.add(`${NEST.x + dx},${NEST.y + dy}`);
+  for (const d of DECOR) for (let x = d.c; x < d.c + d.w; x++) for (let y = d.r; y < d.r + d.h; y++) set.add(`${x},${y}`);
   return set;
 }
 export const BLOCKED = pathTiles();

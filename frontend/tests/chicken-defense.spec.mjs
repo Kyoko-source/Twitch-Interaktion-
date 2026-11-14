@@ -52,8 +52,12 @@ test("build towers, play a wave, upgrade to a branch, lose and save the score", 
   await page.getByRole("button", { name: /Level 2/ }).click();
   await page.getByRole("button", { name: /Level 3/ }).click();
   await expect(page.locator(".cdBranches button")).toHaveCount(3);
+  if (shots) { await page.waitForTimeout(600); await page.locator(".cdShell").screenshot({ path: `${shots}/cd-branches.png` }); }
   await page.locator(".cdBranches button", { hasText: "Dauerfeuer" }).click();
   await expect(page.locator(".cdPanelHead")).toContainText("Dauerfeuer");
+  if (shots) { await page.waitForTimeout(600); await page.locator(".cdShell").screenshot({ path: `${shots}/cd-modal.png` }); }
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".cdModal")).toHaveCount(0);
   // A busy board for the screenshot.
   await game(page, `const e = g.engine; const spots = [[7,5],[11,6],[16,8],[12,2],[16,5],[2,7],[7,11],[10,12],[18,4],[15,12]];
     ["frost","mortar","sniper","wizard","golden","tesla","rocket","medic","dark","gatling"].forEach((k, i) => { const t = e.build(k, spots[i][0], spots[i][1]); if (t) { e.upgrade(t.id); e.upgrade(t.id); e.upgrade(t.id, Object.keys(e.constructor && t ? {} : {})[0]); } });
@@ -78,7 +82,7 @@ test("phone layout fits and the tower bar scrolls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/#games/chicken-defense");
   await page.getByRole("button", { name: "Spiel starten" }).click();
-  await expect(page.locator(".cdTower")).toHaveCount(10);
+  await expect(page.locator(".cdCard2")).toHaveCount(10);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (shots) await page.locator(".cdShell").screenshot({ path: `${shots}/cd-phone.png` });
 });

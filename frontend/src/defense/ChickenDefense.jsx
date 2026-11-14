@@ -1,25 +1,153 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronsRight, Coins, Crosshair, Egg, Expand, FastForward, Flag, Lock, Music, Pause, Play, RefreshCw, Save, Shrink, Swords, Trash2, Trophy, Volume2, VolumeX, Zap } from "lucide-react";
+import { ChevronsRight, Coins, Crosshair, Egg, Expand, FastForward, Flag, Lock, Music, Pause, Play, RefreshCw, Save, Shrink, SlidersHorizontal, Swords, Trash2, Trophy, Volume2, VolumeX, X, Zap } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { CHAOS_MODS, COLS, DefenseEngine, MAX_LEVEL, ROWS, START_EGGS, TOWERS, TOWER_ORDER, branchCost, towerStats, upgradeCost } from "./engine.mjs";
-import { DefenseRenderer, drawTower, T } from "./render.js";
+import { BRANCH_STYLE, DefenseRenderer, TOWER_COLORS, drawTower, T } from "./render.js";
 import { DefenseAudio } from "./audio.js";
 import "./defense.css";
 
 const fmt = (n) => Math.round(n || 0).toLocaleString("de-DE");
 const TARGETING = { first: "Vorderster", strong: "Stärkster", last: "Hinterster" };
 
-function TowerIcon({ kind, size = 52, level = 1, branch = null }) {
+// ----- replaces TowerIcon: optionally animated portrait
+function TowerIcon({ kind, size = 52, level = 1, branch = null, animate = false, angle = 0.12 }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current, dpr = Math.min(2, window.devicePixelRatio || 1);
     c.width = size * dpr; c.height = size * dpr;
     const ctx = c.getContext("2d");
-    ctx.scale(dpr * (size / 52), dpr * (size / 52));
-    ctx.translate(26, 30);
-    drawTower(ctx, kind, level, -0.6, 0, false, 0, branch);
-  }, [kind, size, level, branch]);
+    let frame = 0;
+    const paint = (time) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.setTransform(dpr * (size / 64), 0, 0, dpr * (size / 64), 0, 0);
+      ctx.translate(32, 40);
+      drawTower(ctx, kind, level, angle, time, false, 0, branch);
+    };
+    if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) { paint(0); return undefined; }
+    const loop = (now) => { paint(now / 1000); frame = requestAnimationFrame(loop); };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [kind, size, level, branch, animate, angle]);
   return <canvas ref={ref} className="cdTowerIcon" style={{ width: size, height: size }} aria-hidden="true" />;
+}
+
+// Rough power numbers for the shop cards (0..1).
+function powerBars(kind) {
+  const s = towerStats(kind, 1);
+  const dps = s.type === "beam" ? s.dps : s.type === "econ" || s.type === "aura" ? 0 : s.damage * s.rate * (s.splash ? 1.6 : 1) * (s.chain ? 2 : 1);
+  return [Math.min(1, dps / 80), Math.min(1, s.range / 6), s.type === "econ" || s.type === "aura" ? 0 : Math.min(1, s.rate / 5)];
+}
+const TYPE_LABEL = { bullet: "Geschütz", shell: "Artillerie", sniper: "Präzision", chain: "Blitz", pulse: "Fläche", beam: "Strahl", econ: "Wirtschaft", aura: "Support" };
+const SHORT = { gatling: "Gatling", frost: "Frost", mortar: "Mörser", sniper: "Sniper", wizard: "Zauber", golden: "Gold", tesla: "Tesla", rocket: "Raketen", medic: "Sani", dark: "Dunkel" };
+
+function TowerCard({ kind, index, active, locked, poor, onPick, disabled }) {
+  const spec = TOWERS[kind];
+  const col = TOWER_COLORS[kind];
+  const [hover, setHover] = useState(false);
+  const bars = powerBars(kind);
+  return (
+    <button type="button" className={`cdCard2${active ? " active" : ""}${locked ? " locked" : ""}${poor && !locked ? " poor" : ""}`} style={{ "--tc": col.badge, "--tr": col.ring }}
+      onClick={onPick} disabled={disabled} aria-pressed={active} title={spec.desc} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <span className="cdCardTitle"><i>{(index + 1) % 10}</i>{SHORT[kind]}</span>
+      <span className="cdCardArt"><TowerIcon kind={kind} size={78} animate={(hover || active) && !locked} /></span>
+      <span className="cdCardType">{TYPE_LABEL[spec.type]}</span>
+      {!locked && <span className="cdCardBars" aria-hidden="true">{bars.map((b, i) => <i key={i} style={{ "--v": b }} title={["Schaden", "Reichweite", "Tempo"][i]} />)}</span>}
+      <span className="cdCardCost">{locked ? <><Lock size={12} /> Welle {spec.unlock}</> : <><Coins size={13} /> {spec.cost}</>}</span>
+      {locked && <span className="cdChains" aria-hidden="true" />}
+    </button>
+  );
+}
+
+function statRows(kind, now, next) {
+  const rows = [];
+  if (now.type === "econ") {
+    rows.push(["Korn pro Welle", `+${fmt(now.income)}`, next && `+${fmt(next.income)}`]);
+    if (now.interest || next?.interest) rows.push(["Zinsen", `${Math.round((now.interest || 0) * 100)} %`, next && `${Math.round((next.interest || 0) * 100)} %`]);
+    if (now.treasure || next?.treasure) rows.push(["Beute-Bonus", `+${Math.round((now.treasure || 0) * 100)} %`, next && `+${Math.round((next.treasure || 0) * 100)} %`]);
+  } else if (now.type === "aura") {
+    rows.push(["Buff für Türme", `+${Math.round(now.buff * 100)} %`, next && `+${Math.round(next.buff * 100)} %`]);
+  } else {
+    const dmg = (s) => (s.type === "beam" ? `${fmt(s.dps)}/s` : fmt(s.damage));
+    rows.push(["Schaden", dmg(now), next && dmg(next)]);
+    rows.push(["Tempo", now.type === "beam" ? "Dauer" : `${now.rate.toFixed(1)}/s`, next && (next.type === "beam" ? "Dauer" : `${next.rate.toFixed(1)}/s`)]);
+  }
+  rows.push(["Reichweite", now.range > 20 ? "∞" : now.range.toFixed(1), next && (next.range > 20 ? "∞" : next.range.toFixed(1))]);
+  return rows;
+}
+
+function UpgradeModal({ tower, korn, onClose, onUpgrade, onSell, onTarget }) {
+  const spec = TOWERS[tower.kind];
+  const now = towerStats(tower.kind, tower.level, tower.branch);
+  const next = !tower.branch && tower.level < MAX_LEVEL ? towerStats(tower.kind, tower.level + 1) : null;
+  const col = TOWER_COLORS[tower.kind];
+  const canTarget = !["econ", "aura", "pulse"].includes(now.type);
+  const choosing = tower.level === MAX_LEVEL && !tower.branch;
+  return (
+    <div className="cdModalWrap" onClick={onClose}>
+      <div className="cdModal" style={{ "--tc": col.badge, "--tr": col.ring }} onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label={`${spec.name} aufrüsten`}>
+        <button type="button" className="cdModalClose" onClick={onClose} aria-label="Schließen"><X size={20} /></button>
+        <div className="cdModalHero">
+          <div className="cdModalArt" key={`${tower.level}-${tower.branch}`}><TowerIcon kind={tower.kind} size={170} level={tower.level} branch={tower.branch} animate /></div>
+          <div className="cdModalInfo cdPanelHead">
+            <span className="cdModalKicker">{TYPE_LABEL[now.type]} · {tower.kills} Abschüsse</span>
+            <h3>{spec.name}</h3>
+            <b className="cdModalSub">{tower.branch ? spec.branches[tower.branch].name : `Level ${tower.level}`}</b>
+            <div className="cdLevelPath" aria-label={`Level ${tower.level} von 4`}>
+              {[1, 2, 3].map((l) => <i key={l} className={tower.level >= l ? "on" : ""}>{l}</i>)}
+              <i className={`crown${tower.branch ? " on" : ""}`}>♛</i>
+            </div>
+            <table className="cdStatTable"><tbody>
+              {statRows(tower.kind, now, next).map(([label, a, b]) => (
+                <tr key={label}><th>{label}</th><td>{a}</td>{next && <td className={b !== a ? "up" : ""}>{b !== a ? `→ ${b}` : ""}</td>}</tr>
+              ))}
+            </tbody></table>
+          </div>
+        </div>
+        {choosing ? (
+          <div className="cdBranches">
+            <p>Wähle eine Spezialisierung – nur eine ist möglich:</p>
+            <div className="cdBranchGrid">
+              {Object.entries(spec.branches).map(([key, b]) => {
+                const style = BRANCH_STYLE[tower.kind][key];
+                return (
+                  <button key={key} type="button" disabled={korn < branchCost(tower.kind)} onClick={() => onUpgrade(key)} style={{ "--bc": style[0] }}>
+                    <span className="cdBranchArt"><TowerIcon kind={tower.kind} size={84} level={4} branch={key} animate /></span>
+                    <b><span className="glyph">{style[1]}</span> {b.name}</b>
+                    <small>{b.desc}</small>
+                    <em><Coins size={12} /> {branchCost(tower.kind)}</em>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        <div className="cdModalActions">
+          {canTarget && (
+            <div className="cdTargeting" role="group" aria-label="Ziel">
+              <Crosshair size={15} />
+              {Object.entries(TARGETING).map(([key, label]) => <button key={key} type="button" className={tower.targeting === key ? "on" : ""} onClick={() => onTarget(key)}>{label}</button>)}
+            </div>
+          )}
+          {next && <button type="button" className="cdUp" disabled={korn < upgradeCost(tower.kind, tower.level)} onClick={() => onUpgrade(null)}>⬆ Level {tower.level + 1} <em><Coins size={12} /> {upgradeCost(tower.kind, tower.level)}</em></button>}
+          {tower.branch && <span className="cdMaxed">♛ Voll ausgebaut</span>}
+          <button type="button" className="cdSell" onClick={onSell}><Trash2 size={15} /> Verkaufen +{Math.floor(tower.spent * 0.7)}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VolumePanel({ audio, onClose }) {
+  const [sfx, setSfx] = useState(audio.sfxVolume);
+  const [music, setMusic] = useState(audio.musicVolume);
+  return (
+    <div className="cdVolume" role="dialog" aria-label="Lautstärke">
+      <label><Volume2 size={16} /><span>Sound</span><input type="range" min="0" max="100" value={Math.round(sfx * 100)} aria-label="Lautstärke Sound" onChange={(ev) => { const v = Number(ev.target.value) / 100; setSfx(v); audio.setSfxVolume(v); audio.play("build"); }} /><b>{Math.round(sfx * 100)}%</b></label>
+      <label><Music size={16} /><span>Musik</span><input type="range" min="0" max="100" value={Math.round(music * 100)} aria-label="Lautstärke Musik" onChange={(ev) => { const v = Number(ev.target.value) / 100; setMusic(v); audio.setMusicVolume(v); }} /><b>{Math.round(music * 100)}%</b></label>
+      <button type="button" onClick={onClose}>Fertig</button>
+    </div>
+  );
 }
 
 function useCountUp(value, ms = 1400) {
@@ -47,6 +175,8 @@ export function ChickenDefense({ user, renderScoreboard }) {
   const [paused, setPaused] = useState(false);
   const [sfxOn, setSfxOn] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  const pausedByModal = useRef(false);
   const [full, setFull] = useState(false);
   const [message, setMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -117,7 +247,11 @@ export function ChickenDefense({ user, renderScoreboard }) {
   }, [sync]);
 
   useEffect(() => { if (sys.current.renderer) sys.current.renderer.ui.placing = placing; }, [placing]);
-  useEffect(() => { if (sys.current.renderer) sys.current.renderer.ui.selected = selected; }, [selected]);
+  useEffect(() => {
+    if (sys.current.renderer) sys.current.renderer.ui.selected = selected;
+    if (selected && !pausedRef.current) { pausedByModal.current = true; setPaused(true); }
+    if (!selected && pausedByModal.current) { pausedByModal.current = false; setPaused(false); }
+  }, [selected]);
   useEffect(() => { sys.current.audio?.pause(paused); }, [paused]);
 
   // ---------------------------------------------------------------- actions
@@ -167,7 +301,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
   }
   function upgrade(branch = null) { const { engine } = sys.current; if (selected && engine.upgrade(selected, branch)) sync(); }
   function sell() { const { engine } = sys.current; if (selected && engine.sell(selected)) { setSelected(null); sync(); } }
-  function cycleTargeting() { if (selected) { sys.current.engine.cycleTargeting(selected); sync(); } }
+  function setTargeting(mode) { const t = sys.current.engine.towers.find((x) => x.id === selected); if (t) { t.targeting = mode; sync(); } }
 
   async function save() {
     try {
@@ -215,7 +349,6 @@ export function ChickenDefense({ user, renderScoreboard }) {
 
   const e = sys.current.engine;
   const tower = selected && e ? e.towers.find((t) => t.id === selected) : null;
-  const stats = tower ? towerStats(tower.kind, tower.level, tower.branch) : null;
   const playing = snap.status === "playing", ended = snap.status === "ended";
   const canCall = playing && snap.queued === 0;
   const early = playing && snap.waveActive && snap.enemies > 0;
@@ -237,10 +370,13 @@ export function ChickenDefense({ user, renderScoreboard }) {
         <canvas ref={canvas} className={`cdCanvas${placing ? " isPlacing" : ""}`} onPointerMove={onMove} onPointerLeave={onLeave} onClick={onClick}
           onContextMenu={(ev) => { ev.preventDefault(); setPlacing(null); setSelected(null); }} aria-label="Spielfeld: Klicke auf eine freie Wiese, um den gewählten Turm zu bauen." />
         <div className="cdStageTools">
+          <button type="button" onClick={() => setVolumeOpen((v) => !v)} aria-expanded={volumeOpen} aria-label="Lautstärke"><SlidersHorizontal size={18} /></button>
           <button type="button" onClick={() => { const v = !musicOn; setMusicOn(v); sys.current.audio.setMusic(v); }} aria-pressed={musicOn} aria-label={musicOn ? "Musik aus" : "Musik an"} className={musicOn ? "" : "off"}><Music size={18} /></button>
           <button type="button" onClick={() => { const v = !sfxOn; setSfxOn(v); sys.current.audio.setSfx(v); }} aria-pressed={sfxOn} aria-label={sfxOn ? "Sound aus" : "Sound an"}>{sfxOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button type="button" onClick={toggleFull} aria-label={full ? "Vollbild beenden" : "Vollbild"}>{full ? <Shrink size={18} /> : <Expand size={18} />}</button>
         </div>
+        {volumeOpen && sys.current.audio && <VolumePanel audio={sys.current.audio} onClose={() => setVolumeOpen(false)} />}
+        {tower && playing && <UpgradeModal tower={tower} korn={snap.korn} onClose={() => setSelected(null)} onUpgrade={(branch) => upgrade(branch)} onSell={sell} onTarget={setTargeting} />}
         {playing && snap.mods.length > 0 && <div className="cdMods">{snap.mods.map((m) => <span key={m} title={CHAOS_MODS[m].desc}>{CHAOS_MODS[m].name}</span>)}</div>}
         {playing && (
           <div className="cdWaveBar">
@@ -253,7 +389,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
             </div>
           </div>
         )}
-        {paused && playing && <div className="cdOverlay"><div className="cdCard"><h3>Pause</h3><p>Die Räuber warten …</p><button type="button" className="cdPrimary" onClick={() => setPaused(false)}><Play size={18} /> Weiter</button></div></div>}
+        {paused && playing && !tower && <div className="cdOverlay"><div className="cdCard"><h3>Pause</h3><p>Die Räuber warten …</p><button type="button" className="cdPrimary" onClick={() => setPaused(false)}><Play size={18} /> Weiter</button></div></div>}
         {snap.status === "ready" && (
           <div className="cdOverlay">
             <div className="cdCard intro">
@@ -284,64 +420,17 @@ export function ChickenDefense({ user, renderScoreboard }) {
         )}
       </div>
 
-      <div className="cdDock">
-        <div className="cdTowers" role="group" aria-label="Türme">
-          {TOWER_ORDER.map((kind, i) => {
-            const spec = TOWERS[kind];
-            const locked = Math.max(1, snap.wave) < spec.unlock;
-            const poor = snap.korn < spec.cost;
-            return (
-              <button key={kind} type="button" className={`cdTower${placing === kind ? " active" : ""}${locked ? " locked" : ""}${poor && !locked ? " poor" : ""}`} onClick={() => choose(kind)} disabled={!playing || locked} title={spec.desc} aria-pressed={placing === kind}>
-                <i className="cdKey">{(i + 1) % 10}</i>
-                <TowerIcon kind={kind} />
-                <b>{spec.name}</b>
-                <span>{locked ? <><Lock size={12} /> ab Welle {spec.unlock}</> : <><Coins size={12} /> {spec.cost}</>}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="cdPanel" aria-live="polite">
-          {tower && stats ? (
-            <>
-              <div className="cdPanelHead"><TowerIcon kind={tower.kind} size={44} level={tower.level} branch={tower.branch} /><div><b>{TOWERS[tower.kind].name}</b><small>{tower.branch ? TOWERS[tower.kind].branches[tower.branch].name : `Level ${tower.level}`} · {tower.kills} Abschüsse</small></div></div>
-              <dl className="cdStats">
-                {stats.type === "econ" ? <>
-                  <div><dt>Korn/Welle</dt><dd>+{fmt(stats.income)}</dd></div>
-                  <div><dt>Bonus</dt><dd>{stats.interest ? `${Math.round(stats.interest * 100)} % Zins` : stats.treasure ? `+${Math.round(stats.treasure * 100)} % Beute` : "–"}</dd></div>
-                </> : stats.type === "aura" ? <>
-                  <div><dt>Buff</dt><dd>+{Math.round(stats.buff * 100)} %</dd></div>
-                  <div><dt>Reichweite</dt><dd>{stats.range.toFixed(1)}</dd></div>
-                </> : <>
-                  <div><dt>Schaden</dt><dd>{stats.type === "beam" ? `${fmt(stats.dps)}/s` : fmt(stats.damage)}</dd></div>
-                  <div><dt>Reichweite</dt><dd>{stats.range > 20 ? "∞" : stats.range.toFixed(1)}</dd></div>
-                  <div><dt>Tempo</dt><dd>{stats.type === "beam" ? "Dauer" : `${stats.rate.toFixed(1)}/s`}</dd></div>
-                </>}
-              </dl>
-              {tower.level === MAX_LEVEL && !tower.branch && (
-                <div className="cdBranches" role="group" aria-label="Spezialisierung wählen">
-                  {Object.entries(TOWERS[tower.kind].branches).map(([key, b]) => (
-                    <button key={key} type="button" disabled={snap.korn < branchCost(tower.kind)} onClick={() => upgrade(key)} title={b.desc}>
-                      <TowerIcon kind={tower.kind} size={34} level={4} branch={key} />
-                      <b>{b.name}</b><small>{b.desc}</small><em><Coins size={11} /> {branchCost(tower.kind)}</em>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="cdPanelActions">
-                {["first", "strong", "last"].includes(tower.targeting) && stats.type !== "econ" && stats.type !== "aura" && stats.type !== "pulse" && <button type="button" onClick={cycleTargeting}><Crosshair size={15} /> {TARGETING[tower.targeting]}</button>}
-                {tower.level < MAX_LEVEL
-                  ? <button type="button" className="up" disabled={snap.korn < upgradeCost(tower.kind, tower.level)} onClick={() => upgrade()}>⬆ Level {tower.level + 1} <em>{upgradeCost(tower.kind, tower.level)}</em></button>
-                  : tower.branch ? <button type="button" className="up" disabled>MAX</button> : null}
-                <button type="button" className="sell" onClick={sell}><Trash2 size={15} /> +{Math.floor(tower.spent * 0.7)}</button>
-              </div>
-            </>
-          ) : placing ? (
-            <p className="cdPanelHint"><b>{TOWERS[placing].name}</b> – {TOWERS[placing].desc}<br /><small>Klicke auf eine freie Wiese. Rechtsklick oder Esc bricht ab.</small></p>
-          ) : (
-            <p className="cdPanelHint">Wähle einen Turm (1–9, 0) und klicke neben den Weg. Klicke einen Turm an, um ihn aufzurüsten. Auf Level 3 wählst du eine von drei Spezialisierungen.</p>
-          )}
-          {playing && <button type="button" className="cdGiveUp" onClick={() => { sys.current.engine.giveUp(); sync(); }}><Flag size={14} /> Aufgeben</button>}
-        </div>
+      <div className="cdShop" role="group" aria-label="Türme kaufen">
+        {TOWER_ORDER.map((kind, i) => {
+          const spec = TOWERS[kind];
+          const locked = Math.max(1, snap.wave) < spec.unlock;
+          return <TowerCard key={kind} kind={kind} index={i} active={placing === kind} locked={locked} poor={snap.korn < spec.cost} disabled={!playing || locked} onPick={() => choose(kind)} />;
+        })}
+      </div>
+      <div className="cdShopHint">
+        {placing ? <span><b>{TOWERS[placing].name}</b> platzieren: Klick auf freie Wiese · Rechtsklick/Esc bricht ab</span>
+          : <span>Turm wählen (1–9, 0), neben den Weg setzen. Klick auf ein Huhn öffnet das Upgrade-Menü.</span>}
+        {playing && <button type="button" className="cdGiveUp" onClick={() => { sys.current.engine.giveUp(); sync(); }}><Flag size={14} /> Aufgeben</button>}
       </div>
 
       {renderScoreboard && <div className="cdScores"><h3><Trophy size={18} /> Rangliste</h3>{renderScoreboard(refreshKey)}</div>}

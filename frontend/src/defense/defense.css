@@ -55,60 +55,15 @@
 .cdHint a { color: var(--red); }
 .cdMsg { margin: 10px 0 0 !important; font-size: 13px !important; font-weight: 700; color: #2a7a2a !important; }
 
-/* dock: towers + panel */
-.cdDock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 12px; margin-top: 12px; }
-.cdTowers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-.cdTower { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 14px; border: 2px solid var(--wood); background: linear-gradient(180deg, #fffaf0, #f2dcae); color: var(--wood-dark); box-shadow: 0 4px 0 var(--wood-dark); cursor: pointer; transition: transform .12s; }
-.cdTower:hover:not(:disabled) { transform: translateY(-2px); }
-.cdTower.active { border-color: var(--red); background: linear-gradient(180deg, #fff, #ffd8b0); box-shadow: 0 4px 0 #8a1a10, 0 0 18px #ff6a4a; }
-.cdTower.poor { filter: saturate(.4); opacity: .75; }
-.cdTower.locked { filter: grayscale(1); opacity: .5; cursor: default; }
-.cdTower b { font-size: 11.5px; line-height: 1.15; text-align: center; }
-.cdTower span { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; color: #8a5a2a; }
-.cdKey { position: absolute; top: 4px; left: 6px; font: 900 10px/1 Inter, sans-serif; font-style: normal; color: #b08050; }
-.cdTowerIcon { display: block; }
-
-.cdPanel { position: relative; display: grid; align-content: start; gap: 10px; padding: 12px; border-radius: 16px; border: 2px solid var(--wood); background: linear-gradient(180deg, #fffaf0, #f2dcae); color: var(--wood-dark); box-shadow: 0 4px 0 var(--wood-dark); }
-.cdPanelHead { display: flex; align-items: center; gap: 10px; }
-.cdPanelHead b { display: block; font-size: 15px; }
-.cdPanelHead small { color: #8a5a2a; font-weight: 700; }
-.cdStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; }
-.cdStats div { padding: 5px 6px; border-radius: 8px; background: #fff; text-align: center; }
-.cdStats dt { font-size: 10px; font-weight: 800; color: #a87a4a; text-transform: uppercase; letter-spacing: .06em; }
-.cdStats dd { margin: 1px 0 0; font-weight: 900; font-size: 15px; }
-.cdBranches { display: grid; gap: 6px; }
-.cdBranches button { display: grid; grid-template-columns: 36px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 2px solid #c8a070; background: #fff; color: var(--wood-dark); text-align: left; cursor: pointer; animation: cdBranchIn .35s ease both; }
-.cdBranches button:nth-child(2) { animation-delay: .06s; } .cdBranches button:nth-child(3) { animation-delay: .12s; }
-@keyframes cdBranchIn { from { opacity: 0; transform: translateX(10px); } }
-.cdBranches button:hover:not(:disabled) { border-color: var(--red); box-shadow: 0 0 12px #ff6a4a88; }
-.cdBranches button:disabled { opacity: .55; cursor: default; }
-.cdBranches .cdTowerIcon { grid-row: span 2; }
-.cdBranches b { font-size: 13px; }
-.cdBranches small { grid-column: 2; font-size: 11px; color: #8a5a2a; line-height: 1.3; }
-.cdBranches em { grid-row: span 2; grid-column: 3; display: inline-flex; align-items: center; gap: 2px; font-style: normal; font-weight: 900; font-size: 12px; padding: 3px 7px; border-radius: 999px; background: var(--gold); }
-.cdPanelActions { display: flex; flex-wrap: wrap; gap: 6px; }
-.cdPanelActions button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: 10px; border: 2px solid #c8a070; background: #fff; color: var(--wood-dark); font-weight: 800; font-size: 12.5px; cursor: pointer; }
-.cdPanelActions .up { border-color: #2a7a2a; background: linear-gradient(180deg, #8aff8a, #3ab83a); color: #0a3a0a; }
-.cdPanelActions .up em { font-style: normal; padding: 1px 6px; border-radius: 999px; background: #fff8; }
-.cdPanelActions .sell { margin-left: auto; border-color: #a8402a; color: #a8402a; }
-.cdPanelActions button:disabled { opacity: .5; cursor: default; }
-.cdPanelHint { margin: 0; font-size: 13px; line-height: 1.5; color: #5a3a1a; }
-.cdPanelHint small { color: #8a5a2a; }
-.cdGiveUp { justify-self: end; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 0; background: transparent; color: #a87a4a; font-size: 11px; font-weight: 700; cursor: pointer; }
-
 .cdScores { margin-top: 16px; }
 .cdScores h3 { display: flex; align-items: center; gap: 8px; }
 
 .cdShell.isFull { overflow: auto; padding: 10px 16px 20px; background: #1a2a12; }
-.cdShell.isFull .cdStage { max-width: calc((100dvh - 290px) * 22 / 13); margin: 0 auto; }
+.cdShell.isFull .cdStage { max-width: calc((100dvh - 330px) * 22 / 13); margin: 0 auto; }
 
 @media (max-width: 980px) {
-  .cdDock { grid-template-columns: minmax(0, 1fr); }
-  .cdTowers { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (max-width: 620px) {
-  .cdTowers { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
-  .cdTower { flex: 0 0 92px; scroll-snap-align: start; }
   .cdHud > div { min-width: 0; padding: 4px 8px; }
   .cdHud dd { font-size: 17px; }
   .cdWaveBtn { padding: 8px 10px; font-size: 12px; }
@@ -119,4 +74,95 @@
   .cdCard h3 { font-size: 22px; }
   .cdHow { display: none; }
 }
+/* ---------- shop: collectible tower cards ---------- */
+.cdShop { display: grid; grid-template-columns: repeat(10, minmax(104px, 1fr)); gap: 10px; margin-top: 14px; overflow-x: auto; padding: 6px 4px 10px; scroll-snap-type: x proximity; }
+.cdCard2 { --tc: #d8402a; --tr: #ffcf4a; position: relative; display: grid; grid-template-rows: auto 1fr auto auto auto; justify-items: center; gap: 4px; min-width: 104px; padding: 0 0 8px; overflow: hidden; border-radius: 16px; border: 3px solid #7a4a24; background: radial-gradient(circle at 50% 38%, #fffaf0 0%, #f6e2b8 60%, #e8c890 100%); color: #4a2a12; box-shadow: 0 5px 0 #4a2a12, 0 8px 18px #0006; cursor: pointer; scroll-snap-align: start; transition: transform .16s cubic-bezier(.2, 1.6, .4, 1), box-shadow .16s; }
+.cdCard2::before { content: ""; position: absolute; inset: 22px 10px auto; height: 70%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--tr) 45%, transparent), transparent 70%); opacity: .7; pointer-events: none; }
+.cdCard2:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 11px 0 #4a2a12, 0 16px 28px #0007, 0 0 24px color-mix(in srgb, var(--tr) 70%, transparent); }
+.cdCard2.active { transform: translateY(-8px) scale(1.04); border-color: #fff3c4; box-shadow: 0 12px 0 #4a2a12, 0 0 0 3px var(--tc), 0 0 34px var(--tr); animation: cdCardGlow 1s ease-in-out infinite alternate; }
+@keyframes cdCardGlow { to { box-shadow: 0 12px 0 #4a2a12, 0 0 0 3px var(--tc), 0 0 50px var(--tr); } }
+.cdCard2.poor:not(.locked) { filter: saturate(.5) brightness(.92); }
+.cdCard2.poor:not(.locked) .cdCardCost { background: #8a8a8a; }
+.cdCard2.locked { cursor: default; filter: grayscale(1) brightness(.7); }
+.cdCardTitle { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; padding: 5px 6px 4px; font: 900 12px/1.1 Inter, system-ui, sans-serif; color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 85%, #fff), var(--tc)); text-shadow: 0 1px 0 #0006; border-bottom: 2px solid #4a2a12; white-space: nowrap; }
+.cdCardTitle i { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; font-style: normal; font-size: 10px; color: #4a2a12; background: #fff3c4; }
+.cdCardArt { position: relative; z-index: 1; display: grid; place-items: center; height: 82px; }
+.cdCard2:hover:not(:disabled) .cdCardArt, .cdCard2.active .cdCardArt { animation: cdArtBob .5s ease-in-out infinite alternate; }
+@keyframes cdArtBob { to { transform: translateY(-3px) scale(1.05); } }
+.cdCardType { position: relative; z-index: 1; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #8a5a2a; }
+.cdCardBars { position: relative; z-index: 1; display: grid; gap: 2px; width: 74%; }
+.cdCardBars i { display: block; height: 4px; border-radius: 3px; background: #d8c090; overflow: hidden; }
+.cdCardBars i::after { content: ""; display: block; width: calc(var(--v) * 100%); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--tc), var(--tr)); }
+.cdCardCost { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 999px; font: 900 13px/1.2 Inter, sans-serif; color: #4a2a00; background: radial-gradient(circle at 40% 30%, #fff8d0, #ffcf4a 60%, #d89a00); border: 2px solid #8a5200; }
+.cdChains { position: absolute; inset: 0; z-index: 2; background: repeating-linear-gradient(45deg, transparent 0 14px, #ffffff22 14px 18px), repeating-linear-gradient(-45deg, transparent 0 14px, #00000022 14px 18px); }
+.cdShopHint { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 13px; color: #d8c8b0; }
+.cdShopHint b { color: #ffcf4a; }
+.cdGiveUp { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 0; background: transparent; color: #a8906a; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* ---------- centred upgrade modal ---------- */
+.cdModalWrap { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; padding: 14px; background: radial-gradient(circle, #1a1008aa 0%, #0a0604dd 100%); animation: cdFade .2s ease both; overflow: auto; }
+@keyframes cdFade { from { opacity: 0; } }
+.cdModal { --tc: #d8402a; --tr: #ffcf4a; position: relative; width: min(760px, 100%); padding: 18px 20px 16px; border-radius: 24px; color: #4a2a12; background: radial-gradient(circle at 25% 30%, #fffdf4 0%, #f8e6bf 55%, #ecd09a 100%); border: 4px solid #7a4a24; box-shadow: 0 8px 0 #4a2a12, 0 0 0 3px var(--tc), 0 30px 70px #000a; animation: cdModalIn .4s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes cdModalIn { from { opacity: 0; transform: scale(.6) translateY(30px); } }
+.cdModalClose { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 12px; border: 2px solid #7a4a24; background: #fff4dc; color: #4a2a12; cursor: pointer; }
+.cdModalHero { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: center; }
+.cdModalArt { display: grid; place-items: center; height: 190px; border-radius: 20px; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--tr) 55%, #fff), transparent 72%), linear-gradient(180deg, #6ab84a, #3a8a3a); border: 3px solid #4a2a12; box-shadow: inset 0 -20px 30px #0003; animation: cdLevelPop .55s cubic-bezier(.2, 1.8, .4, 1) both; }
+@keyframes cdLevelPop { from { transform: scale(.7) rotate(-4deg); filter: brightness(2); } }
+.cdModalKicker { font: 800 11px/1 Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #a8743a; }
+.cdModal h3 { margin: 4px 0 2px; font: italic 900 32px/1 Inter, system-ui, sans-serif; color: var(--tc); text-shadow: 0 2px 0 #fff; }
+.cdModalSub { display: block; font-size: 15px; color: #6a4420; }
+.cdLevelPath { display: flex; align-items: center; gap: 6px; margin: 10px 0; }
+.cdLevelPath i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font: 900 13px/1 Inter, sans-serif; font-style: normal; color: #a8906a; background: #fff; border: 2px solid #c8a070; }
+.cdLevelPath i + i::before { content: ""; position: relative; left: -19px; width: 10px; height: 3px; background: #c8a070; display: block; position: absolute; }
+.cdLevelPath i { position: relative; }
+.cdLevelPath i.on { color: #4a2a00; background: radial-gradient(circle at 40% 30%, #fff8d0, #ffcf4a 60%, #d89a00); border-color: #8a5200; box-shadow: 0 0 10px #ffcf4a; }
+.cdLevelPath i.crown.on { color: #fff; background: var(--tc); border-color: #fff; box-shadow: 0 0 14px var(--tc); }
+.cdStatTable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cdStatTable th { padding: 5px 8px; text-align: left; font-weight: 700; color: #8a5a2a; }
+.cdStatTable td { padding: 5px 8px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.cdStatTable tr { background: #ffffff8c; }
+.cdStatTable tr:nth-child(odd) { background: #ffffffd0; }
+.cdStatTable td.up { color: #1a8a2a; }
+.cdBranches { margin-top: 14px; }
+.cdBranches p { margin: 0 0 8px; font-weight: 800; color: #6a4420; }
+.cdBranchGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cdBranchGrid button { --bc: #ffcf4a; display: grid; justify-items: center; gap: 4px; padding: 10px 8px; border-radius: 16px; border: 3px solid #c8a070; background: #fff; color: #4a2a12; cursor: pointer; text-align: center; transition: transform .15s, box-shadow .15s, border-color .15s; animation: cdBranchIn .35s ease both; }
+.cdBranchGrid button:nth-child(2) { animation-delay: .07s; } .cdBranchGrid button:nth-child(3) { animation-delay: .14s; }
+@keyframes cdBranchIn { from { opacity: 0; transform: translateY(14px); } }
+.cdBranchGrid button:hover:not(:disabled) { transform: translateY(-4px); border-color: var(--bc); box-shadow: 0 0 22px var(--bc); }
+.cdBranchGrid button:disabled { opacity: .55; cursor: default; }
+.cdBranchArt { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--bc) 45%, #fff), transparent 70%); }
+.cdBranchGrid b { font-size: 14px; }
+.cdBranchGrid .glyph { color: var(--bc); text-shadow: 0 0 6px var(--bc), 0 1px 0 #0004; }
+.cdBranchGrid small { font-size: 11.5px; line-height: 1.3; color: #7a5a3a; }
+.cdBranchGrid em { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; padding: 3px 10px; border-radius: 999px; font-style: normal; font-weight: 900; font-size: 13px; background: radial-gradient(circle at 40% 30%, #fff8d0, #ffcf4a 60%, #d89a00); border: 2px solid #8a5200; }
+.cdModalActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.cdTargeting { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 12px; background: #fff; border: 2px solid #c8a070; }
+.cdTargeting button { padding: 5px 9px; border: 0; border-radius: 8px; background: transparent; font-weight: 800; font-size: 12px; color: #6a4420; cursor: pointer; }
+.cdTargeting button.on { background: var(--tc); color: #fff; }
+.cdUp { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 14px; border: 2px solid #1a6a1a; font: 900 16px/1 Inter, sans-serif; color: #fff; background: linear-gradient(180deg, #6ae86a, #2a9a2a); box-shadow: 0 4px 0 #1a5a1a; cursor: pointer; animation: cdUpPulse 1s ease-in-out infinite alternate; }
+.cdUp em { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-style: normal; color: #4a2a00; background: #ffcf4a; }
+.cdUp:disabled { animation: none; filter: grayscale(.8); cursor: default; }
+@keyframes cdUpPulse { to { box-shadow: 0 4px 0 #1a5a1a, 0 0 22px #6ae86a; } }
+.cdMaxed { font-weight: 900; color: var(--tc); }
+.cdSell { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 9px 12px; border-radius: 12px; border: 2px solid #a8402a; background: #fff; color: #a8402a; font-weight: 800; cursor: pointer; }
+
+/* ---------- volume ---------- */
+.cdVolume { position: absolute; top: 56px; right: 10px; z-index: 7; display: grid; gap: 10px; width: 260px; padding: 14px; border-radius: 16px; background: #fff4dcf4; border: 3px solid #7a4a24; color: #4a2a12; box-shadow: 0 6px 0 #4a2a12, 0 14px 30px #0008; animation: cdModalIn .25s ease both; }
+.cdVolume label { display: grid; grid-template-columns: 18px 52px 1fr 40px; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; }
+.cdVolume input { width: 100%; accent-color: #d8402a; }
+.cdVolume b { text-align: right; font-variant-numeric: tabular-nums; }
+.cdVolume > button { justify-self: end; padding: 6px 12px; border-radius: 10px; border: 2px solid #7a4a24; background: #ffcf4a; font-weight: 900; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .cdModalHero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .cdModalArt { width: 160px; height: 160px; }
+  .cdLevelPath { justify-content: center; }
+  .cdBranchGrid { grid-template-columns: 1fr; }
+  .cdBranchGrid button { grid-template-columns: 60px 1fr auto; text-align: left; justify-items: start; }
+  .cdBranchArt { width: 60px; height: 60px; grid-row: span 2; }
+  .cdModal h3 { font-size: 24px; }
+}
+@media (max-width: 620px) { .cdShop { grid-template-columns: repeat(10, 100px); } }
+
 @media (prefers-reduced-motion: reduce) { .cdShell * { animation: none !important; } }

@@ -41,14 +41,26 @@ const SAMPLES = {
 const MUSIC = { calm: "/music/pinball/attract.mp3", battle: "/music/pinball/play.mp3", chaos: "/music/pinball/multiball.mp3" };
 
 export class DefenseAudio {
-  constructor() { this.ctx = null; this.buffers = new Map(); this.last = new Map(); this.sfxOn = true; this.musicOn = true; this.track = null; this.voiceAt = 0; }
+  constructor() {
+    this.ctx = null; this.buffers = new Map(); this.last = new Map(); this.sfxOn = true; this.musicOn = true; this.track = null; this.voiceAt = 0;
+    this.sfxVolume = 0.8; this.musicVolume = 0.6;
+    try {
+      const saved = JSON.parse(localStorage.getItem("aviary-defense-audio") || "{}");
+      if (typeof saved.sfx === "number") this.sfxVolume = saved.sfx;
+      if (typeof saved.music === "number") this.musicVolume = saved.music;
+    } catch { /* optional */ }
+  }
+  save() { try { localStorage.setItem("aviary-defense-audio", JSON.stringify({ sfx: this.sfxVolume, music: this.musicVolume })); } catch { /* optional */ } }
+  musicLevel() { return this.musicOn ? 0.6 * this.musicVolume : 0; }
+  setSfxVolume(v) { this.sfxVolume = Math.max(0, Math.min(1, v)); if (this.out) this.out.gain.value = this.sfxVolume; this.save(); }
+  setMusicVolume(v) { this.musicVolume = Math.max(0, Math.min(1, v)); if (this.track) this.fade(this.track.el, this.musicLevel(), 120); this.save(); }
   unlock() {
     try {
       if (!this.ctx) {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (!Ctx) return;
         this.ctx = new Ctx();
-        this.out = this.ctx.createGain(); this.out.gain.value = 0.8;
+        this.out = this.ctx.createGain(); this.out.gain.value = this.sfxVolume;
         const limiter = this.ctx.createDynamicsCompressor(); limiter.threshold.value = -12; limiter.ratio.value = 8;
         this.out.connect(limiter).connect(this.ctx.destination);
         for (const name of Object.keys(SAMPLES)) this.load(name);
@@ -88,7 +100,7 @@ export class DefenseAudio {
     if (!name) { this.track = null; return; }
     const el = new Audio(MUSIC[name]); el.loop = true; el.volume = 0;
     this.track = { name, el };
-    if (this.musicOn) { el.play().catch(() => {}); this.fade(el, 0.38, 1200); }
+    if (this.musicOn) { el.play().catch(() => {}); this.fade(el, this.musicLevel(), 1200); }
   }
   fade(el, to, ms, done) {
     const from = el.volume, start = performance.now();
@@ -103,7 +115,7 @@ export class DefenseAudio {
   setMusic(on) {
     this.musicOn = on;
     if (!this.track) return;
-    if (on) { this.track.el.play().catch(() => {}); this.fade(this.track.el, 0.38, 400); }
+    if (on) { this.track.el.play().catch(() => {}); this.fade(this.track.el, this.musicLevel(), 400); }
     else this.fade(this.track.el, 0, 300, () => this.track?.el.pause());
   }
   pause(p) { if (!this.track) return; if (p) this.track.el.pause(); else if (this.musicOn) this.track.el.play().catch(() => {}); }
