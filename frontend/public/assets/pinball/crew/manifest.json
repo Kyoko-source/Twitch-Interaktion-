@@ -1,0 +1,4 @@
+{
+  "mimi": { "idle": "mimi-idle.webp", "cheer": "mimi-cheer.webp", "hype": "mimi-hype.webp", "sad": "mimi-sad.webp", "shock": "mimi-shock.webp", "wink": "mimi-wink.webp" },
+  "luna": { "idle": "luna-idle.webp", "cheer": "luna-cheer.webp", "hype": "luna-hype.webp", "sad": "luna-sad.webp", "wink": "luna-wink.webp" }
+}
