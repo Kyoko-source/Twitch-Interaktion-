@@ -1,0 +1,23 @@
+.streamControl .scDuration { display: grid; gap: 8px; }
+.streamControl .scSwitch { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.streamControl .scSwitch input { width: auto; }
+.streamControl .scStop { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border-radius: 14px; border: 2px solid #ff4d5d; background: linear-gradient(180deg, #ff4d5d, #b3121f); color: #fff; font-weight: 900; letter-spacing: 0.08em; box-shadow: 0 6px 0 #5a0008; }
+.streamControl .scStop:active { transform: translateY(3px); box-shadow: 0 3px 0 #5a0008; }
+.streamControl .scPreview { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: repeating-conic-gradient(#1a1d2e 0 25%, #12141f 0 50%) 0 0 / 24px 24px; }
+.streamControl .scPreview iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.streamControl .scVideos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.streamControl .scVideo { display: grid; gap: 6px; padding: 8px; border-radius: 14px; border: 2px solid #ffffff1f; background: #ffffff08; color: inherit; text-align: left; box-shadow: none; cursor: pointer; }
+.streamControl .scVideo video { width: 100%; aspect-ratio: 16 / 9; border-radius: 9px; background: #000; object-fit: cover; }
+.streamControl .scVideo.on { border-color: #ffd36b; box-shadow: 0 0 22px #ffd36b44; }
+
+.streamControl .scGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
+.streamControl .scBtn { position: relative; display: grid; justify-items: start; gap: 2px; padding: 12px 12px 10px; border-radius: 14px; border: 1px solid #ffffff1f; background: linear-gradient(180deg, #1c2038, #12152a); color: #fff; text-align: left; box-shadow: none; cursor: pointer; transition: transform 0.1s, border-color 0.15s, background 0.15s; }
+.streamControl .scBtn:hover:not(:disabled) { border-color: #ff4fd8aa; background: linear-gradient(180deg, #2a1f48, #171235); transform: translateY(-2px); }
+.streamControl .scBtn:active:not(:disabled) { transform: scale(0.97); }
+.streamControl .scBtn .scEmoji { font-size: 28px; line-height: 1; }
+.streamControl .scBtn b { font-size: 15px; }
+.streamControl .scBtn small { color: #aab0cc; font-size: 11.5px; line-height: 1.3; }
+.streamControl .scBtn.live { border-color: #39e07a; box-shadow: 0 0 0 1px #39e07a, 0 0 18px #39e07a55; }
+.streamControl .scBtn.live small { color: #7dffb0; font-weight: 800; }
+.streamControl .scBtn.live::after { content: "LIVE"; position: absolute; top: 8px; right: 8px; padding: 2px 6px; border-radius: 6px; background: #d4161f; font-size: 10px; font-weight: 900; letter-spacing: 0.1em; }
