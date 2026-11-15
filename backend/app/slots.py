@@ -6,10 +6,13 @@ All randomness and accounting happens here, inside one SQLite transaction on the
 ledger: credits are debited, the reels are drawn with a CSPRNG, GSC are credited and the spin
 is stored (idempotent by request id). Return to player is ~93% of the GSC stake value.
 
-Three or more Golden Eggs anywhere start the Egg Bonus: 8/12/20 free spins that are drawn
-right away in the same request, with every win tripled. Eggs during the bonus add more free
-spins (capped). Roughly a third of the return comes from the bonus, so the base game is
-leaner and the bonus is where the big numbers happen.
+Three or more Golden Eggs anywhere start the Egg Bonus. The number of free spins is rolled on
+the Freispiel-Rad: 1 to 100, where every number is rarer than the one before (weight
+1/(n+3)^2.2: about 8 on average, a 1 in a quarter of the bonuses, a 100 in about 5000). Four
+eggs roll twice and five eggs three times; the best roll counts. The free spins are drawn
+right away in the same request, with every win tripled. Eggs during the bonus add a fixed
+number of extra spins (capped). Roughly a third of the return comes from the bonus, so the
+base game is leaner and the bonus is where the big numbers happen.
 """
 from __future__ import annotations
 
@@ -39,9 +42,14 @@ PAY = {
     "bar": (1.7, 5, 17), "seven": (3.5, 13, 50), "wild": (4, 20, 200),
 }
 SCATTER = {3: 1, 4: 5, 5: 25}  # golden eggs anywhere, instant pay
-FREE_SPINS = {3: 8, 4: 12, 5: 20}  # golden eggs start / extend the Egg Bonus
+FREE_SPINS = {3: 8, 4: 12, 5: 20}  # golden eggs during the bonus add this many spins
+FREE_ROLLS = {3: 1, 4: 2, 5: 3}    # golden eggs that start the bonus: rolls on the wheel, best counts
+FREE_MAX = 100                     # the wheel goes from 1 to FREE_MAX
+FREE_EXP, FREE_SHIFT = 2.2, 3      # weight of n on the wheel is (n + FREE_SHIFT) ** -FREE_EXP
 FREE_MULT = 3
-FREE_CAP = 50
+FREE_CAP = 150                     # start roll plus retriggers
+WHEEL = list(range(1, FREE_MAX + 1))
+WHEEL_WEIGHTS = [(n + FREE_SHIFT) ** -FREE_EXP for n in WHEEL]
 LINES = [
     [1, 1, 1, 1, 1], [0, 0, 0, 0, 0], [2, 2, 2, 2, 2], [0, 1, 2, 1, 0], [2, 1, 0, 1, 2],
     [0, 0, 1, 2, 2], [2, 2, 1, 0, 0], [1, 0, 0, 0, 1], [1, 2, 2, 2, 1], [0, 1, 1, 1, 0],
@@ -94,6 +102,18 @@ def evaluate(grid: list[list[str]], bet: int, mult: float = 1) -> dict[str, Any]
     return {"wins": wins, "scatter": scatter, "multiplier": total, "win": win}
 
 
+def wheel_chances() -> dict[int, float]:
+    total = sum(WHEEL_WEIGHTS)
+    return {n: w / total for n, w in zip(WHEEL, WHEEL_WEIGHTS)}
+
+
+def roll_free_spins(eggs: int, rng=None) -> dict[str, Any]:
+    """Spin the Freispiel-Rad once per roll the egg count gives; the best roll counts."""
+    rng = rng or _rng
+    rolls = rng.choices(WHEEL, weights=WHEEL_WEIGHTS, k=FREE_ROLLS[min(eggs, 5)])
+    return {"rolls": rolls, "value": max(rolls), "max": FREE_MAX}
+
+
 def play_bonus(start: int, bet: int, rng=None) -> dict[str, Any]:
     """Draw the whole Egg Bonus. Retriggers add spins up to FREE_CAP in total."""
     spins = []
@@ -115,7 +135,11 @@ def play_bonus(start: int, bet: int, rng=None) -> dict[str, Any]:
 def play(bet: int, rng=None) -> dict[str, Any]:
     grid = draw(rng) if rng else draw()
     base = evaluate(grid, bet)
-    bonus = play_bonus(base["scatter"]["free_spins"], bet, rng) if base["scatter"] else None
+    bonus = None
+    if base["scatter"]:
+        wheel = roll_free_spins(base["scatter"]["count"], rng)
+        base["scatter"]["free_spins"] = wheel["value"]
+        bonus = {"wheel": wheel, **play_bonus(wheel["value"], bet, rng)}
     total = base["win"] + (bonus["win"] if bonus else 0)
     return {"grid": grid, "bet": bet, **base, "base_win": base["win"], "bonus": bonus, "win": total}
 
@@ -150,7 +174,7 @@ def info(user: dict = Depends(current_user)) -> dict[str, Any]:
         ensure_table(db)
         wallet = store.wallet(db, username)
         won = won_today(db, username, now)
-    return {"bets": BETS, "gsc_per_credit": GSC_PER_CREDIT, "pay": PAY, "scatter": SCATTER, "free_spins": FREE_SPINS, "free_mult": FREE_MULT, "lines": LINES, "weights": WEIGHTS, "rtp": 0.93,
+    return {"bets": BETS, "gsc_per_credit": GSC_PER_CREDIT, "pay": PAY, "scatter": SCATTER, "free_spins": FREE_SPINS, "free_rolls": FREE_ROLLS, "free_max": FREE_MAX, "free_mult": FREE_MULT, "lines": LINES, "weights": WEIGHTS, "rtp": 0.93,
             "wallet": wallet, "today": {"won": won}}
 
 

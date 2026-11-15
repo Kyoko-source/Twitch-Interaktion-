@@ -13,7 +13,7 @@ test("three golden eggs start the egg bonus, play every free spin and count the 
   const freeWin = 50 * 3 * 10000;
   const spinBody = {
     grid: eggs, bet: 1, wins: [], scatter: { count: 3, mult: 1, free_spins: 3, cells: [[0, 0], [1, 1], [2, 2]] }, multiplier: 1, base_win: 10000,
-    bonus: { awarded: 3, mult: 3, win: freeWin + 0, spins: [
+    bonus: { wheel: { rolls: [3], value: 3, max: 100 }, awarded: 3, mult: 3, win: freeWin + 0, spins: [
       { grid: plain, wins: [], scatter: null, multiplier: 0, win: 0, extra_spins: 0 },
       { grid: sevens, wins: [{ line: 0, symbol: "seven", count: 5, mult: 50, win: freeWin, cells: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1]] }], scatter: null, multiplier: 150, win: freeWin, extra_spins: 0 },
       { grid: plain, wins: [], scatter: null, multiplier: 0, win: 0, extra_spins: 0 },
@@ -37,7 +37,10 @@ test("three golden eggs start the egg bonus, play every free spin and count the 
   if (shots) { await page.waitForTimeout(250); await page.locator(".slShell").screenshot({ path: `${shots}/slot-spin.png` }); }
   await expect(page.locator(".slSplash")).toContainText("EIER-BONUS", { timeout: 12_000 });
   if (shots) { await page.waitForTimeout(700); await page.locator(".slShell").screenshot({ path: `${shots}/slot-bonus-splash.png` }); }
-  await expect(page.locator(".slBonusBar")).toContainText("FREISPIEL 1 / 3", { timeout: 8000 });
+  await expect(page.getByTestId("slot-wheel")).toBeVisible({ timeout: 8000 });
+  await expect(page.getByTestId("slot-wheel")).toContainText("3 FREISPIELE", { timeout: 10_000 });
+  if (shots) await page.locator(".slShell").screenshot({ path: `${shots}/slot-wheel.png` });
+  await expect(page.locator(".slBonusBar")).toContainText("FREISPIEL 1 / 3", { timeout: 10_000 });
   await expect(page.locator(".slBonusBar")).toContainText("FREISPIEL 2 / 3", { timeout: 15_000 });
   await expect(page.locator(".slWinBox.big")).toBeVisible({ timeout: 15_000 });
   if (shots) { await page.waitForTimeout(2500); await page.locator(".slShell").screenshot({ path: `${shots}/slot-bigwin.png` }); }

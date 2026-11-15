@@ -83,6 +83,7 @@ export function ChickenJackpot({ user, onLogin }) {
   const [phase, setPhase] = useState("idle");       // idle | spin | result | bonusIntro | bonus | bonusEnd
   const [bonus, setBonus] = useState(null);         // { played, awarded, total, mult }
   const [splash, setSplash] = useState(null);       // { title, sub, key }
+  const [wheel, setWheel] = useState(null);         // Freispiel-Rad: { rolls, idx, shown, landed, best, done, max }
   const [mood, setMood] = useState("idle");
   const [say, setSay] = useState("");
   const [lights, setLights] = useState("idle");
@@ -230,6 +231,55 @@ export function ChickenJackpot({ user, onLogin }) {
     if (ratio >= 3 || quick) setWinBox(null);
   }
 
+  // ------------------------------------------------ Freispiel-Rad (1-100)
+  // The server already rolled; the drum only shows it. It races through the numbers, slows
+  // down and lands on the roll. With 4 or 5 eggs it rolls 2 or 3 times and the best one counts.
+  async function rollWheel(w) {
+    const rolls = w.rolls?.length ? w.rolls : [w.value];
+    const max = w.max || 100;
+    let best = 0;
+    for (let i = 0; i < rolls.length; i++) {
+      if (!alive.current) return;
+      const target = rolls[i];
+      setWheel({ rolls, idx: i, shown: 1, landed: false, best, done: false, max });
+      audio.play("mission-lit", { gain: 0.6 });
+      const ms = slam.current ? 500 : 2600;
+      const start = performance.now();
+      let last = 0;
+      await new Promise((resolve) => {
+        const step = (now) => {
+          if (!alive.current) return resolve();
+          const t = Math.min(1, (now - start) / ms);
+          if (t >= 1) return resolve();
+          const gap = 30 + 260 * t * t * t; // ticks get slower towards the end
+          if (now - last > gap) {
+            last = now;
+            // Big numbers flash by to tease; the drum never shows the result early.
+            let n = 1 + Math.floor(Math.random() * max);
+            if (n === target) n = (n % max) + 1;
+            setWheel((v) => (v ? { ...v, shown: n } : v));
+            audio.play("ball-click", { gain: 0.35, rate: 0.8 + t * 0.6, gap: 0 });
+          }
+          requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
+      best = Math.max(best, target);
+      setWheel({ rolls, idx: i, shown: target, landed: true, best, done: false, max });
+      const hot = target >= 20;
+      audio.play(hot ? "super-jackpot" : target >= 8 ? "jackpot" : "lane", { gain: 0.8 });
+      if (hot) { audio.voice("vo-winner"); quake(2); fx.current?.fountain(50, 1.2); }
+      fx.current?.burst("star", 0.5, 0.5, 20 + Math.min(60, target), 1 + Math.min(1, target / 40));
+      await sleep(slam.current ? 400 : hot ? 1800 : 1100);
+    }
+    if (!alive.current) return;
+    setWheel((v) => (v ? { ...v, done: true, shown: best } : v));
+    speak(best >= 20 ? SAY.big : SAY.bonus, 2500);
+    audio.play("extra-ball", { gain: 0.9 });
+    await sleep(slam.current ? 600 : 1600);
+    setWheel(null);
+  }
+
   // --------------------------------------------------------- egg bonus
   async function runBonus(b, stake) {
     const initial = b.awarded - b.spins.reduce((n, s) => n + (s.extra_spins || 0), 0);
@@ -238,9 +288,11 @@ export function ChickenJackpot({ user, onLogin }) {
     audio.music("multiball");
     quake(2.4);
     fx.current?.burst("star", 0.5, 0.5, 60, 1.6); fx.current?.rain("feather", 10, 3);
-    setSplash({ title: "EIER-BONUS!", sub: `${initial} FREISPIELE · ALLE GEWINNE ×${b.mult}`, key: Math.random() });
-    await sleep(3000);
+    const tries = b.wheel?.rolls?.length || 0;
+    setSplash({ title: "EIER-BONUS!", sub: b.wheel ? `DREH DAS FREISPIEL-RAD${tries > 1 ? ` · ${tries} VERSUCHE` : ""}!` : `${initial} FREISPIELE · ALLE GEWINNE ×${b.mult}`, key: Math.random() });
+    await sleep(slam.current ? 1200 : 2600);
     setSplash(null);
+    if (b.wheel) await rollWheel(b.wheel);
     setPhase("bonus");
     let awarded = initial, total = 0;
     setBonus({ played: 0, awarded, total, mult: b.mult });
@@ -435,6 +487,21 @@ export function ChickenJackpot({ user, onLogin }) {
                   {result?.scatter && !winBox.bonusTotal && <small>{result.scatter.count} Goldene Eier!</small>}
                 </div>
               )}
+              {wheel && (
+                <div className={`slWheel${wheel.landed ? " landed" : ""}${wheel.done ? " done" : ""}${wheel.landed && wheel.shown >= 20 ? " hot" : ""}`} data-testid="slot-wheel" aria-live="polite">
+                  <div className="slWheelHead">{wheel.done ? "DEINE FREISPIELE" : `FREISPIEL-RAD${wheel.rolls.length > 1 ? ` · VERSUCH ${wheel.idx + 1} / ${wheel.rolls.length}` : ""}`}</div>
+                  <div className="slWheelDrum"><span key={wheel.landed ? `l${wheel.idx}${wheel.done ? "d" : ""}` : "s"}>{wheel.shown}</span></div>
+                  <div className="slWheelSub">{wheel.done ? `${wheel.best} FREISPIELE · ALLE GEWINNE ×${info?.free_mult || 3}` : `1 – ${wheel.max} · je höher, desto seltener`}</div>
+                  {wheel.rolls.length > 1 && (
+                    <div className="slWheelRolls">
+                      {wheel.rolls.map((r, i) => {
+                        const seen = i < wheel.idx || (i === wheel.idx && wheel.landed);
+                        return <b key={i} className={seen && r === wheel.best ? "best" : ""}>{seen ? r : "?"}</b>;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               {splash && (
                 <div className="slSplash" key={splash.key}>
                   <div className="slSplashEggs"><SlotSymbol name="egg" /><SlotSymbol name="egg" /><SlotSymbol name="egg" /></div>
@@ -469,7 +536,7 @@ export function ChickenJackpot({ user, onLogin }) {
             )}
           </div>
           {msg && <p className="slMsg" role="alert">{msg}</p>}
-          {info && <p className="slFine">1 Credit = 1 Spin pro Einsatzstufe ({fmt(gscPerCredit)} GSC Einsatzwert). 3+ Goldene Eier starten den Eier-Bonus mit Freispielen. Gewinne kommen als Glücksspiel-Coins (GSC) – im Shop tauschst du GSC gegen Chickens. Alles virtuell, kein echtes Geld. Heute gewonnen: {fmt(info.today?.won || 0)} GSC.</p>}
+          {info && <p className="slFine">1 Credit = 1 Spin pro Einsatzstufe ({fmt(gscPerCredit)} GSC Einsatzwert). 3+ Goldene Eier starten den Eier-Bonus – das Freispiel-Rad bestimmt 1 bis 100 Freispiele. Gewinne kommen als Glücksspiel-Coins (GSC) – im Shop tauschst du GSC gegen Chickens. Alles virtuell, kein echtes Geld. Heute gewonnen: {fmt(info.today?.won || 0)} GSC.</p>}
 
           <canvas ref={canvas} className="slFx" aria-hidden="true" />
           <div className="slPopups" aria-hidden="true">{popups.map((p) => <b key={p.id} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}>{p.text}</b>)}</div>
@@ -490,9 +557,9 @@ export function ChickenJackpot({ user, onLogin }) {
             {Object.entries(info.pay).reverse().map(([sym, pays]) => (
               <div key={sym}><SlotSymbol name={sym} /><span><strong>{SYMBOL_NAMES[sym]}</strong>{pays.map((p, i) => <b key={i}>{i + 3}× = {p}</b>)}</span></div>
             ))}
-            <div><SlotSymbol name="egg" /><span><strong>Goldenes Ei</strong>{Object.entries(info.scatter).map(([n, p]) => <b key={n}>{n}× = {p}{info.free_spins?.[n] ? ` + ${info.free_spins[n]} Freispiele` : ""}</b>)}<em>überall auf den Walzen</em></span></div>
+            <div><SlotSymbol name="egg" /><span><strong>Goldenes Ei</strong>{Object.entries(info.scatter).map(([n, p]) => <b key={n}>{n}× = {p}{info.free_rolls?.[n] ? ` + Freispiel-Rad${info.free_rolls[n] > 1 ? ` (${info.free_rolls[n]}× drehen)` : ""}` : info.free_spins?.[n] ? ` + ${info.free_spins[n]} Freispiele` : ""}</b>)}<em>überall auf den Walzen</em></span></div>
           </div>
-          <p>Der Königsvogel ist Wild und ersetzt alle Symbole außer dem Goldenen Ei. Im Eier-Bonus zählen alle Gewinne ×{info.free_mult || 3}, und neue Eier bringen weitere Freispiele.</p>
+          <p>Der Königsvogel ist Wild und ersetzt alle Symbole außer dem Goldenen Ei. 3+ Goldene Eier starten den Eier-Bonus: Das Freispiel-Rad bestimmt 1 bis {info.free_max || 100} Freispiele – je höher die Zahl, desto seltener. Bei 4 Eiern drehst du 2×, bei 5 Eiern 3×, der beste Wurf zählt. Im Bonus zählen alle Gewinne ×{info.free_mult || 3}, und neue Eier bringen {info.free_spins?.[3] || 8}/{info.free_spins?.[4] || 12}/{info.free_spins?.[5] || 20} weitere Freispiele.</p>
         </div>
       )}
     </section>

@@ -75,7 +75,7 @@ class SlotTests(unittest.TestCase):
         sevens = grid_from_rows([["seven"] * 5, ["cherry", "lemon", "grape", "bell", "bar"], ["lemon", "grape", "bell", "bar", "cherry"]])
         tripled = slots.evaluate(sevens, 1, slots.FREE_MULT)
         self.assertEqual(tripled["win"], int(slots.GSC_PER_CREDIT * slots.PAY["seven"][2] * slots.FREE_MULT))
-        draws = iter([three_eggs] + [three_eggs] * 10 + [sevens] * 100)
+        draws = iter([three_eggs] + [three_eggs] * 20 + [sevens] * 200)  # 20 retriggers x 8 always reach the cap
         original = slots.draw
         slots.draw = lambda rng=None: next(draws)
         try:
@@ -87,6 +87,36 @@ class SlotTests(unittest.TestCase):
         self.assertEqual(len(bonus["spins"]), slots.FREE_CAP)
         self.assertEqual(result["win"], result["base_win"] + bonus["win"])
         self.assertEqual(bonus["spins"][0]["extra_spins"], 8)
+        self.assertEqual(result["scatter"]["free_spins"], bonus["wheel"]["value"])
+        self.assertEqual(len(bonus["wheel"]["rolls"]), 1, "three eggs roll the wheel once")
+
+    def test_free_spin_wheel_goes_from_1_to_100_and_higher_numbers_are_rarer(self):
+        chances = slots.wheel_chances()
+        self.assertEqual(sorted(chances), list(range(1, 101)))
+        self.assertAlmostEqual(sum(chances.values()), 1.0)
+        self.assertTrue(all(chances[n] > chances[n + 1] for n in range(1, 100)))
+        mean = sum(n * p for n, p in chances.items())
+        self.assertGreater(mean, 5)
+        self.assertLess(mean, 12)
+        rng = random.Random(7)
+        for eggs, rolls in ((3, 1), (4, 2), (5, 3), (7, 3)):
+            wheel = slots.roll_free_spins(eggs, rng)
+            self.assertEqual(len(wheel["rolls"]), rolls)
+            self.assertEqual(wheel["value"], max(wheel["rolls"]))
+            self.assertTrue(all(1 <= r <= 100 for r in wheel["rolls"]))
+        values = [slots.roll_free_spins(3, rng)["value"] for _ in range(20_000)]
+        self.assertGreater(values.count(1), values.count(10) * 5)
+        self.assertGreater(max(values), 40, "big rolls must be possible")
+
+    def test_a_100_roll_still_plays_every_spin(self):
+        no_eggs = grid_from_rows([["cherry", "lemon", "grape", "bell", "bar"], ["bell", "bar", "seven", "cherry", "lemon"], ["grape", "lemon", "bell", "cherry", "bar"]])
+        original = slots.draw
+        slots.draw = lambda rng=None: no_eggs
+        try:
+            bonus = slots.play_bonus(100, 1)
+        finally:
+            slots.draw = original
+        self.assertEqual((bonus["awarded"], len(bonus["spins"])), (100, 100))
 
     def test_spin_costs_credits_pays_gsc_and_is_idempotent(self):
         slots.draw = lambda rng=None: [["seven", "cherry", "lemon"], ["seven", "bell", "bar"], ["seven", "cherry", "lemon"], ["seven", "bell", "bar"], ["seven", "cherry", "lemon"]]
