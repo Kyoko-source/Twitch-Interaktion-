@@ -9,43 +9,48 @@ html.derbyOverlay body::before, html.derbyOverlay body::after { display: none !i
 @keyframes doWipeIn { from { clip-path: circle(0% at 50% 50%); filter: brightness(2.5); } to { clip-path: circle(75% at 50% 50%); filter: none; } }
 @keyframes doWipeOut { from { clip-path: circle(75% at 50% 50%); opacity: 1; } to { clip-path: circle(0% at 50% 50%); opacity: 0.6; } }
 
-.doLive { position: absolute; top: 2.2cqw; right: 2.2cqw; z-index: 7; display: flex; align-items: center; gap: 0.6cqw; padding: 0.5cqw 1.1cqw; border-radius: 0.6cqw; background: #d4161f; color: #fff; font: 900 1.15cqw / 1 Inter, sans-serif; letter-spacing: 0.14em; box-shadow: 0 0 2cqw #ff4d3d88; }
-.doLive i { width: 0.75cqw; height: 0.75cqw; border-radius: 50%; background: #fff; animation: pbBlinkFast 0.9s steps(2) infinite; }
-.doShell .hrBoard { top: auto; bottom: 1.4cqw; right: 1.4cqw; padding: 0.5cqw; border-radius: 0.9cqw; }
-.doShell .hrBoard li { grid-template-columns: 1.6cqw 1.1cqw minmax(0, 1fr); gap: 0.55cqw; padding: 0.22cqw 0.8cqw 0.22cqw 0.3cqw; font-size: 1.1cqw; border-radius: 0.5cqw; }
-.doShell .hrSilk { width: 1.1cqw; height: 1.1cqw; }
-.doShell .hrLap { top: 1.4cqw; left: 1.4cqw; padding: 0.6cqw 1.1cqw 0.8cqw; font-size: 1.5cqw; border-radius: 0.8cqw; }
-.doShell .hrLap i { min-width: 11cqw; height: 0.35cqw; margin-top: 0.5cqw; }
-.doMine { left: 1.4cqw; bottom: 1.4cqw; padding: 0.7cqw 1.3cqw; border-radius: 1cqw; }
-.doMine small { font-size: 0.95cqw; letter-spacing: 0.1em; text-transform: uppercase; }
-.doMine b { font-size: 2.6cqw; }
-.doShell .hrCall { top: 5.5cqw; }
+.doLive { position: absolute; top: 2.2vw; right: 2.2vw; z-index: 7; display: flex; align-items: center; gap: 0.6vw; padding: 0.5vw 1.1vw; border-radius: 0.6vw; background: #d4161f; color: #fff; font: 900 1.15vw / 1 Inter, sans-serif; letter-spacing: 0.14em; box-shadow: 0 0 2vw #ff4d3d88; }
+.doLive i { width: 0.75vw; height: 0.75vw; border-radius: 50%; background: #fff; animation: pbBlinkFast 0.9s steps(2) infinite; }
+.doShell .hrBoard { top: auto; bottom: 1.4vw; right: 1.4vw; padding: 0.5vw; border-radius: 0.9vw; }
+.doShell .hrBoard li { grid-template-columns: 1.6vw 1.1vw minmax(0, 1fr); gap: 0.55vw; padding: 0.22vw 0.8vw 0.22vw 0.3vw; font-size: 1.1vw; border-radius: 0.5vw; }
+.doShell .hrSilk { width: 1.1vw; height: 1.1vw; }
+.doShell .hrLap { top: 1.4vw; left: 1.4vw; padding: 0.6vw 1.1vw 0.8vw; font-size: 1.5vw; border-radius: 0.8vw; }
+.doShell .hrLap i { min-width: 11vw; height: 0.35vw; margin-top: 0.5vw; }
+.doMine { left: 1.4vw; bottom: 1.4vw; padding: 0.7vw 1.3vw; border-radius: 1vw; }
+.doMine small { font-size: 0.95vw; letter-spacing: 0.1em; text-transform: uppercase; }
+.doMine b { font-size: 2.6vw; }
+.doShell .hrCall { top: 5.5vw; }
 
 /* Who bet on what: big lower third during the countdown */
-.doIntro { position: absolute; left: 3cqw; bottom: 3cqw; z-index: 8; display: flex; align-items: center; gap: 1.4cqw; padding: 1.2cqw 2.4cqw 1.2cqw 1.2cqw; border-radius: 1.6cqw; background: linear-gradient(110deg, #0b0e20f2, #1a1f3df2); border: 0.25cqw solid var(--silk); box-shadow: 0 0 4cqw color-mix(in srgb, var(--silk) 55%, transparent), 0 2cqw 4cqw #0009; animation: doIntroIn 0.7s cubic-bezier(0.2, 1.3, 0.4, 1) 0.4s both; }
+.doIntro { position: absolute; left: 3vw; bottom: 3vw; z-index: 8; display: flex; align-items: center; gap: 1.4vw; padding: 1.2vw 2.4vw 1.2vw 1.2vw; border-radius: 1.6vw; background: linear-gradient(110deg, #0b0e20f2, #1a1f3df2); border: 0.25vw solid var(--silk); box-shadow: 0 0 4vw var(--silk), 0 2vw 4vw #0009; animation: doIntroIn 0.7s cubic-bezier(0.2, 1.3, 0.4, 1) 0.4s both; }
 @keyframes doIntroIn { from { opacity: 0; transform: translateX(-30%) skewX(-6deg); } }
-.doIntroHorse .hrPortrait { width: 13cqw !important; height: auto !important; filter: drop-shadow(0 0 1.2cqw var(--silk)); }
-.doIntroText { display: grid; gap: 0.2cqw; }
-.doIntroText b { font: italic 900 3.6cqw / 1 Inter, sans-serif; color: #fff; text-shadow: 0 0.3cqw 0 #000a; }
-.doIntroText span { font: 700 1.5cqw / 1.2 Inter, sans-serif; color: #c9cde6; }
+.doIntroHorse .hrPortrait { width: 13vw !important; height: auto !important; filter: drop-shadow(0 0 1.2vw var(--silk)); }
+.doIntroText { display: grid; gap: 0.2vw; }
+.doIntroText b { font: italic 900 3.6vw / 1 Inter, sans-serif; color: #fff; text-shadow: 0 0.3vw 0 #000a; }
+.doIntroText span { font: 700 1.5vw / 1.2 Inter, sans-serif; color: #c9cde6; }
 .doIntroText em { font-style: normal; color: #ffd36b; font-weight: 900; }
-.doIntroText strong { font: 900 2.6cqw / 1.1 "Space Grotesk", Inter, sans-serif; color: var(--silk); text-shadow: 0 0 1.5cqw color-mix(in srgb, var(--silk) 70%, transparent); filter: brightness(1.35); }
-.doIntroText small { font: 800 1.1cqw / 1 Inter, sans-serif; letter-spacing: 0.14em; color: #7dffb0; text-transform: uppercase; }
+.doIntroText strong { font: 900 2.6vw / 1.1 "Space Grotesk", Inter, sans-serif; color: var(--silk); text-shadow: 0 0 1.5vw var(--silk); filter: brightness(1.35); }
+.doIntroText small { font: 800 1.1vw / 1 Inter, sans-serif; letter-spacing: 0.14em; color: #7dffb0; text-transform: uppercase; }
 .doShell .hrCountdown { width: 40%; }
 
 /* 1080p sizes for the big moments (the site version caps them for small screens) */
-.doShell .hrCall span { font-size: 3.2cqw; }
-.doShell .hrCall.big span { font-size: 4.4cqw; }
-.doShell .hrWinTitle { font-size: 10cqw; }
-.doShell .hrWinHorse { width: 17cqw; }
-.doShell .hrWinName { font-size: 2.6cqw; }
-.doShell .hrWinSub { font-size: 2cqw; }
-.doShell .hrDouble span { font-size: 7cqw; }
-.doShell .hrDouble b { width: 9cqw; font-size: 4.6cqw; }
-.doShell .hrCount { font-size: 9cqw; }
-.doShell .hrPayout small { font-size: 1.6cqw; }
-.doShell .hrLosePanel { max-width: 62cqw; gap: 0.6cqw; }
-.doShell .hrLosePanel > small { font-size: 1.5cqw; }
-.doShell .hrPlace { font-size: 9cqw; }
-.doShell .hrLosePanel p { font-size: 1.7cqw; }
-.doShell .hrLoseWinner .hrPortrait { width: 14cqw !important; }
+.doShell .hrCall span { font-size: 3.2vw; }
+.doShell .hrCall.big span { font-size: 4.4vw; }
+.doShell .hrWinTitle { font-size: 10vw; }
+.doShell .hrWinHorse { width: 17vw; }
+.doShell .hrWinName { font-size: 2.6vw; }
+.doShell .hrWinSub { font-size: 2vw; }
+.doShell .hrDouble span { font-size: 7vw; }
+.doShell .hrDouble b { width: 9vw; font-size: 4.6vw; }
+.doShell .hrCount { font-size: 9vw; }
+.doShell .hrPayout small { font-size: 1.6vw; }
+.doShell .hrLosePanel { max-width: 62vw; gap: 0.6vw; }
+.doShell .hrLosePanel > small { font-size: 1.5vw; }
+.doShell .hrPlace { font-size: 9vw; }
+.doShell .hrLosePanel p { font-size: 1.7vw; }
+.doShell .hrLoseWinner .hrPortrait { width: 14vw !important; }
+
+/* Older Chromium in Streamlabs/OBS: give the shared site styles viewport-based sizes too */
+.doShell .hrCountdown b { font-size: 15vw; }
+.doShell .hrMine { box-shadow: 0 0 2vw #0008; }
+.doShell .hrWinPanel { gap: 0.3vw; }

@@ -162,7 +162,10 @@ export function DerbyOverlay() {
     let timer = 0;
     const poll = async () => {
       try {
-        const response = await fetch("/api/horses/live", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+        // Streamlabs/OBS ship older Chromium builds: no AbortSignal.timeout there.
+        const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+        const abort = setTimeout(() => ctrl?.abort(), 5000);
+        const response = await fetch("/api/horses/live", { cache: "no-store", signal: ctrl?.signal }).finally(() => clearTimeout(abort));
         if (response.ok) {
           const data = await response.json();
           clock.current = { server: data.server_time, perf: performance.now() };
