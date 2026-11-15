@@ -96,8 +96,11 @@ test("upgrade menu keeps the game running, auto starts waves, flyers stay on the
   await page.getByRole("button", { name: "Spiel starten" }).click();
   if (shots) await page.locator(".cdStage").screenshot({ path: `${shots}/cd-map.png` });
   await page.keyboard.press("1");
-  const box = await page.locator(".cdCanvas").boundingBox();
-  const clickTile = (c, r) => page.mouse.click(box.x + ((c + 0.5) / 22) * box.width, box.y + ((r + 0.5) / 13) * box.height);
+  const clickTile = async (c, r) => {
+    await page.locator(".cdCanvas").scrollIntoViewIfNeeded();
+    const box = await page.locator(".cdCanvas").boundingBox();
+    await page.mouse.click(box.x + ((c + 0.5) / 22) * box.width, box.y + ((r + 0.5) / 13) * box.height);
+  };
   await clickTile(5, 4);
   await page.getByRole("button", { name: /Erste Welle starten/ }).click();
   await page.keyboard.press("Escape");
@@ -132,4 +135,19 @@ test("upgrade menu keeps the game running, auto starts waves, flyers stay on the
   expect(stage.height).toBeGreaterThan(500);
   if (shots) await page.screenshot({ path: `${shots}/cd-full.png` });
   expect(errors).toEqual([]);
+});
+
+test("mouse wheel over the chicken bar scrolls it sideways", async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#games/chicken-defense");
+  const bar = page.locator(".cdShop");
+  await bar.scrollIntoViewIfNeeded();
+  const start = await bar.evaluate((el) => el.scrollLeft);
+  const box = await bar.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const pageY = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 400);
+  await expect.poll(() => bar.evaluate((el) => el.scrollLeft)).toBeGreaterThan(start + 200);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageY);
 });

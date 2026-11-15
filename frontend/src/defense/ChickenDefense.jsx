@@ -191,6 +191,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
   const [auto, setAuto] = useState(false);
   const [autoIn, setAutoIn] = useState(null);
   const shopRef = useRef(TOWER_ORDER);
+  const shopBar = useRef(null);
   const [full, setFull] = useState(false);
   const [message, setMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -336,6 +337,21 @@ export function ChickenDefense({ user, renderScoreboard }) {
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
+  // Mouse wheel over the chicken bar scrolls it sideways (a vertical wheel would do nothing there).
+  useEffect(() => {
+    const bar = shopBar.current;
+    if (!bar) return undefined;
+    const onWheel = (ev) => {
+      if (bar.scrollWidth <= bar.clientWidth) return;
+      const delta = Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : ev.deltaY;
+      if (!delta) return;
+      ev.preventDefault();
+      bar.scrollLeft += delta * (ev.deltaMode === 1 ? 40 : 1);
+    };
+    bar.addEventListener("wheel", onWheel, { passive: false });
+    return () => bar.removeEventListener("wheel", onWheel);
+  }, []);
+
   // keyboard
   const keys = useRef({});
   keys.current = { choose, nextWave, upgrade, sell, setPaused, setPlacing, setSelected, speed, setSpeed };
@@ -454,7 +470,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
       <div className="cdShopTabs" role="tablist" aria-label="Turm-Kategorien">
         {ROLE_TABS.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={role === key} className={role === key ? "on" : ""} onClick={() => setRole(key)}>{label} <i>{key === "alle" ? TOWER_ORDER.length : TOWER_ORDER.filter((k) => towerRole(k) === key).length}</i></button>)}
       </div>
-      <div className="cdShop" role="group" aria-label="Türme kaufen">
+      <div className="cdShop" ref={shopBar} role="group" aria-label="Türme kaufen">
         {shopList.map((kind, i) => {
           const spec = TOWERS[kind];
           const locked = Math.max(1, snap.wave) < spec.unlock;
