@@ -1,0 +1,169 @@
+/* ================= Chicken Derby: floodlit race night ================= */
+.hrShell { width: 100%; --gold: #ffd36b; --gold-hi: #fff4c9; --turf: #1f8a4c; --ink: #fff; --muted: #b8bdd6; position: relative; color: var(--ink); max-width: 1220px; margin: 0 auto; }
+.hrShell.isFull { max-width: none; height: 100vh; overflow: auto; padding: 0 16px 16px; background: #0b1030; }
+.hrShell.isFull .hrStage { max-height: calc(100vh - 170px); aspect-ratio: auto; height: calc(100vh - 170px); }
+
+.hrHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 12px; }
+.hrHeader span { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: 0.16em; }
+.hrHeader h2 { margin: 4px 0 0; font: italic 900 clamp(28px, 4vw, 38px) / 1 Inter, system-ui, sans-serif; background: linear-gradient(90deg, #fff, var(--gold) 45%, #ff7a45 75%, #ff4fa0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hrTools { position: relative; display: flex; gap: 6px; }
+.hrTools > button { display: grid; place-items: center; width: 38px; height: 38px; min-height: 38px; padding: 0; border-radius: 10px; border: 1px solid #ffffff22; background: #ffffff0a; color: #fff; box-shadow: none; }
+.hrTools > button:hover { background: #ffd36b22; border-color: #ffd36b88; }
+.hrVolume { position: absolute; right: 0; top: 46px; z-index: 30; display: grid; gap: 10px; min-width: 250px; padding: 14px; border-radius: 14px; background: #12162cf2; border: 1px solid #ffd36b55; box-shadow: 0 20px 40px #0008; }
+.hrVolume label { display: grid; grid-template-columns: auto 1fr 30px; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.hrVolume b { text-align: right; color: var(--gold); }
+
+.hrLeds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.hrLeds > div { padding: 8px 12px; border-radius: 12px; background: linear-gradient(180deg, #161a33, #0b0e20); border: 1px solid #ffffff1a; min-width: 0; }
+.hrLeds small { display: block; font-size: 10px; letter-spacing: 0.16em; color: var(--muted); font-weight: 800; }
+.hrLeds strong { display: block; font: 800 clamp(15px, 2.2vw, 22px) / 1.2 "Space Grotesk", Inter, sans-serif; color: var(--gold-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrLeds .hot strong { color: #7dffb0; }
+.hrLeds .mine { border-color: var(--silk); box-shadow: inset 0 0 0 1px var(--silk), 0 0 18px color-mix(in srgb, var(--silk) 45%, transparent); }
+
+/* ---------------------------------------------------------------- stage */
+.hrStage { container-type: inline-size; position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 20px; background: #0b1030; border: 3px solid #ffd36b; box-shadow: 0 0 0 4px #3a2400, 0 0 60px #ffd36b44, 0 30px 70px -30px #000; isolation: isolate; }
+.hrStage.pbQuake { animation: hrQuake 0.5s cubic-bezier(0.3, 0, 0.3, 1); }
+@keyframes hrQuake {
+  10% { transform: translate(calc(var(--quake, 1) * -7px), calc(var(--quake, 1) * 4px)) rotate(-0.3deg); }
+  25% { transform: translate(calc(var(--quake, 1) * 6px), calc(var(--quake, 1) * -5px)) rotate(0.3deg); }
+  45% { transform: translate(calc(var(--quake, 1) * -4px), calc(var(--quake, 1) * 2px)); }
+  70% { transform: translate(calc(var(--quake, 1) * 2px), -1px); }
+}
+.hrCanvas, .hrFx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hrFx { pointer-events: none; z-index: 20; }
+
+/* Commentator banner: big, loud and impossible to miss */
+.hrCall { position: absolute; top: 4%; left: 50%; z-index: 8; width: max-content; max-width: 96%; white-space: nowrap; transform: translateX(-50%); pointer-events: none; text-align: center; }
+.hrCall span {
+  display: inline-block;
+  padding: 0.18em 0.6em 0.24em;
+  font: italic 900 clamp(15px, 3.3cqw, 40px) / 1.05 Inter, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(180deg, #ff4d3d, #b3121f);
+  border: 3px solid #fff;
+  border-radius: 14px;
+  transform: skewX(-8deg);
+  text-shadow: 0 3px 0 #5a0008, 0 0 18px #ffb199;
+  box-shadow: 0 10px 0 #5a0008, 0 0 40px #ff4d3d99;
+  animation: hrCallIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both, hrCallOut 0.35s ease-in 1.55s forwards;
+}
+.hrCall.big span { font-size: clamp(18px, 4.4cqw, 56px); animation: hrCallSlam 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both, hrCallPulse 0.32s ease-in-out 0.6s 5 alternate, hrCallOut 0.35s ease-in 2.05s forwards; }
+.hrCall.tone-go span { background: linear-gradient(180deg, #39e07a, #0f8a3c); box-shadow: 0 10px 0 #05401b, 0 0 50px #39e07aaa; text-shadow: 0 3px 0 #05401b; }
+.hrCall.tone-lead span { background: linear-gradient(180deg, #2d7dff, #1236a8); box-shadow: 0 10px 0 #0a1d5c, 0 0 40px #2d7dffaa; text-shadow: 0 3px 0 #0a1d5c; }
+.hrCall.tone-mine span, .hrCall.tone-win span { color: #2a1600; background: linear-gradient(180deg, #fff6c4, #ffcf4a 45%, #e79a00); box-shadow: 0 10px 0 #7a4300, 0 0 60px #ffcf4acc; text-shadow: 0 2px 0 #fff6; }
+.hrCall.tone-final span, .hrCall.tone-hot span { background: linear-gradient(180deg, #ff9a3d, #e5340b); box-shadow: 0 10px 0 #6a1600, 0 0 50px #ff6a1faa; }
+.hrCall.tone-lap span { background: linear-gradient(180deg, #b56bff, #6a1fd1); box-shadow: 0 10px 0 #33066e, 0 0 40px #b56bffaa; text-shadow: 0 3px 0 #33066e; }
+.hrCall.tone-sad span { background: linear-gradient(180deg, #5c6585, #2c3350); box-shadow: 0 8px 0 #151a2c; }
+.hrCall.tone-photo span { color: #111; background: repeating-linear-gradient(90deg, #fff 0 18px, #ddd 18px 36px); box-shadow: 0 10px 0 #555, 0 0 70px #fff; text-shadow: none; }
+@keyframes hrCallIn { from { opacity: 0; transform: skewX(-8deg) translateY(-60%) scale(0.7); } }
+@keyframes hrCallSlam { 0% { opacity: 0; transform: skewX(-8deg) scale(2.8) rotate(-6deg); } 55% { opacity: 1; transform: skewX(-8deg) scale(0.92) rotate(1deg); } 100% { transform: skewX(-8deg) scale(1); } }
+@keyframes hrCallPulse { to { transform: skewX(-8deg) scale(1.06); filter: brightness(1.2); } }
+@keyframes hrCallOut { to { opacity: 0; transform: skewX(-8deg) translateY(-40%) scale(0.9); } }
+
+.hrLap { position: absolute; left: 12px; top: 12px; z-index: 6; padding: 6px 12px 8px; border-radius: 10px; background: #0b0e20d9; border: 1px solid #ffd36b66; font: 900 clamp(12px, 1.6vw, 16px) / 1 "Space Grotesk", Inter, sans-serif; letter-spacing: 0.08em; color: var(--gold); }
+.hrLap i { display: block; height: 4px; margin-top: 6px; border-radius: 4px; background: linear-gradient(90deg, #ffd36b calc(var(--p) * 100%), #ffffff22 0); min-width: 110px; }
+.hrBoard { position: absolute; right: 10px; bottom: 10px; z-index: 6; margin: 0; padding: 6px; list-style: none; display: grid; gap: 2px; border-radius: 12px; background: #0b0e20cc; border: 1px solid #ffffff22; }
+.hrBoard li { display: grid; grid-template-columns: 18px 12px minmax(0, 1fr); align-items: center; gap: 6px; padding: 2px 8px 2px 4px; border-radius: 7px; font-size: 12px; transition: background 0.3s; }
+.hrBoard li em { font-style: normal; font-weight: 900; color: var(--muted); text-align: right; }
+.hrBoard li b { white-space: nowrap; font-weight: 700; }
+.hrBoard li:first-child em { color: var(--gold); }
+.hrBoard li.me { background: #ffd36b33; box-shadow: inset 0 0 0 1px #ffd36b; }
+.hrSilk { width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(135deg, var(--silk) 55%, var(--silk2) 0); }
+.hrMine { position: absolute; left: 12px; bottom: 12px; z-index: 6; display: grid; padding: 8px 14px; border-radius: 12px; background: #0b0e20e0; border: 2px solid var(--silk); box-shadow: 0 0 24px color-mix(in srgb, var(--silk) 60%, transparent); }
+.hrMine small { font-size: 10px; letter-spacing: 0.16em; color: var(--muted); font-weight: 800; }
+.hrMine b { font: 900 clamp(18px, 2.6vw, 28px) / 1 "Space Grotesk", Inter, sans-serif; }
+.hrMine.first { border-color: var(--gold); animation: hrMineGlow 0.5s ease-in-out infinite alternate; }
+.hrMine.first b { color: var(--gold); }
+@keyframes hrMineGlow { to { box-shadow: 0 0 40px #ffd36bcc; transform: scale(1.05); } }
+
+.hrCountdown { position: absolute; inset: 0 auto 0 0; width: 46%; z-index: 9; display: grid; place-content: center; justify-items: center; pointer-events: none; }
+.hrCountdown b { font: italic 900 clamp(80px, 17cqw, 210px) / 1 Inter, system-ui, sans-serif; color: #fff; -webkit-text-stroke: 4px #b3121f; text-shadow: 0 8px 0 #5a0008, 0 0 60px #ff4d3d; animation: hrCount 0.95s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.hrCountdown small { margin-top: 6px; padding: 6px 14px; border-radius: 999px; background: #0b0e20cc; font-weight: 800; color: var(--gold); }
+@keyframes hrCount { 0% { opacity: 0; transform: scale(2.6); } 30% { opacity: 1; transform: scale(0.9); } 45% { transform: scale(1.04); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.7); } }
+
+.hrLobbyBadge { position: absolute; left: 50%; bottom: 14px; z-index: 6; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: #0b0e20e0; border: 1px solid #ffd36b77; color: var(--gold-hi); font-weight: 800; white-space: nowrap; font-size: clamp(11px, 1.6vw, 15px); animation: hrBob 2s ease-in-out infinite; }
+@keyframes hrBob { 50% { transform: translate(-50%, -4px); } }
+
+/* ---------------------------------------------------------------- win show */
+.hrWin { z-index: 12; pointer-events: auto; }
+.hrWinPanel { position: relative; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.hrWinTitle { font: italic 900 clamp(40px, 9cqw, 120px) / 0.9 Inter, system-ui, sans-serif; background: linear-gradient(180deg, #fffbe0, #ffd36b 45%, #e07a00); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 0 #6a3300) drop-shadow(0 0 40px #ffcf4a); animation: hrWinSlam 0.8s cubic-bezier(0.2, 1.5, 0.4, 1) both, hrWinPump 0.45s ease-in-out 0.8s infinite alternate; }
+@keyframes hrWinSlam { 0% { opacity: 0; transform: scale(4) rotate(-12deg); } 60% { opacity: 1; transform: scale(0.88) rotate(2deg); } 100% { transform: scale(1) rotate(-3deg); } }
+@keyframes hrWinPump { to { transform: scale(1.07) rotate(-3deg); } }
+.hrWinHorse { position: relative; margin-top: -6px; width: clamp(110px, 17cqw, 200px); animation: hrGallopIn 0.9s ease-out 0.2s both; }
+.hrWinHorse .hrPortrait { width: 100% !important; height: auto !important; filter: drop-shadow(0 0 22px #ffd36b); }
+.hrLaurel { position: absolute; inset: 8% 14%; border-radius: 50%; border: 6px dotted #ffd36b; opacity: 0.6; animation: hrSpin 6s linear infinite; z-index: -1; }
+@keyframes hrSpin { to { transform: rotate(360deg); } }
+@keyframes hrGallopIn { from { opacity: 0; transform: translateX(-120%); } }
+.hrWinName { font: 900 clamp(15px, 2.4cqw, 28px) / 1.1 "Space Grotesk", Inter, sans-serif; color: #fff; text-shadow: 0 0 20px #ffd36b; }
+.hrWinSub { margin-top: 6px; font: 900 clamp(14px, 2.4vw, 22px) / 1 Inter, sans-serif; letter-spacing: 0.08em; color: #7dffb0; animation: pbBlinkFast 0.5s steps(2) infinite; }
+.hrDouble { display: flex; align-items: center; gap: 16px; margin-top: 6px; }
+.hrDouble span { font: 900 clamp(36px, 7cqw, 80px) / 1 "Space Grotesk", Inter, sans-serif; color: #fff; }
+.hrDouble b { display: grid; place-items: center; width: clamp(60px, 9cqw, 110px); aspect-ratio: 1; border-radius: 50%; font: italic 900 clamp(26px, 4.6cqw, 52px) / 1 Inter, sans-serif; color: #2a1600; background: radial-gradient(circle at 35% 30%, #fff6c4, #ffcf4a 55%, #c77700); border: 5px solid #fff; box-shadow: 0 0 50px #ffcf4a, 0 8px 0 #7a4300; animation: hrStamp 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes hrStamp { 0% { opacity: 0; transform: scale(4) rotate(30deg); } 100% { opacity: 1; transform: scale(1) rotate(-10deg); } }
+.hrPayout { display: grid; justify-items: center; margin-top: 4px; }
+.hrCount { font: 900 clamp(48px, 9cqw, 120px) / 0.95 "Space Grotesk", Inter, sans-serif; color: #7dffb0; text-shadow: 0 6px 0 #0a4a25, 0 0 50px #39e07a; animation: hrWinPump 0.25s ease-in-out infinite alternate; }
+.hrPayout small { font: 900 clamp(14px, 2.4vw, 22px) / 1 Inter, sans-serif; letter-spacing: 0.3em; color: var(--gold); }
+.hrAgain { margin-top: 12px; padding: 12px 28px; border-radius: 999px; border: 3px solid #fff; background: linear-gradient(180deg, #ffe27a, #ff9d00); color: #2a1600; font: 900 18px / 1 Inter, sans-serif; box-shadow: 0 6px 0 #7a4300, 0 0 30px #ffcf4a88; cursor: pointer; animation: hrIn 0.4s ease both; }
+.hrAgain:hover { filter: brightness(1.1); }
+@keyframes hrIn { from { opacity: 0; transform: translateY(10px); } }
+
+.hrLose { position: absolute; inset: 0; z-index: 12; display: grid; place-items: center; padding: 12px; background: radial-gradient(circle, #0b0e20aa, #05060ff0 75%); animation: hrIn 0.4s ease both; }
+.hrLosePanel { display: grid; justify-items: center; gap: 4px; text-align: center; max-width: 520px; }
+.hrLosePanel > small { font-weight: 900; letter-spacing: 0.2em; color: #ff8a7a; }
+.hrPlace { font: italic 900 clamp(40px, 8cqw, 100px) / 0.95 Inter, sans-serif; color: #fff; -webkit-text-stroke: 3px #5c6585; text-shadow: 0 6px 0 #151a2c; animation: hrWinSlam 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.hrLosePanel p { margin: 4px 0; color: var(--muted); }
+.hrLosePanel p b { color: #fff; }
+.hrLoseStake { font-weight: 900; color: #ff8a7a !important; }
+
+/* ---------------------------------------------------------------- picker */
+.hrPicker { margin-top: 16px; }
+.hrPickHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 10px; }
+.hrPickHead h3 { margin: 0; font-size: 22px; }
+.hrPickHead span { color: var(--muted); font-size: 14px; }
+.hrCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.hrCard { position: relative; display: grid; justify-items: center; gap: 2px; padding: 10px 8px 12px; border-radius: 16px; border: 2px solid #ffffff1c; background: linear-gradient(180deg, color-mix(in srgb, var(--silk) 22%, #12162c), #0b0e20); color: #fff; cursor: pointer; text-align: center; box-shadow: none; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.hrCard:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--silk) 70%, #fff); }
+.hrCard.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--silk), 0 0 30px color-mix(in srgb, var(--silk) 60%, transparent); transform: translateY(-4px) scale(1.02); }
+.hrCard.on::after { content: "DEIN TIPP"; position: absolute; top: -10px; right: 10px; padding: 3px 8px; border-radius: 999px; background: var(--gold); color: #2a1600; font-size: 10px; font-weight: 900; letter-spacing: 0.1em; }
+.hrNum { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--silk); color: #fff; font-weight: 900; text-shadow: 0 1px 2px #0008; border: 2px solid var(--silk2); }
+.hrCard b { font-size: 16px; }
+.hrCard small { color: var(--muted); font-size: 12px; min-height: 2.4em; }
+.hrCard em { font-style: normal; font-size: 11px; color: var(--gold); font-weight: 700; }
+.hrPortrait { display: block; }
+.hrStartRow { display: grid; margin-top: 14px; }
+.hrStart { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px 20px; border-radius: 18px; border: 3px solid #fff; background: linear-gradient(180deg, #ff6a3d, #d4161f); color: #fff; font: italic 900 clamp(16px, 2.6vw, 26px) / 1.1 Inter, sans-serif; letter-spacing: 0.02em; text-align: center; text-decoration: none; text-shadow: 0 2px 0 #5a0008; box-shadow: 0 8px 0 #5a0008, 0 0 40px #ff4d3d66; cursor: pointer; animation: hrStartPulse 1.2s ease-in-out infinite alternate; }
+.hrStart:disabled { animation: none; filter: grayscale(0.6) brightness(0.7); cursor: default; }
+.hrStart.buy { background: linear-gradient(180deg, #ffe27a, #ff9d00); color: #2a1600; text-shadow: none; box-shadow: 0 8px 0 #7a4300; }
+.hrStart:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 4px 0 #5a0008; }
+@keyframes hrStartPulse { to { box-shadow: 0 8px 0 #5a0008, 0 0 70px #ff4d3daa; } }
+.hrFine { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.hrMsg { margin: 10px 0 0; padding: 10px 14px; border-radius: 12px; background: #5a0008aa; border: 1px solid #ff4d3d; font-weight: 700; }
+.hrHelp { margin-top: 14px; padding: 14px 18px; border-radius: 14px; background: #12162c; border: 1px solid #ffffff22; }
+.hrHelp h3 { margin: 0 0 6px; }
+.hrHelp li { margin: 4px 0; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .hrLeds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hrBoard li:nth-child(n + 4):not(.me) { display: none; }
+  .hrBoard li { font-size: 11px; }
+  .hrCards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .hrCard { padding: 8px 4px 10px; }
+  .hrCard small { display: none; }
+  .hrCard .hrPortrait { width: 100% !important; height: auto !important; }
+  .hrStage { aspect-ratio: 4 / 3; border-radius: 14px; }
+  .hrCall { top: 15%; }
+  .hrLap { left: 6px; top: 6px; padding: 4px 8px 5px; font-size: 11px; }
+  .hrLap i { min-width: 70px; }
+  .hrMine { left: 6px; bottom: 6px; padding: 4px 8px; }
+  .hrMine small { font-size: 8px; }
+  .hrMine b { font-size: 15px; }
+  .hrBoard { right: 6px; bottom: 6px; padding: 3px; }
+  .hrBoard li { padding: 1px 6px 1px 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hrCall span, .hrCall.big span, .hrWinTitle, .hrCount, .hrStart, .hrLobbyBadge, .hrMine.first, .hrLaurel { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+}
+
+.hrLoseWinner .hrPortrait { width: clamp(90px, 13cqw, 150px) !important; height: auto !important; }
