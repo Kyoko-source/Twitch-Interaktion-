@@ -60,14 +60,15 @@ test("runner: real jump, collision, restart, duck, pause and playable obstacle s
     const state = await page.locator(".jumpRunnerCanvas canvas").evaluate((canvas) => {
       const s = canvas.__jumpScene;
       const next = s.obstacles.getChildren().filter((o) => !o.scored && o.x > 80).sort((a, b) => a.x - b.x)[0];
-      return { mode: s.mode, speed: s.speed, next: next ? { x: next.x, kind: next.kind, action: next.action, w: next.width } : null, passed: s.pattern - s.obstacles.getChildren().filter((o) => !o.scored).length - s.hazards.getChildren().length };
+      return { mode: s.mode, speed: s.speed, next: next ? { x: next.x, kind: next.kind, action: next.action, w: next.width } : null, grounded: s.player.body.blocked.down, passed: s.pattern - s.obstacles.getChildren().filter((o) => !o.scored).length - s.hazards.getChildren().length };
     });
     expect(state.mode, JSON.stringify(state)).toBe("play");
     cleared = Math.max(cleared, state.passed);
-    if (state.next?.action === "jump" && state.next.x - state.next.w / 2 + 30 < 164 + state.speed * 0.29 && !jumping) {
-      await page.keyboard.down("Space"); jumping = true;
+    if (state.next?.action === "jump" && state.next.x - state.next.w / 2 < 164 + state.speed * 0.29 && !jumping) {
+      await page.keyboard.down("Space"); jumping = Date.now();
     }
-    if (jumping && (!state.next || state.next.x + state.next.w / 2 < 150)) { await page.keyboard.up("Space"); jumping = false; }
+    // let go once the obstacle is behind us or the chicken has landed again, so the next jump is a fresh press
+    if (jumping && (!state.next || state.next.x + state.next.w / 2 < 150 || (state.grounded && Date.now() - jumping > 250))) { await page.keyboard.up("Space"); jumping = false; }
     if (state.next?.action === "duck" && state.next.x < 370 && !ducking) {
       await page.keyboard.down("ArrowDown"); ducking = true; birds += 1;
     }

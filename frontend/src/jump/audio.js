@@ -42,7 +42,7 @@ const SAMPLES = {
   rain: ["/audio/thrusterFire_000.ogg", 0.2, 3],
   thunder: ["/audio/lowFrequency_explosion_000.ogg", 0.75, 0.8],
 };
-const MUSIC = { run: "/music/pinball/play.mp3", frenzy: "/music/pinball/multiball.mp3" };
+const MUSIC = { run: "/music/jump/cluck-run-arcade.mp3" };
 const STORE = "chicken-jump-audio";
 
 export class JumpAudio {

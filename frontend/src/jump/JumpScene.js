@@ -27,7 +27,7 @@ const FENCES = [
 ];
 // New obstacles: art key, display scale, hitbox (w, h), what the player has to do.
 const STATICS = {
-  hay: { key: "hay", h: 74, hit: [78, 60], points: 60 },
+  hay: { key: "hay", h: 74, hit: [66, 56], points: 60 },
   tractor: { key: "tractor", h: 112, hit: [112, 84], points: 120 },
 };
 const RUNNERS = {
@@ -62,7 +62,7 @@ class JumpScene extends Phaser.Scene {
   }
 
   get muted() { return this.audio.muted; }
-  set muted(value) { this.audio.setMuted(value); if (!value && this.mode === "play") { this.audio.unlock(); this.audio.music(this.powers?.star > 0 ? "frenzy" : "run"); } }
+  set muted(value) { this.audio.setMuted(value); if (!value && this.mode === "play") { this.audio.unlock(); this.audio.music("run"); } }
 
   preload() {
     this.onLoading?.(35);
@@ -756,7 +756,7 @@ class JumpScene extends Phaser.Scene {
     if (kind === "shield") { this.powers.shield = 1; this.audio.play("shield", { delay: 0.1 }); }
     else this.powers[kind] = this.powerTime(kind);
     if (kind === "magnet") this.audio.play("magnet");
-    if (kind === "star") { this.audio.play("frenzy"); this.audio.music("frenzy"); }
+    if (kind === "star") this.audio.play("frenzy");
     this.showBanner(spec.label, kind === "shield" ? "Ein Treffer wird abgefangen" : kind === "magnet" ? "Federn fliegen zu dir" : "Alle Punkte doppelt", spec.css);
     this.renderPowerHud();
   }
@@ -891,7 +891,7 @@ class JumpScene extends Phaser.Scene {
       for (const key of ["magnet", "star"]) {
         if (this.powers[key] > 0) {
           this.powers[key] = Math.max(0, this.powers[key] - dt);
-          if (this.powers[key] === 0) { this.audio.play("expire"); if (key === "star") this.audio.music("run"); }
+          if (this.powers[key] === 0) this.audio.play("expire");
         }
       }
       if (this.powers.star > 0) this.trail.explode(1, this.player.x - 20, this.player.y - 40 + Math.random() * 20);
