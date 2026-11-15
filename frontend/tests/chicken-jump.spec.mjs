@@ -60,18 +60,18 @@ test("runner: real jump, collision, restart, duck, pause and playable obstacle s
     const state = await page.locator(".jumpRunnerCanvas canvas").evaluate((canvas) => {
       const s = canvas.__jumpScene;
       const next = s.obstacles.getChildren().filter((o) => !o.scored && o.x > 80).sort((a, b) => a.x - b.x)[0];
-      return { mode: s.mode, speed: s.speed, next: next ? { x: next.x, kind: next.kind } : null, passed: s.pattern - s.obstacles.getChildren().filter((o) => !o.scored).length };
+      return { mode: s.mode, speed: s.speed, next: next ? { x: next.x, kind: next.kind, action: next.action, w: next.width } : null, passed: s.pattern - s.obstacles.getChildren().filter((o) => !o.scored).length - s.hazards.getChildren().length };
     });
     expect(state.mode, JSON.stringify(state)).toBe("play");
     cleared = Math.max(cleared, state.passed);
-    if (state.next?.kind === "fence" && state.next.x < 164 + state.speed * 0.29 && !jumping) {
+    if (state.next?.action === "jump" && state.next.x - state.next.w / 2 + 30 < 164 + state.speed * 0.29 && !jumping) {
       await page.keyboard.down("Space"); jumping = true;
     }
-    if (jumping && (!state.next || state.next.x < 130)) { await page.keyboard.up("Space"); jumping = false; }
-    if (state.next?.kind === "bird" && state.next.x < 370 && !ducking) {
+    if (jumping && (!state.next || state.next.x + state.next.w / 2 < 150)) { await page.keyboard.up("Space"); jumping = false; }
+    if (state.next?.action === "duck" && state.next.x < 370 && !ducking) {
       await page.keyboard.down("ArrowDown"); ducking = true; birds += 1;
     }
-    if (ducking && (!state.next || state.next.kind !== "bird" || state.next.x < 95)) { await page.keyboard.up("ArrowDown"); ducking = false; }
+    if (ducking && (!state.next || state.next.action !== "duck" || state.next.x < 95)) { await page.keyboard.up("ArrowDown"); ducking = false; }
     if (cleared >= 7 && birds >= 1) break;
     await page.waitForTimeout(20);
   }

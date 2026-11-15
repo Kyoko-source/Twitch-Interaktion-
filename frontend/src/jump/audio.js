@@ -32,6 +32,15 @@ const SAMPLES = {
   "vo-record": ["/audio/pinball/vo-f-new-highscore.ogg", 0.9, 1],
   "vo-combo": ["/audio/pinball/vo-combo.ogg", 0.85, 1],
   "vo-flawless": ["/audio/pinball/vo-flawless.ogg", 0.85, 1],
+  rumble: ["/audio/lowFrequency_explosion_000.ogg", 0.55, 0.6],
+  charge: ["/audio/thrusterFire_000.ogg", 0.55, 0.3],
+  snort: ["/audio/impactGeneric_light_000.ogg", 0.45, 0.3],
+  yip: ["/audio/laserSmall_000.ogg", 0.3, 0.3],
+  splash: ["/audio/slime_000.ogg", 0.7, 0.2],
+  stage: ["/audio/pinball/mission-start.ogg", 0.6, 1],
+  mission: ["/audio/pinball/mission-complete.ogg", 0.65, 0.5],
+  rain: ["/audio/thrusterFire_000.ogg", 0.2, 3],
+  thunder: ["/audio/lowFrequency_explosion_000.ogg", 0.75, 0.8],
 };
 const MUSIC = { run: "/music/pinball/play.mp3", frenzy: "/music/pinball/multiball.mp3" };
 const STORE = "chicken-jump-audio";

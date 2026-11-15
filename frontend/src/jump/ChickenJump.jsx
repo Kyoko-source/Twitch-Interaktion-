@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Diamond, Flame, Music, Pause, Play, RefreshCw, Save, SlidersHorizontal, Sparkles, Trophy, Volume2, VolumeX, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Diamond, Flame, Music, Pause, Play, RefreshCw, Save, SlidersHorizontal, Sparkles, Target, Trophy, Volume2, VolumeX, Zap } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
+import { MISSIONS, UPGRADES, level, rankFor, upgradeCost } from "./meta.js";
 import "./jump.css";
 
 const initial = { status: "loading", score: 0, distance: 0, pepples: 0, combo: 1, best: 0, maxCombo: 1, nearMisses: 0, record: false };
@@ -22,6 +23,41 @@ function VolumePanel({ scene, muted, onMute }) {
       <label><Volume2 size={15} /> Effekte <input type="range" min="0" max="1" step="0.05" value={sfx} onChange={(e) => { const v = Number(e.target.value); setSfx(v); audio?.setSfxVolume(v); }} /><b>{Math.round(sfx * 100)}</b></label>
       <label><Music size={15} /> Musik <input type="range" min="0" max="1" step="0.05" value={music} onChange={(e) => { const v = Number(e.target.value); setMusic(v); audio?.setMusicVolume(v); }} /><b>{Math.round(music * 100)}</b></label>
       <button type="button" onClick={onMute}>{muted ? <><Volume2 size={15} /> Ton an</> : <><VolumeX size={15} /> Alles stumm</>}</button>
+    </div>
+  );
+}
+
+function JumpProgress({ meta, scene, onBought }) {
+  if (!meta) return null;
+  const rank = rankFor(meta.lifetime);
+  const missions = meta.missions.map((id) => MISSIONS.find((m) => m.id === id)).filter(Boolean);
+  return (
+    <div className="jumpProgress">
+      <div className="jumpRank">
+        <span className="jumpRankBadge">{rank.index + 1}</span>
+        <div><small>DEIN RANG</small><b>{rank.name}</b><i style={{ "--p": rank.progress }} /><em>{rank.next ? `${Math.floor(meta.lifetime).toLocaleString("de-DE")} / ${rank.next.toLocaleString("de-DE")} Federn bis zum nächsten Rang` : "Höchster Rang erreicht"}</em></div>
+        <div className="jumpBank"><small>FEDERKONTO</small><b><Diamond size={16} /> {meta.bank.toLocaleString("de-DE")}</b></div>
+      </div>
+      <div className="jumpMissions">
+        <h4><Target size={16} /> Missionen</h4>
+        {missions.map((m) => <div key={m.id} className="jumpMission"><span>{m.text}</span><b>+{m.reward}</b></div>)}
+      </div>
+      <div className="jumpUpgrades">
+        <h4><Sparkles size={16} /> Hühnerstall-Upgrades</h4>
+        <div className="jumpUpgradeGrid">
+          {UPGRADES.map((u) => {
+            const lv = level(meta, u.id), cost = upgradeCost(meta, u.id);
+            return (
+              <div key={u.id} className={`jumpUpgrade${cost === null ? " max" : ""}`}>
+                <b>{u.label}</b>
+                <small>{u.text}</small>
+                <span className="jumpPips">{u.costs.map((_, i) => <i key={i} className={i < lv ? "on" : ""} />)}</span>
+                <button type="button" disabled={cost === null || meta.bank < cost} onClick={() => { if (scene?.buyUpgrade(u.id)) onBought(u.label); }}>{cost === null ? "Maximal" : <><Diamond size={13} /> {cost}</>}</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -120,6 +156,7 @@ export function ChickenJump({ user, renderScoreboard }) {
       <div className="jumpRunnerStats" aria-live="off">
         <div><span>PUNKTE</span><strong>{fmt(run.score)}</strong></div>
         <div><span>STRECKE</span><strong>{fmt(run.distance)}<small> m</small></strong></div>
+        <div><span>ABSCHNITT</span><strong>{run.stage || 1}<small> {run.stageName || ""}</small></strong></div>
         <div><span><Diamond size={12} /> FEDERN</span><strong>{run.pepples}</strong></div>
         <div><span>SAMMELKETTE</span><strong className={run.combo > 1 ? "jumpComboActive" : ""} data-combo={run.combo}>x{run.combo}</strong></div>
       </div>
@@ -140,10 +177,16 @@ export function ChickenJump({ user, renderScoreboard }) {
               <div><span>Beste Kette</span><b>x{run.maxCombo}</b></div>
               <div><span>Knapp vorbei</span><b>{run.nearMisses}</b></div>
             </div>}
+            {ended && run.settled && <div className="jumpSettle">
+              <b><Diamond size={15} /> +{run.settled.earned} Federn aufs Konto</b>
+              {run.settled.missions.map((m) => <span key={m} className="done">✓ {m}</span>)}
+              {run.settled.rankUp && <span className="rankUp">Neuer Rang: {run.settled.rankUp}!</span>}
+            </div>}
             {ended && <p className="jumpBestLine"><Trophy size={14} /> Bestwert {fmt(run.best)}</p>}
             {!ended && !paused && !loadError && run.status !== "loading" && <ul className="jumpHowTo">
               <li><kbd>Leertaste</kbd> springen · in der Luft nochmal = <b>Doppelsprung</b></li>
               <li><kbd>↓</kbd> ducken · in der Luft = Sturzflug</li>
+              <li>Achte auf <b>⚠ Warnschilder</b>: Bullen und Füchse stürmen von rechts heran!</li>
               <li className="jumpPowers"><span className="pu shield"><Zap size={13} /> Schild</span><span className="pu magnet"><Diamond size={13} /> Magnet</span><span className="pu star"><Flame size={13} /> Doppelpunkte</span></li>
             </ul>}
             <button type="button" className="jumpPrimary" disabled={run.status === "loading"} onClick={() => loadError ? setLoadAttempt((value) => value + 1) : paused ? scene.current?.togglePause() : restart()}><Play size={20} fill="currentColor" /> {loadError ? "Erneut laden" : run.status === "loading" ? "Lade ..." : ended ? "Nochmal laufen" : paused ? "Weiterlaufen" : "Loslaufen"}</button>
@@ -159,6 +202,7 @@ export function ChickenJump({ user, renderScoreboard }) {
         </div>
       </div>
       {message && <p className="jumpRunnerMessage" role="status">{message}</p>}
+      {!active && <JumpProgress meta={run.meta} scene={scene.current} onBought={(label) => setMessage(`${label} gekauft!`)} />}
       <div className="jumpRunnerScores"><h3>Top Scores</h3>{renderScoreboard?.(refreshKey)}</div>
     </section>
   );

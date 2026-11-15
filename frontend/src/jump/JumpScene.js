@@ -1,5 +1,7 @@
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
 import { JumpAudio } from "./audio.js";
+import { buyUpgrade, completedBy, level, loadMeta, pickWeighted, saveMeta, settleRun, stageAt } from "./meta.js";
+import { makePlaceholders } from "./placeholders.js";
 
 const W = 960;
 const H = 540;
@@ -23,6 +25,15 @@ const FENCES = [
   { frame: "fence1", scale: 0.31, hit: [62, 60], tall: true },
   { frame: "fence3", scale: 0.3, hit: [54, 58], tall: true },
 ];
+// New obstacles: art key, display scale, hitbox (w, h), what the player has to do.
+const STATICS = {
+  hay: { key: "hay", scale: 0.5, hit: [64, 58], points: 60 },
+  tractor: { key: "tractor", scale: 0.52, hit: [150, 76], points: 120 },
+};
+const RUNNERS = {
+  bull: { key: "bison", scale: 0.44, hit: [92, 66], charge: [250, 330], points: 150, warn: 1.15 },
+  fox: { key: "fox", scale: 0.55, hit: [58, 34], charge: [150, 200], points: 90, warn: 0.55 },
+};
 const POWERS = {
   shield: { label: "SCHILD", color: 0x7ad8ff, css: "#7ad8ff", time: 0 },
   magnet: { label: "MAGNET", color: 0xff5a6a, css: "#ff7a8a", time: 9 },
@@ -59,6 +70,16 @@ class JumpScene extends Phaser.Scene {
     this.load.image("jump-sprites", "/assets/jump/sprites.webp", { timeout: 12000 });
     this.load.image("jump-panorama", "/assets/jump/panorama.webp", { timeout: 12000 });
     this.load.image("jump-ground", "/assets/jump/ground.webp", { timeout: 12000 });
+    // Optional painted art (bison, new obstacles, background layers). Anything missing falls back
+    // to the drawn placeholders, so a missing file never blocks the game.
+    this.load.json("jump-art", "/assets/jump/art.json", { timeout: 8000 });
+    this.load.on("filecomplete-json-jump-art", (_key, _type, data) => {
+      for (const [key, spec] of Object.entries(data || {})) {
+        const url = `/assets/jump/${spec.file}`;
+        if (spec.frameWidth) this.load.spritesheet(key, url, { frameWidth: spec.frameWidth, frameHeight: spec.frameHeight });
+        else this.load.image(key, url);
+      }
+    });
   }
 
   create() {
@@ -66,6 +87,13 @@ class JumpScene extends Phaser.Scene {
     const atlas = this.textures.get("jump-sprites");
     for (const [name, [x, y, w, h]] of Object.entries(FRAMES)) atlas.add(name, 0, x, y, w, h);
     this.makeTextures();
+    makePlaceholders(this);
+    if (this.textures.exists("bison") && this.textures.get("bison").frameTotal > 2) {
+      this.anims.create({ key: "bison-run", frames: this.anims.generateFrameNumbers("bison", {}), frameRate: 25, repeat: -1 });
+    }
+    const fox = this.textures.get("fox");
+    if (!fox.has("1")) { fox.add("0", 0, 0, 0, 200, 130); fox.add("1", 0, 200, 0, 200, 130); }
+    this.meta = loadMeta();
     this.buildScenery();
     const ground = this.add.rectangle(W / 2, GROUND + 24, W, 48, 0x000000, 0);
     this.physics.add.existing(ground, true);
@@ -78,6 +106,8 @@ class JumpScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.obstacles, (_player, obstacle) => this.crash(obstacle));
     this.physics.add.overlap(this.player, this.coins, (_player, coin) => this.collect(coin));
     this.physics.add.overlap(this.player, this.pickups, (_player, pickup) => this.takePower(pickup));
+    this.hazards = this.physics.add.group({ allowGravity: false, immovable: true });
+    this.physics.add.overlap(this.player, this.hazards, (_player, mud) => this.splash(mud));
     this.buildChicken();
     this.buildFx();
     this.buildHud();
@@ -101,7 +131,7 @@ class JumpScene extends Phaser.Scene {
     g.fillStyle(0xffffff).fillRect(0, 0, 64, 90);
     g.generateTexture("player-body", 64, 90);
     // invisible hitbox textures (generated up front: the graphics object is destroyed below)
-    for (const [w, h] of [...FENCES.map((f) => f.hit), [50, 22], [26, 26], [44, 44]]) {
+    for (const [w, h] of [...FENCES.map((f) => f.hit), ...Object.values(STATICS).map((o) => o.hit), ...Object.values(RUNNERS).map((o) => o.hit), [50, 22], [26, 26], [44, 44], [110, 150], [120, 14]]) {
       g.clear(); g.fillStyle(0xffffff).fillRect(0, 0, w, h); g.generateTexture(`hit-${w}x${h}`, w, h);
     }
     this.hit = (w, h) => `hit-${w}x${h}`;
@@ -174,35 +204,40 @@ class JumpScene extends Phaser.Scene {
     this.stars.setAlpha(0);
     this.moon = this.add.container(620, 110).setDepth(1).setAlpha(0);
     this.moon.add([this.add.circle(0, 0, 46, 0xfff6d8, 0.12), this.add.circle(0, 0, 30, 0xfff6d8, 0.2), this.add.circle(0, 0, 22, 0xfff3d0), this.add.circle(-7, -4, 5, 0xe8dcb0), this.add.circle(6, 7, 3.5, 0xe8dcb0)]);
+    // Painted parallax layers (bg-far, bg-mid, bg-near) replace the panorama when they exist.
+    this.layers = [];
+    for (const [key, factor, depth] of [["bg-far", 0.12, 1.5], ["bg-mid", 0.3, 2], ["bg-near", 0.6, 2.5]]) {
+      if (!this.textures.exists(key)) continue;
+      const img = this.textures.get(key).getSourceImage(), k = (GROUND + 8) / img.height;
+      const layer = this.add.tileSprite(0, 0, W, GROUND + 8, key).setOrigin(0, 0).setTileScale(k).setDepth(depth);
+      layer.factor = factor / k;
+      this.layers.push(layer);
+    }
+    if (this.layers.length) this.pano.setVisible(false);
     this.clouds = [];
-    for (let i = 0; i < 6; i += 1) {
-      const cloud = this.add.container(i * 190 + Math.random() * 60, 40 + (i % 3) * 34).setDepth(1);
-      const a = 0.16 + (i % 2) * 0.08;
-      cloud.add([this.add.ellipse(0, 6, 120, 26, 0xffffff, a), this.add.ellipse(-22, -4, 54, 34, 0xffffff, a), this.add.ellipse(18, -9, 64, 42, 0xffffff, a)]);
+    for (let i = 0; i < 5; i += 1) {
+      const cloud = this.add.image(i * 230 + Math.random() * 80, 52 + (i % 3) * 30, "cloud-soft").setDepth(1).setScale(0.55 + (i % 3) * 0.18).setAlpha(0.55);
       cloud.speed = 0.02 + (i % 3) * 0.012;
       this.clouds.push(cloud);
     }
-    // mid layer: dark hedges on the horizon
     this.hedges = [];
-    for (let i = 0; i < 9; i += 1) {
-      const hedge = this.add.container(i * 130 + (i % 3) * 20, GROUND - 6).setDepth(2).setScale(0.6 + (i % 3) * 0.12);
-      const tone = i % 2 ? 0x24502e : 0x2c5c34;
-      hedge.add([this.add.ellipse(0, 0, 90, 30, tone), this.add.ellipse(-24, -10, 46, 34, tone), this.add.ellipse(20, -13, 52, 38, tone), this.add.ellipse(10, -22, 26, 16, 0x3e7a44, 0.7)]);
-      if (i % 3 === 0) hedge.add([this.add.circle(-18, -16, 2.5, 0xffe066), this.add.circle(12, -22, 2.5, 0xff8ab0)]);
-      this.hedges.push(hedge);
-    }
     this.add.rectangle(0, GROUND + 60, W, H - GROUND, 0x2a1c12).setOrigin(0, 0).setDepth(3);
     this.ground = this.add.tileSprite(0, GROUND - 13, W, 100, "jump-ground").setOrigin(0, 0).setDepth(3);
     this.groundTint = this.add.rectangle(0, GROUND - 13, W, H - GROUND + 13, 0x0c1238, 0).setOrigin(0, 0).setDepth(3);
-    // foreground tufts that rush past fastest
+    // foreground grass that rushes past fastest
     this.tufts = [];
-    for (let i = 0; i < 12; i += 1) {
-      const tuft = this.add.graphics({ x: i * 90 + Math.random() * 40, y: H - 4 }).setDepth(20);
-      const col = i % 2 ? 0x3e8a3a : 0x5aa83e;
-      tuft.fillStyle(col).fillTriangle(-10, 0, -4, -26, 0, 0).fillTriangle(-3, 0, 4, -34, 7, 0).fillTriangle(4, 0, 14, -22, 14, 0);
-      if (i % 4 === 0) tuft.fillStyle(0xffe066).fillCircle(4, -34, 3.5);
+    for (let i = 0; i < 10; i += 1) {
+      const tuft = this.add.image(i * 108 + Math.random() * 40, H + 14, "grass-tuft").setOrigin(0.5, 1).setDepth(20).setScale(0.45 + Math.random() * 0.3).setTint(0x8aa070).setAlpha(0.9);
       this.tufts.push(tuft);
     }
+    // storm: rain and lightning for the Gewitternacht stage
+    this.rain = this.add.particles(0, 0, "raindrop", {
+      emitting: false, x: { min: -100, max: W + 200 }, y: -30, lifespan: 900, speedY: { min: 760, max: 980 }, speedX: { min: -260, max: -200 },
+      rotate: 15, alpha: { start: 0.75, end: 0.35 }, frequency: 6, quantity: 3,
+    }).setDepth(19);
+    this.stormShade = this.add.rectangle(0, 0, W, H, 0x101830, 0).setOrigin(0, 0).setDepth(18);
+    this.flash = this.add.rectangle(0, 0, W, H, 0xe8f0ff, 0).setOrigin(0, 0).setDepth(29);
+    this.bolt = this.add.graphics().setDepth(4);
     this.fireflies = Array.from({ length: 16 }, (_, i) => {
       const f = this.add.image(Math.random() * W, 250 + Math.random() * 170, "glow").setDepth(6).setScale(0.2).setTint(0xfff27a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       f.seed = i * 1.7; return f;
@@ -240,6 +275,10 @@ class JumpScene extends Phaser.Scene {
       scale: { start: 0.55, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: "ADD",
       tint: [0xff5a5a, 0xffa84a, 0xffe84a, 0x5aff8a, 0x5ac8ff, 0xb05aff],
     }).setDepth(8);
+    this.mudFx = this.add.particles(0, 0, "dust", {
+      emitting: false, lifespan: 650, speedX: { min: -220, max: 40 }, speedY: { min: -320, max: -120 },
+      scale: { start: 0.8, end: 0.2 }, alpha: { start: 0.9, end: 0 }, gravityY: 900, tint: [0x5a3a1a, 0x7a4e26, 0x3e2410],
+    }).setDepth(14);
     this.rings = [];
     this.speedLines = Array.from({ length: 14 }, () => this.add.image(-200, 0, "speedline").setDepth(19).setAlpha(0));
   }
@@ -288,6 +327,9 @@ class JumpScene extends Phaser.Scene {
   resetRun() {
     this.runId += 1;
     this.obstacles.clear(true, true);
+    this.hazards?.clear(true, true);
+    this.warnings?.forEach((w) => w.destroy());
+    this.warnings = [];
     this.coins.clear(true, true);
     this.pickups.clear(true, true);
     this.tweens.killTweensOf([this.chicken, this.chickenGlow, this.banner, this.subBanner, this.comboText]);
@@ -311,7 +353,14 @@ class JumpScene extends Phaser.Scene {
     this.doubleUsed = false;
     this.spin = 0;
     this.invuln = 0;
-    this.powers = { shield: 0, magnet: 0, star: 0 };
+    this.powers = { shield: level(this.meta, "shield") ? 1 : 0, magnet: 0, star: 0 };
+    this.reviveLeft = level(this.meta, "revive");
+    this.stats = { bulls: 0, foxes: 0, tractors: 0, ducks: 0, near: 0, smash: 0, feathers: 0, distance: 0, stage: 1, combo: 1 };
+    this.missionsHit = new Set();
+    this.stageNo = 1;
+    this.slow = 0;
+    this.storm = 0;
+    this.settled = null;
     this.milestone = 0;
     this.record = false;
     this.canRestart = true;
@@ -339,7 +388,7 @@ class JumpScene extends Phaser.Scene {
     this.audio.play("start");
     this.audio.voice("vo-go", 0.3);
     this.audio.music("run");
-    this.showBanner("LOS!", "Leertaste springen · in der Luft nochmal = Doppelsprung", "#c8ffb0");
+    this.showBanner("ABSCHNITT 1", `${stageAt(0).name} · Leertaste springen, ↓ ducken`, "#c8ffb0");
     this.publish();
   }
 
@@ -392,6 +441,8 @@ class JumpScene extends Phaser.Scene {
     const obstacle = this.obstacles.create(x, GROUND, this.hit(spec.hit[0], spec.hit[1])).setOrigin(0.5, 1).setVisible(false);
     obstacle.body.setAllowGravity(false).setImmovable(true);
     obstacle.kind = "fence";
+    obstacle.action = "jump";
+    obstacle.points = 50;
     obstacle.tall = spec.tall;
     obstacle.scored = false;
     obstacle.minGap = Infinity;
@@ -406,6 +457,8 @@ class JumpScene extends Phaser.Scene {
     const obstacle = this.obstacles.create(x, y, this.hit(50, 22)).setVisible(false);
     obstacle.body.setAllowGravity(false).setImmovable(true);
     obstacle.kind = "bird";
+    obstacle.action = "duck";
+    obstacle.points = 50;
     obstacle.baseY = y;
     obstacle.swoop = swoop;
     obstacle.scored = false;
@@ -435,41 +488,178 @@ class JumpScene extends Phaser.Scene {
   }
 
   spawnPattern() {
-    const tier = this.tier();
+    const stage = stageAt(this.distance);
+    // the first patterns of a run are always gentle fences
+    const kind = this.pattern < 2 ? "fence" : pickWeighted(stage.mix);
     const x = W + 85;
-    const roll = Math.random();
     let extra = 0;
-    if (this.pattern >= 3 && this.pattern % 4 === 3) {
-      // bird you must duck under (or jump high over), feathers under it
-      const swoop = tier >= 2 && roll < 0.4 ? 1 : 0;
-      this.addBird(x, GROUND - 70, swoop);
-      for (let i = 0; i < 5; i += 1) this.addCoin(x - 74 + i * 38, GROUND - 20);
-      if (tier >= 3 && roll > 0.6) { this.addBird(x + 70, GROUND - 150); extra = 0.2; }
-    } else if (tier >= 2 && roll < 0.3) {
-      // double fence: two jumps or one long double jump
+    if (kind === "bird") extra = this.spawnBirds(x);
+    else if (kind === "hay") { this.addStatic("hay", x); this.coinArc(x - 74, 5, 105); }
+    else if (kind === "tractor") { this.addStatic("tractor", x + 40); this.coinArc(x - 60, 7, 170); extra = 0.35; }
+    else if (kind === "mud") { this.addMud(x); this.coinArc(x - 30, 4, 80); extra = 0.1; }
+    else if (kind === "branch") { this.addBranch(x); for (let i = 0; i < 4; i += 1) this.addCoin(x - 60 + i * 40, GROUND - 16); extra = 0.15; }
+    else if (kind === "bull") { this.warnRunner("bull", 0); extra = 1.1; }
+    else if (kind === "fox") { this.warnRunner("fox", 0); extra = 0.5; }
+    else if (kind === "stampede") {
+      const n = 2 + (Math.random() < 0.4 ? 1 : 0);
+      for (let i = 0; i < n; i += 1) this.warnRunner("bull", i * 0.85);
+      extra = 1.2 + n * 0.85;
+      this.showBanner("STAMPEDE!", "Bullen im Anmarsch!", "#ff9a6a");
+    } else extra = this.spawnFences(x);
+    const pace = this.tier() === 1 ? 1 : this.tier() === 2 ? 0.93 : 0.86;
+    this.nextPattern = (1.65 + Math.random() * 0.45) * pace * (stage.lap ? 0.9 : 1) + extra;
+  }
+
+  spawnBirds(x) {
+    const tier = this.tier(), roll = Math.random();
+    const swoop = tier >= 2 && roll < 0.4 ? 1 : 0;
+    this.addBird(x, GROUND - 70, swoop);
+    for (let i = 0; i < 5; i += 1) this.addCoin(x - 74 + i * 38, GROUND - 20);
+    if (tier >= 3 && roll > 0.6) { this.addBird(x + 70, GROUND - 150); return 0.2; }
+    return 0;
+  }
+
+  spawnFences(x) {
+    const tier = this.tier(), roll = Math.random();
+    if (tier >= 2 && roll < 0.3) {
       const gap = tier >= 3 ? 230 : 260;
       this.addFence(x, Math.floor(Math.random() * 2));
       this.addFence(x + gap, tier >= 3 ? 2 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2));
       this.coinArc(x - 74, 5, 95);
       this.coinArc(x + gap - 74, 5, 95);
-      extra = gap / this.speed;
-    } else if (tier >= 3 && roll < 0.5) {
-      // fence followed by a low bird: jump, land, duck
+      return gap / this.speed;
+    }
+    if (tier >= 3 && roll < 0.5) {
       this.addFence(x, 2 + Math.floor(Math.random() * 2));
       this.addBird(x + 300, GROUND - 70);
       this.coinArc(x - 74, 5, 105);
-      extra = 300 / this.speed;
-    } else if (tier >= 2 && roll < 0.55) {
-      // tall fence with a high feather row for the double jump
+      return 300 / this.speed;
+    }
+    if (tier >= 2 && roll < 0.55) {
       this.addFence(x, 2 + Math.floor(Math.random() * 2));
       for (let i = 0; i < 6; i += 1) this.addCoin(x - 95 + i * 38, GROUND - 190 - Math.sin((i / 5) * Math.PI) * 30);
-    } else {
-      const tall = this.pattern > 5 && this.pattern % 3 === 2;
-      this.addFence(x, tall ? 2 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2));
-      this.coinArc(x - 74, 5, tall ? 110 : 95);
+      return 0;
     }
-    const pace = tier === 1 ? 1 : tier === 2 ? 0.93 : 0.86;
-    this.nextPattern = (1.65 + Math.random() * 0.45) * pace + extra;
+    const tall = this.pattern > 5 && this.pattern % 3 === 2;
+    this.addFence(x, tall ? 2 + Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2));
+    this.coinArc(x - 74, 5, tall ? 110 : 95);
+    return 0;
+  }
+
+  addStatic(kind, x) {
+    const spec = STATICS[kind];
+    const o = this.obstacles.create(x, GROUND, this.hit(...spec.hit)).setOrigin(0.5, 1).setVisible(false);
+    o.body.setAllowGravity(false).setImmovable(true);
+    Object.assign(o, { kind, action: "jump", scored: false, minGap: Infinity, points: spec.points });
+    o.art = this.add.image(x, GROUND + 6, spec.key).setOrigin(0.5, 1).setScale(spec.scale).setDepth(7);
+    o.on("destroy", () => o.art?.destroy());
+    o.setVelocityX(-this.speed);
+    this.pattern += 1;
+    return o;
+  }
+
+  addBranch(x) {
+    // hangs from the top: only ducking gets under it
+    const o = this.obstacles.create(x, GROUND - 34, this.hit(110, 150)).setOrigin(0.5, 1).setVisible(false);
+    o.body.setAllowGravity(false).setImmovable(true);
+    Object.assign(o, { kind: "branch", action: "duck", scored: false, minGap: Infinity, points: 70 });
+    o.art = this.add.image(x + 10, GROUND - 26, "branch").setOrigin(0.5, 1).setScale(0.52).setDepth(12);
+    o.on("destroy", () => o.art?.destroy());
+    o.setVelocityX(-this.speed);
+    this.pattern += 1;
+    return o;
+  }
+
+  addMud(x) {
+    const mud = this.hazards.create(x, GROUND - 2, this.hit(120, 14)).setOrigin(0.5, 1).setVisible(false);
+    mud.body.setAllowGravity(false).setImmovable(true);
+    mud.art = this.add.image(x, GROUND + 8, "mud").setOrigin(0.5, 1).setScale(0.5).setDepth(6);
+    mud.on("destroy", () => mud.art?.destroy());
+    mud.setVelocityX(-this.speed);
+    this.pattern += 1;
+  }
+
+  // Bulls and foxes run towards the chicken; a warning sign at the right edge comes first.
+  warnRunner(kind, delay) {
+    const spec = RUNNERS[kind], run = this.runId;
+    this.time.delayedCall(delay * 1000, () => {
+      if (run !== this.runId || this.mode === "gameover") return;
+      const y = kind === "bull" ? GROUND - 70 : GROUND - 40;
+      const sign = this.add.image(W - 46, y, "warn").setScale(kind === "bull" ? 0.55 : 0.4).setDepth(28);
+      const label = this.add.text(W - 46, y + 44, kind === "bull" ? "BULLE!" : "FUCHS!", this.style(kind === "bull" ? 18 : 14, "#ffe066", "#5a1a00")).setOrigin(0.5).setDepth(28);
+      this.warnings.push(sign, label);
+      this.tweens.add({ targets: [sign, label], alpha: 0.25, duration: 140, yoyo: true, repeat: -1 });
+      if (kind === "bull") { this.audio.play("rumble"); this.cameras.main.shake(spec.warn * 1000, 0.002); }
+      else this.audio.play("yip");
+      this.time.delayedCall(spec.warn * 1000, () => {
+        sign.destroy(); label.destroy();
+        if (run !== this.runId || this.mode === "gameover") return;
+        this.addRunner(kind);
+      });
+    });
+  }
+
+  addRunner(kind) {
+    const spec = RUNNERS[kind], x = W + 120;
+    const o = this.obstacles.create(x, GROUND, this.hit(...spec.hit)).setOrigin(0.5, 1).setVisible(false);
+    o.body.setAllowGravity(false).setImmovable(true);
+    const charge = spec.charge[0] + Math.random() * (spec.charge[1] - spec.charge[0]) + (this.tier() - 1) * 30;
+    Object.assign(o, { kind, action: "jump", scored: false, minGap: Infinity, points: spec.points, charge, phase: 0 });
+    if (kind === "bull") {
+      o.art = this.add.sprite(x, GROUND + 8, "bison").setOrigin(0.45, 1).setScale(spec.scale).setDepth(8);
+      if (this.anims.exists("bison-run")) o.art.play("bison-run");
+    } else {
+      o.art = this.add.sprite(x, GROUND + 6, "fox").setOrigin(0.5, 1).setScale(spec.scale).setDepth(8);
+      o.art.setFrame("0");
+    }
+    o.on("destroy", () => o.art?.destroy());
+    o.setVelocityX(-(this.speed + charge));
+    if (kind === "bull") { this.audio.play("charge"); this.audio.play("snort", { delay: 0.15 }); }
+    this.pattern += 1;
+    return o;
+  }
+
+  splash(mud) {
+    if (this.mode !== "play" || mud.used) return;
+    const grounded = this.player.body.blocked.down || this.player.body.touching.down;
+    if (!grounded) return;
+    mud.used = true;
+    this.slow = 1.3;
+    this.mudFx.explode(18, PLAYER_X, GROUND - 6);
+    this.floatText(PLAYER_X + 10, GROUND - 100, "MATSCH!", "#e0b480", 20);
+    this.audio.play("splash");
+  }
+
+  stageReached(stage) {
+    this.stageNo = stage.number;
+    this.stats.stage = Math.max(this.stats.stage, stage.number);
+    const bonus = this.gain(200 * stage.number);
+    this.showBanner(`ABSCHNITT ${stage.number}`, `${stage.name} · ${stage.sub} · +${bonus}`, stage.storm ? "#9ad8ff" : "#fff3b0");
+    this.audio.play("stage");
+    this.audio.voice("vo-level", 0.4);
+    this.sparks.setParticleTint([0xffe066, 0xffffff, 0xff9a5a]);
+    for (let i = 0; i < 4; i += 1) this.time.delayedCall(i * 110, () => this.sparks.explode(16, 180 + i * 200, 130));
+    this.nextPattern = Math.max(this.nextPattern, 1.6);   // a breather to read the banner
+  }
+
+  checkMissions() {
+    for (const m of completedBy(this.meta, this.stats)) {
+      if (this.missionsHit.has(m.id)) continue;
+      this.missionsHit.add(m.id);
+      this.floatText(W / 2, 250, `MISSION ERFÜLLT! +${m.reward} Federn`, "#7affb0", 24);
+      this.audio.play("mission");
+    }
+  }
+
+  buyUpgrade(id) {
+    const next = buyUpgrade(this.meta, id);
+    if (!next) return false;
+    this.meta = next;
+    saveMeta(next);
+    this.audio.unlock(); this.audio.play("powerup");
+    if (this.mode !== "play") this.powers.shield = level(next, "shield") ? 1 : 0;
+    this.publish();
+    return true;
   }
 
   spawnPower() {
@@ -484,10 +674,12 @@ class JumpScene extends Phaser.Scene {
     pickup.halo = this.add.image(W + 60, y, "glow").setDepth(12).setScale(1.8).setTint(POWERS[kind].color).setAlpha(0.6).setBlendMode(Phaser.BlendModes.ADD);
     pickup.on("destroy", () => { pickup.art?.destroy(); pickup.halo?.destroy(); });
     pickup.setVelocityX(-this.speed);
-    this.nextPower = 16 + Math.random() * 9;
+    this.nextPower = (16 + Math.random() * 9) * (1 - 0.15 * level(this.meta, "luck"));
   }
 
   // ------------------------------------------------------------------ events
+  powerTime(kind) { return POWERS[kind].time + 2 * level(this.meta, kind); }
+
   gain(points) { const value = points * (this.powers.star > 0 ? 2 : 1); this.score += value; return value; }
 
   floatText(x, y, text, color = "#ffffff", size = 18) {
@@ -515,11 +707,13 @@ class JumpScene extends Phaser.Scene {
     this.ring(coin.x, coin.y, 0xffe066, 30);
     coin.destroy();
     this.pepples += 1;
+    this.stats.feathers = this.pepples;
     this.chain += 1;
     this.chainLeft = 2.8;
     const before = this.combo;
     this.combo = Math.min(8, 1 + Math.floor(this.chain / 5));
     this.maxCombo = Math.max(this.maxCombo, this.combo);
+    this.stats.combo = this.maxCombo;
     const value = this.gain(20 * this.combo);
     this.floatText(coin.x, coin.y - 12, `+${value}`, this.combo > 1 ? "#ffe066" : "#ffffff", 15);
     this.audio.play(`coin-${Math.min(5, this.combo)}`, { rate: 1 + (this.chain % 5) * 0.05 });
@@ -544,7 +738,7 @@ class JumpScene extends Phaser.Scene {
     this.audio.play("powerup");
     this.audio.voice("vo-power", 0.15);
     if (kind === "shield") { this.powers.shield = 1; this.audio.play("shield", { delay: 0.1 }); }
-    else this.powers[kind] = spec.time;
+    else this.powers[kind] = this.powerTime(kind);
     if (kind === "magnet") this.audio.play("magnet");
     if (kind === "star") { this.audio.play("frenzy"); this.audio.music("frenzy"); }
     this.showBanner(spec.label, kind === "shield" ? "Ein Treffer wird abgefangen" : kind === "magnet" ? "Federn fliegen zu dir" : "Alle Punkte doppelt", spec.css);
@@ -563,12 +757,28 @@ class JumpScene extends Phaser.Scene {
       this.cameras.main.shake(160, 0.008);
       this.audio.play("smash"); this.audio.play("save", { delay: 0.05 });
       this.floatText(obstacle.x, obstacle.y - 60, "GERETTET!", "#9af0ff", 22);
+      this.stats.smash += 1;
       obstacle.destroy();
       this.renderPowerHud();
       return;
     }
+    if (this.reviveLeft > 0) {
+      // Zweite Chance: the hit is forgiven once per run
+      this.reviveLeft -= 1;
+      this.invuln = 2.2;
+      this.feathers.explode(20, this.player.x, this.player.y - 40);
+      this.ring(this.player.x, this.player.y - 40, 0xffe066, 160);
+      this.cameras.main.flash(200, 255, 230, 140);
+      this.audio.play("save");
+      this.showBanner("ZWEITE CHANCE!", "Weiterlaufen!", "#ffe066");
+      obstacle.destroy();
+      return;
+    }
     this.mode = "gameover";
     this.canRestart = false;
+    this.warnings.forEach((w) => w.destroy());
+    this.warnings = [];
+    this.rain.stop();
     this.physics.world.pause();
     this.queuedJump = 0;
     const run = this.runId;
@@ -587,6 +797,10 @@ class JumpScene extends Phaser.Scene {
     this.best = Math.max(this.best, this.score);
     this.record = this.score > 0 && this.score > this.bestAtStart;
     try { localStorage.setItem(BEST_KEY, String(this.best)); } catch { /* Storage is optional. */ }
+    this.stats.distance = Math.floor(this.distance);
+    this.settled = settleRun(this.meta, this.stats);
+    this.meta = this.settled.meta;
+    saveMeta(this.meta);
     this.time.delayedCall(850, () => {
       if (run !== this.runId) return;
       this.canRestart = true;
@@ -598,7 +812,7 @@ class JumpScene extends Phaser.Scene {
 
   milestoneReached(m) {
     const bonus = this.gain(100);
-    this.showBanner(`${m} m!`, `+${bonus} Punkte · schneller!`, "#fff3b0");
+    this.floatText(W / 2, 110, `${m} m!  +${bonus}`, "#fff3b0", 22);
     this.audio.play("milestone");
     if (m % 1000 === 0) this.audio.voice("vo-level", 0.3);
     this.sparks.setParticleTint([0xffe066, 0xffffff, 0xff9a5a]);
@@ -622,7 +836,13 @@ class JumpScene extends Phaser.Scene {
     if (playing) {
       this.elapsed += dt;
       this.distance += this.speed * dt / 18;
-      this.speed = Math.min(640, 300 + this.elapsed * 3);
+      const lapBoost = stageAt(this.distance).lap * 40;
+      this.slow = Math.max(0, this.slow - dt);
+      this.speed = Math.min(680, 300 + this.elapsed * 3 + lapBoost) * (this.slow > 0 ? 0.62 : 1);
+      this.stats.distance = Math.floor(this.distance);
+      const stage = stageAt(this.distance);
+      if (stage.number > this.stageNo) this.stageReached(stage);
+      this.updateStorm(stage, dt);
       this.score += (Math.floor(this.distance) - Math.floor(this.distance - this.speed * dt / 18)) * (this.powers.star > 0 ? 2 : 1);
       const grounded = this.player.body.blocked.down || this.player.body.touching.down;
       this.queuedJump = Math.max(0, this.queuedJump - dt);
@@ -664,8 +884,13 @@ class JumpScene extends Phaser.Scene {
       if (this.elapsed > 10) { this.nextPower -= dt; if (this.nextPower <= 0) this.spawnPower(); }
       const body = this.player.body;
       this.obstacles.getChildren().slice().forEach((obstacle) => {
-        obstacle.setVelocityX(-this.speed);
-        if (obstacle.kind === "bird") {
+        obstacle.setVelocityX(-(this.speed + (obstacle.charge || 0)));
+        if (obstacle.kind === "bull" || obstacle.kind === "fox") {
+          obstacle.phase += dt;
+          obstacle.art.x = obstacle.x;
+          if (obstacle.kind === "fox") { obstacle.art.setFrame(Math.floor(obstacle.phase * 12) % 2 ? "1" : "0"); obstacle.art.y = GROUND + 6 - Math.abs(Math.sin(obstacle.phase * 18)) * 6; }
+          else if (Math.random() < 0.35) this.dust.explode(1, obstacle.x + 40, GROUND - 4);
+        } else if (obstacle.kind === "bird") {
           obstacle.phase += dt * 9;
           if (obstacle.swoop) obstacle.y = obstacle.baseY - 30 + Math.sin(this.elapsed * 3.2 + obstacle.phase * 0.1) * 34;
           obstacle.art.setPosition(obstacle.x, obstacle.y + Math.sin(obstacle.phase) * 3);
@@ -679,14 +904,25 @@ class JumpScene extends Phaser.Scene {
           const gap = body.bottom <= top ? top - body.bottom : body.top >= bottom ? body.top - bottom : 0;
           obstacle.minGap = Math.min(obstacle.minGap, gap);
         }
-        if (!obstacle.scored && obstacle.x + 40 < PLAYER_X - 22) {
+        if (!obstacle.scored && obstacle.x + obstacle.width / 2 < PLAYER_X - 22) {
           obstacle.scored = true;
-          this.gain(50);
+          this.gain(obstacle.points || 50);
+          if (obstacle.kind === "bull") { this.stats.bulls += 1; this.floatText(PLAYER_X + 40, GROUND - 150, `BULLE ÜBERSPRUNGEN! +${obstacle.points}`, "#ffb070", 18); }
+          if (obstacle.kind === "fox") this.stats.foxes += 1;
+          if (obstacle.kind === "tractor") this.stats.tractors += 1;
+          if (obstacle.action === "duck" && this.player.y > GROUND - 30) this.stats.ducks += 1;
+          if (obstacle.minGap < 18) this.stats.near += 1;
           this.audio.play("pass", { rate: 1 + Math.random() * 0.1 });
           if (obstacle.minGap < 18) this.nearMiss(obstacle);
         }
-        if (obstacle.x < -120) obstacle.destroy();
+        if (obstacle.x < -160) obstacle.destroy();
       });
+      this.hazards.getChildren().slice().forEach((mud) => {
+        mud.setVelocityX(-this.speed);
+        mud.art.x = mud.x;
+        if (mud.x < -100) mud.destroy();
+      });
+      this.checkMissions();
       const magnet = this.powers.magnet > 0;
       this.coins.getChildren().slice().forEach((coin) => {
         coin.phase += dt * 4;
@@ -722,13 +958,34 @@ class JumpScene extends Phaser.Scene {
     }
   }
 
+  updateStorm(stage, dt) {
+    const target = stage.storm ? 1 : 0;
+    this.storm += (target - this.storm) * Math.min(1, dt * 0.8);
+    this.stormShade.setFillStyle(0x101830, this.storm * 0.38);
+    if (this.storm > 0.3 && !this.rain.emitting) { this.rain.start(); this.audio.play("rain"); }
+    if (this.storm < 0.2 && this.rain.emitting) this.rain.stop();
+    this.flash.setFillStyle(0xe8f0ff, Math.max(0, (this.flash.fillAlpha || 0) - dt * 3));
+    this.boltLife = Math.max(0, (this.boltLife || 0) - dt);
+    if (!this.boltLife) this.bolt.clear();
+    if (this.storm > 0.6 && Math.random() < dt * 0.22) {
+      this.flash.setFillStyle(0xe8f0ff, 0.6);
+      this.bolt.clear().lineStyle(4, 0xf4f8ff, 0.95);
+      let x = 200 + Math.random() * 600, y = 0;
+      this.bolt.beginPath(); this.bolt.moveTo(x, y);
+      while (y < 330) { x += (Math.random() - 0.5) * 60; y += 30 + Math.random() * 30; this.bolt.lineTo(x, y); }
+      this.bolt.strokePath();
+      this.boltLife = 0.18;
+      this.audio.play("thunder", { delay: 0.2 + Math.random() * 0.4 });
+    }
+  }
+
   scrollScenery(dt) {
     const s = this.speed * dt;
     this.pano.tilePositionX += (s * 0.07) / this.panoScale;
     this.ground.tilePositionX += s;
-    this.clouds.forEach((cloud) => { cloud.x -= s * cloud.speed; if (cloud.x < -120) cloud.x += W + 240; });
-    this.hedges.forEach((hedge) => { hedge.x -= s * 0.45; if (hedge.x < -80) hedge.x += 130 * 9; });
-    this.tufts.forEach((tuft) => { tuft.x -= s * 1.35; if (tuft.x < -30) tuft.x += 90 * 12; });
+    this.clouds.forEach((cloud) => { cloud.x -= s * cloud.speed; if (cloud.x < -180) cloud.x += W + 360; });
+    this.layers.forEach((layer) => { layer.tilePositionX += s * layer.factor; });
+    this.tufts.forEach((tuft) => { tuft.x -= s * 1.35; if (tuft.x < -70) tuft.x += 108 * 10; });
     // speed lines from 420 px/s on
     const fast = Phaser.Math.Clamp((this.speed - 400) / 200, 0, 1) + (this.powers.star > 0 ? 0.6 : 0);
     this.speedLines.forEach((line) => {
@@ -747,8 +1004,7 @@ class JumpScene extends Phaser.Scene {
     this.skyGlow.setFillStyle(0xff9a5a, dawn * 0.16);
     this.stars.setAlpha(night * (0.85 + Math.sin(time * 2) * 0.15));
     this.moon.setAlpha(night).setY(130 - night * 30);
-    this.hedges.forEach((h) => h.setAlpha(0.92 - night * 0.3));
-    this.clouds.forEach((c) => c.setAlpha(1 - night * 0.6));
+    this.clouds.forEach((c) => c.setAlpha(0.55 - night * 0.35));
     this.fireflies.forEach((f) => {
       f.x -= (playing ? this.speed * dt * 0.3 : 0) + Math.sin(time + f.seed) * 0.4;
       f.y += Math.cos(time * 1.3 + f.seed) * 0.5;
@@ -789,9 +1045,9 @@ class JumpScene extends Phaser.Scene {
 
   updateHud() {
     this.speedText.setText(`${Math.floor(this.speed / 18)} m/s`);
-    const next = (Math.floor(this.distance / MILESTONE) + 1) * MILESTONE;
-    this.distText.setText(`nächstes Ziel ${next} m`);
-    const progress = (this.distance % MILESTONE) / MILESTONE;
+    const stage = stageAt(this.distance);
+    this.distText.setText(`Abschnitt ${stage.number} · ${stage.name}`);
+    const progress = stage.progress;
     this.milestoneBar.clear();
     this.milestoneBar.fillStyle(0x000000, 0.35).fillRoundedRect(W - 182, 64, 160, 7, 3);
     this.milestoneBar.fillStyle(0xffd84a, 1).fillRoundedRect(W - 182, 64, Math.max(6, 160 * progress), 7, 3);
@@ -808,7 +1064,7 @@ class JumpScene extends Phaser.Scene {
       const ring = this.add.graphics();
       if (key !== "shield") {
         ring.lineStyle(4, POWERS[key].color, 1).beginPath();
-        ring.arc(x + 22, 22, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (value / POWERS[key].time), false);
+        ring.arc(x + 22, 22, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, value / this.powerTime(key)), false);
         ring.strokePath();
       }
       this.powerHud.add([ring, icon]);
@@ -821,6 +1077,8 @@ class JumpScene extends Phaser.Scene {
     this.onSnapshot({
       status: this.mode, score: this.score, distance: this.distance, pepples: this.pepples, combo: this.combo,
       best: Math.max(this.best, this.score), maxCombo: this.maxCombo, nearMisses: this.nearMisses, record: this.record,
+      stage: this.stageNo || 1, stageName: stageAt(this.distance || 0).name, stats: { ...(this.stats || {}) },
+      meta: this.meta, settled: this.settled ? { earned: this.settled.earned, missions: this.settled.missions.map((m) => m.text), rankUp: this.settled.rankUp?.name || null } : null,
     });
   }
 }
