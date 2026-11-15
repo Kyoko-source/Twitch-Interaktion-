@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from . import ratelimit
 from .auth import current_user
 from .economy import economy
+from . import xp as xp_levels
 
 router = APIRouter(prefix="/api/horses", tags=["horses"])
 STAKE = 50                  # credits per race
@@ -165,4 +166,5 @@ def start_race(body: Bet, request: Request, user: dict = Depends(current_user)) 
         db.execute("UPDATE wallets SET credits = credits - ? + ? WHERE username=?", (STAKE, payout, username))
         db.execute("INSERT INTO casino_ledger VALUES (?, ?, 'horse-race', 0, ?, 0, ?)", (f"horse:{body.request_id}", username, payout - STAKE, now))
         db.execute("INSERT INTO horse_races VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (body.request_id, username, body.horse, result["winner"], STAKE, payout, now, json.dumps(result)))
+        xp_levels.award(db, username, "casino", 20 + (20 if won else 0), ref=f"horse:{body.request_id}", now=now, queue_alert=store._queue_alert)
         return {**result, "wallet": store.wallet(db, username), "duplicate": False}

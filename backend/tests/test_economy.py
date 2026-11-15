@@ -18,6 +18,10 @@ from app.auth import current_user
 
 class EconomyTests(unittest.TestCase):
     def setUp(self):
+        # Level-up payouts are covered in test_xp; here balances must stay exact.
+        self._no_level_rewards = patch('app.xp.rewards_for', return_value={'chickens': 0, 'credits': 0})
+        self._no_level_rewards.start()
+        self.addCleanup(self._no_level_rewards.stop)
         self.directory = tempfile.TemporaryDirectory()
         self.store = EconomyStore(Path(self.directory.name) / "economy.sqlite3")
         self.store.mark_ready(["alice", "bob"])

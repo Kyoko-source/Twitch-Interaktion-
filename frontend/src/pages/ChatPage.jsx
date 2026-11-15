@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Mail, MessageCircle, Send, Users } from "lucide-react";
 import { refreshChatUnread, setActiveChat } from "../ui/ChatNotifier";
 import { api } from "../api";
-import { Avatar, EmptyLogin, PanelTitle, RoleBadge } from "./shared";
+import { Avatar, EmptyLogin, LevelChip, PanelTitle, RoleBadge } from "./shared";
 
 export function formatChatTime(value) {
   if (!value) return "";
@@ -231,6 +231,7 @@ export function ChatPage({ user, setPage, unread = { total: 0, conversations: []
                     <header>
                       <b>{message.sender?.username || message.sender_username}</b>
                       <RoleBadge user={message.sender} />
+                      <LevelChip user={message.sender} />
                       <time>{formatChatTime(message.created_at)}</time>
                     </header>
                     <p>{message.body}</p>

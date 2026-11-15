@@ -557,7 +557,20 @@ def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
 
 @app.get("/api/auth/me")
 def me(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    # The first visit of a day counts as a daily login (XP with a streak bonus).
+    try:
+        economy().daily_xp(str(user["username"]))
+    except Exception:  # the level system must never block logging in
+        pass
     return {"user": public_user(user)}
+
+
+@app.get("/api/levels")
+def levels(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    from . import xp as xp_levels
+    info = economy().level_info(str(user["username"]))
+    return {**info, "titles": [{"level": at, "name": name} for at, name in xp_levels.TITLES], "unlock_list": xp_levels.UNLOCKS,
+            "rewards": {str(level): xp_levels.rewards_for(level) for level in range(2, 31)}}
 
 
 @app.post("/api/auth/registration-requests")
@@ -707,6 +720,8 @@ def create_global_message(request: Request, payload: ChatCreate, user: dict[str,
     if not body:
         raise HTTPException(status_code=400, detail="Nachricht ist leer")
     created = store_chat_message("global", str(user["username"]), body)
+    if len(body) >= 3:
+        economy().award_xp(str(user["username"]), "chat", 3, ref=f"chat:{created['id']}")
     return {"message": enrich_chat_messages([created])[0]}
 
 

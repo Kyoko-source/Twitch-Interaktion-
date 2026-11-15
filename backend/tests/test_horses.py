@@ -1,6 +1,7 @@
 import random
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from fastapi import FastAPI, Header
@@ -20,6 +21,10 @@ def position(race, horse, t):
 
 class HorseRaceTests(unittest.TestCase):
     def setUp(self):
+        # Level-up payouts are covered in test_xp; here balances must stay exact.
+        self._no_level_rewards = patch('app.xp.rewards_for', return_value={'chickens': 0, 'credits': 0})
+        self._no_level_rewards.start()
+        self.addCleanup(self._no_level_rewards.stop)
         ratelimit.reset()
         self.folder = tempfile.TemporaryDirectory()
         self.store = EconomyStore(Path(self.folder.name) / "economy.sqlite3")

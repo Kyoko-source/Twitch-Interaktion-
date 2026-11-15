@@ -1,0 +1,53 @@
+/* ---------------- level-up celebration + XP toasts ---------------- */
+.xpToasts { position: fixed; right: 18px; top: 74px; z-index: 900; display: grid; gap: 6px; pointer-events: none; }
+.xpToast { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: linear-gradient(90deg, #6a2bd8, #c03adf); color: #fff; font-weight: 900; font-size: 14px; box-shadow: 0 8px 24px #0007, 0 0 18px #c03adf88; animation: xpToast 2.6s ease both; }
+@keyframes xpToast { 0% { opacity: 0; transform: translateY(-10px) scale(0.8); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-14px); } }
+
+.levelUp { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle, #2a0a48cc, #05020cee 70%); animation: luFade 0.3s ease both; }
+@keyframes luFade { from { opacity: 0; } }
+.levelUpFx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.levelUpCard { position: relative; width: min(440px, 100%); padding: 28px 24px 22px; border-radius: 24px; text-align: center; color: #fff; background: linear-gradient(170deg, #3a1468, #160632); border: 3px solid #ffcf4a; box-shadow: 0 0 0 5px #4a1f00, 0 0 80px #ffcf4a88, 0 30px 60px #000a; animation: luPop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes luPop { from { opacity: 0; transform: scale(0.5) rotate(-6deg); } }
+.levelUpClose { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; background: #ffffff14; border: 1px solid #ffffff22; color: #fff; }
+.levelUpKicker { display: inline-flex; align-items: center; gap: 6px; font-weight: 900; letter-spacing: 0.2em; font-size: 12px; color: #ffcf4a; }
+.levelUpBadge { display: grid; place-items: center; width: 120px; height: 120px; margin: 12px auto 8px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c4, #ffcf4a 50%, #c77700); border: 5px solid #fff; box-shadow: 0 0 40px #ffcf4a, 0 8px 0 #7a4300; animation: luSpin 1s ease-out both; }
+.levelUpBadge b { font: 900 56px/1 "Space Grotesk", Inter, sans-serif; color: #3a1f00; }
+@keyframes luSpin { from { transform: rotateY(540deg) scale(0.4); } }
+.levelUpCard h3 { margin: 6px 0 4px; font-size: 26px; }
+.levelUpTitle { margin: 4px 0; color: #ffe27a; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.levelUpRewards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0; }
+.levelUpRewards span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: #ffffff14; border: 1px solid #ffcf4a66; font-weight: 800; }
+.levelUpUnlock { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: #7affb01f; border: 1px solid #7affb066; color: #c8ffe0; font-size: 14px; }
+.levelUpOk { margin-top: 10px; padding: 11px 26px; border-radius: 999px; border: 3px solid #fff; background: linear-gradient(180deg, #ffe27a, #ff9d00); color: #2a1600; font-weight: 900; }
+
+/* ---------------- profile level panel ---------------- */
+.levelPanel h4 { display: flex; align-items: center; gap: 7px; margin: 16px 0 8px; }
+.levelHead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+.levelBadgeBig { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c4, #ffcf4a 50%, #c77700); color: #3a1f00; box-shadow: 0 0 24px #ffcf4a66; }
+.levelBadgeBig small { font-size: 10px; font-weight: 900; letter-spacing: 0.16em; margin-bottom: -10px; }
+.levelBadgeBig b { font: 900 42px/1 "Space Grotesk", Inter, sans-serif; }
+.levelMain h3 { margin: 0 0 6px; font-size: 24px; }
+.levelBar { height: 12px; border-radius: 12px; background: #ffffff18; overflow: hidden; }
+.levelBar i { display: block; height: 100%; border-radius: 12px; background: linear-gradient(90deg, #b56cff, #ffcf4a); }
+.levelMain p { margin: 6px 0 0; color: #c9c2e0; font-size: 14px; }
+.levelNext { display: flex; align-items: center; gap: 6px; }
+.levelStreak { color: #ffb070 !important; font-weight: 800; }
+.levelGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.levelUnlock { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 11px; margin-bottom: 6px; border-radius: 12px; background: #ffffff08; border: 1px solid #ffffff14; color: #a8a2c0; }
+.levelUnlock span { display: grid; }
+.levelUnlock small { font-size: 12px; }
+.levelUnlock em { font-style: normal; font-weight: 900; font-size: 12px; }
+.levelUnlock.open { color: #fff; border-color: #7affb066; background: #7affb014; }
+.levelUnlock.open em { color: #7affb0; }
+.levelHow { margin: 0; padding-left: 18px; color: #c9c2e0; font-size: 14px; display: grid; gap: 4px; }
+.levelLog { display: grid; gap: 4px; }
+.levelLog span { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 9px; background: #00000026; font-size: 13px; }
+.levelLog b { color: #c48bff; }
+.levelTop { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; counter-reset: lv; }
+.levelTop li { counter-increment: lv; display: grid; padding: 8px 12px; border-radius: 10px; background: #ffffff08; border: 1px solid #ffffff14; }
+.levelTop li::before { content: counter(lv) "."; font-weight: 900; color: #ffcf4a; font-size: 12px; }
+.levelTop li span { font-size: 12px; color: #c9c2e0; }
+.levelTop li.me { border-color: #ffcf4a; }
+@media (max-width: 720px) { .levelGrid { grid-template-columns: 1fr; } }
+
+.levelChip { display: inline-flex; align-items: center; padding: 1px 7px; margin-left: 4px; border-radius: 999px; font-size: 10px; font-weight: 900; letter-spacing: 0.04em; color: #2a1600; background: linear-gradient(180deg, #ffe27a, #ffb000); vertical-align: middle; }

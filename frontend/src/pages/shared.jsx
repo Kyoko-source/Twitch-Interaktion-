@@ -56,6 +56,12 @@ export function RoleBadge({ user, role }) {
   return <span className="roleBadge" style={{ "--role": meta.color }}>{meta.label}</span>;
 }
 
+// Small level chip next to a name (chat, member list).
+export function LevelChip({ user }) {
+  if (!user?.level) return null;
+  return <span className="levelChip" title={user.level_title || ""}>Lv {user.level}</span>;
+}
+
 export function routeParts() {
   if (typeof window === "undefined") return [];
   const hashParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);

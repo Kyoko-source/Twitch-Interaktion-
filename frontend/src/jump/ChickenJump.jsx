@@ -64,6 +64,10 @@ function JumpProgress({ meta, scene, onBought }) {
 
 export function ChickenJump({ user, renderScoreboard }) {
   const rewards = useGameRewards("chicken-jump", user);
+  // level rewards (golden chicken, rainbow trail) reach the scene through this ref
+  const userUnlocks = useRef(user?.unlocks || []);
+  userUnlocks.current = user?.unlocks || [];
+  useEffect(() => { if (scene.current) scene.current.unlocks = userUnlocks.current; }, [user?.unlocks?.join(",")]);
   const host = useRef(null);
   const scene = useRef(null);
   const [run, setRun] = useState(initial);
@@ -95,7 +99,7 @@ export function ChickenJump({ user, renderScoreboard }) {
           setLoadError("Die Spielgrafik konnte nicht geladen werden. Bitte erneut versuchen.");
           setRun((current) => ({ ...current, status: "error" })); return;
         }
-        scene.current = nextScene; nextScene.onRewardRunStart = rewards.beginRound; setLoadError(""); setLoadProgress(100);
+        scene.current = nextScene; nextScene.onRewardRunStart = rewards.beginRound; nextScene.unlocks = userUnlocks.current; setLoadError(""); setLoadProgress(100);
       }, (value) => { if (!cancelled) setLoadProgress(value); });
     }).catch(() => {
       clearTimeout(deadline);

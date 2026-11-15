@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from . import ratelimit
 from .auth import current_user
 from .economy import economy
+from . import xp as xp_levels
 
 router = APIRouter(prefix="/api/slots", tags=["slots"])
 CET = timezone(timedelta(hours=1))
@@ -176,4 +177,5 @@ def spin(body: Spin, request: Request, user: dict = Depends(current_user)) -> di
         db.execute("INSERT OR IGNORE INTO wallets(username) VALUES (?)", (username,))
         db.execute("UPDATE wallets SET credits = credits - ?, gsc = gsc + ? WHERE username=?", (body.bet, result["win"], username))
         db.execute("INSERT INTO slot_spins VALUES (?, ?, ?, ?, ?, ?)", (body.request_id, username, body.bet, result["win"], now, json.dumps(result)))
+        xp_levels.award(db, username, "casino", 2 * body.bet, ref=f"slot:{body.request_id}", now=now, queue_alert=store._queue_alert)
         return {**result, "wallet": store.wallet(db, username), "today": {"won": won_today(db, username, now)}, "duplicate": False}

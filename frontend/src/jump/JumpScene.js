@@ -894,7 +894,7 @@ class JumpScene extends Phaser.Scene {
           if (this.powers[key] === 0) this.audio.play("expire");
         }
       }
-      if (this.powers.star > 0) this.trail.explode(1, this.player.x - 20, this.player.y - 40 + Math.random() * 20);
+      if (this.powers.star > 0 || (this.unlocks?.includes("jump-rainbow") && Math.random() < 0.5)) this.trail.explode(1, this.player.x - 20, this.player.y - 40 + Math.random() * 20);
       this.nextPattern -= dt;
       if (this.nextPattern <= 0) this.spawnPattern();
       if (this.elapsed > 10) { this.nextPower -= dt; if (this.nextPower <= 0) this.spawnPower(); }
@@ -1050,6 +1050,8 @@ class JumpScene extends Phaser.Scene {
     this.chicken.setPosition(this.player.x, this.player.y - bob).setScale(sx, sy).setRotation(rot);
     const blink = this.invuln > 0 && Math.floor(this.invuln * 14) % 2 === 0;
     this.chicken.setAlpha(blink ? 0.35 : 1);
+    if (this.unlocks?.includes("jump-golden")) this.chicken.setTint(0xffe9a0, 0xffe9a0, 0xffc94a, 0xffc94a);
+    else this.chicken.clearTint();
     const star = this.powers?.star > 0;
     this.chickenGlow.setPosition(this.chicken.x, this.chicken.y).setScale(sx, sy).setRotation(rot)
       .setTint(Phaser.Display.Color.HSVToRGB((time * 0.6) % 1, 0.7, 1).color).setAlpha(star ? 0.35 + Math.sin(time * 10) * 0.12 : 0);

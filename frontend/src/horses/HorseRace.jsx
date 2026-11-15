@@ -163,6 +163,10 @@ export function HorseRace({ user, onLogin }) {
   onEventRef.current = onEvent;
 
   useEffect(() => { scene.current?.setChosen(chosen); }, [chosen]);
+  useEffect(() => {
+    const unlocks = user?.unlocks || [];
+    scene.current?.setFlair({ crown: unlocks.includes("derby-crown"), champion: unlocks.includes("derby-champion") });
+  }, [user?.unlocks?.join(",")]);
 
   const load = useCallback(() => {
     if (!user) return;

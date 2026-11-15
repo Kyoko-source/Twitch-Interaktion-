@@ -88,7 +88,7 @@ function star(c, x, y, r) {
  *  time      seconds, for idle motion of tail, mane and head
  *  shadow    draw the ground shadow (default true)
  */
-export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shadow = true, glow = null }) {
+export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shadow = true, glow = null, crown = false }) {
   const th = phase * TAU;
   const bob = -Math.abs(Math.sin(th)) * 3.2 * gait + Math.sin(time * 2.1) * 0.6 * (1 - gait);
   const pitch = Math.sin(th + 0.8) * 0.045 * gait;
@@ -226,6 +226,11 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.beginPath(); c.arc(20, -89.5 + jy, 5.6, Math.PI * 1.02, Math.PI * 2.05); c.closePath(); c.fill();
   c.fillRect(22, -90.5 + jy, 6, 2);
   if (look.comb) { c.fillStyle = "#ef4444"; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(16 + i * 3.4, -95.5 + jy, 2, 0, TAU); c.fill(); } }
+  if (crown) {   // level reward: a golden crown on the jockey
+    c.fillStyle = "#ffcf2e"; c.strokeStyle = "#8a5a00"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(13, -95 + jy); c.lineTo(14, -103 + jy); c.lineTo(17.5, -98 + jy); c.lineTo(20.5, -105 + jy); c.lineTo(23.5, -98 + jy); c.lineTo(27, -103 + jy); c.lineTo(28, -95 + jy); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = "#ff3b5c"; c.beginPath(); c.arc(20.5, -98 + jy, 1.3, 0, TAU); c.fill();
+  }
   c.fillStyle = "#0e0e0e"; c.fillRect(22, -89 + jy, 4.4, 1.6);   // goggles
 
   // Near legs in front of the body.

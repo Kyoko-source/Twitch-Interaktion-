@@ -275,6 +275,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
     const { engine, audio } = sys.current;
     audio.unlock(); audio.play("start"); audio.voice("vo-ready");
     engine.start();
+    if (user?.unlocks?.includes("defense-korn")) engine.korn += 40;   // level reward: Kornspeicher
     sys.current.startedAt = performance.now();
     rewards.beginRound();
     setPlacing(null); setSelected(null); setPaused(false); setMessage(""); setAutoIn(null);

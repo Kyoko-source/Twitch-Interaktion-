@@ -115,7 +115,8 @@ export function Dashboard({ user, data, loading, error, setPage, games, roleBadg
   const events = data.events || [];
   const level = user?.level || 1;
   const earned = user?.level_progress || 0;
-  const target = user?.level_target || 250;
+  const target = user?.level_target || 100;
+  const levelTitle = user?.level_title || "";
   return <section className="communityDashboard">
     <section className="neonHero" aria-label="Willkommen">
       <div className="neonHeroCopy">
@@ -136,7 +137,7 @@ export function Dashboard({ user, data, loading, error, setPage, games, roleBadg
     </section>
     {user && <section className={`welcomeStrip ${!user ? "welcomeGuest" : ""}`} aria-label="Dein Fortschritt">
       <MemberAvatar user={user} className="communityAvatar welcomeAvatar" />
-      <div className="welcomeProgress"><div className="welcomeName"><h2>{user?.username || "Dein nächstes Abenteuer wartet."}</h2>{user && roleBadge}</div>{user ? <><div className="progressCaption"><span>Level {level}</span><small>{earned} / {target} Chickens zum nächsten Level</small></div><div className="communityProgress" role="progressbar" aria-label="Fortschritt zum nächsten Level" aria-valuenow={earned} aria-valuemin={0} aria-valuemax={target}><span style={{ width: `${earned / target * 100}%` }} /></div></> : <p>Spiel mit, sammle Chickens und werde Teil unseres Schwarms.</p>}</div>
+      <div className="welcomeProgress"><div className="welcomeName"><h2>{user?.username || "Dein nächstes Abenteuer wartet."}</h2>{user && roleBadge}</div>{user ? <><div className="progressCaption"><span>Level {level}{levelTitle ? ` · ${levelTitle}` : ""}</span><small>{earned} / {target} XP zum nächsten Level</small></div><div className="communityProgress" role="progressbar" aria-label="Fortschritt zum nächsten Level" aria-valuenow={earned} aria-valuemin={0} aria-valuemax={target}><span style={{ width: `${earned / target * 100}%` }} /></div></> : <p>Spiel mit, sammle Chickens und werde Teil unseres Schwarms.</p>}</div>
       <span className="welcomeMascot" aria-hidden="true"><span className="mascotHalo" /><i /><i /><i /><img src="/assets/aviary-mascot-bust.webp" alt="" /></span>
     </section>}
     {error && <div className="notice error" role="alert">Die Community-Daten konnten nicht geladen werden. Bitte versuche es später erneut.</div>}

@@ -93,6 +93,9 @@ export class DerbyScene {
 
   setChosen(h) { this.chosen = h; }
 
+  // Level rewards for the player's own horse: { crown, champion }
+  setFlair(flair) { this.flair = flair; }
+
   // `at` seeks into the timeline (race seconds, countdown is negative) so a viewer who joins
   // late, like the stream overlay, sees the same moment as the player.
   start(race, chosen, at = -COUNTDOWN) {
@@ -325,6 +328,10 @@ export class DerbyScene {
       h.gait += (targetGait - h.gait) * Math.min(1, dt * (running ? 6 : 3));
       const stride = running ? 2.2 * Math.max(0.35, speed / 0.072) : this.phase === "countdown" ? 1.4 : 0.5;
       h.phase = (h.phase + dt * stride * (this.freeze > 0 ? 0 : this.timeScale())) % 1;
+      if (running && h.i === this.chosen && this.flair?.champion && Math.random() < dt * 30 * this.timeScale()) {
+        const sc = depthScale(p.Z);
+        this.dust.push({ x: h.x - Math.sign(h.facing || 1) * 24 * sc, y: h.y - 30 * sc * Math.random(), vx: -Math.sign(h.facing || 1) * 30, vy: -20, r: 2.2 * sc, life: 0, max: 0.7, gold: true });
+      }
       if (running && speed > 0.03 && Math.random() < dt * 22 * this.timeScale()) {
         const sc = depthScale(p.Z);
         this.dust.push({ x: h.x - Math.sign(h.facing || 1) * 30 * sc, y: h.y - 2, vx: -Math.sign(h.facing || 1) * (20 + Math.random() * 30), vy: -8 - Math.random() * 12, r: 3 * sc, life: 0, max: 0.6 + Math.random() * 0.5 });
@@ -412,8 +419,8 @@ export class DerbyScene {
     }
     if (!railDone) this.rail(c, R0 - 6, 0, LAP, (z) => z <= 0, 7);
     for (const d of this.dust) {
-      const a = 0.32 * (1 - d.life / d.max);
-      c.fillStyle = `rgba(214,170,118,${a})`;
+      const a = (d.gold ? 0.95 : 0.32) * (1 - d.life / d.max);
+      c.fillStyle = d.gold ? `rgba(255,214,90,${a})` : `rgba(214,170,118,${a})`;
       c.beginPath(); c.arc(d.x, d.y, d.r, 0, TAU); c.fill();
     }
     this.rail(c, OUTER + 6, 0, LAP, (z) => z >= 0, 8);
@@ -546,7 +553,7 @@ export class DerbyScene {
     c.save();
     c.translate(h.x, h.y);
     c.scale(flip * sc, sc);
-    drawHorse(c, { look: h.look, number: h.i + 1, phase: h.phase, gait: h.gait, time: this.time + h.i, glow: this.chosen === h.i ? "#ffd36b" : null });
+    drawHorse(c, { look: h.look, number: h.i + 1, phase: h.phase, gait: h.gait, time: this.time + h.i, glow: this.chosen === h.i ? "#ffd36b" : null, crown: this.chosen === h.i && this.flair?.crown });
     c.restore();
     if (this.chosen === h.i) {
       const y = h.y - 118 * sc + Math.sin(this.time * 5) * 3;

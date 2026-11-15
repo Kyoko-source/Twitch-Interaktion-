@@ -4,6 +4,7 @@ import { api, setToken } from "./api";
 import { AppShell } from "./ui/CommunityLayout";
 import { ChatToasts, useChatUnread } from "./ui/ChatNotifier";
 import { PurchaseCelebration } from "./economy/PurchaseCelebration";
+import { LevelUpCelebration } from "./economy/LevelUp";
 import { AdminPage } from "./pages/AdminPage";
 import { AdventPage } from "./pages/AdventPage";
 import { ChatPage } from "./pages/ChatPage";
@@ -124,6 +125,7 @@ function App() {
       {content}
       <ChatToasts toasts={chatUnread.toasts} dismiss={chatUnread.dismiss} setPage={setPage} />
       <PurchaseCelebration />
+      <LevelUpCelebration user={user} />
     </AppShell>
   );
 }

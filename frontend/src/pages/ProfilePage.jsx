@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { WalletHistory } from "../economy/WalletHistory";
+import { LevelPanel } from "../economy/LevelUp";
 import { api } from "../api";
 import { Avatar, EmptyLogin, RoleBadge, Stat } from "./shared";
 
@@ -33,11 +34,13 @@ export function ProfilePage({ user, setUser, setPage }) {
           <p>{user.bio || "Noch keine Bio eingetragen."}</p>
         </div>
         <div className="heroPanel compact">
+          <Stat label={`Level · ${user.level_title || ""}`} value={user.level || 1} />
           <Stat label="Chickens erspielt" value={user.chickens_earned} />
           <Stat label="Chickens verfügbar" value={user.chickens} />
         </div>
       </div>
       <button onClick={() => setPage("games")} type="button">Chickens in Minispielen verdienen</button>
+      <LevelPanel user={user} />
       <WalletHistory user={user} />
       <form className="panel form" onSubmit={save}>
         <label>Biografie<textarea value={profile.bio || ""} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} /></label>

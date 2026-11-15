@@ -14,6 +14,7 @@ from functools import lru_cache
 from pathlib import Path
 from uuid import uuid4
 
+from . import xp as xp_levels
 from fastapi import HTTPException
 
 DAILY_CAP = 120
@@ -89,6 +90,7 @@ class EconomyStore:
                 chickens INTEGER NOT NULL DEFAULT 0, credits INTEGER NOT NULL DEFAULT 0, gsc INTEGER NOT NULL DEFAULT 0,
                 created REAL NOT NULL)""")
             db.execute("CREATE INDEX IF NOT EXISTS casino_ledger_user ON casino_ledger(username, created)")
+            xp_levels.ensure(db)
 
     @contextmanager
     def connection(self, *, write=False):
@@ -118,8 +120,8 @@ class EconomyStore:
     def wallet(db, username):
         row = db.execute("SELECT chickens, earned, credits, gsc FROM wallets WHERE username=?", (username,)).fetchone()
         balance, earned, credits, gsc = (row["chickens"], row["earned"], row["credits"], row["gsc"]) if row else (0, 0, 0, 0)
-        return {"chickens": balance, "chickens_earned": earned, "level": earned // LEVEL_SIZE + 1,
-                "level_progress": earned % LEVEL_SIZE, "level_target": LEVEL_SIZE, "credits": credits, "gsc": gsc}
+        # Level, XP and title come from the level system (xp.py), not from earned Chickens.
+        return {"chickens": balance, "chickens_earned": earned, "credits": credits, "gsc": gsc, **xp_levels.summary(db, username)}
 
     def balances(self):
         with self.connection() as db:
@@ -154,6 +156,7 @@ class EconomyStore:
             # One active earning round per account, even across tabs or games.
             db.execute("DELETE FROM runs WHERE username=? AND completed IS NULL", (username,))
             db.execute("INSERT INTO runs(id, username, game, started) VALUES (?, ?, ?, ?)", (run_id, username, game, now))
+            xp_levels.award(db, username, "start", 5, ref=f"start:{run_id}", now=now, queue_alert=self._queue_alert)
             return {"run_id": run_id, "minimum_seconds": MIN_RUN_SECONDS, "daily_cap": DAILY_CAP, "round_cap": ROUND_CAP, "wallet": self.wallet(db, username)}
 
     def complete_run(self, username, game, run_id, payload, now=None, legacy_best=None):
@@ -193,7 +196,12 @@ class EconomyStore:
             db.execute("UPDATE runs SET completed=?, score=?, payload=?, reward=?, reward_day=?, is_highscore=?, gsc=? WHERE id=?", (now, score, json.dumps(payload, sort_keys=True), reward, day, int(is_highscore), gsc, run_id))
             if is_highscore:
                 self._queue_alert(db, f"highscore:{run_id}", username, GAME_TITLES[game], "Highscore", 0, now, kind="highscore", game=game, score=score)
-            return self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward), is_highscore=is_highscore, gsc=gsc if game in CREDIT_GAMES else None)
+            # XP for every finished round: more for longer and better rounds, a bonus for a record.
+            played = int(min(elapsed, 900) // 15)
+            gained = xp_levels.award(db, username, "game", 10 + min(40, played + reward * 2) + (25 if is_highscore else 0) if elapsed >= MIN_RUN_SECONDS else 3,
+                                     ref=f"run:{run_id}", now=now, queue_alert=self._queue_alert)
+            result = self._score_result(db, username, reward, daily_remaining=max(0, DAILY_CAP - earned_today - reward), is_highscore=is_highscore, gsc=gsc if game in CREDIT_GAMES else None)
+            return {**result, "xp_awarded": gained["amount"], "levelups": gained["levelups"], "message": result["message"] + (f" +{gained['amount']} XP" if gained["amount"] else "")}
 
     def _score_result(self, db, username, reward, duplicate=False, daily_remaining=None, is_highscore=False, gsc=None):
         message = "Diese Runde wurde bereits gewertet." if duplicate else (f"Score gespeichert. +{reward} Chickens!" if reward else "Score gespeichert. Für Chickens: mindestens 15 Sekunden spielen und Punkte sammeln; Tageslimit 120.")
@@ -285,6 +293,7 @@ class EconomyStore:
             alert = category in PUNISHMENT_CATEGORIES
             if alert:
                 self._queue_alert(db, request_id, username, item["name"], category, price, now)
+            xp_levels.award(db, username, "shop", price // 5, ref=f"buy:{request_id}", now=now, queue_alert=self._queue_alert)
             return {"message": "Gekauft! Deine Bestrafung erscheint im Stream." if alert else "Item gekauft.",
                     "purchase_id": request_id, "wallet": self.wallet(db, username), "stream_alert": alert, "duplicate": False}
 
@@ -311,6 +320,19 @@ class EconomyStore:
         with self.connection() as db:
             events = db.execute("SELECT * FROM alerts WHERE ends>? AND (? OR kind='purchase') ORDER BY starts, id LIMIT 50", (now, int(include_highscores))).fetchall()
             return {"server_time": now, "events": [dict(row) for row in events]}
+
+    def award_xp(self, username, source, amount, ref=None):
+        with self.connection(write=True) as db:
+            return xp_levels.award(db, username, source, amount, ref=ref, queue_alert=self._queue_alert)
+
+    def daily_xp(self, username):
+        with self.connection(write=True) as db:
+            return xp_levels.daily(db, username, queue_alert=self._queue_alert)
+
+    def level_info(self, username):
+        with self.connection(write=True) as db:
+            xp_levels.ensure(db)
+            return {**xp_levels.summary(db, username), "recent": xp_levels.recent(db, username), "leaderboard": xp_levels.leaderboard(db)}
 
     def recent_purchases(self):
         with self.connection() as db:
