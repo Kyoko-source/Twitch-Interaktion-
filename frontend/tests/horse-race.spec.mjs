@@ -29,7 +29,7 @@ async function setup(page, { user = { username: "marello", role: "admin" }, cred
   await page.route("**/api/**", async (route) => {
     const req = route.request(), path = new URL(req.url()).pathname;
     if (path.endsWith("/auth/me")) return route.fulfill({ json: { user } });
-    if (path.endsWith("/api/horses")) return route.fulfill({ json: { stake: 50, payout: 100, laps: 5, horses: [], wallet: { chickens: 0, credits, gsc: 0 }, recent: [2, 5, 2] } });
+    if (path.endsWith("/api/horses")) return route.fulfill({ json: { stake: 50, payout: 100, laps: 5, horses: [], wallet: { chickens: 0, credits, gsc: 0 }, recent: [2, 5, 2], stats: { races: 90, won: 12, wins: [8, 11, 14, 9, 10, 7, 12, 10, 9], chance: 1 / 9 } } });
     if (path.endsWith("/api/horses/race")) {
       const body = req.postDataJSON(); races.push(body);
       const race = script(winner, body.horse);
@@ -81,6 +81,31 @@ test("pick a horse, bet 50 credits, watch the race and double the stake on a win
   await shot(page, "08-win-final");
   await page.getByRole("button", { name: "Nächstes Rennen" }).click();
   await expect(page.locator(".hrCards")).toBeVisible();
+  // The won race joins the all-time stats.
+  await expect(page.getByTestId("derby-races")).toHaveText("91");
+  await expect(page.getByTestId("derby-won")).toHaveText("13");
+  await expect(page.locator(".hrChartRow:not(.hrChartFair)").nth(2)).toContainText("15");
+});
+
+test("the win chances chart shows every horse, the totals and a table view", async ({ page }) => {
+  await setup(page);
+  await page.goto("/#games/horse-race");
+  await expect(page.getByTestId("derby-races")).toHaveText("90");
+  await expect(page.getByTestId("derby-won")).toHaveText("12");
+  const rows = page.locator(".hrChartRow:not(.hrChartFair)");
+  await expect(rows).toHaveCount(9);
+  await expect(rows.nth(2)).toContainText("Sturmwind");
+  await expect(rows.nth(2)).toContainText("15,6 %");
+  await expect(page.locator(".hrChartFair")).toContainText("11,1 %");
+  await rows.nth(2).hover();
+  await expect(page.locator(".hrChartTip")).toContainText("14 von 90 Rennen gewonnen");
+  if (SHOTS) await page.locator(".hrStats").screenshot({ path: `${SHOTS}/11-stats.png` });
+  await page.getByRole("button", { name: "Als Tabelle" }).click();
+  await expect(page.locator(".hrStatsTable tbody tr")).toHaveCount(9);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Als Grafik" }).click();
+  if (SHOTS) await page.locator(".hrStats").screenshot({ path: `${SHOTS}/12-stats-phone.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("a losing horse shows its place and the winner", async ({ page }) => {

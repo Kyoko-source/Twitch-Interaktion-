@@ -6,6 +6,7 @@ import { SlotFx } from "../slots/fx.js";
 import { DerbyAudio } from "./audio.js";
 import { LOOKS, drawHorse } from "./horse.js";
 import { DerbyScene } from "./scene.js";
+import { DerbyStats } from "./DerbyStats.jsx";
 import "../pinball/casino.css";
 import "./horses.css";
 
@@ -13,6 +14,8 @@ const NAMES = ["Donnerhuf", "Goldmähne", "Sturmwind", "Mitternacht", "Feuerfunk
 const TAGLINES = ["Startet wie ein Gewitter.", "Glänzt bei Flutlicht.", "Liebt Gegenwind.", "Läuft am liebsten nachts.", "Heißblütig bis zum Ziel.", "Pfeilschnell auf der Geraden.", "Klein, aber gemein.", "Trägt die Krone des Hühnerhofs.", "Taucht aus dem Nichts auf."];
 const fmt = (n) => Math.round(n || 0).toLocaleString("de-DE");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// The finished race joins the all-time stats right away (the server counted it at booking).
+const addRace = (stats, r) => (stats && !r.duplicate ? { ...stats, races: stats.races + 1, won: stats.won + (r.won ? 1 : 0), wins: stats.wins.map((w, i) => w + (i === r.winner ? 1 : 0)) } : stats);
 
 function Portrait({ index, active, size = 150 }) {
   const ref = useRef(null);
@@ -148,7 +151,7 @@ export function HorseRace({ user, onLogin }) {
         audio.music("lobby");
         audio.play(r.place === 2 ? "mission-fail" : "game-over", { gain: 0.6 });
       }
-      setInfo((i) => (i ? { ...i, wallet: r.wallet, recent: [r.winner, ...(i.recent || [])].slice(0, 10) } : i));
+      setInfo((i) => (i ? { ...i, wallet: r.wallet, recent: [r.winner, ...(i.recent || [])].slice(0, 10), stats: addRace(i.stats, r) } : i));
       publishWallet(user?.username, r.wallet);
     }
   }, [audio, quake, showWin, user?.username]);
@@ -368,6 +371,8 @@ export function HorseRace({ user, onLogin }) {
           </ol>
         </div>
       )}
+
+      {user && <DerbyStats stats={info?.stats} names={NAMES} />}
     </section>
   );
 }

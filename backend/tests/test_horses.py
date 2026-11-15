@@ -108,6 +108,10 @@ class HorseRaceTests(unittest.TestCase):
         self.assertEqual(loss["payout"], 0)
         self.assertGreater(loss["place"], 1)
         self.assertEqual(self.credits(), 120)
+        stats = self.client.get("/api/horses", headers={"X-Test-User": "alice"}).json()["stats"]
+        self.assertEqual((stats["races"], stats["won"]), (2, 1))
+        self.assertEqual(stats["wins"], [0, 0, 0, 1, 0, 1, 0, 0, 0])
+        self.assertAlmostEqual(stats["chance"], 1 / 9, places=4)
 
     def test_needs_fifty_credits(self):
         with self.store.connection(write=True) as db:

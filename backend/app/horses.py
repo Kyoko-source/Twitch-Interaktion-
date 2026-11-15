@@ -107,6 +107,16 @@ def recent_winners(db, limit: int = 10) -> list[int]:
     return [int(r[0]) for r in db.execute("SELECT winner FROM horse_races ORDER BY created DESC LIMIT ?", (limit,)).fetchall()]
 
 
+def stats(db) -> dict[str, Any]:
+    """All races ever: how often each horse won, how many races there were and how many bets won."""
+    wins = [0] * len(HORSES)
+    for winner, count in db.execute("SELECT winner, COUNT(*) FROM horse_races GROUP BY winner").fetchall():
+        if 0 <= int(winner) < len(HORSES):
+            wins[int(winner)] = int(count)
+    races, won = db.execute("SELECT COUNT(*), COALESCE(SUM(payout > 0), 0) FROM horse_races").fetchone()
+    return {"races": int(races), "won": int(won), "wins": wins, "chance": round(1 / len(HORSES), 5)}
+
+
 def live_races(db, now: float) -> list[dict[str, Any]]:
     """Races of the last minutes for the stream overlay, oldest first."""
     rows = db.execute("SELECT rowid, username, created, result FROM horse_races WHERE created >= ? ORDER BY created DESC LIMIT 12", (now - LIVE_WINDOW,)).fetchall()
@@ -129,7 +139,7 @@ def info(user: dict = Depends(current_user)) -> dict[str, Any]:
     with store.connection(write=True) as db:
         ensure_table(db)
         return {"stake": STAKE, "payout": PAYOUT, "laps": LAPS, "horses": HORSES,
-                "wallet": store.wallet(db, str(user["username"])), "recent": recent_winners(db)}
+                "wallet": store.wallet(db, str(user["username"])), "recent": recent_winners(db), "stats": stats(db)}
 
 
 @router.get("/live")

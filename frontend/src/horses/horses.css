@@ -167,3 +167,46 @@
 }
 
 .hrLoseWinner .hrPortrait { width: clamp(90px, 13cqw, 150px) !important; height: auto !important; }
+
+/* ---------------------------------------------------------------- win chances chart */
+.hrStats { margin-top: 22px; padding: 16px; border-radius: 18px; background: #0b0e20; border: 1px solid #ffffff1c; }
+.hrStatsHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.hrStatsHead h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; }
+.hrStatsHead h3 svg { color: var(--gold); }
+.hrStatsToggle { min-height: 36px; padding: 6px 14px; border-radius: 999px; border: 1px solid #ffffff33; background: #ffffff0d; color: var(--ink); font-weight: 700; cursor: pointer; }
+.hrStatsToggle:hover { border-color: var(--gold); }
+.hrStatsTiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.hrStatsTiles div { padding: 10px 12px; border-radius: 12px; background: #ffffff08; border: 1px solid #ffffff14; }
+.hrStatsTiles small { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.hrStatsTiles strong { display: block; margin-top: 2px; font: 800 clamp(20px, 3vw, 28px) / 1.15 "Space Grotesk", Inter, sans-serif; color: var(--ink); }
+.hrChart { display: grid; gap: 4px; }
+.hrChartRow { display: grid; grid-template-columns: minmax(96px, 150px) 1fr minmax(92px, 110px); align-items: center; gap: 10px; padding: 3px 4px; border-radius: 8px; outline: none; }
+.hrChartRow:not(.hrChartFair):hover, .hrChartRow:focus-visible { background: #ffffff0b; }
+.hrChartRow:focus-visible { box-shadow: 0 0 0 2px var(--gold); }
+.hrChartName { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrChartName i { flex: none; width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(135deg, var(--silk) 55%, var(--silk2) 0); }
+.hrChartTrack { position: relative; height: 20px; border-left: 1px solid #ffffff33; }
+.hrChartTrack::after { content: ""; position: absolute; top: -3px; bottom: -3px; left: var(--fair); border-left: 2px dashed #ffffff66; pointer-events: none; }
+.hrChartTrack b { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: #c99a2e; transition: width 0.5s ease; }
+.hrChartTrack b.lead, .hrChartRow.hover .hrChartTrack b { background: var(--gold); }
+.hrChartVal { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hrChartVal small { color: var(--muted); font-weight: 600; margin-left: 4px; }
+.hrChartFair { padding-top: 0; padding-bottom: 0; }
+.hrChartFair .hrChartTrack { height: 16px; border-left-color: transparent; }
+.hrChartFair .hrChartTrack::after { top: 12px; }
+.hrChartFair em { position: absolute; left: var(--fair); top: 0; transform: translateX(-50%); font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.hrChartTip { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 3; display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: #1b2040; border: 1px solid #ffffff33; box-shadow: 0 8px 24px #0009; font-size: 13px; color: var(--ink); white-space: nowrap; pointer-events: none; }
+.hrStatsTable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.hrStatsTable th, .hrStatsTable td { padding: 6px 8px; border-bottom: 1px solid #ffffff14; text-align: left; }
+.hrStatsTable td { text-align: right; font-variant-numeric: tabular-nums; }
+.hrStatsTable thead th { color: var(--muted); font-size: 12px; font-weight: 800; }
+.hrStatsTable thead th:not(:first-child) { text-align: right; }
+.hrStatsNote { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 560px) {
+  .hrStatsTiles { grid-template-columns: 1fr 1fr; }
+  .hrStatsTiles div:last-child { grid-column: 1 / -1; }
+  .hrChartRow { grid-template-columns: 108px 1fr 30px; gap: 6px; }
+  .hrChartName { font-size: 12px; }
+  .hrChartVal small { display: none; }
+}
+.hrChartName em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
