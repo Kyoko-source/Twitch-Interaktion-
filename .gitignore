@@ -35,3 +35,6 @@ games/kinderparadies/assets/menu/*.mp3.import
 
 # Ad videos for Admin Stream Control live on the server (mounted), not in Git.
 frontend/public/stream-media/*.mp4
+
+# Personal Claude Code settings
+.claude/settings.local.json
