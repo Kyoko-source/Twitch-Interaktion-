@@ -106,3 +106,31 @@ export class Commentator {
     return out;
   }
 }
+
+// A made-up race for the overlay preview, built like the server's scripts.
+export function demoRace(rnd = Math.random, laps = 5) {
+  const n = 50;
+  const winner = Math.floor(rnd() * 9);
+  const others = [...Array(9).keys()].filter((h) => h !== winner).sort(() => rnd() - 0.5);
+  const order = [winner, ...others];
+  const finish = Array(9).fill(0);
+  let t = 66 + rnd() * 6;
+  finish[winner] = t;
+  t += 0.05 + rnd() * 0.4;
+  others.forEach((h, i) => { finish[h] = t; t += 0.06 + rnd() * (i < 3 ? 0.3 : 0.55); });
+  const shapes = order.map(() => null);
+  for (let h = 0; h < 9; h++) {
+    const speeds = [];
+    let v = 1, burst = 0, left = 0;
+    for (let k = 0; k < n; k++) {
+      v = (v + (rnd() - 0.5) * 0.08) * 0.82 + 0.18;
+      if (left <= 0 && rnd() < 0.09) { burst = (rnd() < 0.5 ? -1 : 1) * (0.09 + rnd() * 0.11); left = 2 + Math.floor(rnd() * 3); }
+      speeds.push(Math.max(0.55, v + (left-- > 0 ? burst : 0)));
+    }
+    const total = speeds.reduce((a, b) => a + b, 0);
+    let run = 0;
+    shapes[h] = [0, ...speeds.map((s) => (run += s) / total)];
+    shapes[h][n] = 1;
+  }
+  return { winner, order, finish, shapes, laps };
+}

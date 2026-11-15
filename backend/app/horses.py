@@ -1,4 +1,4 @@
-"""Chicken Derby: a nine-horse race over three laps. Starting a race costs 50 Credits, the player
+"""Chicken Derby: a nine-horse race over five laps. Starting a race costs 50 Credits, the player
 bets them on one horse and a win doubles them (100 Credits back).
 
 The server decides everything inside one SQLite transaction: the stake is debited, the winner is
@@ -18,7 +18,7 @@ import secrets
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from . import ratelimit
@@ -28,8 +28,10 @@ from .economy import economy
 router = APIRouter(prefix="/api/horses", tags=["horses"])
 STAKE = 50                  # credits per race
 PAYOUT = 100                # credits back when the chosen horse wins (stake doubled)
-LAPS = 3
-SEGMENTS = 32               # shape resolution
+LAPS = 5
+SEGMENTS = 50               # shape resolution
+COUNTDOWN = 10             # seconds between booking and the start, as the client shows it
+LIVE_WINDOW = 15 * 60      # seconds a race stays on the stream overlay's list
 HORSES = [
     {"id": 0, "name": "Donnerhuf"},
     {"id": 1, "name": "Goldmähne"},
@@ -49,10 +51,10 @@ def _shape(rng, style: str) -> list[float]:
     speeds, v, burst, burst_left = [], 1.0, 0.0, 0
     for k in range(SEGMENTS):
         u = k / (SEGMENTS - 1)
-        v += rng.gauss(0, 0.05)
+        v += rng.gauss(0, 0.038)
         v = v * 0.82 + 0.18                       # pull back towards normal pace
         if burst_left <= 0 and rng.random() < 0.09:
-            burst, burst_left = rng.choice([1, -1]) * rng.uniform(0.12, 0.26), rng.randint(2, 4)
+            burst, burst_left = rng.choice([1, -1]) * rng.uniform(0.09, 0.2), rng.randint(2, 4)
         speed = v + (burst if burst_left > 0 else 0)
         burst_left -= 1
         if style == "comeback":                   # hangs back, then storms home
@@ -77,7 +79,7 @@ def race(chosen: int, rng=None) -> dict[str, Any]:
     rng.shuffle(others)
     order = [winner, *others]
     finish = [0.0] * len(HORSES)
-    t = rng.uniform(40.0, 45.0)
+    t = rng.uniform(66.0, 73.0)
     finish[winner] = round(t, 3)
     t += rng.uniform(0.04, 0.5)                   # second place is always close
     for place, horse in enumerate(others):
@@ -104,6 +106,17 @@ def recent_winners(db, limit: int = 10) -> list[int]:
     return [int(r[0]) for r in db.execute("SELECT winner FROM horse_races ORDER BY created DESC LIMIT ?", (limit,)).fetchall()]
 
 
+def live_races(db, now: float) -> list[dict[str, Any]]:
+    """Races of the last minutes for the stream overlay, oldest first."""
+    rows = db.execute("SELECT rowid, username, created, result FROM horse_races WHERE created >= ? ORDER BY created DESC LIMIT 12", (now - LIVE_WINDOW,)).fetchall()
+    races = []
+    for row in reversed(rows):
+        r = json.loads(row["result"])
+        races.append({"id": int(row["rowid"]), "username": row["username"], "created": row["created"],
+                      **{k: r[k] for k in ("horse", "winner", "order", "finish", "shapes", "laps", "won", "stake", "payout", "place")}})
+    return races
+
+
 class Bet(BaseModel):
     horse: int = Field(ge=0, le=len(HORSES) - 1)
     request_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
@@ -116,6 +129,17 @@ def info(user: dict = Depends(current_user)) -> dict[str, Any]:
         ensure_table(db)
         return {"stake": STAKE, "payout": PAYOUT, "laps": LAPS, "horses": HORSES,
                 "wallet": store.wallet(db, str(user["username"])), "recent": recent_winners(db)}
+
+
+@router.get("/live")
+def live(response: Response) -> dict[str, Any]:
+    """Public, read-only feed for the OBS overlay: the latest races with their scripts."""
+    response.headers["Cache-Control"] = "no-store"
+    store = economy()
+    with store.connection(write=True) as db:
+        ensure_table(db)
+        now = time.time()
+        return {"server_time": now, "countdown": COUNTDOWN, "races": live_races(db, now)}
 
 
 @router.post("/race")

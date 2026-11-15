@@ -93,14 +93,21 @@ export class DerbyScene {
 
   setChosen(h) { this.chosen = h; }
 
-  start(race, chosen) {
+  // `at` seeks into the timeline (race seconds, countdown is negative) so a viewer who joins
+  // late, like the stream overlay, sees the same moment as the player.
+  start(race, chosen, at = -COUNTDOWN) {
     this.race = race; this.chosen = chosen;
-    this.phase = "countdown"; this.t = -COUNTDOWN; this.lastCount = COUNTDOWN + 1;
+    this.t = Math.max(-COUNTDOWN, at);
+    this.phase = this.t < 0 ? "countdown" : "race";
+    this.lastCount = this.t < 0 ? Math.ceil(-this.t) + 1 : 0;
     this.commentator = new Commentator(race, chosen, this.names);
-    this.gateOut = 0; this.gateOpen = 0; this.freeze = 0; this.flash = 0; this.crossed = false; this.doneSent = false;
+    this.gateOut = this.t > 3.2 ? 1 : 0; this.gateOpen = this.t > 0 ? 1 : 0;
+    this.freeze = 0; this.flash = 0; this.doneSent = false;
+    this.crossed = this.t >= race.finish[race.winner];
+    for (let t = 0; t < this.t; t += 0.1) this.commentator.update(t);   // silently catch up
     this.dust = [];
-    for (const h of this.horses) { h.gait = 0; h.phase = Math.random(); }
-    this.audio?.fanfare();
+    for (const h of this.horses) { h.gait = this.t > 0 ? 1 : 0; h.phase = Math.random(); }
+    if (this.t < -COUNTDOWN + 1) this.audio?.fanfare();
   }
 
   reset() { this.phase = "lobby"; this.race = null; this.t = -COUNTDOWN; this.gateOut = 0; this.gateOpen = 0; this.excite = 0.1; }
@@ -246,6 +253,7 @@ export class DerbyScene {
     this.raf = requestAnimationFrame(this.frame);
     let dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
+    if (this.paused) return;   // hidden overlay: no work, no sound
     this.time += dt;
     this.update(dt);
     this.draw();
@@ -544,10 +552,13 @@ export class DerbyScene {
       const y = h.y - 118 * sc + Math.sin(this.time * 5) * 3;
       c.fillStyle = "#ffd36b";
       c.beginPath(); c.moveTo(h.x - 7, y); c.lineTo(h.x + 7, y); c.lineTo(h.x, y + 9); c.closePath(); c.fill();
+      const label = this.markLabel || "DU";
+      c.font = "800 10px 'Space Grotesk', Inter, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+      const w = Math.max(30, c.measureText(label).width + 14);
       c.fillStyle = "#111"; c.strokeStyle = "#ffd36b"; c.lineWidth = 1.5;
-      c.beginPath(); c.roundRect?.(h.x - 15, y - 17, 30, 15, 7); if (!c.roundRect) c.rect(h.x - 15, y - 17, 30, 15); c.fill(); c.stroke();
-      c.fillStyle = "#ffd36b"; c.font = "800 10px 'Space Grotesk', Inter, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("DU", h.x, y - 9.5);
+      c.beginPath(); c.roundRect?.(h.x - w / 2, y - 17, w, 15, 7); if (!c.roundRect) c.rect(h.x - w / 2, y - 17, w, 15); c.fill(); c.stroke();
+      c.fillStyle = "#ffd36b";
+      c.fillText(label, h.x, y - 9.5);
     }
   }
 }

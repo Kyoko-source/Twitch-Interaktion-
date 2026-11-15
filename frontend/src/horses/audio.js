@@ -5,6 +5,12 @@
 import { PinballAudio } from "../pinball/audio.js";
 
 export class DerbyAudio extends PinballAudio {
+  constructor() {
+    super();
+    // Betting lobby gets its own track; the race keeps Pinball's Arcade Rush.
+    this.tracks = { lobby: "/music/derby/turbo-track-blitz.mp3" };
+  }
+
   ensure() {
     const c = super.ensure();
     if (c && !this.noise) this.buildSynth();
@@ -42,6 +48,12 @@ export class DerbyAudio extends PinballAudio {
     const t = this.ctx.currentTime;
     this.crowdGain.gain.setTargetAtTime(0.04 + level * 0.42, t, 0.3);
     this.crowdFilter.frequency.setTargetAtTime(480 + level * 1100, t, 0.35);
+  }
+
+  silence() {
+    if (!this.crowdGain) return;
+    this.crowdLevel = -1;
+    this.crowdGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
   }
 
   roar(seconds = 2.2) {

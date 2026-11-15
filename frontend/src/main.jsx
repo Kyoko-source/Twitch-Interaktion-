@@ -19,6 +19,7 @@ import { ShopPage } from "./pages/ShopPage";
 import { SupportPage } from "./pages/SupportPage";
 import { SystematicsPage } from "./pages/SystematicsPage";
 import { ListPage, isAdmin, nav, routeParts } from "./pages/shared";
+const DerbyOverlay = lazy(() => import("./horses/DerbyOverlay").then((module) => ({ default: module.DerbyOverlay })));
 const Nullsignal = lazy(() => import("./nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
 import "./economy/account-tools.css";
 import "./styles.css";
@@ -126,4 +127,6 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+// OBS browser source for the Chicken Derby: only the race scene, no site around it.
+const derbyOverlay = window.location.pathname.replace(/\/+$/, "") === "/stream/derby";
+createRoot(document.getElementById("root")).render(derbyOverlay ? <Suspense fallback={null}><DerbyOverlay /></Suspense> : <App />);

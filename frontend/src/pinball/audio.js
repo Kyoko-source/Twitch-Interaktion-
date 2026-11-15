@@ -79,7 +79,7 @@ export class PinballAudio {
     const old = this.track;
     if (old) this.fade(old.el, 0, 700, () => old.el.pause());
     if (!name) { this.track = null; return; }
-    const el = new Audio(MUSIC[name]);
+    const el = new Audio((this.tracks && this.tracks[name]) || MUSIC[name]);
     el.loop = true; el.volume = 0; el.preload = "auto";
     this.track = { name, el };
     if (this.musicOn) { el.play().catch(() => {}); this.fade(el, this.musicLevel(), 900); }

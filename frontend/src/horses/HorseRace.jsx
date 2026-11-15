@@ -71,6 +71,8 @@ function CreditCounter({ from, to, ms, audio, onDone }) {
   return <strong className="hrCount">{fmt(value)}</strong>;
 }
 
+export { NAMES, Portrait, CreditCounter };
+
 export function HorseRace({ user, onLogin }) {
   const [info, setInfo] = useState(null);
   const [chosen, setChosen] = useState(-1);
@@ -143,7 +145,7 @@ export function HorseRace({ user, onLogin }) {
       if (r.won) showWin(r);
       else {
         setResult({ stage: "lose", data: r });
-        audio.music("attract");
+        audio.music("lobby");
         audio.play(r.place === 2 ? "mission-fail" : "game-over", { gain: 0.6 });
       }
       setInfo((i) => (i ? { ...i, wallet: r.wallet, recent: [r.winner, ...(i.recent || [])].slice(0, 10) } : i));
@@ -203,7 +205,7 @@ export function HorseRace({ user, onLogin }) {
     setResult(null); setRace(null); raceRef.current = null; setCall(null); setHud(null); setCount(null);
     setPhase("lobby");
     scene.current?.reset();
-    audio.music("attract");
+    audio.music("lobby");
   }
 
   function toggleMute() {
@@ -233,7 +235,7 @@ export function HorseRace({ user, onLogin }) {
   return (
     <section ref={shell} className={`hrShell${full ? " isFull" : ""}`} aria-label="Chicken Derby">
       <header className="hrHeader">
-        <div><span>AVIARY DOWNS · 9 PFERDE · 3 RUNDEN · SIEG = EINSATZ ×2</span><h2>Chicken Derby</h2></div>
+        <div><span>AVIARY DOWNS · 9 PFERDE · 5 RUNDEN · SIEG = EINSATZ ×2</span><h2>Chicken Derby</h2></div>
         <div className="pbTools hrTools">
           <button type="button" onClick={() => setHelp(!help)} aria-pressed={help} title="Regeln" aria-label="Regeln"><HelpCircle size={18} /></button>
           <button type="button" onClick={() => setVolume(!volume)} aria-expanded={volume} title="Lautstärke" aria-label="Lautstärke"><SlidersHorizontal size={18} /></button>
@@ -327,7 +329,7 @@ export function HorseRace({ user, onLogin }) {
           </div>
           <div className="hrCards">
             {NAMES.map((name, i) => (
-              <button type="button" key={name} className={`hrCard${chosen === i ? " on" : ""}`} onClick={() => { setChosen(i); audio.ensure(); if (!audio.track) audio.music("attract"); audio.play("lane", { gain: 0.5, rate: 0.9 + i * 0.05 }); }} aria-pressed={chosen === i} style={{ "--silk": LOOKS[i].silk, "--silk2": LOOKS[i].silk2 }}>
+              <button type="button" key={name} className={`hrCard${chosen === i ? " on" : ""}`} onClick={() => { setChosen(i); audio.ensure(); if (!audio.track) audio.music("lobby"); audio.play("lane", { gain: 0.5, rate: 0.9 + i * 0.05 }); }} aria-pressed={chosen === i} style={{ "--silk": LOOKS[i].silk, "--silk2": LOOKS[i].silk2 }}>
                 <span className="hrNum">{i + 1}</span>
                 <Portrait index={i} active={chosen === i} size={132} />
                 <b>{name}</b>
@@ -357,7 +359,7 @@ export function HorseRace({ user, onLogin }) {
           <ol>
             <li>Pferd auswählen und das Rennen für {stake} Credits starten. Dein Einsatz liegt auf diesem Pferd.</li>
             <li>10 Sekunden Countdown: Die Pferde stehen in den Startboxen.</li>
-            <li>Drei Runden über die Ovalbahn. Das Tempo wechselt ständig, die Führung auch.</li>
+            <li>Fünf Runden über die Ovalbahn. Das Tempo wechselt ständig, die Führung auch.</li>
             <li>Gewinnt dein Pferd, verdoppelt sich dein Einsatz: {payout} Credits zurück. Sonst ist der Einsatz weg.</li>
           </ol>
         </div>

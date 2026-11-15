@@ -19,9 +19,9 @@ function script(winner, chosen) {
   const others = [...Array(9).keys()].filter((h) => h !== winner);
   const order = [winner, ...others];
   const finish = Array(9).fill(0);
-  order.forEach((h, i) => { finish[h] = 41 + i * 0.3 + (i ? 0.1 : 0); });
+  order.forEach((h, i) => { finish[h] = 68 + i * 0.3 + (i ? 0.1 : 0); });
   const won = winner === chosen;
-  return { winner, order, finish, shapes, laps: 3, horse: chosen, won, stake: 50, payout: won ? 100 : 0, place: order.indexOf(chosen) + 1 };
+  return { winner, order, finish, shapes, laps: 5, horse: chosen, won, stake: 50, payout: won ? 100 : 0, place: order.indexOf(chosen) + 1 };
 }
 
 async function setup(page, { user = { username: "marello", role: "admin" }, credits = 120, winner = 2 } = {}) {
@@ -29,7 +29,7 @@ async function setup(page, { user = { username: "marello", role: "admin" }, cred
   await page.route("**/api/**", async (route) => {
     const req = route.request(), path = new URL(req.url()).pathname;
     if (path.endsWith("/auth/me")) return route.fulfill({ json: { user } });
-    if (path.endsWith("/api/horses")) return route.fulfill({ json: { stake: 50, payout: 100, laps: 3, horses: [], wallet: { chickens: 0, credits, gsc: 0 }, recent: [2, 5, 2] } });
+    if (path.endsWith("/api/horses")) return route.fulfill({ json: { stake: 50, payout: 100, laps: 5, horses: [], wallet: { chickens: 0, credits, gsc: 0 }, recent: [2, 5, 2] } });
     if (path.endsWith("/api/horses/race")) {
       const body = req.postDataJSON(); races.push(body);
       const race = script(winner, body.horse);
@@ -70,7 +70,7 @@ test("pick a horse, bet 50 credits, watch the race and double the stake on a win
   await expect(page.locator(".hrBoard li")).toHaveCount(9);
   await page.clock.runFor(14000);
   await shot(page, "05-race-mid");
-  await page.clock.runFor(15000);
+  await page.clock.runFor(42000);
   await shot(page, "06-finish");
   await page.clock.runFor(8000);
   await expect(page.locator(".hrWinTitle")).toHaveText("SIEG!!!");
@@ -89,7 +89,7 @@ test("a losing horse shows its place and the winner", async ({ page }) => {
   await page.goto("/#games/horse-race");
   await page.locator(".hrCard").nth(0).click();
   await page.locator(".hrStart").click();
-  await page.clock.runFor(70000);
+  await page.clock.runFor(100000);
   await expect(page.locator(".hrPlace")).toContainText("PLATZ");
   await expect(page.locator(".hrLosePanel")).toContainText("Silberpfeil");
   await expect(page.getByTestId("derby-credits")).toHaveText("70");
@@ -121,7 +121,63 @@ test.describe("phone", () => {
     await page.locator(".hrStart").click();
     await page.clock.runFor(30000);
     await shot(page, "11-phone-race");
-    await page.clock.runFor(30000);
+    await page.clock.runFor(60000);
     await shot(page, "12-phone-win");
+  });
+});
+
+test.describe("stream overlay", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test("stays transparent until a race comes in, plays it full screen with the bettor and hides again", async ({ page }) => {
+    await page.clock.install();
+    const t0 = Date.now() / 1000;
+    let races = [];
+    await page.route("**/api/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith("/api/horses/live")) return route.fulfill({ json: { server_time: t0 + (Date.now() / 1000 - t0), countdown: 10, races } });
+      return route.fulfill({ json: [] });
+    });
+    await page.goto("/stream/derby");
+    await page.clock.runFor(3000);
+    await expect(page.locator(".doShell")).not.toHaveClass(/ on/);
+    await expect(page.locator(".appShell, nav")).toHaveCount(0);
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bg).toBe("rgba(0, 0, 0, 0)");
+    races = [{ id: 7, username: "marello", created: Date.now() / 1000, ...script(4, 4) }];
+    await page.clock.runFor(2500);
+    await expect(page.locator(".doShell")).toHaveClass(/ on/);
+    await expect(page.locator(".doIntro")).toContainText("marello");
+    await expect(page.locator(".doIntro")).toContainText("Feuerfunke");
+    await page.clock.runFor(1500);
+    await shot(page, "20-overlay-intro");
+    await page.clock.runFor(30000);
+    await expect(page.locator(".doMine")).toContainText("PLATZ");
+    await shot(page, "21-overlay-race");
+    await page.clock.runFor(55000);
+    await expect(page.locator(".hrWinName")).toContainText("marello gewinnt");
+    await page.clock.runFor(4000);
+    await shot(page, "22-overlay-win");
+    await page.clock.runFor(10000);
+    await expect(page.locator(".doShell")).not.toHaveClass(/ on/);
+  });
+
+  test("joins a running race at the right moment", async ({ page }) => {
+    await page.clock.install();
+    const created = Date.now() / 1000 - 40;   // started 40 s ago: 30 s into the race
+    await page.route("**/api/**", (route) => route.fulfill({ json: { server_time: Date.now() / 1000, countdown: 10, races: [{ id: 9, username: "luna", created, ...script(1, 6) }] } }));
+    await page.goto("/stream/derby");
+    await page.clock.runFor(2000);
+    await expect(page.locator(".doShell")).toHaveClass(/ on/);
+    await expect(page.locator(".doIntro")).toHaveCount(0);
+    await expect(page.locator(".hrLap")).toContainText(/RUNDE [23]\/5/);
+  });
+
+  test("ignores races that finished before the overlay was opened", async ({ page }) => {
+    await page.clock.install();
+    await page.route("**/api/**", (route) => route.fulfill({ json: { server_time: Date.now() / 1000, countdown: 10, races: [{ id: 3, username: "old", created: Date.now() / 1000 - 300, ...script(1, 6) }] } }));
+    await page.goto("/stream/derby");
+    await page.clock.runFor(5000);
+    await expect(page.locator(".doShell")).not.toHaveClass(/ on/);
   });
 });

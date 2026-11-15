@@ -122,6 +122,20 @@ class HorseRaceTests(unittest.TestCase):
             db.execute("UPDATE wallets SET credits=100 WHERE username='bob'")
         self.assertEqual(self.bet(user="bob", request_id="same-race-request-0001").status_code, 409)
 
+    def test_live_feed_is_public_and_lists_recent_races(self):
+        first = self.bet(horse=4).json()
+        self.bet(horse=7)
+        feed = self.client.get("/api/horses/live").json()
+        self.assertEqual(len(feed["races"]), 2)
+        race = feed["races"][0]
+        self.assertEqual((race["username"], race["horse"], race["winner"], race["laps"]), ("alice", 4, first["winner"], 5))
+        self.assertEqual(len(race["shapes"]), 9)
+        self.assertNotIn("request_id", race)
+        self.assertLess(feed["races"][0]["id"], feed["races"][1]["id"])
+        with self.store.connection(write=True) as db:
+            db.execute("UPDATE horse_races SET created = created - ?", (horses.LIVE_WINDOW + 5,))
+        self.assertEqual(self.client.get("/api/horses/live").json()["races"], [])
+
     def test_invalid_horse_and_info(self):
         self.assertEqual(self.bet(horse=9).status_code, 422)
         self.bet(horse=1)
