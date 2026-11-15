@@ -24,7 +24,8 @@ function script(winner, chosen) {
   return { winner, order, finish, shapes, laps: 5, horse: chosen, won, stake: 50, payout: won ? 100 : 0, place: order.indexOf(chosen) + 1 };
 }
 
-async function setup(page, { user = { username: "marello", role: "admin" }, credits = 120, winner = 2 } = {}) {
+async function setup(page, { user = { username: "marello", role: "admin", unlocks: ["derby-crown", "derby-champion", "derby-phoenix"] }, credits = 120, winner = 2 } = {}) {
+  page.on("pageerror", (error) => { throw error; });
   const races = [];
   await page.route("**/api/**", async (route) => {
     const req = route.request(), path = new URL(req.url()).pathname;

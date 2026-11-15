@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Mail } from "lucide-react";
-import { Avatar, RoleBadge, Stat, useApi } from "./shared";
+import { Avatar, LevelChip, RoleBadge, Stat, useApi } from "./shared";
 
 export function MembersPage({ user, setPage }) {
   const { data, loading, error } = useApi("/api/users", []);
@@ -40,7 +40,7 @@ export function MembersPage({ user, setPage }) {
           <Avatar user={top} className="avatar" />
           <div>
             <span className="rank">#1 im Schwarm</span>
-            <h2>{top.username}</h2>
+            <h2>{top.username} <LevelChip user={top} /></h2>
             <RoleBadge user={top} />
             <p>{top.favorite_game ? `Lieblingsspiel: ${top.favorite_game}` : "Lieblingsspiel noch geheim."}</p>
           </div>
@@ -55,7 +55,7 @@ export function MembersPage({ user, setPage }) {
           <article className="memberCard" key={member.username}>
             <span className="rank">#{data.findIndex((entry) => entry.username === member.username) + 1 || index + 1}</span>
             <Avatar user={member} />
-            <h3>{member.username}</h3>
+            <h3>{member.username} <LevelChip user={member} /></h3>
             <RoleBadge user={member} />
             <p>{member.favorite_game || "Kein Lieblingsspiel gesetzt"}</p>
             <div className="miniStats">

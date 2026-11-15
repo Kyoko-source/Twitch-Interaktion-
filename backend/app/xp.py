@@ -30,6 +30,7 @@ UNLOCKS = [
     {"level": 10, "id": "jump-golden", "name": "Goldenes Huhn", "text": "Dein Huhn in Chicken Jump glänzt golden."},
     {"level": 15, "id": "defense-korn", "name": "Kornspeicher", "text": "Chicken Defense startet mit +40 Korn."},
     {"level": 20, "id": "derby-champion", "name": "Champion-Glanz", "text": "Dein Derby-Pferd zieht eine Spur aus Funken."},
+    {"level": 25, "id": "derby-phoenix", "name": "Phönix-Hengst", "text": "Skin fürs Chicken Derby: Dein Pferd wird zum goldenen Phönix mit Feuermähne, Flammenflügeln und Feuerspur.", "skin": True},
     {"level": 25, "id": "jump-rainbow", "name": "Regenbogenspur", "text": "In Chicken Jump zieht dein Huhn eine Regenbogenspur."},
 ]
 
@@ -60,6 +61,18 @@ def rewards_for(level: int) -> dict[str, int]:
 
 def unlocks_for(level: int) -> list[str]:
     return [u["id"] for u in UNLOCKS if level >= u["level"]]
+
+
+def tree() -> list[dict[str, Any]]:
+    """Every level from 1 to LEVEL_CAP with the total XP it needs and what reaching it brings."""
+    titles = dict(TITLES)
+    total, levels = 0, []
+    for level in range(1, LEVEL_CAP + 1):
+        if level > 1:
+            total += need(level - 1)
+        levels.append({"level": level, "xp": total, "rewards": rewards_for(level) if level > 1 else None,
+                       "title": titles.get(level), "unlocks": [u["id"] for u in UNLOCKS if u["level"] == level]})
+    return levels
 
 
 def day_of(now: float) -> str:

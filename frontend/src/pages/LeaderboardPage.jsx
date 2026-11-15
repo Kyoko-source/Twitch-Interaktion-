@@ -1,6 +1,6 @@
 import React from "react";
 import { Trophy } from "lucide-react";
-import { Avatar, RoleBadge, useApi } from "./shared";
+import { Avatar, LevelChip, RoleBadge, useApi } from "./shared";
 
 export function LeaderboardPage() {
   const { data, loading, error } = useApi("/api/leaderboard", []);
@@ -26,9 +26,9 @@ export function LeaderboardPage() {
             <article className={`podiumCard place${rank}`} key={item.username}>
               <span>#{rank}</span>
               <Avatar user={item} />
-              <strong>{item.username}</strong>
+              <strong>{item.username} <LevelChip user={item} /></strong>
               <RoleBadge user={item} />
-              <small>{item.rank_name} · {item.chickens_earned || 0} Chickens erspielt</small>
+              <small>{item.level_title || item.rank_name} · {item.chickens_earned || 0} Chickens erspielt</small>
             </article>
           );
         })}
@@ -39,8 +39,8 @@ export function LeaderboardPage() {
             <span className="rank">#{index + 1}</span>
             <Avatar user={item} />
             <div className="leaderName">
-              <strong>{item.username}</strong>
-              <small><RoleBadge user={item} /> {item.rank_name}</small>
+              <strong>{item.username} <LevelChip user={item} /></strong>
+              <small><RoleBadge user={item} /> {item.level_title || item.rank_name}</small>
             </div>
             <div className="progressTrack"><span style={{ width: `${Math.max(0, (Number(item.chickens_earned || 0) / maxScore) * 100)}%` }} /></div>
             <b>{item.chickens_earned || 0}</b>

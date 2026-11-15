@@ -15,6 +15,40 @@ export const LOOKS = [
   { coat: "#868e98", dark: "#4b525b", mane: "#eef1f5", silk: "#0f766e", silk2: "#a7f3d0", cap: "#a7f3d0", pattern: "sash", blaze: true, socks: [0, 0, 1, 1], dapple: true },
 ];
 
+// Level-25 skin "Phönix-Hengst": golden coat, flame mane and tail, wings of fire.
+export const PHOENIX = { coat: "#f2b630", dark: "#a8480a", mane: "#ff6a00", silk: "#d61f1f", silk2: "#ffd23f", cap: "#ffd23f", pattern: "stars", blaze: true, socks: [1, 1, 1, 1], phoenix: true };
+const FLAME = ["#ff2a00", "#ff6a00", "#ffa200", "#ffd84a", "#fff4b8"];
+
+function flameGradient(c, x0, y0, x1, y1) {
+  const g = c.createLinearGradient(x0, y0, x1, y1);
+  FLAME.forEach((col, i) => g.addColorStop(i / (FLAME.length - 1), col));
+  return g;
+}
+
+// Fiery wing behind the jockey: feathers fanning back and up, flapping with the stride.
+function phoenixWing(c, phase, gait, time, far) {
+  const flap = Math.sin(phase * TAU) * 0.32 * gait + Math.sin(time * 3.2) * 0.12 * (1 - gait);
+  c.save();
+  c.translate(-2, -66);
+  c.rotate(-0.35 + flap + (far ? -0.18 : 0));
+  c.globalAlpha = far ? 0.55 : 0.95;
+  for (let i = 0; i < 7; i++) {
+    const a = -0.15 - i * 0.2, len = 34 + i * 4 - (i > 4 ? (i - 4) * 7 : 0);
+    const flick = Math.sin(time * 14 + i * 1.7) * 2.2;
+    c.save();
+    c.rotate(Math.PI + a);
+    c.fillStyle = flameGradient(c, 0, 0, len, 0);
+    c.beginPath();
+    c.moveTo(0, -3);
+    c.quadraticCurveTo(len * 0.55, -9 - flick, len + flick, 0);
+    c.quadraticCurveTo(len * 0.55, 5, 0, 3);
+    c.closePath(); c.fill();
+    c.restore();
+  }
+  c.restore();
+  c.globalAlpha = 1;
+}
+
 // Leg pivots and gallop timing: [x, y, phase offset, front?, near side?]
 const LEGS = [
   [-26, -43, 0.0, false, false], [26, -41, 0.42, true, false],   // far hind, far fore (behind the body)
@@ -88,7 +122,8 @@ function star(c, x, y, r) {
  *  time      seconds, for idle motion of tail, mane and head
  *  shadow    draw the ground shadow (default true)
  */
-export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shadow = true, glow = null, crown = false }) {
+export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shadow = true, glow = null, crown = false, skin = null }) {
+  if (skin === "phoenix") look = PHOENIX;
   const th = phase * TAU;
   const bob = -Math.abs(Math.sin(th)) * 3.2 * gait + Math.sin(time * 2.1) * 0.6 * (1 - gait);
   const pitch = Math.sin(th + 0.8) * 0.045 * gait;
@@ -97,6 +132,12 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   if (shadow) {
     c.fillStyle = "rgba(20,12,4,0.32)";
     c.beginPath(); c.ellipse(2, 1, 46 + 6 * gait, 6, 0, 0, TAU); c.fill();
+  }
+  if (look.phoenix) {   // warm aura around the whole horse
+    const pulse = 0.5 + Math.sin(time * 4) * 0.12;
+    const a = c.createRadialGradient(0, -55, 6, 0, -55, 80);
+    a.addColorStop(0, `rgba(255,180,40,${0.42 * pulse})`); a.addColorStop(1, "rgba(255,80,0,0)");
+    c.fillStyle = a; c.beginPath(); c.ellipse(0, -55, 84, 62, 0, 0, TAU); c.fill();
   }
   if (glow) {
     c.save();
@@ -109,6 +150,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.translate(0, bob);
   c.rotate(pitch);
 
+  if (look.phoenix) phoenixWing(c, phase, gait, time, true);
   // Far legs first (darker, behind the barrel).
   leg(c, look, LEGS[0], phase, gait, look.socks[0]);
   leg(c, look, LEGS[1], phase, gait, look.socks[1]);
@@ -117,7 +159,8 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   const tailWave = Math.sin(time * 9 + phase * TAU) * 4 * gait + Math.sin(time * 1.7) * 6 * (1 - gait);
   c.strokeStyle = look.mane; c.lineCap = "round";
   for (let i = 0; i < 4; i++) {
-    c.lineWidth = 5 - i;
+    if (look.phoenix) c.strokeStyle = FLAME[i];
+    c.lineWidth = look.phoenix ? 7 - i * 1.4 + Math.sin(time * 18 + i) * 0.8 : 5 - i;
     c.beginPath();
     c.moveTo(-40, -55);
     c.quadraticCurveTo(-58 - 6 * gait, -54 + tailWave * 0.5 + i * 2 - 4 * gait, -66 - 10 * gait + i, -40 + tailWave + i * 3 - 14 * gait + 22 * (1 - gait));
@@ -150,7 +193,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   const nx = 4 * reach, ny = 7 * reach;   // stretched forward and lower at speed
   const nod = Math.sin(th - 0.4) * 2.4 * gait + Math.sin(time * 1.3) * 1.2 * (1 - gait);
   // Mane behind the crest, streaming back.
-  c.fillStyle = look.mane;
+  c.fillStyle = look.phoenix ? flameGradient(c, 46, -95, 6, -60) : look.mane;
   c.beginPath();
   c.moveTo(18, -63);
   for (let i = 0; i <= 6; i++) {
@@ -201,6 +244,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.textAlign = "center"; c.textBaseline = "middle";
   c.fillText(String(number), -11, -54);
 
+  if (look.phoenix) phoenixWing(c, phase, gait, time, false);
   // Jockey: crouched low over the withers, hands pumping at speed.
   const pump = Math.sin(th * 1) * 2 * gait;
   const jy = -2 * gait;

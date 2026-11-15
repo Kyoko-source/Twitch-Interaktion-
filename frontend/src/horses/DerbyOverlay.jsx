@@ -90,6 +90,7 @@ export function DerbyOverlay() {
     setShow(race);
     scene.current.paused = false;
     scene.current.markLabel = String(race.username || "").slice(0, 16).toUpperCase() || null;
+    scene.current.setFlair(race.flair || null);   // the bettor's level rewards (crown, sparkles, Phönix skin)
     scene.current.start(race, race.horse, at);
     audio.music("play");
   }, [audio, demo]);

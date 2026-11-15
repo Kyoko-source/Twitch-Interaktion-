@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Award, Coins, Gift, Lock, Sparkles, Star, Ticket, TrendingUp, Unlock, X } from "lucide-react";
 import { api } from "../api";
 import { SlotFx } from "../slots/fx.js";
+import { LevelTree } from "./LevelTree.jsx";
 import "./level-up.css";
 
 const SOURCES = { start: "Runde gestartet", game: "Runde gespielt", casino: "Casino & Derby", shop: "Einkauf", chat: "Chat", daily: "Täglicher Besuch", bonus: "Bonus" };
@@ -121,6 +122,7 @@ export function LevelPanel({ user }) {
           <div className="levelLog">{info.recent?.length ? info.recent.map((r, i) => <span key={i}>{SOURCES[r.source] || r.source}<b>+{r.amount}</b></span>) : <small>Noch keine XP gesammelt.</small>}</div>
         </div>
       </div>
+      <LevelTree info={info} />
       <h4><TrendingUp size={16} /> Höchste Level</h4>
       <ol className="levelTop">{(info.leaderboard || []).slice(0, 10).map((r) => <li key={r.username} className={r.username === user.username ? "me" : ""}><b>{r.username}</b><span>Lv {r.level} · {r.level_title}</span></li>)}</ol>
     </section>

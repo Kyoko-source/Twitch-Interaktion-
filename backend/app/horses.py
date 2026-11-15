@@ -117,13 +117,24 @@ def stats(db) -> dict[str, Any]:
     return {"races": int(races), "won": int(won), "wins": wins, "chance": round(1 / len(HORSES), 5)}
 
 
+def derby_flair(db, username: str) -> dict[str, bool]:
+    """Level rewards the bettor's horse shows on the stream overlay."""
+    try:
+        unlocks = xp_levels.summary(db, username)["unlocks"]
+    except Exception:  # an overlay must never fail over the level system
+        return {"crown": False, "champion": False, "phoenix": False}
+    return {"crown": "derby-crown" in unlocks, "champion": "derby-champion" in unlocks, "phoenix": "derby-phoenix" in unlocks}
+
+
 def live_races(db, now: float) -> list[dict[str, Any]]:
     """Races of the last minutes for the stream overlay, oldest first."""
     rows = db.execute("SELECT rowid, username, created, result FROM horse_races WHERE created >= ? ORDER BY created DESC LIMIT 12", (now - LIVE_WINDOW,)).fetchall()
-    races = []
+    races, flair = [], {}
     for row in reversed(rows):
         r = json.loads(row["result"])
-        races.append({"id": int(row["rowid"]), "username": row["username"], "created": row["created"],
+        if row["username"] not in flair:
+            flair[row["username"]] = derby_flair(db, row["username"])
+        races.append({"id": int(row["rowid"]), "username": row["username"], "created": row["created"], "flair": flair[row["username"]],
                       **{k: r[k] for k in ("horse", "winner", "order", "finish", "shapes", "laps", "won", "stake", "payout", "place")}})
     return races
 

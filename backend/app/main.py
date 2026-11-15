@@ -570,7 +570,7 @@ def levels(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     from . import xp as xp_levels
     info = economy().level_info(str(user["username"]))
     return {**info, "titles": [{"level": at, "name": name} for at, name in xp_levels.TITLES], "unlock_list": xp_levels.UNLOCKS,
-            "rewards": {str(level): xp_levels.rewards_for(level) for level in range(2, 31)}}
+            "rewards": {str(level): xp_levels.rewards_for(level) for level in range(2, xp_levels.LEVEL_CAP + 1)}, "tree": xp_levels.tree()}
 
 
 @app.post("/api/auth/registration-requests")
@@ -801,7 +801,8 @@ def update_chat_style(payload: ChatStyleUpdate, user: dict[str, Any] = Depends(c
 @app.get("/api/leaderboard")
 def leaderboard() -> list[dict[str, Any]]:
     return [
-        {**user, "rank_name": rank_name(user["chickens_earned"])}
+        # The title shown is the level title (same as profile and chat), not the old Chickens rank.
+        {**user, "rank_name": user.get("level_title") or rank_name(user["chickens_earned"])}
         for user in ranked_users(rows("users?select=*&order=username.asc"))
     ]
 

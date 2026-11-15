@@ -17,7 +17,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // The finished race joins the all-time stats right away (the server counted it at booking).
 const addRace = (stats, r) => (stats && !r.duplicate ? { ...stats, races: stats.races + 1, won: stats.won + (r.won ? 1 : 0), wins: stats.wins.map((w, i) => w + (i === r.winner ? 1 : 0)) } : stats);
 
-function Portrait({ index, active, size = 150 }) {
+function Portrait({ index, active, size = 150, skin = null }) {
   const ref = useRef(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -34,12 +34,12 @@ function Portrait({ index, active, size = 150 }) {
       c.clearRect(0, 0, w, h);
       const k = size / 150;
       c.translate(w * 0.47, h * 0.93); c.scale(k, k);
-      drawHorse(c, { look: LOOKS[index], number: index + 1, phase, gait: active ? 1 : 0, time: now / 1000 + index });
+      drawHorse(c, { look: LOOKS[index], number: index + 1, phase, gait: active ? 1 : 0, time: now / 1000 + index, skin });
       if (active) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [index, active, size]);
+  }, [index, active, size, skin]);
   return <canvas ref={ref} className="hrPortrait" style={{ width: size, height: Math.round(size * 0.72) }} aria-hidden="true" />;
 }
 
@@ -168,7 +168,7 @@ export function HorseRace({ user, onLogin }) {
   useEffect(() => { scene.current?.setChosen(chosen); }, [chosen]);
   useEffect(() => {
     const unlocks = user?.unlocks || [];
-    scene.current?.setFlair({ crown: unlocks.includes("derby-crown"), champion: unlocks.includes("derby-champion") });
+    scene.current?.setFlair({ crown: unlocks.includes("derby-crown"), champion: unlocks.includes("derby-champion"), phoenix: unlocks.includes("derby-phoenix") });
   }, [user?.unlocks?.join(",")]);
 
   const load = useCallback(() => {
@@ -236,6 +236,7 @@ export function HorseRace({ user, onLogin }) {
     for (const w of info?.recent || []) counts[w] += 1;
     return counts;
   }, [info?.recent]);
+  const phoenix = (user?.unlocks || []).includes("derby-phoenix");
   const myLook = chosen >= 0 ? LOOKS[chosen] : null;
   const res = result?.data;
 
@@ -295,7 +296,7 @@ export function HorseRace({ user, onLogin }) {
             <span className="pbStrobe" aria-hidden="true" />
             <div className="hrWinPanel">
               <div className="hrWinTitle">SIEG!!!</div>
-              <div className="hrWinHorse"><Portrait index={res.horse} active size={220} /><span className="hrLaurel" aria-hidden="true" /></div>
+              <div className="hrWinHorse"><Portrait index={res.horse} active size={220} skin={phoenix ? "phoenix" : null} /><span className="hrLaurel" aria-hidden="true" /></div>
               <div className="hrWinName">#{res.horse + 1} {NAMES[res.horse]}</div>
               {result.stage === "flash" && <div className="hrWinSub">DEIN PFERD HAT GEWONNEN!</div>}
               {result.stage === "double" && <div className="hrDouble"><span>{res.stake}</span><b>×2</b></div>}
@@ -338,7 +339,7 @@ export function HorseRace({ user, onLogin }) {
             {NAMES.map((name, i) => (
               <button type="button" key={name} className={`hrCard${chosen === i ? " on" : ""}`} onClick={() => { setChosen(i); audio.ensure(); if (!audio.track) audio.music("lobby"); audio.play("lane", { gain: 0.5, rate: 0.9 + i * 0.05 }); }} aria-pressed={chosen === i} style={{ "--silk": LOOKS[i].silk, "--silk2": LOOKS[i].silk2 }}>
                 <span className="hrNum">{i + 1}</span>
-                <Portrait index={i} active={chosen === i} size={132} />
+                <Portrait index={i} active={chosen === i} size={132} skin={phoenix && chosen === i ? "phoenix" : null} />
                 <b>{name}</b>
                 <small>{TAGLINES[i]}</small>
                 <em>{recentWins[i] ? `${recentWins[i]}× gewonnen (letzte 10)` : "Noch kein Sieg zuletzt"}</em>

@@ -140,6 +140,7 @@ class HorseRaceTests(unittest.TestCase):
         self.assertEqual((race["username"], race["horse"], race["winner"], race["laps"]), ("alice", 4, first["winner"], 5))
         self.assertEqual(len(race["shapes"]), 9)
         self.assertNotIn("request_id", race)
+        self.assertEqual(race["flair"], {"crown": False, "champion": False, "phoenix": False})
         self.assertLess(feed["races"][0]["id"], feed["races"][1]["id"])
         with self.store.connection(write=True) as db:
             db.execute("UPDATE horse_races SET created = created - ?", (horses.LIVE_WINDOW + 5,))

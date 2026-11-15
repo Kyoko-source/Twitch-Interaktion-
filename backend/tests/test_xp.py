@@ -28,6 +28,19 @@ class LevelTests(unittest.TestCase):
         self.assertEqual(xp.rewards_for(5), {"chickens": 70, "credits": 12})
         self.assertEqual(xp.unlocks_for(10), ["derby-crown", "jump-golden"])
 
+    def test_level_tree_covers_1_to_100_with_the_derby_skin_at_25(self):
+        tree = xp.tree()
+        self.assertEqual([t["level"] for t in tree], list(range(1, 101)))
+        self.assertEqual((tree[0]["xp"], tree[0]["rewards"]), (0, None))
+        self.assertEqual(tree[1]["xp"], 100)
+        for t in tree[1:]:
+            self.assertEqual(xp.level_for(t["xp"])[0], t["level"], "the XP shown reaches exactly that level")
+            self.assertEqual(t["rewards"], xp.rewards_for(t["level"]))
+        self.assertIn("derby-phoenix", tree[24]["unlocks"])
+        self.assertEqual(tree[24]["title"], "Goldfeder")
+        self.assertIn("derby-phoenix", xp.unlocks_for(25))
+        self.assertNotIn("derby-phoenix", xp.unlocks_for(24))
+
     def test_award_levels_up_pays_rewards_and_is_idempotent(self):
         with self.store.connection(write=True) as db:
             first = xp.award(db, "alice", "bonus", 250, ref="a1", now=1000)
