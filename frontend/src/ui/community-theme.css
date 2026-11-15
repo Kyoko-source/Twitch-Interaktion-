@@ -299,3 +299,5 @@ main.communityContent { width: 100%; max-width: 1440px; min-height: calc(100vh -
 .communityBalances .balCredits svg { color: #3fe7ff; }
 .communityBalances .balGsc svg { color: #ffc94a; }
 @media (max-width: 700px) { .communityBalances .balCredits > span, .communityBalances .balGsc > span { display: none; } }
+.gameLaunch-horse-race { --game-color: #ff6a3d; background: #22100c; }
+.gameLaunch-horse-race .gameLaunchArtwork { background-image: url('/assets/aviary-banner-derby.webp'); background-size: auto 100%; background-position: left center; }

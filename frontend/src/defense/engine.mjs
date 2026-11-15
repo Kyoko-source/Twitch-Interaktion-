@@ -313,7 +313,7 @@ export const ENEMIES = {
   fox: { name: "Flieger-Fuchs", hp: 42, speed: 1.15, bounty: 6, steal: 1, size: 0.95, desc: "Der Klassiker unter den Eierdieben." },
   chicks: { name: "Küken-Bande", hp: 13, speed: 2.4, bounty: 2, steal: 1, size: 0.7, pack: 4, desc: "Kommt immer im Rudel." },
   spider: { name: "Eier-Spinne", hp: 30, speed: 1.65, bounty: 4, steal: 1, size: 0.75, desc: "Krabbelt flink über den Weg." },
-  pilot: { name: "Flieger-Huhn", hp: 36, speed: 1.5, bounty: 8, steal: 1, size: 0.85, flying: true, desc: "Fliegt direkt zum Nest." },
+  pilot: { name: "Flieger-Huhn", hp: 36, speed: 1.5, bounty: 8, steal: 1, size: 0.85, flying: true, desc: "Fliegt den Weg entlang – nur Anti-Luft-Hühner treffen." },
   slime: { name: "Schleim-Ei", hp: 90, speed: 0.9, bounty: 10, steal: 1, size: 0.9, split: { kind: "slimelet", n: 2 }, desc: "Platzt in zwei kleine Schleime." },
   slimelet: { name: "Mini-Schleim", hp: 30, speed: 1.35, bounty: 3, steal: 1, size: 0.55, sprite: "slime", desc: "" },
   knight: { name: "Ritter-Huhn", hp: 110, speed: 0.8, bounty: 12, steal: 1, size: 0.95, armor: 5, desc: "Schild und Rüstung." },
@@ -340,7 +340,7 @@ export const CHAOS_MODS = {
   panzer: { name: "PANZER", desc: "Alle Gegner +6 Rüstung" },
   schwarm: { name: "SCHWARM", desc: "Doppelt so viele, aber schwächer" },
   regen: { name: "REGENERATION", desc: "Gegner heilen sich" },
-  himmel: { name: "LUFTANGRIFF", desc: "Flieger-Schwärme aus allen Richtungen" },
+  himmel: { name: "LUFTANGRIFF", desc: "Zusätzliche Flieger-Schwärme auf allen Wegen" },
 };
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -589,9 +589,8 @@ export class DefenseEngine {
       id: nextId++, kind, path: pathKey, d: distance, hp, maxHp: hp, speed, armor, slowUntil: 0, slowFactor: 1, stunUntil: 0, dots: [],
       flying: !!spec.flying, x: 0, y: 0, dx: 1, dy: 0, regen: this.mods.includes("regen") ? 0.03 : 0, immune: spec.immune || [], spawned: 0,
       fx: PATH_DATA[pathKey].points[0][0], fy: PATH_DATA[pathKey].points[0][1],
-      // boss flyers keep the "flying" flag (only anti-air towers hit them) but follow the path
+      // flyers keep the "flying" flag (only anti-air towers hit them) but follow the path like everyone else
     };
-    if (e.flying && pathKey === "a" && this.mods.includes("himmel") && !spec.boss) { e.fx = -1; e.fy = this.random() * ROWS; }
     this.place(e);
     this.enemies.push(e);
     if (spec.boss) this.emit("boss", { enemy: e });
@@ -600,18 +599,10 @@ export class DefenseEngine {
   }
 
   place(e) {
-    // Boss flyers circle along the path (a straight dash would be unbeatable).
-    if (e.flying && !ENEMIES[e.kind].boss) {
-      const total = Math.hypot(NEST.x - e.fx, NEST.y - e.fy);
-      const t = Math.max(0, Math.min(1, e.d / total));
-      e.x = e.fx + (NEST.x - e.fx) * t; e.y = e.fy + (NEST.y - e.fy) * t;
-      e.dx = Math.sign(NEST.x - e.fx) || 1; e.dy = 0;
-      e.done = t >= 1;
-    } else {
-      const p = pointOnPath(PATH_DATA[e.path], Math.max(0, e.d));
-      e.x = p.x; e.y = p.y; e.dx = p.dx; e.dy = p.dy;
-      e.done = e.d >= PATH_DATA[e.path].length;
-    }
+    // Every enemy, flyers included, follows its path to the nest.
+    const p = pointOnPath(PATH_DATA[e.path], Math.max(0, e.d));
+    e.x = p.x; e.y = p.y; e.dx = p.dx; e.dy = p.dy;
+    e.done = e.d >= PATH_DATA[e.path].length;
   }
 
   damage(e, amount, source, opts = {}) {

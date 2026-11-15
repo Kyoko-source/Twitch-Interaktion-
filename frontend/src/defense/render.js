@@ -131,6 +131,77 @@ export class DefenseRenderer {
       g.strokeStyle = rnd() < 0.5 ? "rgba(150,225,110,0.55)" : "rgba(30,90,35,0.5)"; g.lineWidth = 1;
       g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + (rnd() - 0.5) * 4, y - h * 0.6, x + (rnd() - 0.5) * 5, y - h); g.stroke();
     }
+    // Farm zones painted into the meadow (towers can still stand on them).
+    const zone = (c, r, w, h, draw) => {
+      const x = c * T, y = r * T, ww = w * T, hh = h * T;
+      g.save();
+      g.beginPath(); g.roundRect(x + 4, y + 4, ww - 8, hh - 8, 18); g.clip();
+      draw(x, y, ww, hh);
+      g.restore();
+      g.strokeStyle = "rgba(60,40,20,0.35)"; g.lineWidth = 3;
+      g.beginPath(); g.roundRect(x + 4, y + 4, ww - 8, hh - 8, 18); g.stroke();
+    };
+    // light and colour variation across the meadow
+    for (const [x, y, r, col] of [[W * 0.1, H * 0.15, 380, "rgba(220,230,120,0.16)"], [W * 0.85, H * 0.9, 420, "rgba(20,70,40,0.18)"], [W * 0.55, H * 0.5, 300, "rgba(150,210,90,0.12)"], [W * 0.3, H * 0.95, 260, "rgba(200,190,90,0.12)"]]) {
+      const grd = g.createRadialGradient(x, y, 0, x, y, r);
+      grd.addColorStop(0, col); grd.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    }
+    // wheat field inside the first bend
+    zone(5, 3, 4, 6, (x, y, w, h) => {
+      g.fillStyle = "#c99a3a"; g.fillRect(x, y, w, h);
+      for (let row = y + 10; row < y + h; row += 14) {
+        g.fillStyle = "rgba(255,226,120,0.85)"; g.fillRect(x, row, w, 6);
+        for (let k = x + 4; k < x + w; k += 7) {
+          g.strokeStyle = "#e8b84a"; g.lineWidth = 2; g.beginPath(); g.moveTo(k, row + 6); g.lineTo(k + 1, row - 4); g.stroke();
+          g.fillStyle = "#ffd86a"; g.beginPath(); g.ellipse(k + 1, row - 5, 2, 4, 0.2, 0, TAU); g.fill();
+        }
+      }
+    });
+    // vegetable garden on the left
+    zone(0, 3, 4, 4, (x, y, w, h) => {
+      g.fillStyle = "#5a3a20"; g.fillRect(x, y, w, h);
+      for (let row = y + 18, i = 0; row < y + h; row += 26, i++) {
+        g.fillStyle = "#6e4826"; g.fillRect(x, row - 8, w, 16);
+        g.fillStyle = "rgba(255,220,180,0.12)"; g.fillRect(x, row - 8, w, 3);
+        for (let k = x + 16; k < x + w - 6; k += 24) {
+          if (i % 2) {   // cabbages
+            g.fillStyle = "#3f8a3a"; g.beginPath(); g.arc(k, row, 8, 0, TAU); g.fill();
+            g.fillStyle = "#7ac85a"; g.beginPath(); g.arc(k - 2, row - 2, 5, 0, TAU); g.fill();
+          } else {       // carrots
+            g.fillStyle = "#ff8a2a"; g.beginPath(); g.moveTo(k - 3, row); g.lineTo(k + 3, row); g.lineTo(k, row + 7); g.closePath(); g.fill();
+            g.strokeStyle = "#4aa83a"; g.lineWidth = 2; g.beginPath(); g.moveTo(k, row); g.lineTo(k - 4, row - 9); g.moveTo(k, row); g.lineTo(k + 4, row - 9); g.moveTo(k, row); g.lineTo(k, row - 10); g.stroke();
+          }
+        }
+      }
+    });
+    // sunflowers and pumpkins at the bottom right
+    zone(13, 11, 3, 2, (x, y, w, h) => {
+      g.fillStyle = "#6a4a26"; g.fillRect(x, y, w, h);
+      for (let k = x + 18; k < x + w; k += 30) {
+        g.fillStyle = "#3a7a2a"; g.beginPath(); g.ellipse(k + 6, y + h - 26, 14, 8, 0.3, 0, TAU); g.fill();
+        g.fillStyle = "#ff8a1a"; g.beginPath(); g.ellipse(k, y + h - 24, 11, 9, 0, 0, TAU); g.fill();
+        g.strokeStyle = "rgba(160,60,0,0.6)"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(k, y + h - 33); g.lineTo(k, y + h - 15); g.stroke();
+        g.fillStyle = "#3a6a1a"; g.fillRect(k - 1, y + h - 36, 3, 5);
+        g.fillStyle = "#ffcf2a"; for (let a = 0; a < 10; a++) { const ang = (a / 10) * TAU; g.beginPath(); g.ellipse(k + 14 + Math.cos(ang) * 8, y + 22 + Math.sin(ang) * 8, 5, 2.5, ang, 0, TAU); g.fill(); }
+        g.fillStyle = "#6a3a10"; g.beginPath(); g.arc(k + 14, y + 22, 5, 0, TAU); g.fill();
+      }
+    });
+    // flower meadow along the top
+    zone(8, 0, 4, 2, (x, y, w, h) => {
+      g.fillStyle = "#6ab84a"; g.fillRect(x, y, w, h);
+      for (let i = 0; i < 90; i++) {
+        const fx = x + rnd() * w, fy = y + rnd() * h;
+        g.fillStyle = ["#ffffff", "#ff8ac8", "#ffe066", "#b48cff", "#ff6a5a"][i % 5];
+        for (let j = 0; j < 5; j++) { const a = (j / 5) * TAU; g.beginPath(); g.arc(fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.4, 0, TAU); g.fill(); }
+        g.fillStyle = "#ffb000"; g.beginPath(); g.arc(fx, fy, 1.8, 0, TAU); g.fill();
+      }
+    });
+    // trodden farmyard around the barn and the nest
+    const yard = g.createRadialGradient(px(19.5), px(4.5), 10, px(19.5), px(4.5), T * 4);
+    yard.addColorStop(0, "rgba(196,160,104,0.75)"); yard.addColorStop(0.6, "rgba(196,160,104,0.35)"); yard.addColorStop(1, "rgba(196,160,104,0)");
+    g.fillStyle = yard; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 40; i++) { g.fillStyle = "rgba(120,90,50,0.35)"; g.beginPath(); g.arc(px(17 + rnd() * 5), px(3 + rnd() * 4), 1 + rnd() * 2, 0, TAU); g.fill(); }
     const drawPath = (pts, open) => {
       const line = (w, color, dash) => {
         g.strokeStyle = color; g.lineWidth = w; g.lineCap = "round"; g.lineJoin = "round"; g.setLineDash(dash || []);
@@ -147,6 +218,24 @@ export class DefenseRenderer {
     };
     drawPath(PATHS.a, true);
     drawPath(PATHS.b, withB);
+    // grass tufts and little flowers along the path edges
+    const edge = (pts) => {
+      for (let i = 1; i < pts.length; i++) {
+        const [x1, y1] = pts[i - 1], [x2, y2] = pts[i], len = Math.hypot(x2 - x1, y2 - y1);
+        const nx = -(y2 - y1) / (len || 1), ny = (x2 - x1) / (len || 1);
+        for (let d = 0; d < len; d += 0.35) {
+          for (const side of [-1, 1]) {
+            if (rnd() < 0.45) continue;
+            const t = d / len, x = px(x1 + (x2 - x1) * t) + nx * side * T * (0.55 + rnd() * 0.08), y = px(y1 + (y2 - y1) * t) + ny * side * T * (0.55 + rnd() * 0.08);
+            g.strokeStyle = rnd() < 0.5 ? "#3f8a32" : "#5aac42"; g.lineWidth = 2;
+            g.beginPath(); for (let b = -1; b <= 1; b++) { g.moveTo(x + b * 2, y + 3); g.lineTo(x + b * 3 + (rnd() - 0.5) * 2, y - 5 - rnd() * 4); } g.stroke();
+            if (rnd() < 0.12) { g.fillStyle = ["#ffffff", "#ffe066", "#ff8ac8"][Math.floor(rnd() * 3)]; g.beginPath(); g.arc(x, y - 7, 2.2, 0, TAU); g.fill(); }
+          }
+        }
+      }
+    };
+    edge(PATHS.a);
+    if (withB) edge(PATHS.b);
     // pebbles
     for (let i = 0; i < 700; i++) {
       const x = Math.floor(rnd() * COLS), y = Math.floor(rnd() * ROWS);

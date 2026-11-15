@@ -86,3 +86,50 @@ test("phone layout fits and the tower bar scrolls", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (shots) await page.locator(".cdShell").screenshot({ path: `${shots}/cd-phone.png` });
 });
+
+test("upgrade menu keeps the game running, auto starts waves, flyers stay on the path, fullscreen fits", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+  await setup(page);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/#games/chicken-defense");
+  await page.getByRole("button", { name: "Spiel starten" }).click();
+  if (shots) await page.locator(".cdStage").screenshot({ path: `${shots}/cd-map.png` });
+  await page.keyboard.press("1");
+  const box = await page.locator(".cdCanvas").boundingBox();
+  const clickTile = (c, r) => page.mouse.click(box.x + ((c + 0.5) / 22) * box.width, box.y + ((r + 0.5) / 13) * box.height);
+  await clickTile(5, 4);
+  await page.getByRole("button", { name: /Erste Welle starten/ }).click();
+  await page.keyboard.press("Escape");
+  await clickTile(5, 4);
+  await expect(page.locator(".cdModal")).toBeVisible();
+  const t0 = await game(page, "return g.engine.time;");
+  await page.waitForTimeout(800);
+  expect(await game(page, "return g.engine.time;")).toBeGreaterThan(t0 + 0.3);
+  await expect(page.getByRole("heading", { name: "Pause" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // flyers follow the path: every flyer sits on a path tile
+  const offPath = await game(page, `const e = g.engine; for (let i = 0; i < 6; i++) e.spawn(i % 2 ? "pilot" : "robohawk", "a", 1 + i * 3);
+    return e.enemies.filter((x) => x.flying).map((x) => { const pts = ${JSON.stringify([[-1, 2], [4, 2], [4, 9], [9, 9], [9, 4], [14, 4], [14, 10], [19, 10], [19, 6], [20, 6]])};
+      let best = 99; for (let i = 1; i < pts.length; i++) { const [x1, y1] = pts[i - 1], [x2, y2] = pts[i]; const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+        const t = Math.max(0, Math.min(1, ((x.x - x1) * (x2 - x1) + (x.y - y1) * (y2 - y1)) / (len * len))); best = Math.min(best, Math.hypot(x.x - (x1 + (x2 - x1) * t), x.y - (y1 + (y2 - y1) * t))); }
+      return best; }).filter((d) => d > 0.05).length;`);
+  expect(offPath).toBe(0);
+
+  // Auto: once the field is clear the next wave starts by itself after about three seconds
+  await game(page, "g.engine.enemies.forEach((x) => { x.hp = 0; }); g.engine.queue = []; g.engine.korn = 5000;");
+  await page.getByRole("button", { name: /Auto/ }).click();
+  await expect(page.locator(".cdWaveBtn")).toContainText(/Welle 2 in [123]/, { timeout: 8000 });
+  await expect(page.getByTestId("cd-wave")).toHaveText("2", { timeout: 6000 });
+
+  // fullscreen layout: field, tabs and the whole chicken bar fit on one 1080p screen
+  await page.locator(".cdShell").evaluate((el) => { el.classList.add("isFull"); el.style.position = "fixed"; el.style.inset = "0"; el.style.zIndex = "999"; });
+  await page.waitForTimeout(300);
+  const shop = await page.locator(".cdShop").boundingBox();
+  expect(shop.y + shop.height).toBeLessThanOrEqual(1080);
+  const stage = await page.locator(".cdStage").boundingBox();
+  expect(stage.height).toBeGreaterThan(500);
+  if (shots) await page.screenshot({ path: `${shots}/cd-full.png` });
+  expect(errors).toEqual([]);
+});

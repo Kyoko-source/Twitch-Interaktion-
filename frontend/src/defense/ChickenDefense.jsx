@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronsRight, Coins, Crosshair, Egg, Expand, FastForward, Flag, Lock, Music, Pause, Play, RefreshCw, Save, Shrink, SlidersHorizontal, Swords, Trash2, Trophy, Volume2, VolumeX, X, Zap } from "lucide-react";
+import { ChevronsRight, Coins, Crosshair, Egg, Expand, FastForward, Flag, Lock, Music, Pause, Play, RefreshCw, Repeat, Save, Shrink, SlidersHorizontal, Swords, Trash2, Trophy, Volume2, VolumeX, X, Zap } from "lucide-react";
 import { useGameRewards } from "../economy/useGameRewards";
 import { CHAOS_MODS, COLS, DefenseEngine, MAX_LEVEL, ROWS, START_EGGS, TOWERS, TOWER_ORDER, branchCost, towerRole, towerStats, upgradeCost } from "./engine.mjs";
 import { BRANCH_STYLE, DefenseRenderer, TOWER_COLORS, branchIcon, drawTower, towerArtReady, T } from "./render.js";
@@ -188,7 +188,8 @@ export function ChickenDefense({ user, renderScoreboard }) {
   const [musicOn, setMusicOn] = useState(true);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [role, setRole] = useState("alle");
-  const pausedByModal = useRef(false);
+  const [auto, setAuto] = useState(false);
+  const [autoIn, setAutoIn] = useState(null);
   const shopRef = useRef(TOWER_ORDER);
   const [full, setFull] = useState(false);
   const [message, setMessage] = useState("");
@@ -263,9 +264,8 @@ export function ChickenDefense({ user, renderScoreboard }) {
 
   useEffect(() => { if (sys.current.renderer) sys.current.renderer.ui.placing = placing; }, [placing]);
   useEffect(() => {
+    // the game keeps running while the upgrade menu is open
     if (sys.current.renderer) sys.current.renderer.ui.selected = selected;
-    if (selected && !pausedRef.current) { pausedByModal.current = true; setPaused(true); }
-    if (!selected && pausedByModal.current) { pausedByModal.current = false; setPaused(false); }
   }, [selected]);
   useEffect(() => { sys.current.audio?.pause(paused); }, [paused]);
 
@@ -276,7 +276,7 @@ export function ChickenDefense({ user, renderScoreboard }) {
     engine.start();
     sys.current.startedAt = performance.now();
     rewards.beginRound();
-    setPlacing(null); setSelected(null); setPaused(false); setMessage("");
+    setPlacing(null); setSelected(null); setPaused(false); setMessage(""); setAutoIn(null);
     audio.music("calm");
     sync();
   }
@@ -370,6 +370,19 @@ export function ChickenDefense({ user, renderScoreboard }) {
   const canCall = playing && snap.queued === 0;
   const early = playing && snap.waveActive && snap.enemies > 0;
   const danger = snap.eggs <= 5 && playing;
+  // Auto: when the field is clear, the next wave starts on its own after 3 seconds.
+  const autoReady = auto && playing && !paused && snap.queued === 0 && !(snap.waveActive && snap.enemies > 0);
+  useEffect(() => {
+    if (!autoReady) { setAutoIn(null); return undefined; }
+    let left = 3;
+    setAutoIn(left);
+    const t = setInterval(() => {
+      left -= 1;
+      if (left <= 0) { clearInterval(t); setAutoIn(null); keys.current.nextWave(); }
+      else setAutoIn(left);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [autoReady, snap.wave]);
 
   return (
     <section ref={root} className={`cdShell${full ? " isFull" : ""}${danger ? " isDanger" : ""}${snap.wave >= 15 ? " isChaos" : ""}`} aria-label="Chicken Defense">
@@ -398,11 +411,12 @@ export function ChickenDefense({ user, renderScoreboard }) {
         {playing && (
           <div className="cdWaveBar">
             <button type="button" className={`cdWaveBtn${canCall ? " ready" : ""}`} onClick={nextWave} disabled={!canCall}>
-              {snap.wave === 0 ? <><Swords size={18} /> Erste Welle starten</> : early ? <><ChevronsRight size={18} /> Nächste Welle früh <em>+{12 + (snap.wave + 1) * 2} Korn</em></> : canCall ? <><Swords size={18} /> Welle {snap.wave + 1} starten</> : <><Zap size={18} /> Welle läuft …</>}
+              {autoIn !== null ? <><Repeat size={18} /> Welle {snap.wave + 1} in {autoIn} …</> : snap.wave === 0 ? <><Swords size={18} /> Erste Welle starten</> : early ? <><ChevronsRight size={18} /> Nächste Welle früh <em>+{12 + (snap.wave + 1) * 2} Korn</em></> : canCall ? <><Swords size={18} /> Welle {snap.wave + 1} starten</> : <><Zap size={18} /> Welle läuft …</>}
             </button>
             <div className="cdSpeed" role="group" aria-label="Spieltempo">
               <button type="button" onClick={() => setPaused((p) => !p)} aria-pressed={paused} aria-label={paused ? "Weiter" : "Pause"}>{paused ? <Play size={16} /> : <Pause size={16} />}</button>
               {[1, 2, 3].map((s) => <button key={s} type="button" className={speed === s ? "active" : ""} onClick={() => setSpeed(s)} aria-pressed={speed === s}>{s === 1 ? "1×" : s === 2 ? <><FastForward size={14} />2×</> : <><FastForward size={14} />3×</>}</button>)}
+              <button type="button" className={`cdAuto${auto ? " active" : ""}`} onClick={() => setAuto((a) => !a)} aria-pressed={auto} title="Wellen starten automatisch 3 Sekunden nach der letzten"><Repeat size={14} /> Auto</button>
             </div>
           </div>
         )}
