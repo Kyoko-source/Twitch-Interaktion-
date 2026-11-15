@@ -27,12 +27,12 @@ const FENCES = [
 ];
 // New obstacles: art key, display scale, hitbox (w, h), what the player has to do.
 const STATICS = {
-  hay: { key: "hay", scale: 0.5, hit: [64, 58], points: 60 },
-  tractor: { key: "tractor", scale: 0.52, hit: [150, 76], points: 120 },
+  hay: { key: "hay", h: 74, hit: [78, 60], points: 60 },
+  tractor: { key: "tractor", h: 112, hit: [112, 84], points: 120 },
 };
 const RUNNERS = {
-  bull: { key: "bison", scale: 0.44, hit: [92, 66], charge: [250, 330], points: 150, warn: 1.15 },
-  fox: { key: "fox", scale: 0.55, hit: [58, 34], charge: [150, 200], points: 90, warn: 0.55 },
+  bull: { key: "bison", h: 97, hit: [92, 66], charge: [250, 330], points: 150, warn: 1.15 },
+  fox: { key: "fox", h: 64, hit: [62, 40], charge: [150, 200], points: 90, warn: 0.55 },
 };
 const POWERS = {
   shield: { label: "SCHILD", color: 0x7ad8ff, css: "#7ad8ff", time: 0 },
@@ -92,7 +92,8 @@ class JumpScene extends Phaser.Scene {
       this.anims.create({ key: "bison-run", frames: this.anims.generateFrameNumbers("bison", {}), frameRate: 25, repeat: -1 });
     }
     const fox = this.textures.get("fox");
-    if (!fox.has("1")) { fox.add("0", 0, 0, 0, 200, 130); fox.add("1", 0, 200, 0, 200, 130); }
+    if (fox.frameTotal > 3) this.anims.create({ key: "fox-run", frames: this.anims.generateFrameNumbers("fox", {}), frameRate: 25, repeat: -1 });
+    else if (!fox.has("1")) { fox.add("0", 0, 0, 0, 200, 130); fox.add("1", 0, 200, 0, 200, 130); }
     this.meta = loadMeta();
     this.buildScenery();
     const ground = this.add.rectangle(W / 2, GROUND + 24, W, 48, 0x000000, 0);
@@ -131,7 +132,7 @@ class JumpScene extends Phaser.Scene {
     g.fillStyle(0xffffff).fillRect(0, 0, 64, 90);
     g.generateTexture("player-body", 64, 90);
     // invisible hitbox textures (generated up front: the graphics object is destroyed below)
-    for (const [w, h] of [...FENCES.map((f) => f.hit), ...Object.values(STATICS).map((o) => o.hit), ...Object.values(RUNNERS).map((o) => o.hit), [50, 22], [26, 26], [44, 44], [110, 150], [120, 14]]) {
+    for (const [w, h] of [...FENCES.map((f) => f.hit), ...Object.values(STATICS).map((o) => o.hit), ...Object.values(RUNNERS).map((o) => o.hit), [50, 22], [26, 26], [44, 44], [110, 150], [140, 14]]) {
       g.clear(); g.fillStyle(0xffffff).fillRect(0, 0, w, h); g.generateTexture(`hit-${w}x${h}`, w, h);
     }
     this.hit = (w, h) => `hit-${w}x${h}`;
@@ -175,6 +176,9 @@ class JumpScene extends Phaser.Scene {
     g.destroy();
   }
 
+  // scale for a texture so that it is `h` pixels tall on screen
+  fit(key, h) { const f = this.textures.get(key).get(0) || this.textures.get(key).get(); return h / (f.realHeight || f.height); }
+
   // ------------------------------------------------------------------ world
   buildScenery() {
     this.cameras.main.setBackgroundColor("#2a1f3a");
@@ -206,14 +210,24 @@ class JumpScene extends Phaser.Scene {
     this.moon.add([this.add.circle(0, 0, 46, 0xfff6d8, 0.12), this.add.circle(0, 0, 30, 0xfff6d8, 0.2), this.add.circle(0, 0, 22, 0xfff3d0), this.add.circle(-7, -4, 5, 0xe8dcb0), this.add.circle(6, 7, 3.5, 0xe8dcb0)]);
     // Painted parallax layers (bg-far, bg-mid, bg-near) replace the panorama when they exist.
     this.layers = [];
-    for (const [key, factor, depth] of [["bg-far", 0.12, 1.5], ["bg-mid", 0.3, 2], ["bg-near", 0.6, 2.5]]) {
+    // [key, scroll factor, depth, share of the backdrop height, tint (pushes the busy layers back)]
+    for (const [key, factor, depth, share, tint] of [["bg-far", 0.05, 0.5, 1, 0xffffff], ["bg-mid", 0.22, 1.6, 0.86, 0xece2e6], ["bg-near", 0.55, 2.4, 0.5, 0xc9bcc4]]) {
       if (!this.textures.exists(key)) continue;
-      const img = this.textures.get(key).getSourceImage(), k = (GROUND + 8) / img.height;
-      const layer = this.add.tileSprite(0, 0, W, GROUND + 8, key).setOrigin(0, 0).setTileScale(k).setDepth(depth);
+      const img = this.textures.get(key).getSourceImage();
+      const loop = this.textures.createCanvas(`${key}-loop`, img.width * 2, img.height), lc = loop.getContext();
+      lc.drawImage(img, 0, 0);
+      lc.save(); lc.translate(img.width * 2, 0); lc.scale(-1, 1); lc.drawImage(img, 0, 0); lc.restore();
+      loop.refresh();
+      const height = Math.round((GROUND + 10) * share), k = height / img.height;
+      const layer = this.add.tileSprite(0, GROUND + 10 - height, W, height, `${key}-loop`).setOrigin(0, 0).setTileScale(k).setDepth(depth).setTint(tint);
       layer.factor = factor / k;
       this.layers.push(layer);
     }
-    if (this.layers.length) this.pano.setVisible(false);
+    if (this.layers.length) {
+      // painted layers replace the panorama; the night tint and stars now sit on top of them
+      this.pano.setVisible(false);
+      for (const o of [this.skyTint, this.skyGlow, this.stars, this.moon]) o.setDepth(2.8);
+    }
     this.clouds = [];
     for (let i = 0; i < 5; i += 1) {
       const cloud = this.add.image(i * 230 + Math.random() * 80, 52 + (i % 3) * 30, "cloud-soft").setDepth(1).setScale(0.55 + (i % 3) * 0.18).setAlpha(0.55);
@@ -221,6 +235,7 @@ class JumpScene extends Phaser.Scene {
       this.clouds.push(cloud);
     }
     this.hedges = [];
+    if (this.layers.length) this.clouds.forEach((c) => c.setVisible(false));   // the painted sky has its own clouds
     this.add.rectangle(0, GROUND + 60, W, H - GROUND, 0x2a1c12).setOrigin(0, 0).setDepth(3);
     this.ground = this.add.tileSprite(0, GROUND - 13, W, 100, "jump-ground").setOrigin(0, 0).setDepth(3);
     this.groundTint = this.add.rectangle(0, GROUND - 13, W, H - GROUND + 13, 0x0c1238, 0).setOrigin(0, 0).setDepth(3);
@@ -551,8 +566,9 @@ class JumpScene extends Phaser.Scene {
     const o = this.obstacles.create(x, GROUND, this.hit(...spec.hit)).setOrigin(0.5, 1).setVisible(false);
     o.body.setAllowGravity(false).setImmovable(true);
     Object.assign(o, { kind, action: "jump", scored: false, minGap: Infinity, points: spec.points });
-    o.art = this.add.image(x, GROUND + 6, spec.key).setOrigin(0.5, 1).setScale(spec.scale).setDepth(7);
-    o.on("destroy", () => o.art?.destroy());
+    o.art = this.add.image(x, GROUND + 6, spec.key).setOrigin(0.5, 1).setScale(this.fit(spec.key, spec.h)).setDepth(7);
+    o.shade = this.add.ellipse(x, GROUND + 4, spec.hit[0] * 1.3, 14, 0x1a0e04, 0.35).setDepth(6);
+    o.on("destroy", () => { o.art?.destroy(); o.shade?.destroy(); });
     o.setVelocityX(-this.speed);
     this.pattern += 1;
     return o;
@@ -563,7 +579,7 @@ class JumpScene extends Phaser.Scene {
     const o = this.obstacles.create(x, GROUND - 34, this.hit(110, 150)).setOrigin(0.5, 1).setVisible(false);
     o.body.setAllowGravity(false).setImmovable(true);
     Object.assign(o, { kind: "branch", action: "duck", scored: false, minGap: Infinity, points: 70 });
-    o.art = this.add.image(x + 10, GROUND - 26, "branch").setOrigin(0.5, 1).setScale(0.52).setDepth(12);
+    o.art = this.add.image(x + 10, GROUND - 24, "branch").setOrigin(0.62, 1).setScale(this.fit("branch", 440)).setDepth(12);
     o.on("destroy", () => o.art?.destroy());
     o.setVelocityX(-this.speed);
     this.pattern += 1;
@@ -571,9 +587,9 @@ class JumpScene extends Phaser.Scene {
   }
 
   addMud(x) {
-    const mud = this.hazards.create(x, GROUND - 2, this.hit(120, 14)).setOrigin(0.5, 1).setVisible(false);
+    const mud = this.hazards.create(x, GROUND - 2, this.hit(140, 14)).setOrigin(0.5, 1).setVisible(false);
     mud.body.setAllowGravity(false).setImmovable(true);
-    mud.art = this.add.image(x, GROUND + 8, "mud").setOrigin(0.5, 1).setScale(0.5).setDepth(6);
+    mud.art = this.add.image(x, GROUND + 10, "mud").setOrigin(0.5, 1).setScale(this.fit("mud", 36)).setDepth(6);
     mud.on("destroy", () => mud.art?.destroy());
     mud.setVelocityX(-this.speed);
     this.pattern += 1;
@@ -606,11 +622,11 @@ class JumpScene extends Phaser.Scene {
     const charge = spec.charge[0] + Math.random() * (spec.charge[1] - spec.charge[0]) + (this.tier() - 1) * 30;
     Object.assign(o, { kind, action: "jump", scored: false, minGap: Infinity, points: spec.points, charge, phase: 0 });
     if (kind === "bull") {
-      o.art = this.add.sprite(x, GROUND + 8, "bison").setOrigin(0.45, 1).setScale(spec.scale).setDepth(8);
+      o.art = this.add.sprite(x, GROUND + 8, "bison").setOrigin(0.45, 1).setScale(this.fit("bison", spec.h)).setDepth(8);
       if (this.anims.exists("bison-run")) o.art.play("bison-run");
     } else {
-      o.art = this.add.sprite(x, GROUND + 6, "fox").setOrigin(0.5, 1).setScale(spec.scale).setDepth(8);
-      o.art.setFrame("0");
+      o.art = this.add.sprite(x, GROUND + 8, "fox", 0).setOrigin(0.5, 1).setScale(this.fit("fox", spec.h)).setDepth(8);
+      if (this.anims.exists("fox-run")) o.art.play("fox-run");
     }
     o.on("destroy", () => o.art?.destroy());
     o.setVelocityX(-(this.speed + charge));
@@ -888,7 +904,7 @@ class JumpScene extends Phaser.Scene {
         if (obstacle.kind === "bull" || obstacle.kind === "fox") {
           obstacle.phase += dt;
           obstacle.art.x = obstacle.x;
-          if (obstacle.kind === "fox") { obstacle.art.setFrame(Math.floor(obstacle.phase * 12) % 2 ? "1" : "0"); obstacle.art.y = GROUND + 6 - Math.abs(Math.sin(obstacle.phase * 18)) * 6; }
+          if (obstacle.kind === "fox" && !this.anims.exists("fox-run")) { obstacle.art.setFrame(Math.floor(obstacle.phase * 12) % 2 ? "1" : "0"); obstacle.art.y = GROUND + 6 - Math.abs(Math.sin(obstacle.phase * 18)) * 6; }
           else if (Math.random() < 0.35) this.dust.explode(1, obstacle.x + 40, GROUND - 4);
         } else if (obstacle.kind === "bird") {
           obstacle.phase += dt * 9;
@@ -897,6 +913,7 @@ class JumpScene extends Phaser.Scene {
           obstacle.art.setScale(0.36, 0.36 * (0.82 + Math.abs(Math.sin(obstacle.phase)) * 0.22));
           obstacle.art.rotation = Math.sin(obstacle.phase * 0.5) * 0.06;
         } else obstacle.art.x = obstacle.x;
+        if (obstacle.shade) obstacle.shade.x = obstacle.x;
         // closest vertical clearance while overlapping horizontally
         if (Math.abs(obstacle.x - PLAYER_X) < obstacle.width / 2 + body.width / 2) {
           const top = obstacle.y - (obstacle.kind === "fence" ? obstacle.height : obstacle.height / 2);

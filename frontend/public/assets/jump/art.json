@@ -1,3 +1,11 @@
 {
-  "bison": { "file": "bison.webp", "frameWidth": 298, "frameHeight": 220 }
+  "bison": { "file": "bison.webp", "frameWidth": 298, "frameHeight": 220 },
+  "fox": { "file": "fox.webp", "frameWidth": 214, "frameHeight": 160 },
+  "hay": { "file": "hay.webp" },
+  "tractor": { "file": "tractor.webp" },
+  "branch": { "file": "branch.webp" },
+  "mud": { "file": "mud.webp" },
+  "bg-far": { "file": "bg-far.webp" },
+  "bg-mid": { "file": "bg-mid.webp" },
+  "bg-near": { "file": "bg-near.webp" }
 }
