@@ -75,6 +75,10 @@ test("admin tab fires effects, custom durations, ads and the stop button", async
   await expect(page.locator(".scBtn")).toHaveCount(49);
   await expect(page.getByLabel("Stream-Control-URL")).toHaveValue(/\/stream\/control$/);
   await expect(page.locator(".scPreview iframe")).toHaveAttribute("src", "/stream/control?muted=1");
+  await page.getByRole("button", { name: "Ton aus" }).click();
+  await expect(page.locator(".scPreview iframe")).toHaveAttribute("src", "/stream/control");
+  await page.getByRole("button", { name: "Ton an" }).click();
+  await expect(page.locator(".scPreview iframe")).toHaveAttribute("src", "/stream/control?muted=1");
   await page.locator(".scBtn", { hasText: "Konfetti-Kanone" }).click();
   await expect.poll(() => posts.length).toBe(1);
   expect(posts[0]).toEqual({ effect: "confetti-cannon", duration: 8 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Copy, Eye, EyeOff, Megaphone, OctagonX, Play, Radio, Timer } from "lucide-react";
+import { Copy, Eye, EyeOff, Megaphone, OctagonX, Play, Radio, Timer, Volume2, VolumeX } from "lucide-react";
 import { api } from "../api";
 import { CATEGORIES, EFFECTS, VIDEOS } from "./effects.js";
 import "./stream-admin.css";
@@ -15,6 +15,7 @@ export function StreamControlAdmin({ password }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [preview, setPreview] = useState(true);
+  const [previewSound, setPreviewSound] = useState(false);
   const [, tick] = useState(0);
 
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 500); return () => clearInterval(t); }, []);
@@ -55,9 +56,14 @@ export function StreamControlAdmin({ password }) {
         </div>
 
         <div className="panel">
-          <div className="communitySectionHeading"><h3>Live-Vorschau</h3><button className="ghost" type="button" onClick={() => setPreview(!preview)}>{preview ? <><EyeOff size={15} /> Ausblenden</> : <><Eye size={15} /> Einblenden</>}</button></div>
-          {preview && <div className="scPreview"><iframe title="Stream Control Vorschau" src="/stream/control?muted=1" /></div>}
-          <p>Zeigt stumm genau das, was im Stream erscheint.</p>
+          <div className="communitySectionHeading"><h3>Live-Vorschau</h3>
+            <div className="row">
+              <button className="ghost" type="button" onClick={() => setPreviewSound(!previewSound)} aria-pressed={previewSound}>{previewSound ? <><Volume2 size={15} /> Ton an</> : <><VolumeX size={15} /> Ton aus</>}</button>
+              <button className="ghost" type="button" onClick={() => setPreview(!preview)}>{preview ? <><EyeOff size={15} /> Ausblenden</> : <><Eye size={15} /> Einblenden</>}</button>
+            </div>
+          </div>
+          {preview && <div className="scPreview"><iframe key={previewSound ? "sound" : "muted"} title="Stream Control Vorschau" src={previewSound ? "/stream/control" : "/stream/control?muted=1"} allow="autoplay" /></div>}
+          <p>{previewSound ? "Vorschau mit Ton: zum Testen. Während des Streams wieder ausschalten, sonst hörst du alles doppelt." : "Zeigt stumm genau das, was im Stream erscheint. Im Stream selbst haben Effekte und Werbung Ton."}</p>
         </div>
       </div>
 
