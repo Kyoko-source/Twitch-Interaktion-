@@ -4,6 +4,7 @@
 // The renderer reads the simulation state and never changes it; actions go through `perform`.
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { FALL_TIME, GOAL, OVEN_SLOTS, derive, phaseOf } from "./sim.js";
 
 const ASSETS = "/assets/cookie/";
@@ -110,7 +111,7 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
   const loader = new GLTFLoader();
   const nodes = {};
   let loaded = false;
-  const ready = Promise.all(["world", "mountain", "props", "machines", "arm"].map((name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => {
+  const ready = Promise.all(["world", "mountain", "props", "machines", "elf-arm", "parts", "interior"].map((name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => {
     g.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     for (const child of [...g.scene.children]) nodes[child.name] = child;
     if (name === "world" || name === "mountain") scene.add(g.scene);
@@ -149,6 +150,22 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
     const shelf = clone("Shelf"); shelf.position.set(-0.5, 1.75, -1.9); shelf.visible = false; line.add(shelf);
     for (const x of [-1.55, 1.45]) { const c = clone("Candle"); c.position.set(x, BENCH_Y, 0.38); line.add(c); }
     const stool = clone("Stool"); stool.position.set(2.6, 0, 0.6); line.add(stool);
+    const deco = (name, x, y, z, ry = 0, sc = 1) => { const n = clone(name); n.position.set(x, y, z); n.rotation.y = ry; n.scale.setScalar(sc); scene.add(n); return n; };
+    deco("ChristmasTree", 5.3, 0, 1.9); deco("Presents", 5.3, 0, 1.9);
+    deco("Rug", -0.9, 0, 1.4, 0, 1.2);
+    for (const [x, z] of [[-3.5, 1], [0.5, 1.6], [4, -2.5], [-4.5, -3.5]]) deco("HangingLantern", x, 3.6, z);
+    deco("BeamGarland", 0, 4.05, -5.75); deco("BeamGarland", 0, 4.05, 3.75, Math.PI);
+    deco("WallShelf", 6.75, 2.0, -3, -Math.PI / 2); deco("WallShelf", -6.75, 2.0, 1.5, Math.PI / 2);
+    deco("Stockings", 4.6, 2.3, -5.78);
+    deco("FlourSack", -3.3, 0, 0.6, 0.4); deco("FlourSack", -3.75, 0, 0.2, 1.2, 0.85);
+    const treeLight = new THREE.PointLight("#ffd27a", 1.6, 5, 1.6); treeLight.position.set(5.3, 1.6, 1.9); scene.add(treeLight); parts.treeLight = treeLight;
+    // quest arrow: a bouncing golden arrow above the next thing to do
+    const arrow = new THREE.Group();
+    const arrowMat = new THREE.MeshStandardMaterial({ color: "#ffd23f", emissive: "#ffb000", emissiveIntensity: 1.4 });
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 16), arrowMat); head.rotation.x = Math.PI; arrow.add(head);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.22, 10), arrowMat); shaft.position.y = 0.2; arrow.add(shaft);
+    arrow.visible = false; scene.add(arrow); parts.arrow = arrow;
+    parts.flyBlob = clone("DoughBlob"); parts.flyBlob.visible = false; scene.add(parts.flyBlob);
     parts.pin = clone("RollingPin"); line.add(parts.pin);
     parts.cutter = clone("StarCutter"); line.add(parts.cutter);
     parts.tray = clone("Tray"); line.add(parts.tray);
@@ -166,12 +183,18 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
     parts.pile = new THREE.Mesh(new THREE.CylinderGeometry(JAR.r - 0.02, JAR.r - 0.02, 1, 30), M.pile); line.add(parts.pile);
     // machines from machines.glb, placed along the line
     const place = (id, node, x, y, z, ry = 0, s = 1) => { const n = clone(node); n.position.set(x, y, z); n.rotation.y = ry; n.scale.setScalar(s); n.visible = false; line.add(n); (machines[id] ||= []).push(n); return n; };
-    place("portionierer", "Hopper", 0.95, 1.7, 0.02);
+    place("portionierer", "HopperBody", 0.95, 1.7, 0.02);
     place("extruder", "Extruder", 0.95, 1.75, -0.15, 0, 0.75);
-    place("walze", "RollerMachine", 0.15, BENCH_Y, 0.02);
-    place("stanzpresse", "Press", -0.45, BENCH_Y, -0.05);
+    place("walze", "RollerFrame", 0.15, BENCH_Y, 0.02);
+    parts.rollers = [0.05, 0.15].map((y) => place("walze", "Roller", 0.15, BENCH_Y + y, 0.02));
+    parts.flywheel = place("walze", "Flywheel", 0.15, BENCH_Y + 0.2, 0.4);
+    place("stanzpresse", "PressFrame", -0.45, BENCH_Y, -0.05);
+    parts.stamp = place("stanzpresse", "PressStamp", -0.45, BENCH_Y + 0.62, -0.05);
+    parts.lever = place("stanzpresse", "PressLever", -0.17, BENCH_Y + 0.6, -0.05);
     place("steuerung", "ControlPanel", -2.75, 0, 0.3, Math.PI / 2);
-    place("platzierung", "RobotArm", -1.85, BELT.y - 0.05, BELT.z + 0.4);
+    place("platzierung", "ArmBase", -1.85, BELT.y - 0.05, BELT.z + 0.45);
+    parts.armUpper = place("platzierung", "ArmUpper", -1.85, BELT.y + 0.25, BELT.z + 0.45);
+    parts.claw = place("platzierung", "ArmClaw", -1.85, BELT.y + 0.35, BELT.z + 0.05);
     place("portale", "Portal", -2.35, BELT.y + 0.3, BELT.z, Math.PI / 2);
     place("rentier", "Generator", -2.9, 0, -2.6, 0, 1.2);
     place("motor", "Gear", BELT.x0 + 0.1, BELT.y - 0.2, BELT.z + 0.3);
@@ -183,10 +206,15 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
     pipe = new THREE.Mesh(new THREE.TubeGeometry(pipeCurve, 160, 0.07, 10), M.steel); pipe.castShadow = true; pipe.visible = false; scene.add(pipe);
     pipeBlobs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), M.dough, 40); pipeBlobs.visible = false; scene.add(pipeBlobs);
     // the elf's arms (right as modelled, left mirrored) in front of the camera
-    armR = clone("ElfArm"); armL = clone("ElfArm");
+    armR = cloneSkinned(nodes.ElfRig); armL = cloneSkinned(nodes.ElfRig);
     armL.scale.set(-0.85, 0.85, 0.85); armR.scale.setScalar(0.85);
-    for (const a of [armL, armR]) { a.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.renderOrder = 5; } }); camera.add(a); }
-    carried = clone("DoughBlob"); carried.visible = false; armR.add(carried); carried.position.set(-0.03, -0.035, -0.12);
+    for (const a of [armL, armR]) {
+      a.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.renderOrder = 5; o.frustumCulled = false; } });
+      a.userData.bones = {};
+      a.traverse((o) => { if (o.isBone) { a.userData.bones[o.name] = o; o.userData.rest = o.quaternion.clone(); } });
+      camera.add(a);
+    }
+    carried = clone("DoughBlob"); carried.visible = false; camera.add(carried);
     bucket = clone("Bucket"); bucket.visible = false; bucket.scale.setScalar(0.55); camera.add(bucket);
     barrow = clone("Wheelbarrow"); barrow.visible = false; barrow.scale.setScalar(0.85); camera.add(barrow);
     parts.barrowDough = clone("DoughBlob"); parts.barrowDough.scale.set(3.2, 1.4, 4); parts.barrowDough.position.set(0, 0.62, 0); barrow.add(parts.barrowDough);
@@ -225,6 +253,20 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
       const back = new THREE.Mesh(new THREE.PlaneGeometry(ovenLen, 0.36), M.glow); back.position.set(0, y + 0.2, zc - depth / 2 + 0.04); beltGroup.add(back);
       const glass = new THREE.Mesh(new THREE.PlaneGeometry(ovenLen, 0.42), M.glass); glass.position.set(0, y + 0.22, zc + depth / 2 + 0.02); beltGroup.add(glass);
     }
+  }
+
+  // Finger curl: 0 = open hand, 1 = fist. The thumb has its own amount.
+  const qTmp = new THREE.Quaternion(), xAxis = new THREE.Vector3(1, 0, 0), zAxis = new THREE.Vector3(0, 0, 1);
+  function grip(arm, curl, thumb = curl, spread = 0) {
+    const b = arm?.userData.bones;
+    if (!b) return;
+    for (const f of ["index", "middle", "ring", "little"]) for (let j = 1; j <= 3; j++) {
+      const bone = b[`${f}${j}`]; if (!bone) continue;
+      qTmp.setFromAxisAngle(xAxis, -curl * (j === 1 ? 1.1 : j === 2 ? 1.3 : 0.9));
+      bone.quaternion.copy(bone.userData.rest).multiply(qTmp);
+      if (j === 1 && spread) bone.quaternion.multiply(qTmp.setFromAxisAngle(zAxis, spread * ({ index: 0.12, middle: 0.03, ring: -0.06, little: -0.15 })[f]));
+    }
+    for (let j = 1; j <= 3; j++) { const bone = b[`thumb${j}`]; if (!bone) continue; qTmp.setFromAxisAngle(xAxis, -thumb * (j === 1 ? 0.5 : 0.8)); bone.quaternion.copy(bone.userData.rest).multiply(qTmp); }
   }
 
   // ------------------------------------------------------------ cookies (instanced)
@@ -313,12 +355,12 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
 
   // ------------------------------------------------------------ events
   const anim = { roll: 0, rolled: 0, cut: 0, press: 0, load: 0, portion: 0, take: 0, crank: 0, push: 0, blocked: 0 };
-  let landAcc = 0, landT = 0, finaleT = -1, stepT = 0;
+  let landAcc = 0, landT = 0, finaleT = -1, stepT = 0, fly = null, quest = null;
   function onEvents(events) {
     for (const e of events) {
       if (e.type in anim) anim[e.type] = 1;
       if (e.type === "rolled") anim.roll = 1;
-      if (e.type === "take" && mountainNode) burst(new THREE.Vector3(player.x, 1.2, player.z + 0.8), 14, "#fff6e0", 0.8);
+      if (e.type === "take" && mountainNode) { burst(new THREE.Vector3(player.x, 1.2, player.z + 0.8), 14, "#fff6e0", 0.8); fly = { t: 0, from: new THREE.Vector3(player.x - Math.sin(player.yaw) * 1.6, 1.0, player.z - Math.cos(player.yaw) * 1.6) }; }
       if (e.type === "cut" || e.type === "press") burst(lw(-0.45, BENCH_Y + 0.05, 0.02), 8, "#ffffff", 0.5);
       if (e.type === "land") landAcc += e.n;
       if (e.type === "machine" || e.type === "buy") burst(new THREE.Vector3(player.x, 1.8, player.z), 40, "#ffd23f", 2);
@@ -412,8 +454,27 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
     armL.position.copy(lp); armR.position.copy(rp);
     armL.rotation.set(rotL, -0.12, 0); armR.rotation.set(rotR, 0.12, 0);
     const holding = s.carry > 0;
-    carried.visible = holding && !L.eimer && !L.schubkarre;
-    carried.scale.setScalar(1.4 * (0.6 + 0.4 * s.carry / d.carryCap));
+    const handsHold = holding && !L.eimer && !L.schubkarre;
+    carried.visible = handsHold;
+    carried.scale.setScalar(1.25 * (0.6 + 0.4 * s.carry / d.carryCap));
+    carried.position.set(0, -0.21 + Math.sin(t * 10) * (moving ? 0.008 : 0), -0.58);
+    // finger poses by action
+    let gL = 0.18, gR = 0.18, thL = 0.15, thR = 0.15, spr = 0.4;
+    if (handsHold) { gL = gR = 0.62; thL = thR = 0.55; spr = 0; }
+    if (take) { const open = take > 0.5 ? 0 : 1 - take * 2; gL = gR = 0.1 + open * 0.55; spr = 1 - open; }
+    if (roll) { gL = gR = 0.95; thL = thR = 0.85; spr = 0; }
+    if (cut) { gR = 1.05; thR = 0.9; }
+    if (load || put2) { gL = gR = 0.45; thL = thR = 0.3; spr = 0.2; }
+    if (barrow.visible || bucket.visible) { gL = gR = 0.95; thL = thR = 0.9; }
+    grip(armL, gL, thL, spr); grip(armR, gR, thR, spr);
+    // a dough chunk flies from the mountain into your hands
+    if (fly) {
+      fly.t += dt * 3;
+      const target = new THREE.Vector3(0, -0.2, -0.58).applyMatrix4(camera.matrixWorld);
+      parts.flyBlob.visible = fly.t < 1; parts.flyBlob.position.lerpVectors(fly.from, target, Math.min(1, fly.t)); parts.flyBlob.position.y += Math.sin(Math.min(1, fly.t) * Math.PI) * 0.4;
+      parts.flyBlob.scale.setScalar(1.6); parts.flyBlob.rotation.set(fly.t * 5, fly.t * 3, 0);
+      if (fly.t >= 1) fly = null;
+    }
     bucket.visible = Boolean(L.eimer) && !L.schubkarre && !d.autoPortion; bucket.position.set(-0.26, -0.55, -0.45); parts.bucketDough.visible = holding;
     barrow.visible = Boolean(L.schubkarre) && !d.autoPortion && (holding || !insideHouse(player.x, player.z)); barrow.position.set(0, -1.45, -1.15); barrow.rotation.set(0.1, Math.PI, 0); parts.barrowDough.visible = holding;
     if (barrow.visible) { armL.position.set(-0.27, -0.42, -0.45); armR.position.set(0.27, -0.42, -0.45); }
@@ -446,7 +507,18 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
     (machines.portale || []).forEach((n) => { n.rotation.z = t * 1.5; });
     (machines.rentier || []).forEach((n) => { n.rotation.y = t * 0.6; });
     (machines.platzierung || []).forEach((n) => { n.rotation.y = Math.sin(t * 3) * 0.9; });
-    (machines.stanzpresse || []).forEach((n) => { const cyc = d.autoCut && working ? (Math.sin(t * Math.min(14, 4 + d.autoCut / 60)) + 1) / 2 : ease(1 - anim.press); n.children.forEach((c) => { if (c.name?.includes("Steel")) c.position.y = -cyc * 0.15; }); });
+    const cyc = d.autoCut && working ? (Math.sin(t * Math.min(14, 4 + d.autoCut / 60)) + 1) / 2 : ease(1 - anim.press);
+    if (parts.stamp) parts.stamp.position.y = BENCH_Y + 0.62 - cyc * 0.3;
+    if (parts.lever) parts.lever.rotation.z = -cyc * 0.9;
+    const spin = d.autoRoll ? t * 7 : (anim.crank + roll) * 6 + t * 0.2;
+    (parts.rollers || []).forEach((r, i) => { r.rotation.z = (i ? -1 : 1) * spin; });
+    if (parts.flywheel) parts.flywheel.rotation.z = spin;
+    if (parts.armUpper) { const sw = Math.sin(t * 2.4); parts.armUpper.rotation.y = sw * 0.9; parts.claw.position.set(-1.85 - Math.sin(sw * 0.9) * 0.4, BELT.y + 0.35 + Math.abs(Math.sin(t * 4.8)) * 0.05, BELT.z + 0.45 - Math.cos(sw * 0.9) * 0.4); parts.claw.rotation.y = sw * 0.9; }
+    if (parts.treeLight) parts.treeLight.intensity = 1.4 + Math.sin(t * 2.2) * 0.3;
+    // quest arrow above the next step
+    const qpos = { take: new THREE.Vector3(MOUNTAIN.x, 2.6 * mountainScale + 0.7, MOUNTAIN.z - 3.6 * mountainScale), deliver: lw(0.92, BENCH_Y + 0.55, 0.02), roll: lw(0.15, BENCH_Y + 0.55, 0.02), cut: lw(-0.45, BENCH_Y + 0.75, 0.02), load: lw(-1.2, BENCH_Y + 0.55, 0.02) }[quest];
+    parts.arrow.visible = Boolean(qpos) && finaleT < 0;
+    if (qpos) { parts.arrow.position.copy(qpos); parts.arrow.position.y += Math.abs(Math.sin(t * 3)) * 0.15; parts.arrow.rotation.y = t * 2; }
     const pumping = (L.portionierer || 0) > 0;
     pipe.visible = pumping; pipeBlobs.visible = pumping && s.dough > 0;
     if (pipeBlobs.visible) { for (let i = 0; i < 40; i++) { const u = ((t * 0.06 * (1 + (L.zufuhr || 0))) + i / 40) % 1; tmp.position.copy(pipeCurve.getPointAt(u)); tmp.rotation.set(0, 0, 0); tmp.updateMatrix(); pipeBlobs.setMatrixAt(i, tmp.matrix); } pipeBlobs.instanceMatrix.needsUpdate = true; }
@@ -512,6 +584,8 @@ export function createRenderer(canvas, { perform, onStep } = {}) {
   return {
     ready, frame, resize, onEvents, interact, request,
     target: (px, py) => lookTarget(px, py),
+    setQuest(id) { quest = id; },
+    ovenDistance: () => Math.hypot(player.x - lw(0, 0, 0).x, player.z - lw(0, 0, BELT.z).z),
     isLocked: () => locked,
     isDragging: () => Boolean(drag && drag.moved > 6),
     isOutside: () => !insideHouse(player.x, player.z),

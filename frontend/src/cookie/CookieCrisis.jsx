@@ -121,6 +121,9 @@ export function CookieCrisis({ user, onLogin }) {
         const rate = landings.current.reduce((a, b) => a + b[1], 0) / span;
         setUi({ s: { ...s, belt: undefined, falling: undefined }, d, rate });
         const tg = r.target(mouse.current.x, mouse.current.y);
+        const q = nextStep(s, d);
+        r.setQuest(q && (phaseOf(s) <= 2 || capacities(d).some((c) => c.hand > 0.05)) ? q : null);
+        snd.ambience(r.isOutside(), r.ovenDistance());
         setLook((v) => ({ ...v, locked: r.isLocked(), target: tg, outside: r.isOutside() }));
       }
       if (localT > 5) { localT = 0; saveLocal(); }
@@ -233,6 +236,7 @@ export function CookieCrisis({ user, onLogin }) {
           {!look.loaded && <div className="ccLoading"><span>❄</span> Die Backstube wird aufgebaut …</div>}
           {look.locked && <div className="ccCross" aria-hidden="true"><Crosshair size={22} /></div>}
           {look.loaded && <TargetHint look={look} s={view?.s} d={view?.d} />}
+          {look.loaded && view && <Quest s={view.s} d={view.d} />}
           {look.loaded && !look.locked && <div className="ccStart">Klick ins Bild zum Spielen · <kbd>WASD</kbd> laufen · Maus schauen · <kbd>Esc</kbd> gibt die Maus frei</div>}
           {view && (
             <div className="ccHud">
@@ -337,6 +341,20 @@ export function CookieCrisis({ user, onLogin }) {
       )}
     </section>
   );
+}
+
+const QUEST_TEXT = {
+  take: "Geh raus zum Teigberg und greif dir Teig",
+  deliver: "Bring den Teig in die Backstube und leg ihn auf die Werkbank",
+  roll: "Roll den Teig auf der Werkbank aus",
+  cut: "Stich Sterne aus dem Teig aus",
+  load: "Heb das volle Blech aufs Förderband",
+};
+// The next thing to do, while there is still hand work (the golden arrow points at it).
+function Quest({ s, d }) {
+  const q = nextStep(s, d);
+  if (!q || (phaseOf(s) > 2 && !capacities(d).some((c) => c.hand > 0.05)) || s.finished != null) return null;
+  return <div className="ccQuest"><span>Aufgabe</span>{QUEST_TEXT[q]}</div>;
 }
 
 // What you are looking at and what a click would do there.

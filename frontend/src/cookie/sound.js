@@ -84,7 +84,28 @@ export function createSound() {
     tone(2100 + Math.random() * 500, 0.07, { gain: 0.05, type: "triangle", delay: i * 0.03 + 0.02 }); // the taler
   }
 
+  // ambience: winter wind outside, crackling oven inside
+  let wind = null, windGain = null, crackleT = 0;
+  function ambienceSetup() {
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) { last = last * 0.985 + (Math.random() * 2 - 1) * 0.015; d[i] = last * 6; }
+    wind = ctx.createBufferSource(); wind.buffer = buf; wind.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 420; bp.Q.value = 0.6;
+    windGain = ctx.createGain(); windGain.gain.value = 0;
+    wind.connect(bp); bp.connect(windGain); windGain.connect(master); wind.start();
+  }
+
   return {
+    ambience(outside, ovenDist = 10) {
+      if (!ctx || muted) return;
+      if (!wind) ambienceSetup();
+      const now = ctx.currentTime;
+      windGain.gain.setTargetAtTime(outside ? 0.09 + Math.sin(now * 0.4) * 0.03 : 0.012, now, 0.6);
+      const near = Math.max(0, 1 - ovenDist / 5);
+      if (near > 0 && now - crackleT > 0.05 + Math.random() * 0.4) { crackleT = now; noise(0.02 + Math.random() * 0.03, { freq: 2500 + Math.random() * 3000, gain: 0.05 * near }); }
+    },
     // footsteps: crunchy snow outside, wooden floor inside
     step(outside) { if (!ctx || muted) return; if (outside) noise(0.16, { freq: 1800 + Math.random() * 600, q: 0.7, gain: 0.07 }); else { tone(110 + Math.random() * 30, 0.06, { gain: 0.05, type: "triangle" }); noise(0.05, { freq: 500, gain: 0.03 }); } },
     get muted() { return muted; },
