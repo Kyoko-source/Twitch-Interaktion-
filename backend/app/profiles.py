@@ -40,6 +40,33 @@ def ensure(db) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS profile_prefs (
         username TEXT PRIMARY KEY, theme TEXT NOT NULL DEFAULT 'neon', showcase TEXT NOT NULL DEFAULT '[]',
         updated REAL NOT NULL DEFAULT 0)""")
+    columns = {row[1] for row in db.execute("PRAGMA table_info(profile_prefs)")}
+    if "christmas" not in columns:
+        db.execute("ALTER TABLE profile_prefs ADD COLUMN christmas TEXT NOT NULL DEFAULT 'ask'")
+
+
+# Christmas look: "ask" (never answered), "declined" (said no, ask again next login), "on", "off" (switched off in the profile).
+CHRISTMAS_MODES = {"ask", "declined", "on", "off"}
+
+
+def christmas(db, username: str) -> str:
+    if not _exists(db, "profile_prefs"):
+        return "ask"
+    columns = {row[1] for row in db.execute("PRAGMA table_info(profile_prefs)")}
+    if "christmas" not in columns:
+        return "ask"
+    row = db.execute("SELECT christmas FROM profile_prefs WHERE username=?", (username,)).fetchone()
+    return row[0] if row and row[0] in CHRISTMAS_MODES else "ask"
+
+
+def set_christmas(db, username: str, mode: str, now: float | None = None) -> str:
+    if mode not in CHRISTMAS_MODES - {"ask"}:
+        raise ValueError("Unbekannter Modus.")
+    ensure(db)
+    db.execute("INSERT INTO profile_prefs(username, christmas, updated) VALUES (?, ?, ?) "
+               "ON CONFLICT(username) DO UPDATE SET christmas=excluded.christmas, updated=excluded.updated",
+               (username, mode, time.time() if now is None else now))
+    return mode
 
 
 def prefs(db, username: str) -> dict[str, Any]:

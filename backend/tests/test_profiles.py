@@ -64,6 +64,21 @@ class ProfileTests(unittest.TestCase):
             self.assertEqual(saved, {"theme": "sunset", "showcase": ["record", "a", "b"]})
             self.assertEqual(profiles.prefs(db, "alice"), saved)
 
+    def test_christmas_mode_is_stored_per_member_and_keeps_the_look(self):
+        with self.store.connection(write=True) as db:
+            self.assertEqual(profiles.christmas(db, "alice"), "ask")
+            profiles.save_prefs(db, "alice", "sunset", [], 3, set())
+            self.assertEqual(profiles.set_christmas(db, "alice", "declined"), "declined")
+            self.assertEqual(profiles.christmas(db, "alice"), "declined")
+            profiles.set_christmas(db, "alice", "on")
+            self.assertEqual(profiles.christmas(db, "alice"), "on")
+            self.assertEqual(profiles.prefs(db, "alice")["theme"], "sunset", "switching Christmas keeps the profile look")
+            profiles.save_prefs(db, "alice", "ocean", [], 3, set())
+            self.assertEqual(profiles.christmas(db, "alice"), "on", "saving the look keeps Christmas")
+            self.assertEqual(profiles.christmas(db, "bob"), "ask")
+            with self.assertRaises(ValueError):
+                profiles.set_christmas(db, "alice", "ask")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { TreePine } from "lucide-react";
+import { Fireplace, Garland, MusicButton, RailSprig, SantaHat } from "../christmas/Christmas";
 import { ArrowRight, CalendarDays, ChevronRight, Coins, Crown, Gamepad2, Home, LogIn, LogOut, Mail, Menu, MessageCircle, Newspaper, Play, ShoppingBasket, Sparkles, Ticket, Trophy, Users, X } from "lucide-react";
 import { gscShort } from "../economy/CasinoCashier";
 
@@ -38,7 +40,7 @@ export function MemberAvatar({ user, className = "communityAvatar" }) {
   return <span className={className} aria-hidden="true">{user?.avatar_url && !failed ? <img src={user.avatar_url} onError={() => setFailed(true)} alt="" /> : String(user?.username || "AV").slice(0, 2)}</span>;
 }
 
-export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], chatUnread = 0, children }) {
+export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], chatUnread = 0, children, xmas = null, onToggleXmas = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const railRef = useRef(null);
   const menuRef = useRef(null);
@@ -75,7 +77,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
     <a className="skipLink" href="#main-content" onClick={(event) => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>Zum Inhalt springen</a>
     {menuOpen && <div className="menuBackdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />}
     <aside className={`communityRail ${menuOpen ? "isOpen" : ""}`} ref={railRef} aria-label="Hauptmenü" role={menuOpen ? "dialog" : undefined} aria-modal={menuOpen || undefined} id="main-navigation">
-      <div className="railBrand"><button className="communityBrand" type="button" onClick={() => navigate("home")} aria-label="Aviary Home"><Crown size={29} strokeWidth={1.7} /><span>Aviary<span className="brandDot">.</span></span></button><button className="railClose quietIcon" aria-label="Menü schließen" onClick={() => setMenuOpen(false)} type="button"><X size={21} /></button></div>
+      <div className="railBrand">{xmas && <span className={xmas.intro ? "xmIntroSprig" : ""}><RailSprig /></span>}<button className={`communityBrand${xmas?.intro ? " xmIntroHat" : ""}`} type="button" onClick={() => navigate("home")} aria-label="Aviary Home">{xmas && <SantaHat />}<Crown size={29} strokeWidth={1.7} /><span>Aviary<span className="brandDot">.</span></span></button><button className="railClose quietIcon" aria-label="Menü schließen" onClick={() => setMenuOpen(false)} type="button"><X size={21} /></button></div>
       <nav>{groups.map((group) => <div className="railGroup" key={group.label}><p>{group.label}</p>{group.ids.map((id) => {
         const item = nav.find((entry) => entry.id === id);
         if (!item || hiddenIds.includes(id)) return null;
@@ -83,6 +85,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
         return <button key={id} type="button" className={`railLink ${page === id ? "isActive" : ""}`} aria-current={page === id ? "page" : undefined} onClick={() => navigate(id)}><Icon size={18} strokeWidth={1.7} /><span>{item.label}</span>{id === "chat" && chatUnread > 0 ? <span className="navBadge" aria-label={`${chatUnread} ungelesen`}>{chatUnread > 99 ? "99+" : chatUnread}</span> : page === id && <span className="activeDot" />}</button>;
       })}</div>)}</nav>
       <button className="dailyRewardLink" type="button" onClick={() => navigate("games")}><Gamepad2 size={25} strokeWidth={1.6} /><span><strong>Chickens verdienen</strong><small>Spielen, sammeln, Rewards holen.</small></span><ChevronRight size={16} /></button>
+      {xmas && <Fireplace intro={xmas.intro} />}
       <div className="railFooter">Ein Platz für unseren Schwarm.</div>
     </aside>
     <div className="communityWorkspace" inert={menuOpen ? true : undefined}>
@@ -90,10 +93,13 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
         <div className="pageBreadcrumb"><button ref={menuRef} className="mobileMenu quietIcon" type="button" onClick={() => setMenuOpen(true)} aria-label="Menü öffnen" aria-expanded={menuOpen} aria-controls="main-navigation"><Menu size={22} /></button><Home size={17} strokeWidth={1.7} /><ChevronRight size={14} /><span>{label}</span></div>
         <div className="headerUtilities">
           {user && <div className="communityBalances"><Balance className="balChickens" value={user.chickens} shown={number(user.chickens)} icon={ShoppingBasket} label="Chickens" short={number} /><Balance className="balCredits" title="Credits: 1 Credit = 1 Runde Pinball oder 1 Spin" value={user.credits} shown={number(user.credits)} icon={Ticket} label="Credits" short={number} /><Balance className="balGsc" title={`Glücksspiel-Coins: ${number(user.gsc)}`} value={user.gsc} shown={gscShort(user.gsc)} icon={Coins} label="GSC" short={gscShort} /></div>}
+          {onToggleXmas && <button type="button" className="quietIcon xmTreeBtn" onClick={onToggleXmas} title={xmas ? "Zurück zum normalen Design" : "Weihnachtsstimmung einschalten"} aria-label={xmas ? "Weihnachtsdesign ausschalten" : "Weihnachtsdesign einschalten"} aria-pressed={Boolean(xmas)}><TreePine size={18} /></button>}
+          {xmas && <MusicButton page={page} />}
           {user && <button className="quietIcon chatBell" type="button" onClick={() => navigate("chat")} title={chatUnread ? `${chatUnread} ungelesene Nachricht${chatUnread === 1 ? "" : "en"}` : "Nachrichten"} aria-label={chatUnread ? `${chatUnread} ungelesene Nachrichten` : "Nachrichten"}><Mail size={18} />{chatUnread > 0 && <span className="navBadge">{chatUnread > 99 ? "99+" : chatUnread}</span>}</button>}
           {user ? <><button className="accountLink" type="button" onClick={() => navigate("profile")} aria-label={`Profil von ${user.username} öffnen`}><MemberAvatar user={user} /><span>{user.username}</span></button><button className="quietIcon logoutButton" onClick={onLogout} title="Abmelden" aria-label="Abmelden" type="button"><LogOut size={17} /></button></> : <button className="signInButton" onClick={() => navigate("login")} type="button"><LogIn size={16} /> Anmelden</button>}
         </div>
       </header>
+      {xmas && <Garland intro={xmas.intro} />}
       <main id="main-content" className="communityContent" tabIndex={-1}>{children}</main>
       <footer className="communityFooter"><span>Aviary <span>·</span> Gemeinsam mehr erleben.</span><button type="button" onClick={() => navigate("support")}><MessageCircle size={15} /> Support</button></footer>
     </div>

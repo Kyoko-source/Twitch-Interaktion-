@@ -553,7 +553,7 @@ def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
             pass
     if economy().access(str(user["username"]))["banned"]:
         raise HTTPException(403, {"code": "account_banned", "message": "Dein Konto wurde gesperrt. Bitte kontaktiere den Support."})
-    return {"token": create_access_token(username), "user": public_user(user)}
+    return {"token": create_access_token(username), "user": {**public_user(user), "christmas": christmas_mode(username)}}
 
 
 @app.get("/api/auth/me")
@@ -563,7 +563,25 @@ def me(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
         economy().daily_xp(str(user["username"]))
     except Exception:  # the level system must never block logging in
         pass
-    return {"user": public_user(user)}
+    return {"user": {**public_user(user), "christmas": christmas_mode(str(user["username"]))}}
+
+
+def christmas_mode(username: str) -> str:
+    try:
+        with economy().connection() as db:
+            return profiles.christmas(db, username)
+    except Exception:  # the Christmas look must never block logging in
+        return "ask"
+
+
+class ChristmasUpdate(BaseModel):
+    mode: Literal["on", "off", "declined"]
+
+
+@app.put("/api/profile/christmas")
+def update_christmas(payload: ChristmasUpdate, user: dict[str, Any] = Depends(current_user)) -> dict[str, str]:
+    with economy().connection(write=True) as db:
+        return {"christmas": profiles.set_christmas(db, str(user["username"]), payload.mode)}
 
 
 @app.get("/api/levels")
@@ -633,7 +651,7 @@ def complete_registration(payload: RegistrationComplete, request: Request) -> di
         f"registration_requests?id=eq.{quote(str(approved_request.get('id')))}",
         {"status": "used", "used_at": datetime.now().isoformat()},
     )
-    return {"token": create_access_token(username), "user": public_user(user)}
+    return {"token": create_access_token(username), "user": {**public_user(user), "christmas": christmas_mode(username)}}
 
 
 @app.get("/api/dashboard")
