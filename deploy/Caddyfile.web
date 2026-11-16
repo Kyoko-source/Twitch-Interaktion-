@@ -1,6 +1,6 @@
 {
   auto_https disable_redirects
-  default_sni {$SITE_DOMAIN:my-aviary.de}
+  default_sni {$FARM_TLS_IP:62.238.49.219}
 }
 
 # Plain HTTP for every host (domain and IP).
