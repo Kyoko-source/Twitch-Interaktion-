@@ -173,6 +173,13 @@ func grab_prop() -> void:
   carried.held=true;carried.sleeping=false;carried.add_collision_exception_with(self)
   carried.carry_target=carried.global_position
 
+# One step = 15 degrees: around the world's up axis, or (tilt) around the camera's side axis.
+func turn_carried(steps: float, tilt: bool=false) -> void:
+ if not is_instance_valid(carried): return
+ var axis:=camera.global_basis.x.normalized() if tilt else Vector3.UP
+ var t:=carried.global_transform;t.basis=(Basis(axis,steps*PI/12.0)*t.basis).orthonormalized()
+ carried.global_transform=t;carried.angular_velocity=Vector3.ZERO
+
 func drop_prop(throwing: bool=false) -> void:
  if not is_instance_valid(carried): carried=null;return
  var body:=carried;carried=null;body.held=false;body.remove_collision_exception_with(self)

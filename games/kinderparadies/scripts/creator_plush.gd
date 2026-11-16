@@ -28,7 +28,7 @@ static func place(atmosphere: Node3D,id: String) -> NightProp:
  model.position=Vector3(0,-HALF_HEIGHT,.02);body.add_child(model)
  for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
  var voice:=AudioStreamPlayer3D.new();voice.name="Voice";voice.stream=load(cfg.voice)
- voice.volume_db=-1.0;voice.unit_size=3.0;voice.max_distance=16.0;body.add_child(voice)
+ voice.volume_db=-10.0;voice.unit_size=2.0;voice.max_distance=12.0;body.add_child(voice)
  body.picked.connect(func():_on_picked(body,voice,str(cfg.comment)))
  atmosphere.add_child(body);atmosphere.loose.append(body);body.suspend(true)
  return body

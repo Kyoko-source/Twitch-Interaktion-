@@ -102,7 +102,7 @@ func _actions() -> void:
   InputMap.add_action("crouch")
   for key in ([KEY_C] if OS.has_feature("web") else [KEY_C,KEY_CTRL]):
    var crouch_key:=InputEventKey.new();crouch_key.physical_keycode=key;InputMap.action_add_event("crouch",crouch_key)
- var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"jump":[KEY_SPACE],"grab":[KEY_G],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
+ var keys:={"forward":[KEY_W,KEY_UP],"back":[KEY_S,KEY_DOWN],"left":[KEY_A,KEY_LEFT],"right":[KEY_D,KEY_RIGHT],"sprint":[KEY_SHIFT],"jump":[KEY_SPACE],"grab":[KEY_G],"turn_prop":[KEY_R],"interact":[KEY_E],"torch":[KEY_F],"notes":[KEY_TAB],"pause":[KEY_ESCAPE],"fullscreen":[KEY_F11]}
  for action in keys:
   if not InputMap.has_action(action): InputMap.add_action(action)
   for key in keys[action]:
@@ -617,7 +617,7 @@ func _process(delta: float) -> void:
   elif target=="delivery_exit": prompt.text="E · Glastür zum Parkplatz "+("schließen" if world.backstage.exit_open else "öffnen") if archive.parking_key_found else "Glastür verschlossen · Parkplatzschlüssel fehlt"
   elif target.begins_with("story:"): prompt.text="E · "+str(BackstageExpansion.DOCS[target.trim_prefix("story:")].title)+" lesen"
   if target=="":
-   if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen"
+   if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen   |   Mausrad / R · Drehen"
    else:
     var object:=player.prop_target()
     if object: prompt.text="G · "+object.title+" aufheben"
@@ -786,6 +786,11 @@ func _unhandled_input(event: InputEvent) -> void:
  if event.is_action_pressed("torch"): player.toggle_lamp()
  if event.is_action_pressed("grab"): player.grab_prop();get_viewport().set_input_as_handled()
  if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed and is_instance_valid(player.carried): player.drop_prop(true)
+ # Turn a carried toy: mouse wheel spins it, Shift + wheel tilts it, R turns it by 45 degrees.
+ if is_instance_valid(player.carried):
+  if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+   player.turn_carried(1.0 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -1.0,Input.is_key_pressed(KEY_SHIFT));get_viewport().set_input_as_handled()
+  elif event.is_action_pressed("turn_prop"): player.turn_carried(3.0,false);get_viewport().set_input_as_handled()
  if event.is_action_pressed("notes"): _inventory("play");get_viewport().set_input_as_handled()
  if event.is_action_pressed("interact"):
   var target:=_target()

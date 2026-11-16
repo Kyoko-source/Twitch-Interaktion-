@@ -1,5 +1,17 @@
 # After Play — Kinderparadies
 
+## Puppen drehen und leiser (4.6.1)
+
+Getragene Spielsachen lassen sich drehen: Mausrad dreht um 15 Grad, R um 45 Grad,
+Umschalt + Mausrad kippt nach vorn oder hinten. Die Haltung bleibt beim Tragen erhalten.
+Die Stimmen der Rosenyan- und der einsmarello-Puppe sind rund 9 dB leiser und tragen
+weniger weit. Steuerungshilfe und Hinweiszeile nennen die neue Taste.
+
+Fehlerbehebung: Bei der Anomalie „Der Pferdeschädel stößt bei Annäherung aus dem
+Schacht nach unten“ (`vent_strike`) wurde beim Auslösen fälschlich die versteckte
+Platzhalter-Besucherin sichtbar und hing mitten im Kinoflur, genau dort, wo der
+Schädel zustößt. Jetzt erscheint nur der Pferdeschädel. Prüfung: `--self-test --horse-only`.
+
 ## einsmarello-Puppe (4.6.0)
 
 Neben der Rosenyan-Puppe sitzt jetzt eine Plüschpuppe von **einsmarello**:

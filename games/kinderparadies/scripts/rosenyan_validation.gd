@@ -31,6 +31,21 @@ func run(game: Node3D, verify: Callable) -> void:
   game.player.grab_prop()
   verify.call(game.player.carried==plush and voice.playing,"Picking up the "+id+" plush does not play her voice")
   verify.call(cfg.comment in game.dialogue.pending or game.dialogue.current==cfg.comment,"Picking up the "+id+" plush does not show her subtitle")
+  verify.call(voice.volume_db<=-8.,id+" voice is still too loud")
+  # Turning while carried: wheel step spins 15 degrees, R spins 45 degrees, Shift tilts; held pose stays.
+  var before: Vector3=plush.global_basis.z
+  game.player.turn_carried(1.0)
+  await game.get_tree().physics_frame;await game.get_tree().physics_frame
+  var spun:=rad_to_deg(Vector2(before.x,before.z).angle_to(Vector2(plush.global_basis.z.x,plush.global_basis.z.z)))
+  verify.call(absf(absf(spun)-15.)<2.,id+" plush does not turn by a wheel step (turned "+str(spun)+")")
+  game.player.turn_carried(3.0)
+  await game.get_tree().physics_frame
+  spun=rad_to_deg(Vector2(before.x,before.z).angle_to(Vector2(plush.global_basis.z.x,plush.global_basis.z.z)))
+  verify.call(absf(absf(spun)-60.)<3.,id+" plush does not turn by R (turned "+str(spun)+")")
+  var up_before: Vector3=plush.global_basis.y
+  game.player.turn_carried(2.0,true)
+  await game.get_tree().physics_frame
+  verify.call(up_before.angle_to(plush.global_basis.y)>deg_to_rad(20.),id+" plush does not tilt with Shift + wheel")
   game.player.drop_prop();voice.stop()
   # Second pickup in the same shift: voice again, subtitle again (never queued twice).
   game.dialogue.pending.clear();game.dialogue.current=""

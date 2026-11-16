@@ -55,4 +55,14 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(horse.progress==0 and horse.mask.position.y<home.y-.4 and horse.position==Vector3(-1.3,3.4,-20.15),"Vent attack drags the entire neck out of the shaft")
  horse.attack_gain=0;horse.tick(.1,true)
  verify.call(horse.mask.position.distance_to(home)<.02,"Horse attack does not recover its home pose")
+ # 4.6.1: triggering the vent strike must not reveal the hidden placeholder visitor in the corridor.
+ var terror: NightTerrors=game.world.terrors
+ game.player.global_position=terror.focus_point()+Vector3(0,-1.6,2.6);game.player.look_at(terror.focus_point(),Vector3.UP)
+ game.player.camera.look_at(terror.focus_point(),Vector3.UP)
+ await game.get_tree().physics_frame
+ terror.elapsed=1.0;terror.triggered=false;terror.primed=true;terror.tick(.1,true,game.player)
+ var fired: bool=terror.triggered
+ for i in range(20):terror.tick(.1,true,game.player)
+ verify.call(fired,"Vent strike does not trigger when the guard looks at the shaft")
+ verify.call(not terror.actor.visible,"Vent strike reveals a hanging visitor figure under the shaft")
  print("HORSE GEOMETRY ",bounds," SOURCE ",fixed," CLEARANCE ",clearance," ",issue)

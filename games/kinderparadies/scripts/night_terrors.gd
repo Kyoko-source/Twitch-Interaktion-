@@ -157,7 +157,9 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if not triggered and not primed and elapsed>.25 and eligible and w.encounters.visible_to(player,target,radius):
   primed=true;anticipation.position=target;anticipation.play()
  if not triggered and elapsed>.8 and eligible and w.encounters.visible_to(player,target,radius):
-  triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0;actor.show()
+  triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0
+  # The vent strike is the horse skull alone; its placeholder visitor must stay hidden.
+  if spec.mode!="vent":actor.show()
   if spec.mode in ["ceiling","drop"]:
    # Hanging guests shriek right into your ear, not a distant low drone.
    scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
