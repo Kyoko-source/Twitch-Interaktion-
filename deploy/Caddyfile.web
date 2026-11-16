@@ -1,8 +1,9 @@
 {
   auto_https disable_redirects
-  default_sni {$FARM_TLS_IP:62.238.49.219}
+  default_sni {$SITE_DOMAIN:my-aviary.de}
 }
 
+# Plain HTTP for every host (domain and IP).
 {$SITE_ADDRESS} {
   # Existing OBS sources keep their HTTP assets and read-only polling URLs.
   @legacyOBS {
@@ -12,14 +13,25 @@
   handle @legacyOBS {
     reverse_proxy frontend:80
   }
-  # All visitor pages and other requests use the trusted canonical origin.
-  # Browsers preserve hash routes; {uri} preserves paths and query strings.
+  # Everything else goes to the canonical HTTPS domain.
+  # Browsers keep hash routes; {uri} keeps paths and query strings.
   handle {
-    redir https://{$FARM_TLS_IP:62.238.49.219}{uri} 308
+    redir https://{$SITE_DOMAIN:my-aviary.de}{uri} 308
   }
 }
 
-# Caddy manages and renews the trusted IP certificate automatically.
+# Canonical site. Caddy fetches and renews the Let's Encrypt certificate itself.
+{$SITE_DOMAIN:my-aviary.de} {
+  reverse_proxy frontend:80
+}
+
+www.{$SITE_DOMAIN:my-aviary.de} {
+  redir https://{$SITE_DOMAIN:my-aviary.de}{uri} 308
+}
+
+# Old IP address: visitors opening the site are sent to the domain; stream
+# overlays, stream pages, assets and the API keep working here so existing
+# OBS/Streamlabs browser sources need no change.
 https://{$FARM_TLS_IP:62.238.49.219} {
   tls {
     issuer acme {
@@ -27,5 +39,7 @@ https://{$FARM_TLS_IP:62.238.49.219} {
       profile shortlived
     }
   }
+  @page path / /index.html
+  redir @page https://{$SITE_DOMAIN:my-aviary.de}{uri} 308
   reverse_proxy frontend:80
 }

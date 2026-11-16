@@ -43,6 +43,7 @@ services:
       - "443:443"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      SITE_DOMAIN: ${SITE_DOMAIN:-my-aviary.de}
     volumes:
       - ./Caddyfile.web:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

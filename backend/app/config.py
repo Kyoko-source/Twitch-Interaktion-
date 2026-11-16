@@ -23,10 +23,10 @@ class Settings:
         if len(self.admin_password) < 12 or self.admin_password in {"einsmarello", "bitte-admin-passwort-setzen"}:
             print("WARNING: AVIARY_ADMIN_PASSWORD is missing, too short or a published default; admin area disabled.", file=sys.stderr)
             self.admin_password = ""
-        self.public_base_url = getenv("PUBLIC_BASE_URL") or "http://62.238.49.219"
+        self.public_base_url = getenv("PUBLIC_BASE_URL") or "https://my-aviary.de"
         self.cors_origins = [
             origin.strip()
-            for origin in (getenv("CORS_ORIGINS") or "http://localhost:5173,http://62.238.49.219").split(",")
+            for origin in (getenv("CORS_ORIGINS") or "http://localhost:5173,https://my-aviary.de,https://62.238.49.219,http://62.238.49.219").split(",")
             if origin.strip()
         ]
 
