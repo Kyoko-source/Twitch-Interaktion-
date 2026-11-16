@@ -23,6 +23,7 @@ import { ShopPage } from "./pages/ShopPage";
 import { SupportPage } from "./pages/SupportPage";
 import { SystematicsPage } from "./pages/SystematicsPage";
 import { ListPage, isAdmin, nav, routeParts } from "./pages/shared";
+const WheelOverlay = lazy(() => import("./wheel/WheelOverlay").then((module) => ({ default: module.WheelOverlay })));
 const StreamControlOverlay = lazy(() => import("./stream/StreamControlOverlay").then((module) => ({ default: module.StreamControlOverlay })));
 const DerbyOverlay = lazy(() => import("./horses/DerbyOverlay").then((module) => ({ default: module.DerbyOverlay })));
 const Nullsignal = lazy(() => import("./nullsignal/Nullsignal").then((module) => ({ default: module.Nullsignal })));
@@ -194,5 +195,5 @@ function App() {
 
 // OBS browser sources (Chicken Derby, Admin Stream Control): only the overlay, no site around it.
 const overlayPath = window.location.pathname.replace(/\/+$/, "");
-const Overlay = { "/stream/derby": DerbyOverlay, "/stream/control": StreamControlOverlay }[overlayPath];
+const Overlay = { "/stream/derby": DerbyOverlay, "/stream/control": StreamControlOverlay, "/stream/wheel": WheelOverlay }[overlayPath];
 createRoot(document.getElementById("root")).render(Overlay ? <Suspense fallback={null}><Overlay /></Suspense> : <App />);

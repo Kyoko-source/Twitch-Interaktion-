@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Check, Plus, Shield, Trash2, X } from "lucide-react";
 import { ShopAlertsAdmin } from "../economy/ShopAlertsAdmin";
 import { StreamControlAdmin } from "../stream/StreamControlAdmin";
+import { WheelAdmin } from "../wheel/WheelAdmin";
 import { AdminMembers, AdminPoints } from "../economy/AdminMembers";
 import { api } from "../api";
 import { LiveNewsAdmin } from "../live-news/LiveNewsAdmin";
@@ -83,6 +84,7 @@ export function AdminPage() {
     ["live-news", "Live News"],
     ["shop-alerts", "Shop-Alerts"],
     ["stream-control", "Admin Stream Control"],
+    ["wheel", "🎡 Glücksrad"],
     ["shop", "Shop"],
     ["events", "Events"],
     ["support", "Support"],
@@ -138,6 +140,7 @@ export function AdminPage() {
           {tab === "live-news" && <LiveNewsAdmin password={password} />}
           {tab === "shop-alerts" && <ShopAlertsAdmin password={password} />}
           {tab === "stream-control" && <StreamControlAdmin password={password} />}
+          {tab === "wheel" && <WheelAdmin password={password} />}
           {tab === "shop" && (
             <AdminListForm title="Shop Item erstellen" form={shop} setForm={setShop} fields={["name", "description", "price", "category"]} onSubmit={() => mutate("/api/admin/shop", { method: "POST", body: JSON.stringify({ ...shop, price: Number(shop.price) }) })}>
               {overview.shop_items.map((item) => <AdminRow key={item.id} title={`${item.name} · ${item.price} Chickens`} text={item.description || item.desc} onDelete={() => mutate(`/api/admin/shop/${item.id}`, { method: "DELETE" })} />)}

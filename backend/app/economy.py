@@ -294,7 +294,7 @@ class EconomyStore:
             if alert:
                 self._queue_alert(db, request_id, username, item["name"], category, price, now)
             xp_levels.award(db, username, "shop", price // 5, ref=f"buy:{request_id}", now=now, queue_alert=self._queue_alert)
-            return {"message": "Gekauft! Deine Bestrafung erscheint im Stream." if alert else "Item gekauft.",
+            return {"message": "Gekauft! Deine Bestrafung erscheint im Stream und landet auf dem Glücksrad." if alert else "Item gekauft.",
                     "purchase_id": request_id, "wallet": self.wallet(db, username), "stream_alert": alert, "duplicate": False}
 
     def _queue_alert(self, db, event_key, username, title, category, price, now, kind="purchase", game=None, score=None):

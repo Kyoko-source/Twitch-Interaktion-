@@ -65,7 +65,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
       return <article className={`shopRewardCard ${punishment ? "isPunishment" : ""}`} key={item.id}>
         <div className="shopCardTop"><span className="shopRewardIcon">{punishment ? <Gift size={25} /> : item.style ? <Sparkles size={25} /> : <ShoppingBasket size={25} />}</span>{punishment && <span className="shopLiveLabel"><Radio size={13} />Live im Stream</span>}</div>
         <span className="shopRewardCategory">{item.category || "Reward"}</span><h2>{item.name}</h2>
-        <p>{item.description || item.desc || (punishment ? "Du kaufst die Bestrafung – dein Name und deine Auswahl erscheinen live im Stream." : "Ein Reward für deinen nächsten Community-Moment.")}</p>
+        <p>{item.description || item.desc || (punishment ? "Du kaufst die Bestrafung – dein Name erscheint live im Stream und sie landet auf dem Glücksrad. Je öfter sie gekauft wird, desto wahrscheinlicher wird sie." : "Ein Reward für deinen nächsten Community-Moment.")}</p>
         <div className="shopRewardPrice"><ShoppingBasket size={15} /><strong>{Number(item.price).toLocaleString("de-DE")}</strong><span>Chickens</span></div>
         <button type="button" className={isOwned || missing ? "ghost" : ""} disabled={Boolean(buying) || Boolean(isOwned) || Boolean(user && missing)} onClick={(event) => buy(item, event)}>{buying === String(item.id) ? "Wird gekauft …" : isOwned ? "Bereits freigeschaltet" : !user ? "Zum Kaufen anmelden" : missing ? `Noch ${missing.toLocaleString("de-DE")} Chickens` : `Für ${Number(item.price).toLocaleString("de-DE")} Chickens kaufen`}</button>
       </article>;
