@@ -1,9 +1,10 @@
 // Santa's Cookie Crisis – simulation (no DOM, no drawing).
 //
 // Everything is counted in whole cookies: one cookie = 25 g of dough, the storage starts with
-// 25 t = 1,000,000 cookies. Dough moves through buffers (ball → sheet → tray → oven entry →
-// belt → exit → falling) and is never created or lost:
-//   dough + ball + sheet + tray + queue + belt + exit + falling + baked === 1,000,000
+// 25 t = 1,000,000 cookies. The dough lies outside as a big mountain; the elf carries portions
+// in (carry), later a pump does it. Dough moves through buffers (carry → ball → sheet → tray →
+// oven entry → belt → exit → falling) and is never created or lost:
+//   dough + carry + ball + sheet + tray + queue + belt + exit + falling + baked === 1,000,000
 // A Schokotaler is credited in exactly the moment a cookie lands in the chute.
 
 export const GRAMS_PER_COOKIE = 25;
@@ -11,6 +12,7 @@ export const GOAL = 1_000_000;
 export const OVEN_SLOTS = 14;        // belt length inside the oven, in cookie slots
 export const FALL_TIME = 0.42;       // seconds from belt end to the bottom of the chute
 export const CLICK_RATE = 2.5;       // clicks per second assumed for "manual capacity" hints
+export const TRIP_TIME = 9;          // seconds to walk to the dough mountain and back
 const STEP = 1 / 60;
 
 const lv = (levels, id) => levels[id] || 0;
@@ -28,6 +30,8 @@ export const PHASES = [
 
 export const UPGRADES = [
   // Phase 1 – tools for the elf's hands
+  { id: "eimer", phase: 1, stage: "portion", kind: "tool", name: "Holzeimer", text: "Statt mit den Händen trägst du 24 Kekse Teig auf einmal.", base: 12, growth: 1, max: 1 },
+  { id: "schubkarre", phase: 1, stage: "portion", kind: "tool", name: "Schubkarre", text: "Eine ganze Ladung: 96 Kekse Teig pro Fahrt vom Teigberg.", base: 140, growth: 1, max: 1 },
   { id: "nudelholz", phase: 1, stage: "roll", kind: "tool", name: "Größeres Nudelholz", text: "Weniger Rollbewegungen pro Teigplatte.", base: 14, growth: 4, max: 2 },
   { id: "teigrolle", phase: 1, stage: "portion", kind: "tool", name: "Breitere Teigrolle", text: "Größere Teigplatten – mehr Kekse pro Portion.", base: 22, growth: 3, max: 3 },
   { id: "form", phase: 1, stage: "cut", kind: "tool", name: "Mehrfach-Ausstechform", text: "Sticht mehrere Sterne auf einmal aus.", base: 12, growth: 3.4, max: 3 },
@@ -36,7 +40,7 @@ export const UPGRADES = [
   { id: "eingang", phase: 1, stage: "oven", kind: "tool", name: "Größerer Ofeneingang", text: "Mehr Kekse nebeneinander auf dem Band.", base: 90, growth: 3.5, max: 2 },
   { id: "schacht", phase: 1, stage: "chute", kind: "tool", name: "Breiterer Sammelschacht", text: "Der Schacht schluckt mehr Kekse pro Sekunde.", base: 25, growth: 2.4, max: 4 },
   // Phase 2 – mechanics
-  { id: "portionierer", phase: 2, stage: "portion", kind: "machine", name: "Automatischer Teigportionierer", text: "Ein Trichter portioniert Teig ganz von selbst.", base: 160, growth: 2.1, max: 5 },
+  { id: "portionierer", phase: 2, stage: "portion", kind: "machine", name: "Teigpumpe mit Portionierer", text: "Eine Pumpe saugt Teig vom Teigberg durchs Rohr ins Haus – du musst nicht mehr schleppen.", base: 160, growth: 2.1, max: 5 },
   { id: "walze", phase: 2, stage: "roll", kind: "machine", name: "Mechanische Teigwalze", text: "Eine Kurbeldrehung walzt zwei Teigplatten auf einmal.", base: 220, growth: 1, max: 1 },
   { id: "stanzpresse", phase: 2, stage: "cut", kind: "machine", name: "Mehrfach-Stanzpresse", text: "Ein Hebelzug stanzt eine ganze Platte aus.", base: 280, growth: 3.2, max: 2 },
   { id: "motor", phase: 2, stage: "oven", kind: "machine", name: "Elektrischer Förderbandmotor", text: "Ein Motor treibt das Ofenband deutlich schneller an.", base: 320, growth: 2.4, max: 3 },
@@ -86,6 +90,7 @@ export function derive(levels) {
   const pressSize = [0, 24, 48][L("stanzpresse")];
   const walze = L("walze") > 0;
   const trayBase = [6, 10, 16, 24][L("blech")];
+  const carryCap = L("schubkarre") ? 96 : L("eimer") ? 24 : 8;
 
   let autoPortion = L("portionierer") ? 1.4 * Math.pow(1.55, L("portionierer") - 1) : 0;
   autoPortion *= Math.pow(2.4, L("zufuhr")) * Math.pow(1.8, L("extruder")) * Math.pow(1.7, L("beschleuniger"));
@@ -106,40 +111,40 @@ export function derive(levels) {
   autoPortion *= global; autoRoll *= global; autoCut *= global; autoLoad *= global;
   const trayCap = Math.max(trayBase, Math.ceil(autoCut * 1.5));
   const queueCap = Math.max(24, Math.ceil(ovenRate * 3));
-  const ballCap = Math.max(sheetSize * 3, Math.ceil(autoPortion * 2));
+  const ballCap = Math.max(sheetSize * 3, carryCap, Math.ceil(autoPortion * 2));
   const sheetCap = Math.max(sheetSize * 4, Math.ceil(Math.max(autoRoll, autoPortion) * 2));
   // Visual belt speed: the oven never takes less than 1.2 s, extra throughput comes as density.
   return {
-    sheetSize, strokes, cutter, pressSize, walze, trayCap, queueCap, ballCap, sheetCap,
+    sheetSize, strokes, cutter, pressSize, walze, trayCap, carryCap, queueCap, ballCap, sheetCap,
     autoPortion, autoRoll, autoCut, autoLoad, pusher: L("blechschieber") > 0,
     speed: Math.min(speed * Math.min(global, 1.5), OVEN_SLOTS / 1.2), perRow, lanes, floors, ovenRate, chuteRate, global,
   };
 }
 
-// Production model. Machines run at their rate; the elf's two hands (~2.5 clicks/s) fill the
-// gaps at every station where machines are still too slow. A station needs `clicks` hand
-// actions per cookie. The whole line makes T cookies/s when the hands can cover
-//   sum over stations of max(0, T - machine rate) * clicks  <=  CLICK_RATE
+// Production model. Machines run at their rate; the elf fills the gaps at every station where
+// machines are still too slow. A station costs `secs` seconds of elf time per cookie (clicks at
+// ~2.5/s, plus the walk to the dough mountain for carrying). The whole line makes T cookies/s when
+//   sum over stations of max(0, T - machine rate) * secs  <=  1 second per second
 // and T is never above the oven and the chute.
 export function stations(d) {
   return [
-    { id: "portion", name: "Portionieren", auto: d.autoPortion, clicks: 1 / d.sheetSize },
-    { id: "roll", name: "Ausrollen", auto: d.autoRoll, clicks: d.walze ? 1 / (d.sheetSize * 2) : d.strokes / d.sheetSize },
-    { id: "cut", name: "Ausstechen", auto: d.autoCut, clicks: 1 / (d.pressSize || d.cutter) },
-    { id: "load", name: "Zum Ofen", auto: d.autoLoad + (d.pusher ? d.trayCap / 1.1 : 0), clicks: 1 / d.trayCap },
+    { id: "portion", name: "Teig holen", auto: d.autoPortion, secs: (TRIP_TIME + 2 / CLICK_RATE) / d.carryCap },
+    { id: "roll", name: "Ausrollen", auto: d.autoRoll, secs: (d.walze ? 1 / (d.sheetSize * 2) : d.strokes / d.sheetSize) / CLICK_RATE },
+    { id: "cut", name: "Ausstechen", auto: d.autoCut, secs: 1 / (d.pressSize || d.cutter) / CLICK_RATE },
+    { id: "load", name: "Zum Ofen", auto: d.autoLoad + (d.pusher ? d.trayCap / 1.1 : 0), secs: 1 / d.trayCap / CLICK_RATE },
   ];
 }
 
-const handsNeeded = (list, T) => list.reduce((a, st) => a + Math.max(0, T - st.auto) * st.clicks, 0);
+const handsNeeded = (list, T) => list.reduce((a, st) => a + Math.max(0, T - st.auto) * st.secs, 0);
 
 export function throughput(d) {
   const list = stations(d);
   const cap = Math.min(d.ovenRate, d.chuteRate);
-  if (handsNeeded(list, cap) <= CLICK_RATE) return cap;
+  if (handsNeeded(list, cap) <= 1) return cap;
   let lo = 0, hi = cap;
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
-    if (handsNeeded(list, mid) <= CLICK_RATE) lo = mid; else hi = mid;
+    if (handsNeeded(list, mid) <= 1) lo = mid; else hi = mid;
   }
   return lo;
 }
@@ -147,7 +152,7 @@ export function throughput(d) {
 // Every station with its machine rate and how much hand work it needs at the current pace.
 export function capacities(d) {
   const T = throughput(d);
-  const list = stations(d).map((st) => ({ ...st, rate: st.auto, hand: Math.max(0, T - st.auto) * st.clicks }));
+  const list = stations(d).map((st) => ({ ...st, rate: st.auto, hand: Math.max(0, T - st.auto) * st.secs, clicks: st.secs }));
   return [...list, { id: "oven", name: "Ofen", rate: d.ovenRate, auto: d.ovenRate, hand: 0 }, { id: "chute", name: "Schacht", rate: d.chuteRate, auto: d.chuteRate, hand: 0 }];
 }
 
@@ -163,7 +168,7 @@ export function bottleneck(d) {
 export function createState() {
   return {
     v: 1, t: 0,
-    dough: GOAL, ball: 0, rollProgress: 0, sheet: 0, tray: 0, queue: 0,
+    dough: GOAL, carry: 0, ball: 0, rollProgress: 0, sheet: 0, tray: 0, queue: 0,
     belt: [],      // [[position in slots, count]] oldest first
     exit: 0,       // baked cookies waiting at the end of the belt
     falling: [],   // [[landing time, count]] oldest first
@@ -180,20 +185,34 @@ export function createState() {
 export function totalDough(s) {
   const onBelt = s.belt.reduce((a, b) => a + b[1], 0);
   const inAir = s.falling.reduce((a, b) => a + b[1], 0);
-  return s.dough + s.ball + s.sheet + s.tray + s.queue + onBelt + s.exit + inAir + s.baked;
+  return s.dough + s.carry + s.ball + s.sheet + s.tray + s.queue + onBelt + s.exit + inAir + s.baked;
 }
 
 const emit = (s, type, n = 1) => { s.events.push({ type, n }); };
 
 // ------------------------------------------------------------------------------------ manual actions
-export function actPortion(s, d = derive(s.levels)) {
-  if (s.dough <= 0) return 0;
-  const space = d.ballCap - s.ball;
-  const n = Math.min(d.sheetSize, s.dough, space);
+// Grab dough at the mountain outside (hands, bucket or wheelbarrow).
+export function actTake(s, d = derive(s.levels)) {
+  const n = Math.min(d.carryCap - s.carry, s.dough);
   if (n <= 0) { emit(s, "blocked", 0); return 0; }
-  s.dough -= n; s.ball += n; s.clicks += 1;
+  s.dough -= n; s.carry += n; s.clicks += 1;
+  emit(s, "take", n);
+  return n;
+}
+
+// Put the carried dough on the workbench (as portions ready to roll).
+export function actDeliver(s, d = derive(s.levels)) {
+  const n = Math.min(s.carry, d.ballCap - s.ball);
+  if (n <= 0) { emit(s, "blocked", 0); return 0; }
+  s.carry -= n; s.ball += n; s.clicks += 1;
   emit(s, "portion", n);
   return n;
+}
+
+// Both at once (tests, the balance bot): fetch dough and put it down.
+export function actPortion(s, d = derive(s.levels)) {
+  actTake(s, d);
+  return actDeliver(s, d);
 }
 
 export function actRoll(s, d = derive(s.levels)) {
@@ -361,7 +380,7 @@ export function deserialize(text) {
   s.acc = { ...createState().acc, ...(raw.acc || {}) };
   s.belt = (raw.belt || []).map((b) => [Number(b[0]), Math.max(0, Math.floor(b[1]))]);
   s.falling = (raw.falling || []).map((b) => [Number(b[0]), Math.max(0, Math.floor(b[1]))]);
-  for (const k of ["dough", "ball", "sheet", "tray", "queue", "exit", "talers", "earned", "baked", "spent"]) s[k] = Math.max(0, Math.floor(Number(s[k]) || 0));
+  for (const k of ["dough", "carry", "ball", "sheet", "tray", "queue", "exit", "talers", "earned", "baked", "spent"]) s[k] = Math.max(0, Math.floor(Number(s[k]) || 0));
   if (totalDough(s) !== GOAL) throw new Error("Spielstand ist beschädigt (Teigbilanz stimmt nicht).");
   return s;
 }

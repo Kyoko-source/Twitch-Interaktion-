@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  FALL_TIME, GOAL, GRAMS_PER_COOKIE, OVEN_SLOTS, UPGRADES, actCut, actLoad, actPortion, actRoll, buy, createState, derive,
+  FALL_TIME, GOAL, GRAMS_PER_COOKIE, OVEN_SLOTS, UPGRADES, actCut, actDeliver, actLoad, actPortion, actRoll, actTake, buy, createState, derive,
   deserialize, phaseOf, recommended, serialize, step, throughput, totalDough, upgradeCost,
 } from "./sim.js";
 import { play } from "./bot.mjs";
@@ -50,6 +50,22 @@ test("nothing can be done without the step before; a full tray blocks cutting (n
   assert.equal(s.tray, 6);
   assert.equal(actCut(s), 0, "tray full");
   assert.equal(s.sheet, 2);
+  assert.equal(totalDough(s), GOAL);
+});
+
+test("dough is carried in from the mountain: hands, bucket, wheelbarrow", () => {
+  const s = createState();
+  assert.equal(actTake(s), 8, "bare hands hold 8 cookies' worth");
+  assert.equal(actTake(s), 0, "hands are full");
+  assert.equal(s.carry, 8);
+  assert.equal(totalDough(s), GOAL, "carried dough still counts");
+  assert.equal(actDeliver(s), 8);
+  assert.equal(s.ball, 8);
+  s.talers = 500; s.earned = 500;
+  buy(s, "eimer");
+  assert.equal(actTake(s), 24);
+  buy(s, "schubkarre");
+  assert.equal(actTake(s), 72, "the wheelbarrow takes up to 96");
   assert.equal(totalDough(s), GOAL);
 });
 

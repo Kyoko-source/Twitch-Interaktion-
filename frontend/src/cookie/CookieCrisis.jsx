@@ -1,20 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Flame, Hand, Lock, Music, RotateCcw, Sparkles, Star, Volume2, VolumeX, Wand2 } from "lucide-react";
+import { Crosshair, Flame, Hand, Lock, Music, RotateCcw, Sparkles, Star, Volume2, VolumeX, Wand2 } from "lucide-react";
 import { api } from "../api";
 import {
-  GOAL, GRAMS_PER_COOKIE, PHASES, UPGRADES, actCut, actLoad, actPortion, actRoll, activeMachines, bottleneck, buy, capacities,
+  GOAL, GRAMS_PER_COOKIE, PHASES, UPGRADES, actCut, actDeliver, actLoad, actRoll, actTake, activeMachines, bottleneck, buy, capacities,
   createState, derive, deserialize, isUnlocked, phaseOf, recommended, serialize, step, throughput, upgradeCost,
 } from "./sim.js";
 import { createRenderer, fmt } from "./render.js";
 import { createSound } from "./sound.js";
 import "./cookie.css";
 
-const STAGE_ICON = { portion: "🥣", roll: "🪵", cut: "⭐", load: "🧺", oven: "🔥", chute: "🍪", all: "✨" };
+const STAGE_ICON = { take: "✋", deliver: "🫓", portion: "🏔️", roll: "🪵", cut: "⭐", load: "🧺", oven: "🔥", chute: "🍪", all: "✨" };
 const ACTIONS = [
-  { id: "portion", key: "1", label: "Teig nehmen", fn: actPortion },
-  { id: "roll", key: "2", label: "Ausrollen", fn: actRoll },
-  { id: "cut", key: "3", label: "Ausstechen", fn: actCut },
-  { id: "load", key: "4", label: "Aufs Band", fn: actLoad },
+  { id: "take", key: "1", label: "Teig greifen", stage: "portion", fn: actTake },
+  { id: "deliver", key: "2", label: "Teig ablegen", stage: "portion", fn: actDeliver },
+  { id: "roll", key: "3", label: "Ausrollen", stage: "roll", fn: actRoll },
+  { id: "cut", key: "4", label: "Ausstechen", stage: "cut", fn: actCut },
+  { id: "load", key: "5", label: "Aufs Band", stage: "load", fn: actLoad },
 ];
 const num = (n, digits = 0) => Number(n || 0).toLocaleString("de-DE", { maximumFractionDigits: digits, minimumFractionDigits: 0 });
 const rateText = (r) => (r >= 100 ? num(r) : num(r, 1));
@@ -24,7 +25,8 @@ function nextStep(s, d) {
   if (s.tray > 0 && (s.tray >= d.trayCap || (s.sheet === 0 && s.ball === 0)) && s.queue < d.queueCap) return "load";
   if (s.sheet > 0 && s.tray < d.trayCap) return "cut";
   if (s.ball > 0 && s.sheet < d.sheetCap) return "roll";
-  if (s.dough > 0 && s.ball < d.ballCap) return "portion";
+  if (s.carry > 0 && s.ball < d.ballCap) return "deliver";
+  if (s.dough > 0 && s.ball < d.sheetSize && !d.autoPortion) return "take";
   if (s.tray > 0) return "load";
   return null;
 }
@@ -46,6 +48,8 @@ export function CookieCrisis({ user, onLogin }) {
   const [notice, setNotice] = useState("");
   const [soundState, setSoundState] = useState({ muted: false, music: false });
   const [showDone, setShowDone] = useState(false);
+  const [look, setLook] = useState({ locked: false, target: null, loaded: false, outside: false });
+  const mouse = useRef({ x: null, y: null });
 
   // ------------------------------------------------------------------ load (local + server, newest wins)
   useEffect(() => {
@@ -83,10 +87,14 @@ export function CookieCrisis({ user, onLogin }) {
   // ------------------------------------------------------------------ game loop
   useEffect(() => {
     if (!ready || !canvasRef.current) return undefined;
-    const r = createRenderer(canvasRef.current);
-    renderer.current = r;
     const snd = createSound();
     sound.current = snd;
+    const r = createRenderer(canvasRef.current, {
+      perform: (id) => { const s = stateRef.current; const a = ACTIONS.find((x) => x.id === id); if (s && a) a.fn(s, derive(s.levels)); },
+      onStep: (outside) => snd.step(outside),
+    });
+    renderer.current = r;
+    r.ready.then(() => setLook((v) => ({ ...v, loaded: true }))).catch(() => setNotice("Die 3D-Welt konnte nicht geladen werden. Lade die Seite neu."));
     setSoundState({ muted: snd.muted, music: snd.music });
     const ro = new ResizeObserver(() => r.resize());
     ro.observe(canvasRef.current);
@@ -112,6 +120,8 @@ export function CookieCrisis({ user, onLogin }) {
         const span = Math.min(4, Math.max(1, s.t));
         const rate = landings.current.reduce((a, b) => a + b[1], 0) / span;
         setUi({ s: { ...s, belt: undefined, falling: undefined }, d, rate });
+        const tg = r.target(mouse.current.x, mouse.current.y);
+        setLook((v) => ({ ...v, locked: r.isLocked(), target: tg, outside: r.isOutside() }));
       }
       if (localT > 5) { localT = 0; saveLocal(); }
       if (user && now - lastServerSave.current > 30000) saveServer();
@@ -152,8 +162,7 @@ export function CookieCrisis({ user, onLogin }) {
     sound.current?.unlock();
     const d = derive(s.levels);
     const which = id === "next" ? nextStep(s, d) : id;
-    const a = ACTIONS.find((x) => x.id === which);
-    if (a) a.fn(s, d);
+    if (which) renderer.current?.request(which); // walks there if needed, then does it
   }, []);
 
   useEffect(() => {
@@ -167,16 +176,22 @@ export function CookieCrisis({ user, onLogin }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [act]);
 
+  // Mouse: the first click captures the mouse (look with the mouse, Esc to release); then a click
+  // works at whatever is under the crosshair. Touch: tap a station to walk there and work.
   function onCanvasClick(e) {
+    const r = renderer.current;
+    if (!r) return;
+    sound.current?.unlock();
+    if (r.isDragging()) return;
+    if (r.isLocked()) { r.interact(); return; }
     const rect = e.currentTarget.getBoundingClientRect();
-    const h = renderer.current?.hit(e.clientX - rect.left, e.clientY - rect.top);
-    if (h && h.id !== "drag") act(h.id);
+    const touch = e.nativeEvent?.pointerType === "touch" || matchMedia("(pointer: coarse)").matches;
+    if (touch) { r.interact(e.clientX - rect.left, e.clientY - rect.top); return; }
+    r.lock();
   }
   function onCanvasMove(e) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const h = renderer.current?.hit(e.clientX - rect.left, e.clientY - rect.top);
-    renderer.current?.setHover(h);
-    e.currentTarget.style.cursor = h && h.id !== "drag" ? "pointer" : e.buttons & 1 ? "grabbing" : "grab";
+    mouse.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
   function purchase(id) {
@@ -213,8 +228,12 @@ export function CookieCrisis({ user, onLogin }) {
     <section className="ccGame" data-testid="cookie-game">
       <div className="ccMain">
         <div className="ccStage">
-          <canvas ref={canvasRef} className="ccCanvas" onClick={onCanvasClick} onMouseMove={onCanvasMove} onMouseLeave={() => renderer.current?.setHover(null)}
-            role="img" aria-label="Ich-Perspektive des Elfen: deine Hände an der Werkbank mit Teigschüssel, Teigplatte und Blech, dahinter Förderbandofen und Sammelschacht" tabIndex={0} />
+          <canvas ref={canvasRef} className="ccCanvas" onClick={onCanvasClick} onMouseMove={onCanvasMove} onMouseLeave={() => { mouse.current = { x: null, y: null }; }}
+            role="img" aria-label="3D-Welt in Ich-Perspektive: die Backstube mit Werkbank, Förderbandofen und Sammelglas, draußen der Teigberg im Schnee" tabIndex={0} />
+          {!look.loaded && <div className="ccLoading"><span>❄</span> Die Backstube wird aufgebaut …</div>}
+          {look.locked && <div className="ccCross" aria-hidden="true"><Crosshair size={22} /></div>}
+          {look.loaded && <TargetHint look={look} s={view?.s} d={view?.d} />}
+          {look.loaded && !look.locked && <div className="ccStart">Klick ins Bild zum Spielen · <kbd>WASD</kbd> laufen · Maus schauen · <kbd>Esc</kbd> gibt die Maus frei</div>}
           {view && (
             <div className="ccHud">
               <div className="ccGoal">
@@ -236,17 +255,17 @@ export function CookieCrisis({ user, onLogin }) {
 
         <div className="ccActions">
           {ACTIONS.map((a) => {
-            const auto = view && view.caps.find((c) => c.id === a.id).rate > 0;
+            const auto = view && view.caps.find((c) => c.id === a.stage).rate > 0;
             const isNext = view && nextStep(view.s, view.d) === a.id;
             return (
               <button key={a.id} type="button" className={`ccAct${isNext ? " next" : ""}`} onClick={() => act(a.id)} data-testid={`cookie-${a.id}`}>
                 <span className="ccActIcon" aria-hidden="true">{STAGE_ICON[a.id]}</span>
-                <span><b>{a.label}</b><small>{auto ? "läuft automatisch – hilf mit" : a.id === "portion" ? `${view?.d.sheetSize || 8} Kekse Teig` : a.id === "roll" ? (view?.d.walze ? "Kurbel drehen" : `${view?.d.strokes || 3}× rollen`) : a.id === "cut" ? (view?.d.pressSize ? "Hebel ziehen" : `${view?.d.cutter || 1} pro Stich`) : `Blech: ${view?.s.tray || 0}/${view?.d.trayCap || 6}`}</small></span>
+                <span><b>{a.label}</b><small>{a.id === "take" ? (auto ? "die Pumpe holt den Teig" : `draußen am Teigberg · ${view?.d.carryCap || 8} Kekse`) : a.id === "deliver" ? `in der Hand: ${view?.s.carry || 0}` : auto ? "läuft automatisch – hilf mit" : a.id === "roll" ? (view?.d.walze ? "Kurbel drehen" : `${view?.d.strokes || 3}× rollen`) : a.id === "cut" ? (view?.d.pressSize ? "Hebel ziehen" : `${view?.d.cutter || 1} pro Stich`) : `Blech: ${view?.s.tray || 0}/${view?.d.trayCap || 6}`}</small></span>
                 <kbd>{a.key}</kbd>
               </button>
             );
           })}
-          <p className="ccHint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> laufen · Maus ziehen zum Umsehen · Klick auf eine Station arbeitet dort · <kbd>Leertaste</kbd> macht den nächsten sinnvollen Schritt</p>
+          <p className="ccHint">Die Knöpfe und <kbd>1</kbd>–<kbd>5</kbd> laufen automatisch zur richtigen Stelle · <kbd>Leertaste</kbd> macht den nächsten sinnvollen Schritt · <kbd>Shift</kbd> rennen</p>
         </div>
 
         {view && (
@@ -318,6 +337,19 @@ export function CookieCrisis({ user, onLogin }) {
       )}
     </section>
   );
+}
+
+// What you are looking at and what a click would do there.
+function TargetHint({ look, s, d }) {
+  const t = look.target;
+  if (!t || !s) return look.outside && s?.carry > 0 ? <div className="ccPrompt">Bring den Teig zur Werkbank in der Backstube</div> : null;
+  let text = `${t.label}`, ok = true;
+  if (t.id === "take" && s.carry >= d.carryCap) { text = "Hände voll – bring den Teig zur Werkbank"; ok = false; }
+  else if (t.id === "deliver" && s.carry <= 0) { text = "Erst draußen am Teigberg Teig greifen"; ok = false; }
+  else if (t.id === "roll" && s.ball <= 0) { text = "Kein Teig zum Ausrollen"; ok = false; }
+  else if (t.id === "cut" && s.sheet <= 0) { text = "Erst Teig ausrollen"; ok = false; }
+  else if (t.id === "load" && s.tray <= 0) { text = "Das Blech ist leer"; ok = false; }
+  return <div className={`ccPrompt${ok ? "" : " no"}`}>{ok && <kbd>{look.locked ? "Klick" : "Tippen"}</kbd>} {text}{ok && !t.near ? " (hinlaufen)" : ""}</div>;
 }
 
 function Upgrade({ u, s, d, tp, onBuy, recommended: rec = false }) {

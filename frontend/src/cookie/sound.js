@@ -64,6 +64,7 @@ export function createSound() {
   }
 
   const sfx = {
+    take: () => { noise(0.25, { freq: 300, q: 0.5, gain: 0.3 }); tone(140, 0.15, { slide: -60, gain: 0.12 }); },
     portion: () => { noise(0.18, { freq: 400, gain: 0.25 }); tone(180, 0.12, { slide: -80, gain: 0.12 }); },
     roll: () => noise(0.22, { freq: 700, q: 0.6, gain: 0.18 }),
     rolled: () => { noise(0.25, { freq: 600, gain: 0.2 }); tone(520, 0.12, { gain: 0.06, type: "triangle" }); },
@@ -84,6 +85,8 @@ export function createSound() {
   }
 
   return {
+    // footsteps: crunchy snow outside, wooden floor inside
+    step(outside) { if (!ctx || muted) return; if (outside) noise(0.16, { freq: 1800 + Math.random() * 600, q: 0.7, gain: 0.07 }); else { tone(110 + Math.random() * 30, 0.06, { gain: 0.05, type: "triangle" }); noise(0.05, { freq: 500, gain: 0.03 }); } },
     get muted() { return muted; },
     get music() { return musicOn; },
     unlock() { ensure(); if (musicOn && music) music.play().catch(() => {}); },

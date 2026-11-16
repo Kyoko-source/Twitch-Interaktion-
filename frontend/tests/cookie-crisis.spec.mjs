@@ -18,6 +18,8 @@ async function mock(page, store) {
   await page.addInitScript(() => localStorage.setItem("aviary_token", "token"));
 }
 
+test.setTimeout(120_000);
+
 test("the first cookie is made by hand: dough, rolling, cutting, belt, oven, chute, one taler", async ({ page }) => {
   const errors = []; page.on("pageerror", (e) => errors.push(e.message));
   const store = {};
@@ -25,7 +27,15 @@ test("the first cookie is made by hand: dough, rolling, cutting, belt, oven, chu
   await page.goto("/#games/cookie-crisis");
   await expect(page.getByTestId("cookie-game")).toBeVisible();
   await expect(page.getByTestId("cookie-baked")).toHaveText("0");
-  await page.getByTestId("cookie-portion").click();
+  await expect(page.locator(".ccLoading")).toHaveCount(0, { timeout: 30_000 });
+  if (SHOTS) { await page.waitForTimeout(800); await page.locator(".ccStage").screenshot({ path: `${SHOTS}/cookie-inside.png` }); }
+  // walk out to the dough mountain and grab dough with your hands
+  await page.getByTestId("cookie-take").click();
+  await expect(page.getByTestId("cookie-deliver")).toContainText("in der Hand: 8", { timeout: 20_000 });
+  if (SHOTS) { await page.waitForTimeout(500); await page.locator(".ccStage").screenshot({ path: `${SHOTS}/cookie-mountain.png` }); }
+  // carry it back to the workbench and put it down
+  await page.getByTestId("cookie-deliver").click();
+  await expect(page.getByTestId("cookie-deliver")).toContainText("in der Hand: 0", { timeout: 20_000 });
   for (let i = 0; i < 3; i++) await page.getByTestId("cookie-roll").click();
   for (let i = 0; i < 4; i++) await page.getByTestId("cookie-cut").click();
   if (SHOTS) await page.locator(".ccStage").screenshot({ path: `${SHOTS}/cookie-start.png` });
@@ -103,7 +113,7 @@ test("phone layout: no sideways scrolling, buttons reachable", async ({ page }) 
   await page.goto("/#games/cookie-crisis");
   await expect(page.getByTestId("cookie-game")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByTestId("cookie-portion").click();
+  await page.getByTestId("cookie-take").click();
   await expect(page.locator(".ccHud")).toBeVisible();
   await expect(page.locator(".ccShop")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

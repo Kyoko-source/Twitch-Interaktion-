@@ -11,7 +11,7 @@ from app.economy import EconomyStore
 
 
 def save(**over):
-    base = {"v": 1, "t": 100.0, "dough": 1_000_000 - 30, "ball": 8, "sheet": 2, "tray": 3, "queue": 2, "exit": 1,
+    base = {"v": 1, "t": 100.0, "dough": 1_000_000 - 38, "carry": 8, "ball": 8, "sheet": 2, "tray": 3, "queue": 2, "exit": 1,
             "belt": [[3.5, 4], [1.0, 2]], "falling": [[101.0, 1]], "baked": 7, "earned": 7, "talers": 5, "spent": 2, "levels": {}}
     base.update(over)
     return json.dumps(base)
@@ -52,13 +52,13 @@ class CookieSaveTests(unittest.TestCase):
 
     def test_an_old_tab_cannot_overwrite_progress_but_a_reset_can(self):
         self.assertEqual(self.put(save()).status_code, 200)
-        older = save(dough=1_000_000 - 23, baked=0, earned=0, talers=0, spent=0)
+        older = save(dough=1_000_000 - 31, baked=0, earned=0, talers=0, spent=0)
         self.assertEqual(self.put(older).status_code, 409)
         self.assertEqual(self.put(older, reset=True).status_code, 200)
 
     def test_finale_needs_a_million_and_real_play_time(self):
         self.assertEqual(self.client.post("/api/cookie/finale", headers={"x-test-user": "alice"}).status_code, 400)
-        done = dict(dough=0, ball=0, sheet=0, tray=0, queue=0, exit=0, belt=[], falling=[], baked=1_000_000, earned=1_000_000, talers=10, spent=999_990)
+        done = dict(dough=0, carry=0, ball=0, sheet=0, tray=0, queue=0, exit=0, belt=[], falling=[], baked=1_000_000, earned=1_000_000, talers=10, spent=999_990)
         self.assertEqual(self.put(save(t=60, **done)).status_code, 200)
         self.assertEqual(self.client.post("/api/cookie/finale", headers={"x-test-user": "alice"}).status_code, 400)
         self.assertEqual(self.put(save(t=4 * 3600, **done)).status_code, 200)

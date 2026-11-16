@@ -41,7 +41,7 @@ def check(data: dict[str, Any]) -> tuple[int, float]:
     if not isinstance(data, dict) or data.get("v") != 1:
         raise ValueError("Unbekannter Spielstand.")
     try:
-        counts = {k: int(data.get(k) or 0) for k in ("dough", "ball", "sheet", "tray", "queue", "exit", "baked", "talers", "earned", "spent")}
+        counts = {k: int(data.get(k) or 0) for k in ("dough", "carry", "ball", "sheet", "tray", "queue", "exit", "baked", "talers", "earned", "spent")}
         belt = sum(int(b[1]) for b in data.get("belt") or [])
         falling = sum(int(b[1]) for b in data.get("falling") or [])
         play = float(data.get("t") or 0)
@@ -49,7 +49,7 @@ def check(data: dict[str, Any]) -> tuple[int, float]:
         raise ValueError("Spielstand ist beschädigt.") from error
     if any(v < 0 for v in counts.values()) or belt < 0 or falling < 0:
         raise ValueError("Spielstand ist beschädigt.")
-    total = counts["dough"] + counts["ball"] + counts["sheet"] + counts["tray"] + counts["queue"] + belt + counts["exit"] + falling + counts["baked"]
+    total = counts["dough"] + counts["carry"] + counts["ball"] + counts["sheet"] + counts["tray"] + counts["queue"] + belt + counts["exit"] + falling + counts["baked"]
     if total != GOAL:
         raise ValueError("Die Teigbilanz stimmt nicht.")
     if counts["earned"] != counts["baked"] or counts["talers"] + counts["spent"] != counts["earned"]:
