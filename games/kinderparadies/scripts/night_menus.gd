@@ -56,7 +56,7 @@ static func home(g: Node3D) -> void:
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
  var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
- var version: Label=g._label("v4.5.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.6.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -139,6 +139,10 @@ static func credits(g: Node3D) -> void:
  var rosenyan:=RichTextLabel.new();rosenyan.name="RosenyanCredit";rosenyan.bbcode_enabled=true;rosenyan.fit_content=true;rosenyan.custom_minimum_size.x=440;rosenyan.add_theme_font_size_override("normal_font_size",18)
  rosenyan.text=AfterPlayLanguage.t("Rosenyan-Puppe: Charakter und Stimme von RosenyanVT. Alle Rechte an Figur und Aufnahme liegen bei RosenyanVT.")+" [url=https://www.twitch.tv/rosenyanvt]twitch.tv/rosenyanvt[/url]"
  rosenyan.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(rosenyan)
+ column.add_child(g._label("Charakter & Stimme der einsmarello-Puppe",23))
+ var marello:=RichTextLabel.new();marello.name="EinsmarelloCredit";marello.bbcode_enabled=true;marello.fit_content=true;marello.custom_minimum_size.x=440;marello.add_theme_font_size_override("normal_font_size",18)
+ marello.text=AfterPlayLanguage.t("einsmarello-Puppe: Charakter und Gesang von einsmarello. Alle Rechte an Figur und Aufnahme liegen bei einsmarello.")+" [url=https://www.twitch.tv/einsmarello]twitch.tv/einsmarello[/url]"
+ marello.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(marello)
  column.add_child(g._label("Partymusik",23))
  var party_credit:=RichTextLabel.new();party_credit.name="PartyMusicCredit";party_credit.bbcode_enabled=true;party_credit.fit_content=true;party_credit.custom_minimum_size.x=440;party_credit.add_theme_font_size_override("normal_font_size",18)
  party_credit.text=HappylandParty.MUSIC_CREDIT

@@ -1,5 +1,23 @@
 # After Play — Kinderparadies
 
+## einsmarello-Puppe (4.6.0)
+
+Neben der Rosenyan-Puppe sitzt jetzt eine Plüschpuppe von **einsmarello**:
+langes blondes Haar, schwarzer Katzenohren-Kopfhörer mit leuchtend pinken
+Ohren, pinke Herzaugen, „:3“-Mund, schwarzer Hoodie mit pinken Streifen und
+Kronen-Patch, ein Glas Rotkohl im Arm (mit Aufschrift), Pfotenabdrücke unter
+den Füßen und Katzenschwanz. Beim Aufheben singt sie „I'm a Barbie girl in a
+Barbie world“; der Nachtwächter kommentiert mit
+„Oh, einsmarello. Mit Rotkohl. Peak Gesang, ehrlich.“
+
+Beide Puppen laufen jetzt über `scripts/creator_plush.gd`. Figur und Gesang
+gehören einsmarello (Mitwirkende, Abspann, `Lizenzhinweise.txt`,
+`assets/einsmarello-v460/LICENSE.txt`; Lied und Text: „Barbie Girl“ von Aqua).
+Quellen: `tools/model-after-play-einsmarello-v460.py`,
+`tools/make-after-play-einsmarello-v460.py` (12,95–16,85 s des Clips).
+Prüfung: `--self-test --rosenyan-only` (beide Puppen),
+Bildkontrolle: `--render-qa --rosenyan-qa`.
+
 ## Rosenyan-Puppe (4.5.0)
 
 Im Spielbereich neben Holzbausteinen und Stoffhase sitzt eine rosa

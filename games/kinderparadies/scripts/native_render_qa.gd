@@ -27,12 +27,13 @@ func run(game: Node3D) -> void:
   game.get_tree().quit();return
  if "--rosenyan-qa" in OS.get_cmdline_user_args():
   game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
-  var plush: Node3D=game.world.atmosphere.find_child("RosenyanPlush",true,false)
-  var at: Vector3=plush.global_position;var front: Vector3=plush.global_basis.z
-  for shot in [[front*1.15,"rosenyan-00-front"],[front.rotated(Vector3.UP,.7)*1.6,"rosenyan-01-corner"],[front*2.6+Vector3(1.2,0,0),"rosenyan-02-room"]]:
-   game.player.global_position=at+shot[0]+Vector3(0,-.225,0);game.player.lamp.show()
-   game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
-   await capture(game,output,shot[1])
+  for id in ["rosenyan","einsmarello"]:
+   var plush: Node3D=game.world.atmosphere.find_child(CreatorPlush.PLUSHES[id].node,true,false)
+   var at: Vector3=plush.global_position;var front: Vector3=plush.global_basis.z
+   for shot in [[front*1.15,id+"-00-front"],[front.rotated(Vector3.UP,.7)*1.6,id+"-01-corner"],[front*2.6+Vector3(1.2,0,0),id+"-02-room"]]:
+    game.player.global_position=at+shot[0]+Vector3(0,-.225,0);game.player.lamp.show()
+    game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
+    await capture(game,output,shot[1])
   game.get_tree().quit();return
  if "--wc-qa" in OS.get_cmdline_user_args():
   game._build_world("wc_ceiling_guest");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)

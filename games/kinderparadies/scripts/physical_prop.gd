@@ -25,7 +25,7 @@ func _ready() -> void:
  collision_layer=2;collision_mask=3;continuous_cd=true
  linear_damp=.35;angular_damp=.65
  contact_monitor=true;max_contacts_reported=3
- var sound:="rubber" if title=="Spielball" else "wood" if title=="Holzbaustein" else "cloth" if title in ["Stoffhase","Rosenyan-Puppe"] else "plastic"
+ var sound:="rubber" if title=="Spielball" else "wood" if title=="Holzbaustein" else "cloth" if title=="Stoffhase" or title in CreatorPlush.TITLES else "plastic"
  impact=AudioStreamPlayer3D.new();impact.stream=load("res://assets/polish/impact-"+sound+".wav")
  impact.volume_db=-26;impact.unit_size=2;impact.max_distance=9;add_child(impact)
  body_entered.connect(_impact)

@@ -21,7 +21,7 @@ func run(game: Node3D) -> bool:
   return failures.is_empty()
  if "--rosenyan-only" in OS.get_cmdline_user_args():
   await load("res://scripts/rosenyan_validation.gd").new().run(game,check)
-  print("Rosenyan plush checks: ",checks,"; failures: ",failures.size())
+  print("Creator plush checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
  if "--dialogue-only" in OS.get_cmdline_user_args():
   await load("res://scripts/dialogue_validation.gd").new().run(game,check)
@@ -368,7 +368,7 @@ func run(game: Node3D) -> bool:
  check(not body.freeze,"Objects failed to resume after pause")
  game.player.grab_prop();game._build_world("none")
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
- check(game.world.atmosphere.loose.size()==30,"Physical toy budget must include the single rolling paper cup and the Rosenyan plush")
+ check(game.world.atmosphere.loose.size()==31,"Physical toy budget must include the single rolling paper cup and both creator plushies")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
  check(is_instance_valid(game.world.playground.croc_visual),"Shared crocodile mesh was not instantiated")
  check(is_instance_valid(game.world.playground.croc_jaw),"Shared crocodile upper jaw is missing")

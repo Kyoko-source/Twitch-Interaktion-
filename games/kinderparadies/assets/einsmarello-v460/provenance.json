@@ -1,0 +1,12 @@
+{
+  "line": "I'm a Barbie girl in a Barbie world (sung)",
+  "speaker": "einsmarello",
+  "source_file": "Peak-Gesang-oder-so-einsmarello-_720p_.mp3",
+  "source_sha256": "05974b3dc77536d98e8fde7c513b61d1c72dc9cbdf47b2c5c0a957ee70680af0",
+  "cut_seconds": [
+    12.95,
+    16.85
+  ],
+  "seconds": 3.9,
+  "output_sha256": "16f33ff1fb7133852cbd39c3d72c8a079e820b0157bc8187702841c1192886b1"
+}

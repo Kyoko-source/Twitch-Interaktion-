@@ -83,5 +83,10 @@
     "de": ["uhh RosenyanVT. Mehr Cozyness geht nicht"],
     "en": ["uhh RosenyanVT. Peak coziness, right here"],
     "emphasis": ["RosenyanVT", "Cozyness", "coziness"]
+  },
+  "einsmarello": {
+    "de": ["Oh, einsmarello. Mit Rotkohl. Peak Gesang, ehrlich."],
+    "en": ["Oh, einsmarello. With red cabbage. Peak singing, honestly."],
+    "emphasis": ["einsmarello", "Rotkohl", "Peak Gesang", "red cabbage", "Peak singing"]
   }
 }

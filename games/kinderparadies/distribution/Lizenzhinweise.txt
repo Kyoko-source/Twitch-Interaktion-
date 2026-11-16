@@ -35,6 +35,14 @@ keine der anderen hier genannten Lizenzen freigegeben. Das 3D-Modell der Puppe w
 After Play nach ihrem Charakterdesign modelliert; die Aufnahme wurde nur gekuerzt und in der
 Lautstaerke angepasst.
 
+EINSMARELLO-PUPPE (4.6.0)
+Die Figur "einsmarello" und die Gesangsaufnahme gehoeren einsmarello (https://www.twitch.tv/einsmarello). Alle Rechte an Figur,
+Design und Aufnahme liegen bei einsmarello; sie werden fuer diese Plueschpuppe in After Play mit
+Nennung verwendet und durch keine der anderen hier genannten Lizenzen freigegeben. Gesungen wird
+eine kurze Zeile aus "Barbie Girl" (Aqua); Rechte an Lied und Text liegen bei den Rechteinhabern
+des Titels. Das 3D-Modell wurde fuer After Play nach ihrem Charakterbild modelliert; die Aufnahme
+wurde nur gekuerzt und in der Lautstaerke angepasst.
+
 MUSIK, SPRACHE UND BILDER
 Hauptmenü: Abandoned Arcade, Künstlerangabe in der bereitgestellten Aufnahme: turbulentmicrogenres466.
 Musik und Sprachaufnahmen wurden vom Spieleersteller zur Verwendung in After Play bereitgestellt. Sie werden durch die obigen CC0-Lizenzen nicht freigegeben.

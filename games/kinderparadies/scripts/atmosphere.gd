@@ -219,7 +219,7 @@ func _physical_toys() -> void:
  bucket.suspend(true)
  var toy:=prop(Vector3(-4.8,.33,7.2),Vector3(.4,.62,.35),w.materials.fabric,"Stoffhase",.65)
  toy.get_child(0).queue_free();plush(toy,Vector3(0,-.29,0),.6)
- RosenyanPlush.place(self)
+ CreatorPlush.place_all(self)
 
 func _mist_and_dust() -> void:
  var shader:=Shader.new();shader.code="""

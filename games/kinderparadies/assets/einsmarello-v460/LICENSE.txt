@@ -1,0 +1,7 @@
+einsmarello plush (After Play 4.6.0)
+Character "einsmarello" and the sung line: einsmarello, https://www.twitch.tv/einsmarello. All rights to the character, its design and
+the recording remain with einsmarello. They are used in After Play with credit and are not covered by
+any other licence in this project. The sung line quotes "Barbie Girl" (Aqua); rights to the song
+and lyrics remain with their owners.
+3D model: built for After Play after einsmarello's character picture (tools/model-after-play-einsmarello-v460.py).
+Voice: cut from einsmarello's clip, loudness adjusted only (tools/make-after-play-einsmarello-v460.py).

@@ -53,6 +53,7 @@ func build(game: Node3D, number: int=2) -> void:
  _gap(65);_line("TESTSPIELER",21,Color("b4aa90"))
  for tester in TESTERS: _line(tester,37)
  _gap(65);_line("ROSENYAN-PUPPE · CHARAKTER & STIMME",21,Color("b4aa90"));_line("RosenyanVT",43);_line("twitch.tv/rosenyanvt",19,Color("8a8c83"))
+ _gap(65);_line("EINSMARELLO-PUPPE · CHARAKTER & STIMME",21,Color("b4aa90"));_line("einsmarello",43);_line("twitch.tv/einsmarello",19,Color("8a8c83"))
  _gap(85);_line("Vielen Dank fürs Spielen.",38)
  _gap(65);_line("GODOT ENGINE",23);_line("Asset-Quellen und Lizenzen: Mitwirkende im Hauptmenü und Dateien im Windows-Paket.",17,Color("8a8c83"))
  _gap(65);_line("Partymusik",23,Color("b4aa90"));_line(HappylandParty.MUSIC_CREDIT,21)
