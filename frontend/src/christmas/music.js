@@ -3,6 +3,8 @@
 // interacts with the page, so a blocked start waits for the first click or key press.
 const SRC = "/music/christmas/cozy-christmas-village.mp3";
 const KEY = "aviary_xmas_music";
+// The song is quiet background: even the slider at 100 % only plays at 30 % of full volume.
+const MASTER = 0.3;
 
 let audio = null;
 let fadeTimer = 0;
@@ -13,9 +15,9 @@ const listeners = new Set();
 function readPrefs() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
-    return { muted: Boolean(raw.muted), volume: typeof raw.volume === "number" ? Math.min(1, Math.max(0, raw.volume)) : 0.35 };
+    return { muted: Boolean(raw.muted), volume: typeof raw.volume === "number" ? Math.min(1, Math.max(0, raw.volume)) : 0.4 };
   } catch {
-    return { muted: false, volume: 0.35 };
+    return { muted: false, volume: 0.4 };
   }
 }
 
@@ -63,8 +65,8 @@ function armRetry() {
 function start(fadeMs) {
   const a = element();
   const playing = a.play();
-  if (playing?.catch) playing.then(() => fadeTo(prefs.volume, fadeMs)).catch(() => armRetry());
-  else fadeTo(prefs.volume, fadeMs);
+  if (playing?.catch) playing.then(() => fadeTo(prefs.volume * MASTER, fadeMs)).catch(() => armRetry());
+  else fadeTo(prefs.volume * MASTER, fadeMs);
 }
 
 // Should the song play right now? (Christmas on, not muted, not on a page with its own sound.)
@@ -90,7 +92,7 @@ export function setMusicMuted(muted, active) {
 export function setMusicVolume(volume) {
   prefs = { ...prefs, volume: Math.min(1, Math.max(0, Number(volume) || 0)) };
   savePrefs();
-  if (audio && wanted) { window.clearInterval(fadeTimer); audio.volume = prefs.volume; }
+  if (audio && wanted) { window.clearInterval(fadeTimer); audio.volume = prefs.volume * MASTER; }
 }
 
 export function onMusicPrefs(fn) {
