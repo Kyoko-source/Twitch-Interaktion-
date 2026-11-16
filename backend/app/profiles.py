@@ -222,8 +222,7 @@ def badges(level: dict[str, Any], d: dict[str, Any], s: dict[str, Any], g: list[
         b("rich", "Goldgrube", "10.000 Chickens erspielt.", "coins", "gold", earned_chickens, 10000),
         b("level-12", "Federheld", "Level 12 erreicht.", "star", "silver", int(level["level"]), 12),
         b("phoenix", "Phönix", "Level 25: der Phönix-Hengst gehört dir.", "phoenix", "legend", int(level["level"]), 25),
-        b("cookie-master", cookie_game.TITLE, "Santa's Cookie Crisis: 1.000.000 Kekse gebacken.", "cookie", "legend", 1 if cookie and cookie.get("finished") else 0, 1),
-    ]
+    ] + ([b("cookie-master", cookie_game.TITLE, "Santa's Cookie Crisis: 1.000.000 Kekse gebacken.", "cookie", "legend", 1, 1)] if cookie and cookie.get("finished") else [])
 
 
 def card(db, username: str, earned_chickens: int = 0, now: float | None = None) -> dict[str, Any]:

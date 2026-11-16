@@ -24,7 +24,6 @@ export const gameMeta = {
   "chicken-flipper": { title: "PEPPLE Pinball", accent: "#7affd3", text: "After Hours / PEPPLE Pinball." },
   "chicken-defense": { title: "Chicken Defense", accent: "#ff6a4a", text: "Zehn Hühner-Türme gegen Füchse, Krähen und Wölfe. Erst gemütlich, dann komplettes Chaos." },
   "braincell-survivor": { title: "Pepple Survivor", accent: "#ff6fb7", text: "Weiche Schwarmdrohnen aus und sammle so lange wie möglich Chickens." },
-  "cookie-crisis": { title: "Santa's Cookie Crisis", accent: "#ffd23f", text: "Ein Elf, 25 Tonnen Teig, eine Million Plätzchen: Aus einem Holztisch wird die größte Keksfabrik des Nordpols." },
   "horse-race": { title: "Chicken Derby", accent: "#ff6a3d", text: "Neun Pferde, fünf Runden, ein Einsatz von 50 Credits. Gewinnt dein Pferd, verdoppelst du." },
   slots: { title: "Chicken Jackpot", accent: "#ffd36b", text: "Der überladene Neon-Slotautomat: 5 Walzen, 10 Linien, Mega-Wins – nur mit virtuellen Chickens." },
   dnd: { title: "Dungeons and Dragons", accent: "#ff4f6d", text: "Euer eigener Pen-&-Paper-Tisch mit DM, Helden, Battlemap und echten Würfeln." },

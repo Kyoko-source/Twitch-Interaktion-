@@ -1,0 +1,4 @@
+Original recorded footsteps: Kenney Impact Sounds, CC0 1.0.
+https://kenney.nl/assets/impact-sounds
+https://creativecommons.org/publicdomain/zero/1.0/
+Source filenames and SHA256 checksums: provenance.json

@@ -17,7 +17,7 @@ from mathutils import Vector, noise
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "frontend/public/assets/cookie"
+OUT = ROOT / "games/cookie-crisis/assets/models"
 OUT.mkdir(parents=True, exist_ok=True)
 rng = random.Random(1225)
 
@@ -366,14 +366,12 @@ def build_mountain():
             text((-3.6, 1.42, 3.89), "25 t KEKSTEIG", .2, M["label"]), text((-3.6, 1.18, 3.89), "vom Weihnachtsmann", .11, M["label"])]
     join("MountainSign", sign)
     # the dough blob the elf carries
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=4, radius=.09, location=(20, 0, 0))
+    # (the blob is centred on its own origin, so the game can hold and place it)
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=4, radius=.09, location=(0, 0, 0))
     b = bpy.context.object
     for v in b.data.vertices:
-        v.co = (v.co - Vector((20, 0, 0))) * (1 + noise.noise(v.co * 25) * .12) + Vector((20, 0, 0))
+        v.co = v.co * (1 + noise.noise(v.co * 25 + Vector((7, 3, 1))) * .12)
     finish(b, M["dough"]); b.name = "DoughBlob"; b.data.name = "DoughBlob"
-    b.location = (0, 0, 0)
-    for v in b.data.vertices:
-        v.co.x -= 20
     export("mountain.glb")
 
 

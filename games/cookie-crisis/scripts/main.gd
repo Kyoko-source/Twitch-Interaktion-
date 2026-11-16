@@ -75,6 +75,7 @@ func _ready() -> void:
 	_load_save()
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--qa-shots="): _qa(arg.split("=")[1])
+		if arg.begins_with("--qa-play="): _qa_play(arg.split("=")[1])
 
 # Screenshots of fixed scenes for review: godot --path games/cookie-crisis -- --qa-shots=<folder>
 func _qa(dir: String) -> void:
@@ -99,6 +100,68 @@ func _qa(dir: String) -> void:
 	for i in 20: await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png("%s/godot-shop.png" % dir)
 	get_tree().quit()
+
+# Plays the real game through the player's own walking and interactions and reports anything odd.
+func _qa_play(dir: String) -> void:
+	await get_tree().process_frame
+	while not ready_state: await get_tree().process_frame
+	s = CookieSim.create(); d = CookieSim.derive(s.levels)
+	Engine.time_scale = 3.0
+	var issues := []
+	var shots := 0
+	var steps := 0
+	var bought := {}
+	while s.baked < 60 and steps < 400:
+		steps += 1
+		var a := _next_step()
+		if a == "":
+			for i in 30: await get_tree().physics_frame
+			continue
+		var before := s.duplicate(true)
+		if not _near_spot(a):
+			player.go_to(a)
+			var waited := 0
+			while player.auto_path.size() and waited < 1200:
+				await get_tree().physics_frame; waited += 1
+			if player.auto_path.size():
+				issues.append("stuck walking to %s at %s" % [a, player.global_position]); player.auto_path.clear(); player.global_position = Vector3(SPOTS[ACTION_SPOT[a]].x, 0.05, SPOTS[ACTION_SPOT[a]].z)
+		else:
+			_perform(a)
+		for i in 6: await get_tree().physics_frame
+		var changed := false
+		for k in ["carry", "ball", "sheet", "tray", "queue", "rollProgress"]:
+			if str(before[k]) != str(s[k]): changed = true
+		if not changed: issues.append("%s did nothing (carry %d ball %d sheet %d tray %d)" % [a, s.carry, s.ball, s.sheet, s.tray])
+		if player.global_position.y < -0.5 or is_nan(player.global_position.x): issues.append("player fell: %s" % player.global_position)
+		if CookieSim.total_dough(s) != CookieSim.GOAL: issues.append("dough balance broken")
+		if steps % 25 == 0 and shots < 6:
+			get_viewport().get_texture().get_image().save_png("%s/qa-play-%d.png" % [dir, shots]); shots += 1
+		if s.talers >= 12 and not bought.has("eimer"): bought.eimer = _buy_ok("eimer")
+		if s.talers >= 18 and not bought.has("bandtempo"): bought.bandtempo = _buy_ok("bandtempo")
+	print("QA: steps %d, baked %d, talers %d, spent %d, game time %.0f s" % [steps, s.baked, s.talers, s.spent, s.t])
+	if s.talers + s.spent != s.earned: issues.append("talers do not add up")
+	var phys := 0
+	for rb in physics_cookies: if rb.visible: phys += 1
+	print("QA: physics cookies visible %d, coins %d" % [phys, coin_pile.multimesh.visible_instance_count])
+	# machines: buy everything that exists and check the line keeps running
+	s.talers = 5000000; s.earned = 400000
+	for u in CookieSim.UPGRADES:
+		for k in u.max: CookieSim.buy(s, u.id)
+	d = CookieSim.derive(s.levels)
+	var baked0: int = s.baked
+	player.global_position = Vector3(0.6, 0.05, 2.0); player.rotation.y = 0.35
+	for i in 400: await get_tree().physics_frame
+	get_viewport().get_texture().get_image().save_png("%s/qa-play-factory.png" % dir)
+	if s.baked <= baked0: issues.append("factory produced nothing (baked %d)" % s.baked)
+	print("QA: factory baked %d more cookies" % (s.baked - baked0))
+	for i in issues.slice(0, 40): print("QA ISSUE: ", i)
+	print("QA: %d issues" % issues.size())
+	get_tree().quit()
+
+func _buy_ok(id: String) -> bool:
+	var ok := CookieSim.buy(s, id)
+	d = CookieSim.derive(s.levels)
+	return ok
 
 func _inputs() -> void:
 	var keys := {"forward": [KEY_W, KEY_UP], "back": [KEY_S, KEY_DOWN], "left": [KEY_A, KEY_LEFT], "right": [KEY_D, KEY_RIGHT], "run": [KEY_SHIFT],

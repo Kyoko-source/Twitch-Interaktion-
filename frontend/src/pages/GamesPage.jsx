@@ -11,7 +11,6 @@ const Nullsignal = lazy(() => import("../nullsignal/Nullsignal").then((module) =
 const ChickenJackpot = lazy(() => import("../slots/ChickenJackpot").then((module) => ({ default: module.ChickenJackpot })));
 const HorseRace = lazy(() => import("../horses/HorseRace").then((module) => ({ default: module.HorseRace })));
 const ChickenDefense = lazy(() => import("../defense/ChickenDefense").then((module) => ({ default: module.ChickenDefense })));
-const CookieCrisis = lazy(() => import("../cookie/CookieCrisis").then((module) => ({ default: module.CookieCrisis })));
 const AfterPlay = lazy(() => import("../nachtwache/Nachtwache").then((module) => ({ default: module.AfterPlay })));
 
 export const Scoreboard = GameScoreboard;
@@ -46,7 +45,6 @@ export function GamesPage({ user }) {
     slots: <Suspense fallback={<div className="notice">Der Automat wird angeschaltet …</div>}><ChickenJackpot user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     "horse-race": <Suspense fallback={<div className="notice">Die Pferde werden gesattelt …</div>}><HorseRace user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     dnd: <Suspense fallback={<div className="notice">Der Spieltisch wird aufgebaut …</div>}><DungeonsAndDragons user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
-    "cookie-crisis": <Suspense fallback={<div className="notice">Die Weihnachtsbäckerei heizt den Ofen vor …</div>}><CookieCrisis user={user} onLogin={() => { window.location.hash = "login"; }} /></Suspense>,
     "nullsignal": <Suspense fallback={<div className="notice">NULLSIGNAL wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>,
     "after-play": <Suspense fallback={<div className="notice">After Play wird vorbereitet …</div>}><AfterPlay/></Suspense>,
   }[game];
@@ -63,8 +61,7 @@ export function GamesPage({ user }) {
       </div>
       {(game === "chicken-flipper" || game === "slots") && <div className="gameEarningInfo">Casino-Spiel: 1 Credit pro Runde bzw. Spin (Credits gibt es im Shop für 10 Chickens). Du gewinnst Glücksspiel-Coins (GSC), die du im Shop gegen Chickens tauschst.</div>}
       {game === "horse-race" && <div className="gameEarningInfo">Casino-Spiel: Ein Rennen kostet 50 Credits (Credits gibt es im Shop für 10 Chickens). Gewinnt dein Pferd, bekommst du 100 Credits zurück.</div>}
-      {game === "cookie-crisis" && <div className="gameEarningInfo">3D-Weihnachtsabenteuer in Ich-Perspektive (3–5 Stunden): Dein Spielstand wird automatisch gespeichert – in diesem Browser und in deinem Konto. Wer die Million schafft, bekommt den Titel „Oberster Keksmeister des Nordpols“ im Profil.</div>}
-      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && game !== "slots" && game !== "cookie-crisis" && game !== "chicken-flipper" && game !== "horse-race" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
+      {game !== "dnd" && game !== "nullsignal" && game !== "after-play" && game !== "slots" && game !== "chicken-flipper" && game !== "horse-race" && <div className="gameEarningInfo">Chickens verdienen: Runde spielen und danach den Score einreichen. Bis zu 25 pro Runde und 120 pro Tag, ab 15 Sekunden Spielzeit. Punkte und Spielzeit bestimmen deine Belohnung.</div>}
       <div className="gameTabs">
         {Object.entries(gameMeta).map(([id, meta]) => (
           <button className={game === id ? "active" : ""} key={id} onClick={() => setGame(id)} type="button">
