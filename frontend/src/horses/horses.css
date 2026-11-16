@@ -9,9 +9,16 @@
 .hrTools { position: relative; display: flex; gap: 6px; }
 .hrTools > button { display: grid; place-items: center; width: 38px; height: 38px; min-height: 38px; padding: 0; border-radius: 10px; border: 1px solid #ffffff22; background: #ffffff0a; color: #fff; box-shadow: none; }
 .hrTools > button:hover { background: #ffd36b22; border-color: #ffd36b88; }
-.hrVolume { position: absolute; right: 0; top: 46px; z-index: 30; display: grid; gap: 10px; min-width: 250px; padding: 14px; border-radius: 14px; background: #12162cf2; border: 1px solid #ffd36b55; box-shadow: 0 20px 40px #0008; }
-.hrVolume label { display: grid; grid-template-columns: auto 1fr 30px; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
-.hrVolume b { text-align: right; color: var(--gold); }
+.hrVolume { position: absolute; right: 0; top: 46px; z-index: 30; display: grid; gap: 12px; width: 310px; max-width: calc(100vw - 24px); padding: 14px 16px; border-radius: 14px; background: #12162cf2; border: 1px solid #ffd36b55; box-shadow: 0 20px 40px #0008; }
+.hrVolume label { display: grid; grid-template-columns: 16px 58px minmax(0, 1fr) 30px; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.hrVolume b { text-align: right; color: var(--gold); font-variant-numeric: tabular-nums; }
+.hrVolume input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; cursor: pointer; }
+.hrVolume input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #ffd36b var(--fill, 50%), rgba(255, 255, 255, 0.14) var(--fill, 50%)); }
+.hrVolume input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); }
+.hrVolume input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: #ffd36b; }
+.hrVolume input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%; background: #fff; border: 2px solid #ffd36b; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+.hrVolume input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid #ffd36b; }
+.hrVolume input[type="range"]:focus-visible { outline: 2px solid #ffd36b; outline-offset: 2px; box-shadow: none; }
 
 .hrLeds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .hrLeds > div { padding: 8px 12px; border-radius: 12px; background: linear-gradient(180deg, #161a33, #0b0e20); border: 1px solid #ffffff1a; min-width: 0; }

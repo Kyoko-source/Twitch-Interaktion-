@@ -48,8 +48,8 @@ function VolumePanel({ audio }) {
   const [music, setMusic] = useState(audio.musicVolume);
   return (
     <div className="hrVolume" role="group" aria-label="Lautstärke">
-      <label><Volume2 size={15} /> Effekte <input type="range" min="0" max="1" step="0.05" value={sfx} onChange={(e) => { const v = Number(e.target.value); setSfx(v); audio.setSfxVolume(v); }} /><b>{Math.round(sfx * 100)}</b></label>
-      <label><Music size={15} /> Musik <input type="range" min="0" max="1" step="0.05" value={music} onChange={(e) => { const v = Number(e.target.value); setMusic(v); audio.setMusicVolume(v); }} /><b>{Math.round(music * 100)}</b></label>
+      <label><Volume2 size={15} aria-hidden="true" /><span>Effekte</span><input type="range" min="0" max="1" step="0.05" value={sfx} style={{ "--fill": `${sfx * 100}%` }} onChange={(e) => { const v = Number(e.target.value); setSfx(v); audio.setSfxVolume(v); }} /><b>{Math.round(sfx * 100)}</b></label>
+      <label><Music size={15} aria-hidden="true" /><span>Musik</span><input type="range" min="0" max="1" step="0.05" value={music} style={{ "--fill": `${music * 100}%` }} onChange={(e) => { const v = Number(e.target.value); setMusic(v); audio.setMusicVolume(v); }} /><b>{Math.round(music * 100)}</b></label>
     </div>
   );
 }

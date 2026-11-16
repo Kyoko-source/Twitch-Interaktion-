@@ -32,6 +32,8 @@ p { color: var(--muted); }
 input, textarea, select { background-color: #141219; border-color: #36313f; color: var(--text); font-size: 14px; }
 input::placeholder, textarea::placeholder { color: #898295; }
 input[type="range"], input[type="checkbox"], input[type="radio"] { accent-color: var(--violet); }
+/* Sliders must not get the text-field box (background, border, padding) from the global input style. */
+input[type="range"], input[type="range"]:focus { background-color: transparent; border-color: transparent; box-shadow: none; padding-left: 0; padding-right: 0; }
 .form label { color: #c9c3d5; font-size: 13px; font-weight: 500; }
 .roleBadge { min-height: 24px; border: none; border-radius: 5px; background: color-mix(in srgb, var(--role) 12%, #19171f); color: color-mix(in srgb, var(--role) 45%, #ded4ed); box-shadow: none; font-size: 10px; font-weight: 650; text-transform: none; padding: 5px 8px; letter-spacing: .01em; }
 .communityApp { min-height: 100vh; }
