@@ -1,5 +1,25 @@
 # After Play — Kinderparadies
 
+## Rosenyan-Puppe (4.5.0)
+
+Im Spielbereich neben Holzbausteinen und Stoffhase sitzt eine rosa
+Plüschpuppe von **Rosenyan**: Wellenhaar, Katzenohren, Herz-Ahoge, runde Brille,
+große blaue Augen, Jacke, Rüschenrock, Ringelstrümpfe, Schwanz mit Schleife und
+Haarschmuck. Sie lässt sich wie die anderen Spielsachen mit G aufheben, tragen
+und werfen und klingt beim Aufprall nach Stoff. Bei jedem Aufheben sagt sie
+„I am defeated“; der Nachtwächter kommentiert mit
+„uhh RosenyanVT. Mehr Cozyness geht nicht“ (bei eingeschalteten Untertiteln,
+nie doppelt in der Warteschlange).
+
+Figur und Stimme gehören **RosenyanVT** (https://www.twitch.tv/rosenyanvt) und
+werden im Menü „Mitwirkende“, im Abspann, in `Lizenzhinweise.txt` und in
+`assets/rosenyan-v450/LICENSE.txt` genannt. Quellen:
+`tools/model-after-play-rosenyan-v450.py` (Filzmodell, sitzend, ca. 89.000
+Dreiecke) und `tools/make-after-play-rosenyan-v450.py` (Schnitt der letzten
+Sekunde ihres Clips, nur Lautstärke angepasst; Satzposition lokal per
+faster-whisper bestimmt). Prüfung: `--self-test --rosenyan-only`,
+Bildkontrolle: `--render-qa --rosenyan-qa`.
+
 ## Neu abgemischte Schrecktöne (4.2.1)
 
 Alle Jumpscare-Geräusche sind neu und mehrschichtig abgemischt statt je ein

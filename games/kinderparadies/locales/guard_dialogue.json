@@ -78,5 +78,10 @@
     "de": ["Ach nee, cool. Lass uns zwölf Stunden einfach nur dumm rumstehen.", "Muss ein geiles Gameplay sein."],
     "en": ["Oh, cool. Let's just stand around doing nothing for twelve hours.", "Must be amazing gameplay."],
     "emphasis": ["rumstehen", "Gameplay", "doing nothing", "gameplay"]
+  },
+  "rosenyan": {
+    "de": ["uhh RosenyanVT. Mehr Cozyness geht nicht"],
+    "en": ["uhh RosenyanVT. Peak coziness, right here"],
+    "emphasis": ["RosenyanVT", "Cozyness", "coziness"]
   }
 }

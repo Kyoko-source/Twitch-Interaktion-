@@ -1,0 +1,6 @@
+Rosenyan plush (After Play 4.5.0)
+Character "Rosenyan" and the voice line "I am defeated": RosenyanVT, https://www.twitch.tv/rosenyanvt
+All rights to the character, its design and the recording remain with RosenyanVT. They are used in
+After Play with credit and are not covered by any other licence in this project.
+3D model: built for After Play after RosenyanVT's character design (tools/model-after-play-rosenyan-v450.py).
+Voice: cut from RosenyanVT's clip, loudness adjusted only (tools/make-after-play-rosenyan-v450.py).

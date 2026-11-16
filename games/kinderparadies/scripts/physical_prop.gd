@@ -1,14 +1,18 @@
 class_name NightProp
 extends RigidBody3D
 
+signal picked
+
 var title := "Spielzeug"
 var held := false:
  set(value):
+  var was_held:=held
   held=value;lock_rotation=value
   cooldown=.35 if value else .06
   if value:
    angular_velocity=Vector3.ZERO
    if impact: impact.stop()
+   if not was_held: picked.emit()
 var carry_target := Vector3.ZERO
 var impact: AudioStreamPlayer3D
 var cooldown := .6
@@ -21,7 +25,7 @@ func _ready() -> void:
  collision_layer=2;collision_mask=3;continuous_cd=true
  linear_damp=.35;angular_damp=.65
  contact_monitor=true;max_contacts_reported=3
- var sound:="rubber" if title=="Spielball" else "wood" if title=="Holzbaustein" else "cloth" if title=="Stoffhase" else "plastic"
+ var sound:="rubber" if title=="Spielball" else "wood" if title=="Holzbaustein" else "cloth" if title in ["Stoffhase","Rosenyan-Puppe"] else "plastic"
  impact=AudioStreamPlayer3D.new();impact.stream=load("res://assets/polish/impact-"+sound+".wav")
  impact.volume_db=-26;impact.unit_size=2;impact.max_distance=9;add_child(impact)
  body_entered.connect(_impact)

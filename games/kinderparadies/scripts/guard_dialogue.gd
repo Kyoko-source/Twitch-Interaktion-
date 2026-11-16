@@ -53,6 +53,12 @@ func request(id: String) -> bool:
  game._save()
  return true
 
+# Lines tied to an action (the Rosenyan plush) may come back each time, but never queue twice.
+func request_again(id: String) -> bool:
+ if not catalog.has(id) or current==id or id in pending:return false
+ seen.erase(id)
+ return request(id)
+
 func focuses(point: Vector3,distance: float) -> bool:
  var camera: Camera3D=game.player.camera;var toward:=point-camera.global_position
  if toward.length()>distance or toward.length()<.1 or -camera.global_basis.z.dot(toward.normalized())<.91:return false

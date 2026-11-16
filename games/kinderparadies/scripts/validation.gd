@@ -19,6 +19,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/finish_v406_validation.gd").new().run(game,check)
   print("Cabin copies, scenery and kitchen stability checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--rosenyan-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/rosenyan_validation.gd").new().run(game,check)
+  print("Rosenyan plush checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--dialogue-only" in OS.get_cmdline_user_args():
   await load("res://scripts/dialogue_validation.gd").new().run(game,check)
   print("Guard comment and falling-letter checks: ",checks,"; failures: ",failures.size())
@@ -364,7 +368,7 @@ func run(game: Node3D) -> bool:
  check(not body.freeze,"Objects failed to resume after pause")
  game.player.grab_prop();game._build_world("none")
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
- check(game.world.atmosphere.loose.size()==29,"Physical toy budget must include the single rolling paper cup")
+ check(game.world.atmosphere.loose.size()==30,"Physical toy budget must include the single rolling paper cup and the Rosenyan plush")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
  check(is_instance_valid(game.world.playground.croc_visual),"Shared crocodile mesh was not instantiated")
  check(is_instance_valid(game.world.playground.croc_jaw),"Shared crocodile upper jaw is missing")
@@ -677,6 +681,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/archive_validation.gd").new().run(game,check)
  await load("res://scripts/nightmare_validation.gd").new().run(game,check)
  await load("res://scripts/props_validation.gd").new().run(game,check)
+ await load("res://scripts/rosenyan_validation.gd").new().run(game,check)
  await load("res://scripts/finale_validation.gd").new().run(game,check)
  await load("res://scripts/endings_validation.gd").new().run(game,check)
  await load("res://scripts/presentation_validation.gd").new().run(game,check)
