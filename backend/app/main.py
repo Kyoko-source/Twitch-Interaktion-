@@ -26,7 +26,7 @@ from .advent import router as advent_router
 from . import profiles
 from .slots import router as slots_router
 from .casino import router as casino_router
-from .horses import router as horses_router
+from .horses import router as horses_router, SKIN_SHOP_ITEMS, select_skin
 from .cookie import router as cookie_router
 from .stream_control import router as stream_control_router
 from .wheel import router as wheel_router
@@ -58,7 +58,18 @@ CHAT_STYLE_SHOP_ITEMS = [
     {"id": "chat-style-cotton", "name": "Chat Animation: Zuckerwatte", "description": "Süß, rosa und weich pulsierend mit kleinen Herzchen.", "price": 450, "category": "Chat Animation", "style": "cotton"},
     {"id": "chat-style-neon", "name": "Chat Animation: Neon Pulse", "description": "Cooler Cyber-Look mit wandernder Neon-Kante.", "price": 600, "category": "Chat Animation", "style": "neon"},
     {"id": "chat-style-royal", "name": "Chat Animation: Royal Glow", "description": "Lila VIP-Schimmer mit edlem Glanz für deine Nachrichten.", "price": 900, "category": "Chat Animation", "style": "royal"},
+    {"id": "chat-style-sakura", "name": "Chat Animation: Kirschblüte", "description": "Zartrosa Blüten segeln sanft durch deine Nachricht.", "price": 500, "category": "Chat Animation", "style": "sakura"},
+    {"id": "chat-style-ocean", "name": "Chat Animation: Tiefsee", "description": "Türkises Wasser, sanfte Wellen und aufsteigende Luftblasen.", "price": 650, "category": "Chat Animation", "style": "ocean"},
+    {"id": "chat-style-frost", "name": "Chat Animation: Eiskristall", "description": "Eisblauer Frostrand mit glitzernden Schneeflocken.", "price": 750, "category": "Chat Animation", "style": "frost"},
+    {"id": "chat-style-fire", "name": "Chat Animation: Feuerzauber", "description": "Lodernde Glut und aufsteigende Funken – heiße Nachrichten.", "price": 800, "category": "Chat Animation", "style": "fire"},
+    {"id": "chat-style-matrix", "name": "Chat Animation: Matrix", "description": "Grüner Code regnet hinter deinem Text herab.", "price": 900, "category": "Chat Animation", "style": "matrix"},
+    {"id": "chat-style-glitch", "name": "Chat Animation: Glitch", "description": "RGB-Verschiebung und digitale Störungen im Sekundentakt.", "price": 1000, "category": "Chat Animation", "style": "glitch"},
+    {"id": "chat-style-galaxy", "name": "Chat Animation: Galaxie", "description": "Tiefes All, funkelnde Sterne und ein Nebel in Violett.", "price": 1200, "category": "Chat Animation", "style": "galaxy"},
+    {"id": "chat-style-rainbow", "name": "Chat Animation: Regenbogen", "description": "Ein leuchtender Regenbogenrand, der endlos um deine Nachricht läuft.", "price": 1500, "category": "Chat Animation", "style": "rainbow"},
+    {"id": "chat-style-gold", "name": "Chat Animation: Goldrausch", "description": "Massives Gold mit Glanzlicht – für die ganz großen Auftritte.", "price": 2000, "category": "Chat Animation", "style": "gold"},
+    {"id": "chat-style-unicorn", "name": "Chat Animation: Einhorn", "description": "Pastell-Regenbogen, Glitzersterne und ein Hauch Magie.", "price": 2500, "category": "Chat Animation", "style": "unicorn"},
 ]
+BUILTIN_SHOP_ITEMS = [*CHAT_STYLE_SHOP_ITEMS, *SKIN_SHOP_ITEMS]
 
 app = FastAPI(title="Aviary API")
 app.include_router(live_news_router)
@@ -925,7 +936,7 @@ def patch_notes() -> list[dict[str, Any]]:
 def shop() -> list[dict[str, Any]]:
     items = rows("shop_items?select=*&active=eq.true&order=category.asc,price.asc")
     existing_names = {str(item.get("name") or "") for item in items}
-    builtins = [item for item in CHAT_STYLE_SHOP_ITEMS if item["name"] not in existing_names]
+    builtins = [item for item in BUILTIN_SHOP_ITEMS if item["name"] not in existing_names]
     try:
         sold = economy().sold_counts()
     except Exception:  # the catalog must load even if the ledger is busy or not ready
@@ -935,14 +946,20 @@ def shop() -> list[dict[str, Any]]:
 
 @app.post("/api/shop/purchase")
 def purchase(payload: PurchaseRequest, user: dict[str, Any] = Depends(current_user)):
-    builtin_item = next((item for item in CHAT_STYLE_SHOP_ITEMS if item["id"] == payload.item_id), None)
+    builtin_item = next((item for item in BUILTIN_SHOP_ITEMS if item["id"] == payload.item_id), None)
     items = [builtin_item] if builtin_item else rows(f"shop_items?id=eq.{quote(payload.item_id)}&active=eq.true&limit=1")
     if not items:
         raise HTTPException(status_code=404, detail="Item nicht gefunden")
     item = items[0]
     username = str(user["username"])
     owned = bool(item.get("style") and item.get("name") in purchased_item_names(username))
-    return economy().buy(username, item, payload.request_id, owned=owned)
+    result = economy().buy(username, item, payload.request_id, owned=owned)
+    if item.get("skin") and not result.get("duplicate"):
+        # A freshly bought skin is worn straight away.
+        with economy().connection(write=True) as db:
+            select_skin(db, username, str(item["skin"]))
+        result = {**result, "message": f"Gekauft! {item['name'].replace('Derby-Skin: ', '')} läuft ab jetzt im Chicken Derby für dich."}
+    return result
 
 
 @app.get("/api/events")

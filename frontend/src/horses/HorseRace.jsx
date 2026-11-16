@@ -166,10 +166,20 @@ export function HorseRace({ user, onLogin }) {
   onEventRef.current = onEvent;
 
   useEffect(() => { scene.current?.setChosen(chosen); }, [chosen]);
+  const unlockList = user?.unlocks || [];
+  // The worn skin comes from the server (bought skins + level-25 Phönix); without it the level unlock decides.
+  const skin = info?.skins ? info.skins.active : unlockList.includes("derby-phoenix") ? "phoenix" : null;
   useEffect(() => {
-    const unlocks = user?.unlocks || [];
-    scene.current?.setFlair({ crown: unlocks.includes("derby-crown"), champion: unlocks.includes("derby-champion"), phoenix: unlocks.includes("derby-phoenix") });
-  }, [user?.unlocks?.join(",")]);
+    scene.current?.setFlair({ crown: unlockList.includes("derby-crown"), champion: unlockList.includes("derby-champion"), phoenix: skin === "phoenix", skin });
+  }, [unlockList.join(","), skin]);
+
+  async function wearSkin(id) {
+    try {
+      const out = await api("/api/horses/skin", { method: "PUT", body: JSON.stringify({ skin: id }) });
+      setInfo((i) => (i ? { ...i, skins: out.skins } : i));
+      audio.ensure(); audio.play(id === "none" ? "drain" : "vip-lit", { gain: 0.6 });
+    } catch (e) { setMsg(e.message); }
+  }
 
   const load = useCallback(() => {
     if (!user) return;
@@ -236,7 +246,6 @@ export function HorseRace({ user, onLogin }) {
     for (const w of info?.recent || []) counts[w] += 1;
     return counts;
   }, [info?.recent]);
-  const phoenix = (user?.unlocks || []).includes("derby-phoenix");
   const myLook = chosen >= 0 ? LOOKS[chosen] : null;
   const res = result?.data;
 
@@ -296,7 +305,7 @@ export function HorseRace({ user, onLogin }) {
             <span className="pbStrobe" aria-hidden="true" />
             <div className="hrWinPanel">
               <div className="hrWinTitle">SIEG!!!</div>
-              <div className="hrWinHorse"><Portrait index={res.horse} active size={220} skin={phoenix ? "phoenix" : null} /><span className="hrLaurel" aria-hidden="true" /></div>
+              <div className="hrWinHorse"><Portrait index={res.horse} active size={220} skin={skin} /><span className="hrLaurel" aria-hidden="true" /></div>
               <div className="hrWinName">#{res.horse + 1} {NAMES[res.horse]}</div>
               {result.stage === "flash" && <div className="hrWinSub">DEIN PFERD HAT GEWONNEN!</div>}
               {result.stage === "double" && <div className="hrDouble"><span>{res.stake}</span><b>×2</b></div>}
@@ -335,11 +344,22 @@ export function HorseRace({ user, onLogin }) {
             <h3>Auf welches Pferd setzt du?</h3>
             <span>Jedes Pferd hat die gleiche Chance: 1 zu 9</span>
           </div>
+          {info?.skins && (
+            <div className="hrSkins" role="group" aria-label="Skin für dein Pferd">
+              <small>DEIN SKIN</small>
+              <button type="button" className={!skin ? "on" : ""} aria-pressed={!skin} onClick={() => wearSkin("none")}>Ohne</button>
+              {info.skins.catalog.map((s) => s.owned ? (
+                <button type="button" key={s.id} className={`skin-${s.id}${skin === s.id ? " on" : ""}`} aria-pressed={skin === s.id} onClick={() => wearSkin(s.id)}>{s.name}</button>
+              ) : (
+                <a key={s.id} className={`locked skin-${s.id}`} href="#shop" title={s.text}>🔒 {s.name}<em>{s.price ? `${fmt(s.price)} Chickens` : `Level ${s.level}`}</em></a>
+              ))}
+            </div>
+          )}
           <div className="hrCards">
             {NAMES.map((name, i) => (
               <button type="button" key={name} className={`hrCard${chosen === i ? " on" : ""}`} onClick={() => { setChosen(i); audio.ensure(); if (!audio.track) audio.music("lobby"); audio.play("lane", { gain: 0.5, rate: 0.9 + i * 0.05 }); }} aria-pressed={chosen === i} style={{ "--silk": LOOKS[i].silk, "--silk2": LOOKS[i].silk2 }}>
                 <span className="hrNum">{i + 1}</span>
-                <Portrait index={i} active={chosen === i} size={132} skin={phoenix && chosen === i ? "phoenix" : null} />
+                <Portrait index={i} active={chosen === i} size={132} skin={chosen === i ? skin : null} />
                 <b>{name}</b>
                 <small>{TAGLINES[i]}</small>
                 <em>{recentWins[i] ? `${recentWins[i]}× gewonnen (letzte 10)` : "Noch kein Sieg zuletzt"}</em>

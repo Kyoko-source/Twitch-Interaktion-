@@ -288,6 +288,8 @@ class EconomyStore:
                 return {"message": "Kauf bereits abgeschlossen.", "purchase_id": request_id, "wallet": self.wallet(db, username), "duplicate": True}
             if item.get("style") and (owned or db.execute("SELECT 1 FROM purchases WHERE username=? AND style=?", (username, item["style"])).fetchone()):
                 raise HTTPException(409, "Diese Chat-Animation besitzt du bereits.")
+            if item.get("skin") and db.execute("SELECT 1 FROM purchases WHERE username=? AND item_id=?", (username, item_id)).fetchone():
+                raise HTTPException(409, "Diesen Skin besitzt du bereits.")
             wallet = self.wallet(db, username)
             if wallet["chickens"] < price:
                 raise HTTPException(400, "Nicht genug Chickens. Spiele Minispiele, um weitere zu verdienen.")

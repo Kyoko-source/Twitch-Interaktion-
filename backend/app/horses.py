@@ -117,13 +117,68 @@ def stats(db) -> dict[str, Any]:
     return {"races": int(races), "won": int(won), "wins": wins, "chance": round(1 / len(HORSES), 5)}
 
 
-def derby_flair(db, username: str) -> dict[str, bool]:
-    """Level rewards the bettor's horse shows on the stream overlay."""
+# Skins for the player's own horse. Phönix comes with level 25; the others are bought in the shop.
+SKINS = {
+    "phoenix": {"name": "Phönix-Hengst", "level": 25, "text": "Goldener Phönix mit Feuermähne, Flammenflügeln und Feuerspur."},
+    "zebra": {"name": "Zebra-Blitz", "price": 3000, "text": "Schwarz-weiß gestreift mit elektrisch blauer Mähne und Blitzfunken in der Spur."},
+    "ghost": {"name": "Geisterross", "price": 6000, "text": "Halb durchsichtig, eisig leuchtend und mit Nebelschwaden, die hinter ihm herwehen."},
+    "unicorn": {"name": "Regenbogen-Einhorn", "price": 10000, "text": "Schneeweißes Einhorn mit goldenem Horn, Regenbogenmähne und einer Spur aus Regenbogen-Sternen."},
+}
+SKIN_SHOP_ITEMS = [
+    {"id": f"derby-skin-{key}", "name": f"Derby-Skin: {skin['name']}", "description": skin["text"], "price": skin["price"], "category": "Derby Skins", "skin": key}
+    for key, skin in SKINS.items() if "price" in skin
+]
+SKIN_ITEM_IDS = {item["id"]: item["skin"] for item in SKIN_SHOP_ITEMS}
+
+
+def ensure_skin_table(db) -> None:
+    db.execute("CREATE TABLE IF NOT EXISTS derby_skin_prefs (username TEXT PRIMARY KEY, skin TEXT NOT NULL, updated REAL NOT NULL)")
+
+
+def owned_skins(db, username: str) -> list[str]:
+    """Skins this member may use: bought ones (oldest purchase first) plus the level-25 Phönix."""
+    marks = ",".join("?" * len(SKIN_ITEM_IDS))
+    bought = [SKIN_ITEM_IDS[row[0]] for row in db.execute(
+        f"SELECT item_id FROM purchases WHERE username=? AND item_id IN ({marks}) ORDER BY created", (username, *SKIN_ITEM_IDS))]
+    try:
+        phoenix = "derby-phoenix" in xp_levels.summary(db, username)["unlocks"]
+    except Exception:  # the level system must never take the skins down
+        phoenix = False
+    return list(dict.fromkeys([*(["phoenix"] if phoenix else []), *bought]))
+
+
+def active_skin(db, username: str, owned: list[str] | None = None) -> str | None:
+    """The chosen skin; without a choice the newest bought skin, else the Phönix."""
+    owned = owned_skins(db, username) if owned is None else owned
+    ensure_skin_table(db)
+    row = db.execute("SELECT skin FROM derby_skin_prefs WHERE username=?", (username,)).fetchone()
+    if row and row[0] == "none":
+        return None
+    if row and row[0] in owned:
+        return row[0]
+    return owned[-1] if owned else None
+
+
+def select_skin(db, username: str, skin: str) -> None:
+    ensure_skin_table(db)
+    db.execute("INSERT INTO derby_skin_prefs VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET skin=excluded.skin, updated=excluded.updated",
+               (username, skin, time.time()))
+
+
+def skin_state(db, username: str) -> dict[str, Any]:
+    owned = owned_skins(db, username)
+    return {"active": active_skin(db, username, owned), "owned": owned,
+            "catalog": [{"id": key, "owned": key in owned, **skin} for key, skin in SKINS.items()]}
+
+
+def derby_flair(db, username: str) -> dict[str, Any]:
+    """Level rewards and the skin the bettor's horse shows on the stream overlay."""
     try:
         unlocks = xp_levels.summary(db, username)["unlocks"]
+        skin = active_skin(db, username)
     except Exception:  # an overlay must never fail over the level system
-        return {"crown": False, "champion": False, "phoenix": False}
-    return {"crown": "derby-crown" in unlocks, "champion": "derby-champion" in unlocks, "phoenix": "derby-phoenix" in unlocks}
+        return {"crown": False, "champion": False, "phoenix": False, "skin": None}
+    return {"crown": "derby-crown" in unlocks, "champion": "derby-champion" in unlocks, "phoenix": skin == "phoenix", "skin": skin}
 
 
 def live_races(db, now: float) -> list[dict[str, Any]]:
@@ -150,7 +205,22 @@ def info(user: dict = Depends(current_user)) -> dict[str, Any]:
     with store.connection(write=True) as db:
         ensure_table(db)
         return {"stake": STAKE, "payout": PAYOUT, "laps": LAPS, "horses": HORSES,
-                "wallet": store.wallet(db, str(user["username"])), "recent": recent_winners(db), "stats": stats(db)}
+                "wallet": store.wallet(db, str(user["username"])), "recent": recent_winners(db), "stats": stats(db),
+                "skins": skin_state(db, str(user["username"]))}
+
+
+class SkinChoice(BaseModel):
+    skin: str = Field(max_length=32)
+
+
+@router.put("/skin")
+def choose_skin(body: SkinChoice, user: dict = Depends(current_user)) -> dict[str, Any]:
+    username = str(user["username"])
+    with economy().connection(write=True) as db:
+        if body.skin != "none" and body.skin not in owned_skins(db, username):
+            raise HTTPException(403, "Diesen Skin besitzt du noch nicht. Es gibt ihn im Shop.")
+        select_skin(db, username, body.skin)
+        return {"skins": skin_state(db, username), "message": "Skin aktiviert." if body.skin != "none" else "Skin abgelegt."}
 
 
 @router.get("/live")

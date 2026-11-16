@@ -3,6 +3,7 @@ import { ArrowDown, ArrowLeft, Bell, Check, Hash, Lock, MessageCircle, Palette, 
 import { refreshChatUnread, setActiveChat } from "../ui/ChatNotifier";
 import { api } from "../api";
 import { EmptyLogin, LevelChip, ProfileLink, RoleBadge, profileHref, userRole } from "./shared";
+import { chatStyleClass } from "../ui/chatStyles.js";
 import "./chat.css";
 
 function ChatAvatar({ user, online = false }) {
@@ -70,9 +71,7 @@ export function formatChatTime(value) {
   }
 }
 
-export function chatStyleClass(style) {
-  return `chatStyle-${["sparkle", "cotton", "neon", "royal"].includes(style) ? style : "default"}`;
-}
+export { chatStyleClass };
 
 export function ChatPage({ user, setPage, unread = { total: 0, conversations: [] } }) {
   const initialTarget = useMemo(() => {

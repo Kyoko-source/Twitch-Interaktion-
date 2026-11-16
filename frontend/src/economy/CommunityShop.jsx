@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, CalendarClock, Check, FerrisWheel, Flame, Gamepad2, Gift, LayoutGrid, MessageCircle, Radio, Star, Target, Timer } from "lucide-react";
+import { ArrowRight, CalendarClock, Check, Crown, FerrisWheel, Flame, Gamepad2, Gift, LayoutGrid, MessageCircle, Radio, Star, Target, Timer } from "lucide-react";
 import { api } from "../api";
 import { publishWallet, requestId } from "./useGameRewards";
 import { CasinoCashier, gscShort } from "./CasinoCashier";
 import { celebratePurchase, preloadPurchaseSounds } from "./PurchaseCelebration";
 import { colorFor } from "../wheel/engine.js";
+import { LOOKS, drawHorse } from "../horses/horse.js";
+import "../ui/chatStyles.js";
 import "./economy.css";
 import "./shop.css";
 
@@ -17,6 +19,7 @@ const wheelKey = (name) => String(name || "").split(/\s+/).filter(Boolean).join(
 export function shopTheme(category = "") {
   if (/bestraf/i.test(category)) return { key: "punish", icon: Flame, emoji: "😈", text: "Landet auf dem Glücksrad – und dein Name erscheint live im Stream." };
   if (/aufgab/i.test(category)) return { key: "task", icon: Target, emoji: "🎯", text: "Eine Aufgabe für den Streamer – live im nächsten Stream erledigt." };
+  if (/skin/i.test(category)) return { key: "skin", icon: Crown, emoji: "🐎", text: "Ein Skin für dein Pferd im Chicken Derby – auch live im Stream zu sehen." };
   if (/chat/i.test(category)) return { key: "chat", icon: MessageCircle, emoji: "💬", text: "Dauerhaft freigeschaltet für deine Chat-Nachrichten." };
   if (/out of stream/i.test(category)) return { key: "outside", icon: Star, emoji: "🌟", text: "Ein Reward außerhalb des Streams – ganz persönlich." };
   return { key: "reward", icon: Gift, emoji: "🎁", text: "Ein Reward für deinen nächsten Community-Moment." };
@@ -51,6 +54,34 @@ function useTilt() {
   }
   function leave() { const el = ref.current; if (el) { el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg"); } }
   return { ref, onPointerMove: move, onPointerLeave: leave };
+}
+
+// Galloping preview of a Derby skin, drawn with the same code as the race itself.
+function HorsePreview({ skin }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return undefined;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), w = 240, h = 150;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    const c = canvas.getContext("2d");
+    const calm = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0, phase = 0, last = performance.now(), visible = true;
+    const io = typeof IntersectionObserver === "function" ? new IntersectionObserver(([e]) => { visible = e.isIntersecting; }) : null;
+    io?.observe(canvas);
+    const frame = (now) => {
+      raf = requestAnimationFrame(frame);
+      if (!visible) return;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      phase = (phase + dt * (calm ? 0 : 1.9)) % 1;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+      c.translate(w / 2 - 6, h - 16); c.scale(1.05, 1.05);
+      drawHorse(c, { look: LOOKS[0], number: 1, phase, gait: calm ? 0 : 1, time: now / 1000, skin });
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); io?.disconnect(); };
+  }, [skin]);
+  return <canvas ref={ref} className="shHorse" aria-label="Vorschau des Derby-Skins" role="img" />;
 }
 
 function MemberCard({ user, setPage }) {
@@ -100,22 +131,24 @@ function WheelSpotlight({ wheel, onShow }) {
   );
 }
 
-function ShopCard({ item, user, owned, buying, wheelInfo, hot, onBuy }) {
+function ShopCard({ item, user, owned, ownedSkins, buying, wheelInfo, hot, onBuy }) {
   const tilt = useTilt();
   const theme = shopTheme(item.category);
   const punishment = PUNISHMENT.includes(item.category);
-  const isOwned = Boolean(item.style && owned.has(item.style));
+  const isOwned = Boolean((item.style && owned.has(item.style)) || (item.skin && ownedSkins.has(item.skin)));
   const balance = Number(user?.chickens || 0);
   const missing = Math.max(0, item.price - balance);
   const progress = item.price > 0 ? Math.min(100, (balance / item.price) * 100) : 100;
   const label = buying === String(item.id) ? "Wird gekauft …" : isOwned ? "Bereits freigeschaltet" : !user ? "Zum Kaufen anmelden" : missing ? `Noch ${nf(missing)} Chickens` : `Für ${nf(item.price)} Chickens kaufen`;
   const ThemeIcon = theme.icon;
   return (
-    <article className={`shopRewardCard shCard theme-${theme.key}${punishment ? " isPunishment" : ""}${isOwned ? " isOwned" : ""}`} {...tilt}>
+    <article className={`shopRewardCard shCard theme-${theme.key}${item.skin ? ` skin-${item.skin}` : ""}${item.style ? ` look-${item.style}` : ""}${punishment ? " isPunishment" : ""}${isOwned ? " isOwned" : ""}`} {...tilt}>
       <div className="shArt">
         <span className="shArtPattern" aria-hidden="true" />
         <span className="shArtGlow" aria-hidden="true" />
-        {item.style ? (
+        {item.skin ? (
+          <HorsePreview skin={item.skin} />
+        ) : item.style ? (
           <div className={`chatBubble chatStyle-${item.style} shChat`} aria-label="Vorschau der Chat-Animation"><div><b>{user?.username || "Du"}</b> Hallo Chat! 👋</div></div>
         ) : (
           <span className="shEmoji" aria-hidden="true">{itemEmoji(item.name, theme)}</span>
@@ -155,6 +188,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
   const [buying, setBuying] = useState(null);
   const [owned, setOwned] = useState(new Set());
   const [wheel, setWheel] = useState(null);
+  const [ownedSkins, setOwnedSkins] = useState(new Set());
   const attempts = useRef(new Map());
   const pending = useRef(false);
   const catalogRef = useRef(null);
@@ -165,6 +199,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
   useEffect(() => {
     let alive = true;
     if (user) api("/api/chat/styles").then((result) => { if (alive) setOwned(new Set((result.styles || []).filter((style) => style.owned).map((style) => style.id))); }).catch(() => {});
+    if (user) api("/api/horses").then((result) => { if (alive && result?.skins) setOwnedSkins(new Set(result.skins.owned || [])); }).catch(() => {});
     return () => { alive = false; };
   }, [user?.username]);
 
@@ -194,13 +229,14 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
       publishWallet(user.username, result.wallet);
       attempts.current.delete(key);
       if (item.style) setOwned((current) => new Set([...current, item.style]));
+      if (item.skin) setOwnedSkins((current) => new Set([...current, item.skin]));
       setMessage({ text: result.message, error: false });
       const punishment = PUNISHMENT.includes(item.category);
       if (punishment) loadWheel();
       celebratePurchase({
-        kind: item.style ? "style" : punishment ? "punishment" : "reward",
+        kind: item.style || item.skin ? "style" : punishment ? "punishment" : "reward",
         title: item.name,
-        sub: punishment ? "Erscheint gleich live im Stream!" : item.style ? "Im Chat unter Chat-Animationen auswählbar." : result.message,
+        sub: punishment ? "Erscheint gleich live im Stream!" : item.style ? "Im Chat unter Chat-Animationen auswählbar." : item.skin ? "Läuft ab jetzt im Chicken Derby für dich!" : result.message,
         cost: `−${nf(item.price)} Chickens`,
         from,
       });
@@ -250,7 +286,7 @@ export function CommunityShop({ user, setPage, data, loading, error }) {
     {error && <div className="notice error" role="alert">{error}</div>}
     <div className="shopCatalog shGrid">
       {items.map((item) => (
-        <ShopCard key={item.id} item={item} user={user} owned={owned} buying={buying} hot={hotIds.has(String(item.id))}
+        <ShopCard key={item.id} item={item} user={user} owned={owned} ownedSkins={ownedSkins} buying={buying} hot={hotIds.has(String(item.id))}
           wheelInfo={PUNISHMENT.includes(item.category) ? wheelByKey.get(wheelKey(item.name)) : null} onBuy={buy} />
       ))}
     </div>

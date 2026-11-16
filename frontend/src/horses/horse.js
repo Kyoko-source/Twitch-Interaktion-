@@ -19,6 +19,27 @@ export const LOOKS = [
 export const PHOENIX = { coat: "#f2b630", dark: "#a8480a", mane: "#ff6a00", silk: "#d61f1f", silk2: "#ffd23f", cap: "#ffd23f", pattern: "stars", blaze: true, socks: [1, 1, 1, 1], phoenix: true };
 const FLAME = ["#ff2a00", "#ff6a00", "#ffa200", "#ffd84a", "#fff4b8"];
 
+// Shop skins (Derby Skins): Regenbogen-Einhorn, Zebra-Blitz, Geisterross.
+export const UNICORN = { coat: "#fbf7ff", dark: "#d6c8ec", mane: "#ff7ac8", silk: "#ff8fd1", silk2: "#8fe9ff", cap: "#ffe36e", pattern: "stars", blaze: false, socks: [0, 0, 0, 0], unicorn: true };
+export const ZEBRA = { coat: "#f2f2f0", dark: "#a9a9a6", mane: "#1fa2ff", silk: "#111111", silk2: "#ffe14d", cap: "#1fa2ff", pattern: "halves", blaze: false, socks: [0, 0, 0, 0], zebra: true };
+export const GHOST = { coat: "#cfe8ff", dark: "#7fa7cc", mane: "#effaff", silk: "#5ad1ff", silk2: "#e8f8ff", cap: "#e8f8ff", pattern: "sash", blaze: false, socks: [0, 0, 0, 0], ghost: true };
+export const SKIN_LOOKS = { phoenix: PHOENIX, unicorn: UNICORN, zebra: ZEBRA, ghost: GHOST };
+const RAINBOW = ["#ff4d6d", "#ffa94d", "#ffe14d", "#5cf28a", "#4dc3ff", "#a77dff"];
+
+function rainbowGradient(c, x0, y0, x1, y1) {
+  const g = c.createLinearGradient(x0, y0, x1, y1);
+  RAINBOW.forEach((col, i) => g.addColorStop(i / (RAINBOW.length - 1), col));
+  return g;
+}
+
+// Black zebra stripes inside the current path (call right after filling a body part).
+function stripes(c, x0, x1, y0, y1, step = 7, slant = 9) {
+  c.save(); c.clip();
+  c.strokeStyle = "#141414"; c.lineCap = "round";
+  for (let x = x0; x < x1; x += step) { c.lineWidth = 2.6 + ((x * 7) % 3) * 0.6; c.beginPath(); c.moveTo(x, y0); c.quadraticCurveTo(x + slant * 0.4, (y0 + y1) / 2, x + slant, y1); c.stroke(); }
+  c.restore();
+}
+
 function flameGradient(c, x0, y0, x1, y1) {
   const g = c.createLinearGradient(x0, y0, x1, y1);
   FLAME.forEach((col, i) => g.addColorStop(i / (FLAME.length - 1), col));
@@ -123,7 +144,7 @@ function star(c, x, y, r) {
  *  shadow    draw the ground shadow (default true)
  */
 export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shadow = true, glow = null, crown = false, skin = null }) {
-  if (skin === "phoenix") look = PHOENIX;
+  if (skin && SKIN_LOOKS[skin]) look = SKIN_LOOKS[skin];
   const th = phase * TAU;
   const bob = -Math.abs(Math.sin(th)) * 3.2 * gait + Math.sin(time * 2.1) * 0.6 * (1 - gait);
   const pitch = Math.sin(th + 0.8) * 0.045 * gait;
@@ -139,6 +160,31 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
     a.addColorStop(0, `rgba(255,180,40,${0.42 * pulse})`); a.addColorStop(1, "rgba(255,80,0,0)");
     c.fillStyle = a; c.beginPath(); c.ellipse(0, -55, 84, 62, 0, 0, TAU); c.fill();
   }
+  if (look.unicorn) {   // pastel shimmer that cycles through the rainbow
+    const hue = (time * 60) % 360;
+    const a = c.createRadialGradient(0, -55, 6, 0, -55, 84);
+    a.addColorStop(0, `hsla(${hue},100%,80%,0.45)`); a.addColorStop(0.6, `hsla(${(hue + 120) % 360},100%,75%,0.18)`); a.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = a; c.beginPath(); c.ellipse(0, -55, 86, 64, 0, 0, TAU); c.fill();
+    for (let i = 0; i < 6; i++) {   // twinkling sparkles around the body
+      const t = time * 1.6 + i * 1.7, r = 1.2 + Math.max(0, Math.sin(t * 2.3)) * 2.4;
+      const x = Math.cos(t) * (50 + (i % 3) * 8), y = -60 + Math.sin(t * 1.3) * 34;
+      c.fillStyle = RAINBOW[i % RAINBOW.length]; c.beginPath();
+      c.moveTo(x, y - r * 2); c.lineTo(x + r * 0.5, y - r * 0.5); c.lineTo(x + r * 2, y); c.lineTo(x + r * 0.5, y + r * 0.5);
+      c.lineTo(x, y + r * 2); c.lineTo(x - r * 0.5, y + r * 0.5); c.lineTo(x - r * 2, y); c.lineTo(x - r * 0.5, y - r * 0.5); c.closePath(); c.fill();
+    }
+  }
+  if (look.ghost) {     // cold glow and mist trailing behind
+    const pulse = 0.5 + Math.sin(time * 3) * 0.15;
+    const a = c.createRadialGradient(0, -55, 6, 0, -55, 88);
+    a.addColorStop(0, `rgba(150,220,255,${0.4 * pulse})`); a.addColorStop(1, "rgba(120,200,255,0)");
+    c.fillStyle = a; c.beginPath(); c.ellipse(0, -55, 88, 64, 0, 0, TAU); c.fill();
+    c.lineCap = "round";
+    for (let i = 0; i < 4; i++) {
+      const w = Math.sin(time * 3 + i) * 6;
+      c.strokeStyle = `rgba(210,240,255,${0.22 - i * 0.04})`; c.lineWidth = 12 - i * 2;
+      c.beginPath(); c.moveTo(-30, -48 + i * 6); c.bezierCurveTo(-60, -56 + w, -80, -40 - w, -110 - i * 10, -48 + w + i * 8); c.stroke();
+    }
+  }
   if (glow) {
     c.save();
     c.strokeStyle = glow; c.lineWidth = 3.5; c.globalAlpha = 0.85 + Math.sin(time * 6) * 0.15;
@@ -149,6 +195,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.save();
   c.translate(0, bob);
   c.rotate(pitch);
+  if (look.ghost) c.globalAlpha = 0.66 + Math.sin(time * 2.4) * 0.08;
 
   if (look.phoenix) phoenixWing(c, phase, gait, time, true);
   // Far legs first (darker, behind the barrel).
@@ -160,7 +207,9 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.strokeStyle = look.mane; c.lineCap = "round";
   for (let i = 0; i < 4; i++) {
     if (look.phoenix) c.strokeStyle = FLAME[i];
-    c.lineWidth = look.phoenix ? 7 - i * 1.4 + Math.sin(time * 18 + i) * 0.8 : 5 - i;
+    if (look.unicorn) c.strokeStyle = RAINBOW[(i + Math.floor(time * 4)) % RAINBOW.length];
+    if (look.zebra) c.strokeStyle = i % 2 ? "#0d0d0d" : look.mane;
+    c.lineWidth = look.phoenix || look.unicorn ? 7 - i * 1.4 + Math.sin(time * 18 + i) * 0.8 : 5 - i;
     c.beginPath();
     c.moveTo(-40, -55);
     c.quadraticCurveTo(-58 - 6 * gait, -54 + tailWave * 0.5 + i * 2 - 4 * gait, -66 - 10 * gait + i, -40 + tailWave + i * 3 - 14 * gait + 22 * (1 - gait));
@@ -181,6 +230,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.bezierCurveTo(30, -33, 8, -34, -6, -35);       // belly
   c.bezierCurveTo(-24, -34, -36, -36, -42, -52);   // stifle back to rump
   c.closePath(); c.fill();
+  if (look.zebra) stripes(c, -48, 44, -68, -32, 7, 8);
   if (look.dapple) {
     c.fillStyle = "rgba(255,255,255,0.22)";
     for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(-34 + (i % 5) * 13 + (i > 4 ? 6 : 0), -55 + (i > 4 ? 9 : 0), 3.4, 0, TAU); c.fill(); }
@@ -193,7 +243,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   const nx = 4 * reach, ny = 7 * reach;   // stretched forward and lower at speed
   const nod = Math.sin(th - 0.4) * 2.4 * gait + Math.sin(time * 1.3) * 1.2 * (1 - gait);
   // Mane behind the crest, streaming back.
-  c.fillStyle = look.phoenix ? flameGradient(c, 46, -95, 6, -60) : look.mane;
+  c.fillStyle = look.phoenix ? flameGradient(c, 46, -95, 6, -60) : look.unicorn ? rainbowGradient(c, 46, -95, 10, -60) : look.mane;
   c.beginPath();
   c.moveTo(18, -63);
   for (let i = 0; i <= 6; i++) {
@@ -212,6 +262,7 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   c.lineTo(57 + nx, -84 + ny + nod);                                             // throat latch
   c.bezierCurveTo(52 + nx, -68 + ny, 46, -54, 39, -42);                          // underside of neck
   c.closePath(); c.fill();
+  if (look.zebra) stripes(c, 10, 62 + nx, -100 + ny, -40, 6, -10);
   c.save();
   c.translate(49 + nx, -89 + ny + nod);
   c.rotate(0.62 + 0.18 * reach);
@@ -233,6 +284,18 @@ export function drawHorse(c, { look, number, phase = 0, gait = 1, time = 0, shad
   // Ears
   c.fillStyle = look.dark;
   c.beginPath(); c.moveTo(-5, -4); c.lineTo(-9, -13); c.lineTo(-1, -6); c.closePath(); c.fill();
+  if (look.unicorn) {   // golden spiral horn on the forehead, pointing forward and up
+    c.save();
+    c.translate(3, -6); c.rotate(-1.45);
+    const hg = c.createLinearGradient(0, -2, 22, 2);
+    hg.addColorStop(0, "#c98a12"); hg.addColorStop(0.5, "#ffe28a"); hg.addColorStop(1, "#fff8d8");
+    c.fillStyle = hg; c.beginPath(); c.moveTo(0, -3.2); c.lineTo(22, 0); c.lineTo(0, 3.2); c.closePath(); c.fill();
+    c.strokeStyle = "rgba(150,90,0,0.7)"; c.lineWidth = 0.8;
+    for (let k = 0; k < 4; k++) { const x = 3 + k * 4.6, h = 3.2 * (1 - x / 22); c.beginPath(); c.moveTo(x, -h); c.lineTo(x + 2.4, h); c.stroke(); }
+    c.shadowColor = "#fff6c2"; c.shadowBlur = 8; c.fillStyle = "rgba(255,255,255,0.9)";
+    c.beginPath(); c.arc(22, 0, 1.2 + Math.max(0, Math.sin(time * 5)) * 1.2, 0, TAU); c.fill();
+    c.restore();
+  }
   c.restore();
 
   // Saddle cloth with the number.

@@ -6,6 +6,30 @@
 .shStore .theme-task { --c1: #22d3c5; --c2: #06363f; --c3: #a7f3ec; --c4: rgba(34, 211, 197, 0.32); }
 .shStore .theme-chat { --c1: #ff5fd2; --c2: #3b0a4a; --c3: #ffc2f0; --c4: rgba(255, 95, 210, 0.32); }
 .shStore .theme-outside { --c1: #ffb547; --c2: #4a2600; --c3: #ffe0a8; --c4: rgba(255, 181, 71, 0.32); }
+.shStore .theme-skin { --c1: #ffc94a; --c2: #3a1a5c; --c3: #ffe3a1; --c4: rgba(255, 201, 74, 0.34); }
+.shStore .shCard.skin-unicorn .shArt { background: linear-gradient(135deg, #ff9ad5, #ffe27a 25%, #8ff0c2 50%, #8fd4ff 75%, #c49bff); }
+.shStore .shCard.skin-unicorn .shArt::after { background: linear-gradient(180deg, rgba(40, 20, 70, 0.05), rgba(19, 14, 28, 0.55)); }
+.shStore .shCard.skin-ghost .shArt { background: radial-gradient(120% 100% at 50% 0%, #6fa8d8 0%, #0d1d33 75%); }
+.shStore .shCard.skin-zebra .shArt { background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.07) 0 14px, transparent 14px 28px), radial-gradient(120% 100% at 50% 0%, #1fa2ff 0%, #08162b 75%); }
+.shStore .shCard.skin-unicorn .shBuy:not(:disabled) { background: linear-gradient(90deg, #ff6fbf, #ffb347, #4fd69c, #4fb8ff, #a77dff); background-size: 200% 100%; animation: shRainbowBtn 4s linear infinite; }
+@keyframes shRainbowBtn { to { background-position: 200% 0; } }
+/* chat looks: every card art takes the colour of its animation */
+.shStore .shCard.look-sparkle .shArt { --c1: #ffcf5a; --c2: #3d2410; }
+.shStore .shCard.look-cotton .shArt { --c1: #ff8fcf; --c2: #3a1030; }
+.shStore .shCard.look-neon .shArt { --c1: #3fe6d0; --c2: #0d1434; }
+.shStore .shCard.look-royal .shArt { --c1: #a66bff; --c2: #1e0b3d; }
+.shStore .shCard.look-sakura .shArt { --c1: #ffb3d4; --c2: #3b1528; }
+.shStore .shCard.look-ocean .shArt { --c1: #1fc7d6; --c2: #04203a; }
+.shStore .shCard.look-frost .shArt { --c1: #b9e6ff; --c2: #10243d; }
+.shStore .shCard.look-fire .shArt { --c1: #ff7a2e; --c2: #3a0c04; }
+.shStore .shCard.look-matrix .shArt { --c1: #1fdc63; --c2: #02130a; }
+.shStore .shCard.look-glitch .shArt { --c1: #ff2bd6; --c2: #071a2e; }
+.shStore .shCard.look-galaxy .shArt { --c1: #7b5cff; --c2: #070420; }
+.shStore .shCard.look-rainbow .shArt { background: linear-gradient(135deg, #ff4d6d, #ffb84d 20%, #fff04d 38%, #4dff88 55%, #4dd2ff 72%, #a77dff 90%); }
+.shStore .shCard.look-gold .shArt { --c1: #ffd76a; --c2: #3a2500; }
+.shStore .shCard.look-unicorn .shArt { background: linear-gradient(135deg, #ff9ad5, #ffe27a 30%, #8ff0c2 55%, #8fd4ff 78%, #c49bff); }
+.shHorse { width: 240px; height: 150px; max-width: 100%; margin-top: 4px; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.4)); transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.shStore .shCard:hover .shHorse { transform: scale(1.06); }
 .shStore .theme-reward, .shStore .theme-all { --c1: #a66bff; --c2: #26104d; --c3: #dcc6ff; --c4: rgba(166, 107, 255, 0.32); }
 
 .shKicker { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: #ffcf6b; }

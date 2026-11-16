@@ -122,6 +122,17 @@
 .hrPickHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 10px; }
 .hrPickHead h3 { margin: 0; font-size: 22px; }
 .hrPickHead span { color: var(--muted); font-size: 14px; }
+/* skin picker (Phönix from level 25, the rest from the shop) */
+.hrSkins { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); }
+.hrSkins small { margin-right: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: #ffd36b; }
+.hrSkins button, .hrSkins a { display: inline-flex; align-items: center; gap: 6px; min-height: 0; padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: #efe6ff; box-shadow: none; }
+.hrSkins button.on { color: #1a0d00; border-color: transparent; background: linear-gradient(135deg, #ffe27a, #ffb13d); box-shadow: 0 6px 18px -6px rgba(255, 190, 60, 0.8); }
+.hrSkins button.skin-unicorn.on { background: linear-gradient(90deg, #ff9ad5, #ffe27a, #8ff0c2, #8fd4ff, #c49bff); }
+.hrSkins button.skin-ghost.on { background: linear-gradient(135deg, #e6f6ff, #8fd0ff); }
+.hrSkins button.skin-zebra.on { background: repeating-linear-gradient(115deg, #fff 0 8px, #222 8px 13px); color: #fff; text-shadow: 0 1px 2px #000; }
+.hrSkins a.locked { opacity: 0.75; border-style: dashed; }
+.hrSkins a.locked em { font-style: normal; font-size: 11px; color: #ffd36b; }
+.hrSkins a.locked:hover { opacity: 1; }
 .hrCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .hrCard { position: relative; display: grid; justify-items: center; gap: 2px; padding: 10px 8px 12px; border-radius: 16px; border: 2px solid #ffffff1c; background: linear-gradient(180deg, color-mix(in srgb, var(--silk) 22%, #12162c), #0b0e20); color: #fff; cursor: pointer; text-align: center; box-shadow: none; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
 .hrCard:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--silk) 70%, #fff); }

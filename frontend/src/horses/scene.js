@@ -95,6 +95,8 @@ export class DerbyScene {
 
   // Level rewards for the player's own horse: { crown, champion, phoenix }
   setFlair(flair) { this.flair = flair; }
+  // Skin of the player's horse; older overlay feeds only know the Phönix flag.
+  skin() { return this.flair?.skin || (this.flair?.phoenix ? "phoenix" : null); }
 
   // `at` seeks into the timeline (race seconds, countdown is negative) so a viewer who joins
   // late, like the stream overlay, sees the same moment as the player.
@@ -328,9 +330,15 @@ export class DerbyScene {
       h.gait += (targetGait - h.gait) * Math.min(1, dt * (running ? 6 : 3));
       const stride = running ? 2.2 * Math.max(0.35, speed / 0.072) : this.phase === "countdown" ? 1.4 : 0.5;
       h.phase = (h.phase + dt * stride * (this.freeze > 0 ? 0 : this.timeScale())) % 1;
-      if (running && h.i === this.chosen && this.flair?.phoenix && Math.random() < dt * 40 * this.timeScale()) {
+      const skin = this.skin();
+      if (running && h.i === this.chosen && skin && Math.random() < dt * 40 * this.timeScale()) {
         const sc = depthScale(p.Z), back = -Math.sign(h.facing || 1);
-        this.dust.push({ x: h.x + back * (40 + Math.random() * 14) * sc, y: h.y - (30 + Math.random() * 40) * sc, vx: back * (40 + Math.random() * 30), vy: -30 - Math.random() * 20, r: (2.5 + Math.random() * 2) * sc, life: 0, max: 0.45 + Math.random() * 0.3, fire: true });
+        const d = { x: h.x + back * (40 + Math.random() * 14) * sc, y: h.y - (30 + Math.random() * 40) * sc, vx: back * (40 + Math.random() * 30), vy: -30 - Math.random() * 20, r: (2.5 + Math.random() * 2) * sc, life: 0, max: 0.45 + Math.random() * 0.3 };
+        if (skin === "phoenix") d.fire = true;
+        else if (skin === "unicorn") { d.rainbow = Math.floor(Math.random() * 6); d.max += 0.4; d.vy = -10 - Math.random() * 15; }
+        else if (skin === "zebra") { d.bolt = true; d.r *= 0.6; d.vx *= 1.6; }
+        else if (skin === "ghost") { d.mist = true; d.r *= 1.8; d.vy = -6; d.max += 0.5; }
+        this.dust.push(d);
       }
       if (running && h.i === this.chosen && this.flair?.champion && Math.random() < dt * 30 * this.timeScale()) {
         const sc = depthScale(p.Z);
@@ -423,9 +431,10 @@ export class DerbyScene {
     }
     if (!railDone) this.rail(c, R0 - 6, 0, LAP, (z) => z <= 0, 7);
     for (const d of this.dust) {
-      const a = (d.gold || d.fire ? 0.95 : 0.32) * (1 - d.life / d.max);
+      const a = (d.gold || d.fire || d.bolt || d.rainbow !== undefined ? 0.95 : d.mist ? 0.35 : 0.32) * (1 - d.life / d.max);
       const k = d.life / d.max;
-      c.fillStyle = d.fire ? `rgba(255,${Math.round(220 - 170 * k)},${Math.round(60 - 60 * k)},${a})` : d.gold ? `rgba(255,214,90,${a})` : `rgba(214,170,118,${a})`;
+      c.fillStyle = d.fire ? `rgba(255,${Math.round(220 - 170 * k)},${Math.round(60 - 60 * k)},${a})` : d.rainbow !== undefined ? `hsla(${d.rainbow * 60},100%,70%,${a})`
+        : d.bolt ? `rgba(${Math.round(120 + 135 * (1 - k))},220,255,${a})` : d.mist ? `rgba(215,240,255,${a})` : d.gold ? `rgba(255,214,90,${a})` : `rgba(214,170,118,${a})`;
       c.beginPath(); c.arc(d.x, d.y, d.r, 0, TAU); c.fill();
     }
     this.rail(c, OUTER + 6, 0, LAP, (z) => z >= 0, 8);
@@ -558,7 +567,7 @@ export class DerbyScene {
     c.save();
     c.translate(h.x, h.y);
     c.scale(flip * sc, sc);
-    drawHorse(c, { look: h.look, number: h.i + 1, phase: h.phase, gait: h.gait, time: this.time + h.i, glow: this.chosen === h.i ? "#ffd36b" : null, crown: this.chosen === h.i && this.flair?.crown, skin: this.chosen === h.i && this.flair?.phoenix ? "phoenix" : null });
+    drawHorse(c, { look: h.look, number: h.i + 1, phase: h.phase, gait: h.gait, time: this.time + h.i, glow: this.chosen === h.i ? "#ffd36b" : null, crown: this.chosen === h.i && this.flair?.crown, skin: this.chosen === h.i ? this.skin() : null });
     c.restore();
     if (this.chosen === h.i) {
       const y = h.y - 118 * sc + Math.sin(this.time * 5) * 3;
