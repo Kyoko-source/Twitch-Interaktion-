@@ -71,7 +71,7 @@ test("admin tab fires effects, custom durations, ads and the stop button", async
   await page.goto("/#admin");
   await page.getByLabel("Admin Passwort").fill("test-password");
   await page.getByRole("button", { name: "Dashboard laden" }).click();
-  await page.getByRole("button", { name: "Admin Stream Control", exact: true }).click();
+  await page.getByRole("button", { name: "Stream Control", exact: true }).click();
   await expect(page.locator(".scBtn")).toHaveCount(49);
   await expect(page.getByLabel("Stream-Control-URL")).toHaveValue(/\/stream\/control$/);
   await expect(page.locator(".scPreview iframe")).toHaveAttribute("src", "/stream/control?muted=1");

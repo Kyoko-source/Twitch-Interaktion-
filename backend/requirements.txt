@@ -4,3 +4,4 @@ requests==2.34.2
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.32
+tzdata==2025.2

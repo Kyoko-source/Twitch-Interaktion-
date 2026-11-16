@@ -30,6 +30,7 @@ from .horses import router as horses_router
 from .cookie import router as cookie_router
 from .stream_control import router as stream_control_router
 from .wheel import router as wheel_router
+from .analytics import router as analytics_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
 
@@ -73,6 +74,7 @@ app.include_router(horses_router)
 app.include_router(cookie_router)
 app.include_router(stream_control_router)
 app.include_router(wheel_router)
+app.include_router(analytics_router)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,

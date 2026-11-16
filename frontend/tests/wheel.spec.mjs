@@ -45,7 +45,7 @@ test("admin tab lists buyers, spins and resolves", async ({ page }) => {
   await page.goto("/#admin");
   await page.getByLabel("Admin Passwort").fill("x");
   await page.getByRole("button", { name: "Dashboard laden" }).click();
-  await page.getByRole("button", { name: "🎡 Glücksrad" }).click();
+  await page.getByRole("button", { name: "Glücksrad", exact: true }).click();
   await expect(page.getByText("Auf dem Rad · 2 Bestrafungen · 3 Lose")).toBeVisible();
   await expect(page.locator(".wheelBuyer", { hasText: "alice" })).toBeVisible();
   await expect(page.locator(".wheelChance").first()).toHaveText("67 %");

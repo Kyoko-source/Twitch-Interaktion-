@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Check, Plus, Shield, Trash2, X } from "lucide-react";
+import { Bell, CalendarDays, ChartNoAxesCombined, Check, Coins, FerrisWheel, LifeBuoy, Newspaper, Plus, Radio, Shield, ShoppingBasket, Sparkles, Trash2, UserPlus, Users, X } from "lucide-react";
+import { StatsAdmin } from "../stats/StatsAdmin";
 import { ShopAlertsAdmin } from "../economy/ShopAlertsAdmin";
 import { StreamControlAdmin } from "../stream/StreamControlAdmin";
 import { WheelAdmin } from "../wheel/WheelAdmin";
@@ -14,7 +15,7 @@ export function AdminPage() {
   const [message, setMessage] = useState("");
   const [approvedCode, setApprovedCode] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [tab, setTab] = useState("registrations");
+  const [tab, setTab] = useState("stats");
   const [reloadKey, setReloadKey] = useState(0);
   const [news, setNews] = useState({ title: "", body: "", image_url: "" });
   const [shop, setShop] = useState({ name: "", description: "", price: 0, category: "Rewards" });
@@ -76,19 +77,22 @@ export function AdminPage() {
     }
   }
 
-  const tabs = [
-    ["registrations", "Registrierungen"],
-    ["points", "Chickens"],
-    ["roles", "Mitglieder & Rollen"],
-    ["news", "News"],
-    ["live-news", "Live News"],
-    ["shop-alerts", "Shop-Alerts"],
-    ["stream-control", "Admin Stream Control"],
-    ["wheel", "🎡 Glücksrad"],
-    ["shop", "Shop"],
-    ["events", "Events"],
-    ["support", "Support"],
-  ];
+  const groups = overview ? [
+    ["Übersicht", [["stats", "Statistik", ChartNoAxesCombined]]],
+    ["Community", [
+      ["registrations", "Registrierungen", UserPlus, overview.registration_requests.length],
+      ["roles", "Mitglieder & Rollen", Users],
+      ["points", "Chickens", Coins],
+      ["support", "Support", LifeBuoy, overview.support_messages.length],
+    ]],
+    ["Inhalte", [["news", "News", Newspaper], ["events", "Events", CalendarDays], ["shop", "Shop", ShoppingBasket]]],
+    ["Stream", [
+      ["stream-control", "Stream Control", Sparkles],
+      ["wheel", "Glücksrad", FerrisWheel],
+      ["shop-alerts", "Shop-Alerts", Bell],
+      ["live-news", "Live News", Radio],
+    ]],
+  ] : [];
 
   return (
     <section className="stack">
@@ -126,9 +130,22 @@ export function AdminPage() {
             <Stat label="Meldungen" value={overview.support_messages.length} />
             <Stat label="Shop Items" value={overview.shop_items.length} />
           </div>
-          <div className="segmented adminTabs">
-            {tabs.map(([id, label]) => <button className={tab === id ? "active" : ""} onClick={() => setTab(id)} type="button" key={id}>{label}</button>)}
-          </div>
+          <div className="adminLayout">
+          <nav className="adminNav" aria-label="Adminbereiche">
+            {groups.map(([group, items]) => (
+              <div className="adminNavGroup" key={group}>
+                <p>{group}</p>
+                {items.map(([id, label, Icon, badge]) => (
+                  <button className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)} type="button" key={id}>
+                    <Icon size={17} aria-hidden="true" /><span>{label}</span>{badge > 0 && <span className="adminNavBadge" aria-label={`${badge} offen`}>{badge}</span>}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+          <div className="adminMain">
+          {tab === "stats" && <StatsAdmin password={password} />}
+          {tab === "registrations" && !overview.registration_requests.length && <p className="notice">Keine offenen Registrierungen.</p>}
           {tab === "registrations" && <div className="grid">{overview.registration_requests.map((item) => <article className="card" key={item.id}><h3>{item.username}</h3><p>{item.status}</p><div className="registrationActions"><button onClick={() => approveRegistration(item.id, item.username)} type="button"><Check size={16} /> Genehmigen</button><button className="ghost danger" onClick={() => rejectRegistration(item.id, item.username)} type="button"><X size={16} /> Ablehnen</button></div></article>)}</div>}
           {tab === "points" && <AdminPoints users={overview.users} adminCall={adminCall} onUpdated={() => setReloadKey((value) => value + 1)} />}
           {tab === "roles" && <AdminMembers users={overview.users} adminCall={adminCall} onUpdated={() => setReloadKey((value) => value + 1)} />}
@@ -152,6 +169,9 @@ export function AdminPage() {
             </AdminListForm>
           )}
           {tab === "support" && <div className="list">{overview.support_messages.map((item) => <AdminRow key={item.id} title={`${item.title} · ${item.category}`} text={`${item.username}: ${item.message}`} onDelete={() => mutate(`/api/admin/support/${item.id}`, { method: "PATCH", body: "{}" }, "Meldung geschlossen.")} />)}</div>}
+          {tab === "support" && !overview.support_messages.length && <p className="notice">Keine offenen Meldungen.</p>}
+          </div>
+          </div>
         </>
       )}
     </section>

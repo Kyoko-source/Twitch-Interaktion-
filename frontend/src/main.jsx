@@ -23,6 +23,7 @@ import { ShopPage } from "./pages/ShopPage";
 import { SupportPage } from "./pages/SupportPage";
 import { SystematicsPage } from "./pages/SystematicsPage";
 import { ListPage, isAdmin, nav, routeParts } from "./pages/shared";
+import { usePageTracking } from "./stats/track";
 const WheelOverlay = lazy(() => import("./wheel/WheelOverlay").then((module) => ({ default: module.WheelOverlay })));
 const StreamControlOverlay = lazy(() => import("./stream/StreamControlOverlay").then((module) => ({ default: module.StreamControlOverlay })));
 const DerbyOverlay = lazy(() => import("./horses/DerbyOverlay").then((module) => ({ default: module.DerbyOverlay })));
@@ -158,6 +159,8 @@ function App() {
     window.addEventListener("aviary-session-ended", endSession);
     return () => window.removeEventListener("aviary-session-ended", endSession);
   }, []);
+
+  usePageTracking((routeKey || "").replace(/^#\/?/, "") || page);
 
   const content = useMemo(() => {
     if (page === "nullsignal") return <Suspense fallback={<div className="notice">Handbuch wird vorbereitet …</div>}><Nullsignal user={user}/></Suspense>;
