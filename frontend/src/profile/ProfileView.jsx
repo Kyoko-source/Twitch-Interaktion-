@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity, ArrowLeft, Award, CalendarCheck, Check, Coins, Copy, Crown, Dices, Egg, Feather, Flag, Flame, Gamepad2, Gem,
+  Activity, ArrowLeft, Award, CalendarCheck, Check, Coins, Cookie, Copy, Crown, Dices, Egg, Feather, Flag, Flame, Gamepad2, Gem,
   Home, Lock, Mail, Medal, Palette, Pencil, ShoppingBag, Sparkles, Star, Trophy, X, Zap,
 } from "lucide-react";
 import { api } from "../api";
@@ -10,7 +10,7 @@ import { RoleBadge, gameMeta, profileHref } from "../pages/shared";
 import "./profile.css";
 
 const fmt = (n) => Math.round(Number(n) || 0).toLocaleString("de-DE");
-const BADGE_ICONS = { horse: Award, flag: Flag, flame: Flame, egg: Egg, gem: Gem, sparkles: Sparkles, gamepad: Gamepad2, trophy: Crown, medal: Medal, bag: ShoppingBag, calendar: CalendarCheck, home: Home, coins: Coins, star: Star, phoenix: Feather };
+const BADGE_ICONS = { horse: Award, flag: Flag, flame: Flame, egg: Egg, gem: Gem, sparkles: Sparkles, gamepad: Gamepad2, trophy: Crown, medal: Medal, bag: ShoppingBag, calendar: CalendarCheck, home: Home, coins: Coins, star: Star, phoenix: Feather, cookie: Cookie };
 const TIER_NAMES = { bronze: "Bronze", silver: "Silber", gold: "Gold", legend: "Legendär" };
 const SOURCE_NAMES = { game: "Minispiel gespielt", casino: "Im Casino gespielt", shop: "Im Shop gekauft", chat: "Im Chat geschrieben", daily: "Täglicher Besuch", start: "Willkommensbonus", bonus: "Bonus" };
 const HORSE_NAMES = ["Donnerhuf", "Goldmähne", "Sturmwind", "Mitternacht", "Feuerfunke", "Silberpfeil", "Kleiner Keks", "Royal Gacker", "Nebelläufer"];

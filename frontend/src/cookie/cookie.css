@@ -1,0 +1,111 @@
+/* ---------- Santa's Cookie Crisis ------------------------------------------------------ */
+.ccGame { --cc-wood: #6b4224; --cc-wood2: #3e2615; --cc-green: #1d5a32; --cc-red: #c81d2a; --cc-gold: #ffd23f; --cc-cream: #fbf1dc;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; color: #fbf1dc; outline: none; }
+.ccMain { display: grid; gap: 12px; min-width: 0; }
+
+.ccStage { position: relative; border-radius: 18px; overflow: hidden; border: 3px solid #8a5a33; box-shadow: 0 0 0 3px #3e2615, 0 24px 60px rgba(0, 0, 0, .55), 0 0 40px rgba(255, 170, 60, .15); background: #120a06; }
+.ccCanvas { display: block; width: 100%; aspect-ratio: 16 / 9; touch-action: none; cursor: grab; }
+.ccCanvas:focus-visible { outline: 3px solid var(--cc-gold); outline-offset: -3px; }
+.ccHud { position: absolute; left: 12px; right: 12px; top: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; pointer-events: none; }
+.ccGoal { flex: 1 1 280px; max-width: 460px; padding: 8px 12px; border-radius: 12px; background: rgba(30, 14, 6, .78); border: 1px solid rgba(255, 210, 63, .35); backdrop-filter: blur(4px); }
+.ccGoalText { font-size: 13px; color: #f1e3c8; }
+.ccGoalText b { font: 800 18px "Space Grotesk", Inter, sans-serif; color: var(--cc-gold); font-variant-numeric: tabular-nums; }
+.ccGoalBar { height: 8px; margin-top: 5px; border-radius: 999px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.ccGoalBar i { display: block; height: 100%; min-width: 3px; border-radius: 999px; background: linear-gradient(90deg, #c81d2a, #ffd23f); box-shadow: 0 0 10px #ffd23f; transition: width .3s; }
+.ccChips { display: flex; flex-wrap: wrap; gap: 6px; margin-right: 88px; }
+.ccChips span { padding: 6px 11px; border-radius: 999px; background: rgba(30, 14, 6, .78); border: 1px solid rgba(255, 255, 255, .12); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ccChips b { color: var(--cc-gold); font-size: 15px; }
+.ccSoundBtns { position: absolute; right: 12px; top: 10px; display: flex; gap: 6px; }
+.ccIcon { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 10px; background: rgba(30, 14, 6, .8) !important; border: 1px solid rgba(255, 255, 255, .15) !important; color: #f1e3c8 !important; box-shadow: none !important; }
+.ccIcon.on { color: var(--cc-gold) !important; border-color: rgba(255, 210, 63, .6) !important; }
+
+.ccActions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ccAct { position: relative; display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 12px; text-align: left; border-radius: 14px;
+  background: linear-gradient(180deg, #7a4a28, #5a341b) !important; border: 1px solid #a0703f !important; color: var(--cc-cream) !important; box-shadow: 0 4px 0 #2e1a0c, inset 0 1px 0 rgba(255, 255, 255, .15) !important; text-shadow: none !important; transition: transform .08s; }
+.ccAct:active { transform: translateY(3px) !important; box-shadow: 0 1px 0 #2e1a0c !important; }
+.ccAct.next { border-color: var(--cc-gold) !important; box-shadow: 0 4px 0 #2e1a0c, 0 0 0 2px rgba(255, 210, 63, .45), 0 0 18px rgba(255, 210, 63, .35) !important; }
+.ccActIcon { font-size: 24px; line-height: 1; }
+.ccAct span:not(.ccActIcon) { display: grid; min-width: 0; }
+.ccAct b { font-size: 14px; }
+.ccAct small { color: #e7cfa6; font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ccAct kbd, .ccHint kbd { margin-left: auto; padding: 2px 7px; border-radius: 6px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .2); font: 700 11px monospace; color: #f1e3c8; }
+.ccHint { grid-column: 1 / -1; margin: 0; color: #b9a58a; font-size: 12.5px; }
+.ccHint kbd { margin: 0 2px; }
+
+.ccLine { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 12px; border-radius: 14px; background: rgba(30, 14, 6, .55); border: 1px solid rgba(255, 255, 255, .08); }
+.ccStation { position: relative; display: grid; gap: 4px; padding: 8px; border-radius: 10px; background: rgba(255, 255, 255, .04); min-width: 0; }
+.ccStation.neck { background: rgba(200, 29, 42, .18); box-shadow: inset 0 0 0 1px rgba(255, 90, 90, .6); }
+.ccStationName { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ccStationBar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.ccStationBar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2e9e5b, #ffd23f); }
+.ccStation.neck .ccStationBar i { background: linear-gradient(90deg, #c81d2a, #ff8a5c); }
+.ccStation small { display: flex; align-items: center; gap: 3px; color: #cdb998; font-size: 11px; font-variant-numeric: tabular-nums; }
+.ccStation em { position: absolute; right: 6px; top: -8px; padding: 1px 6px; border-radius: 999px; background: #c81d2a; color: #fff; font: 800 9.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; font-style: normal; }
+.ccLineInfo { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 16px; color: #cdb998; font-size: 12.5px; }
+.ccLineInfo span { display: inline-flex; align-items: center; gap: 5px; }
+.ccLineInfo b { color: #fff; font-variant-numeric: tabular-nums; }
+
+/* Shop */
+.ccShop { position: sticky; top: 76px; display: grid; gap: 10px; max-height: calc(100vh - 96px); overflow-y: auto; padding: 14px; border-radius: 18px; scrollbar-width: thin; scrollbar-color: #6b4224 transparent;
+  background: linear-gradient(180deg, #2a160b, #1c0f07); border: 2px solid #6b4224; box-shadow: 0 20px 50px rgba(0, 0, 0, .45); }
+.ccShopHead { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px dashed rgba(255, 210, 63, .3); }
+.ccShopHead > div { display: grid; }
+.ccShopHead > div:last-child { text-align: right; }
+.ccShopHead small { color: #b9a58a; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.ccShopHead strong { font: 800 26px "Space Grotesk", Inter, sans-serif; color: var(--cc-gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ccShopHead b { font-size: 13px; color: #f1e3c8; }
+.ccNextPhase { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .05); font-size: 12.5px; color: #e7cfa6; overflow: hidden; }
+.ccNextPhase i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--cc-gold); }
+.ccPhase h4 { margin: 6px 0; font: 700 13px Inter, sans-serif; color: #e7cfa6; letter-spacing: .04em; }
+.ccPhase { display: grid; gap: 8px; }
+.ccUp { position: relative; display: grid; gap: 5px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); }
+.ccUp.can { border-color: rgba(255, 210, 63, .35); }
+.ccUp.rec { background: linear-gradient(160deg, rgba(255, 210, 63, .16), rgba(200, 29, 42, .12)); border: 1px solid rgba(255, 210, 63, .7); box-shadow: 0 0 20px rgba(255, 210, 63, .15); }
+.ccRec { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--cc-gold); color: #3d2600; font: 800 10.5px Inter, sans-serif; font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
+.ccUpHead { display: flex; align-items: center; gap: 7px; }
+.ccUpHead b { font-size: 13.5px; line-height: 1.25; }
+.ccUpIcon { font-size: 18px; }
+.ccDots { display: inline-flex; gap: 3px; margin-left: auto; }
+.ccDots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .15); }
+.ccDots i.on { background: var(--cc-gold); box-shadow: 0 0 5px var(--cc-gold); }
+.ccUp small { color: #cdb998; font-size: 12px; line-height: 1.35; }
+.ccEffect { font-size: 12px; font-weight: 700; color: #7fe0a0; font-variant-numeric: tabular-nums; }
+.ccUp button { position: relative; overflow: hidden; justify-self: end; min-width: 110px; padding: 6px 12px; border-radius: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #2e9e5b, #1d6b3c) !important; border: 1px solid #4ade80 !important; color: #fff !important; box-shadow: 0 3px 0 #0e3a20 !important; }
+.ccUp button:disabled { background: #3a2a1d !important; border-color: #5a4330 !important; color: #b9a58a !important; box-shadow: none !important; filter: none !important; }
+.ccAfford { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--cc-gold); }
+.ccDone { display: flex; flex-wrap: wrap; gap: 5px; }
+.ccDone span { padding: 3px 8px; border-radius: 999px; background: rgba(74, 222, 128, .1); color: #9ee6b5; font-size: 11px; }
+.ccReset { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; }
+
+/* Finale */
+.ccFinale { position: fixed; inset: 0; z-index: 3400; display: grid; place-items: center; padding: 16px; background: rgba(10, 4, 2, .55); animation: ccFade .5s ease both; }
+.ccFinaleCard { width: min(520px, 100%); padding: 28px 26px 22px; border-radius: 24px; text-align: center; color: #fff;
+  background: radial-gradient(90% 70% at 50% 0%, rgba(255, 210, 63, .3), transparent 60%), linear-gradient(160deg, #6b0f18, #133a24); border: 2px solid var(--cc-gold); box-shadow: 0 0 80px rgba(255, 210, 63, .45), 0 30px 80px rgba(0, 0, 0, .6); animation: ccPop .7s cubic-bezier(.3, 1.5, .5, 1) both; }
+.ccSanta { font-size: 64px; line-height: 1; animation: ccBounce 1.6s ease-in-out infinite; }
+.ccFinaleCard h2 { margin: 8px 0; font: 800 26px/1.2 "Space Grotesk", Inter, sans-serif; color: var(--cc-gold); }
+.ccFinaleCard p { margin: 0 0 8px; color: #f6ead6; line-height: 1.55; }
+.ccSign { font-style: italic; color: #e7cfa6 !important; }
+.ccAward { display: inline-flex; align-items: center; gap: 10px; margin: 10px 0 14px; padding: 10px 18px; border-radius: 999px; background: linear-gradient(135deg, #ffe27a, #c88a0a); color: #3d2600; font: 800 16px Inter, sans-serif; box-shadow: 0 0 30px rgba(255, 210, 63, .6); }
+.ccFinaleCard small { display: block; margin-bottom: 12px; color: #e7cfa6; }
+.ccFinaleCard button { display: inline-flex; align-items: center; gap: 8px; }
+@keyframes ccFade { from { opacity: 0; } }
+@keyframes ccPop { from { transform: scale(.7); opacity: 0; } }
+@keyframes ccBounce { 50% { transform: translateY(-8px) rotate(-6deg); } }
+
+@media (max-width: 1100px) {
+  .ccGame { grid-template-columns: minmax(0, 1fr); }
+  .ccShop { position: static; max-height: none; }
+}
+@media (max-width: 700px) {
+  .ccActions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ccAct kbd, .ccHint { display: none; }
+  .ccLine { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ccHud { position: static; padding: 8px; background: #1c0f07; }
+  .ccChips { margin-right: 0; }
+  .ccSoundBtns { top: auto; bottom: 8px; }
+  .ccStage { display: flex; flex-direction: column-reverse; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ccSanta, .ccFinaleCard, .ccFinale { animation: none; }
+}

@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from . import cookie as cookie_game
 from . import xp as xp_levels
 
 HORSE_NAMES = ["Donnerhuf", "Goldmähne", "Sturmwind", "Mitternacht", "Feuerfunke", "Silberpfeil", "Kleiner Keks", "Royal Gacker", "Nebelläufer"]
@@ -197,7 +198,7 @@ def xp_rank(db, username: str, xp: int) -> int:
 
 
 # Badges: id, name, text, icon (frontend key), tier (bronze/silver/gold/legend) and a test with progress.
-def badges(level: dict[str, Any], d: dict[str, Any], s: dict[str, Any], g: list[dict[str, Any]], purchases: list, act: dict[str, Any], earned_chickens: int) -> list[dict[str, Any]]:
+def badges(level: dict[str, Any], d: dict[str, Any], s: dict[str, Any], g: list[dict[str, Any]], purchases: list, act: dict[str, Any], earned_chickens: int, cookie: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     best_place = min((x["place"] for x in g), default=0)
     plays = sum(x["plays"] for x in g)
 
@@ -221,6 +222,7 @@ def badges(level: dict[str, Any], d: dict[str, Any], s: dict[str, Any], g: list[
         b("rich", "Goldgrube", "10.000 Chickens erspielt.", "coins", "gold", earned_chickens, 10000),
         b("level-12", "Federheld", "Level 12 erreicht.", "star", "silver", int(level["level"]), 12),
         b("phoenix", "Phönix", "Level 25: der Phönix-Hengst gehört dir.", "phoenix", "legend", int(level["level"]), 25),
+        b("cookie-master", cookie_game.TITLE, "Santa's Cookie Crisis: 1.000.000 Kekse gebacken.", "cookie", "legend", 1 if cookie and cookie.get("finished") else 0, 1),
     ]
 
 
@@ -229,11 +231,12 @@ def card(db, username: str, earned_chickens: int = 0, now: float | None = None) 
     level = xp_levels.summary(db, username)
     d, s, g, p = derby(db, username), slots(db, username), games(db, username), shop(db, username)
     act = activity(db, username, now)
-    badge_list = badges(level, d, s, g, p, act, earned_chickens)
+    cookie = cookie_game.summary(db, username)
+    badge_list = badges(level, d, s, g, p, act, earned_chickens, cookie)
     unlock_info = {u["id"]: u for u in xp_levels.UNLOCKS}
     return {
         "level": {**level, "xp_rank": xp_rank(db, username, int(level["xp"]))},
-        "derby": d, "slots": s, "games": g, "shop": p, "activity": act, "badges": badge_list,
+        "derby": d, "slots": s, "games": g, "shop": p, "activity": act, "badges": badge_list, "cookie": cookie,
         "unlocks": [{"id": uid, "name": unlock_info[uid]["name"], "text": unlock_info[uid]["text"], "level": unlock_info[uid]["level"], "skin": bool(unlock_info[uid].get("skin"))}
                     for uid in level["unlocks"] if uid in unlock_info],
         "next_unlock": next(({"name": u["name"], "level": u["level"]} for u in xp_levels.UNLOCKS if u["level"] > level["level"]), None),

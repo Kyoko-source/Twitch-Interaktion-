@@ -27,6 +27,7 @@ from . import profiles
 from .slots import router as slots_router
 from .casino import router as casino_router
 from .horses import router as horses_router
+from .cookie import router as cookie_router
 from .stream_control import router as stream_control_router
 from .economy import economy, DAILY_CAP, ROUND_CAP, MIN_RUN_SECONDS, LEVEL_SIZE
 
@@ -68,6 +69,7 @@ app.include_router(advent_router)
 app.include_router(slots_router)
 app.include_router(casino_router)
 app.include_router(horses_router)
+app.include_router(cookie_router)
 app.include_router(stream_control_router)
 settings = get_settings()
 app.add_middleware(
