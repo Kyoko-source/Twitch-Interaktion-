@@ -38,3 +38,6 @@ frontend/public/stream-media/*.mp4
 
 # Personal Claude Code settings
 .claude/settings.local.json
+games/cookie-crisis/.godot/
+games/cookie-crisis/build/
+frontend/public/standalone/cookie-crisis/

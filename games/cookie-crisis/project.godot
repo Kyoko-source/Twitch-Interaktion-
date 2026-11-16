@@ -1,0 +1,30 @@
+; Santa's Cookie Crisis – Godot 4.6 project (exported for the web like After Play)
+config_version=5
+
+[application]
+config/name="Santa's Cookie Crisis"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Godot/app_userdata/Santas Cookie Crisis"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6", "Forward Plus")
+config/description="Ein Elf, 25 Tonnen Teig, eine Million Plätzchen."
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.04,0.06,0.12,1)
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[internationalization]
+locale/fallback="de"
+
+[physics]
+common/physics_ticks_per_second=60
+
+[rendering]
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.web="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2

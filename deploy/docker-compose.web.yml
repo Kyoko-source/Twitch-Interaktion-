@@ -31,6 +31,7 @@ services:
       - ../frontend/public/music/nullsignal:/usr/share/nginx/html/music/nullsignal:ro
       - ../frontend/public/stream-media:/usr/share/nginx/html/stream-media:ro
       - ../game-releases/kinderparadies/web:/usr/share/nginx/html/standalone/kinderparadies:ro
+      - ../game-releases/cookie-crisis/web:/usr/share/nginx/html/standalone/cookie-crisis:ro
       - ../game-releases/kinderparadies/downloads:/usr/share/nginx/html/downloads:ro
 
   caddy:
