@@ -29,21 +29,15 @@ $taskBundle=Join-Path $taskBuild 'publish.tgz'
 if($LASTEXITCODE -ne 0){throw 'Release archive failed'}
 $taskDigest=(Get-FileHash -LiteralPath $taskBundle -Algorithm SHA256).Hash.ToLowerInvariant()
 $taskRelease="v$taskVersion-"+$taskDigest.Substring(0,12)
-# Stream binary data directly into the isolated release directory. The server
-# needs room for the extracted release, without a second temporary archive.
+# Upload the archive as a file with scp (piping ~750 MB through ssh's redirected stdin from
+# PowerShell corrupted the stream), then extract it into the isolated release directory.
 if($SshTarget -notmatch '^[a-zA-Z0-9_.-]+@[a-zA-Z0-9.-]+$' -or $KeyPath.Contains('"')){throw 'Invalid SSH arguments'}
-$taskReceive="set -eu; cd /opt/twitch-interaktion; mkdir -p game-releases/kinderparadies/releases/$taskRelease; tar -xzf - -C game-releases/kinderparadies/releases/$taskRelease; cd game-releases/kinderparadies/releases/$taskRelease; sha256sum -c SHA256SUMS"
-$taskInfo=New-Object Diagnostics.ProcessStartInfo
-$taskInfo.FileName=(Get-Command ssh -ErrorAction Stop).Source
-$taskInfo.Arguments='-i "'+$KeyPath+'" -o BatchMode=yes -o ConnectTimeout=12 '+$SshTarget+' "'+$taskReceive+'"'
-$taskInfo.UseShellExecute=$false
-$taskInfo.CreateNoWindow=$true
-$taskInfo.RedirectStandardInput=$true
-$taskProcess=[Diagnostics.Process]::Start($taskInfo)
-$taskInput=[IO.File]::OpenRead($taskBundle)
-try{$taskInput.CopyTo($taskProcess.StandardInput.BaseStream)}finally{$taskInput.Dispose();$taskProcess.StandardInput.Close()}
-$taskProcess.WaitForExit()
-if($taskProcess.ExitCode -ne 0){throw 'Release upload or checksum validation failed'}
+$taskIncoming="/opt/twitch-interaktion/game-releases/kinderparadies/incoming-$taskRelease.tgz"
+& scp -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $taskBundle ($SshTarget+':'+$taskIncoming)
+if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
+$taskReceive="set -eu; cd /opt/twitch-interaktion; mkdir -p game-releases/kinderparadies/releases/$taskRelease; tar -xzf $taskIncoming -C game-releases/kinderparadies/releases/$taskRelease; rm -f $taskIncoming; cd game-releases/kinderparadies/releases/$taskRelease; sha256sum -c SHA256SUMS"
+& ssh -i $KeyPath -o BatchMode=yes -o ConnectTimeout=12 $SshTarget $taskReceive
+if($LASTEXITCODE -ne 0){throw 'Release extraction or checksum validation failed'}
 $taskRemote=@'
 set -eu
 cd /opt/twitch-interaktion
