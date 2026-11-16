@@ -1,0 +1,160 @@
+/* ================= Aviary Store =================
+   Collectible ticket cards with a themed art panel, holo sheen and a gentle 3D tilt.
+   Each category owns a colour world: --c1 (light), --c2 (deep), --c3 (accent ink). */
+.shStore { gap: 22px; }
+.shStore .theme-punish { --c1: #ff4d6d; --c2: #5c0a24; --c3: #ffb3c1; --c4: rgba(255, 77, 109, 0.35); }
+.shStore .theme-task { --c1: #22d3c5; --c2: #06363f; --c3: #a7f3ec; --c4: rgba(34, 211, 197, 0.32); }
+.shStore .theme-chat { --c1: #ff5fd2; --c2: #3b0a4a; --c3: #ffc2f0; --c4: rgba(255, 95, 210, 0.32); }
+.shStore .theme-outside { --c1: #ffb547; --c2: #4a2600; --c3: #ffe0a8; --c4: rgba(255, 181, 71, 0.32); }
+.shStore .theme-reward, .shStore .theme-all { --c1: #a66bff; --c2: #26104d; --c3: #dcc6ff; --c4: rgba(166, 107, 255, 0.32); }
+
+.shKicker { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: #ffcf6b; }
+
+/* ---------- hero ---------- */
+.shHero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 32px; align-items: center; padding: 40px 40px 40px 44px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); background: radial-gradient(120% 140% at 0% 0%, #2a1250 0%, #140b26 45%, #0b0714 100%); box-shadow: 0 30px 80px rgba(10, 0, 30, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06); isolation: isolate; }
+.shHeroAurora { position: absolute; inset: -40%; z-index: -1; background:
+  radial-gradient(40% 35% at 75% 30%, rgba(255, 95, 210, 0.28), transparent 70%),
+  radial-gradient(35% 30% at 85% 80%, rgba(255, 181, 71, 0.18), transparent 70%),
+  radial-gradient(30% 40% at 20% 90%, rgba(34, 211, 197, 0.14), transparent 70%);
+  filter: blur(10px); animation: shAurora 18s ease-in-out infinite alternate; }
+@keyframes shAurora { to { transform: translate(-6%, 4%) rotate(8deg); } }
+.shHero::after { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.35; background-image: radial-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(90deg, transparent, #000 60%); -webkit-mask-image: linear-gradient(90deg, transparent, #000 60%); }
+.shHeroText h1 { margin: 12px 0 14px; font-size: clamp(30px, 4vw, 50px); line-height: 1.02; letter-spacing: -0.03em; color: #fff; }
+.shHeroText h1 em { font-style: normal; background: linear-gradient(90deg, #ffcf6b, #ff5fd2 55%, #a66bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.shHeroText p { max-width: 520px; margin: 0; color: #c9bfdc; font-size: 15px; line-height: 1.6; }
+.shHeroChips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.shStore .shHeroChips > * { display: inline-flex; align-items: center; gap: 7px; min-height: 0; padding: 8px 13px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: #e9e2f7; font-size: 12.5px; font-weight: 600; box-shadow: none; }
+.shStore .shHeroChips button { background: linear-gradient(135deg, rgba(255, 207, 107, 0.2), rgba(255, 95, 210, 0.16)); border-color: rgba(255, 207, 107, 0.4); color: #fff; cursor: pointer; }
+.shStore .shHeroChips button:hover { transform: translateY(-1px); border-color: rgba(255, 207, 107, 0.7); }
+
+/* member card */
+.shMember { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; aspect-ratio: 1.58; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #3a1a6b 0%, #1b0d36 45%, #4a1240 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)); transition: transform 0.25s ease-out; }
+.shMember::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 9px); pointer-events: none; }
+.shMemberSheen { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 60% at var(--mx) var(--my), rgba(255, 220, 255, 0.28), transparent 60%), linear-gradient(115deg, transparent 30%, rgba(255, 207, 107, 0.16) 45%, rgba(255, 95, 210, 0.14) 55%, transparent 70%); mix-blend-mode: screen; }
+.shMemberTop { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 800; letter-spacing: 0.24em; color: rgba(255, 255, 255, 0.7); }
+.shChip { width: 38px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #fff1c2, #d39a2a 50%, #ffe08a); box-shadow: inset 0 0 0 1px rgba(90, 50, 0, 0.4); position: relative; }
+.shChip::after { content: ""; position: absolute; inset: 6px 8px; border: 1px solid rgba(90, 50, 0, 0.45); border-radius: 3px; }
+.shMemberBalance { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+.shMemberBalance strong { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; text-shadow: 0 2px 14px rgba(255, 207, 107, 0.35); }
+.shMemberBalance small { align-self: flex-end; margin-bottom: 4px; color: #ffcf6b; font-weight: 700; font-size: 13px; }
+.shMemberRow { display: flex; gap: 16px; font-size: 12.5px; color: #d7cbec; }
+.shMemberName { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.85); }
+.shMemberName em { font-style: normal; font-size: 11px; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); letter-spacing: 0.06em; }
+.shStore .shMemberLogin { align-self: flex-start; display: inline-flex; gap: 8px; align-items: center; }
+
+/* gold coin */
+.shCoin { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; font-size: 13px; line-height: 1;
+  background: radial-gradient(circle at 35% 30%, #fff6cf, #ffcf4a 45%, #c47e00 100%); box-shadow: inset 0 -2px 0 rgba(120, 60, 0, 0.45), inset 0 0 0 1.5px rgba(255, 240, 190, 0.7), 0 2px 8px rgba(255, 190, 40, 0.35); }
+.shCoin.big { width: 48px; height: 48px; font-size: 26px; }
+
+/* ---------- wheel spotlight ---------- */
+.shSpot { position: relative; overflow: hidden; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 34px; align-items: center; padding: 28px 34px; border-radius: 22px; border: 1px solid rgba(255, 77, 109, 0.28);
+  background: radial-gradient(80% 140% at 0% 50%, rgba(255, 77, 109, 0.22), transparent 60%), linear-gradient(135deg, #1f0b1c, #120814 60%, #1a0a24); box-shadow: 0 20px 60px rgba(60, 0, 20, 0.35); }
+.shSpotWheel { position: relative; width: 200px; height: 200px; }
+.shSpotDisc { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 7px #e0a526, 0 0 0 9px #7a4a00, 0 0 40px rgba(255, 180, 60, 0.45); animation: shSpin 22s linear infinite; }
+.shSpotDisc::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.25) 100%), linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent 45%); }
+@keyframes shSpin { to { transform: rotate(360deg); } }
+.shSpotHub { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; display: grid; place-items: center; border-radius: 50%; font-size: 28px; background: radial-gradient(circle at 35% 30%, #fff7d1, #f0b52c 50%, #6b3f00); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); }
+.shSpotPin { position: absolute; left: 50%; top: -14px; width: 0; height: 0; margin-left: -12px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 26px solid #ff2b4b; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+.shSpotText h2 { margin: 10px 0 8px; font-size: clamp(20px, 2.2vw, 28px); line-height: 1.15; color: #fff; }
+.shSpotText p { margin: 0 0 16px; color: #d6c3d6; font-size: 14px; line-height: 1.55; max-width: 560px; }
+.shSpotTop { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; max-width: 520px; }
+.shSpotTop li { position: relative; display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); overflow: hidden; font-size: 13.5px; color: #fff; }
+.shSpotTop li i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(255, 77, 109, 0.35), rgba(255, 77, 109, 0.08)); z-index: 0; }
+.shSpotTop li span, .shSpotTop li b { position: relative; z-index: 1; }
+.shSpotTop li b { color: #ffb3c1; font-variant-numeric: tabular-nums; }
+.shStore .shSpotBtn { display: inline-flex; gap: 8px; align-items: center; background: linear-gradient(135deg, #ff4d6d, #c4123a); border: 1px solid rgba(255, 179, 193, 0.5); color: #fff; box-shadow: 0 10px 24px rgba(255, 50, 90, 0.35); }
+
+/* ---------- category tabs ---------- */
+.shTabs { position: sticky; top: 64px; z-index: 5; padding: 6px 0; scroll-margin-top: 80px; }
+.shStore .shopCategoryTabs { display: flex; gap: 8px; overflow-x: auto; padding: 6px; border-radius: 16px; background: rgba(14, 10, 22, 0.82); border: 1px solid rgba(255, 255, 255, 0.07); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); scrollbar-width: none; }
+.shStore .shopCategoryTabs::-webkit-scrollbar { display: none; }
+.shStore .shopCategoryTabs button { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 0; padding: 9px 14px; border-radius: 11px; border: 1px solid transparent; background: transparent; color: #b8acca; font-size: 13px; font-weight: 600; box-shadow: none; }
+.shStore .shopCategoryTabs button svg { color: var(--c1); }
+.shStore .shopCategoryTabs button small { min-width: 20px; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); color: #d9cfe8; font-size: 11px; font-weight: 700; text-align: center; }
+.shStore .shopCategoryTabs button:hover { background: rgba(255, 255, 255, 0.05); color: #fff; transform: none; }
+.shStore .shopCategoryTabs button.active { color: #fff; background: linear-gradient(135deg, var(--c4), rgba(255, 255, 255, 0.04)); border-color: var(--c4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.shStore .shopCategoryTabs button.active small { background: var(--c1); color: #12081c; }
+
+/* ---------- cards ---------- */
+.shGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 20px; perspective: 1400px; }
+.shStore .shCard { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 0%; position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; border-radius: 20px;
+  background: linear-gradient(180deg, #1b1426 0%, #130e1c 100%); border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px rgba(0, 0, 0, 0.35);
+  transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(0); transition: transform 0.25s ease-out, box-shadow 0.25s, border-color 0.25s; backdrop-filter: none; }
+.shStore .shCard:hover { transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-6px); border-color: var(--c4); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 28px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--c4), 0 20px 50px -10px var(--c4); }
+
+.shArt { position: relative; height: 150px; display: grid; place-items: center; overflow: hidden; isolation: isolate;
+  background: radial-gradient(120% 100% at 50% 0%, var(--c1) 0%, var(--c2) 70%); }
+.shArtPattern { position: absolute; inset: 0; z-index: -1; opacity: 0.22; background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1.2px, transparent 1.4px), repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 14px); background-size: 16px 16px, auto; mask-image: radial-gradient(80% 90% at 50% 30%, #000, transparent); -webkit-mask-image: radial-gradient(80% 90% at 50% 30%, #000, transparent); }
+.shArtGlow { position: absolute; width: 150px; height: 150px; border-radius: 50%; z-index: -1; background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 65%); filter: blur(6px); }
+.shArt::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(180deg, transparent, rgba(19, 14, 28, 0.65)); z-index: -1; }
+.shEmoji { font-size: 66px; line-height: 1; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45)); transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
+.shStore .shCard:hover .shEmoji { transform: translateY(-4px) scale(1.12) rotate(-6deg); }
+.shStore .shChat { width: 82%; margin: 0; padding: 0; display: block; }
+.shStore .shChat > div { position: relative; overflow: hidden; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.16); color: #fff; font-size: 13px; text-align: left; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35); }
+.shStore .shChat b { margin-right: 6px; color: #ffcf6b; }
+
+.shBadges { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; }
+.shBadge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: rgba(10, 6, 18, 0.55); border: 1px solid rgba(255, 255, 255, 0.18); }
+.shBadge.live svg { color: #ff6b81; animation: shBlink 1.4s ease-in-out infinite; }
+@keyframes shBlink { 50% { opacity: 0.35; } }
+.shBadge.hot { background: linear-gradient(135deg, #ff8a3d, #ff3b5c); border-color: rgba(255, 200, 160, 0.5); }
+.shBadge.owned { background: rgba(12, 163, 12, 0.85); border-color: rgba(180, 255, 180, 0.5); }
+.shWheelChip { position: absolute; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(10, 6, 18, 0.62); border: 1px solid rgba(255, 207, 107, 0.45); }
+.shWheelChip svg { color: #ffcf6b; }
+
+.shBody { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px 6px; flex: 1; }
+.shEyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--c3); }
+.shBody h2 { margin: 0; font-size: 19px; line-height: 1.22; letter-spacing: -0.01em; color: #fff; overflow-wrap: anywhere; }
+.shBody p { margin: 0; color: #a99fbb; font-size: 13px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.shMeta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.shMeta span { font-size: 11.5px; color: #cfc4e0; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); }
+
+/* ticket perforation */
+.shPerf { position: relative; height: 22px; margin: 6px 0 0; }
+.shPerf::before { content: ""; position: absolute; left: 16px; right: 16px; top: 50%; border-top: 2px dashed rgba(255, 255, 255, 0.1); }
+.shPerf::after { content: ""; position: absolute; inset: 0 -11px; background: radial-gradient(circle at 0 50%, var(--page-bg, #0c0912) 10px, transparent 10.5px), radial-gradient(circle at 100% 50%, var(--page-bg, #0c0912) 10px, transparent 10.5px); }
+
+.shFoot { display: flex; flex-direction: column; gap: 10px; padding: 4px 20px 20px; }
+.shPrice { display: flex; align-items: center; gap: 8px; }
+.shPrice strong { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: #ffd76a; text-shadow: 0 2px 14px rgba(255, 190, 40, 0.25); }
+.shPrice small { color: #a99fbb; font-size: 12px; font-weight: 600; }
+.shProgress { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.shProgress i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--c2), var(--c1)); }
+.shStore .shBuy { width: 100%; justify-content: center; min-height: 44px; border-radius: 12px; font-weight: 700; color: #fff; border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 10px 22px -8px var(--c1), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.shStore .shBuy:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.shStore .shBuy.ghost, .shStore .shBuy:disabled { background: rgba(255, 255, 255, 0.04); color: #b2a7c4; border-color: rgba(255, 255, 255, 0.08); box-shadow: none; filter: none; }
+
+.shSheen { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(40% 50% at var(--mx) var(--my), rgba(255, 255, 255, 0.16), transparent 70%), linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.07) 48%, transparent 60%); mix-blend-mode: screen; }
+.shStore .shCard:hover .shSheen { opacity: 1; }
+.shStore .shCard.isOwned .shArt { filter: saturate(0.6); }
+
+/* ---------- casino below the catalog ---------- */
+.shStore .cashier { margin-top: 18px; }
+
+/* Christmas look */
+.xmasOn .shHero { background: radial-gradient(120% 140% at 0% 0%, #3a0f16 0%, #12241a 55%, #07120c 100%); }
+.xmasOn .shStore .shopCategoryTabs { background: rgba(8, 22, 14, 0.85); }
+
+@media (max-width: 980px) {
+  .shHero { grid-template-columns: 1fr; padding: 28px; }
+  .shMember { max-width: 380px; }
+  .shSpot { grid-template-columns: 1fr; justify-items: start; }
+  .shSpotWheel { width: 150px; height: 150px; justify-self: center; margin-top: 14px; }
+}
+@media (max-width: 560px) {
+  .shHero { padding: 22px 18px; border-radius: 18px; }
+  .shSpot { padding: 22px 18px; }
+  .shGrid { grid-template-columns: 1fr; }
+  .shMemberBalance strong { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shHeroAurora, .shSpotDisc, .shBadge.live svg { animation: none; }
+  .shCard, .shMember { transform: none !important; }
+}

@@ -926,7 +926,11 @@ def shop() -> list[dict[str, Any]]:
     items = rows("shop_items?select=*&active=eq.true&order=category.asc,price.asc")
     existing_names = {str(item.get("name") or "") for item in items}
     builtins = [item for item in CHAT_STYLE_SHOP_ITEMS if item["name"] not in existing_names]
-    return [*items, *builtins]
+    try:
+        sold = economy().sold_counts()
+    except Exception:  # the catalog must load even if the ledger is busy or not ready
+        sold = {}
+    return [{**item, "sold": sold.get(str(item.get("id")), 0)} for item in [*items, *builtins]]
 
 
 @app.post("/api/shop/purchase")
@@ -1109,7 +1113,7 @@ def admin_overview() -> dict[str, Any]:
     return {
         "users": [{**public_user(user), "banned": economy().access(str(user["username"]))["banned"], "ban_reason": economy().access(str(user["username"]))["reason"]} for user in users_data],
         "registration_requests": rows("registration_requests?select=*&status=eq.pending&order=created_at.asc"),
-        "support_messages": rows("support_messages?select=*&order=created_at.desc&limit=100"),
+        "support_messages": rows("support_messages?select=*&status=eq.open&order=created_at.desc&limit=100"),
         "wishes": rows("wish_posts?select=*&active=eq.true&order=created_at.desc&limit=100"),
     }
 
@@ -1255,5 +1259,6 @@ def admin_delete_wish(wish_id: str) -> dict[str, str]:
 
 @app.patch("/api/admin/support/{message_id}", dependencies=[Depends(require_admin)])
 def admin_close_support(message_id: str) -> dict[str, str]:
-    supabase().patch(f"support_messages?id=eq.{quote(message_id)}", {"status": "closed"})
+    # The table only allows 'open' and 'done' (support_messages_status_check).
+    supabase().patch(f"support_messages?id=eq.{quote(message_id)}", {"status": "done"})
     return {"message": "Meldung geschlossen."}

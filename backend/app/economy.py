@@ -264,6 +264,11 @@ class EconomyStore:
             return {"wallet": wallet, "summary": {"earned": wallet["chickens_earned"], "adjustments": adjustments, "spent": spent},
                     "transactions": sorted(events, key=lambda row: row["created"], reverse=True)[:50]}
 
+    def sold_counts(self):
+        """How often each shop item was bought (all time), keyed by item id."""
+        with self.connection() as db:
+            return {row[0]: row[1] for row in db.execute("SELECT item_id, COUNT(*) FROM purchases GROUP BY item_id")}
+
     def owned_names(self, username):
         with self.connection() as db:
             return {row[0] for row in db.execute("SELECT item_name FROM purchases WHERE username=?", (username,))}
