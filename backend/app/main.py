@@ -23,6 +23,7 @@ from .nullsignal import router as nullsignal_router
 from .afterplay_mp import router as afterplay_mp_router
 from .dnd import router as dnd_router
 from .advent import router as advent_router
+from . import profiles
 from .slots import router as slots_router
 from .casino import router as casino_router
 from .horses import router as horses_router
@@ -813,6 +814,47 @@ def profile(username: str) -> dict[str, Any]:
     if not user:
         raise HTTPException(status_code=404, detail="Profil nicht gefunden")
     return public_user(user)
+
+
+@app.get("/api/profile/{username}/card")
+def profile_card(username: str) -> dict[str, Any]:
+    """Everything the public profile page shows: member data, rank and the ledger stats."""
+    user = single_user(clean_username(username))
+    if not user or str(user["username"]).casefold() in economy().banned_names():
+        raise HTTPException(status_code=404, detail="Profil nicht gefunden")
+    public = public_user(user)
+    name = str(public["username"])
+    ranked = ranked_users(rows("users?select=*&order=username.asc"))
+    rank = next((i + 1 for i, member in enumerate(ranked) if member["username"] == name), len(ranked))
+    try:
+        cutoff = (datetime.now() - timedelta(seconds=55)).isoformat()
+        online = bool(rows(f"user_presence?select=username&username=eq.{quote(name)}&last_seen=gte.{quote(cutoff)}"))
+    except HTTPException:
+        online = False
+    with economy().connection() as db:
+        card = profiles.card(db, name, int(public.get("chickens_earned") or 0))
+    styles = load_chat_styles()
+    for hidden in ("email", "approval_code", "password", "twitch_id"):
+        public.pop(hidden, None)
+    return {"user": public, "rank": rank, "members": len(ranked), "online": online, "chat_style": styles.get(name, "default"), **card}
+
+
+class ProfileLook(BaseModel):
+    theme: str = Field(min_length=1, max_length=20)
+    showcase: list[str] = Field(default_factory=list, max_length=6)
+
+
+@app.patch("/api/profile/look")
+def update_profile_look(payload: ProfileLook, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    name = str(user["username"])
+    earned_chickens = int(economy().balance(name).get("chickens_earned") or 0)
+    with economy().connection(write=True) as db:
+        card = profiles.card(db, name, earned_chickens)
+        earned = {b["id"] for b in card["badges"] if b["earned"]}
+        try:
+            return {"prefs": profiles.save_prefs(db, name, payload.theme, payload.showcase, int(card["level"]["level"]), earned)}
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @app.patch("/api/profile")

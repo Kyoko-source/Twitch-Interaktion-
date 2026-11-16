@@ -42,7 +42,7 @@ export function AppShell({ page, setPage, user, onLogout, nav, hiddenIds = [], c
   const [menuOpen, setMenuOpen] = useState(false);
   const railRef = useRef(null);
   const menuRef = useRef(null);
-  const label = nav.find((item) => item.id === page)?.label || (page === "login" ? "Anmelden" : "Support");
+  const label = nav.find((item) => item.id === page)?.label || (page === "login" ? "Anmelden" : page === "u" ? "Profil" : "Support");
 
   useEffect(() => { document.title = `${chatUnread ? `(${chatUnread}) ` : ""}${label} · Aviary`; }, [label, chatUnread]);
   useEffect(() => {

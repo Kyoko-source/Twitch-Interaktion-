@@ -29,8 +29,8 @@ test("chat: unread private messages show a badge, a popup and open the right con
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
 
   await toast.getByRole("button", { name: "Antworten" }).click();
-  await expect(page.locator(".chatWindowHead strong")).toHaveText("alice");
-  await expect(page.locator(".chatMessages")).toContainText("Bist du heute im Stream?");
+  await expect(page.locator(".cHead strong")).toContainText("alice");
+  await expect(page.locator(".cMessages")).toContainText("Bist du heute im Stream?");
   expect(opened.length).toBeGreaterThan(0);
   await expect(page.locator(".chatBell .navBadge")).toHaveCount(0);
   await expect(page).not.toHaveTitle(/^\(/);

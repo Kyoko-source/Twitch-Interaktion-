@@ -16,6 +16,7 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MembersPage } from "./pages/MembersPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ProfileView } from "./profile/ProfileView";
 import { ShopPage } from "./pages/ShopPage";
 import { SupportPage } from "./pages/SupportPage";
 import { SystematicsPage } from "./pages/SystematicsPage";
@@ -37,9 +38,10 @@ import "./ui/neon-theme.css";
 function App() {
   const pageFromRoute = () => {
     const [next] = routeParts();
-    return nav.some((item) => item.id === next) || ["login", "support", "nullsignal"].includes(next) ? next : "home";
+    return nav.some((item) => item.id === next) || ["login", "support", "nullsignal", "u"].includes(next) ? next : "home";
   };
   const [page, setPageState] = useState(pageFromRoute);
+  const [routeKey, setRouteKey] = useState(() => window.location.hash);
   const [user, setUser] = useState(null);
   const [sessionNotice, setSessionNotice] = useState("");
   const chatUnread = useChatUnread(user);
@@ -47,6 +49,7 @@ function App() {
   function setPage(next) {
     setPageState(next.split("/")[0]);
     if (window.location.hash !== `#${next}`) window.history.replaceState(null, "", `/#${next}`);
+    setRouteKey(`#${next}`);
   }
 
   useEffect(() => {
@@ -75,7 +78,7 @@ function App() {
   }, [user?.username]);
 
   useEffect(() => {
-    function syncPage() { setPageState(pageFromRoute()); }
+    function syncPage() { setPageState(pageFromRoute()); setRouteKey(window.location.hash); }
     window.addEventListener("hashchange", syncPage);
     window.addEventListener("popstate", syncPage);
     return () => {
@@ -108,6 +111,7 @@ function App() {
     if (page === "news") return <ListPage title="News" path="/api/news" render={(item) => <article className="card" key={item.id}><h3>{item.title}</h3><p>{item.body}</p></article>} />;
     if (page === "members") return <MembersPage user={user} setPage={setPage} />;
     if (page === "chat") return <ChatPage user={user} setPage={setPage} unread={chatUnread.summary} />;
+    if (page === "u") return <ProfileView username={decodeURIComponent(routeParts()[1] || "")} me={user} setUser={setUser} setPage={setPage} />;
     if (page === "profile") return <ProfilePage user={user} setUser={setUser} setPage={setPage} />;
     if (page === "shop") return <ShopPage user={user} setPage={setPage} />;
     if (page === "leaderboard") return <LeaderboardPage />;
@@ -117,7 +121,7 @@ function App() {
     if (page === "gallery") return <GalleryPage user={user} setPage={setPage} />;
     if (page === "admin") return <AdminPage />;
     return <SupportPage user={user} />;
-  }, [page, user, chatUnread.summary]);
+  }, [page, routeKey, user, chatUnread.summary]);
 
   return (
     <AppShell chatUnread={chatUnread.summary.total} nav={nav} hiddenIds={isAdmin(user) ? [] : ["admin"]} page={page} setPage={setPage} user={user} onLogout={() => { api("/api/presence", { method: "DELETE" }).catch(() => {}).finally(() => { setToken(""); setUser(null); setPage("home"); }); }}>

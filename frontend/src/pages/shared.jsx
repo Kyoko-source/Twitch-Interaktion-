@@ -62,6 +62,17 @@ export function LevelChip({ user }) {
   return <span className="levelChip" title={user.level_title || ""}>Lv {user.level}</span>;
 }
 
+// Public profile of a member: /#u/<name>, shareable anywhere (chat, Twitch, Discord).
+export function profileHref(username) {
+  return `#u/${encodeURIComponent(username || "")}`;
+}
+
+export function ProfileLink({ user, username, children, className = "" }) {
+  const name = username || user?.username;
+  if (!name) return children || null;
+  return <a className={`profileLink ${className}`.trim()} href={profileHref(name)} title={`Profil von ${name}`}>{children || name}</a>;
+}
+
 export function routeParts() {
   if (typeof window === "undefined") return [];
   const hashParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);

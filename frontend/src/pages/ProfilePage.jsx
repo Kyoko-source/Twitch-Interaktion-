@@ -1,54 +1,20 @@
-import React, { useState } from "react";
+import React from "react";
 import { WalletHistory } from "../economy/WalletHistory";
 import { LevelPanel } from "../economy/LevelUp";
-import { api } from "../api";
-import { Avatar, EmptyLogin, RoleBadge, Stat } from "./shared";
+import { ProfileView } from "../profile/ProfileView";
+import { EmptyLogin } from "./shared";
 
+// Your own profile: the public profile (with edit button) plus level tree and wallet, which only you see.
 export function ProfilePage({ user, setUser, setPage }) {
-  const [profile, setProfile] = useState(user || {});
-  const [message, setMessage] = useState("");
-
   if (!user) return <EmptyLogin setPage={setPage} />;
-
-  async function save(event) {
-    event.preventDefault();
-    try {
-      const result = await api("/api/profile", { method: "PATCH", body: JSON.stringify(profile) });
-      setUser(result.user);
-      setProfile(result.user);
-      setMessage("Profil gespeichert.");
-    } catch (err) {
-      setMessage(err.message);
-    }
-  }
-
-
   return (
     <section className="stack">
-      <div className="profileHero">
-        <Avatar user={user} className="avatar" />
-        <div>
-          <p className="kicker">Profilzentrum</p>
-          <h1>{user.username}</h1>
-          <RoleBadge user={user} />
-          <p>{user.bio || "Noch keine Bio eingetragen."}</p>
-        </div>
-        <div className="heroPanel compact">
-          <Stat label={`Level · ${user.level_title || ""}`} value={user.level || 1} />
-          <Stat label="Chickens erspielt" value={user.chickens_earned} />
-          <Stat label="Chickens verfügbar" value={user.chickens} />
-        </div>
+      <ProfileView username={user.username} me={user} setUser={setUser} setPage={setPage} />
+      <div className="pfOwnExtras">
+        <h2>Nur für dich sichtbar</h2>
+        <LevelPanel user={user} />
+        <WalletHistory user={user} />
       </div>
-      <button onClick={() => setPage("games")} type="button">Chickens in Minispielen verdienen</button>
-      <LevelPanel user={user} />
-      <WalletHistory user={user} />
-      <form className="panel form" onSubmit={save}>
-        <label>Biografie<textarea value={profile.bio || ""} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} /></label>
-        <label>Lieblingsspiel<input value={profile.favorite_game || ""} onChange={(event) => setProfile({ ...profile, favorite_game: event.target.value })} /></label>
-        <label>Profilbild-URL<input value={profile.avatar_url || ""} onChange={(event) => setProfile({ ...profile, avatar_url: event.target.value })} /></label>
-        <button type="submit">Profil speichern</button>
-        {message && <div className="notice">{message}</div>}
-      </form>
     </section>
   );
 }
