@@ -40,9 +40,10 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(t.attack==attack and t.actor.position==pos and t.visual.transform==visual and (not t.audio.playing or t.audio.stream_paused) and (not t.footsteps.playing or t.footsteps.stream_paused),"A triggered scare moves or sounds while paused: "+id)
   game._resume();game.player.active=false;t.tick(6,true,game.player);var final_attack: float=t.attack;t.tick(1,true,game.player)
   verify.call(t.finished and t.attack==final_attack and is_instance_valid(t.marker),"Scare repeats or loses its lasting clue: "+id)
+  verify.call(not t.actor.visible and (t.vanished or t.spec.mode=="vent"),"Visitor stays visible after its jumpscare: "+id)
   if t.spec.mode in ["tube","window"]:
    game.player.position=CrawlTubes.route(7.0)+Vector3(0,-.72,0);t.tick(0,false,game.player)
-   verify.call(t.actor.visible,"Tunnel visitor is not visible from inside")
+   verify.call(not t.actor.visible and t.marker.visible,"Tunnel visitor stays after its scare or its remnant is missing inside")
    game.player.position=Vector3(-1,0,12);t.tick(0,false,game.player)
    verify.call(not t.actor.visible and not t.marker.visible,"Tunnel visitor or its remnant leaks into the outside scene")
  game._build_world("tube_watcher");game.player.active=false

@@ -7,6 +7,7 @@ const SOUND_ROOT:="res://assets/quality-v410/audio/"
 const VARIANTS:=4
 const VOICES:=["horse","granny","door"]
 const FAMILIES:=["rabbit","clown","ossuary","crawler","window","fall","crowd","charge","whisper","crocodile"]
+const BUS:="AP.Scare"
 static var previous: Dictionary={}
 static var random:=RandomNumberGenerator.new()
 static var initialized:=false
@@ -29,7 +30,7 @@ static func family(id: String, mode: String="") -> String:
 static func select(player: AudioStreamPlayer3D, id: String, mode: String="") -> void:
  var kind:=family(id,mode);var variant:=choose(kind,false)
  player.stream=load(track(kind,variant))
- player.pitch_scale=1.0;player.volume_db=-5
+ player.pitch_scale=1.0;player.volume_db=0
  player.set_meta("scare_family",kind);player.set_meta("scare_variant",variant)
 
 static func next_variant(kind: String) -> int:
@@ -74,3 +75,17 @@ static func lead(parent: Node3D, id: String, mode: String="") -> AudioStreamPlay
  parent.add_child(player)
  if AudioServer.get_bus_index("Interior")>=0: player.bus="Interior"
  return player
+
+# Jumpscares get their own bus straight into Master: never ducked by the
+# ambience slider, pushed hot into a limiter so every hit lands at full level.
+static func bus() -> String:
+ var index:=AudioServer.get_bus_index(BUS)
+ if index<0:
+  AudioServer.add_bus();index=AudioServer.bus_count-1;AudioServer.set_bus_name(index,BUS)
+  var limiter:=AudioEffectHardLimiter.new();limiter.ceiling_db=-.3;limiter.pre_gain_db=3.
+  AudioServer.add_bus_effect(index,limiter)
+ AudioServer.set_bus_send(index,"Master")
+ return BUS
+
+static func loud(player: Node) -> void:
+ player.bus=bus();player.set_meta("scare_bus",true)

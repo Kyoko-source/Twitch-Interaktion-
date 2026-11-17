@@ -495,7 +495,8 @@ func _apply_settings() -> void:
  if world:
   for branch in [world.soundscape,world.annex,world.room_horror,world.archive,world.terrors,world.server_room,world.details,world.film,world.life,world.touch]:
    if branch:
-    for source in branch.find_children("*","AudioStreamPlayer3D",true,false): source.bus="NightAmbience"
+    for source in branch.find_children("*","AudioStreamPlayer3D",true,false):
+     if not source.has_meta("scare_bus"): source.bus="NightAmbience"
  if world and world.archive: world.archive.finale.voice.bus="NightVoice"
  if world and world.acoustics:world.acoustics.route()
  if intro: intro.voice.bus="NightVoice"

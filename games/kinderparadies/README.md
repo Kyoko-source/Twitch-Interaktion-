@@ -1,5 +1,36 @@
 # After Play — Kinderparadies
 
+## Neue Jumpscares der Nachtbesucher (4.7.0)
+
+Die Besucher-Jumpscares sind neu getaktet. Bisher löste ein Besucher schon aus
+5,4 m Entfernung aus, lief 1,3 s lang mit 1,9–4,5 m/s auf den Wächter zu, blieb
+an Möbeln hängen und stand danach verdreht im Raum.
+
+- **Timing:** Ein Besucher wartet, bis man wirklich nah ist (3,3–4,4 m, Renner
+  5,6 m). Wer ihn aus der Ferne länger als rund 2 s anstarrt, wird trotzdem
+  angegriffen.
+- **Angriff:** Nach einem kurzen Erstarren mit zuckendem Kopf (0–0,3 s) sprintet
+  der Besucher mit 6–9 m/s los und springt dem Wächter ins Gesicht (Schrei,
+  flackerndes Licht). Versperren Tresen oder Sitzreihen den Weg, springt er
+  darüber, solange er den Wächter sieht. Sonst verschwindet er. Hängenbleiben
+  ist damit ausgeschlossen.
+- **Danach unsichtbar:** Jeder Besucher (auch Hände, Mund, Thron, Deckengast,
+  Fallgast, Röhrenkriecher) verschwindet nach seinem Schreck. Die Taschenlampe
+  flackert dabei kurz, damit er nicht sichtbar wegploppt. Als Hinweis für die
+  Türentscheidung bleiben nur die Kratzspuren.
+- **Querläufer** (`corridor_crossing`) rennt quer durchs Blickfeld und ist weg.
+- **Lautstärke:** Die Schrecktöne liefen bisher über den Ambience-Bus mit −5 dB.
+  Jetzt haben sie einen eigenen Bus `AP.Scare` mit Limiter (+3 dB Vorverstärkung),
+  sind 3D-seitig +3 dB lauter und tragen weiter. Das gilt auch für Hase, Krokodil
+  und Küchenclown.
+  Der Ambience-Regler dämpft sie nicht mehr.
+
+Prüfung: `--self-test --scare-flow-only` spielt jeden laufenden Besucher Bild
+für Bild aus echten Annäherungspositionen durch. Geprüft wird, ob er den
+Wächter erreicht, wie schnell das geht und ob er danach verschwunden ist.
+Außerdem `--nightmare-only`. Nicht angehört; vor Veröffentlichung im Spiel
+gegenhören.
+
 ## Puppen drehen und leiser (4.6.1)
 
 Getragene Spielsachen lassen sich drehen: Mausrad dreht um 15 Grad, R um 45 Grad,

@@ -33,7 +33,7 @@ func configure(anomaly: String) -> void:
  id=anomaly
  if id in ["bunny_lunge","croc_snap","party_burst","clown_lunge"]:
   anticipation=ScareBank.lead(self,id)
-  ScareBank.select(audio,id)
+  ScareBank.select(audio,id);audio.volume_db=2;audio.unit_size=9;audio.max_distance=30;ScareBank.loud(audio)
  # Every round owns a new controller. No wall-clock tweens: pause freezes
  # proximity checks, animation, audio and camera reaction at the same instant.
  for target in [w.atmosphere.horrors.bunny,w.props.inflatable_skin,w.props.balloons,w.atmosphere.horrors.horse]:

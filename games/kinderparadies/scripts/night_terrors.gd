@@ -67,12 +67,21 @@ var lunge_at:=-1.0
 var lunge_from:=Vector3.ZERO
 var scream: AudioStreamPlayer
 var face_light: OmniLight3D
+var shape: CollisionShape3D
+var rope: MeshInstance3D
+var vanished:=false
+var stare:=0.0
+var stuck:=0.0
+var cross_dir:=Vector3.ZERO
+var lunged:=false
+# Ground visitors: [freeze before the dash, dash speed m/s, reach that starts the face lunge].
+const CHARGE:={"pursuit":[.12,7.2,1.45],"rush":[0.,9.,1.45],"ambush":[0.,8.,1.4],"peek":[.22,7.5,1.45],"crawl":[.14,6.,1.35],"queue":[.32,7.,1.45]}
 
 func build(world: PlayWorld) -> void:
  w=world;name="NightTerrors"
- audio=AudioStreamPlayer3D.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.max_distance=20;audio.unit_size=6;audio.volume_db=-4;add_child(audio)
+ audio=AudioStreamPlayer3D.new();audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;audio.max_distance=20;audio.unit_size=6;audio.volume_db=3;add_child(audio)
  audio.stream=load("res://assets/annex/clown-sting.wav")
- scream=AudioStreamPlayer.new();scream.name="FaceScream";scream.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;scream.volume_db=0;add_child(scream)
+ scream=AudioStreamPlayer.new();scream.name="FaceScream";scream.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;scream.volume_db=0;add_child(scream);ScareBank.loud(scream)
  footsteps=AudioStreamPlayer3D.new();footsteps.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;footsteps.max_distance=13;footsteps.unit_size=2;footsteps.volume_db=-14;add_child(footsteps)
  var steps: AudioStreamWAV=load("res://assets/ambience-v193/ghost-run.wav").duplicate();steps.loop_mode=AudioStreamWAV.LOOP_FORWARD;steps.loop_end=int(steps.get_length()*steps.mix_rate);footsteps.stream=steps
 
@@ -84,13 +93,14 @@ func configure(value: String) -> void:
  # Match the dry human voice to the actual granny head, including crawlers.
  var voice_id: String="granny_"+id if spec.mode not in ["hands","window","vent","throne"] else id
  ScareBank.select(audio,voice_id,spec.mode)
+ audio.volume_db=3;audio.unit_size=10;audio.max_distance=32;ScareBank.loud(audio)
  anticipation=ScareBank.lead(self,voice_id,spec.mode)
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
  visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
  # v421 visitors already come fully headed, dressed and painted; the old
  # generic head-swap and loft-built costume would only undo that work.
  CharacterFinish.dynamic_only(visual)
- var shape:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.75;shape.shape=capsule;shape.position.y=.91;actor.add_child(shape)
+ shape=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.75;shape.shape=capsule;shape.position.y=.91;actor.add_child(shape)
  for key in ["ArmL","ArmR"]:
   var arm:=visual.find_child(key,true,false) as Node3D
   if arm: arms.append(arm)
@@ -100,7 +110,7 @@ func configure(value: String) -> void:
   if head_rig: head_rig.rotation.x=-1.25
  elif spec.mode=="ceiling":
   visual.rotation.z=PI;shape.disabled=true
-  w.tube(self,Vector3(origin.x,float(spec.get("ceiling",7.29)),origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
+  rope=w.tube(self,Vector3(origin.x,float(spec.get("ceiling",7.29)),origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
  elif spec.mode in ["hands","window"]:
   for child in visual.find_children("*","MeshInstance3D",true,false): child.visible=child.name.begins_with("Arm")
   visual.rotation.z=PI;visual.position.y=1.0;shape.disabled=true
@@ -148,15 +158,21 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if spec.is_empty(): return
  var in_tube:=w.tubes.contains_original(player.position)
  if spec.mode in ["tube","window"]:
-  actor.visible=in_tube;marker.visible=in_tube
+  actor.visible=in_tube and not vanished;marker.visible=in_tube
  if not active: return
  elapsed+=delta;shock=move_toward(shock,0,delta*2.2)
  var target:=focus_point()
  var eligible:=in_tube if spec.mode in ["tube","window"] else true
- var radius:=3.6 if spec.mode=="ambush" else 4.2 if spec.mode=="rush" else 5.4
- if not triggered and not primed and elapsed>.25 and eligible and w.encounters.visible_to(player,target,radius):
+ # Close trigger radius: the visitor waits until you are really near it.
+ var radius:=trigger_radius()
+ var seen:=not triggered and eligible and w.encounters.visible_to(player,target,radius+2.6)
+ if seen and not primed and elapsed>.25:
   primed=true;anticipation.position=target;anticipation.play()
- if not triggered and elapsed>.8 and eligible and w.encounters.visible_to(player,target,radius):
+ # A visitor you stare at from further away comes for you after a moment.
+ stare=stare+delta if seen and primed else maxf(0,stare-delta*2)
+ var close:=eligible and w.encounters.visible_to(player,target,radius)
+ var stared: bool=stare>(1.5 if spec.mode=="peek" else 2.1) and (spec.mode in CHARGE or spec.mode=="crossing")
+ if not triggered and elapsed>.8 and (close or stared):
   triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0
   # The vent strike is the horse skull alone; its placeholder visitor must stay hidden.
   if spec.mode!="vent":actor.show()
@@ -173,7 +189,8 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   return
  if finished: footsteps.stop();return
  footsteps.position=actor.position
- if spec.mode in ["pursuit","crawl","crossing","tube","rush","ambush"] and not footsteps.playing: footsteps.play()
+ if spec.mode in ["pursuit","crawl","crossing","tube","rush","ambush","peek","queue"] and lunge_at<0 and not footsteps.playing:
+  footsteps.volume_db=-6;footsteps.pitch_scale=1.3 if spec.mode in ["rush","ambush","crossing"] else 1.15;footsteps.play()
  attack+=delta
  if warning_light: warning_light.light_energy=maxf(0,(1-attack/1.0))*.8
  animate_attack(delta,player,in_tube)
@@ -188,65 +205,65 @@ func focus_point() -> Vector3:
  if spec.mode=="throne": target=actor.position+Vector3(0,1.87,0)
  return target
 
+func trigger_radius() -> float:
+ match spec.mode:
+  "ambush":return 3.3
+  "peek":return 3.4
+  "crawl":return 3.8
+  "pursuit":return 4.4
+  "rush":return 5.6
+  "crossing":return 6.0
+  "queue":return 4.0
+  "tube","window":return 5.4
+ return 4.2
+
 func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
- if spec.mode=="pursuit" and _face_lunge(player,1.9,4.2):return
- if spec.mode in ["pursuit","crawl","crossing","peek","rush","ambush"]:
-  var to_player:=player.position-actor.position;to_player.y=0
-  var duration:=4.7 if spec.mode in ["pursuit","crawl"] else 2.3 if spec.mode=="rush" else 1.3
-  var clearance:=1.85 if spec.mode=="crawl" else .85
-  if attack<duration and to_player.length()>clearance:
-   var direction:=to_player.normalized();var speed:=5.7 if spec.mode=="rush" else 4.5 if spec.mode=="ambush" else 2.6 if spec.mode=="pursuit" else 3.9 if spec.mode=="crossing" else 1.9
-   var collision:=actor.move_and_collide(direction*minf(speed*delta,maxf(0,to_player.length()-clearance)))
-   if collision:
-    var slide:=direction.slide(collision.get_normal())
-    if slide.length()<.1: slide=Vector3(direction.z,0,-direction.x)
-    actor.move_and_collide(slide*speed*delta)
-   actor.rotation.y=atan2(direction.x,direction.z)
-   var stride:=attack*(7. if spec.mode=="crawl" else 13. if spec.mode=="rush" else 8.)
-   visual.position.y=(.20 if spec.mode=="crawl" else 0)+absf(sin(stride))*(.012 if spec.mode=="peek" else .035)
-   visual.rotation.z=sin(stride*.5)*(.075 if spec.mode=="crawl" else .025)
-   for i in range(arms.size()):
-    arms[i].rotation.x=(-.65+sin(stride+i*PI)*.38) if spec.mode=="crawl" else (-.52+sin(stride+i*PI)*.12) if spec.mode=="rush" else sin(stride+i*PI)*.09
-  elif attack>duration:
-   finished=true
-   # Hold the contorted visitor as an unmistakable clue, never replay the sting.
-   visual.rotation.z=.17;visual.position.y-=.12
- elif spec.mode=="throne":
-  var pulse:=sin(clampf(attack/.75,0,1)*PI)
-  visual.position.z=pulse*.47;visual.rotation.x=pulse*.32;visual.rotation.z=.18*clampf(attack,0,1)
-  for arm in arms: arm.rotation.x=-pulse*.8
-  if attack>1.3: finished=true
+ # Hard ceiling: no encounter can ever hang around after its scare.
+ if attack>4.5: _vanish(player);return
+ if spec.mode in CHARGE: _charge(delta,player);return
+ if spec.mode=="crossing": _cross(delta,player);return
+ if spec.mode=="throne":
+  var k:=1.-pow(1.-clampf(attack/.16,0,1),4)
+  visual.position.z=k*.9+sin(attack*37.)*.03*k;visual.rotation.x=k*.42;visual.rotation.z=.18*k
+  for arm in arms: arm.rotation.x=-1.5*k+sin(attack*31.)*.12
+  shock=maxf(shock,k*.9)
+  if attack>1.05: _vanish(player)
  elif spec.mode=="drop":
-  # A quick fall followed by a crooked suspended pose; no player overlap.
-  var pulse:=sin(clampf(attack/.72,0,1)*PI*.5)
-  actor.position.y=origin.y-pulse*minf(1.15,maxf(0,origin.y-2.25))
+  # Snaps down on its rope, bounces at the end of it, then is gone.
+  var f:=clampf(attack/.26,0,1);var fall:=f*f
+  if attack>.26: fall=1.+sin((attack-.26)*24.)*exp(-(attack-.26)*6.)*.14
+  actor.position.y=origin.y-fall*minf(1.25,maxf(0,origin.y-2.15))
   var ceiling:=Vector3(origin.x,7.29,origin.z)
   tether.position=(ceiling+actor.position)*.5;(tether.mesh as CylinderMesh).height=ceiling.distance_to(actor.position)
-  visual.rotation.z=PI+sin(attack*17)*maxf(0,1-attack)*.20
-  if attack>1.6: finished=true
+  visual.rotation.z=PI+sin(attack*19)*maxf(0,1.2-attack)*.22
+  for i in range(arms.size()):arms[i].rotation.x=-1.4*f+sin(attack*27.+i)*.18
+  if attack>1.25: _vanish(player)
  elif spec.mode=="tube":
-  if in_tube and _face_lunge(player,1.5,2.2 if id=="tube_burst" else 3.4):return
+  if in_tube and _face_lunge(player,1.5,2.0 if id=="tube_burst" else 2.8):return
   if in_tube:
-   var nearest:=CrawlTubes.nearest(player.position);path_s=move_toward(path_s,maxf(.9,nearest.s-(1.0 if id=="tube_burst" else 1.7)),delta*(3.2 if id=="tube_burst" else 1.5))
+   var nearest:=CrawlTubes.nearest(player.position);path_s=move_toward(path_s,maxf(.9,nearest.s-(1.0 if id=="tube_burst" else 1.4)),delta*(6.5 if id=="tube_burst" else 4.5))
    actor.position=CrawlTubes.route(path_s)+Vector3(0,-.76,0)
    var direction:=CrawlTubes.tangent(path_s);actor.rotation.y=atan2(direction.x,direction.z)
    # Clawing itself forward hand over hand, head up and fixed on you.
-   var stride:=attack*9.
-   for i in range(arms.size()):arms[i].rotation=Vector3(-1.55+sin(stride+i*PI)*.45,0,(-.25 if i==0 else .25))
-   visual.position.y=.20+absf(sin(stride))*.03
-  if attack>4.8: finished=true
+   var stride:=attack*16.
+   for i in range(arms.size()):arms[i].rotation=Vector3(-1.55+sin(stride+i*PI)*.5,0,(-.25 if i==0 else .25))
+   visual.position.y=.20+absf(sin(stride))*.04
+  if attack>3.2: _vanish(player)
  elif spec.mode=="vent":
   var pulse:=sin(clampf(attack/1.6,0,1)*PI)
   w.room_horror.creature.attack_gain=pulse;shock=maxf(shock,pulse*.85)
   if attack>1.6: finished=true;w.room_horror.creature.attack_gain=0
  else:
-  var pulse:=sin(clampf(attack/1.6,0,1)*PI)
-  if spec.mode=="window": visual.position=-window_normal*(.42+pulse*.02)
-  else: visual.position.z=(pulse*.14 if spec.mode=="mouth" else -pulse*.45);visual.rotation.y=sin(attack*7)*pulse*.18
+  # hands, mouth, window and ceiling: an instant snap out, a trembling hold, gone.
+  var k:=1.-pow(1.-clampf(attack/.16,0,1),4);var tremble:=sin(attack*43.)*k
+  if spec.mode=="window": visual.position=-window_normal*(.42+k*.06+tremble*.01)
+  elif spec.mode!="ceiling": visual.position.z=(k*.30 if spec.mode=="mouth" else -k*.6);visual.rotation.y=tremble*.14
   if spec.mode=="mouth":
    var direction:=player.position-actor.position;actor.rotation.y=atan2(direction.x,direction.z)
-  if spec.mode=="hands": visual.position.y=1.0+pulse*.28
-  elif spec.mode=="mouth": visual.position.y=-1.08+pulse*.30
+   visual.position.y=-1.08+k*.42
+  if spec.mode=="hands":
+   visual.position.y=1.0+k*.45
+   for i in range(arms.size()):arms[i].rotation.x=sin(attack*31.+i*2.)*.25*k
   elif spec.mode=="ceiling":
    # Swings on its rope like a pendulum, head first, straight at you.
    var snap:=1.-pow(1.-clampf(attack/.2,0,1),4)
@@ -255,12 +272,116 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
     var axis:=Vector3.UP.cross(toward.normalized()).normalized()
     var swing:=(.62*snap-.18*clampf((attack-.5)/1.,0,1))*(1.+.06*sin(attack*31.))
     actor.quaternion=Quaternion(axis,-swing)
-   visual.rotation.y=sin(attack*23.)*.25*pulse
+   visual.rotation.y=sin(attack*23.)*.25*snap
    for i in range(arms.size()):arms[i].rotation.x=-1.3*snap+sin(attack*29.+i)*.15
-  if attack>1.6:
-   finished=true
-   if spec.mode=="mouth": visual.position.y=-.88
-   if spec.mode=="ceiling": actor.quaternion=Quaternion(Vector3.FORWARD,.12)
+  shock=maxf(shock,k*.8)
+  if attack>(1.35 if spec.mode=="ceiling" else 1.0): _vanish(player)
+
+# Ground visitors: a split-second freeze with the head snapping round, then a
+# flat-out sprint straight at you that ends in your face. If furniture or a
+# wall stops it, it never stands there stuck: it lunges if it can see you,
+# otherwise it is simply gone.
+func _charge(delta: float, player: NightGuard) -> void:
+ var cfg: Array=CHARGE[spec.mode]
+ var windup: float=cfg[0];var speed: float=cfg[1];var reach: float=cfg[2]
+ if lunge_at>=0:
+  _face_lunge(player,reach,0.);return
+ var to_player:=player.position-actor.position;to_player.y=0
+ var direction:=to_player.normalized() if to_player.length()>.01 else -actor.global_basis.z
+ var head:=visual.find_child("HeadRig",true,false) as Node3D
+ if attack<windup:
+  # The freeze: whole body locks on to you, a violent tremor, arms rising.
+  actor.rotation.y=lerp_angle(actor.rotation.y,atan2(direction.x,direction.z),minf(1,delta*22))
+  if head and spec.mode!="crawl": head.rotation=Vector3(0,0,sin(attack*61.)*.12)
+  visual.rotation.z=sin(attack*53.)*.05
+  for i in range(arms.size()):arms[i].rotation.x=-1.1*attack/windup
+  for echo in echoes:
+   var eh:=echo.find_child("HeadRig",true,false) as Node3D
+   if eh: eh.rotation.y=lerp_angle(eh.rotation.y,atan2(player.position.x-echo.position.x,player.position.z-echo.position.z)-echo.rotation.y,minf(1,delta*14))
+  return
+ var run:=attack-windup
+ if to_player.length()<=reach:
+  _start_lunge(player);return
+ var step:=direction*speed*minf(1,run/.07+.35)*delta
+ var before:=actor.global_position
+ var collision:=actor.move_and_collide(step)
+ if collision:
+  var slide:=step.slide(collision.get_normal())
+  if slide.length()>step.length()*.2: actor.move_and_collide(slide)
+ var moved:=actor.global_position.distance_to(before)
+ stuck=stuck+delta if moved<step.length()*.35 else maxf(0,stuck-delta)
+ actor.rotation.y=atan2(direction.x,direction.z)
+ var crawler: bool=spec.mode=="crawl"
+ var stride:=run*(17. if crawler else 15.)
+ visual.position=Vector3(0,(.20 if crawler else 0.)+absf(sin(stride))*(.04 if crawler else .06),0)
+ visual.rotation=Vector3(1.25 if crawler else -.2,0,sin(stride*.5)*(.09 if crawler else .05))
+ if head and not crawler: head.rotation=Vector3(.2,0,sin(run*29.)*.1)
+ for i in range(arms.size()):
+  arms[i].rotation.x=(-.75+sin(stride+i*PI)*.5) if crawler else (-1.35+sin(stride+i*PI)*.22)
+ if stuck>.12 or run>1.4:
+  # Blocked by a counter or a seat row: if it can see you, it leaps over it.
+  if to_player.length()<6.5 and _clear(player): _start_lunge(player)
+  else: _vanish(player)
+
+# A visitor darting across your view, close enough to brush past, then gone.
+func _cross(delta: float, player: NightGuard) -> void:
+ var to_player:=player.position-actor.position;to_player.y=0
+ if cross_dir==Vector3.ZERO:
+  var side:=Vector3(to_player.z,0,-to_player.x).normalized()
+  var left:=_free(side);var right:=_free(-side)
+  if maxf(left,right)<1.2:
+   # Nowhere to run sideways: it comes straight for you instead.
+   cross_dir=to_player.normalized()
+  else:
+   cross_dir=((side if left>=right else -side)+to_player.normalized()*.35).normalized()
+ var step:=cross_dir*8.5*delta;var collision:=actor.move_and_collide(step)
+ if collision: _vanish(player);return
+ actor.rotation.y=atan2(cross_dir.x,cross_dir.z)
+ var stride:=attack*16.
+ visual.position.y=absf(sin(stride))*.06;visual.rotation=Vector3(-.3,0,sin(stride*.5)*.06)
+ for i in range(arms.size()):arms[i].rotation.x=sin(stride+i*PI)*.9
+ if attack>.62 or to_player.length()<1.: _vanish(player)
+
+func _free(direction: Vector3) -> float:
+ var from:=actor.global_position+Vector3(0,.9,0)
+ var query:=PhysicsRayQueryParameters3D.create(from,from+direction*4.,1);query.exclude=[actor.get_rid()]
+ var hit:=actor.get_world_3d().direct_space_state.intersect_ray(query)
+ return from.distance_to(hit.position) if hit else 4.
+
+func _clear(player: NightGuard) -> bool:
+ var head:=actor.global_position+Vector3(0,1.5 if spec.mode!="crawl" else .6,0)
+ var query:=PhysicsRayQueryParameters3D.create(player.camera.global_position,head,1);query.exclude=[player.get_rid(),actor.get_rid()]
+ return player.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+func _start_lunge(player: NightGuard) -> void:
+ if lunge_at>=0: return
+ if face_light==null:
+  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);actor.add_child(face_light)
+ if spec.mode=="crawl":
+  # Rears up off the floor for the final lunge.
+  visual.rotation=Vector3.ZERO;visual.position=Vector3.ZERO;visual.scale=Vector3.ONE*.85
+  var rig:=visual.find_child("HeadRig",true,false) as Node3D
+  if rig: rig.rotation=Vector3.ZERO
+ lunge_at=attack;lunge_from=actor.global_position;lunged=true
+ scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);shock=1.0;footsteps.stop()
+ player.fright=maxf(player.fright,1.)
+
+# Every visitor disappears after its scare. The torch stutters at that moment
+# so it never visibly pops; only the claw marks stay behind as the clue.
+func _vanish(player: NightGuard) -> void:
+ if vanished: return
+ vanished=true;finished=true;lunge_at=1e9
+ actor.hide()
+ for echo in echoes: echo.hide()
+ if tether: tether.hide()
+ if rope: rope.hide()
+ if face_light: face_light.light_energy=0
+ if warning_light: warning_light.light_energy=0
+ if shape: shape.set_deferred("disabled",true)
+ footsteps.stop()
+ if spec.mode=="vent": return
+ shock=maxf(shock,.55)
+ if player and player.torch_body: player.torch_body.trigger()
 
 # A pursuing visitor that reaches you does not just stop: in a split second
 # it is in your face, arms up, screaming, under a stuttering light. Then it is
@@ -270,19 +391,10 @@ func _face_lunge(player: NightGuard,reach: float,patience: float) -> bool:
  if spec.mode!="tube":to_player.y=0
  if lunge_at<0:
   if to_player.length()>reach and attack<patience:return false
-  lunge_at=attack;lunge_from=actor.global_position
-  scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);shock=1.0;footsteps.stop()
-  player.fright=maxf(player.fright,1.)
+  _start_lunge(player)
  var t:=attack-lunge_at
- if t>.72 or attack>5.6:
-  finished=true;lunge_at=1e9;face_light.light_energy=0
-  if spec.mode=="tube":
-   # Gone back into the dark end of the tube, flat on its belly again.
-   actor.global_position=origin;visual.rotation=Vector3(1.25,0,0);visual.position=Vector3(0,.20,0)
-   var rig:=visual.find_child("HeadRig",true,false) as Node3D
-   if rig:rig.rotation=Vector3(-1.25,0,0)
-  else:actor.global_position=origin;visual.position=Vector3(0,-.12,0);visual.rotation=Vector3(0,0,.17)
-  for arm in arms:arm.rotation=Vector3.ZERO
+ if t>.8 or attack>4.5:
+  _vanish(player)
   return true
  var eye:=player.camera.global_transform;var forward:=-eye.basis.z;forward.y=0;forward=forward.normalized() if forward.length()>.1 else Vector3.FORWARD
  # Head level with the eyes, a forearm's length away.
@@ -306,4 +418,4 @@ func _face_lunge(player: NightGuard,reach: float,patience: float) -> bool:
  return true
 
 func snapshot() -> Dictionary:
- return {"id":id,"elapsed":elapsed,"triggered":triggered,"finished":finished,"attack":attack,"shock":shock,"position":[actor.position.x,actor.position.y,actor.position.z] if is_instance_valid(actor) else [],"visible":is_instance_valid(actor) and actor.visible,"zone":spec.get("zone",""),"mode":spec.get("mode",""),"audio":audio.playing,"sound":audio.stream.resource_path,"paused":audio.stream_paused,"steps":footsteps.playing,"steps_paused":footsteps.stream_paused,"remnant":is_instance_valid(marker)}
+ return {"id":id,"elapsed":elapsed,"triggered":triggered,"finished":finished,"attack":attack,"shock":shock,"position":[actor.position.x,actor.position.y,actor.position.z] if is_instance_valid(actor) else [],"visible":is_instance_valid(actor) and actor.visible,"zone":spec.get("zone",""),"mode":spec.get("mode",""),"audio":audio.playing,"sound":audio.stream.resource_path,"paused":audio.stream_paused,"steps":footsteps.playing,"steps_paused":footsteps.stream_paused,"remnant":is_instance_valid(marker),"vanished":vanished}
