@@ -43,6 +43,20 @@ eine kurze Zeile aus "Barbie Girl" (Aqua); Rechte an Lied und Text liegen bei de
 des Titels. Das 3D-Modell wurde fuer After Play nach ihrem Charakterbild modelliert; die Aufnahme
 wurde nur gekuerzt und in der Lautstaerke angepasst.
 
+HISSYBUSA-PUPPE (4.7.0)
+Die Figur "Hissybusa" und die Sprachaufnahme gehoeren Hissybusa (https://www.twitch.tv/hissybusa). Alle Rechte an Figur,
+Design und Aufnahme liegen bei Hissybusa; sie werden fuer diese Plueschpuppe in After Play mit
+Nennung verwendet und durch keine der anderen hier genannten Lizenzen freigegeben. Das 3D-Modell
+wurde fuer After Play nach seinem Plueschbild modelliert; die Aufnahme ("Simon, you jerk! Move!
+Please move! Damn it!") wurde nur gekuerzt und in der Lautstaerke angepasst.
+
+JULE_HEARTBEAT-PUPPE (4.7.0)
+Die Figur "Jule_heartbeat" gehoert Jule_heartbeat (https://www.twitch.tv/jule_heartbeat). Alle Rechte an
+Figur und Design liegen bei Jule_heartbeat; sie wird fuer diese Plueschpuppe in After Play mit
+Nennung verwendet und durch keine der anderen hier genannten Lizenzen freigegeben. Das 3D-Modell
+wurde fuer After Play nach ihrem Plueschbild modelliert. Das Schnurren der Katze ist fuer das
+Spiel synthetisch erzeugt (keine Aufnahme).
+
 MUSIK, SPRACHE UND BILDER
 Hauptmenü: Abandoned Arcade, Künstlerangabe in der bereitgestellten Aufnahme: turbulentmicrogenres466.
 Musik und Sprachaufnahmen wurden vom Spieleersteller zur Verwendung in After Play bereitgestellt. Sie werden durch die obigen CC0-Lizenzen nicht freigegeben.

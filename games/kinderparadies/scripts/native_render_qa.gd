@@ -27,7 +27,7 @@ func run(game: Node3D) -> void:
   game.get_tree().quit();return
  if "--rosenyan-qa" in OS.get_cmdline_user_args():
   game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
-  for id in ["rosenyan","einsmarello"]:
+  for id in ["rosenyan","einsmarello","hissybusa","jule"]:
    var plush: Node3D=game.world.atmosphere.find_child(CreatorPlush.PLUSHES[id].node,true,false)
    var at: Vector3=plush.global_position;var front: Vector3=plush.global_basis.z
    for shot in [[front*1.15,id+"-00-front"],[front.rotated(Vector3.UP,.7)*1.6,id+"-01-corner"],[front*2.6+Vector3(1.2,0,0),id+"-02-room"]]:

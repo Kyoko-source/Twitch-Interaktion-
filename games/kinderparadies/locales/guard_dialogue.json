@@ -88,5 +88,15 @@
     "de": ["Oh, einsmarello. Mit Rotkohl. Peak Gesang, ehrlich."],
     "en": ["Oh, einsmarello. With red cabbage. Peak singing, honestly."],
     "emphasis": ["einsmarello", "Rotkohl", "Peak Gesang", "red cabbage", "Peak singing"]
+  },
+  "hissybusa": {
+    "de": ["Hissybusa. Brüllt einen Dino an und verliert trotzdem. Chaos auf zwei Plüschbeinen."],
+    "en": ["Hissybusa. Yells at a dinosaur and still loses. Chaos on two plush legs."],
+    "emphasis": ["Hissybusa", "Chaos"]
+  },
+  "jule": {
+    "de": ["Jule_heartbeat mit schlafender Katze. Pssst, die beiden haben schon Feierabend."],
+    "en": ["Jule_heartbeat with a sleeping cat. Shh, those two have already clocked off."],
+    "emphasis": ["Jule_heartbeat", "Feierabend", "clocked off"]
   }
 }

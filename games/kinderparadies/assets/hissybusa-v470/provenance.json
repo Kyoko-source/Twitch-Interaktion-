@@ -1,0 +1,13 @@
+{
+  "line": "Simon, you jerk! Move! Please move! Damn it!",
+  "speaker": "Hissybusa",
+  "source_file": "🦖💀NEW DINOSAUR HORROR GAME! Welcome to Sunnybrook !merch - Hissybusa (1080p).mp4",
+  "source_sha256": "e1b1ef6bf432f984f85a5ea18772614421425267b9530dc3266019d6d0f64597",
+  "cut_seconds": [
+    10.45,
+    15.95
+  ],
+  "seconds": 5.5,
+  "output_sha256": "37758281ddd459f0129091b596c5d81f881e15d73080f9d5d9b5c0d077aa0b6e",
+  "model": "tools/model-after-play-hissybusa-v470.py"
+}

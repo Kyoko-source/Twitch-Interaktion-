@@ -3,7 +3,7 @@ extends RefCounted
 func run(g: Node3D,verify: Callable) -> void:
  g._new_shift();g.intro.skip();g.set_process(false);g.player.active=false
  var d: GuardDialogue=g.dialogue
- verify.call(d.catalog.size()==18,"Author's document, three added comments and the creator plush lines are incomplete")
+ verify.call(d.catalog.size()==20,"Author's document, three added comments and the creator plush lines are incomplete")
  for id in d.catalog:
   verify.call(d.catalog[id].de.size()==d.catalog[id].en.size(),"Missing English comment paragraphs: "+id)
  d.reset();verify.call(d.request("reel") and not d.request("reel"),"One-time comment can queue twice")
@@ -20,6 +20,12 @@ func run(g: Node3D,verify: Callable) -> void:
  g._save();var persistent=JSON.parse_string(g._persistent_text(g.SAVE))
  verify.call(persistent.dialogue.seen.has("reel"),"Save does not remember delivered comments")
  d.reset();verify.call(d.request("reel"),"A new game does not rearm comments")
+ # 4.7.0: a new line cuts off the running one and starts at once, no backlog, no cooldown.
+ d.reset();d.request("reel");d.tick(.01);d.tick(.3)
+ verify.call(d.current=="reel" and d.text.typed>0,"Interrupt test: first comment does not start")
+ d.request("hissybusa");d.request("jule");d.tick(.01)
+ verify.call(d.current=="jule" and d.pending.is_empty() and d.text.typed>0,"A new comment waits behind the running one instead of replacing it")
+ d.reset()
  d.pending.clear();d.current="";d.seen.clear();d.arrival_armed=false
  g.player.position=Vector3(-7.,0,4.);d.idle_anchor=g.player.position
  d.observe(59.9);verify.call(not d.seen.has("idle"),"Idle comment triggers before 60 seconds")

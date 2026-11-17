@@ -1,0 +1,7 @@
+{
+  "sound": "cat purr, synthesised (tools/make-after-play-jule-v470.py), no recording",
+  "character": "Jule_heartbeat",
+  "seconds": 3.013,
+  "output_sha256": "ab9d4d4aeaf31deadb1859c6b9a496005e2bf8535d23e9f542286144aa64b0a8",
+  "model": "tools/model-after-play-jule-v470.py"
+}

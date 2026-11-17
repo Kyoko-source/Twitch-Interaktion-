@@ -1,5 +1,55 @@
 # After Play — Kinderparadies
 
+## Untertitel ohne Warteschlange (4.7.0)
+
+Wird ein neuer Wächter-Kommentar ausgelöst, während noch einer läuft, bricht der
+alte sofort ab und der neue startet im nächsten Bild. Bisher stellte sich der neue
+hinten an und kam erst, wenn der alte komplett getippt, gehalten und herabgefallen
+war, plus 1,2 s Pause. Es gibt keinen Rückstau mehr: Nur der neueste Kommentar zählt.
+Buchstaben, die schon fallen, fallen weiter. Prüfung: `--self-test --dialogue-only`.
+
+## Hissybusa- und Jule_heartbeat-Puppe, Puppen verteilt (4.7.0)
+
+Neue Plüschpuppe von **Hissybusa**: schwarze Cap mit weißem Logo, braune Haare,
+voller Vollbart, braune Herzaugen, lachender Mund, schwarze Kopfhörer mit
+rot-blau leuchtendem Rand, schwarzer Hoodie mit lila Streifen und Kordeln,
+lila Chat-Patch und Gamepad-Sohlen. Beim Aufheben ruft er „Simon, you jerk!
+Move! Please move! Damn it!“. Der Nachtwächter kommentiert:
+„Hissybusa. Brüllt einen Dino an und verliert trotzdem. Chaos auf zwei Plüschbeinen.“
+
+Neue Plüschpuppe von **Jule_heartbeat**: lange, wellige rotbraune Haare, weiße
+Kopfhörer mit grauen Polstern und lila Herz, große blaue Augen mit Herz-Glanzpunkten,
+schwarzer Hoodie mit Herz-Stickerei, Jogginghose mit weißen Nähten, weiße Socken
+und eine schlafende schwarz-weiße Katze im Arm. Beim Aufheben schnurrt die Katze.
+Das Schnurren ist synthetisch erzeugt, es gibt also keine fremde Aufnahme (`tools/make-after-play-jule-v470.py`). Der Wächter
+kommentiert: „Jule_heartbeat mit schlafender Katze. Pssst, die beiden haben schon Feierabend.“
+Modell: `tools/model-after-play-jule-v470.py`.
+
+Die vier Puppen sitzen nicht mehr zusammen in der Spielecke:
+
+- **Hissybusa:** am Anfang auf der Bank neben dem großen Hasen
+- **einsmarello:** oben im Klettergerüst auf der Aussichtsplattform
+- **Rosenyan:** im Feierraum auf dem Partytisch neben der Torte
+- **Jule_heartbeat:** im Kino auf dem Teppich vor der ersten Reihe (die Sessel haben
+  massive Kollisionsblöcke, darauf würde sie beim Anfassen herausgedrückt)
+
+Figur und Stimme gehören Hissybusa und werden im Menü „Mitwirkende“, im Abspann,
+in `Lizenzhinweise.txt` und in `assets/hissybusa-v470/LICENSE.txt` genannt.
+Quellen:
+- `tools/model-after-play-hissybusa-v470.py` (Blender 5.0)
+- `tools/make-after-play-hissybusa-v470.py` (10,45–15,95 s seines Clips „NEW DINOSAUR
+  HORROR GAME!“; die Stelle wurde lokal per faster-whisper bestimmt)
+
+Prüfung: `--self-test --rosenyan-only` prüft für alle vier Puppen:
+- Platz
+- Auflage (weder schwebend noch eingesunken)
+- Aufheben
+- Stimme
+- Untertitel
+- Credits
+
+Bildkontrolle: `--render-qa --rosenyan-qa`.
+
 ## Neue Jumpscares der Nachtbesucher (4.7.0)
 
 Die Besucher-Jumpscares sind neu getaktet. Bisher löste ein Besucher schon aus

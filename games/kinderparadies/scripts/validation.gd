@@ -372,7 +372,7 @@ func run(game: Node3D) -> bool:
  check(not body.freeze,"Objects failed to resume after pause")
  game.player.grab_prop();game._build_world("none")
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
- check(game.world.atmosphere.loose.size()==31,"Physical toy budget must include the single rolling paper cup and both creator plushies")
+ check(game.world.atmosphere.loose.size()==33,"Physical toy budget must include the single rolling paper cup and all four creator plushies")
  check(game.world.environment.environment.fog_density>.02,"Atmosphere fog was not applied")
  check(is_instance_valid(game.world.playground.croc_visual),"Shared crocodile mesh was not instantiated")
  check(is_instance_valid(game.world.playground.croc_jaw),"Shared crocodile upper jaw is missing")

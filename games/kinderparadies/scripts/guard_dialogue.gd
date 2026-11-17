@@ -6,6 +6,8 @@ var catalog: Dictionary={}
 var seen: Dictionary={}
 var pending: Array[String]=[]
 var current:=""
+# 4.7.0: a newly triggered line cuts off the one on screen instead of waiting behind it.
+var interrupt:=false
 var segment:=0
 var mode:="typing"
 var clock:=0.
@@ -43,13 +45,15 @@ func build(g: Node3D) -> void:
  click.data=data;typing.stream=click;ui.hide()
 
 func reset() -> void:
- seen.clear();pending.clear();current="";segment=0;mode="typing";clock=0.;cooldown=0.;idle_time=0.;memory_dwell=0.;cook_dwell=0.;arrival_armed=true
+ seen.clear();pending.clear();current="";interrupt=false;segment=0;mode="typing";clock=0.;cooldown=0.;idle_time=0.;memory_dwell=0.;cook_dwell=0.;arrival_armed=true
  tube_time=0.;idle_anchor=game.player.position;letters.clear();text.layout("",[]);typing.stop();ui.hide()
 
 func request(id: String) -> bool:
  if not catalog.has(id) or seen.has(id):return false
  seen[id]=true
- if bool(game.settings.subtitles):pending.append(id)
+ if bool(game.settings.subtitles):
+  # Only the newest line matters: no backlog, no cooldown, it starts on the next frame.
+  pending.clear();pending.append(id);cooldown=0.;interrupt=not current.is_empty()
  game._save()
  return true
 
@@ -117,6 +121,9 @@ func tick(delta: float) -> void:
  if AudioServer.get_bus_index("NightAmbience")>=0:typing.bus="NightAmbience"
  observe(delta)
  cooldown=maxf(0.,cooldown-delta)
+ if interrupt:
+  # Drop the line on screen at once; letters already falling keep falling.
+  interrupt=false;current="";typing.stop();text.layout("",[])
  if current.is_empty():
   if pending.is_empty() or cooldown>0:return
   current=pending.pop_front();segment=0;mode="typing";clock=0.;next_letter=0.;next_sound=0.;_layout();ui.show()

@@ -1,0 +1,7 @@
+Hissybusa plush (After Play 4.7.0)
+Character "Hissybusa" and the voice line: Hissybusa, https://www.twitch.tv/hissybusa. All rights to the character, its design and
+the recording remain with Hissybusa. They are used in After Play with credit and are not covered by
+any other licence in this project.
+3D model: built for After Play after Hissybusa's plush picture (tools/model-after-play-hissybusa-v470.py).
+Voice: cut from Hissybusa's clip "NEW DINOSAUR HORROR GAME! Welcome to Sunnybrook", loudness adjusted only
+(tools/make-after-play-hissybusa-v470.py).

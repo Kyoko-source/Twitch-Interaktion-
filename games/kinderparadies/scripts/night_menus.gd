@@ -143,6 +143,14 @@ static func credits(g: Node3D) -> void:
  var marello:=RichTextLabel.new();marello.name="EinsmarelloCredit";marello.bbcode_enabled=true;marello.fit_content=true;marello.custom_minimum_size.x=440;marello.add_theme_font_size_override("normal_font_size",18)
  marello.text=AfterPlayLanguage.t("einsmarello-Puppe: Charakter und Gesang von einsmarello. Alle Rechte an Figur und Aufnahme liegen bei einsmarello.")+" [url=https://www.twitch.tv/einsmarello]twitch.tv/einsmarello[/url]"
  marello.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(marello)
+ column.add_child(g._label("Charakter & Stimme der Hissybusa-Puppe",23))
+ var hissy:=RichTextLabel.new();hissy.name="HissybusaCredit";hissy.bbcode_enabled=true;hissy.fit_content=true;hissy.custom_minimum_size.x=440;hissy.add_theme_font_size_override("normal_font_size",18)
+ hissy.text=AfterPlayLanguage.t("Hissybusa-Puppe: Charakter und Stimme von Hissybusa. Alle Rechte an Figur und Aufnahme liegen bei Hissybusa.")+" [url=https://www.twitch.tv/hissybusa]twitch.tv/hissybusa[/url]"
+ hissy.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(hissy)
+ column.add_child(g._label("Charakter der Jule_heartbeat-Puppe",23))
+ var jule:=RichTextLabel.new();jule.name="JuleCredit";jule.bbcode_enabled=true;jule.fit_content=true;jule.custom_minimum_size.x=440;jule.add_theme_font_size_override("normal_font_size",18)
+ jule.text=AfterPlayLanguage.t("Jule_heartbeat-Puppe: Charakter von Jule_heartbeat. Alle Rechte an der Figur liegen bei Jule_heartbeat. Das Schnurren der Katze ist für das Spiel erzeugt.")+" [url=https://www.twitch.tv/jule_heartbeat]twitch.tv/jule_heartbeat[/url]"
+ jule.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(jule)
  column.add_child(g._label("Partymusik",23))
  var party_credit:=RichTextLabel.new();party_credit.name="PartyMusicCredit";party_credit.bbcode_enabled=true;party_credit.fit_content=true;party_credit.custom_minimum_size.x=440;party_credit.add_theme_font_size_override("normal_font_size",18)
  party_credit.text=HappylandParty.MUSIC_CREDIT

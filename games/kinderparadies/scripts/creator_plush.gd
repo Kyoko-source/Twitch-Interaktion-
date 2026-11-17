@@ -1,16 +1,23 @@
 class_name CreatorPlush
 extends RefCounted
-# Creator plushies in the play corner (4.5.0 Rosenyan, 4.6.0 einsmarello). Character and voice
+# Creator plushies (4.5.0 Rosenyan, 4.6.0 einsmarello, 4.7.0 Hissybusa and Jule_heartbeat). Character and voice
 # belong to the creators and are credited in the menu, the end credits and the licence notes.
-# Picking one up plays her voice line and shows the guard's comment for her.
+# Picking one up plays the voice line and shows the guard's comment for that creator.
+# 4.7.0: spread over the venue. Hissybusa on the bench next to the big rabbit at the start,
+# einsmarello up in the climbing frame lookout, Rosenyan on the party table next to the cake,
+# Jule_heartbeat on the cinema carpet in front of the first row. Her sleeping cat purrs (synthesised, no recording).
 
 const PLUSHES:={
  "rosenyan":{"node":"RosenyanPlush","title":"Rosenyan-Puppe","model":"res://assets/rosenyan-v450/rosenyan-plush.glb",
-  "voice":"res://assets/rosenyan-v450/i-am-defeated.ogg","spot":Vector3(-4.2,.225,7.6),"yaw":PI*.72,"comment":"rosenyan"},
+  "voice":"res://assets/rosenyan-v450/i-am-defeated.ogg","spot":Vector3(10.0,1.07,-5.85),"yaw":-PI*.5,"comment":"rosenyan"},
  "einsmarello":{"node":"EinsmarelloPlush","title":"einsmarello-Puppe","model":"res://assets/einsmarello-v460/einsmarello-plush.glb",
-  "voice":"res://assets/einsmarello-v460/barbie-girl.ogg","spot":Vector3(-4.75,.225,8.25),"yaw":PI*.62,"comment":"einsmarello"},
+  "voice":"res://assets/einsmarello-v460/barbie-girl.ogg","spot":Vector3(2.1,4.38,-5.7),"yaw":PI*.1,"comment":"einsmarello"},
+ "hissybusa":{"node":"HissybusaPlush","title":"Hissybusa-Puppe","model":"res://assets/hissybusa-v470/hissybusa-plush.glb",
+  "voice":"res://assets/hissybusa-v470/simon-move.ogg","spot":Vector3(-3.07,.81,5.6),"yaw":-PI*.5,"comment":"hissybusa"},
+ "jule":{"node":"JulePlush","title":"Jule_heartbeat-Puppe","model":"res://assets/jule-v470/jule-plush.glb",
+  "voice":"res://assets/jule-v470/purr.ogg","spot":Vector3(1.5,.225,-27.2),"yaw":-PI*.5,"comment":"jule"},
 }
-const TITLES:=["Rosenyan-Puppe","einsmarello-Puppe"]
+const TITLES:=["Rosenyan-Puppe","einsmarello-Puppe","Hissybusa-Puppe","Jule_heartbeat-Puppe"]
 const HALF_HEIGHT:=.22
 
 static func place_all(atmosphere: Node3D) -> void:
