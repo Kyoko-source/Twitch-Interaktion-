@@ -42,6 +42,8 @@ $taskNotices=[ordered]@{
  'assets/props/Head-Attribution.txt'='Lee-Perry-Smith.txt'
  'assets/rosenyan-v450/LICENSE.txt'='Rosenyan.txt'
  'assets/einsmarello-v460/LICENSE.txt'='einsmarello.txt'
+ 'assets/hissybusa-v470/LICENSE.txt'='Hissybusa.txt'
+ 'assets/jule-v470/LICENSE.txt'='Jule_heartbeat.txt'
 }
 foreach($taskSource in $taskNotices.Keys){Copy-Item -LiteralPath (Join-Path $taskProject $taskSource) -Destination (Join-Path $taskLicenses $taskNotices[$taskSource])}
 foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){
