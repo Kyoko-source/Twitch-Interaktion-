@@ -200,7 +200,13 @@ func construction_steps() -> Array[Callable]:
   _module.bind(VenueTouch,"touch"),
   _module.bind(TactileWorld,"tactile"),
   ClosePropCraft.refine.bind(self),
-  _module.bind(CreatureFoley,"creature_audio")]
+  _module.bind(CreatureFoley,"creature_audio"),
+  _occluders]
+
+# Walls and big solid boxes hide whole rooms from the renderer (4.8.0).
+var occluder_count:=0
+func _occluders() -> void:
+ occluder_count=PlayOccluders.apply(self)
 
 func _chalk_board() -> void:
  chalk=ChalkBoard.new();add_child(chalk);chalk.build(self)

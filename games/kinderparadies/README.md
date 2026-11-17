@@ -1,5 +1,32 @@
 # After Play — Kinderparadies
 
+## Knochenarme im Bällebad, flüssigeres Spiel, Systemanforderungen (4.8.0)
+
+Die Anomalie „Knöcherne Arme schnellen aus dem Bällebad“ ist neu gebaut. Statt
+der Ärmel eines kopfüber gestellten Besuchers brechen jetzt fünf echte
+Skelettarme (Oberarm, Elle und Speiche, Handwurzel, Fingerglieder mit
+Krallen) aus den Bällen und schleudern die Kugeln hoch. Der lange Arm bricht am
+Rand direkt vor dem Wächter hervor und greift mit gespreizten Fingern nach
+seinem Gesicht, die übrigen krallen in die Luft. Nach gut einer Sekunde reißt
+es alle zurück unter die Bälle. Als Hinweis stehen schon vorher und danach zwei
+knöcherne Hände zwischen den Bällen. Der Ton ist kein Flüstern mehr, sondern
+Knochenknacken mit einem Schrei direkt ins Ohr (`scripts/pit_bones.gd`,
+`scripts/night_terrors.gd`).
+
+Flüssiger, ohne die Grafik anzufassen: Wände und große undurchsichtige Körper
+sind jetzt Occluder (`scripts/play_occluders.gd`). Der Renderer zeichnet
+Räume hinter Wänden nicht mehr, im Kostümraum sinkt die Frame-Zeit um rund
+40 %, im Kino um 30 %, über alle Messpunkte um rund 20 %. Ein Pixelvergleich
+mit und ohne Culling (`--render-qa --occlusion-qa`) zeigt, dass nichts
+Sichtbares wegfällt. Das Bällebad schreibt nur noch Bälle neu, die sich bewegt
+haben. Messen: `--render-qa --perf-qa` (Optionen `--perf-quality=0..2`,
+`--perf-size=BxH`).
+
+Systemanforderungen stehen in `distribution/STARTEN.txt` und auf der
+Webseite. Liegt ein PC darunter (kein Vulkan/Direct3D 12, nur integrierte
+Grafik, unter 8 GB RAM, unter 4 Threads), nennt das Hauptmenü das unten rechts,
+ohne Einstellungen zu ändern (`scripts/system_check.gd`).
+
 ## Untertitel ohne Warteschlange (4.7.0)
 
 Wird ein neuer Wächter-Kommentar ausgelöst, während noch einer läuft, bricht der

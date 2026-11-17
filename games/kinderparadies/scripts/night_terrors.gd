@@ -23,7 +23,7 @@ const SCENARIOS:={
  "reception_peeker":{"p":Vector3(-9.15,.02,6.55),"mode":"peek","zone":"Empfang"},
  "reception_charge":{"p":Vector3(-5.7,0,1.0),"mode":"pursuit","zone":"Empfang"},
  "reception_queue":{"p":Vector3(-8.1,.02,9.5),"mode":"queue","zone":"Empfang"},
- "pit_hands":{"p":Vector3(3.6,.3,7.1),"mode":"hands","zone":"Bällebad"},
+ "pit_hands":{"p":Vector3(3.6,.3,7.1),"mode":"pit","zone":"Bällebad"},
  "frame_stalker":{"p":Vector3(2.0,.31,2.2),"mode":"crawl","zone":"Bällebad"},
  "slide_crawler":{"p":Vector3(3.7,0,10.9),"mode":"crawl","zone":"Bällebad"},
  "party_portrait":{"p":Vector3(9.3,0,-.35),"mode":"pursuit","zone":"Party Raum"},
@@ -74,6 +74,11 @@ var stare:=0.0
 var stuck:=0.0
 var cross_dir:=Vector3.ZERO
 var lunged:=false
+# Ball-pit skeletal arms (mode "pit"): one dictionary per arm, see PitBones.
+var bones: Array=[]
+var bones_placed:=false
+var splash: AudioStreamPlayer3D
+var pit_box:=AABB()
 # Ground visitors: [freeze before the dash, dash speed m/s, reach that starts the face lunge].
 const CHARGE:={"pursuit":[.12,7.2,1.45],"rush":[0.,9.,1.45],"ambush":[0.,8.,1.4],"peek":[.22,7.5,1.45],"crawl":[.14,6.,1.35],"queue":[.32,7.,1.45]}
 
@@ -91,15 +96,18 @@ func configure(value: String) -> void:
  spec=SCENARIOS[id];origin=spec.p
  if spec.zone in ["Küche","Kino"]: origin+=ServiceAnnex.OFFSET
  # Match the dry human voice to the actual granny head, including crawlers.
- var voice_id: String="granny_"+id if spec.mode not in ["hands","window","vent","throne"] else id
+ var voice_id: String="granny_"+id if spec.mode not in ["hands","pit","window","vent","throne"] else id
  ScareBank.select(audio,voice_id,spec.mode)
  audio.volume_db=3;audio.unit_size=10;audio.max_distance=32;ScareBank.loud(audio)
  anticipation=ScareBank.lead(self,voice_id,spec.mode)
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
- visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
- # v421 visitors already come fully headed, dressed and painted; the old
- # generic head-swap and loft-built costume would only undo that work.
- CharacterFinish.dynamic_only(visual)
+ if spec.mode=="pit":
+  visual=Node3D.new();visual.name="BoneArms";actor.add_child(visual)
+ else:
+  visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
+  # v421 visitors already come fully headed, dressed and painted; the old
+  # generic head-swap and loft-built costume would only undo that work.
+  CharacterFinish.dynamic_only(visual)
  shape=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.75;shape.shape=capsule;shape.position.y=.91;actor.add_child(shape)
  for key in ["ArmL","ArmR"]:
   var arm:=visual.find_child(key,true,false) as Node3D
@@ -115,6 +123,8 @@ func configure(value: String) -> void:
   for child in visual.find_children("*","MeshInstance3D",true,false): child.visible=child.name.begins_with("Arm")
   visual.rotation.z=PI;visual.position.y=1.0;shape.disabled=true
   if id=="pot_arms": visual.scale.x=.65
+ elif spec.mode=="pit":
+  _build_pit();shape.disabled=true;actor.hide()
  elif spec.mode=="mouth":
   visual.scale=Vector3.ONE*.70;visual.position.y=-1.08;shape.disabled=true
   for child in visual.find_children("*","MeshInstance3D",true,false):
@@ -149,12 +159,14 @@ func configure(value: String) -> void:
  if spec.mode in ["ceiling","drop"]: marker.position.y=0
  if spec.mode=="vent": marker.position=Vector3(-1.3,.025,-20.15)+ServiceAnnex.OFFSET
  if spec.mode in ["tube","window"]: marker.position=CrawlTubes.route(path_s)+Vector3(0,-.74,0);marker.hide()
+ if spec.mode=="pit": _pit_clue()
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  audio.stream_paused=not active
  scream.stream_paused=not active
  footsteps.stream_paused=not active
  if anticipation: anticipation.stream_paused=not active
+ if splash: splash.stream_paused=not active
  if spec.is_empty(): return
  var in_tube:=w.tubes.contains_original(player.position)
  if spec.mode in ["tube","window"]:
@@ -171,7 +183,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  # A visitor you stare at from further away comes for you after a moment.
  stare=stare+delta if seen and primed else maxf(0,stare-delta*2)
  var close:=eligible and w.encounters.visible_to(player,target,radius)
- var stared: bool=stare>(1.5 if spec.mode=="peek" else 2.1) and (spec.mode in CHARGE or spec.mode=="crossing")
+ var stared: bool=stare>(1.5 if spec.mode=="peek" else 2.1) and (spec.mode in CHARGE or spec.mode in ["crossing","pit"])
  if not triggered and elapsed>.8 and (close or stared):
   triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0
   # The vent strike is the horse skull alone; its placeholder visitor must stay hidden.
@@ -179,9 +191,12 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   if spec.mode in ["ceiling","drop"]:
    # Hanging guests shriek right into your ear, not a distant low drone.
    scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
+  if spec.mode=="pit":
+   # Bones cracking out of the balls and a shriek right in your ear.
+   scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
  if not triggered:
-  visual.rotation.y=sin(elapsed*.53)*.12
-  if primed and spec.mode not in ["hands","window","vent"]:
+  if spec.mode!="pit": visual.rotation.y=sin(elapsed*.53)*.12
+  if primed and spec.mode not in ["hands","pit","window","vent"]:
    var head:=visual.find_child("HeadRig",true,false) as Node3D
    if head:
     var direction:=player.position-actor.position
@@ -199,6 +214,7 @@ func focus_point() -> Vector3:
  var target:=actor.position+Vector3(0,1.4,0)
  if spec.mode in ["hands","mouth","window","tube"]: target=actor.position+Vector3(0,.35,0)
  if spec.mode=="crawl": target=actor.position+Vector3(0,.70,0)
+ if spec.mode=="pit": target=actor.position+Vector3(0,.5,0)
  if spec.mode=="window": target=actor.position
  if spec.mode in ["ceiling","drop"]: target=actor.position-Vector3(0,1.6,0)
  if spec.mode=="vent": target=w.room_horror.creature.global_position+Vector3(0,-1.5,.7)
@@ -208,6 +224,7 @@ func focus_point() -> Vector3:
 func trigger_radius() -> float:
  match spec.mode:
   "ambush":return 3.3
+  "pit":return 3.6
   "peek":return 3.4
   "crawl":return 3.8
   "pursuit":return 4.4
@@ -222,6 +239,7 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
  if attack>4.5: _vanish(player);return
  if spec.mode in CHARGE: _charge(delta,player);return
  if spec.mode=="crossing": _cross(delta,player);return
+ if spec.mode=="pit": _pit(player);return
  if spec.mode=="throne":
   var k:=1.-pow(1.-clampf(attack/.16,0,1),4)
   visual.position.z=k*.9+sin(attack*37.)*.03*k;visual.rotation.x=k*.42;visual.rotation.z=.18*k
@@ -416,6 +434,117 @@ func _face_lunge(player: NightGuard,reach: float,patience: float) -> bool:
  face_light.light_energy=(1.4 if int(t*22.)%3 else .25)*k
  shock=1.0
  return true
+
+# --- Ball-pit skeletal arms -------------------------------------------------
+func _build_pit() -> void:
+ var bone:=PitBones.material(w);var dark:=PitBones.grime(w)
+ var first:=true
+ for body in w.pit_physics.starts:
+  pit_box=AABB(body,Vector3.ZERO) if first else pit_box.expand(body);first=false
+ pit_box=pit_box.grow(-.2)
+ # Five arms; the first is the long one that comes for your face.
+ for i in range(5):
+  var a:=PitBones.arm(visual,bone,dark,1.5 if i==0 else 1.15+i*.06,1.3 if i==0 else 1.1)
+  a.lead=i==0;a.delay=[.07,0.,.03,.1,.15][i];a.hold=[1.25,.95,1.1,1.0,1.18][i]
+  a.burst=false;a.sunk=false;a.depth=float(a.upper)+float(a.reach)+.15;a.top=.4
+  (a.root as Node3D).position.y=-float(a.depth);bones.append(a)
+ splash=AudioStreamPlayer3D.new();splash.name="BallBurst";splash.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
+ splash.stream=load("res://assets/ballpit-v433/wade-2.ogg");splash.volume_db=8;splash.pitch_scale=.8;splash.unit_size=6;splash.max_distance=24;add_child(splash)
+
+func _pit_surface(p: Vector3) -> float:
+ var top:=.35
+ for body in w.pit_physics.starts:
+  if Vector2(body.x-p.x,body.z-p.z).length()<.24: top=maxf(top,body.y+.14)
+ return top
+
+# The lasting clue: two bony hands left standing upright between the balls,
+# claws just breaking the surface. Each is baked into a single mesh.
+func _pit_clue() -> void:
+ var bone:=PitBones.material(w);var dark:=PitBones.grime(w)
+ for spot in [[Vector3(.5,0,.2),.4,.55,.5],[Vector3(-.22,0,.62),-.8,.35,.4]]:
+  var offset: Vector3=spot[0];var at: Vector3=origin+offset;var a:=PitBones.arm(marker,bone,dark,1.)
+  var root: Node3D=a.root;root.rotation.y=spot[1]
+  (a.shoulder as Node3D).rotation.x=.12;(a.elbow as Node3D).rotation.x=.18;(a.wrist as Node3D).rotation.x=.35
+  PitBones.curl(a,spot[2],1.2)
+  root.position=Vector3(offset.x,0,offset.z)
+  var clue:=PitBones.flatten(a,marker,bone,"BoneClue%d"%marker.get_child_count())
+  clue.position.y=_pit_surface(at)+float(spot[3])-clue.get_aabb().end.y-origin.y
+
+func _place_bones(player: NightGuard) -> void:
+ bones_placed=true
+ var toward:=player.global_position-actor.global_position;toward.y=0
+ toward=toward.normalized() if toward.length()>.05 else Vector3.BACK
+ var side:=Vector3(toward.z,0,-toward.x)
+ # The long arm breaks out at the rim right in front of you, the rest in a
+ # ragged cluster behind it.
+ var guard:=player.global_position
+ var rim:=Vector3(clampf(guard.x,pit_box.position.x,pit_box.end.x),0,clampf(guard.z,pit_box.position.z,pit_box.end.z))
+ var lead:=rim-toward*.15;lead.y=actor.global_position.y
+ var offsets:=[Vector3.ZERO,side*.5-toward*.35,-side*.55-toward*.3,side*.95-toward*.8,-side*1.0-toward*.75]
+ for i in range(bones.size()):
+  var p: Vector3=lead+offsets[i]
+  for clue in marker.get_children():
+   if clue.name.begins_with("BoneClue"):
+    var gap:=Vector2(p.x-clue.global_position.x,p.z-clue.global_position.z)
+    if gap.length()<.3: p+=(Vector3(gap.x,0,gap.y).normalized()*(.3-gap.length())) if gap.length()>.01 else side*.3
+  p.x=clampf(p.x,pit_box.position.x,pit_box.end.x);p.z=clampf(p.z,pit_box.position.z,pit_box.end.z)
+  var a: Dictionary=bones[i];(a.root as Node3D).position.x=p.x-actor.global_position.x;(a.root as Node3D).position.z=p.z-actor.global_position.z
+  a.top=(.8 if a.lead else .7)-actor.global_position.y
+
+func side_of(node: Node3D) -> Vector3:
+ return node.global_basis.x.normalized()
+
+func _splash(at: Vector3, power: float) -> void:
+ for body in w.pit_physics.bodies:
+  if body.freeze: continue
+  var o:=body.global_position-at;o.y=0;var d:=o.length()
+  if d>.7: continue
+  # Surface balls fly highest; buried ones only heave.
+  var k:=(1.-d/.7)*power*clampf((body.global_position.y-.05)/.3,.6,1.);body.sleeping=false
+  body.linear_velocity+=(Vector3.UP*(5.2+fmod(d*37.,1.)*2.4)+(o/maxf(d,.01))*2.2)*k
+ splash.global_position=at+Vector3(0,.5,0)
+ if power>.8 or not splash.playing: splash.pitch_scale=.8 if power>.8 else 1.05;splash.play()
+
+# Bursting out (staggered, overshooting), clawing for you with the long arm
+# going straight for your face, then yanked back under in a spray of balls.
+func _pit(player: NightGuard) -> void:
+ if not bones_placed: _place_bones(player)
+ if not actor.visible and not vanished: actor.show()
+ var eye:=player.camera.global_position
+ var gone:=true
+ for i in range(bones.size()):
+  var a: Dictionary=bones[i];var root: Node3D=a.root;var t:=attack-float(a.delay)
+  var up:=0.
+  if t>0:
+   var e:=clampf(t/.13,0,1);up=1.-pow(1.-e,3)+sin(clampf(t/.32,0,1)*PI)*.1
+   if not a.burst: a.burst=true;_splash(Vector3(root.global_position.x,.4,root.global_position.z),1.15 if a.lead else .9)
+  var back:=clampf((t-float(a.hold))/.2,0,1);back*=back
+  if back>0 and not a.sunk: a.sunk=true;_splash(Vector3(root.global_position.x,.4,root.global_position.z),.55)
+  if back<1.: gone=false
+  root.position.y=lerpf(-float(a.depth),float(a.top),up*(1.-back))
+  if t<=0: continue
+  # Aim: the long arm goes for the face but stops a hand's width short,
+  # the others claw at the air between the balls and you.
+  var shoulder: Vector3=root.global_position
+  var flat:=eye-shoulder;flat.y=0
+  root.rotation.y=atan2(flat.x,flat.z)
+  var span: float=float(a.upper)+float(a.reach)
+  var target: Vector3
+  if a.lead:
+   var to_eye:=eye-shoulder;target=shoulder+to_eye.normalized()*minf(span*.97,to_eye.length()-.3)
+  else:
+   target=shoulder+(flat.normalized()+side_of(root)*(.25 if i%2 else -.25)).normalized()*span*.74+Vector3(0,span*.4+sin(attack*5.+i)*.08,0)
+  var local:=root.global_transform.affine_inverse()*target
+  var reach:=clampf((t-.05)/.22,0,1);reach=1.-pow(1.-reach,2)
+  var solve:=PitBones.reach(a,local)
+  var shake:=sin(attack*47.+i*1.7)*.05+sin(attack*29.+i*2.3)*.03
+  (a.shoulder as Node3D).rotation=Vector3(lerpf(.05,solve.x,reach)+shake,0,sin(attack*23.+i)*.06)
+  (a.elbow as Node3D).rotation=Vector3(lerpf(.25,solve.y,reach)-shake*.6,0,0)
+  (a.wrist as Node3D).rotation=Vector3((-1.05 if a.lead else .35+sin(attack*9.+i)*.25),sin(attack*13.+i)*.15,0)
+  var claw:=(.22+.12*sin(attack*21.)) if a.lead and back==0. else .3+.55*(.5+.5*sin(attack*15.+i*2.1))
+  PitBones.curl(a,lerpf(claw,1.,back),1.5 if a.lead else 1.)
+ shock=maxf(shock,.9*clampf(1.-attack/1.4,0,1))
+ if gone and attack>.5: _vanish(player)
 
 func snapshot() -> Dictionary:
  return {"id":id,"elapsed":elapsed,"triggered":triggered,"finished":finished,"attack":attack,"shock":shock,"position":[actor.position.x,actor.position.y,actor.position.z] if is_instance_valid(actor) else [],"visible":is_instance_valid(actor) and actor.visible,"zone":spec.get("zone",""),"mode":spec.get("mode",""),"audio":audio.playing,"sound":audio.stream.resource_path,"paused":audio.stream_paused,"steps":footsteps.playing,"steps_paused":footsteps.stream_paused,"remnant":is_instance_valid(marker),"vanished":vanished}

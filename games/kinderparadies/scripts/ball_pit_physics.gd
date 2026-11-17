@@ -84,10 +84,13 @@ func _physics_process(delta: float) -> void:
   if not rustle.playing:
    rustle.stream=rustles[randi()%rustles.size()];rustle.pitch_scale=randf_range(.92,1.08);rustle.volume_db=linear_to_db(wading)-5.;rustle.play()
 
+# Only balls that actually moved are written: an unchanged multimesh keeps the
+# hall's shadow maps cached instead of forcing every lamp to redraw them.
 func _render() -> void:
  var inverse:=w.balls.global_transform.affine_inverse()
  for i in range(bodies.size()):
   var transform_value:=inverse*bodies[i].global_transform
+  if transform_value==w.ball_render_transforms[i]: continue
   w.ball_render_transforms[i]=transform_value;w.balls.multimesh.set_instance_transform(i,transform_value)
 
 func snapshot() -> Dictionary:

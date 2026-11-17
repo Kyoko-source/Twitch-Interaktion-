@@ -35,6 +35,38 @@ func run(game: Node3D) -> void:
     game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
     await capture(game,output,shot[1])
   game.get_tree().quit();return
+ if "--occlusion-qa" in OS.get_cmdline_user_args():
+  await load("res://scripts/occlusion_qa.gd").new().run(game,output)
+  game.get_tree().quit();return
+ if "--perf-qa" in OS.get_cmdline_user_args():
+  await load("res://scripts/perf_benchmark.gd").new().run(game,output)
+  game.get_tree().quit();return
+ if "--pit-hands-qa" in OS.get_cmdline_user_args():
+  game._build_world("pit_hands");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var t: NightTerrors=game.world.terrors
+  for view in [[Vector3(2.4,.03,10.2),"a"],[Vector3(5.6,.03,9.4),"b"],[Vector3(3.3,.03,9.25),"c"]]:
+   game._build_world("pit_hands");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false);t=game.world.terrors;game.world.pit_physics.configure();game.world.pit_physics.tick(true,game.player)
+   game.player.global_position=view[0];game.player.lamp.show()
+   var look: Vector3=t.origin+Vector3(0,.5,0)
+   game.player.look_at(Vector3(look.x,game.player.global_position.y,look.z));game.player.camera.look_at(look,Vector3.UP)
+   t.tick(0,true,game.player);await capture(game,output,"pit-"+view[1]+"-00-idle")
+   for c in t.marker.get_children():
+    if c is MeshInstance3D and c.name.begins_with("BoneClue"):
+     print("PITCLUE ",c.name," ",c.global_position," top=",c.global_position.y+c.get_aabb().end.y," v=",c.is_visible_in_tree()," surface=",t._pit_surface(c.global_position))
+     if view[1]=="a":
+      game.player.global_position=c.global_position+Vector3(.3,0,1.3);game.player.global_position.y=.03;game.player.camera.look_at(c.global_position+Vector3(0,c.get_aabb().end.y-.2,0),Vector3.UP);await capture(game,output,"pit-clue-"+str(c.name))
+   game.player.global_position=view[0];game.player.camera.look_at(look,Vector3.UP)
+   print("PITBALLS frozen=",game.world.pit_physics.bodies.filter(func(b):return b.freeze).size()," running=",game.world.pit_physics.running)
+   t.triggered=true;t.attack=0.
+   var at:=0.
+   for frame in [.06,.14,.3,.6,1.0,1.6,2.4,3.4]:
+    while at<frame:
+     t.tick(1./60.,true,game.player);await game.get_tree().physics_frame;at+=1./60.
+    await capture(game,output,"pit-%s-%02d-%03d"%[view[1],int(frame*10),int(frame*100)])
+    var fast:=0.;for b in game.world.pit_physics.bodies: fast=maxf(fast,b.linear_velocity.length())
+    print("PITVEL ",frame," ",fast)
+   print("PITQA ",view[1]," ",JSON.stringify(t.snapshot()))
+  game.get_tree().quit();return
  if "--wc-qa" in OS.get_cmdline_user_args():
   game._build_world("wc_ceiling_guest");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
   var t: NightTerrors=game.world.terrors

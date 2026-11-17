@@ -7,6 +7,22 @@ Windows 64 Bit. Das Spiel funktioniert nach dem Download auch offline.
 Musik, Stimmen und Spieldaten sind bereits in der EXE enthalten.
 Einstellungen und Spielstand werden automatisch in deinem Windows-Benutzerprofil gespeichert.
 
+SYSTEMANFORDERUNGEN
+Mindestens (Grafikqualität "Leistung", 1080p):
+  Windows 10 oder 11, 64 Bit
+  Prozessor: 4 Kerne, z. B. Intel Core i5-7500 oder AMD Ryzen 3 3100
+  Arbeitsspeicher: 8 GB
+  Grafikkarte: Vulkan- oder Direct3D-12-fähig, 4 GB Videospeicher,
+  z. B. NVIDIA GeForce GTX 1050 Ti oder AMD Radeon RX 570
+  Speicherplatz: 2 GB frei
+Empfohlen (Grafikqualität "Hoch", 1080p, 60 FPS):
+  Windows 10 oder 11, 64 Bit
+  Prozessor: Intel Core i5-12400 oder AMD Ryzen 5 5600
+  Arbeitsspeicher: 16 GB
+  Grafikkarte: NVIDIA GeForce RTX 3060 oder AMD Radeon RX 6600 XT, 8 GB Videospeicher
+  Speicherplatz: 2 GB frei
+Liegt dein PC darunter, zeigt das Hauptmenü einen Hinweis.
+
 STEUERUNG
 WASD / Pfeiltasten: bewegen
 Maus: umsehen

@@ -18,7 +18,7 @@ static func family(id: String, mode: String="") -> String:
  if id.begins_with("granny_"):return "granny"
  if "bunny" in id or "mascot" in id: return "rabbit"
  if "clown" in id or "kitchen_double"==id or id=="archive_finale": return "clown"
- if "vent" in id or "ceiling" in id: return "ossuary"
+ if "vent" in id or "ceiling" in id or id=="pit_hands": return "ossuary"
  if "croc" in id: return "crocodile"
  if "window" in id or id=="tube_watcher": return "window"
  if "tube" in id or "crawl" in id or mode=="crawl": return "crawler"

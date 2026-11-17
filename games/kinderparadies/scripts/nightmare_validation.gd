@@ -46,6 +46,26 @@ func run(game: Node3D, verify: Callable) -> void:
    verify.call(not t.actor.visible and t.marker.visible,"Tunnel visitor stays after its scare or its remnant is missing inside")
    game.player.position=Vector3(-1,0,12);t.tick(0,false,game.player)
    verify.call(not t.actor.visible and not t.marker.visible,"Tunnel visitor or its remnant leaks into the outside scene")
+ # 4.8.0 ball-pit arms: real skeletal arms that burst out, reach for the guard
+ # and are yanked back under, leaving two bony hands standing between the balls.
+ game._build_world("pit_hands");game._resume();game.player.active=false
+ var pit: NightTerrors=game.world.terrors
+ var clues: Array=pit.marker.get_children().filter(func(c):return c.name.begins_with("BoneClue"))
+ verify.call(pit.spec.mode=="pit" and pit.bones.size()==5 and clues.size()==2 and pit.visual.find_children("*","MeshInstance3D",true,false).size()>=60,"Ball-pit arms are not five articulated skeletal arms with two lasting bony hands")
+ verify.call(not pit.actor.visible and pit.audio.get_meta("scare_family","")=="ossuary","Ball-pit arms show before the scare or fall back to the quiet whisper")
+ for clue in clues:
+  var top: float=clue.global_position.y+clue.get_aabb().end.y
+  verify.call(top>pit._pit_surface(clue.global_position)+.3,"A lasting bony hand is buried in the balls instead of standing out")
+ game.player.global_position=Vector3(3.3,.03,9.25);game.player.camera.look_at(pit.focus_point())
+ pit.triggered=true;pit.attack=0.;var tallest:=0.
+ for i in range(30):
+  pit.tick(1./60.,true,game.player)
+  for arm in pit.bones: tallest=maxf(tallest,(arm.root as Node3D).global_position.y)
+ verify.call(pit.actor.visible and tallest>.6,"Ball-pit arms never burst out above the balls")
+ var lead: Dictionary=pit.bones[0];var hand: Vector3=(lead.wrist as Node3D).global_position
+ verify.call(hand.distance_to(game.player.camera.global_position)<1.6 and hand.distance_to(game.player.camera.global_position)>.25,"The long arm does not reach for the guard's face or reaches into the camera")
+ for i in range(150): pit.tick(1./60.,true,game.player)
+ verify.call(pit.vanished and not pit.actor.visible and clues.all(func(c):return c.is_visible_in_tree()),"Ball-pit arms stay up after the scare or take the lasting clue with them")
  game._build_world("tube_watcher");game.player.active=false
  game.player.position=CrawlTubes.route(7.4)+Vector3(0,-.72,0);game.world.tubes.tick(0,true,game.player)
  verify.call(game.world.tubes.watcher.visible,"Window watcher must be visible through the roof from inside")
