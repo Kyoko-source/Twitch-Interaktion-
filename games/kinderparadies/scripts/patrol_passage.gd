@@ -18,6 +18,7 @@ var floor_number:=1
 var floor_displays: Array[Label3D]=[]
 var red_locked:=false
 var horse_note: Node3D
+var red_note:=true
 
 func set_floor(value: int) -> void:
  floor_number=clampi(value,1,13)
@@ -106,9 +107,9 @@ func open(red: bool) -> void:
  lanes[index].open=true
  lanes[1-index].open=false
 
-func set_red_locked(value: bool) -> void:
- red_locked=value
- if horse_note:horse_note.visible=value
+func set_red_locked(value: bool,note: bool=true) -> void:
+ red_locked=value;red_note=note
+ if horse_note:horse_note.visible=value and note
  if value:
   lanes[1].open=false;lanes[1].hinge.rotation.y=0;lanes[1].body.collision_layer=1
   if chosen==1:chosen=-1;closing=false;fired=false
@@ -168,7 +169,7 @@ func restore(data: Variant) -> void:
   lanes[i].open=(opened[i] or chosen==i) and (chosen<0 or chosen==i)
   lanes[i].hinge.rotation.y=-1.56 if lanes[i].open else 0
   lanes[i].body.collision_layer=0 if lanes[i].open else 1
- if red_locked:set_red_locked(true)
+ if red_locked:set_red_locked(true,red_note)
 
 func snapshot() -> Dictionary:
  return {"red_locked":red_locked,"horse_note":horse_note.visible,"chosen":chosen,"open":[lanes[0].open,lanes[1].open],"closing":closing,"clock":clock,"doors":[lanes[0].doors[0].position.x,lanes[1].doors[0].position.x],"floor":floor_number,"floor_texts":floor_displays.map(func(indicator):return indicator.text)}

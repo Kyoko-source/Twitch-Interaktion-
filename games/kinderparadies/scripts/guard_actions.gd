@@ -49,7 +49,7 @@ func begin(id: String,hit: Vector3) -> bool:
  var g:=guard.get_parent()
  if id.begins_with("mechanical:") and g.world.mechanics.busy(id):return false
  if id=="delivery_exit" and not g.archive.parking_key_found:return false
- if id=="red" and g.world.horse_hunt.red_locked():return false
+ if id=="red" and g.world.red_locked():return false
  kind=id;clock=0.;duration=1.05 if id.begins_with("paper:") or id=="parking_key" else .9 if id=="delivery_exit" else .64;count+=1
  if id=="mechanical:gum":duration=1.55
  elif id=="mechanical:ticket":duration=.98

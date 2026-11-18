@@ -31,6 +31,7 @@ var soundscape: NightSoundscape
 var encounters: NightEncounters
 var annex: ServiceAnnex
 var horse_hunt: HorseHunt
+var blackout: PowerBlackout
 var room_horror: RoomHorror
 var archive: LostArchive
 var terrors: NightTerrors
@@ -193,6 +194,7 @@ func construction_steps() -> Array[Callable]:
   _module.bind(HappylandParty,"party"),
   _module.bind(HappylandAcoustics,"acoustics"),
   _module.bind(HorseHunt,"horse_hunt"),
+  _module.bind(PowerBlackout,"blackout"),
   _module.bind(ClimbingExpansion,"climbing"),
   _chalk_board,
   _module.bind(ChildDrawings,"child_art"),
@@ -556,6 +558,15 @@ func set_anomaly(id: String) -> void:
     net.hide()
     for body in net.find_children("*","StaticBody3D",true,false): body.collision_layer=0
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
+ # Last: the horse clears the red lock for every other round first.
+ blackout.configure(id)
+
+# Event anomalies that keep the red door shut until they are dealt with.
+func red_locked() -> bool:
+ return horse_hunt.red_locked() or blackout.red_locked()
+
+func red_clue() -> String:
+ return HorseHunt.CLUE if horse_hunt.red_locked() else PowerBlackout.CLUE
 
 func tick(delta: float, active: bool) -> void:
  graphics.tick(delta,active)

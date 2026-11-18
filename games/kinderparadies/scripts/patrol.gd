@@ -6,6 +6,7 @@ const REPLACEMENTS := {"clock_reverse":"reception_peeker","car_moves":"reception
 const ZONES := ["Empfang", "Bällebad", "Party Raum", "Wartungsgang", "Küche", "Kino"]
 const ANOMALIES := [
  {"id":"horse_clown_hunt","name":"Der Pferdekopf verfolgt dich an einem wachsenden Hals. Die rote Tür öffnet erst, wenn der Küchenclown ihn vertrieben hat.","zone":"Kino"},
+ {"id":"power_blackout","name":"Stromausfall: Licht, Partymodus und Maschinen fallen aus. Die rote Tür öffnet erst, wenn der Hauptschalter im Wartungsraum wieder umgelegt ist.","zone":"Wartungsgang"},
  {"id":"wc_stall_watcher","name":"In der offenen WC-Kabine wartet eine verdrehte Gestalt und schnellt nach vorn.","zone":"Kinder-WC"},
  {"id":"wc_ceiling_guest","name":"Über dem Abfluss hängt ein Besucher kopfüber und fährt von der niedrigen WC-Decke herab.","zone":"Kinder-WC"},
  {"id":"snackbar_visitor","name":"Vor der geschlossenen Snackbar bricht eine Gestalt aus dem Dunkeln hervor.","zone":"Party Raum"},

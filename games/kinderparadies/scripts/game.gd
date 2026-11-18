@@ -126,6 +126,7 @@ func _connect_world(anomaly: String) -> void:
  _sync_lift_floor()
  world.passages.boarded.connect(_board_lift);world.passages.sealed.connect(_finish_lift);world.passages.ambushed.connect(_door_death)
  world.horse_hunt.resolved.connect(_horse_resolved)
+ world.blackout.restored.connect(_power_restored)
  world.horse_hunt.fatal_started.connect(_horse_attack_started);world.horse_hunt.killed.connect(_horse_killed)
  world.backstage.escaped.connect(_escape_happyland)
  world.archive.sync(archive,14 if state.completed else state.streak+1)
@@ -348,6 +349,7 @@ func _continue() -> void:
  world.backstage.restore(data.get("backstage",{}));world.horse_hunt.restore(data.get("horse_hunt",{}))
  world.party.set_enabled(bool(data.get("party_mode",false)))
  world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
+ world.blackout.restore(data.get("blackout",{}))
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if secret_ending: _show_ending(3);return
@@ -435,6 +437,8 @@ func _submit_archive_code() -> void:
   has_session=false;return
  if archive_input==HorseHunt.TEST_CODE:
   _force_horse_hunt();return
+ if archive_input==PowerBlackout.TEST_CODE:
+  _force_blackout();return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
  if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
@@ -446,6 +450,15 @@ func _force_horse_hunt() -> void:
  archive_input="";_build_world(HorseHunt.ID)
  player.transform=pose;player.camera.rotation=look;_resume();_save()
  _announce("Im Kino setzt sich etwas in Bewegung.",5)
+
+func _power_restored() -> void:
+ _save();_announce("Der Strom ist zurück. Die rote Tür ist frei.",5)
+
+func _force_blackout() -> void:
+ var pose:=player.transform;var look:=player.camera.rotation
+ state.current=PowerBlackout.ID
+ archive_input="";_build_world(PowerBlackout.ID)
+ player.transform=pose;player.camera.rotation=look;_resume();_save()
 
 func _horse_resolved() -> void:
  _save();_announce("Der Hals verschwindet im Schacht. Die rote Tür ist frei.",5)
@@ -534,7 +547,7 @@ func _save(next_round: bool=false) -> void:
  if world.chalk:chalk_drawing=world.chalk.serialize()
  party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"dialogue":dialogue.serialize(),"pose":pose,"layout_version":13,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"dialogue":dialogue.serialize(),"pose":pose,"layout_version":13,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize(),"blackout":{} if next_round else world.blackout.serialize()}))
 
 func _process(delta: float) -> void:
  if dialogue:dialogue.tick(delta)
@@ -586,7 +599,7 @@ func _process(delta: float) -> void:
   memories.render(archive.recording_position,world.archive.finale.duration,bool(settings.motion))
   if phase=="play": player.active=false;hud.hide()
  else: memories.hide()
- player.fright=maxf(maxf(world.encounters.shock,world.terrors.shock),maxf(world.backstage.shock,world.horse_hunt.shock))
+ player.fright=maxf(maxf(maxf(world.encounters.shock,world.terrors.shock),maxf(world.backstage.shock,world.horse_hunt.shock)),world.blackout.fright())
  if phase=="play":
   state.seconds+=delta
   save_clock+=delta
@@ -599,7 +612,9 @@ func _process(delta: float) -> void:
   last_target=target
   prompt.text=""
   if state.completed and target in ["red","green"]: prompt.text="E · Erneut nach den Spuren suchen"
-  elif target=="red" and world.horse_hunt.red_locked():prompt.text="E · "+HorseHunt.CLUE
+  elif target=="red" and world.red_locked():prompt.text="E · "+world.red_clue()
+  elif target=="power_lever":prompt.text=world.blackout.prompt()
+  elif world.blackout.dark() and (target in ["party_control","cinema_projector","reception_cctv"] or target.begins_with("mechanical:")):prompt.text="Kein Strom"
   elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
   elif target=="cinema_projector": prompt.text="E · Film stoppen" if world.film.playing else "E · Happyland-Film einlegen" if archive.film_found else "Projektor · Eine Filmrolle fehlt"
@@ -656,7 +671,7 @@ func _target() -> String:
 
 func _decide(red: bool) -> void:
  if phase!="play" or world.passages.closing: return
- if red and world.horse_hunt.red_locked():_announce(HorseHunt.CLUE,5);return
+ if red and world.red_locked():_announce(world.red_clue(),5);return
  world.open_door(red);effect.stream=QualityAssets.audio("hinge",randi_range(1,4));effect.play();_save()
 
 func _board_lift(_red: bool) -> void:
@@ -801,7 +816,11 @@ func _unhandled_input(event: InputEvent) -> void:
   else:_interact_target(target)
 
 func _interact_target(target: String) -> void:
+ if world.blackout.dark() and (target in ["party_control","cinema_projector","reception_cctv"] or target.begins_with("mechanical:")):
+  player.foley.play("switch");_announce("Kein Strom. Nichts reagiert.",3);return
  if target in ["red","green"]: _decide(target=="red")
+ elif target=="power_lever":
+  if world.blackout.pull():_announce("Der Hauptschalter rastet ein.",3)
  elif target.begins_with("mechanical:"):world.mechanics.interact(target)
  elif target=="film_reel":
   dialogue.request("reel")
@@ -972,7 +991,7 @@ func _telemetry() -> void:
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
-  data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot()
+  data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot();data.blackout=world.blackout.snapshot()
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible
