@@ -32,6 +32,9 @@ var encounters: NightEncounters
 var annex: ServiceAnnex
 var horse_hunt: HorseHunt
 var blackout: PowerBlackout
+var look: LookPass
+var finish: SoftPlayFinish
+var storm: Thunderstorm
 var room_horror: RoomHorror
 var archive: LostArchive
 var terrors: NightTerrors
@@ -203,6 +206,9 @@ func construction_steps() -> Array[Callable]:
   _module.bind(TactileWorld,"tactile"),
   ClosePropCraft.refine.bind(self),
   _module.bind(CreatureFoley,"creature_audio"),
+  _module.bind(SoftPlayFinish,"finish"),
+  _module.bind(Thunderstorm,"storm"),
+  _module.bind(LookPass,"look"),
   _occluders]
 
 # Walls and big solid boxes hide whole rooms from the renderer (4.8.0).
@@ -481,7 +487,7 @@ func _party_room() -> void:
  party_light.shadow_enabled=true
  painting(self,1,Vector3(8.5,2.1,-11.96),Vector2(1.45,1.0))
  for i in range(12):
-  var flag:=box(self,Vector3(7.1+i*.24,3,-11.98),Vector3(.17,.23,.01),materials.red if i%2==0 else materials.gold);flag.rotation.z=.2 if i%2==0 else -.2
+  Pennant.build(self,Vector3(7.1+i*.24,3.11,-11.97),.2,.26,i+2,Vector3.RIGHT,.08 if i%2==0 else -.08)
 
 func _service() -> void:
  props.mural=painting(self,0,Vector3(-9.96,2.2,-2.3),Vector2(3.8,2.55),PI/2)
@@ -553,6 +559,8 @@ func set_anomaly(id: String) -> void:
  elif id=="car_missing": props.car.visible=false
  elif id=="lights_red":
   for light in practicals: light.light_color=Color("e22c28")
+  if look:
+   for light in look.pendants: light.light_color=Color("e22c28")
  elif id=="party_dark":
   party_light.light_energy=0
   for light in polish.party_mascot.get_parent().find_children("*","SpotLight3D",true,false): light.light_energy=0
@@ -603,6 +611,7 @@ func quality(value: int) -> void:
  graphics.quality(value)
  arrival_design.quality(value)
  craft.quality(value)
+ if look: look.quality(value)
  for light in practicals: light.shadow_enabled=value>0 and (light==party_light or light.has_meta("shadow_practical") or light.has_meta("kitchen_flicker") or light.position.distance_to(Vector3(-5.5,4,0))<.1)
 
 func open_door(red: bool) -> void:

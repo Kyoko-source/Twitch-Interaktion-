@@ -218,3 +218,8 @@ Neue Schreckvarianten: Tonbearbeitungen des oben genannten Ogrebane-Pakets.
 Bewegungs- und Kontaktklaenge: vorhandene CC0-Aufnahmen von Joseph SARDIN
 und Kenney, eigene Papiergeraeusche; acht neu abgestimmte Schrittvarianten
 je Boden auf Basis der bereits aufgefuehrten Schrittaufnahmen.
+
+GEHEIMES ENDE (4.10.0 / 4.11.0)
+"Happy Birthday" als Spieluhr: gemeinfreie Melodie, fuer das Spiel synthetisch
+erzeugt (keine Aufnahme). Die Kinderstimme am Telefon ("Du hast uns alle gefunden")
+wurde fuer After Play aufgenommen und vom Projekt bereitgestellt.

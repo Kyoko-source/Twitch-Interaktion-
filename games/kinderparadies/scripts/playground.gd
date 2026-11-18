@@ -163,7 +163,7 @@ func _party_dressing() -> void:
  for i in range(22):
   var x:=7.2+i*.53;var y:=4.6-sin(i/21.0*PI)*.5
   w.tube(party,Vector3(x,y,-9.8),Vector3(x+.53,y-.01,-9.8),.006,w.materials.stitch)
-  var flag:=w.box(party,Vector3(x,y-.16,-9.8),Vector3(.32,.32,.012),[w.materials.red,w.materials.gold,w.materials.teal][i%3]);flag.rotation.z=sin(i)*.2
+  Pennant.build(party,Vector3(x+.265,y-.005,-9.8),.36,.42,i,Vector3.RIGHT,sin(i)*.12)
  w.mounted_sign(party,"birthday",Vector3(13.4,4.75,-11.95),Vector2(2.5,.85))
  # A second, lower activity table with child-sized stools gives the wider room
  # a distinct craft corner rather than merely stretching its walls.

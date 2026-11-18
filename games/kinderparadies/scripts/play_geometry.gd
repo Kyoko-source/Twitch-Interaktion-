@@ -36,10 +36,7 @@ static func panel(w: PlayWorld, parent: Node3D, name: String, axis: String, fixe
   for hole in holes:
    if u>=hole.position.x and u<=hole.end.x: cuts.append(Vector2(hole.position.y,hole.end.y))
   for segment in segments(area.position.y,area.end.y,cuts): strand(transforms,point(axis,fixed,u,segment.x),point(axis,fixed,u,segment.y))
- var ropes:=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D
- var rope:=CylinderMesh.new();rope.height=1;rope.top_radius=.009;rope.bottom_radius=.009;rope.radial_segments=6;mm.mesh=rope;mm.instance_count=transforms.size()
- for i in range(transforms.size()): mm.set_instance_transform(i,transforms[i])
- ropes.multimesh=mm;ropes.material_override=w.materials.stitch;ropes.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;root.add_child(ropes)
+ knotted_net(root,axis,fixed,area,holes)
  # Rectangular subdivision excludes the apertures from physical barriers too.
  var us: Array[float]=[area.position.x,area.end.x];var vs: Array[float]=[area.position.y,area.end.y]
  for hole in holes:
@@ -153,3 +150,117 @@ static func bridge_collision(parent: Node3D) -> void:
   var c:=Vector3(lerpf(4.43,10.5,nt),bridge_height(nt),3);var d:=Vector3(c.x,c.y,4.2)
   faces.append_array(PackedVector3Array([a,c,b,c,d,b]))
  var body:=StaticBody3D.new();var collider:=CollisionShape3D.new();var shape:=ConcavePolygonShape3D.new();shape.set_faces(faces);collider.shape=shape;body.add_child(collider);parent.add_child(body)
+
+# 4.11.0 knotted safety net: diagonal twisted rope in a diamond mesh, a knot at
+# every crossing, a heavier border rope, and the gentle belly a real net has
+# between its posts. Same apertures as the collision boxes above.
+const MESH:=.17
+const BELLY:=.035
+static var rope_material: StandardMaterial3D
+static func _rope_material() -> StandardMaterial3D:
+ if rope_material:return rope_material
+ var m:=StandardMaterial3D.new();m.resource_name="KnottedSafetyNetRope";m.albedo_color=Color("23262a");m.roughness=.78
+ m.normal_enabled=true;m.normal_texture=load("res://assets/pbr/fabric_pattern_07/normal.jpg");m.normal_scale=.8
+ m.uv1_triplanar=true;m.uv1_scale=Vector3.ONE*22.;m.specular_mode=BaseMaterial3D.SPECULAR_SCHLICK_GGX
+ rope_material=m;return m
+
+static func _clip(a: Vector2,b: Vector2,area: Rect2,holes: Array[Rect2]) -> Array[Vector2]:
+ # Parameter intervals of segment a-b inside the area and outside every hole.
+ var t0:=0.;var t1:=1.;var d:=b-a
+ for axis in [0,1]:
+  var lo:=area.position[axis];var hi:=area.end[axis]
+  if absf(d[axis])<1e-6:
+   if a[axis]<lo or a[axis]>hi:return []
+  else:
+   var ta:=(lo-a[axis])/d[axis];var tb:=(hi-a[axis])/d[axis]
+   t0=maxf(t0,minf(ta,tb));t1=minf(t1,maxf(ta,tb))
+ if t1<=t0:return []
+ var keep: Array[Vector2]=[Vector2(t0,t1)]
+ for hole in holes:
+  var h0:=0.;var h1:=1.;var inside:=true
+  for axis in [0,1]:
+   var lo:=hole.position[axis];var hi:=hole.end[axis]
+   if absf(d[axis])<1e-6:
+    if a[axis]<lo or a[axis]>hi:inside=false
+   else:
+    var ta:=(lo-a[axis])/d[axis];var tb:=(hi-a[axis])/d[axis]
+    h0=maxf(h0,minf(ta,tb));h1=minf(h1,maxf(ta,tb))
+  if not inside or h1<=h0:continue
+  keep=segments_of(keep,Vector2(h0,h1))
+ return keep
+
+static func segments_of(intervals: Array[Vector2],cut: Vector2) -> Array[Vector2]:
+ var next: Array[Vector2]=[]
+ for interval in intervals:
+  if cut.y<=interval.x or cut.x>=interval.y:next.append(interval);continue
+  if cut.x>interval.x:next.append(Vector2(interval.x,cut.x))
+  if cut.y<interval.y:next.append(Vector2(cut.y,interval.y))
+ return next
+
+static func _bulge(axis: String,fixed: float,area: Rect2,p: Vector2) -> Vector3:
+ var k:=sin(PI*clampf((p.x-area.position.x)/area.size.x,0,1))*sin(PI*clampf((p.y-area.position.y)/area.size.y,0,1))
+ var at:=point(axis,fixed,p.x,p.y)
+ if axis=="x":at.x+=BELLY*k
+ else:at.z+=BELLY*k
+ return at
+
+static func _tube(st: SurfaceTool,points: Array[Vector3],radius: float) -> void:
+ if points.size()<2:return
+ var sides:=4
+ var rings: Array=[]
+ for i in range(points.size()):
+  var forward:=(points[mini(i+1,points.size()-1)]-points[maxi(i-1,0)]).normalized()
+  var side:=forward.cross(Vector3.UP if absf(forward.y)<.9 else Vector3.RIGHT).normalized();var up:=side.cross(forward)
+  var ring: Array=[]
+  for k in range(sides):
+   var a:=TAU*k/sides+(i*.9)
+   var n:=(side*cos(a)+up*sin(a)).normalized();ring.append([points[i]+n*radius,n])
+  rings.append(ring)
+ for i in range(rings.size()-1):
+  for k in range(sides):
+   var a: Array=rings[i][k];var b: Array=rings[i][(k+1)%sides];var c: Array=rings[i+1][(k+1)%sides];var e: Array=rings[i+1][k]
+   for v in [a,b,c,a,c,e]:st.set_normal(v[1]);st.add_vertex(v[0])
+
+static func _knot(st: SurfaceTool,at: Vector3,r: float) -> void:
+ var axes:=[Vector3.RIGHT*r,Vector3.UP*r,Vector3.BACK*r*.8]
+ var tips:=[at+axes[0],at-axes[0],at+axes[1],at-axes[1],at+axes[2],at-axes[2]]
+ for f in [[0,2,4],[2,1,4],[1,3,4],[3,0,4],[2,0,5],[1,2,5],[3,1,5],[0,3,5]]:
+  var n: Vector3=((tips[f[1]]-tips[f[0]]).cross(tips[f[2]]-tips[f[0]])).normalized()
+  for i in f:st.set_normal(n);st.add_vertex(tips[i])
+
+static func knotted_net(root: Node3D,axis: String,fixed: float,area: Rect2,holes: Array[Rect2]) -> void:
+ var st:=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ var span:=area.size.x+area.size.y
+ var origin:=area.position
+ # Diagonals u-v=c and u+v=c across the panel, cut at its apertures.
+ for dir in [1.,-1.]:
+  var count:=int(ceil(span/MESH))+2
+  for i in range(-count,count+1):
+   var c:=i*MESH
+   # Rising diagonals (u-v constant) and falling ones (u+v constant), long enough to span the panel.
+   var start:=Vector2(origin.x+c-span,origin.y-span*dir)
+   var end:=start+Vector2(span*2.,span*2.*dir)
+   for interval in _clip(start,end,area,holes):
+    var a2:=start.lerp(end,interval.x);var b2:=start.lerp(end,interval.y)
+    var steps:=maxi(1,int(ceil(a2.distance_to(b2)/(MESH*.7))))
+    var line: Array[Vector3]=[]
+    for k in range(steps+1):line.append(_bulge(axis,fixed,area,a2.lerp(b2,float(k)/steps)))
+    _tube(st,line,.0055)
+ # Knots where the diagonals cross.
+ var n:=int(ceil(span/MESH))+2
+ for i in range(-n,n+1):
+  for j in range(-n,n+1):
+   var p:=origin+Vector2((i+j)*MESH*.5,(j-i)*MESH*.5)
+   if not area.grow(-.01).has_point(p):continue
+   var blocked:=false
+   for hole in holes:
+    if hole.grow(.01).has_point(p):blocked=true
+   if not blocked:_knot(st,_bulge(axis,fixed,area,p),.012)
+ # A heavier border rope along the panel edge.
+ var corners:=[area.position,Vector2(area.end.x,area.position.y),area.end,Vector2(area.position.x,area.end.y),area.position]
+ for k in range(4):
+  for interval in _clip(corners[k],corners[k+1],area.grow(.001),holes):
+   var a3:Vector2=corners[k].lerp(corners[k+1],interval.x);var b3:Vector2=corners[k].lerp(corners[k+1],interval.y)
+   _tube(st,[point(axis,fixed,a3.x,a3.y),point(axis,fixed,b3.x,b3.y)] as Array[Vector3],.011)
+ var mesh:=MeshInstance3D.new();mesh.name="KnottedSafetyNet";mesh.mesh=st.commit();mesh.material_override=_rope_material()
+ mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_ON;root.add_child(mesh)

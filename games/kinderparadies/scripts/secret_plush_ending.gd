@@ -12,6 +12,8 @@ signal finished
 const CALL_TEXT:="„Du hast uns alle gefunden. Lass uns zum Abschluss einen Kuchen essen.“"
 const TEST_CODE:="55555555"
 const MUSIC:="res://assets/secret-v4100/birthday-music-box.ogg"
+# The girl on the line, recorded for the game.
+const CALL_VOICE:="res://assets/secret-v4100/girl-call.ogg"
 const RISE_END:=4.5
 const WIDE_END:=9.0
 const ROOM_START:=6.0
@@ -36,6 +38,7 @@ var phone_body: StaticBody3D
 var chair_bodies: Array[StaticBody3D]=[]
 var seated: Dictionary={}
 var cloth: AudioStreamPlayer3D
+var call_voice: AudioStreamPlayer
 # Finale
 var running:=false
 var clock:=0.0
@@ -87,6 +90,7 @@ func setup(game: Node3D) -> void:
  ring.unit_size=9;ring.max_distance=70;ring.volume_db=-2;add_child(ring);ring.global_position=at+Vector3(0,.15,0)
  phone_body=StaticBody3D.new();phone_body.name="ReceptionPhoneInteraction";phone_body.collision_layer=2;phone_body.collision_mask=0;phone_body.set_meta("interaction","reception_phone");add_child(phone_body)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(.42,.26,.36);shape.shape=bounds;phone_body.add_child(shape);phone_body.global_position=at+Vector3(0,.1,0)
+ call_voice=AudioStreamPlayer.new();call_voice.name="GirlOnTheLine";call_voice.stream=load(CALL_VOICE);call_voice.volume_db=-1;call_voice.bus="NightVoice" if AudioServer.get_bus_index("NightVoice")>=0 else "Master";add_child(call_voice)
  cloth=AudioStreamPlayer3D.new();cloth.name="PlushSeated";cloth.stream=load("res://assets/polish/impact-cloth.wav");cloth.volume_db=-6;add_child(cloth)
 
 func ringing() -> bool:
@@ -96,7 +100,7 @@ func start_ring() -> void:
  if not ring.playing:ring.play()
 
 func answer() -> void:
- ring.stop()
+ ring.stop();call_voice.play()
 
 func phone_prompt() -> String:
  return "E · Abheben" if ring.playing else ""
@@ -268,7 +272,8 @@ func _kid_tick(child: Dictionary,delta: float) -> void:
 
 func _process(delta: float) -> void:
  if not running or done:
-  if is_instance_valid(g) and ring:ring.stream_paused=g.get("phase")!="play"
+  if is_instance_valid(g) and ring:
+   ring.stream_paused=g.get("phase")!="play";call_voice.stream_paused=ring.stream_paused
   return
  if g.get("phase")!="secret_finale":return
  delta=minf(delta,.1);clock+=delta

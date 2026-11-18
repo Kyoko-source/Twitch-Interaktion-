@@ -36,6 +36,7 @@ func run(game: Node3D, verify: Callable) -> void:
  # Answer the call, seat everybody.
  game._interact_target("reception_phone")
  verify.call(game.plush_call=="answered" and not game.plush_ending.ringing() and game.plush_ending.chair_bodies.size()==6,"Answering the phone does not open the six birthday chairs")
+ verify.call(game.plush_ending.call_voice.playing and game.plush_ending.call_voice.stream.get_length()>6.,"The girl's voice does not play when the phone is answered")
  var chair: Node3D=game.world.props.chairs.get_child(0)
  game.player.position=chair.global_position+Vector3(-1.15,0,0);game.player.velocity=Vector3.ZERO
  await game.get_tree().physics_frame

@@ -42,6 +42,8 @@ func box(parent: Node3D,title: String,p: Vector3,s: Vector3,m: Material) -> Mesh
 
 func build(light: SpotLight3D) -> void:
  lamp=light;rng.randomize();wait=rng.randf_range(20,42)
+ # 4.11.0: a real reflector pattern and a beam that shows in the fog.
+ lamp.light_projector=beam_pattern();lamp.light_volumetric_fog_energy=2.4
  position=REST;rotation=Vector3(-.035,-.09,-.08)
  spill=OmniLight3D.new();spill.name="TorchNearSpill";spill.light_color=light.light_color;spill.omni_range=2.8;spill.omni_attenuation=2.;spill.position=Vector3(0,.12,.10);spill.light_cull_mask=1;add_child(spill)
  lamp.light_cull_mask=1;spill.light_volumetric_fog_energy=0.;spill.light_specular=0.
@@ -71,6 +73,28 @@ func build(light: SpotLight3D) -> void:
  lathe(cuff,"TailoredNightguardSleeve",[Vector2(-.105,.028),Vector2(-.09,.031),Vector2(-.07,.030),Vector2(-.045,.034),Vector2(0,.035),Vector2(.04,.040),Vector2(.065,.037),Vector2(.10,.044),Vector2(.105,.042)],fabric,.045)
  lathe(cuff,"FoldedCuffSeam",[Vector2(-.105,.028),Vector2(-.11,.032),Vector2(-.104,.034),Vector2(-.093,.033),Vector2(-.09,.03)],fabric)
  for mesh in find_children("*","MeshInstance3D",true,false):mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;mesh.layers=2
+
+# LED torch through a faceted reflector: hot core, a thin dark gap, a bright
+# ring, a broad body and a faint spill, with slight facet and dust irregularity.
+static var pattern: ImageTexture
+static func beam_pattern() -> ImageTexture:
+ if pattern:return pattern
+ var size:=256;var image:=Image.create(size,size,false,Image.FORMAT_RGB8)
+ var noise:=FastNoiseLite.new();noise.seed=411;noise.frequency=.045
+ for y in range(size):
+  for x in range(size):
+   var p:=Vector2(x,y)/(size-1.)*2.-Vector2.ONE;var r:=p.length();var a:=atan2(p.y,p.x)
+   var core:=exp(-pow(r/.14,2.))*.6
+   var ring:=exp(-pow((r-.31)/.05,2.))*.32
+   var body:=(1.-smoothstep(.2,.74,r))*.82
+   var spill:=(1.-smoothstep(.6,.99,r))*.3
+   var gap:=1.-exp(-pow((r-.225)/.03,2.))*.18
+   var facets:=1.+sin(a*9.)*.035*smoothstep(.2,.6,r)
+   var dust:=1.+noise.get_noise_2d(x,y)*.09
+   var v:=clampf((core+ring+body+spill)*gap*facets*dust,0.,1.)
+   var warm:=Color(v,v*.985,v*.94)
+   image.set_pixel(x,y,warm)
+ pattern=ImageTexture.create_from_image(image);return pattern
 
 func look(relative: Vector2) -> void:
  sway_target=(sway_target+relative*.00045).clamp(Vector2(-.055,-.045),Vector2(.055,.045))

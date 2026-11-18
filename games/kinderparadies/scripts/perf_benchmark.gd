@@ -42,6 +42,13 @@ func run(game: Node3D, output: String) -> void:
   if view.get("annex",false): p+=ServiceAnnex.OFFSET;look+=ServiceAnnex.OFFSET
   game.player.position=p;game.player.velocity=Vector3.ZERO;game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(look)
   for i in range(WARMUP):await game.get_tree().process_frame
+  # --perf-capture: also save the warmed view, to compare looks run against run.
+  if "--perf-capture" in OS.get_cmdline_user_args():
+   var tag:="look"
+   for arg in OS.get_cmdline_user_args():
+    if arg.begins_with("--look-tag="):tag=arg.trim_prefix("--look-tag=")
+   await RenderingServer.frame_post_draw
+   game.get_viewport().get_texture().get_image().save_png(output.path_join(tag+"-"+str(view.id)+".png"))
   var frame: Array=[];var cpu: Array=[];var gpu: Array=[];var physics: Array=[]
   var last:=Time.get_ticks_usec()
   for i in range(SAMPLES):

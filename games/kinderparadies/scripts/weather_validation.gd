@@ -18,11 +18,19 @@ func run(game: Node3D,verify: Callable) -> void:
  # A long combined suite may arrive during an existing roll. Exercise an idle
  # scheduler deliberately, rather than depending on its random prior timing.
  weather.thunder.stop()
- var count:=weather.count;weather.next_roll=0;weather.tick(.1,true,"hall")
- verify.call(weather.count==count+1 and weather.thunder.playing and weather.next_roll>=40 and weather.next_roll<=70,"Distant thunder has no spaced random scheduler")
- for i in range(30):weather.tick(.1,true,"hall")
- verify.call(weather.thunder.volume_db> -9 and weather.thunder.volume_db< -7,"Distant thunder is buried under the ordinary room ambience")
- var previous:=weather.last_variant;weather.thunder.stop();weather.cue_thunder()
+ weather.storm=game.world.storm
+ var count:=weather.count;var flashes: int=game.world.storm.flashes;weather.next_roll=0;weather.tick(.1,true,"hall")
+ # 4.11.0 storm: lightning first, thunder after a delay that grows with distance.
+ verify.call(game.world.storm.flashes==flashes+1 and game.world.storm.flares.size()==2 and weather.count==count and weather.pending>0,"Lightning does not come before its thunder: flashes %d->%d flares %d count %d->%d pending %.2f"%[flashes,game.world.storm.flashes,game.world.storm.flares.size(),count,weather.count,weather.pending])
+ verify.call(weather.next_roll>=22 and weather.next_roll<=48,"Thunder has no spaced random scheduler")
+ var close_strike: bool=weather.pending_near
+ for i in range(40):weather.tick(.1,true,"hall")
+ verify.call(weather.count==count+1 and weather.thunder.playing,"Thunder never follows the lightning")
+ verify.call(weather.thunder.stream.resource_path.contains("close-thunder") if close_strike else weather.thunder.stream.resource_path.contains("distant-thunder"),"Near strikes do not crack overhead or far ones do not roll")
+ var expected:=-1.95 if close_strike else -7.95
+ verify.call(absf(weather.thunder.volume_db-expected)<1.,"Thunder is buried under the room ambience or too loud for its distance")
+ verify.call(game.world.storm.flares.all(func(light):return light.has_meta("outdoor")),"Lightning would go dark in a power cut")
+ var previous:=weather.last_variant;weather.thunder.stop();weather.cue_thunder();weather._sound_thunder();weather.pending=-1.
  verify.call(weather.last_variant!=previous,"Consecutive thunder rolls repeat the same recording")
  for i in range(1,4):
   var stream:=load(HappylandWeather.ROOT+"distant-thunder-%d.ogg"%i) as AudioStreamOggVorbis

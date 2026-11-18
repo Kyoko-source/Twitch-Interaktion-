@@ -52,6 +52,115 @@ func run(game: Node3D) -> void:
   close.global_position=Vector3(13.,2.2,-2.5);close.look_at(Vector3(10.2,.7,-7.),Vector3.UP)
   await capture(game,output,"secret-10-table-close")
   game.get_tree().quit();return
+ if "--nets-qa" in OS.get_cmdline_user_args():
+  game._build_world("none");var w: PlayWorld=game.world
+  print("NETS knotted=",w.find_children("KnottedSafetyNet","MeshInstance3D",true,false).size()," panels=",w.get_tree().get_nodes_in_group("safety_nets").size())
+  var tower:=w.find_child("EastTower",true,false)
+  for c in tower.get_children():print("TOWERCHILD ",c.name," ",c.get_class()," kids=",c.get_child_count())
+  for g: GeometryInstance3D in w.find_children("*","GeometryInstance3D",true,false):
+   var box: AABB=g.global_transform*g.get_aabb()
+   if box.size.x*box.size.y*box.size.z<2. and (box.size.x<.08 or box.size.z<.08) and box.size.y>3. and (box.size.x>3. or box.size.z>3.):print("THIN ",g.get_path()," ",g.get_class()," ",box)
+  # Snackbar close-up sight line (center 10.535,1.656,-0.0725; camera offset as in closeup-qa).
+  var c:=Vector3(10.535,1.656,-.0725);var r:=maxf(1.2,Vector3(7.11,3.28,3.085).length()*.55);var eye:=c+Vector3(r*.55,r*.45,r*.8)
+  for g: GeometryInstance3D in w.find_children("*","GeometryInstance3D",true,false):
+   if not g.is_visible_in_tree():continue
+   var box: AABB=g.global_transform*g.get_aabb()
+   var hit=box.intersects_segment(eye,eye+(c-eye)*.6)
+   if hit!=null:print("SIGHT ",snappedf(eye.distance_to(hit),.01)," ",g.get_path()," ",g.get_class()," ",(g as MeshInstance3D).mesh.get_class() if g is MeshInstance3D else "")
+  game.get_tree().quit();return
+ if "--materials-qa" in OS.get_cmdline_user_args():
+  game._build_world("none");var w: PlayWorld=game.world
+  var seen:={}
+  for root in [w.props.structure,w.find_child("EastTower",true,false),w.props.pit,w.find_child("ConnectingBridge",true,false)]:
+   for m: MeshInstance3D in root.find_children("*","MeshInstance3D",true,false):
+    if not m.visible or not m.mesh:continue
+    var mat:=m.get_active_material(0)
+    if not mat or seen.has(mat):continue
+    seen[mat]=true
+    var info:=str(mat.get_class())+" "+str(mat.resource_name)
+    if mat is StandardMaterial3D:info+=" albedo="+str(mat.albedo_color.to_html())+" tex="+str(mat.albedo_texture.resource_path if mat.albedo_texture else "-")+" normal="+str(mat.normal_texture.resource_path if mat.normal_texture else "-")+" rough="+str(mat.roughness)
+    elif mat is ShaderMaterial:info+=" shader="+str(mat.shader.resource_path)
+    var uses:=0
+    print("MAT ",root.name," ",m.name," mesh=",m.mesh.get_class()," ",info)
+  for id in ["blue","red","gold","teal","stitch","cream"]:print("WMAT ",id," ",w.materials[id] if w.materials.has(id) else "none")
+  game.get_tree().quit();return
+ if "--closeup-qa" in OS.get_cmdline_user_args():
+  # Close looks at the hero props, framed from their bounding boxes.
+  game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var w: PlayWorld=game.world
+  var targets:={"chairs":w.props.chairs,"stereo":w.find_child("OldHappylandStereo",true,false),"snackbar":w.find_child("ClosedHappylandSnackBar",true,false),"stage":w.find_child("BirthdayStage",true,false),"easttower":w.find_child("EastTower",true,false),"structure":w.props.structure,"arcade":w.find_child("ArcadeLounge",true,false),"photobooth":w.find_child("AbandonedPhotoBooth",true,false),"emptychairs":w.find_child("TheFourEmptyChairs",true,false),"bridge":w.find_child("ConnectingBridge",true,false),"pit":w.props.pit}
+  var cam:=Camera3D.new();w.add_child(cam);cam.fov=60;cam.make_current()
+  w.environment.environment.ambient_light_energy=.5
+  var flood:=OmniLight3D.new();w.add_child(flood);flood.omni_range=14;flood.light_energy=1.6;flood.light_color=Color("fff4e6")
+  for key in targets:
+   var node: Node3D=targets[key]
+   if not node:print("CLOSEUP missing ",key);continue
+   var box:=AABB();var first:=true
+   for m: MeshInstance3D in node.find_children("*","MeshInstance3D",true,false)+([node] if node is MeshInstance3D else []):
+    if not m.is_visible_in_tree():continue
+    var b2:=m.global_transform*m.get_aabb();box=b2 if first else box.merge(b2);first=false
+   var c:=box.get_center();var r:=maxf(1.2,box.size.length()*.55)
+   cam.global_position=c+Vector3(r*.55,r*.45,r*.8);cam.look_at(c,Vector3.UP);flood.global_position=cam.global_position+Vector3(0,1,0)
+   print("CLOSEUP ",key," center ",c," size ",box.size)
+   await capture(game,output,"closeup-"+key)
+  game.get_tree().quit();return
+ if "--inventory-qa" in OS.get_cmdline_user_args():
+  # Which visible things in the hall and party room are still primitives?
+  game._build_world("none");var w: PlayWorld=game.world
+  var groups:={}
+  for m: MeshInstance3D in w.find_children("*","MeshInstance3D",true,false):
+   if not w.shown(m) or not m.mesh:continue
+   var box:=m.global_transform*m.get_aabb();var c:=box.get_center()
+   if c.x< -10.3 or c.x>20 or c.z< -19 or c.z>17.5:continue
+   var path:=str(m.mesh.resource_path)
+   var kind:="glb" if path.contains(".glb") or path.contains(".gltf") else "prim"
+   # Group by the first node under the world (module or prop group) plus one level.
+   var node: Node=m;var chain: Array[String]=[]
+   while node and node.get_parent()!=w:chain.push_front(str(node.name));node=node.get_parent()
+   if node:chain.push_front(str(node.name))
+   var key:=" / ".join(chain.slice(0,2))+" ["+kind+"]"
+   var g: Dictionary=groups.get(key,{"n":0,"area":0.})
+   g.n+=1;g.area+=box.size.x*box.size.y+box.size.y*box.size.z+box.size.x*box.size.z;groups[key]=g
+  var rows: Array=groups.keys();rows.sort_custom(func(a,b):return groups[a].area>groups[b].area)
+  for k in rows.slice(0,70):print("INV ",snappedf(groups[k].area,.1)," m2  ",groups[k].n,"  ",k)
+  game.get_tree().quit();return
+ if "--heroprops-qa" in OS.get_cmdline_user_args():
+  # Hero props from where the guard actually stands.
+  game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false);game.notice_time=0;game.notice.hide()
+  for i in range(20):await game.get_tree().process_frame
+  for shot in [["snackbar",Vector3(10.5,0,-4.2),Vector3(10.5,1.2,0)],["arcade",Vector3(8.4,0,11.6),Vector3(8.4,1.3,15.6)],["photobooth",Vector3(13.3,0,13.2),Vector3(13.3,1.2,16.3)],["bunting",Vector3(9.,0,-4.),Vector3(13,2.6,-11)]]:
+   game.player.position=shot[1];game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(shot[2])
+   for i in range(30):await game.get_tree().process_frame
+   await capture(game,output,"props-"+shot[0])
+  game.get_tree().quit();return
+ if "--storm-qa" in OS.get_cmdline_user_args():
+  # Lightning through the parking window, in normal light and in a power cut.
+  for blackout in [false,true]:
+   game._new_shift();game.intro.skip();game.state.current=PowerBlackout.ID if blackout else "none";game._build_world(game.state.current);game._resume()
+   game.player.active=false;game.player.set_physics_process(false);game.notice_time=0;game.notice.hide();game.set_process(false)
+   if blackout:
+    game.world.blackout.set_process(false)
+    for i in range(int((PowerBlackout.WAIT+PowerBlackout.FLICKER+.3)*30)):game.world.blackout.step(1./30,true,game.player)
+   game.player.position=Vector3(-3.5,0,4.5);game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(Vector3(-9.5,1.6,2.2))
+   for i in range(25):await game.get_tree().process_frame
+   var tag:="blackout-" if blackout else ""
+   await capture(game,output,"storm-"+tag+"0-before")
+   game.world.storm.flash(1.)
+   if blackout:game.world.blackout.step(1./60,true,game.player)
+   await capture(game,output,"storm-"+tag+"1-flash")
+  game.get_tree().quit();return
+ if "--history-qa" in OS.get_cmdline_user_args():
+  # The same five camera points as the first Nachtwache build, same 3:2 frame.
+  var shots:=[["eingang",Vector3(-7,0,9.5),Vector3(2,1.4,0)],["empfang",Vector3(-5,0,6.5),Vector3(-8.5,1,7.8)],["baellebad",Vector3(-1,0,10),Vector3(3,.5,5)],["halle",Vector3(8,0,9),Vector3(-3,2,-6)],["wartung",Vector3(-4,0,-4),Vector3(-8,1.4,-8)]]
+  game.get_window().mode=Window.MODE_WINDOWED;game.get_window().size=Vector2i(1920,1080)
+  game._new_shift();game.intro.skip();game._resume();game.player.active=false;game.player.set_physics_process(false);game.notice_time=0;game.notice.hide()
+  for i in range(30):await game.get_tree().process_frame
+  for shot in shots:
+   game.player.position=shot[1];game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(shot[2])
+   for i in range(40):await game.get_tree().process_frame
+   await RenderingServer.frame_post_draw
+   game.get_viewport().get_texture().get_image().save_png(output.path_join("now-"+shot[0]+".png"))
+  game.get_tree().quit();return
  if "--coords-qa" in OS.get_cmdline_user_args():
   game._build_world("none");var w: PlayWorld=game.world
   for c in w.props.chairs.get_children():print("CHAIR ",c.global_position," rot ",c.global_rotation)

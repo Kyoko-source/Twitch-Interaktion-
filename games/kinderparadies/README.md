@@ -1,5 +1,46 @@
 # After Play — Kinderparadies
 
+## Großes Grafik-Update (4.11.0)
+
+Licht und Kamera:
+- Kamera-Look über das ganze Bild (`scripts/cinematic_look.gd`): kühle Schatten,
+  warme Lichter, weiche Kontrastkurve, Vignette, Filmkorn in den Schatten,
+  leichte Farbsäume am Bildrand, Nachschärfen. Der Schalter „Filmkorn“ bleibt.
+- Licht-Pass (`scripts/look_pass.gd`): weniger grauer Dunst, tiefere Schatten
+  und Kontaktschatten, sichtbare Lichtkegel im Nebel, Bloom, weichere
+  Schattenkanten auf „Hoch“, nassere spiegelnde Böden.
+- Sechs Industrie-Hängelampen über der dunklen Hälfte der Halle; sie werden bei
+  „Lampen rot“ rot und gehen beim Stromausfall aus.
+- Rund 120 im Code erzeugte Decals: Schmutzränder am Wandsockel, Wasserflecken,
+  Schimmel, Bodenflecken.
+- Taschenlampe mit Reflektor-Muster (heller Kern, Ring, Streulicht) und Strahl.
+
+Modelle und Materialien:
+- Sicherheitsnetze am Klettergerüst als geknotete Rautennetze aus Seil mit
+  leichtem Durchhang und Schattenwurf (`PlayGeometry.knotted_net`).
+- Polster aus glattem PVC-Kunstleder mit Narbung, Glanzschicht und ungleich
+  abgegriffenem Glanz; gewölbte Polsterkappen auf allen Pfosten
+  (`scripts/soft_play_finish.gd`).
+- Geburtstagstisch: Klapptisch mit per Stoffsimulation drapierter, vergilbter
+  Papiertischdecke (`tools/model-after-play-party-table-v4110.py`).
+- 70er-Jahre-Stereoanlage mit Nussbaumboxen, offener Box, Aluminiumfront und
+  Plattenspieler (`tools/model-after-play-stereo-v4110.py`); VU-Lampen des
+  Partymodus bleiben.
+- Dreieckige Stoffwimpel statt flacher Quadrate (`scripts/pennant.gd`).
+
+Gewitter: Blitze flackern durch das Parkplatzfenster und die Glastür am
+Eingang, werfen die Schatten der Rahmen in den Raum und zeichnen Lichtstrahlen
+in den Dunst, auch während eines Stromausfalls (`scripts/thunderstorm.gd`).
+Der Donner folgt je nach Entfernung 0,2 bis 3,8 Sekunden später; nahe
+Einschläge krachen laut (synthetisch erzeugt:
+`tools/make-after-play-thunder-v4110.py`), ferne grollen dumpf.
+
+Geheimes Ende: Die Kinderstimme am Telefon ist jetzt eine echte Aufnahme
+(`assets/secret-v4100/girl-call.ogg`).
+
+Bildkontrolle: `--render-qa --perf-qa --perf-capture`, `--closeup-qa`,
+`--heroprops-qa`, `--history-qa`, `--storm-qa` (gleiche Kamerapunkte wie die erste Version).
+
 ## Geheimes Ende: Alle wieder da (4.10.0)
 
 - Hält man eine der fünf Creator-Puppen hoch, legt E sie ins Inventar

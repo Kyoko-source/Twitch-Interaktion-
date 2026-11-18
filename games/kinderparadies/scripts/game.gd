@@ -213,8 +213,7 @@ func _ui() -> void:
  var theme:=Theme.new();theme.default_font_size=18;root.theme=theme
  title_font=FontVariation.new();title_font.base_font=load("res://assets/Oswald.ttf");title_font.variation_opentype={"wght":600}
  post=ColorRect.new();post.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);post.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var shader:=Shader.new();shader.code="shader_type canvas_item; uniform sampler2D screen_texture:hint_screen_texture,filter_linear;uniform float grain=0.012;void fragment(){vec3 c=texture(screen_texture,SCREEN_UV).rgb;vec2 p=SCREEN_UV-0.5;float v=1.0-smoothstep(0.2,0.78,length(p))*0.32;float n=fract(sin(dot(FRAGCOORD.xy+TIME,vec2(12.9898,78.233)))*43758.5453)-0.5;COLOR=vec4(c*v+n*grain,1.0);}"
- var material:=ShaderMaterial.new();material.shader=shader;post.material=material;root.add_child(post)
+ post.material=CinematicLook.material();root.add_child(post)
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
@@ -604,7 +603,7 @@ func _apply_settings() -> void:
  player.lamp.shadow_bias=.15 if compatibility else .025
  if world: world.quality(int(settings.quality))
  if world: world.brightness(float(settings.brightness))
- if post: post.material.set_shader_parameter("grain",.012 if settings.grain else 0.0)
+ if post: CinematicLook.configure(post.material,int(settings.quality),bool(settings.grain))
  get_viewport().msaa_3d=[Viewport.MSAA_DISABLED,Viewport.MSAA_2X,Viewport.MSAA_4X][int(settings.quality)]
  get_viewport().use_taa=not OS.has_feature("web") and RenderingServer.get_current_rendering_method()=="forward_plus" and int(settings.quality)>0
  if world and world.native_art and world.native_art.advanced:
@@ -636,6 +635,7 @@ func _process(delta: float) -> void:
  if is_instance_valid(world) and world.touch:world.touch.tick(delta,phase=="play")
  if is_instance_valid(world) and world.mechanics:world.mechanics.tick(delta,phase=="play")
  if weather:
+  weather.storm=world.storm if is_instance_valid(world) else null
   var weather_room: String=world.acoustics.area(player.global_position) if is_instance_valid(world) and world.acoustics else "hall"
   if phase in ["intro","arrival","lift"]:weather_room="elevator"
   weather.tick(delta,phase in ["play","intro","arrival","lift"] and not (phase=="intro" and intro.paused),weather_room,phase=="play" and archive.ending!="recording")

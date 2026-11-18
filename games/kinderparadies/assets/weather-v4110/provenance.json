@@ -1,0 +1,20 @@
+{
+  "sound": "close thunder, synthesised (tools/make-after-play-thunder-v4110.py), no recording",
+  "files": [
+    {
+      "file": "close-thunder-1.ogg",
+      "seconds": 7.5,
+      "sha256": "bfd27a6c4c5138b4f0714529ee5810f0acc9cb6b4908fd4edb9b5f9a82f89546"
+    },
+    {
+      "file": "close-thunder-2.ogg",
+      "seconds": 9.0,
+      "sha256": "64b57761f8d2b2a9f0daf330094c08c2b0dc2a91d80f11ccbba3bcfc612c91f1"
+    },
+    {
+      "file": "close-thunder-3.ogg",
+      "seconds": 6.5,
+      "sha256": "c0358987a72bae013f77a55ed36e19faf2ad45c7e341eac2228b12e59281b0ae"
+    }
+  ]
+}

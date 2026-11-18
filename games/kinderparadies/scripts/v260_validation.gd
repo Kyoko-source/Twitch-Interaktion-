@@ -29,7 +29,10 @@ func run(game: Node3D, verify: Callable) -> void:
     game.player.position=Vector3(target.x,terror.origin.y if terror.spec.mode=="crawl" else 0,target.z)+offset
     if terror.spec.mode=="drop": game.player.position.y=0
     game.player.set_crouch(false);game.player.camera.position.y=1.65;game.player.camera.look_at(target)
-    terror.tick(1,true,game.player)
+    # 4.9.2: visitors strike after a random beat of up to 2.6 s in the room.
+    for second in range(4):
+     terror.tick(1,true,game.player)
+     if terror.triggered: break
     if terror.triggered: triggered=true;break
   verify.call(triggered and terror.audio.stream.resource_path.begins_with(ScareBank.SOUND_ROOT),"New encounter has no accessible visual trigger or dedicated sound: "+id)
   await game.get_tree().process_frame;await game.get_tree().process_frame

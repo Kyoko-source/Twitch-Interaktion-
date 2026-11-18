@@ -135,7 +135,7 @@ func _collect() -> void:
  collected=true
  var own:=[warning_light,face_light]
  for light in w.find_children("*","Light3D",true,false):
-  if light in own or is_ancestor_of(light):continue
+  if light in own or is_ancestor_of(light) or light.has_meta("outdoor"):continue
   lights.append(light);light_visible.append(light.visible)
  var seen:={}
  for mesh: MeshInstance3D in w.find_children("*","MeshInstance3D",true,false):
