@@ -14,12 +14,12 @@ func build(game: Node3D) -> void:
  var text: String=g._persistent_text(path)
  var data=JSON.parse_string(text) if not text.is_empty() else null
  if data is Dictionary:
-  for key in ["1","2","3"]:
+  for key in ["1","2","3","4"]:
    if data.get(key) is Dictionary and bool(data[key].get("found",false)):entries[key]=data[key]
 
 func discover(number: int) -> void:
  var key:=str(number)
- if number<1 or number>3 or entries.has(key):return
+ if number<1 or number>4 or entries.has(key):return
  entries[key]={"found":true,"image":""};save()
 
 func save() -> void:
@@ -56,21 +56,21 @@ func photo(key: String) -> Texture2D:
 func show_menu() -> void:
  g.phase="help";g.return_phase="menu";NightMenus.clear(g);NightMenus.backdrop(g,true)
  var heading: Label=g._label("Erinnerungen an die Nachtschicht",58,Color("e8e1c8"));heading.add_theme_font_override("font",NightMenus.menu_font());heading.position=Vector2(100,83);g.menu.add_child(heading)
- var hint: Label=g._label("Drei mögliche Ausgänge. Deine entdeckten Enden bleiben hier erhalten.",23,Color("aba992"));hint.position=Vector2(103,172);g.menu.add_child(hint)
- var names:=["Feierabend mit Freunden","Die Wahrheit hinter der Tür","Ich bin dann mal weg"]
- for i in range(3):
+ var hint: Label=g._label("Drei Ausgänge und ein geheimes Ende. Deine entdeckten Enden bleiben hier erhalten.",23,Color("aba992"));hint.position=Vector2(103,172);g.menu.add_child(hint)
+ var names:=["Feierabend mit Freunden","Die Wahrheit hinter der Tür","Ich bin dann mal weg","Alle wieder da"]
+ for i in range(4):
   var key:=str(i+1);var found:=entries.has(key)
-  var panel:=PanelContainer.new();panel.name="AlbumEnding"+key;panel.position=Vector2(100+i*578,285);panel.size=Vector2(548,490);g.menu.add_child(panel)
+  var panel:=PanelContainer.new();panel.name="AlbumEnding"+key;panel.position=Vector2(100+i*434,285);panel.size=Vector2(414,430);g.menu.add_child(panel)
   var paper:=StyleBoxFlat.new();paper.bg_color=Color("c8bea2") if found else Color("202824");paper.set_content_margin_all(20);paper.set_corner_radius_all(2);paper.shadow_color=Color(0,0,0,.45);paper.shadow_size=10;panel.add_theme_stylebox_override("panel",paper)
   var col:=VBoxContainer.new();col.add_theme_constant_override("separation",22);panel.add_child(col)
-  var image:=TextureRect.new();image.custom_minimum_size=Vector2(508,286);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;image.texture=photo(key) if found else null
+  var image:=TextureRect.new();image.custom_minimum_size=Vector2(374,210);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;image.texture=photo(key) if found else null
   if image.texture:col.add_child(image)
   else:
    var blank:=PanelContainer.new();blank.custom_minimum_size=image.custom_minimum_size;col.add_child(blank);image.free()
    var dark:=StyleBoxFlat.new();dark.bg_color=Color("131b18");blank.add_theme_stylebox_override("panel",dark)
    var lock: Label=g._label("Aufnahme folgt beim nächsten Abspann" if found else "Noch keine Erinnerung",21,Color("999c8b"));lock.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;lock.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;blank.add_child(lock)
   var title: Label=g._label(names[i] if found else "Unentdecktes Ende",29,Color("353a30") if found else Color("8c9386"));title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;col.add_child(title)
-  col.add_child(g._label("ENDE %d/3"%(i+1) if found else "—",18,Color("62644f") if found else Color("737d72")))
+  col.add_child(g._label(("GEHEIMES ENDE" if i==3 else "ENDE %d/3"%(i+1)) if found else "—",18,Color("62644f") if found else Color("737d72")))
  var back: Button=g._button("Zurück",g._return_from_panel,true);back.position=Vector2(100,874);back.size=Vector2(320,60);g.menu.add_child(back);g._telemetry()
 
 func snapshot() -> Dictionary:

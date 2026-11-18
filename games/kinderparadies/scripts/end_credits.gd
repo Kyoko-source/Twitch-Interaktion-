@@ -34,7 +34,7 @@ var drive_done:=false
 var preparation_done:=false
 
 func build(game: Node3D, number: int=2) -> void:
- g=game;ending_number=clampi(number,1,3);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ g=game;ending_number=clampi(number,1,4);name="EndCredits";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  music=AudioStreamPlayer.new();music.name="CreditsFernAndFeather";music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;music.stream=load(MUSIC);(music.stream as AudioStreamMP3).loop=true;music.bus="Master";music.volume_db=-60;add_child(music)
  black=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(black)
  word=g._label(end_title(),128);word.add_theme_font_override("font",g.title_font);word.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;word.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;word.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);word.modulate.a=0;add_child(word)
@@ -81,6 +81,11 @@ func prepare_last_look() -> void:
  while ending_number==1 and clock<title_length()+1.:
   await get_tree().process_frame
   if not is_inside_tree() or g.end_credits!=self or g.phase!="ending":return
+ if ending_number==4:
+  # The children already had the venue's last look before the credits.
+  preparation_done=true
+  if skip_pending:_finish_card()
+  return
  if ending_number==3:
   # The drive home replaces the venue's last look; nothing else to warm.
   preparation_done=true
@@ -110,7 +115,8 @@ func wait_prepared() -> void:
   await get_tree().process_frame
 
 func end_title() -> String:
- return AfterPlayLanguage.t("Geheimes Ende" if ending_number==3 else "ENDE %d/3"%ending_number)
+ # 4.10.0: the plush ending is the secret one; leaving Happyland became ENDE 3/3.
+ return AfterPlayLanguage.t("Geheimes Ende" if ending_number==4 else "ENDE %d/3"%ending_number)
 
 func title_length() -> float:
  return 10. if ending_number==3 else 4.
@@ -164,6 +170,10 @@ func finish_scroll() -> void:
   if preparation_done:_finish_secret()
   else:skip_pending=true
   return
+ if ending_number==4:
+  if preparation_done:_finish_card()
+  else:skip_pending=true
+  return
  if prepared_afterglow:_start_last_look()
  else:skip_pending=true
  if not (afterglow is PatrolPartyOutro) and not music.playing: music.play()
@@ -206,6 +216,12 @@ func _finish_secret() -> void:
  get_node("SkipHint").hide();roll.hide()
  word.text=end_title();word.add_theme_font_size_override("font_size",128);word.modulate.a=1;word.show();word.offset_bottom=-610;actions.show()
  secret_line.position.y=325;secret_line.modulate.a=1;secret_line.show()
+
+func _finish_card() -> void:
+ if is_instance_valid(g.world):g.world.hide()
+ done=true;skip_pending=false;black.color.a=1;music.stop()
+ get_node("SkipHint").hide();roll.hide()
+ word.text=end_title();word.add_theme_font_size_override("font_size",128);word.modulate.a=1;word.show();word.offset_bottom=-610;actions.show()
 
 func _finish_afterglow() -> void:
  # The opaque end card needs no 3D view. Restoring the inactive player camera

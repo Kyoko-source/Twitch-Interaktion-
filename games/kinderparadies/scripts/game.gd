@@ -56,6 +56,11 @@ var wake_pending:=false
 var arrival_pending:=false
 var survived:=0
 var secret_ending:=false
+# Secret plush ending (4.10.0): plushes in the inventory, the reception call.
+# Lost on death and with every new shift, like the newspapers.
+var plushes_found: Array[String]=[]
+var plush_call:=""
+var plush_ending: SecretPlushEnding
 var death_label: Label
 var end_credits: EndCredits
 var memories: ArchiveMemories
@@ -135,6 +140,7 @@ func _connect_world(anomaly: String) -> void:
  world.blackout.restored.connect(_power_restored)
  world.horse_hunt.fatal_started.connect(_horse_attack_started);world.horse_hunt.killed.connect(_horse_killed)
  world.backstage.escaped.connect(_escape_happyland)
+ _sync_plushes()
  world.archive.sync(archive,14 if state.completed else state.streak+1)
  _sync_parking_key()
  world.film.sync(archive.film_found)
@@ -176,7 +182,7 @@ func _request_shift() -> void:
   state.plan.clear()
   if mp and mp.active():mp.stop()
  if menu_reference_ready:_new_shift();return
- secret_ending=false;archive.clear();archive_selected="";archive_input=""
+ secret_ending=false;archive.clear();archive_selected="";archive_input="";_lose_plushes()
  dialogue.reset()
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  phase="loading";player.release();hud.hide();menu_music.stop()
@@ -284,7 +290,7 @@ func _new_shift() -> void:
  secret_ending=false
  chalk_drawing=""
  if is_instance_valid(world) and world.chalk:world.chalk.restore("")
- archive.clear();archive_selected="";archive_input=""
+ archive.clear();archive_selected="";archive_input="";_lose_plushes()
  if not (mp and mp.active()):state.plan.clear()
  state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  if menu_reference_ready and state.current=="none":
@@ -356,6 +362,7 @@ func _continue() -> void:
  world.party.set_enabled(bool(data.get("party_mode",false)))
  world.passages.restore(data.get("passages",{}) if int(data.get("layout_version",0))>=11 else {})
  world.blackout.restore(data.get("blackout",{}))
+ _restore_plushes(data)
  wake_pending=bool(data.get("wake_pending",false));arrival_pending=bool(data.get("arrival_pending",false))
  intro_pending=bool(data.get("intro_pending",false))
  if secret_ending: _show_ending(3);return
@@ -445,6 +452,8 @@ func _submit_archive_code() -> void:
   _force_horse_hunt();return
  if archive_input==PowerBlackout.TEST_CODE:
   _force_blackout();return
+ if archive_input==SecretPlushEnding.TEST_CODE:
+  _force_plushes();return
  if archive_input.length()!=4: ArchiveUI.keypad(self,"Das Schloss erwartet vier Ziffern.");return
  if archive_input!="0712" and not archive.has_all_papers(): ArchiveUI.keypad(self,"Dir fehlen noch Teile der Geschichte. Finde die vier Zeitungen.");return
  if not archive.try_code(archive_input): ArchiveUI.keypad(self,"Falscher Code. Der Riegel bleibt geschlossen.");return
@@ -456,6 +465,68 @@ func _force_horse_hunt() -> void:
  archive_input="";_build_world(HorseHunt.ID)
  player.transform=pose;player.camera.rotation=look;_resume();_save()
  _announce("Im Kino setzt sich etwas in Bewegung.",5)
+
+func _restore_plushes(data: Dictionary) -> void:
+ _lose_plushes()
+ var saved=data.get("plushes",[])
+ if saved is Array:
+  for id in saved:
+   if id is String and CreatorPlush.PLUSHES.has(id) and id not in plushes_found:plushes_found.append(id)
+ var call=data.get("plush_call","")
+ if call in ["ringing","answered"] and plushes_found.size()==CreatorPlush.PLUSHES.size():plush_call=call
+ elif plushes_found.size()==CreatorPlush.PLUSHES.size():plush_call="ringing"
+ if not plushes_found.is_empty():
+  # The world was built before the save was read: take the found ones out again.
+  if is_instance_valid(plush_ending):plush_ending.queue_free()
+  _sync_plushes()
+
+func _lose_plushes() -> void:
+ plushes_found.clear();plush_call=""
+
+# Collected plushes stay out of every rebuilt round; the call keeps its state.
+func _sync_plushes() -> void:
+ for id in plushes_found:
+  var node:=world.atmosphere.find_child(CreatorPlush.PLUSHES[id].node,true,false)
+  if node:world.atmosphere.loose.erase(node);node.get_parent().remove_child(node);node.queue_free()
+ plush_ending=SecretPlushEnding.new();world.add_child(plush_ending);plush_ending.setup(self)
+ plush_ending.finished.connect(_plush_finale_done)
+ if plush_call=="ringing":plush_ending.start_ring()
+ elif plush_call=="answered":plush_ending.open_chairs()
+
+func _store_plush() -> void:
+ var body: NightProp=player.carried;var id:=SecretPlushEnding.plush_id(body)
+ if id=="" or id in plushes_found:return
+ player.drop_prop();world.atmosphere.loose.erase(body);body.get_parent().remove_child(body);body.queue_free()
+ plushes_found.append(id);player.foley.play("paper")
+ _announce("%s eingesteckt · %d / %d Puppen"%[CreatorPlush.PLUSHES[id].title,plushes_found.size(),CreatorPlush.PLUSHES.size()],4)
+ if plushes_found.size()>=CreatorPlush.PLUSHES.size() and plush_call=="":
+  plush_call="ringing";plush_ending.start_ring();_announce("Alle Puppen gefunden · Am Empfang klingelt das Telefon.",6)
+ _save()
+
+func _answer_phone() -> void:
+ if plush_call!="ringing":return
+ plush_call="answered";plush_ending.answer();plush_ending.open_chairs();player.foley.play("switch")
+ _announce(SecretPlushEnding.CALL_TEXT,9);_save()
+
+func _seat_plush(index: int) -> void:
+ if plush_call!="answered":return
+ if plush_ending.seat(index,plushes_found):_start_plush_finale()
+
+func _start_plush_finale() -> void:
+ if phase!="play":return
+ phase="secret_finale";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop();effect.stop();prompt.text=""
+ plush_ending.start_finale();_telemetry()
+
+func _plush_finale_done() -> void:
+ if phase!="secret_finale":return
+ _lose_plushes();_show_ending(4)
+
+func _force_plushes() -> void:
+ var pose:=player.transform;var look:=player.camera.rotation
+ plushes_found.assign(CreatorPlush.PLUSHES.keys());plush_call="ringing"
+ archive_input="";_build_world(state.current)
+ player.transform=pose;player.camera.rotation=look;_resume();_save()
+ _announce("Alle Puppen gefunden · Am Empfang klingelt das Telefon.",6)
 
 func _power_restored() -> void:
  _save();_announce("Der Strom ist zurück. Die rote Tür ist frei.",5)
@@ -553,7 +624,7 @@ func _save(next_round: bool=false) -> void:
  if world.chalk:chalk_drawing=world.chalk.serialize()
  party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
  var pose: Array=[-6.2,0,8.5,0,0] if next_round else [player.position.x,player.position.y,player.position.z,player.rotation.y,player.camera.rotation.x]
- _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"dialogue":dialogue.serialize(),"pose":pose,"layout_version":13,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize(),"blackout":{} if next_round else world.blackout.serialize()}))
+ _write_persistent_text(SAVE,JSON.stringify({"patrol":state.serialize(),"archive":archive.serialize(),"dialogue":dialogue.serialize(),"pose":pose,"layout_version":13,"chalk":chalk_drawing,"party_mode":world.party.enabled if not next_round else false,"party_reboot_until":party_reboot_until,"secret_ending":secret_ending,"backstage":{} if next_round else world.backstage.serialize(),"intro_pending":intro_pending,"wake_pending":wake_pending,"arrival_pending":arrival_pending,"passages":{} if next_round else world.passages.serialize(),"horse_hunt":{} if next_round else world.horse_hunt.serialize(),"blackout":{} if next_round else world.blackout.serialize(),"plushes":plushes_found,"plush_call":plush_call}))
 
 func _process(delta: float) -> void:
  if dialogue:dialogue.tick(delta)
@@ -620,6 +691,8 @@ func _process(delta: float) -> void:
   if state.completed and target in ["red","green"]: prompt.text="E · Erneut nach den Spuren suchen"
   elif target=="red" and world.red_locked():prompt.text="E · "+world.red_clue()
   elif target=="power_lever":prompt.text=world.blackout.prompt()
+  elif target=="reception_phone":prompt.text=plush_ending.phone_prompt()
+  elif target.begins_with("plush_chair:"):prompt.text=plush_ending.chair_prompt(int(target.get_slice(":",1)),plushes_found)
   elif world.blackout.dark() and (target in ["party_control","cinema_projector","reception_cctv"] or target.begins_with("mechanical:")):prompt.text="Kein Strom"
   elif target in ["red","green"]: prompt.text="E · "+("Rote Tür – Anomalie" if target=="red" else "Grüne Tür – Normal")
   elif target=="film_reel": prompt.text="E · Alte Happyland-Filmrolle mitnehmen"
@@ -639,7 +712,8 @@ func _process(delta: float) -> void:
   elif target=="delivery_exit": prompt.text="E · Glastür zum Parkplatz "+("schließen" if world.backstage.exit_open else "öffnen") if archive.parking_key_found else "Glastür verschlossen · Parkplatzschlüssel fehlt"
   elif target.begins_with("story:"): prompt.text="E · "+str(BackstageExpansion.DOCS[target.trim_prefix("story:")].title)+" lesen"
   if target=="":
-   if is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen   |   Mausrad / R · Drehen"
+   if SecretPlushEnding.plush_id(player.carried)!="": prompt.text="E · Ins Inventar   |   G · Loslassen   |   Mausrad / R · Drehen"
+   elif is_instance_valid(player.carried): prompt.text="G · Loslassen   |   Linke Maustaste · Werfen   |   Mausrad / R · Drehen"
    else:
     var object:=player.prop_target()
     if object: prompt.text="G · "+object.title+" aufheben"
@@ -710,7 +784,7 @@ func _door_death(red: bool) -> void:
  survived=state.streak;last_result=state.decide(red)
  if mp:mp.event("Falsche %s Tür in Runde %d – Spieler 1 wurde erwischt. Die Schicht beginnt von vorn."%["rote" if red else "grüne",survived+1])
  phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
- archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
+ archive.clear();archive_selected="";archive_input="";_lose_plushes();state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
  door_failure.start_patrol(world,player.camera);_telemetry()
  await door_failure.finished
  await _wake_after_death()
@@ -720,7 +794,7 @@ func _horse_attack_started() -> void:
  survived=state.streak
  if mp:mp.event("Das Pferd hat Spieler 1 in Runde %d erwischt."%(survived+1))
  phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
- archive.clear();archive_selected="";archive_input="";state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
+ archive.clear();archive_selected="";archive_input="";_lose_plushes();state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
 
 func _horse_killed() -> void:
  if phase=="horse_death":await _wake_after_death()
@@ -814,6 +888,8 @@ func _unhandled_input(event: InputEvent) -> void:
    player.turn_carried(1.0 if event.button_index==MOUSE_BUTTON_WHEEL_UP else -1.0,Input.is_key_pressed(KEY_SHIFT));get_viewport().set_input_as_handled()
   elif event.is_action_pressed("turn_prop"): player.turn_carried(3.0,false);get_viewport().set_input_as_handled()
  if event.is_action_pressed("notes"): _inventory("play");get_viewport().set_input_as_handled()
+ if event.is_action_pressed("interact") and SecretPlushEnding.plush_id(player.carried)!="":
+  _store_plush();get_viewport().set_input_as_handled();return
  if event.is_action_pressed("interact"):
   var target:=_target()
   if not player.hands.kind.is_empty():return
@@ -825,6 +901,8 @@ func _interact_target(target: String) -> void:
  if world.blackout.dark() and (target in ["party_control","cinema_projector","reception_cctv"] or target.begins_with("mechanical:")):
   player.foley.play("switch");_announce("Kein Strom. Nichts reagiert.",3);return
  if target in ["red","green"]: _decide(target=="red")
+ elif target=="reception_phone":_answer_phone()
+ elif target.begins_with("plush_chair:"):_seat_plush(int(target.get_slice(":",1)))
  elif target=="power_lever":
   if world.blackout.pull():_announce("Der Hauptschalter rastet ein.",3)
  elif target.begins_with("mechanical:"):world.mechanics.interact(target)
@@ -997,7 +1075,7 @@ func _telemetry() -> void:
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()
-  data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot();data.blackout=world.blackout.snapshot()
+  data.room_horror=world.room_horror.snapshot();data.horse_hunt=world.horse_hunt.snapshot();data.blackout=world.blackout.snapshot();data.plush_ending={"found":plushes_found,"call":plush_call,"scene":plush_ending.snapshot() if is_instance_valid(plush_ending) else {}}
   data.archive=world.archive.snapshot();data.archive_reader=archive_selected;data.archive_input=archive_input
   data.ending_credits=end_credits.snapshot() if is_instance_valid(end_credits) else {}
   data.terrors=world.terrors.snapshot();data.tube_watcher_visible=world.tubes.watcher.visible

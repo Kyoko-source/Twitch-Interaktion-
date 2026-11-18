@@ -11,7 +11,7 @@ func run(g: Node3D,verify: Callable) -> void:
  g._new_shift();g.intro.skip();g.player.active=false
  verify.call(album.entries.has("1"),"New shift deletes collected ending memories")
  album.show_menu()
- verify.call(g.menu.find_children("AlbumEnding*","PanelContainer",true,false).size()==3,"Album does not display three spoiler-free slots")
+ verify.call(g.menu.find_children("AlbumEnding*","PanelContainer",true,false).size()==4,"Album does not display four spoiler-free slots")
  var hidden: String=g.menu.get_node("AlbumEnding2").get_child(0).get_child(1).text
  verify.call(hidden=="Unentdecktes Ende","An undiscovered album card reveals its ending")
  g.ending_preview=true;g._show_ending(2)

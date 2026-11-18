@@ -28,6 +28,12 @@ static func inventory(g: Node3D, selected: String="") -> void:
  if g.archive.film_found:
   list.add_child(g._label("FILMROLLE · HAPPYLAND",19,Color("c6b68d")))
   var film_note: Label=g._paragraph("Ein Tag voller Abenteuer.\nAm Projektor im Kino abspielbar.",17);film_note.custom_minimum_size.x=340;list.add_child(film_note)
+ if not g.plushes_found.is_empty():
+  list.add_child(g._label("PUPPEN   %d / %d"%[g.plushes_found.size(),CreatorPlush.PLUSHES.size()],19,Color("c6b68d")))
+  var names: Array[String]=[]
+  for id in g.plushes_found:names.append(AfterPlayLanguage.t(CreatorPlush.PLUSHES[id].title))
+  var plush_note: Label=g._paragraph("
+".join(names),17);plush_note.custom_minimum_size.x=340;list.add_child(plush_note)
  var equipment: Button=g._button("Meine Ausrüstung",func():g._equipment_card());equipment.custom_minimum_size.x=345;list.add_child(equipment)
  var help: Button=g._button("Dienstanweisung",func():g._help("inventory"));help.custom_minimum_size.x=345;list.add_child(help)
  var back: Button=g._button("Zurück zum Zahlenschloss" if g.inventory_back=="code" else "Zurück ins Spiel",g._archive_back);back.custom_minimum_size.x=345;list.add_child(back)

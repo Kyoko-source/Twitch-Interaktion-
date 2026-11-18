@@ -35,6 +35,57 @@ func run(game: Node3D) -> void:
     game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
     await capture(game,output,shot[1])
   game.get_tree().quit();return
+ if "--plush-ending-qa" in OS.get_cmdline_user_args():
+  # 4.10.0 secret ending: the seated plushes, the shine returning, the children.
+  game._new_shift();game.intro.skip();game._build_world("none");game._resume()
+  game.plushes_found.assign(CreatorPlush.PLUSHES.keys());game.plush_call="answered";game.plush_ending.open_chairs()
+  game.player.global_position=Vector3(7.6,0,-7.0);game.player.look_at(Vector3(10.2,game.player.global_position.y,-7.),Vector3.UP);game.player.camera.look_at(Vector3(10.2,.7,-7.),Vector3.UP)
+  for i in range(5):game.plush_ending.seat(i,game.plushes_found)
+  await capture(game,output,"secret-00-table")
+  game._start_plush_finale()
+  var ending: SecretPlushEnding=game.plush_ending
+  for shot in [[2.5,"secret-01-rise"],[8.,"secret-02-dark-venue"],[16.,"secret-03-half-shine"],[28.5,"secret-04-all-shine"],[33.,"secret-05-door"],[38.,"secret-06-children"],[46.,"secret-07-playing"],[55.5,"secret-08-fade"]]:
+   while ending.clock<shot[0] and not ending.done:await game.get_tree().process_frame
+   await capture(game,output,shot[1])
+  var close:=Camera3D.new();game.world.add_child(close);close.global_position=Vector3(2.,3.2,12.5);close.look_at(Vector3(2.,.6,7.),Vector3.UP);close.make_current()
+  await capture(game,output,"secret-09-pit-close")
+  close.global_position=Vector3(13.,2.2,-2.5);close.look_at(Vector3(10.2,.7,-7.),Vector3.UP)
+  await capture(game,output,"secret-10-table-close")
+  game.get_tree().quit();return
+ if "--coords-qa" in OS.get_cmdline_user_args():
+  game._build_world("none");var w: PlayWorld=game.world
+  for c in w.props.chairs.get_children():print("CHAIR ",c.global_position," rot ",c.global_rotation)
+  print("TABLE ",w.props.party_table.global_position)
+  var phone:=w.find_child("ReceptionDeskPhone",true,false) as Node3D;print("PHONE ",phone.global_position if phone else null)
+  print("LEAF ",w.backstage.exit_leaf.global_position," ROOT ",w.backstage.exit_root.global_position)
+  for s in [0.,2.,4.,6.,8.,10.,12.,14.,CrawlTubes.LENGTH]:print("TUBE ",s," ",CrawlTubes.route(s))
+  var pit:=AABB(w.pit_physics.starts[0],Vector3.ZERO)
+  for b in w.pit_physics.starts:pit=pit.expand(b)
+  print("PIT ",pit)
+  for z in w.zones:print("ZONE ",z," ",w.zones[z])
+  print("SLIDE ",w.props.slide.global_position," STRUCT ",w.props.structure.global_position)
+  var names:={}
+  for d in w.find_children("*","Decal",true,false):names[str(d.name)]=names.get(str(d.name),0)+1
+  print("DECALS ",names)
+  var flats:={}
+  for m: GeometryInstance3D in w.find_children("*","GeometryInstance3D",true,false):
+   var box:=m.global_transform*m.get_aabb()
+   if box.position.y<.1 and box.size.y<.06 and box.position.x> -10 and box.position.x<20 and box.position.z> -12 and box.position.z<17:
+    var key:=str(m.get_parent().name)+"/"+str(m.name);flats[key]=flats.get(key,0)+1
+  print("FLATS ",flats)
+  game.get_tree().quit();return
+ if "--topdown-qa" in OS.get_cmdline_user_args():
+  # Dollhouse view for the secret ending: ceiling slabs lifted off the venue.
+  game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var hidden:=SecretPlushEnding.lift_ceilings(game.world)
+  print("TOPDOWN hidden ceilings ",hidden.size())
+  var cam:=Camera3D.new();game.world.add_child(cam);cam.projection=Camera3D.PROJECTION_ORTHOGONAL;cam.size=62;cam.far=200
+  cam.global_position=Vector3(1,60,-8);cam.rotation=Vector3(-PI/2,0,0);cam.make_current()
+  game.world.environment.environment.ambient_light_energy=1.2;game.world.environment.environment.fog_enabled=false;game.world.environment.environment.volumetric_fog_enabled=false
+  await capture(game,output,"topdown-00-plan")
+  cam.projection=Camera3D.PROJECTION_PERSPECTIVE;cam.fov=55;cam.global_position=Vector3(1,34,22);cam.look_at(Vector3(1,0,-6),Vector3.UP)
+  await capture(game,output,"topdown-01-dollhouse")
+  game.get_tree().quit();return
  if "--breaker-qa" in OS.get_cmdline_user_args():
   # 4.9.2: the main breaker sits clear of the workbench, seen from the room.
   game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)

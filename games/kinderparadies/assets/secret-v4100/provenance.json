@@ -1,0 +1,6 @@
+{
+  "sound": "music-box \"Happy Birthday to You\", synthesised (tools/make-after-play-birthday-v4100.py), no recording",
+  "melody": "Happy Birthday to You, public domain",
+  "seconds": 34.0,
+  "output_sha256": "55f150506a2f0b9d30ec7a0a68d859de8e46ae82a381ac9e068b2de28524d10e"
+}

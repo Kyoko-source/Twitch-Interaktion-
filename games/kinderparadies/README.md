@@ -1,5 +1,28 @@
 # After Play — Kinderparadies
 
+## Geheimes Ende: Alle wieder da (4.10.0)
+
+- Hält man eine der fünf Creator-Puppen hoch, legt E sie ins Inventar
+  (TAB zeigt „Puppen x / 5“). Aufheben und Drehen bleiben wie bisher.
+  Gesammelte Puppen bleiben über Rundenwechsel im Inventar, ein Tod oder eine
+  neue Schicht nimmt sie wieder weg.
+- Mit allen fünf klingelt das Telefon am Empfang. Abheben: „Du hast uns alle
+  gefunden. Lass uns zum Abschluss einen Kuchen essen.“
+- Die Puppen werden mit E auf die Stühle am Geburtstagstisch im Party Raum
+  gesetzt. Sitzt die fünfte, hebt die Kamera ab, die Decken verschwinden und
+  der Laden bekommt Raum für Raum seinen Glanz zurück (Licht, Funkeln, kein
+  Nebel mehr), dazu „Happy Birthday“ als Spieluhr (gemeinfreie Melodie,
+  synthetisch erzeugt: `tools/make-after-play-birthday-v4100.py`).
+- Danach öffnet sich der alte Haupteingang und 30 Kinder laufen herein: ins
+  Bällebad, auf beide Klettergerüste, durch die Krabbelröhre, an den
+  Geburtstagstisch und durch die Halle. Abblende, Abspann „Geheimes Ende“.
+- Das bisherige geheime Ende (Glastür, Heimfahrt) heißt jetzt ENDE 3/3. Das
+  Erinnerungsalbum hat vier Plätze.
+- Testcode am Archivschloss: `55555555` (alle Puppen gefunden, Telefon klingelt).
+
+Prüfung: `--self-test --plush-ending-only`, Bildkontrolle
+`--render-qa --plush-ending-qa` und `--topdown-qa`.
+
 ## Jumpscares neu, Hauptschalter umgesetzt (4.9.2)
 
 Die Besucher-Anomalien sind nicht mehr vorherzusehen:

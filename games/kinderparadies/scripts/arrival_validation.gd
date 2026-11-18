@@ -60,7 +60,7 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(game.phase=="ending" and game.secret_ending and not guard.active,"Walking onto the actual parking lot does not end the shift")
  if game.phase!="ending":return
  var credits: EndCredits=game.end_credits
- verify.call(credits.ending_number==3 and credits.end_title()=="Geheimes Ende" and credits.secret_line.text==EndCredits.SECRET_LINE,"Secret ending title or exact requested line is missing")
+ verify.call(credits.ending_number==3 and credits.end_title()=="ENDE 3/3" and credits.secret_line.text==EndCredits.SECRET_LINE,"Secret ending title or exact requested line is missing")
  credits.tick(.9);await game.get_tree().process_frame
  verify.call(credits.black.color.a>=.99 and credits.escape_audio.playing and credits.word.modulate.a==0,"Car must start under black before the title appears")
  credits.tick(2.2);verify.call(credits.word.modulate.a>.9 and credits.secret_line.modulate.a>.9,"Secret ending text never becomes visible")

@@ -322,5 +322,15 @@
   "Der Strom ist zurück. Die rote Tür ist frei.": "The power is back. The red door is unlocked.",
   "theraidenlena-Puppe": "theraidenlena plush",
   "Charakter der theraidenlena-Puppe": "Character of the theraidenlena plush",
-  "theraidenlena-Puppe: Charakter von theraidenlena. Alle Rechte an der Figur liegen bei theraidenlena. Die Spieluhr-Melodie ist für das Spiel erzeugt.": "theraidenlena plush: character by theraidenlena. All rights to the character remain with theraidenlena. The music-box tune was made for the game."
+  "theraidenlena-Puppe: Charakter von theraidenlena. Alle Rechte an der Figur liegen bei theraidenlena. Die Spieluhr-Melodie ist für das Spiel erzeugt.": "theraidenlena plush: character by theraidenlena. All rights to the character remain with theraidenlena. The music-box tune was made for the game.",
+  "E · Abheben": "E · Answer",
+  "E · Ins Inventar   |   G · Loslassen   |   Mausrad / R · Drehen": "E · Put in inventory   |   G · Let go   |   Mouse wheel / R · Turn",
+  "%s eingesteckt · %d / %d Puppen": "%s pocketed · %d / %d plushes",
+  "Alle Puppen gefunden · Am Empfang klingelt das Telefon.": "All plushes found · The phone at reception is ringing.",
+  "„Du hast uns alle gefunden. Lass uns zum Abschluss einen Kuchen essen.“": "“You found all of us. Let's have some cake to finish.”",
+  "E · %s hinsetzen": "E · Seat the %s",
+  "PUPPEN   %d / %d": "PLUSHES   %d / %d",
+  "Alle wieder da": "Everyone is back",
+  "GEHEIMES ENDE": "SECRET ENDING",
+  "Drei Ausgänge und ein geheimes Ende. Deine entdeckten Enden bleiben hier erhalten.": "Three ways out and a secret ending. The endings you discover stay here."
 }
