@@ -1,0 +1,7 @@
+{
+  "sound": "music-box tune, synthesised (tools/make-after-play-theraidenlena-v490.py), no recording",
+  "character": "theraidenlena",
+  "seconds": 3.733,
+  "output_sha256": "5f7508decd70bbb18920fb00b20a41f633060c6629d7534a30215ac0f7e23fe8",
+  "model": "tools/model-after-play-theraidenlena-v490.py"
+}

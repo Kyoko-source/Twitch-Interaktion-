@@ -1,4 +1,4 @@
-param([string]$Version='4.9.0')
+param([string]$Version='4.9.1')
 $ErrorActionPreference='Stop'
 $taskRepo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskProject=Join-Path $taskRepo 'games/kinderparadies'
@@ -44,6 +44,7 @@ $taskNotices=[ordered]@{
  'assets/einsmarello-v460/LICENSE.txt'='einsmarello.txt'
  'assets/hissybusa-v470/LICENSE.txt'='Hissybusa.txt'
  'assets/jule-v470/LICENSE.txt'='Jule_heartbeat.txt'
+ 'assets/theraidenlena-v490/LICENSE.txt'='theraidenlena.txt'
 }
 foreach($taskSource in $taskNotices.Keys){Copy-Item -LiteralPath (Join-Path $taskProject $taskSource) -Destination (Join-Path $taskLicenses $taskNotices[$taskSource])}
 foreach($taskFile in @('LICENSE.txt','COPYRIGHT.txt')){

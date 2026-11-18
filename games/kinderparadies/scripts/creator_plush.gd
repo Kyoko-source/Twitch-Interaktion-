@@ -6,6 +6,8 @@ extends RefCounted
 # 4.7.0: spread over the venue. Hissybusa on the bench next to the big rabbit at the start,
 # einsmarello up in the climbing frame lookout, Rosenyan on the party table next to the cake,
 # Jule_heartbeat on the cinema carpet in front of the first row. Her sleeping cat purrs (synthesised, no recording).
+# 4.9.1: theraidenlena (play tester) on the crate next to the main breaker in the maintenance room.
+# Picking her up plays a cheerful music-box tune (synthesised, no recording): no horror game gets to her.
 
 const PLUSHES:={
  "rosenyan":{"node":"RosenyanPlush","title":"Rosenyan-Puppe","model":"res://assets/rosenyan-v450/rosenyan-plush.glb",
@@ -16,8 +18,10 @@ const PLUSHES:={
   "voice":"res://assets/hissybusa-v470/simon-move.ogg","spot":Vector3(-3.07,.81,5.6),"yaw":-PI*.5,"comment":"hissybusa"},
  "jule":{"node":"JulePlush","title":"Jule_heartbeat-Puppe","model":"res://assets/jule-v470/jule-plush.glb",
   "voice":"res://assets/jule-v470/purr.ogg","spot":Vector3(1.5,.225,-27.2),"yaw":-PI*.5,"comment":"jule"},
+ "theraidenlena":{"node":"TheraidenlenaPlush","title":"theraidenlena-Puppe","model":"res://assets/theraidenlena-v490/theraidenlena-plush.glb",
+  "voice":"res://assets/theraidenlena-v490/music-box.ogg","spot":Vector3(-14.8,.56,-6.25),"yaw":0.0,"comment":"theraidenlena"},
 }
-const TITLES:=["Rosenyan-Puppe","einsmarello-Puppe","Hissybusa-Puppe","Jule_heartbeat-Puppe"]
+const TITLES:=["Rosenyan-Puppe","einsmarello-Puppe","Hissybusa-Puppe","Jule_heartbeat-Puppe","theraidenlena-Puppe"]
 const HALF_HEIGHT:=.22
 
 static func place_all(atmosphere: Node3D) -> void:
@@ -34,14 +38,14 @@ static func place(atmosphere: Node3D,id: String) -> NightProp:
  # The glTF faces +Z and stands on its seat; the body origin is the collider centre.
  model.position=Vector3(0,-HALF_HEIGHT,.02);body.add_child(model)
  for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
- var voice:=AudioStreamPlayer3D.new();voice.name="Voice";voice.stream=load(cfg.voice)
+ var voice:=AudioStreamPlayer3D.new();voice.name="Voice";voice.stream=load(cfg.voice) if not str(cfg.voice).is_empty() else null
  voice.volume_db=-10.0;voice.unit_size=2.0;voice.max_distance=12.0;body.add_child(voice)
  body.picked.connect(func():_on_picked(body,voice,str(cfg.comment)))
  atmosphere.add_child(body);atmosphere.loose.append(body);body.suspend(true)
  return body
 
 static func _on_picked(body: NightProp,voice: AudioStreamPlayer3D,comment: String) -> void:
- voice.pitch_scale=randf_range(.98,1.03);voice.play()
+ if voice.stream:voice.pitch_scale=randf_range(.98,1.03);voice.play()
  var node: Node=body.get_parent()
  while node and not ("dialogue" in node):node=node.get_parent()
  if node and node.dialogue:node.dialogue.request_again(comment)

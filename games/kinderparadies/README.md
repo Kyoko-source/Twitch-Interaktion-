@@ -1,5 +1,20 @@
 # After Play — Kinderparadies
 
+## theraidenlena-Puppe und Testspielerin (4.9.1)
+
+- Neue Plüschpuppe von theraidenlena auf der Holzkiste im Wartungsraum, direkt
+  neben dem Hauptschalter. Dunkle Haare mit roten Strähnen und Antenne, rote
+  Blume, rote Augen mit kleinem Eckzahn, rot-schwarzes Kleid mit Goldborte,
+  Korsett und Schleife, Stiefel mit roten Rüschen
+  (`tools/model-after-play-theraidenlena-v490.py`, Blender 5.0).
+- Beim Aufheben spielt eine kurze, fröhliche Spieluhr-Melodie, für das Spiel
+  synthetisch erzeugt (`tools/make-after-play-theraidenlena-v490.py`), und der
+  Wachmann sagt: „ahh theraidenlena, kein Horrorspiel kann ihr was anhaben“.
+- theraidenlena steht im Abspann unter Testspieler und mit eigener
+  Puppen-Nennung, im Hauptmenü unter Mitwirkende und in den Lizenzhinweisen.
+
+Prüfung: `--self-test --rosenyan-only`, Bildkontrolle `--render-qa --rosenyan-qa`.
+
 ## Stromausfall als Event-Anomalie (4.9.0)
 
 Neue Anomalie „Stromausfall“ (Wartungsgang). Etwa sechs Sekunden nach

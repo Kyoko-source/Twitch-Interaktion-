@@ -1,0 +1,6 @@
+theraidenlena plush (After Play 4.9.1)
+Character "theraidenlena": theraidenlena, https://www.twitch.tv/theraidenlena. All rights to the character and its
+design remain with theraidenlena. It is used in After Play with credit and is not covered by any other
+licence in this project.
+3D model: built for After Play after theraidenlena's plush picture (tools/model-after-play-theraidenlena-v490.py).
+Music-box tune: synthesised for the game, no recording (tools/make-after-play-theraidenlena-v490.py).

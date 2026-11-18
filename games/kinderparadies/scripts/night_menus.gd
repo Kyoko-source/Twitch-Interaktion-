@@ -64,7 +64,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v4.9.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.9.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -159,6 +159,10 @@ static func credits(g: Node3D) -> void:
  var jule:=RichTextLabel.new();jule.name="JuleCredit";jule.bbcode_enabled=true;jule.fit_content=true;jule.custom_minimum_size.x=440;jule.add_theme_font_size_override("normal_font_size",18)
  jule.text=AfterPlayLanguage.t("Jule_heartbeat-Puppe: Charakter von Jule_heartbeat. Alle Rechte an der Figur liegen bei Jule_heartbeat. Das Schnurren der Katze ist für das Spiel erzeugt.")+" [url=https://www.twitch.tv/jule_heartbeat]twitch.tv/jule_heartbeat[/url]"
  jule.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(jule)
+ column.add_child(g._label("Charakter der theraidenlena-Puppe",23))
+ var lena:=RichTextLabel.new();lena.name="TheraidenlenaCredit";lena.bbcode_enabled=true;lena.fit_content=true;lena.custom_minimum_size.x=440;lena.add_theme_font_size_override("normal_font_size",18)
+ lena.text=AfterPlayLanguage.t("theraidenlena-Puppe: Charakter von theraidenlena. Alle Rechte an der Figur liegen bei theraidenlena. Die Spieluhr-Melodie ist für das Spiel erzeugt.")+" [url=https://www.twitch.tv/theraidenlena]twitch.tv/theraidenlena[/url]"
+ lena.meta_clicked.connect(func(link):OS.shell_open(str(link)));column.add_child(lena)
  column.add_child(g._label("Partymusik",23))
  var party_credit:=RichTextLabel.new();party_credit.name="PartyMusicCredit";party_credit.bbcode_enabled=true;party_credit.fit_content=true;party_credit.custom_minimum_size.x=440;party_credit.add_theme_font_size_override("normal_font_size",18)
  party_credit.text=HappylandParty.MUSIC_CREDIT

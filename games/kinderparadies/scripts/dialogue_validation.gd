@@ -3,7 +3,7 @@ extends RefCounted
 func run(g: Node3D,verify: Callable) -> void:
  g._new_shift();g.intro.skip();g.set_process(false);g.player.active=false
  var d: GuardDialogue=g.dialogue
- verify.call(d.catalog.size()==20,"Author's document, three added comments and the creator plush lines are incomplete")
+ verify.call(d.catalog.size()==21,"Author's document, three added comments and the creator plush lines are incomplete")
  for id in d.catalog:
   verify.call(d.catalog[id].de.size()==d.catalog[id].en.size(),"Missing English comment paragraphs: "+id)
  d.reset();verify.call(d.request("reel") and not d.request("reel"),"One-time comment can queue twice")

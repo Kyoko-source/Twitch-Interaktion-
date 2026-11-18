@@ -98,5 +98,10 @@
     "de": ["Jule_heartbeat mit schlafender Katze. Pssst, die beiden haben schon Feierabend."],
     "en": ["Jule_heartbeat with a sleeping cat. Shh, those two have already clocked off."],
     "emphasis": ["Jule_heartbeat", "Feierabend", "clocked off"]
+  },
+  "theraidenlena": {
+    "de": ["ahh theraidenlena, kein Horrorspiel kann ihr was anhaben"],
+    "en": ["ahh theraidenlena, no horror game can touch her"],
+    "emphasis": ["theraidenlena", "Horrorspiel", "horror game"]
   }
 }

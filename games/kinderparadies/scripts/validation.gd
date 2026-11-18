@@ -376,7 +376,7 @@ func run(game: Node3D) -> bool:
  check(not body.freeze,"Objects failed to resume after pause")
  game.player.grab_prop();game._build_world("none")
  check(not is_instance_valid(game.player.carried),"World replacement kept a freed held prop")
- check(game.world.atmosphere.loose.size()==33,"Physical toy budget must include the single rolling paper cup and all four creator plushies")
+ check(game.world.atmosphere.loose.size()==34,"Physical toy budget must include the single rolling paper cup and all five creator plushies")
  # 4.8.0 performance: walls and big opaque boxes are occluders; glass never is.
  check(ProjectSettings.get_setting("rendering/occlusion_culling/use_occlusion_culling",false) and game.world.occluder_count>=100,"Occlusion culling is off or the walls have no occluders")
  var see_through: Array=game.world.find_children("Occluder","OccluderInstance3D",true,false).filter(func(o):return not PlayOccluders._opaque(o.get_parent()))

@@ -2,9 +2,9 @@ extends RefCounted
 # Creator plushies (4.5.0 Rosenyan, 4.6.0 einsmarello, 4.7.0 Hissybusa and Jule_heartbeat): present, carryable, voiced,
 # credited and, since 4.7.0, resting on a real surface at their own spot in the venue.
 
-const COMMENTS:={"rosenyan":["uhh RosenyanVT. Mehr Cozyness geht nicht"],"einsmarello":["Oh, einsmarello. Mit Rotkohl. Peak Gesang, ehrlich."],"hissybusa":["Hissybusa. Brüllt einen Dino an und verliert trotzdem. Chaos auf zwei Plüschbeinen."],"jule":["Jule_heartbeat mit schlafender Katze. Pssst, die beiden haben schon Feierabend."]}
-const VOICE_SECONDS:={"rosenyan":[.8,1.6],"einsmarello":[3.4,4.4],"hissybusa":[5.0,6.0],"jule":[2.5,3.5]}
-const AREAS:={"rosenyan":"party","einsmarello":"lookout","hissybusa":"bench","jule":"cinema"}
+const COMMENTS:={"rosenyan":["uhh RosenyanVT. Mehr Cozyness geht nicht"],"einsmarello":["Oh, einsmarello. Mit Rotkohl. Peak Gesang, ehrlich."],"hissybusa":["Hissybusa. Brüllt einen Dino an und verliert trotzdem. Chaos auf zwei Plüschbeinen."],"jule":["Jule_heartbeat mit schlafender Katze. Pssst, die beiden haben schon Feierabend."],"theraidenlena":["ahh theraidenlena, kein Horrorspiel kann ihr was anhaben"]}
+const VOICE_SECONDS:={"rosenyan":[.8,1.6],"einsmarello":[3.4,4.4],"hissybusa":[5.0,6.0],"jule":[2.5,3.5],"theraidenlena":[3.2,4.2]}
+const AREAS:={"rosenyan":"party","einsmarello":"lookout","hissybusa":"bench","jule":"cinema","theraidenlena":"maintenance"}
 
 func run(game: Node3D, verify: Callable) -> void:
  game._new_shift();game.intro.skip();game._build_world("none");game._resume()
@@ -31,11 +31,13 @@ func run(game: Node3D, verify: Callable) -> void:
   for hit in space.intersect_shape(body_query,6):inside.append(str(hit.collider.name))
   verify.call(inside.is_empty(),id+" plush intersects "+str(inside))
   var p: Vector3=plush.global_position
-  var where:="party" if p.x>8.5 and p.z< -4 and p.y>.8 else "lookout" if p.y>4. and p.z< -3.4 else "cinema" if p.z< -24.1 and p.x> -6.45 and p.y<1. else "bench" if p.x> -3.4 and p.x< -2.8 and p.y>.7 and p.y<.9 else "?"
+  var where:="party" if p.x>8.5 and p.z< -4 and p.y>.8 else "lookout" if p.y>4. and p.z< -3.4 else "cinema" if p.z< -24.1 and p.x> -6.45 and p.y<1. else "bench" if p.x> -3.4 and p.x< -2.8 and p.y>.7 and p.y<.9 else "maintenance" if p.x< -10.3 and p.z> -6.9 and p.z< -2.0 and p.y<1. else "?"
   verify.call(where==AREAS[id],id+" plush is not at its spot ("+where+")")
   var voice: AudioStreamPlayer3D=plush.get_node("Voice")
   var length: float=voice.stream.get_length() if voice.stream else 0.
-  verify.call(length>VOICE_SECONDS[id][0] and length<VOICE_SECONDS[id][1],id+" voice line missing or not the short cut")
+  # An empty range means the voice line is still to come: the plush stays silent until then.
+  if VOICE_SECONDS[id].is_empty():verify.call(voice.stream==null,id+" plush plays a placeholder voice")
+  else:verify.call(length>VOICE_SECONDS[id][0] and length<VOICE_SECONDS[id][1],id+" voice line missing or not the short cut")
   verify.call(plush.impact.stream.resource_path.ends_with("impact-cloth.wav"),id+" plush does not sound like cloth")
   verify.call(game.dialogue.catalog[cfg.comment].de==COMMENTS[id],id+" subtitle text changed")
   game.dialogue.reset()
@@ -45,7 +47,7 @@ func run(game: Node3D, verify: Callable) -> void:
   await game.get_tree().physics_frame
   verify.call(game.player.prop_target()==plush,id+" plush cannot be targeted for pickup")
   game.player.grab_prop()
-  verify.call(game.player.carried==plush and voice.playing,"Picking up the "+id+" plush does not play her voice")
+  verify.call(game.player.carried==plush and (voice.playing or voice.stream==null),"Picking up the "+id+" plush does not play her voice")
   verify.call(cfg.comment in game.dialogue.pending or game.dialogue.current==cfg.comment,"Picking up the "+id+" plush does not show her subtitle")
   verify.call(voice.volume_db<=-8.,id+" voice is still too loud")
   # Turning while carried: wheel step spins 15 degrees, R spins 45 degrees, Shift tilts; held pose stays.
@@ -67,12 +69,14 @@ func run(game: Node3D, verify: Callable) -> void:
   game.dialogue.pending.clear();game.dialogue.current=""
   game.player.camera.look_at(plush.global_position,Vector3.UP);await game.get_tree().physics_frame
   game.player.grab_prop();game.player.drop_prop();game.player.grab_prop()
-  verify.call(voice.playing and game.dialogue.pending.count(cfg.comment)<=1,"Repeated pickups of "+id+" break the voice or flood the subtitles")
+  verify.call((voice.playing or voice.stream==null) and game.dialogue.pending.count(cfg.comment)<=1,"Repeated pickups of "+id+" break the voice or flood the subtitles")
   game.player.drop_prop();voice.stop()
   game._build_world("none");game._resume();await game.get_tree().physics_frame
  var credits: String=FileAccess.get_file_as_string("res://scripts/night_menus.gd")+FileAccess.get_file_as_string("res://scripts/end_credits.gd")
  verify.call("RosenyanVT" in credits and "twitch.tv/rosenyanvt" in credits,"RosenyanVT is not credited in menu and end credits")
  verify.call("EINSMARELLO-PUPPE" in credits and "einsmarello-Puppe: Charakter" in credits and "twitch.tv/einsmarello" in credits,"einsmarello is not credited for her plush")
  verify.call("HISSYBUSA-PUPPE" in credits and "Hissybusa-Puppe: Charakter" in credits and "twitch.tv/hissybusa" in credits,"Hissybusa is not credited for his plush")
+ verify.call("THERAIDENLENA-PUPPE" in credits and "theraidenlena-Puppe: Charakter" in credits and "twitch.tv/theraidenlena" in credits,"theraidenlena is not credited for her plush")
+ verify.call("theraidenlena" in EndCredits.TESTERS,"theraidenlena is missing from the play testers")
  verify.call("JULE_HEARTBEAT-PUPPE" in credits and "Jule_heartbeat-Puppe: Charakter" in credits and "twitch.tv/jule_heartbeat" in credits,"Jule_heartbeat is not credited for her plush")
  game._build_world("none");game._resume()
