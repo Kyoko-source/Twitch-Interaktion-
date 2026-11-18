@@ -71,7 +71,7 @@ func build(world: PlayWorld) -> void:
    mm.set_instance_transform(row*44+col,Transform3D(basis,n*.361))
  facets.multimesh=mm;facets.material_override=mirror;ball.add_child(facets)
  dots=MultiMeshInstance3D.new();dots.name="DiscoBallFloorReflections";var reflections:=MultiMesh.new();reflections.transform_format=MultiMesh.TRANSFORM_3D;var quad:=QuadMesh.new();quad.size=Vector2.ONE;reflections.mesh=quad;reflections.instance_count=72;dots.multimesh=reflections;add_child(dots)
- var shader:=Shader.new();shader.code="shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled;uniform float power=0.0;void fragment(){float a=1.0-smoothstep(.08,.5,length(UV-.5));ALBEDO=vec3(.8,.88,.72)*power;ALPHA=a*power;}"
+ var shader:=SharedShaders.of("shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled;uniform float power=0.0;void fragment(){float a=1.0-smoothstep(.08,.5,length(UV-.5));ALBEDO=vec3(.8,.88,.72)*power;ALPHA=a*power;}")
  dot_material=ShaderMaterial.new();dot_material.shader=shader;dots.material_override=dot_material;dots.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  _stereo()
  audio=AudioStreamPlayer3D.new();audio.name="PartySong";audio.stream=load("res://assets/party-v385/party-web.ogg" if OS.has_feature("web") else "res://assets/party-v385/party.mp3").duplicate();audio.stream.loop=true;audio.position=stereo.transform*Vector3(0,1.15,.38);audio.volume_db=-10;audio.attenuation_model=AudioStreamPlayer3D.ATTENUATION_DISABLED;audio.max_distance=0;audio.panning_strength=.12;audio.attenuation_filter_db=0;audio.set_meta("room_filling_music",true);audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(audio)

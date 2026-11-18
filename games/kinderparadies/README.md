@@ -1,5 +1,25 @@
 # After Play — Kinderparadies
 
+## Kürzere Ladezeiten beim Rundenwechsel (4.8.1)
+
+Zwischen zwei Runden wird die Welt neu gebaut. Das Spiel stand dabei 3,6 bis
+4,2 Sekunden still, jetzt rund 2 Sekunden. Optisch ändert sich nichts:
+
+- Identische Shader-Codes teilen sich ein Shader-Objekt
+  (`scripts/shared_shaders.gd`), statt jede Runde neu kompiliert zu werden.
+- Die Polsterfarben luden je Runde fünfmal eine Leder-Textur, die sofort
+  wieder ersetzt wurde (`native_art.gd`, `surface(..., albedo=false)`).
+- Dreiecks-Kollisionen gleicher Geometrie (Kinosessel, Krokodil) werden
+  wiederverwendet (`scripts/shape_cache.gd`).
+- Die alte Welt wird einen Frame später gezielt freigegeben statt über die
+  Lösch-Warteschlange (`game._retire_world`), die neue versteckt gebaut.
+- Fehlerbehebung: Wurde eine Schicht über den Ladebildschirm gestartet, fehlten
+  in der ersten Runde Wandschäden, Materialveredelung und die Sitzflächen im
+  Kino, weil diese Schritte die Sichtbarkeit der noch versteckten Welt
+  abfragten. Sie fragen jetzt `PlayWorld.shown()`.
+
+Messen: `--render-qa --load-qa`.
+
 ## Knochenarme im Bällebad, flüssigeres Spiel, Systemanforderungen (4.8.0)
 
 Die Anomalie „Knöcherne Arme schnellen aus dem Bällebad“ ist neu gebaut. Statt

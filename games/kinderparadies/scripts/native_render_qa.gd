@@ -35,6 +35,9 @@ func run(game: Node3D) -> void:
     game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
     await capture(game,output,shot[1])
   game.get_tree().quit();return
+ if "--load-qa" in OS.get_cmdline_user_args():
+  await load("res://scripts/load_benchmark.gd").new().run(game,output)
+  game.get_tree().quit();return
  if "--occlusion-qa" in OS.get_cmdline_user_args():
   await load("res://scripts/occlusion_qa.gd").new().run(game,output)
   game.get_tree().quit();return

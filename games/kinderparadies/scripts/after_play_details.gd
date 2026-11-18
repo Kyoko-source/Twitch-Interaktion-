@@ -161,11 +161,11 @@ func _cabinet(pos: Vector3, yaw: float, id: String, material: Material) -> void:
  var screen:=Node3D.new();screen.position=Vector3(0,1.42,.174);screen.rotation.x=-.16;root.add_child(screen)
  w.box(screen,Vector3.ZERO,Vector3(.65,.56,.06),w.materials.dark)
  var mesh:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(.56,.43);mesh.mesh=quad;mesh.position.z=.034;screen.add_child(mesh)
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;render_mode unshaded;
 uniform float clock=0.0;uniform vec3 tint:source_color=vec3(.24,.46,.35);
 void fragment(){vec2 p=UV;vec2 q=floor(p*vec2(64.,48.));float grid=step(.92,fract(q.x*.17+q.y*.31));float star=step(.98,fract(sin(dot(q,vec2(12.9898,78.233)))*43758.5453));vec2 ball=vec2(.5+.25*sin(clock*.45),.48+.26*cos(clock*.6));float orb=1.-smoothstep(.023,.034,distance(p,ball));float scan=.78+.22*sin(p.y*550.);float edge=smoothstep(.52,.12,length(p-.5));ALBEDO=(tint*(.09+grid*.12+star*.32)+vec3(.8,.51,.19)*orb)*scan*edge;}
-"""
+""")
  var screen_material:=ShaderMaterial.new();screen_material.shader=shader;screen_material.set_shader_parameter("tint",Color("497b68") if id=="arcade" else Color("8e5646"));mesh.material_override=screen_material;screens.append(screen_material)
  var deck:=w.box(root,Vector3(0,1.091,.32),Vector3(.65,.025,.28),w.materials.dark);deck.rotation.x=.197
  w.tube(root,Vector3(-.16,1.11,.31),Vector3(-.16,1.23,.31),.013,steel);w.sphere(root,Vector3(-.16,1.25,.31),.035,w.materials.red)

@@ -19,9 +19,12 @@ func build(world: PlayWorld) -> void:
  _materials();_models();_counter();_play_details();_acoustics()
  if advanced: _lighting()
 
-func surface(material: StandardMaterial3D, id: String, tint: Color, scale_value: float=1.0) -> void:
+func surface(material: StandardMaterial3D, id: String, tint: Color, scale_value: float=1.0, albedo: bool=true) -> void:
  var path:="res://assets/pbr/"+id+"/"
- material.albedo_texture=load(path+"albedo.jpg");material.albedo_color=tint
+ # Skipped when the caller replaces the albedo right away: the unused texture
+ # would be decoded, dropped and decoded again for every material (4.8.1).
+ if albedo: material.albedo_texture=load(path+"albedo.jpg")
+ material.albedo_color=tint
  material.normal_enabled=true;material.normal_texture=load(path+"normal.jpg");material.normal_scale=.6
  material.roughness_texture=load(path+"roughness.jpg");material.roughness_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED
  material.roughness=1;material.metallic=0
@@ -33,7 +36,7 @@ func _materials() -> void:
  for id in ["blue","red","gold","teal","cream"]:
   var material: StandardMaterial3D=w.materials[id]
   var tint: Color=material.albedo_color
-  surface(material,"fabric_leather_01",tint.lightened(.22),2.5)
+  surface(material,"fabric_leather_01",tint.lightened(.22),2.5,false)
   material.albedo_texture=load("res://assets/vinyl.png");material.albedo_color=tint.lightened(.12)
   material.normal_scale=.18;material.roughness=.62
   material.clearcoat_enabled=true;material.clearcoat=.20;material.clearcoat_roughness=.42
@@ -42,7 +45,7 @@ func _materials() -> void:
  for tile in w.props.floor_tiles: tile.hide()
  var material:=w.mat(Color("909889"));surface(material,"concrete_floor_worn_001",Color("909889"),.45)
  material.roughness=.72
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;
 uniform sampler2D albedo_map:source_color,filter_linear_mipmap_anisotropic,repeat_enable;
 uniform sampler2D normal_map:hint_normal,filter_linear_mipmap_anisotropic,repeat_enable;
@@ -50,7 +53,7 @@ uniform sampler2D rough_map:filter_linear_mipmap_anisotropic,repeat_enable;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1)),f.x),f.y);}
 void fragment(){vec2 uv=UV*vec2(10.0,10.0);float n=noise(UV*11.0)*0.7+noise(UV*29.0)*0.3;float wet=smoothstep(0.53,0.72,n);ALBEDO=texture(albedo_map,uv).rgb*vec3(0.7,0.73,0.69)*(1.0-wet*0.28);ROUGHNESS=mix(texture(rough_map,uv).r*0.9,0.12,wet);NORMAL_MAP=texture(normal_map,uv).rgb;NORMAL_MAP_DEPTH=0.6;SPECULAR=0.65;}
-"""
+""")
  var floor_material:=ShaderMaterial.new();floor_material.shader=shader;floor_material.set_shader_parameter("albedo_map",material.albedo_texture);floor_material.set_shader_parameter("normal_map",material.normal_texture);floor_material.set_shader_parameter("rough_map",material.roughness_texture)
  var floor_mesh:=MeshInstance3D.new();var plane:=PlaneMesh.new();plane.size=Vector2(29.6,29.1);floor_mesh.mesh=plane;floor_mesh.material_override=floor_material;floor_mesh.position=Vector3(4.8,.014,2.4);add_child(floor_mesh)
 

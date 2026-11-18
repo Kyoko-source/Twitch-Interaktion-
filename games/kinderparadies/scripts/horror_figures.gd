@@ -17,7 +17,7 @@ const ELBOW_IDLE:=Vector3(.6,-.2,-.5)
 const ELBOW_DOWN:=Vector3(.7,-.7,0)
 
 static func complexion(texture: Texture2D, stained: bool=false) -> ShaderMaterial:
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;
 render_mode depth_prepass_alpha;
 uniform sampler2D face_map:source_color,filter_linear_mipmap_anisotropic;
@@ -27,7 +27,7 @@ float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(
 void fragment(){vec4 skin=texture(face_map,UV);vec3 c=skin.rgb*vec3(.77,.79,.73);float smear=0.0;
 if(stained){vec2 p=UV+vec2(noise(UV*42.0)*.025,noise(UV*35.0)*.015);float a=1.0-smoothstep(.55,1.0,length((p-vec2(.29,.5))/vec2(.14,.35)));float b=1.0-smoothstep(.5,1.0,length((p-vec2(.63,.74))/vec2(.18,.19)));float d=step(.5,noise(vec2(p.x*68.0,2.0)))*(1.0-smoothstep(.015,.028,abs(p.x-.34)))*smoothstep(.23,.4,p.y)*(1.0-smoothstep(.75,.95,p.y));smear=clamp((a+b+d)*(.6+noise(UV*90.0)*.4),0.0,.92);c=mix(c,vec3(.20,.012,.022)*(0.5+noise(UV*63.0)*.4),smear);}
 ALBEDO=c;ALPHA=skin.a;ROUGHNESS=mix(.95,.58,smear);SPECULAR=.18;}
-"""
+""")
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("face_map",texture);material.set_shader_parameter("stained",stained);return material
 
 static func link(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:

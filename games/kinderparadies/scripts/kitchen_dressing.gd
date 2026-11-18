@@ -64,12 +64,12 @@ static func build(w: PlayWorld, parent: Node3D) -> void:
   for y in [1.11,1.24]: w.tube(parent,Vector3(-16.5,y,-19.8+i*.27),Vector3(-16.5,y+.008,-19.8+i*.27),.079,steel)
  # Local flies circle the abandoned pot even in a normal reference round.
  var flies:=Node3D.new();flies.name="PotFlies";parent.add_child(flies)
- var fly_material:=ShaderMaterial.new();var fly_shader:=Shader.new();fly_shader.code="""
+ var fly_material:=ShaderMaterial.new();var fly_shader:=SharedShaders.of("""
 shader_type spatial;
 render_mode unshaded,depth_draw_never,cull_disabled,shadows_disabled;
 void vertex(){MODELVIEW_MATRIX=VIEW_MATRIX*mat4(INV_VIEW_MATRIX[0],INV_VIEW_MATRIX[1],INV_VIEW_MATRIX[2],MODEL_MATRIX[3]);}
 void fragment(){float body=1.-smoothstep(.12,.43,length((UV-.5)*vec2(1.4,.8)));ALBEDO=vec3(.055,.05,.035);ALPHA=body*.8;}
-""";fly_material.shader=fly_shader
+""");fly_material.shader=fly_shader
  for i in range(9):
   # Opaque subpixel spheres produced moving screen-space occlusion blotches.
   # These tiny depth-read-only sprites cannot contribute false AO/reflections.

@@ -108,9 +108,9 @@ func finish_interaction_geometry() -> void:
   if not str(seat.name).begins_with("CinemaSeat"): continue
   var surface:=StaticBody3D.new();surface.name="SeatInteractionSurface";surface.collision_layer=8;surface.collision_mask=0;seat.add_child(surface)
   for mesh in seat.find_children("*","MeshInstance3D",true,false):
-   if not mesh.is_visible_in_tree(): continue
+   if not w.shown(mesh): continue
    var key: int=mesh.mesh.get_instance_id()
-   if not shapes.has(key): shapes[key]=mesh.mesh.create_trimesh_shape()
+   if not shapes.has(key): shapes[key]=ShapeCache.trimesh(mesh.mesh)
    var shape:=CollisionShape3D.new();shape.shape=shapes[key];surface.add_child(shape);shape.transform=seat.global_transform.affine_inverse()*mesh.global_transform
 
 func _cinema() -> void:
@@ -138,12 +138,12 @@ func _cinema() -> void:
  var frame:=Node3D.new();frame.position=Vector3(3.48,1.9,-17.7);frame.rotation.y=-PI/2;add_child(frame)
  w.box(frame,Vector3(0,0,-.035),Vector3(7,2.9,.08),w.materials.dark)
  var mesh:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=Vector2(6.8,2.7);mesh.mesh=quad;mesh.position.z=.015;frame.add_child(mesh);screen_surface=mesh
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;render_mode unshaded;
 uniform sampler2D lettering:source_color;uniform float clock=0.0;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 void fragment(){vec2 uv=UV;uv.x+=sin(uv.y*29.0+clock*3.0)*.0015;float n=hash(floor(uv*vec2(640.0,270.0))+floor(clock*12.0));float stripe=sin(uv.y*840.0)*.025;float roll=1.0-smoothstep(.0,.015,abs(uv.y-fract(clock*.12)));float text=texture(lettering,uv).r;vec3 c=vec3(.07+n*.14+stripe);c=mix(c,vec3(.45),text*(.88+.07*sin(clock*9.0)));c*=1.0-roll*.45;ALBEDO=c;}
-""";screen=ShaderMaterial.new();screen.shader=shader;screen.set_shader_parameter("lettering",load("res://assets/annex/no-signal.png"));mesh.material_override=screen
+""");screen=ShaderMaterial.new();screen.shader=shader;screen.set_shader_parameter("lettering",load("res://assets/annex/no-signal.png"));mesh.material_override=screen
  # Torn velvet side curtains have sewn folds and uneven hems.
  for side in [-1,1]:
   for i in range(9):

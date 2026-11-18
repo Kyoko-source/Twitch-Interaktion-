@@ -222,7 +222,7 @@ func _physical_toys() -> void:
  CreatorPlush.place_all(self)
 
 func _mist_and_dust() -> void:
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;
 render_mode unshaded,blend_mix,depth_draw_never,cull_disabled,shadows_disabled;
 uniform float strength=0.52;
@@ -233,12 +233,12 @@ float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0)),f.x),f.y);}
 void vertex(){local_pos=VERTEX;VERTEX.y+=sin(VERTEX.x*2.0+clock*0.24)*0.035;}
 void fragment(){vec2 p=local_pos.xz*3.0+vec2(clock*0.035,-clock*0.018);float n=noise(p)*0.65+noise(p*2.3)*0.35;float rim=pow(abs(dot(normalize(NORMAL),normalize(VIEW))),2.0);ALBEDO=fog_tint;ALPHA=smoothstep(0.2,0.8,n)*rim*strength;}
-"""
+""")
  mist=ShaderMaterial.new();mist.shader=shader
  # Soft ellipsoid clouds have no hard horizontal plane intersections on walls.
  for pos in [Vector3(-5.4,.22,-7),Vector3(-5,.25,-1),Vector3(-4.7,.18,5),Vector3(2,.26,7.5),Vector3(8.5,.25,-7)]:
   var cloud:=w.sphere(self,pos,1,mist);cloud.scale=Vector3(3.9,.35,2.7);cloud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;cloud.set_meta("nonblocking_atmosphere",true)
- var dust_shader:=Shader.new();dust_shader.code="shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled,shadows_disabled;uniform float clock=0.0;void vertex(){VERTEX.x+=sin(clock*0.24+INSTANCE_CUSTOM.x*20.0)*0.14;VERTEX.y+=sin(clock*0.3+INSTANCE_CUSTOM.y*14.0)*0.16;}void fragment(){float d=length(UV-0.5);ALBEDO=vec3(0.25,0.3,0.27);ALPHA=(1.0-smoothstep(0.15,0.5,d))*0.17;}"
+ var dust_shader:=SharedShaders.of("shader_type spatial;render_mode unshaded,blend_add,depth_draw_never,cull_disabled,shadows_disabled;uniform float clock=0.0;void vertex(){VERTEX.x+=sin(clock*0.24+INSTANCE_CUSTOM.x*20.0)*0.14;VERTEX.y+=sin(clock*0.3+INSTANCE_CUSTOM.y*14.0)*0.16;}void fragment(){float d=length(UV-0.5);ALBEDO=vec3(0.25,0.3,0.27);ALPHA=(1.0-smoothstep(0.15,0.5,d))*0.17;}")
  var dust_material:=ShaderMaterial.new();dust_material.shader=dust_shader
  dust=MultiMeshInstance3D.new();var mm:=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.use_custom_data=true;var quad:=QuadMesh.new();quad.size=Vector2(.014,.014);mm.mesh=quad;mm.instance_count=100
  var rng:=RandomNumberGenerator.new();rng.seed=713

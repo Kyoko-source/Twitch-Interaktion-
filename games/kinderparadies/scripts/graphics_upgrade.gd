@@ -48,7 +48,7 @@ func _materials() -> void:
  # faces, eyes, fur, skin and existing scanned maps retain their own materials.
  var seen: Dictionary={}
  for mesh in w.find_children("*","MeshInstance3D",true,false):
-  if not mesh.is_visible_in_tree():continue
+  if not w.shown(mesh):continue
   for i in range(mesh.mesh.get_surface_count()):
    var m:=mesh.get_active_material(i) as StandardMaterial3D
    if not m or seen.has(m.get_instance_id()):continue

@@ -110,7 +110,7 @@ func _crocodile() -> void:
   var contact:=proxy.find_child(id,true,false) as MeshInstance3D
   var body:=StaticBody3D.new();body.name="CrocBodyContact" if id=="Body" else "CrocJawContact"
   (inflatable_skin if id=="Body" else croc_jaw).add_child(body);body.global_transform=contact.global_transform
-  var contact_shape:=CollisionShape3D.new();contact_shape.shape=contact.mesh.create_trimesh_shape() if id=="Body" else contact.mesh.create_convex_shape();body.add_child(contact_shape)
+  var contact_shape:=CollisionShape3D.new();contact_shape.shape=ShapeCache.trimesh(contact.mesh) if id=="Body" else contact.mesh.create_convex_shape();body.add_child(contact_shape)
  proxy.queue_free()
  var deck:=StaticBody3D.new();deck.position=Vector3(0,.52,3.35);deck.set_meta("bounce_speed",7.2);inflatable.add_child(deck)
  var shape:=CollisionShape3D.new();var bounds:=BoxShape3D.new();bounds.size=Vector3(2.45,.14,2.85);shape.shape=bounds;deck.add_child(shape)

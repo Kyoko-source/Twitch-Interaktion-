@@ -36,7 +36,7 @@ func build(w: PlayWorld) -> void:
   w.box(self,Vector3(side*(SIZE.x/2+.025),0,.016),Vector3(.05,SIZE.y+.13,.055),wood)
   w.box(self,Vector3(0,side*(SIZE.y/2+.025),.016),Vector3(SIZE.x+.13,.05,.055),wood)
  face=MeshInstance3D.new();face.name="WritableSlate";var quad:=QuadMesh.new();quad.size=SIZE;face.mesh=quad;face.position.z=.008;add_child(face)
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;
 uniform sampler2D chalk:source_color,filter_linear;
 uniform sampler2D grain:source_color,filter_linear_mipmap;
@@ -46,7 +46,7 @@ void fragment(){
  vec3 slate=mix(vec3(.065,.105,.081),vec3(.13,.17,.12),wear);
  ALBEDO=mix(slate,mark.rgb,mark.a*.90);ROUGHNESS=.98;SPECULAR=.08;
 }
-"""
+""")
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("chalk",ink);material.set_shader_parameter("grain",load("res://assets/paint.png"));face.material_override=material
  var body:=StaticBody3D.new();body.name="ChalkInteraction";body.set_meta("interaction","chalk_board");face.add_child(body)
  var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=Vector3(SIZE.x,SIZE.y,.012);shape.shape=box;body.add_child(shape)

@@ -30,7 +30,7 @@ func build(w: PlayWorld) -> void:
  # Draw on the existing wall mesh itself. Its collision, silhouette and base
  # material stay intact; there are no floating rectangular decal planes.
  for mesh in w.find_children("*","MeshInstance3D",true,false):
-  if not mesh.get_meta("architecture_wall",false) or not mesh.is_visible_in_tree():continue
+  if not mesh.get_meta("architecture_wall",false) or not w.shown(mesh):continue
   var bounds: AABB=mesh.global_transform*mesh.get_aabb()
   for spec in PATCHES:
    if not bounds.intersects(region(spec)):continue

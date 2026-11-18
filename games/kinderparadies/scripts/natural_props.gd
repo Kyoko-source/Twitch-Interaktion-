@@ -13,7 +13,7 @@ static func plant(w: PlayWorld,parent: Node3D) -> Node3D:
  w.tube(root,Vector3(0,.438,0),Vector3(0,.442,0),.245,soil)
  var stem:=w.mat(Color("586044"),null,.87)
  var veins:=w.mat(Color("889365"),null,.88)
- var material:=ShaderMaterial.new();var shader:=Shader.new();shader.code="""
+ var material:=ShaderMaterial.new();var shader:=SharedShaders.of("""
 shader_type spatial;
 render_mode cull_disabled;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -26,7 +26,7 @@ void fragment(){
  float fleck=step(.987,hash(floor(UV*vec2(75.,170.))));
  ALBEDO=pow(clamp(c,vec3(0.),vec3(1.)),vec3(2.2))*(1.-fleck*.38);ROUGHNESS=.86;SPECULAR=.17;
 }
-""";material.shader=shader
+""");material.shader=shader
  var tool:=SurfaceTool.new();tool.begin(Mesh.PRIMITIVE_TRIANGLES)
  var rng:=RandomNumberGenerator.new();rng.seed=406
  for leaf in range(19):

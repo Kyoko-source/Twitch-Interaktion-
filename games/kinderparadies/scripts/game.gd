@@ -116,8 +116,14 @@ func _build_world(anomaly: String) -> void:
  if world:
   if world.party:party_reboot_until=maxi(party_reboot_until,world.party.reboot_until)
   if world.chalk:chalk_drawing=world.chalk.serialize()
-  _stop_scene_audio(world);remove_child(world);world.queue_free()
- world=PlayWorld.new();add_child(world);world.build();_connect_world(anomaly)
+  _stop_scene_audio(world);remove_child(world);_retire_world(world)
+ world=PlayWorld.new();world.hide();add_child(world);world.build();_connect_world(anomaly);world.show()
+
+# The replaced world is freed one frame later and outside any of its own
+# signals (a round change starts inside the lift's signal).
+func _retire_world(old: Node) -> void:
+ await get_tree().process_frame
+ if is_instance_valid(old): old.free()
 
 func _connect_world(anomaly: String) -> void:
  world.set_anomaly(anomaly)

@@ -216,6 +216,16 @@ func _chalk_board() -> void:
 func build() -> void:
  for step in construction_steps():step.call()
 
+# Visible within this world, whether or not the world itself is shown yet.
+# Worlds are built hidden (4.8.1): build steps must not read the world's own
+# visibility, or a hidden build would skip everything.
+func shown(node: Node) -> bool:
+ var current: Node=node
+ while current and current!=self:
+  if current is Node3D and not (current as Node3D).visible: return false
+  current=current.get_parent()
+ return current==self
+
 func build_responsive(progress: Callable,current: Callable=Callable()) -> void:
  var steps:=construction_steps()
  for i in range(steps.size()):

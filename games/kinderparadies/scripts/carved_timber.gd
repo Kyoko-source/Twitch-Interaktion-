@@ -16,7 +16,7 @@ class CutMask extends Control:
 static func apply(board: MeshInstance3D,marks: Array[Dictionary]) -> void:
  var viewport:=SubViewport.new();viewport.name="CarvingHeightMask";viewport.size=Vector2i(1024,256);viewport.disable_3d=true;viewport.transparent_bg=true;viewport.render_target_update_mode=SubViewport.UPDATE_ONCE;board.add_child(viewport)
  var ink:=CutMask.new();ink.marks=marks;ink.size=Vector2(1024,256);viewport.add_child(ink)
- var shader:=Shader.new();shader.code="""
+ var shader:=SharedShaders.of("""
 shader_type spatial;
 uniform sampler2D wood : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D cuts : filter_linear, repeat_disable;
@@ -39,5 +39,5 @@ void fragment(){
  ROUGHNESS=mix(.94,.83,ink);
  SPECULAR=.20;
 }
-"""
+""")
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("wood",load("res://assets/wood.png"));material.set_shader_parameter("cuts",viewport.get_texture());board.material_override=material;board.set_meta("carved_wood",true)
