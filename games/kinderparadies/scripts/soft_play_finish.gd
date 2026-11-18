@@ -29,6 +29,10 @@ func build(world: PlayWorld) -> void:
  _arcade_cabinets()
  _prize_bunnies()
  _snack_machines()
+ _photo_booth()
+ _cinema_seats()
+ _washroom()
+ _popcorn_cart()
 
 # 4.12.0 craft corner: the round table and its five stools become modelled
 # furniture (tools/model-after-play-craft-corner-v4120.py); the drawing sheets
@@ -206,3 +210,148 @@ func _snack_machines() -> void:
   if mesh and absf(mesh.position.x+1.72)<.01 and absf(mesh.position.z-.30)<.01 and mesh.position.y>1. and mesh.position.y<1.2:mesh.hide()
  var napkins: Node3D=(load("res://assets/snack-v4120/napkin-dispenser.glb") as PackedScene).instantiate();napkins.name="NapkinDispenser";snack.add_child(napkins);napkins.position=Vector3(-1.72,1.02,.30);napkins.rotation.y=.2
  snack.set_meta("modelled_slush",machines)
+
+# 4.13.0 photo booth and token changer: modelled two-tone cabin with camera
+# window, flash panel, coin validator, output tray, pleated backdrop, swivel
+# stool and sample strips; a red change machine with a lit bill slot and a coin
+# cup (tools/model-after-play-photobooth-v4130.py). The sign, the curtain and its
+# rail, the forgotten photo strip, the cut cables, the light and every old
+# collision stay.
+const BOOTH_RETIRED:=[Vector3(0,.10,0),Vector3(0,1.21,-.60),Vector3(-.77,1.21,0),Vector3(.77,1.21,0),Vector3(0,2.32,0),Vector3(-.48,1.04,.05),Vector3(.28,.48,-.18),Vector3(.02,.315,-.31),Vector3(.54,.315,-.31),Vector3(-.48,1.44,.645),Vector3(-.48,1.45,.69),Vector3(-.48,1.45,.717),Vector3(-.48,1.0,.66),Vector3(-.56,.79,.675),Vector3(-.40,.79,.675)]
+func _photo_booth() -> void:
+ var booth: Node3D=w.life.booth if w.life else null
+ if booth:
+  var hidden:=0
+  for child in booth.get_children():
+   var mesh:=child as MeshInstance3D
+   if not mesh:continue
+   for spot: Vector3 in BOOTH_RETIRED:
+    if mesh.position.distance_to(spot)<.02:mesh.hide();hidden+=1;break
+  var model: Node3D=(load("res://assets/booth-v4130/photo-booth.glb") as PackedScene).instantiate();model.name="ModelledPhotoBooth";booth.add_child(model)
+  _age_paint(model)
+  # The forgotten strip now lies on the new, higher stool seat.
+  for child in booth.get_children():
+   if child is Node3D and child.position.distance_to(Vector3(.31,.54,-.07))<.02:child.position.y+=.077
+  booth.set_meta("retired_parts",hidden)
+ var change:=w.venue.find_child("ArcadeTokenExchange",true,false) as Node3D if w.venue else null
+ if change:
+  for child in change.get_children():
+   if child is MeshInstance3D and not child.mesh is TextMesh:child.hide()
+   elif child is MeshInstance3D:child.material_override=w.mat(Color("4a1712"),null,.8)
+  var changer: Node3D=(load("res://assets/booth-v4130/token-changer.glb") as PackedScene).instantiate();changer.name="ModelledTokenChanger";change.add_child(changer)
+  _age_paint(changer)
+
+# Old enamel: chipped paint texture, scuffs, a little dust on the painted parts.
+func _age_paint(model: Node3D) -> void:
+ var paint:=load("res://assets/paint.png")
+ for mesh: MeshInstance3D in model.find_children("*","MeshInstance3D",true,false):
+  for i in range(mesh.mesh.get_surface_count()):
+   var m:=mesh.get_active_material(i) as StandardMaterial3D
+   if not m or not ("Red" in m.resource_name or "Cream" in m.resource_name or "Enamel" in m.resource_name):continue
+   var aged:=m.duplicate() as StandardMaterial3D;aged.albedo_texture=paint;aged.albedo_color=m.albedo_color.darkened(.12);aged.uv1_triplanar=true;aged.uv1_scale=Vector3.ONE*1.4
+   aged.normal_enabled=true;aged.normal_texture=w.atmosphere.micro_normal;aged.normal_scale=.25;aged.roughness=.62
+   mesh.set_surface_override_material(i,aged)
+
+const ANNEX_ART:="res://assets/annex-v4130/"
+
+func _instance(file: String, parent: Node3D, title: String) -> Node3D:
+ var node: Node3D=(load(ANNEX_ART+file) as PackedScene).instantiate();node.name=title;parent.add_child(node);return node
+
+func _surfaces(model: Node3D, callback: Callable) -> void:
+ for mesh: MeshInstance3D in model.find_children("*","MeshInstance3D",true,false):
+  for i in range(mesh.mesh.get_surface_count()):
+   var m:=mesh.get_active_material(i) as StandardMaterial3D
+   if m:
+    var replacement: Material=callback.call(m)
+    if replacement:mesh.set_surface_override_material(i,replacement)
+
+# 4.13.0 cinema: tip-up seats with cast-iron standards, wooden arm pads,
+# rolled cushions and channel-tufted backs; every fifth one is split open.
+# Number plates, cup holders, pockets and both colliders stay.
+const SEAT_RETIRED:=[Vector3(0,.46,0),Vector3(-.37,.68,.02),Vector3(.37,.68,.02),Vector3(-.28,.25,0),Vector3(.28,.25,0),Vector3(.13,.56,.1)]
+func _cinema_seats() -> void:
+ if not w.annex:return
+ var velvet:=w.polish.pbr("fabric_pattern_07",Color("792e39"),3.2);velvet.normal_scale=.38;velvet.roughness=.9
+ var stained:=velvet.duplicate() as StandardMaterial3D;stained.albedo_color=Color("5e2a30")
+ var index:=0
+ for seat in w.annex.get_children():
+  if not seat.get_meta("cinema_seat",false):continue
+  for child in seat.get_children():
+   if child is MeshInstance3D:
+    for spot: Vector3 in SEAT_RETIRED:
+     if child.position.distance_to(spot)<.02:child.hide();break
+   elif child is Node3D and child.position.distance_to(Vector3(0,.87,-.27))<.02:
+    for mesh in child.get_children():
+     if mesh is MeshInstance3D:mesh.hide()
+  var model:=_instance("cinema-seat-torn.glb" if index%5==2 else "cinema-seat.glb",seat,"ModelledCinemaSeat")
+  var fabric: StandardMaterial3D=stained if index%3==1 else velvet
+  _surfaces(model,func(m):return fabric if m.resource_name=="SeatVelvet" else null)
+  index+=1
+ w.annex.set_meta("modelled_seats",index)
+
+func _glaze(m: StandardMaterial3D) -> Material:
+ if not ("Porcelain" in m.resource_name):return null
+ var p:=m.duplicate() as StandardMaterial3D;p.clearcoat_enabled=true;p.clearcoat=1.;p.clearcoat_roughness=.15
+ if not p.albedo_texture:p.albedo_color=Color(.86,.85,.8)
+ return p
+
+# 4.13.0 washroom: porcelain toilets, wall basins with pillar taps (one cracked,
+# one dripping), soap dispensers and graffiti on the cubicle laminate.
+func _washroom() -> void:
+ var bath: Node3D=w.life.bathroom if w.life else null
+ if not bath:return
+ var counts:={"toilets":0,"basins":0,"soap":0,"doors":0}
+ var laminate:=StandardMaterial3D.new();laminate.albedo_texture=load(ANNEX_ART+"cubicle-graffiti.png");laminate.uv1_triplanar=true;laminate.uv1_scale=Vector3.ONE*.42;laminate.roughness=.5;laminate.albedo_color=Color(.86,.9,.84)
+ laminate.normal_enabled=true;laminate.normal_texture=w.atmosphere.micro_normal;laminate.normal_scale=.2;laminate.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+ for child in bath.get_children():
+  if not child is Node3D:continue
+  var at: Vector3=child.position
+  if not child is MeshInstance3D and absf(at.z-9.66)<.05 and (absf(at.x-23.5)<.05 or absf(at.x-25.7)<.05):
+   for mesh in child.find_children("*","MeshInstance3D",true,false):mesh.hide()
+   _surfaces(_instance("child-toilet.glb",child,"PorcelainToilet"),_glaze);counts.toilets+=1
+  elif not child is MeshInstance3D and absf(at.z-5.68)<.05 and not child is Decal:
+   for mesh: MeshInstance3D in child.find_children("*","MeshInstance3D",true,false):
+    if absf(mesh.position.y-1.26)>.01:mesh.hide()
+   var cracked:=absf(at.x-23.1)<.05
+   _surfaces(_instance("washbasin-cracked.glb" if cracked else "washbasin.glb",child,"PorcelainBasin"),_glaze);counts.basins+=1
+   if absf(at.x-24.7)<.05:_drip(child)
+  elif child is MeshInstance3D and absf(at.y-1.18)<.01 and absf(at.z-5.26)<.01:
+   child.hide()
+   var soap:=_instance("soap-dispenser.glb",bath,"SoapDispenser");soap.transform=child.transform;counts.soap+=1
+  elif child is MeshInstance3D and ((absf(at.z-9.2)<.01 and absf(at.y-1.2)<.01) or str(child.name)=="LockedCubicleDoor"):
+   child.material_override=laminate;counts.doors+=1
+  elif str(child.name)=="OpenCubicleDoor":
+   for mesh in child.get_children():
+    if mesh is MeshInstance3D and (mesh as MeshInstance3D).mesh.get_aabb().size.x>1.:
+     mesh.material_override=laminate;counts.doors+=1
+ bath.set_meta("washroom_upgrade",counts)
+
+# A drop forms at the spout, falls into the basin and repeats.
+func _drip(basin: Node3D) -> void:
+ var drop:=MeshInstance3D.new();drop.name="TapDrip";var sphere:=SphereMesh.new();sphere.radius=.006;sphere.height=.014;drop.mesh=sphere
+ var water:=StandardMaterial3D.new();water.albedo_color=Color(.8,.9,.95,.5);water.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;water.roughness=.02;water.metallic_specular=1.;drop.material_override=water
+ drop.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;basin.add_child(drop);drop.position=Vector3(0,.875,-.03)
+ var tween:=drop.create_tween().set_loops()
+ tween.tween_property(drop,"scale",Vector3.ONE,1.6).from(Vector3.ONE*.2)
+ tween.tween_property(drop,"position:y",.6,.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+ tween.tween_callback(func():drop.position.y=.875;drop.scale=Vector3.ONE*.2)
+ tween.tween_interval(.6)
+
+func _cart_material(m: StandardMaterial3D, glass: Material) -> Material:
+ if m.resource_name=="CartGlass":return glass
+ if m.resource_name=="CartRed":
+  var r:=m.duplicate() as StandardMaterial3D;r.albedo_texture=load("res://assets/paint.png");r.uv1_triplanar=true;r.uv1_scale=Vector3.ONE*1.5;return r
+ return null
+
+# 4.13.0 popcorn wagon: spoked wheels, push handle, gold-striped apron, glass
+# cabinet, copper kettle and a domed roof; label, popcorn and cups stay.
+func _popcorn_cart() -> void:
+ var cart:=w.find_child("ForgottenPopcornTrolley",true,false) as Node3D
+ if not cart:return
+ for child in cart.get_children():
+  if child is MeshInstance3D and child.name!="PrintedLabel" and absf(child.position.y-.40)>.01:child.hide()
+  elif str(child.name)=="ColdPopcornKettle":child.hide()
+ var glass:=StandardMaterial3D.new();glass.albedo_color=Color(.6,.68,.62,.12);glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS;glass.roughness=.08;glass.metallic_specular=.9;glass.cull_mode=BaseMaterial3D.CULL_DISABLED
+ var model:=_instance("popcorn-cart.glb",cart,"ModelledPopcornWagon")
+ _surfaces(model,_cart_material.bind(glass))
+ cart.set_meta("modelled_wagon",true)

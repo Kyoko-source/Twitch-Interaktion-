@@ -74,7 +74,10 @@ func run(game: Node3D, verify: Callable) -> void:
  game._build_world("service_pursuit");game._resume();game.player.active=false
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  var pursuer: NightTerrors=game.world.terrors;pursuer.actor.position=Vector3(-9.75,0,-7);pursuer.triggered=true;game.player.position=Vector3(-12,0,-7)
- for i in range(60): pursuer.tick(1.0/60,true,game.player)
+ # Random strike delay since 4.9.2: watch for up to four seconds.
+ for i in range(240):
+  pursuer.tick(1.0/60,true,game.player)
+  if pursuer.lunged:break
  # 4.9.2: the pursuer never runs through rooms any more; it appears at the guard, never inside a wall.
  var near: float=pursuer.actor.global_position.distance_to(game.player.global_position)
  var probe:=PhysicsShapeQueryParameters3D.new();var body:=CapsuleShape3D.new();body.radius=.15;body.height=1.2;probe.shape=body

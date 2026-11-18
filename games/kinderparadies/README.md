@@ -1,5 +1,25 @@
 # After Play — Kinderparadies
 
+## Fotobox, Kino und Waschraum aufgewertet (4.13.0)
+
+- Fotobox: zweifarbige 70er-Kabine mit Chromleiste und Dachkappe, rundem
+  Kamerafenster, Blitzfeld, Münzprüfer, Fotoausgabe, Faltenvorhang-Hintergrund,
+  Drehhocker und Musterfotos an der Seite; der vergessene Fotostreifen liegt auf
+  dem Hocker (`tools/model-after-play-photobooth-v4130.py`).
+- Jetonautomat: roter Wechsler mit leuchtendem Schild, grün beleuchtetem
+  Scheinschlitz, Münzschlitz, Schloss und Münzschale mit ein paar Jetons.
+- Kino: alle 24 Sitze als Klappsitze mit Gusseisen-Seitenteilen, Holz-Armlehnen,
+  gerolltem Polster und abgestepptem Rücken; jeder fünfte ist aufgerissen und
+  zeigt Schaumstoff. Nummern, Becherhalter und Kollisionen bleiben.
+- Popcornwagen: Speichenräder, Schiebegriff, Schublade mit Goldlinie,
+  Glaskasten, Kupferkessel und Kuppeldach.
+- Waschraum: Kindertoiletten aus Porzellan mit Kalkrand, Sitz, Deckel und
+  Spülkasten; Waschbecken mit Säulenhahn, Kreuzgriffen und Siphon, Rost am
+  Abfluss, eines gesprungen, an einem tropft der Hahn; Seifenspender mit
+  Sichtfenster; Kinderkritzeleien auf den Kabinenwänden
+  (`tools/model-after-play-annex-v4130.py`,
+  `tools/make-after-play-cubicle-graffiti-v4130.py`).
+
 ## Arcade-Ecke und Snackbar aufgewertet (4.12.1)
 
 - Die zwei Arcade-Automaten „Lunar Orbit“ und „Star Hopper“ sind modelliert:
