@@ -14,6 +14,11 @@ func run(game: Node3D,verify: Callable) -> void:
  var tube_bounds:=AABB();first=true
  for mesh in w.tubes.find_children("*","MeshInstance3D",true,false):
   var b: AABB=mesh.global_transform*mesh.get_aabb();tube_bounds=b if first else tube_bounds.merge(b);first=false
+ # 4.12.0: modelled cabinets and plush prize bunnies.
+ for id in ["Arcade_arcade","Arcade_orbit"]:
+  var c:=w.details.find_child(id,true,false)
+  verify.call(c.has_meta("modelled_cabinet") and c.has_node("ModelledArcadeCabinet"),"Arcade cabinet is not the modelled one: "+id)
+ verify.call(int(w.details.find_child("ArcadePrizeCabinet",true,false).get_meta("plush_prizes",0))==8,"The prize cabinet does not hold eight plush bunnies")
  for name in ["Arcade_arcade","Arcade_orbit","ArcadePrizeCabinet"]:
   var cabinet:=w.details.find_child(name,true,false)
   for mesh in cabinet.find_children("*","MeshInstance3D",true,false):

@@ -11,6 +11,7 @@ func run(game: Node3D,verify: Callable) -> void:
  var snack:=w.life.snack
  verify.call(snack.global_position.distance_to(HappylandLife.SNACK_POS)<.001 and snack.global_position.z<1.,"Snackbar is still in the main hall")
  verify.call(snack.get_children().filter(func(node):return node.get_meta("slush_dispenser",false)).size()==2,"Snackbar relocation lost a dispenser")
+ verify.call(int(snack.get_meta("modelled_slush",0))==2 and snack.has_node("NapkinDispenser"),"The snack bar machines are not the modelled ones (4.12.0)")
  verify.call(w.life.clear_pose(Vector3(16.95,0,16.24)) and not w.life.clear_pose(snack.global_position),"Snackbar collision or old saved-position bounds were not moved")
  var fresco:=w.find_child("TheFourEmptyChairs",true,false) as Node3D
  verify.call(fresco.position.y-1.9>2.0,"Snackbar machines obscure the bottom of the wall painting")
@@ -35,5 +36,9 @@ func run(game: Node3D,verify: Callable) -> void:
   var terror: NightTerrors=game.world.terrors;var shape:=terror.actor.get_child(1) as CollisionShape3D
   var query:=PhysicsShapeQueryParameters3D.new();query.shape=shape.shape;query.transform=shape.global_transform;query.collision_mask=1;query.exclude=[guard.get_rid(),terror.actor.get_rid()]
   verify.call(game.get_world_3d().direct_space_state.intersect_shape(query,8).is_empty(),"Moved party encounter spawns in furniture: "+id)
-  guard.position=terror.origin+Vector3(0,0,-1.8);guard.camera.look_at(terror.focus_point());terror.tick(1,true,guard)
+  guard.position=terror.origin+Vector3(0,0,-1.8);guard.camera.look_at(terror.focus_point())
+  # Visitors strike after a random delay since 4.9.2.
+  for step in range(40):
+   terror.tick(.1,true,guard)
+   if terror.triggered:break
   verify.call(terror.triggered,"Moved party encounter has no working sightline: "+id)

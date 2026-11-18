@@ -26,6 +26,9 @@ func build(world: PlayWorld) -> void:
  _post_caps()
  _play_mats()
  _craft_corner()
+ _arcade_cabinets()
+ _prize_bunnies()
+ _snack_machines()
 
 # 4.12.0 craft corner: the round table and its five stools become modelled
 # furniture (tools/model-after-play-craft-corner-v4120.py); the drawing sheets
@@ -134,3 +137,72 @@ static func wear() -> NoiseTexture2D:
  wear_map=NoiseTexture2D.new();wear_map.width=512;wear_map.height=512;wear_map.seamless=true;wear_map.noise=noise
  var ramp:=Gradient.new();ramp.set_color(0,Color(.38,.38,.38));ramp.set_color(1,Color(.98,.98,.98));wear_map.color_ramp=ramp
  return wear_map
+
+# 4.12.0 arcade lounge: both cabinets become modelled machines with printed
+# side art, T-moulding, bezel, control panel and a lit coin door
+# (tools/model-after-play-arcade-v4120.py). The animated CRT picture and the
+# marquee print stay; the old collision shell stays as it was.
+func _arcade_cabinets() -> void:
+ if not w.details:return
+ for id in ["arcade","orbit"]:
+  var root:=w.details.find_child("Arcade_"+id,true,false) as Node3D
+  if not root:continue
+  for mesh: MeshInstance3D in root.find_children("*","MeshInstance3D",true,false):
+   if not (mesh.material_override is ShaderMaterial or mesh.name=="PrintedLabel" or mesh.get_parent().name=="PrintedLabel"):mesh.hide()
+  var model: Node3D=(load("res://assets/arcade-v4120/arcade-cabinet-%s.glb"%id) as PackedScene).instantiate();model.name="ModelledArcadeCabinet";root.add_child(model)
+  root.set_meta("modelled_cabinet",true)
+
+# 4.12.0 prize cabinet: the stacked-sphere toys become plush bunnies with a
+# floppy ear, button eyes and a stitched smile, in the old toy colours.
+func _prize_bunnies() -> void:
+ var cabinet:=w.details.find_child("ArcadePrizeCabinet",true,false) as Node3D if w.details else null
+ if not cabinet:return
+ var scene:=load("res://assets/arcade-v4120/prize-bunny.glb") as PackedScene
+ var fuzz:=load("res://assets/pbr/fabric_pattern_07/normal.jpg")
+ var colours:=[Color("b39a5e"),Color("6c8f87"),Color("a8675e")]
+ var index:=0
+ for toy in cabinet.get_children():
+  if not toy is Node3D or toy.find_children("*","MeshInstance3D",false,false).size()<4:continue
+  if not toy.get_child(0).mesh is SphereMesh:continue
+  for mesh: MeshInstance3D in toy.find_children("*","MeshInstance3D",false,false):mesh.hide()
+  var column:=roundi((toy.position.x+.4)/.26)
+  var bunny: Node3D=scene.instantiate();bunny.name="PlushPrizeBunny";toy.add_child(bunny)
+  bunny.rotation=Vector3(0,(index%3-1)*.25,(index%2*2-1)*.06);bunny.scale=Vector3.ONE*(1.05+(index%3)*.06)
+  for mesh: MeshInstance3D in bunny.find_children("*","MeshInstance3D",true,false):
+   for i in range(mesh.mesh.get_surface_count()):
+    var m:=mesh.get_active_material(i) as StandardMaterial3D
+    if m and m.resource_name=="PlushFur":
+     var fur:=m.duplicate() as StandardMaterial3D;fur.albedo_color=colours[column%3];fur.normal_enabled=true;fur.normal_texture=fuzz;fur.normal_scale=.6
+     fur.uv1_triplanar=true;fur.uv1_scale=Vector3.ONE*14;fur.roughness=1.;fur.metallic_specular=.2;fur.rim_enabled=true;fur.rim=.22;fur.rim_tint=.7
+     mesh.set_surface_override_material(i,fur)
+  index+=1
+ cabinet.set_meta("plush_prizes",index)
+
+# 4.12.0 snack bar: modelled slush machines with clear bowls, cooling drum,
+# auger and dried syrup crust in their old flavours, and a chrome napkin
+# dispenser instead of the stacked blocks (tools/model-after-play-slush-v4120.py).
+func _snack_machines() -> void:
+ var snack: Node3D=w.life.snack if w.life else null
+ if not snack:return
+ var glass:=StandardMaterial3D.new();glass.albedo_color=Color(.55,.64,.62,.09);glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+ glass.roughness=.06;glass.metallic_specular=.9;glass.cull_mode=BaseMaterial3D.CULL_DISABLED
+ var machines:=0
+ for machine in snack.get_children():
+  if not machine.get_meta("slush_dispenser",false):continue
+  for mesh: MeshInstance3D in machine.find_children("*","MeshInstance3D",true,false):mesh.hide()
+  var model: Node3D=(load("res://assets/snack-v4120/slush-machine.glb") as PackedScene).instantiate();model.name="ModelledSlushMachine";machine.add_child(model)
+  var flavour:=Color("b8483a") if "Cherry" in str(machine.name) else Color("86a650")
+  for mesh: MeshInstance3D in model.find_children("*","MeshInstance3D",true,false):
+   for i in range(mesh.mesh.get_surface_count()):
+    var m:=mesh.get_active_material(i) as StandardMaterial3D
+    if not m:continue
+    if m.resource_name=="SlushBowl":mesh.set_surface_override_material(i,glass);mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    elif m.resource_name=="SlushCrust":
+     var c:=m.duplicate() as StandardMaterial3D;c.albedo_color=flavour;c.albedo_texture=load("res://assets/aged-plaster.png");c.roughness=.8;c.clearcoat_enabled=true;c.clearcoat=.3
+     mesh.set_surface_override_material(i,c)
+  machines+=1
+ for child in snack.get_children():
+  var mesh:=child as MeshInstance3D
+  if mesh and absf(mesh.position.x+1.72)<.01 and absf(mesh.position.z-.30)<.01 and mesh.position.y>1. and mesh.position.y<1.2:mesh.hide()
+ var napkins: Node3D=(load("res://assets/snack-v4120/napkin-dispenser.glb") as PackedScene).instantiate();napkins.name="NapkinDispenser";snack.add_child(napkins);napkins.position=Vector3(-1.72,1.02,.30);napkins.rotation.y=.2
+ snack.set_meta("modelled_slush",machines)

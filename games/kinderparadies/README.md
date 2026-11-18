@@ -1,5 +1,22 @@
 # After Play — Kinderparadies
 
+## Arcade-Ecke und Snackbar aufgewertet (4.12.1)
+
+- Die zwei Arcade-Automaten „Lunar Orbit“ und „Star Hopper“ sind modelliert:
+  bedruckte, ausgeblichene Seitenkunst (Ringplanet, Komet), Kantenschutz,
+  Bildschirmrahmen, bedrucktes Bedienfeld mit Kugel-Joystick und drei Knöpfen,
+  Chrom-Münztür mit leuchtenden Münzschlitzen, Lüftungsblech und
+  Lautsprechergitter. Das animierte Bild bleibt
+  (`tools/model-after-play-arcade-v4120.py`).
+- Preisautomat: acht Plüschhasen mit Schlappohr, Knopfaugen, gesticktem
+  Lächeln und Puschelschwanz statt Kugelfiguren
+  (`tools/model-after-play-prize-bunny-v4120.py`).
+- Snackbar: Slush-Maschinen mit Edelstahlsockel, klarem Behälter, Kühlwalze,
+  Förderspirale, eingetrockneter Sirupkruste (Kirsche, Waldmeister), Zapfhahn
+  und Tropfgitter; Chrom-Serviettenspender (`tools/model-after-play-slush-v4120.py`).
+- Test: Die Gestalt vor der Snackbar wird jetzt bis zu vier Sekunden
+  beobachtet (zufälliger Angriffszeitpunkt seit 4.9.2).
+
 ## Details der Nacht und aufgewertete Räume (4.12.0)
 
 Böden und Licht:
