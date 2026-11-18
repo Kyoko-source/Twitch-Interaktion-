@@ -1,5 +1,24 @@
 # After Play — Kinderparadies
 
+## Stromausfall als Event-Anomalie (4.9.0)
+
+Neue Anomalie „Stromausfall“ (Wartungsgang). Etwa sechs Sekunden nach
+Rundenbeginn flackert das Licht und fällt aus: alle Lampen, Grundlicht,
+Nebelleuchten, leuchtende Schilder, Bildschirme, Displays, Partymodus,
+Kinofilm und Maschinengeräusche. Nur die Taschenlampe bleibt.
+
+- Die rote Tür bleibt zu („Ohne Strom bleibt die Tür zu“), bis der neue
+  Hauptschalter am Schaltschrank im Wartungsraum wieder umgelegt ist. Eine rot
+  blinkende Lampe und Knistern führen dorthin.
+- Im Dunkeln steigt die Angst: lauteres, schnelleres Atmen, zitternde Kamera,
+  häufiger flackernde Taschenlampe. Nach 40 Sekunden springt eine Gestalt
+  schreiend ins Gesicht, danach beginnen die 40 Sekunden von vorn.
+- Mit dem Strom kehren Licht, Maschinen und ein zuvor laufender Partymodus
+  zurück. Speichern und Laden mitten im Ausfall setzen ihn fort.
+- Testcode am Archivschloss: `40404040`.
+
+Prüfung: `--self-test --blackout-only` (`scripts/power_blackout.gd`).
+
 ## Kürzere Ladezeiten beim Rundenwechsel (4.8.1)
 
 Zwischen zwei Runden wird die Welt neu gebaut. Das Spiel stand dabei 3,6 bis
