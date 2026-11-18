@@ -17,7 +17,8 @@ func build(world: PlayWorld) -> void:
  var env:=w.environment.environment
  env.ambient_light_energy=.088;env.ambient_light_color=Color("6a7d88")
  env.volumetric_fog_ambient_inject=.055;env.volumetric_fog_density=.036
- env.volumetric_fog_albedo=Color("cfd6d2");env.volumetric_fog_anisotropy=.62;env.volumetric_fog_detail_spread=1.4
+ env.volumetric_fog_albedo=Color("cfd6d2");env.volumetric_fog_anisotropy=.62;env.volumetric_fog_detail_spread=2.
+ env.volumetric_fog_temporal_reprojection_enabled=true;env.volumetric_fog_temporal_reprojection_amount=.92
  env.glow_enabled=true;env.glow_intensity=.62;env.glow_strength=1.05;env.glow_bloom=.035;env.glow_hdr_threshold=.95
  env.glow_blend_mode=Environment.GLOW_BLEND_MODE_SCREEN
  env.ssao_enabled=true;env.ssao_intensity=1.9;env.ssao_power=1.35;env.ssao_radius=.6;env.ssao_light_affect=.12
@@ -37,6 +38,10 @@ func build(world: PlayWorld) -> void:
  # lamps. The guard's torch has its own beam; party lights keep their show.
  for light: Light3D in w.find_children("*","Light3D",true,false):
   if w.party.is_ancestor_of(light) or light.light_energy<.25:continue
+  # Small lamps tucked against walls and ceilings (the kitchen hood) only
+  # produce blocky, shimmering froxels in the fog: they stay without a cone.
+  var reach:=(light as OmniLight3D).omni_range if light is OmniLight3D else (light as SpotLight3D).spot_range
+  if reach<8.:continue
   var amount:=1.9 if light is SpotLight3D else .75
   cones.append({"light":light,"amount":amount,"before":light.light_volumetric_fog_energy})
   light.light_volumetric_fog_energy=maxf(light.light_volumetric_fog_energy,amount)
@@ -118,6 +123,9 @@ func _decals() -> void:
 func quality(value: int) -> void:
  if not advanced:return
  # Soft shadow filtering only where it is affordable; cones are lighter on Medium.
+ # A finer fog grid on High keeps light shafts smooth instead of chequered.
+ RenderingServer.environment_set_volumetric_fog_volume_size(160 if value==2 else 64,128 if value==2 else 64)
+ RenderingServer.environment_set_volumetric_fog_filter_active(true)
  RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_HIGH if value==2 else RenderingServer.SHADOW_QUALITY_SOFT_LOW)
  for cone in cones:
   if is_instance_valid(cone.light):cone.light.light_volumetric_fog_energy=cone.amount*(1. if value==2 else .6) if value>0 else cone.before

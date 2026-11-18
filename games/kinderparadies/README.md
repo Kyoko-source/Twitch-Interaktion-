@@ -1,5 +1,41 @@
 # After Play — Kinderparadies
 
+## Details der Nacht und aufgewertete Räume (4.12.0)
+
+Böden und Licht:
+- Spielhallenboden aus EVA-Puzzlematten (60 cm) in verblassten Farben mit
+  durchgehenden Puzzle-Nasen, Schmutz in den Fugen, glänzend abgelaufenem Weg,
+  alten Kaugummis und Schuhstreifen (`assets/look-v4120/playmat.gdshader`).
+- Zwei defekte Leuchtstoffröhren (Serverraum, Flur) flackern in Schüben, der
+  Starter klickt hörbar (`scripts/night_details.gd`).
+- Regen auf den Scheiben: Tropfen und Rinnsale, die bei Blitzen aufleuchten.
+- Kein Funkeln mehr zwischen Clown und Abzugshaube: kleine Lampen werfen keine
+  Lichtkegel mehr in den Nebel, das Nebelraster ist auf „Hoch“ feiner.
+
+Details der Nacht:
+- Der Wachmann hinterlässt Schuhabdrücke im Staub, abwechselnd links und rechts.
+- Flüstern: Wer länger als sieben Sekunden still steht, hört manchmal leises
+  Flüstern aus einer anderen Ecke.
+- Neue Anomalie „Kinderspuren“ im Bällebad: eine Spur kleiner nackter Füße.
+- Neue Anomalie „Kalter Atem“ in der Küche: Raureif, kaltes Licht und sichtbarer
+  Atem des Wachmanns nur in der Küche.
+
+Aufgewertete Gegenstände:
+- Bastelecke im Feierraum: runder Basteltisch mit Kreidekritzeleien, Kleberingen
+  und Gummikante, Kinderhocker mit Sitzschale, Kinderzeichnungen auf vergilbtem
+  Papier (`tools/model-after-play-craft-corner-v4120.py`).
+- Kostümraum: die sieben leeren Maskottchen-Anzüge per Stoffsimulation entleert,
+  schlaff an Holzbügeln, die Füße sacken auf dem Boden zusammen
+  (`tools/model-after-play-costume-room-v4120.py`).
+- Schminktisch mit Schminkpalette, offener Puderdose, Pinselbecher, Haarspray,
+  Lippenstift und Styroporkopf mit Clownsperücke; vier leuchtende Glühbirnen,
+  eine durchgebrannt. Die Kreidetafel zeigt verwischte alte Kreidereste.
+- Alte schwarze Nähmaschine mit Goldlinien statt Klotz
+  (`tools/model-after-play-dressing-v4120.py`).
+
+Bildkontrolle: `--render-qa --heroprops-qa [--only=costume]`, `--details-qa`.
+Test: `--self-test --night-details-only`.
+
 ## Großes Grafik-Update (4.11.0)
 
 Licht und Kamera:

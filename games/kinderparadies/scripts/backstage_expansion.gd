@@ -42,7 +42,7 @@ func build(world: PlayWorld) -> void:
  scare_audio=AudioStreamPlayer3D.new();scare_audio.name="CostumeSting";scare_audio.stream=ScareBank.flat("costume_wakes");scare_audio.unit_size=5;scare_audio.max_distance=12;scare_audio.volume_db=-4;scare_audio.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(scare_audio)
 
 func model(parent: Node3D, file: String, pos: Vector3, yaw: float=0) -> Node3D:
- var instance: Node3D=(load(ROOT+file+".glb") as PackedScene).instantiate();parent.add_child(instance);instance.position=pos;instance.rotation.y=yaw
+ var instance: Node3D=(load(file if file.begins_with("res://") else ROOT+file+".glb") as PackedScene).instantiate();parent.add_child(instance);instance.position=pos;instance.rotation.y=yaw
  for mesh in instance.find_children("*","MeshInstance3D",true,false):
   for i in range(mesh.mesh.get_surface_count()):
    var m:=mesh.get_active_material(i) as StandardMaterial3D
@@ -126,8 +126,9 @@ func _costume_room() -> void:
   var root:=Node3D.new();root.name="HangingCostume%02d"%i;room.add_child(root)
   root.position=Vector3(12.4+i*1.26,.24,-18.02) if i<5 else Vector3(11.9,.24,-15.7+(i-5)*1.8)
   root.rotation.y=0 if i<5 else PI/2
-  var body:=model(root,"empty-costume",Vector3.ZERO);body.name="EmptyClothBody"
-  var head:=model(root,"costume-mask",Vector3(0,2.02,0));head.name="CostumeHead";masks.append(head);costumes.append(root)
+  # 4.12.0: cloth-simulated empty suits hanging limp from a wooden hanger.
+  var body:=model(root,"res://assets/costume-v4120/hanging-suit-%s.glb"%"abc"[[0,2,1,2,0,1,2][i]],Vector3.ZERO);body.name="EmptyClothBody"
+  var head:=model(root,"costume-mask",Vector3(0,1.9,0));head.name="CostumeHead";masks.append(head);costumes.append(root)
   var tint: Color=[Color("b5ac8f"),Color("a5aaa3"),Color("a9907c"),Color("c1b493"),Color("a7b0a5"),Color("b4a487"),Color("8d9a96")][i]
   for mesh in root.find_children("*","MeshInstance3D",true,false):
    for s in range(mesh.mesh.get_surface_count()):
@@ -135,10 +136,6 @@ func _costume_room() -> void:
     if material and "canvas" in material.resource_name: material.albedo_color*=tint
   if i==1: head.hide() # One empty collar makes the arrangement less uniform.
   solid(root,Vector3(0,1.16,0),Vector3(.85,1.95,.55),"CostumeSolid")
-  w.tube(root,Vector3(0,2.54,-.03),Vector3(0,2.36,-.03),.013,w.materials.metal)
-  for side in [-1,1]:
-   w.tube(root,Vector3(0,2.36,-.03),Vector3(side*.30,1.62,-.03),.012,w.materials.metal)
-   w.tube(root,Vector3(side*.30,1.62,-.03),Vector3(0,1.62,-.03),.012,w.materials.metal)
   head.rotation.z=(-.07 if i%2 else .12);root.set_meta("hanging_costume",true)
  # A dressing counter is anchored against the east wall, clear of the aisle.
  var vanity:=Node3D.new();vanity.name="BackstageDressingTable";vanity.position=Vector3(19.22,.2,-15.0);vanity.rotation.y=-PI/2;room.add_child(vanity)

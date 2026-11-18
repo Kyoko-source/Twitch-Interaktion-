@@ -1,6 +1,8 @@
 shader_type spatial;
 render_mode depth_prepass_alpha,cull_disabled;
 uniform float clock=0.;
+// 4.11.x storm: lightning lights up the water on the glass for a moment.
+uniform float flash=0.;
 // A punched-through pane: jagged hole plus radial and concentric cracks.
 uniform bool broken=false;
 uniform vec2 hole=vec2(.5);
@@ -36,10 +38,16 @@ void fragment(){
  float column=floor(p.x*96.);float drop_phase=fract(clock*(.012+hash(vec2(column,8.))*.023)+hash(vec2(column,3.)));
  float rivulet=exp(-pow((fract(p.x*96.)-.5)*17.,2.))*smoothstep(.0,.07,drop_phase-p.y)*(1.-smoothstep(.28,.40,drop_phase-p.y));
  float grime=clamp(edge*.65+smudge*.40,0.,.85);
+ // Rain beads: a sparse grid of round drops, some sliding slowly down.
+ vec2 bead_grid=vec2(52.,110.);vec2 cell=floor(p*bead_grid);float seed=hash(cell);
+ vec2 local=fract(p*bead_grid)-.5;local.y+=(seed>.8?fract(clock*.03*seed+seed*7.)*1.-.5:0.);
+ float bead=(seed>.55?1.:0.)*(1.-smoothstep(.18,.32,length(local*vec2(1.,.7))));
+ float glint=bead*smoothstep(.1,.0,length(local-vec2(-.08,.1)));
  ALBEDO=mix(mix(vec3(.20,.27,.25),vec3(.19,.15,.09),grime),vec3(.78,.80,.76),crack);
  ROUGHNESS=mix(mix(.075,.65,grime),.25,crack);SPECULAR=mix(.30,.6,crack);METALLIC=0.;CLEARCOAT=.25;CLEARCOAT_ROUGHNESS=.18;
  float fresnel=pow(1.-clamp(dot(NORMAL,VIEW),0.,1.),4.);
- ALPHA=clamp(.035+grime*.28+fresnel*.20+rivulet*.08+crack*.65,.035,.8);
- NORMAL_MAP=normalize(vec3(sin(p.x*603.+noise(p*20.)*2.)*.018*rivulet,cos(p.y*279.)*.008,1.))*.5+.5;
+ ALPHA=clamp(.035+grime*.28+fresnel*.20+rivulet*.16+bead*.12+crack*.65,.035,.8);
+ EMISSION=vec3(.72,.8,1.)*flash*(rivulet*1.6+bead*1.2+glint*3.+.06);
+ NORMAL_MAP=normalize(vec3(sin(p.x*603.+noise(p*20.)*2.)*.018*rivulet+local.x*bead*.6,cos(p.y*279.)*.008+local.y*bead*.6,1.))*.5+.5;
  NORMAL_MAP_DEPTH=.30;
 }

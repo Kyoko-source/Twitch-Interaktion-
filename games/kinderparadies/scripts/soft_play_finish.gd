@@ -24,6 +24,60 @@ func build(world: PlayWorld) -> void:
  _party_table()
  _stereo()
  _post_caps()
+ _play_mats()
+ _craft_corner()
+
+# 4.12.0 craft corner: the round table and its five stools become modelled
+# furniture (tools/model-after-play-craft-corner-v4120.py); the drawing sheets
+# show real children's drawings on aged paper. Collisions stay as they were.
+func _craft_corner() -> void:
+ var party: Node3D=w.props.get("party_dressing")
+ if not party:return
+ var centre:=Vector3(13.7,0,-3.8)
+ var seats: Array=[]
+ var sheet:=0
+ for child in party.get_children():
+  if not child is MeshInstance3D:continue
+  var mesh: MeshInstance3D=child;var p: Vector3=mesh.position
+  var tube:=mesh.mesh as CylinderMesh
+  if mesh.name=="RoundActivityTable":mesh.hide();continue
+  if tube and absf(tube.top_radius-.04)<.001 and Vector2(p.x-centre.x,p.z-centre.z).length()<1.:mesh.hide();continue
+  if tube and absf(tube.top_radius-.23)<.001 and Vector2(p.x-centre.x,p.z-centre.z).length()<1.7:seats.append({"p":Vector3(p.x,0,p.z),"m":mesh.material_override});mesh.hide();continue
+  if tube and absf(tube.top_radius-.025)<.001 and p.y<.4 and Vector2(p.x-centre.x,p.z-centre.z).length()<1.8:mesh.hide();continue
+  if mesh.material_override==w.materials.get("paper") and absf(p.y-.67)<.01 and Vector2(p.x-centre.x,p.z-centre.z).length()<1.:
+   mesh.hide();_drawing(party,mesh,sheet);sheet+=1
+ var table: Node3D=(load("res://assets/party-v4120/craft-table.glb") as PackedScene).instantiate();table.name="CraftTable";party.add_child(table);table.position=centre
+ for seat in seats:
+  var stool: Node3D=(load("res://assets/party-v4120/kid-stool.glb") as PackedScene).instantiate();stool.name="KidStool";party.add_child(stool);stool.position=seat.p
+  stool.rotation.y=atan2(centre.x-seat.p.x,centre.z-seat.p.z)
+  var colour:Color=(seat.m as StandardMaterial3D).albedo_color if seat.m is StandardMaterial3D else Color("c9a245")
+  for part: MeshInstance3D in stool.find_children("*","MeshInstance3D",true,false):
+   for i in range(part.mesh.get_surface_count()):
+    var m:=part.mesh.surface_get_material(i) as StandardMaterial3D
+    if m and m.resource_name=="StoolSeat":
+     var tinted:=m.duplicate() as StandardMaterial3D;tinted.albedo_color=colour;part.set_surface_override_material(i,tinted)
+ set_meta("craft_stools",seats.size());set_meta("craft_sheets",sheet)
+
+func _drawing(parent: Node3D,old: MeshInstance3D,index: int) -> void:
+ var paper:=MeshInstance3D.new();paper.name="ChildDrawingSheet";var quad:=PlaneMesh.new();quad.size=Vector2(.28,.32);paper.mesh=quad
+ var m:=ShaderMaterial.new();m.shader=load("res://assets/child-art-v382/aged-paper.gdshader")
+ m.set_shader_parameter("drawings",load("res://assets/child-art-v382/crayon-atlas.png"));m.set_shader_parameter("cell",Vector2(index%3,(index/3)%3))
+ m.set_shader_parameter("age",.85);m.set_shader_parameter("seed",float(index))
+ paper.material_override=m;parent.add_child(paper);paper.position=old.position+Vector3(0,.003,0);paper.rotation=old.rotation
+
+# 4.12.0: interlocking foam puzzle mats over the bare concrete of the southern
+# play area (ball pit, slide, crocodile). Reception and corridors keep their
+# concrete; the rubber safety floor under the climbing frame lies above them.
+const MAT_ZONE:=Rect2(-3.6,1.6,23.2,15.3)
+func _play_mats() -> void:
+ var plane:=PlaneMesh.new();plane.size=MAT_ZONE.size
+ var mats:=MeshInstance3D.new();mats.name="FoamPuzzleMats";mats.mesh=plane
+ var shader:=ShaderMaterial.new();shader.shader=load("res://assets/look-v4120/playmat.gdshader");mats.material_override=shader
+ mats.position=Vector3(MAT_ZONE.get_center().x,.017,MAT_ZONE.get_center().y);mats.set_meta("foot_surface","rubber");add_child(mats)
+ # A worn aluminium edge strip where the mats meet the concrete.
+ var trim:=w.mat(Color("8d918c"),null,.4,.85)
+ w.box(self,Vector3(MAT_ZONE.position.x,.019,MAT_ZONE.get_center().y),Vector3(.05,.01,MAT_ZONE.size.y),trim)
+ w.box(self,Vector3(MAT_ZONE.get_center().x,.019,MAT_ZONE.position.y),Vector3(MAT_ZONE.size.x,.01,.05),trim)
 
 # Soft-play posts end in a domed padded cap, never a cut-off tube.
 func _post_caps() -> void:

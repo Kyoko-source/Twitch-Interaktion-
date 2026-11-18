@@ -40,11 +40,22 @@ func build(w: PlayWorld) -> void:
 shader_type spatial;
 uniform sampler2D chalk:source_color,filter_linear;
 uniform sampler2D grain:source_color,filter_linear_mipmap;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}
+float fbm(vec2 p){return noise(p)*.5+noise(p*2.1)*.27+noise(p*4.3)*.15+noise(p*8.9)*.08;}
 void fragment(){
  vec4 mark=texture(chalk,UV);
  float wear=texture(grain,UV*2.0).r;
  vec3 slate=mix(vec3(.065,.105,.081),vec3(.13,.17,.12),wear);
- ALBEDO=mix(slate,mark.rgb,mark.a*.90);ROUGHNESS=.98;SPECULAR=.08;
+ // 4.12.0: years of wiping: sweeping ghost arcs of old chalk, a dusty lower
+ // edge where it settles, and a few faint half-erased letters.
+ vec2 p=UV*vec2(2.1,1.);
+ float sweep=smoothstep(.5,.8,fbm(vec2(p.x*1.6+sin(p.y*5.)*.35,p.y*7.)+3.));
+ float scrawl=smoothstep(.83,.9,noise(UV*vec2(70.,32.)))*smoothstep(.55,.7,fbm(UV*4.+11.));
+ float dust=smoothstep(.75,1.,UV.y)*(.6+fbm(UV*vec2(40.,8.))*.6);
+ float ghost=clamp(sweep*.11+scrawl*.06+dust*.2,0.,.35);
+ slate=mix(slate,vec3(.62,.64,.58),ghost);
+ ALBEDO=mix(slate,mark.rgb,mark.a*.90);ROUGHNESS=.98-ghost*.1;SPECULAR=.08;
 }
 """)
  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("chalk",ink);material.set_shader_parameter("grain",load("res://assets/paint.png"));face.material_override=material

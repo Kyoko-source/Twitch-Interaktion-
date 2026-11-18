@@ -14,7 +14,7 @@ static func build(b: BackstageExpansion, room: Node3D) -> void:
   for z in [-.4,.4]: w.box(bench,Vector3(x,.40,z),Vector3(.08,.8,.08),iron,true)
  w.box(bench,Vector3(0,.21,0),Vector3(2.9,.06,.85),faded)
  # Modelled sewing machine: bed, upright, overhanging arm, needle and flywheel.
- var machine:=Node3D.new();machine.position=Vector3(-.86,.90,0);bench.add_child(machine)
+ var machine:=Node3D.new();machine.name="PrimitiveSewingMachine";machine.position=Vector3(-.86,.90,0);bench.add_child(machine)
  w.box(machine,Vector3(0,.035,0),Vector3(.65,.07,.34),iron)
  w.box(machine,Vector3(.22,.22,0),Vector3(.14,.4,.21),iron)
  w.box(machine,Vector3(-.02,.41,0),Vector3(.54,.13,.2),iron)
@@ -66,5 +66,33 @@ static func build(b: BackstageExpansion, room: Node3D) -> void:
   if i==3: b.masks[i].rotation.z=.36
   if i==6: b.masks[i].hide();costume.position.z-=.4
   # Yellowed identity tags are attached to the chest, rather than floating text.
-  var tag:=w.box(costume,Vector3(.17,1.43,.27),Vector3(.09,.13,.008),w.materials.cream);tag.rotation.z=.12
+  var tag:=w.box(costume,Vector3(.17,1.43,.205),Vector3(.09,.13,.008),w.materials.cream);tag.rotation.z=.12
   for k in range(3): w.box(tag,Vector3(0,.025-k*.025,.006),Vector3(.056,.005,.002),iron)
+
+ _upgrade(b,room,bench,machine)
+
+const ART:="res://assets/costume-v4120/"
+
+# 4.12.0: a modelled sewing machine, the make-up counter's clutter and bulbs
+# that actually glow above the chalk slate.
+static func _upgrade(b: BackstageExpansion, room: Node3D, bench: Node3D, machine: Node3D) -> void:
+ var w:=b.w
+ for mesh in machine.find_children("*","MeshInstance3D",true,false):mesh.hide()
+ var sewing: Node3D=(load(ART+"sewing-machine.glb") as PackedScene).instantiate();sewing.name="SewingMachine";bench.add_child(sewing);sewing.position=Vector3(-.86,.885,0)
+ var vanity:=room.get_node("BackstageDressingTable") as Node3D
+ var bulbs:=0
+ for child in vanity.get_children():
+  var mesh:=child as MeshInstance3D
+  if not mesh:continue
+  var at:=mesh.position
+  if mesh.mesh is SphereMesh and at.y>2.:mesh.hide()
+ var clutter: Node3D=(load(ART+"vanity-clutter.glb") as PackedScene).instantiate();clutter.name="MakeupClutter";vanity.add_child(clutter);clutter.position=Vector3(0,.86,.03)
+ var lit:=w.mat(Color("fff1d6"));lit.emission_enabled=true;lit.emission=Color("ffcf8a");lit.emission_energy_multiplier=2.2
+ var dead:=w.mat(Color("6d6a62"),null,.2,.1)
+ var socket:=w.mat(Color("8b7f6a"),null,.4,.7)
+ for i in range(5):
+  var x:=-.85+i*.425
+  w.tube(vanity,Vector3(x,2.08,-.19),Vector3(x,2.11,-.19),.022,socket)
+  var bulb:=w.sphere(vanity,Vector3(x,2.15,-.19),.042,dead if i==3 else lit);bulb.set_meta("vanity_bulb",i!=3);bulbs+=int(i!=3)
+ var glow:=OmniLight3D.new();glow.name="VanityBulbGlow";glow.light_color=Color("ffd59a");glow.light_energy=.5;glow.omni_range=2.8;glow.position=Vector3(0,2.05,.2);vanity.add_child(glow)
+ vanity.set_meta("lit_bulbs",bulbs)

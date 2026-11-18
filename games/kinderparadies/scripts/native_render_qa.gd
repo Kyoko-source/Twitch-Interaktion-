@@ -88,7 +88,7 @@ func run(game: Node3D) -> void:
   # Close looks at the hero props, framed from their bounding boxes.
   game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
   var w: PlayWorld=game.world
-  var targets:={"chairs":w.props.chairs,"stereo":w.find_child("OldHappylandStereo",true,false),"snackbar":w.find_child("ClosedHappylandSnackBar",true,false),"stage":w.find_child("BirthdayStage",true,false),"easttower":w.find_child("EastTower",true,false),"structure":w.props.structure,"arcade":w.find_child("ArcadeLounge",true,false),"photobooth":w.find_child("AbandonedPhotoBooth",true,false),"emptychairs":w.find_child("TheFourEmptyChairs",true,false),"bridge":w.find_child("ConnectingBridge",true,false),"pit":w.props.pit}
+  var targets:={"chairs":w.props.chairs,"stereo":w.find_child("OldHappylandStereo",true,false),"snackbar":w.find_child("ClosedHappylandSnackBar",true,false),"stage":w.find_child("BirthdayStage",true,false),"easttower":w.find_child("EastTower",true,false),"structure":w.props.structure,"arcade":w.find_child("ArcadeLounge",true,false),"photobooth":w.find_child("AbandonedPhotoBooth",true,false),"emptychairs":w.find_child("TheFourEmptyChairs",true,false),"bridge":w.find_child("ConnectingBridge",true,false),"pit":w.props.pit,"mats":w.finish.get_node("FoamPuzzleMats")}
   var cam:=Camera3D.new();w.add_child(cam);cam.fov=60;cam.make_current()
   w.environment.environment.ambient_light_energy=.5
   var flood:=OmniLight3D.new();w.add_child(flood);flood.omni_range=14;flood.light_energy=1.6;flood.light_color=Color("fff4e6")
@@ -100,6 +100,7 @@ func run(game: Node3D) -> void:
     if not m.is_visible_in_tree():continue
     var b2:=m.global_transform*m.get_aabb();box=b2 if first else box.merge(b2);first=false
    var c:=box.get_center();var r:=maxf(1.2,box.size.length()*.55)
+   if key=="mats":c=Vector3(8.,0,13.5);r=2.6
    cam.global_position=c+Vector3(r*.55,r*.45,r*.8);cam.look_at(c,Vector3.UP);flood.global_position=cam.global_position+Vector3(0,1,0)
    print("CLOSEUP ",key," center ",c," size ",box.size)
    await capture(game,output,"closeup-"+key)
@@ -128,10 +129,30 @@ func run(game: Node3D) -> void:
   # Hero props from where the guard actually stands.
   game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false);game.notice_time=0;game.notice.hide()
   for i in range(20):await game.get_tree().process_frame
-  for shot in [["snackbar",Vector3(10.5,0,-4.2),Vector3(10.5,1.2,0)],["arcade",Vector3(8.4,0,11.6),Vector3(8.4,1.3,15.6)],["photobooth",Vector3(13.3,0,13.2),Vector3(13.3,1.2,16.3)],["bunting",Vector3(9.,0,-4.),Vector3(13,2.6,-11)]]:
+  for shot in [["craft-corner",Vector3(12.,0,-1.6),Vector3(13.7,.45,-3.8)],["kitchen-hood",Vector3(-10.9,0,-28.6),Vector3(-13.4,2.3,-31.3)],["floor-a",Vector3(6.,0,15.),Vector3(10.,0,9.5)],["floor-b",Vector3(-3.,0,13.5),Vector3(4.,0,11.)],["snackbar",Vector3(10.5,0,-4.2),Vector3(10.5,1.2,0)],["arcade",Vector3(8.4,0,11.6),Vector3(8.4,1.3,15.6)],["photobooth",Vector3(13.3,0,13.2),Vector3(13.3,1.2,16.3)],["bunting",Vector3(9.,0,-4.),Vector3(13,2.6,-11)],["costume-rack",Vector3(15.,0,-14.2),Vector3(14.6,1.4,-18.)],["costume-close",Vector3(14.9,0,-16.3),Vector3(14.7,1.3,-18.)],["costume-side",Vector3(14.5,0,-15.2),Vector3(11.9,1.3,-15.)],["costume-vanity",Vector3(16.6,0,-15.),Vector3(19.2,1.2,-15.)],["costume-bench",Vector3(14.6,0,-14.6),Vector3(13.5,.9,-13.2)]]:
+   var only:=Array(OS.get_cmdline_user_args()).filter(func(a):return a.begins_with("--only="))
+   if only.size() and not shot[0].begins_with(only[0].substr(7)):continue
    game.player.position=shot[1];game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(shot[2])
    for i in range(30):await game.get_tree().process_frame
    await capture(game,output,"props-"+shot[0])
+  game.get_tree().quit();return
+ if "--details-qa" in OS.get_cmdline_user_args():
+  # 4.12.0 night details: the children's trail, the cold kitchen breath.
+  for id in [NightDetails.FOOTPRINT_ID,NightDetails.BREATH_ID]:
+   game._new_shift();game.intro.skip();game.state.current=id;game._build_world(id);game._resume()
+   game.player.active=false;game.player.set_physics_process(false);game.notice_time=0;game.notice.hide();game.set_process(false)
+   var helper:=OmniLight3D.new();game.world.add_child(helper);helper.light_energy=1.2;helper.omni_range=7
+   if id==NightDetails.FOOTPRINT_ID:
+    game.player.position=Vector3(2.6,0,7.6);helper.global_position=Vector3(4.6,2.2,12.)
+    game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(Vector3(4.7,0,12.4))
+   else:
+    var k:=NightDetails.KITCHEN.get_center();game.player.position=Vector3(k.x+1.5,0,k.y+2.);helper.global_position=Vector3(k.x,2.,k.y);helper.light_energy=.5
+    game.player.rotation=Vector3.ZERO;game.player.camera.position=Vector3(0,1.65,0);game.player.camera.look_at(Vector3(k.x-2.,1.4,k.y-3.))
+   for i in range(25):await game.get_tree().process_frame
+   if id==NightDetails.BREATH_ID:
+    game.world.night.breath_clock=0.;game.world.night._breathe(.1,game.player)
+    for i in range(14):await game.get_tree().process_frame
+   await capture(game,output,"details-"+id)
   game.get_tree().quit();return
  if "--storm-qa" in OS.get_cmdline_user_args():
   # Lightning through the parking window, in normal light and in a power cut.

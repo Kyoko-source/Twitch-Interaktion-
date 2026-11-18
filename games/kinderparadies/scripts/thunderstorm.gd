@@ -12,12 +12,17 @@ var flares: Array[SpotLight3D]=[]
 var clock:=-1.
 var strength:=0.
 var flashes:=0
+# Window glass whose rain lights up with each flash.
+var panes: Array[ShaderMaterial]=[]
 
 func build(world: PlayWorld) -> void:
  w=world;name="ThunderstormOverHappyland"
  var exterior: HappylandExterior=w.graphics.exterior if w.graphics else null
  if exterior and exterior.window_light:
   _flare("LightningThroughParkingWindow",exterior.window_light.global_transform)
+ for mesh: MeshInstance3D in w.find_children("*","MeshInstance3D",true,false):
+  var glass:=mesh.material_override as ShaderMaterial
+  if glass and glass.shader and glass.shader.resource_path.ends_with("glazing.gdshader") and glass not in panes:panes.append(glass)
  if w.backstage and w.backstage.exit_root:
   var root: Node3D=w.backstage.exit_root
   var at:=root.to_global(Vector3(0,2.7,-7.6));var aim:=root.to_global(Vector3(.2,.2,-1.))
@@ -42,6 +47,7 @@ func _process(delta: float) -> void:
   if clock>=a[0] and clock<b[0]:level=a[1];break
  if clock>=PATTERN[-1][0]:clock=-1.;level=0.
  for light in flares:light.light_energy=level*lerpf(6.,34.,strength)
+ for glass in panes:glass.set_shader_parameter("flash",level*lerpf(.3,1.,strength))
 
 func snapshot() -> Dictionary:
- return {"flares":flares.size(),"flashes":flashes,"flashing":clock>=0}
+ return {"flares":flares.size(),"panes":panes.size(),"flashes":flashes,"flashing":clock>=0}

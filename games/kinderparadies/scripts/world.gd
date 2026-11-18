@@ -35,6 +35,7 @@ var blackout: PowerBlackout
 var look: LookPass
 var finish: SoftPlayFinish
 var storm: Thunderstorm
+var night: NightDetails
 var room_horror: RoomHorror
 var archive: LostArchive
 var terrors: NightTerrors
@@ -208,6 +209,7 @@ func construction_steps() -> Array[Callable]:
   _module.bind(CreatureFoley,"creature_audio"),
   _module.bind(SoftPlayFinish,"finish"),
   _module.bind(Thunderstorm,"storm"),
+  _module.bind(NightDetails,"night"),
   _module.bind(LookPass,"look"),
   _occluders]
 
@@ -578,6 +580,7 @@ func set_anomaly(id: String) -> void:
  elif id=="star_giant": props.stars.get_child(0).scale=Vector3.ONE*4
  # Last: the horse clears the red lock for every other round first.
  blackout.configure(id)
+ night.configure(id)
 
 # Event anomalies that keep the red door shut until they are dealt with.
 func red_locked() -> bool:

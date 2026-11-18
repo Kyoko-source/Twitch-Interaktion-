@@ -118,6 +118,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/horse_catch_validation.gd").new().run(game,check)
   print("Horse contact checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--night-details-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/night_details_validation.gd").new().run(game,check)
+  print("Night details checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--plush-ending-only" in OS.get_cmdline_user_args():
   await load("res://scripts/plush_ending_validation.gd").new().run(game,check)
   print("Plush ending checks: ",checks,"; failures: ",failures.size())
