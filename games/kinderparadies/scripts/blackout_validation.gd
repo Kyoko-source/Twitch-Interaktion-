@@ -31,9 +31,9 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(scared and power.scares==1 and power.scream.playing,"No jumpscare after 40 seconds in the dark")
  for i in range(60):power.step(dt,true,game.player)
  verify.call(not power.visitor.visible and power.phase=="dark" and power.fear<.1,"Jumpscare does not end, or brings the power back by itself")
- game.player.position=Vector3(-15.85,0,-5.75);game.player.rotation.y=0
+ game.player.position=Vector3(-15.65,0,-5.75);game.player.rotation.y=0
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
- var eye: Vector3=game.player.camera.global_position;var aim:=Vector3(-15.85,.9,-6.55)
+ var eye: Vector3=game.player.camera.global_position;var aim:=Vector3(-15.65,1.05,-6.55)
  game.player.camera.rotation=Vector3(atan2(aim.y-eye.y,Vector2(aim.x-eye.x,aim.z-eye.z).length()),0,0)
  await game.get_tree().physics_frame
  verify.call(game._target()=="power_lever","Main breaker cannot be aimed at from in front of the cabinet")

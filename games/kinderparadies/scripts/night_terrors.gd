@@ -81,6 +81,22 @@ var splash: AudioStreamPlayer3D
 var pit_box:=AABB()
 # Ground visitors: [freeze before the dash, dash speed m/s, reach that starts the face lunge].
 const CHARGE:={"pursuit":[.12,7.2,1.45],"rush":[0.,9.,1.45],"ambush":[0.,8.,1.4],"peek":[.22,7.5,1.45],"crawl":[.14,6.,1.35],"queue":[.32,7.,1.45]}
+# 4.9.2 jumpscare overhaul: nothing stands around waiting any more and nothing
+# announces itself. Roaming visitors are unseen until they strike: once the
+# guard is in their room, after a random beat, running feet come from behind
+# or the side, the torch dies for a heartbeat and the visitor is in their face.
+# Hanging visitors drop in right where the guard is looking. Visitors bound to
+# an object (pot, cake, ball pit, throne, tube, vent) stay hidden until the
+# guard is right there. Only the claw marks are left as the clue.
+const ROAMING:=["pursuit","rush","ambush","peek","crawl","queue","crossing"]
+const DROPPING:=["ceiling","drop"]
+const ROOM_REACH:=6.5
+var strike_delay:=1.5
+var presence:=0.0
+var rush_left:=-1.0
+var rush_from:=Vector3.ZERO
+var rope_top:=7.29
+var placed:=false
 
 func build(world: PlayWorld) -> void:
  w=world;name="NightTerrors"
@@ -160,6 +176,13 @@ func configure(value: String) -> void:
  if spec.mode=="vent": marker.position=Vector3(-1.3,.025,-20.15)+ServiceAnnex.OFFSET
  if spec.mode in ["tube","window"]: marker.position=CrawlTubes.route(path_s)+Vector3(0,-.74,0);marker.hide()
  if spec.mode=="pit": _pit_clue()
+ # Unseen until the strike: no figure, no rope, no echo gives it away.
+ actor.hide()
+ for echo in echoes: echo.hide()
+ if tether: tether.hide()
+ if rope: rope.hide()
+ if spec.mode in DROPPING: rope_top=float(spec.get("ceiling",7.29))
+ strike_delay=randf_range(.6,2.6);presence=0.;rush_left=-1.;placed=false
 
 func tick(delta: float, active: bool, player: NightGuard) -> void:
  audio.stream_paused=not active
@@ -170,30 +193,37 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
  if spec.is_empty(): return
  var in_tube:=w.tubes.contains_original(player.position)
  if spec.mode in ["tube","window"]:
-  actor.visible=in_tube and not vanished;marker.visible=in_tube
+  actor.visible=in_tube and triggered and not vanished;marker.visible=in_tube
  if not active: return
  elapsed+=delta;shock=move_toward(shock,0,delta*2.2)
  var target:=focus_point()
  var eligible:=in_tube if spec.mode in ["tube","window"] else true
- # Close trigger radius: the visitor waits until you are really near it.
- var radius:=trigger_radius()
- var seen:=not triggered and eligible and w.encounters.visible_to(player,target,radius+2.6)
- if seen and not primed and elapsed>.25:
-  primed=true;anticipation.position=target;anticipation.play()
- # A visitor you stare at from further away comes for you after a moment.
- stare=stare+delta if seen and primed else maxf(0,stare-delta*2)
- var close:=eligible and w.encounters.visible_to(player,target,radius)
- var stared: bool=stare>(1.5 if spec.mode=="peek" else 2.1) and (spec.mode in CHARGE or spec.mode in ["crossing","pit"])
- if not triggered and elapsed>.8 and (close or stared):
-  triggered=true;attack=0;audio.position=target;ScareBank.play(audio);anticipation.stop();shock=1.0
-  # The vent strike is the horse skull alone; its placeholder visitor must stay hidden.
-  if spec.mode!="vent":actor.show()
-  if spec.mode in ["ceiling","drop"]:
+ var strike:=false
+ if not triggered and elapsed>.25:
+  if spec.mode in ROAMING or spec.mode in DROPPING:
+   # In the room, not necessarily looking: after a random beat it comes.
+   presence=presence+delta if _in_room(player) else maxf(0,presence-delta*.5)
+   strike=presence>=strike_delay
+  else:
+   # Bound to its object: only when the guard is right at it, no warning.
+   strike=eligible and w.encounters.visible_to(player,target,trigger_radius())
+ if not triggered and strike:
+  triggered=true;attack=0;anticipation.stop();shock=1.0
+  if spec.mode in DROPPING:_drop_in_front(player)
+  audio.position=actor.global_position if spec.mode in DROPPING else target
+  if spec.mode not in ROAMING:ScareBank.play(audio)
+  # The vent strike is the horse skull alone; roaming visitors show at the lunge.
+  if spec.mode!="vent" and spec.mode not in ROAMING:actor.show()
+  if spec.mode in DROPPING:
+   if tether:tether.show()
+   if rope:rope.show()
    # Hanging guests shriek right into your ear, not a distant low drone.
    scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
+   if player.torch_body:player.torch_body.trigger()
   if spec.mode=="pit":
    # Bones cracking out of the balls and a shriek right in your ear.
    scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);player.fright=maxf(player.fright,1.)
+  elif spec.mode not in ROAMING and spec.mode not in DROPPING and player.torch_body:player.torch_body.trigger()
  if not triggered:
   if spec.mode!="pit": visual.rotation.y=sin(elapsed*.53)*.12
   if primed and spec.mode not in ["hands","pit","window","vent"]:
@@ -204,7 +234,7 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   return
  if finished: footsteps.stop();return
  footsteps.position=actor.position
- if spec.mode in ["pursuit","crawl","crossing","tube","rush","ambush","peek","queue"] and lunge_at<0 and not footsteps.playing:
+ if spec.mode=="tube" and lunge_at<0 and not footsteps.playing:
   footsteps.volume_db=-6;footsteps.pitch_scale=1.3 if spec.mode in ["rush","ambush","crossing"] else 1.15;footsteps.play()
  attack+=delta
  if warning_light: warning_light.light_energy=maxf(0,(1-attack/1.0))*.8
@@ -237,8 +267,7 @@ func trigger_radius() -> float:
 func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
  # Hard ceiling: no encounter can ever hang around after its scare.
  if attack>4.5: _vanish(player);return
- if spec.mode in CHARGE: _charge(delta,player);return
- if spec.mode=="crossing": _cross(delta,player);return
+ if spec.mode in ROAMING: _unseen_dash(delta,player);return
  if spec.mode=="pit": _pit(player);return
  if spec.mode=="throne":
   var k:=1.-pow(1.-clampf(attack/.16,0,1),4)
@@ -251,7 +280,7 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
   var f:=clampf(attack/.26,0,1);var fall:=f*f
   if attack>.26: fall=1.+sin((attack-.26)*24.)*exp(-(attack-.26)*6.)*.14
   actor.position.y=origin.y-fall*minf(1.25,maxf(0,origin.y-2.15))
-  var ceiling:=Vector3(origin.x,7.29,origin.z)
+  var ceiling:=Vector3(origin.x,rope_top,origin.z)
   tether.position=(ceiling+actor.position)*.5;(tether.mesh as CylinderMesh).height=ceiling.distance_to(actor.position)
   visual.rotation.z=PI+sin(attack*19)*maxf(0,1.2-attack)*.22
   for i in range(arms.size()):arms[i].rotation.x=-1.4*f+sin(attack*27.+i)*.18
@@ -359,6 +388,67 @@ func _cross(delta: float, player: NightGuard) -> void:
  visual.position.y=absf(sin(stride))*.06;visual.rotation=Vector3(-.3,0,sin(stride*.5)*.06)
  for i in range(arms.size()):arms[i].rotation.x=sin(stride+i*PI)*.9
  if attack>.62 or to_player.length()<1.: _vanish(player)
+
+# The guard is in this visitor's room: close by, on the same level and with a
+# clear line to the spot, so a wall never lets it strike from the next room.
+func _in_room(player: NightGuard) -> bool:
+ var floor_y:=marker.global_position.y
+ var flat:=Vector2(player.position.x-origin.x,player.position.z-origin.z)
+ if flat.length()>ROOM_REACH or absf(player.position.y-floor_y)>2.4:return false
+ # Tucked between racks or bars: right next to it always counts.
+ if flat.length()<2.2:return true
+ var spot:=Vector3(origin.x,floor_y+1.4,origin.z)
+ var query:=PhysicsRayQueryParameters3D.create(player.camera.global_position,spot,1);query.exclude=[player.get_rid(),actor.get_rid()]
+ return player.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+# Unseen dash: feet race in from behind or the side, the torch dies for a
+# heartbeat, then the visitor is a forearm's length from the guard's face.
+func _unseen_dash(delta: float,player: NightGuard) -> void:
+ if lunge_at>=0:
+  _face_lunge(player,9.,0.);return
+ if rush_left<0:
+  rush_left=randf_range(.38,.7)
+  var back:=player.camera.global_basis.z;back.y=0;back=back.normalized() if back.length()>.1 else Vector3.BACK
+  rush_from=back.rotated(Vector3.UP,randf_range(-1.2,1.2))*4.
+  footsteps.volume_db=-2;footsteps.pitch_scale=1.35;footsteps.play()
+ rush_left-=delta
+ var k:=1.-clampf(rush_left/.7,0,1)
+ footsteps.global_position=player.global_position+rush_from*(1.-k*.85)+Vector3(0,1.,0)
+ if rush_left<=.14 and player.torch_body:player.torch_body.trigger()
+ if rush_left>0:return
+ footsteps.stop()
+ # Appear just outside arm's reach in front and close the gap in a blink.
+ var eye:=player.camera.global_transform;var forward:=-eye.basis.z;forward.y=0;forward=forward.normalized() if forward.length()>.1 else Vector3.FORWARD
+ var reach:=_clear_ahead(player,forward,1.9)
+ actor.global_position=Vector3(eye.origin.x,player.global_position.y,eye.origin.z)+forward*reach
+ actor.rotation.y=atan2(-forward.x,-forward.z)
+ for echo in echoes:echo.hide()
+ actor.show();audio.global_position=actor.global_position+Vector3(0,1.5,0);ScareBank.play(audio)
+ _start_lunge(player)
+
+# Hanging visitors fall in right where the guard is looking, at their own height.
+func _drop_in_front(player: NightGuard) -> void:
+ if placed:return
+ placed=true
+ var eye:=player.camera.global_transform;var forward:=-eye.basis.z;forward.y=0;forward=forward.normalized() if forward.length()>.1 else Vector3.FORWARD
+ var reach:=_clear_ahead(player,forward,1.15)
+ var spot:=Vector3(eye.origin.x,0,eye.origin.z)+forward*reach
+ var up:=PhysicsRayQueryParameters3D.create(Vector3(spot.x,eye.origin.y,spot.z),Vector3(spot.x,eye.origin.y+7.,spot.z),1);up.exclude=[player.get_rid(),actor.get_rid()]
+ var hit:=player.get_world_3d().direct_space_state.intersect_ray(up)
+ rope_top=hit.position.y if hit else minf(7.29,rope_top)
+ origin=Vector3(spot.x,minf(origin.y,rope_top-.05),spot.z)
+ actor.position=origin;actor.rotation.y=atan2(-forward.x,-forward.z)
+ if rope:
+  rope.queue_free();rope=w.tube(self,Vector3(origin.x,rope_top,origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
+ if tether:
+  tether.position=(Vector3(origin.x,rope_top,origin.z)+origin)*.5;(tether.mesh as CylinderMesh).height=rope_top-origin.y
+
+# Free floor ahead of the guard, up to `wanted` metres, never inside a wall.
+func _clear_ahead(player: NightGuard,forward: Vector3,wanted: float) -> float:
+ var from:=player.global_position+Vector3(0,1.,0)
+ var query:=PhysicsRayQueryParameters3D.create(from,from+forward*wanted,1);query.exclude=[player.get_rid(),actor.get_rid()]
+ var hit:=player.get_world_3d().direct_space_state.intersect_ray(query)
+ return maxf(.55,from.distance_to(hit.position)-.3) if hit else wanted
 
 func _free(direction: Vector3) -> float:
  var from:=actor.global_position+Vector3(0,.9,0)

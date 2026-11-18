@@ -35,6 +35,15 @@ func run(game: Node3D) -> void:
     game.player.look_at(Vector3(at.x,game.player.global_position.y,at.z));game.player.camera.look_at(at,Vector3.UP)
     await capture(game,output,shot[1])
   game.get_tree().quit();return
+ if "--breaker-qa" in OS.get_cmdline_user_args():
+  # 4.9.2: the main breaker sits clear of the workbench, seen from the room.
+  game._build_world("none");game._resume();game.player.active=false;game.player.set_physics_process(false);game.set_process(false)
+  var lever: Vector3=PowerBlackout.CABINET+PowerBlackout.LEVER_OFFSET+Vector3(0,.95,.05)
+  for shot in [[Vector3(.55,0,1.35),"breaker-00-approach"],[Vector3(0,0,.95),"breaker-01-front"]]:
+   game.player.global_position=Vector3(lever.x,0,lever.z)+shot[0];game.player.lamp.show()
+   game.player.look_at(Vector3(lever.x,game.player.global_position.y,lever.z));game.player.camera.look_at(lever,Vector3.UP)
+   await capture(game,output,shot[1])
+  game.get_tree().quit();return
  if "--load-qa" in OS.get_cmdline_user_args():
   await load("res://scripts/load_benchmark.gd").new().run(game,output)
   game.get_tree().quit();return

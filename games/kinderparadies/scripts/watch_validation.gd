@@ -97,7 +97,9 @@ func run(game: Node3D, verify: Callable) -> void:
   verify.call(found,"No walkable viewpoint can see the encounter trigger: "+id)
   if found:
    terror.elapsed=0;terror.triggered=false;terror.finished=false;terror.attack=0
-   terror.tick(.9,true,game.player)
+   for i in range(40):
+    terror.tick(.1,true,game.player)
+    if terror.triggered:break
    verify.call(terror.triggered,"The real proximity/visibility trigger fails: "+id)
   if id=="vent_strike": verify.call(terror.marker.position.z< -30,"Vent scare remnant lost the cinema's offset")
  game.player.set_crouch(false)

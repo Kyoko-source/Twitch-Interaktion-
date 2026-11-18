@@ -75,6 +75,10 @@ func run(game: Node3D, verify: Callable) -> void:
  await game.get_tree().physics_frame;await game.get_tree().physics_frame
  var pursuer: NightTerrors=game.world.terrors;pursuer.actor.position=Vector3(-9.75,0,-7);pursuer.triggered=true;game.player.position=Vector3(-12,0,-7)
  for i in range(60): pursuer.tick(1.0/60,true,game.player)
- verify.call(pursuer.actor.position.x> -10.05,"Pursuer passes through the west wall")
+ # 4.9.2: the pursuer never runs through rooms any more; it appears at the guard, never inside a wall.
+ var near: float=pursuer.actor.global_position.distance_to(game.player.global_position)
+ var probe:=PhysicsShapeQueryParameters3D.new();var body:=CapsuleShape3D.new();body.radius=.15;body.height=1.2;probe.shape=body
+ probe.transform=Transform3D(Basis(),pursuer.actor.global_position+Vector3(0,.9,0));probe.collision_mask=1;probe.exclude=[game.player.get_rid(),pursuer.actor.get_rid()]
+ verify.call(pursuer.lunged and near<2.2 and game.get_world_3d().direct_space_state.intersect_shape(probe,1).is_empty(),"Unseen pursuer does not appear at the guard or appears inside a wall")
  game._build_world("none");game._resume()
  verify.call(game.world.terrors.spec.is_empty() and not is_instance_valid(game.world.terrors.actor),"Normal reference round contains an anomalous visitor")

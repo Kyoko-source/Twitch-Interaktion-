@@ -1,5 +1,29 @@
 # After Play — Kinderparadies
 
+## Jumpscares neu, Hauptschalter umgesetzt (4.9.2)
+
+Die Besucher-Anomalien sind nicht mehr vorherzusehen:
+
+- Vorher steht keine Gestalt mehr im Raum, es gibt kein Vorwarn-Geräusch,
+  keine Seile und keine wartenden Gruppen.
+- Laufende Besucher (auch die Kriecher): Betritt man ihren Raum, schlagen sie
+  nach zufälligen 0,6 bis 2,6 Sekunden zu. Rennende Schritte kommen von hinten
+  oder von der Seite, die Taschenlampe setzt kurz aus, dann steht die Gestalt
+  schreiend vor dem Gesicht, egal wohin man schaut.
+- Hängende und fallende Besucher stürzen genau dort herab, wohin man gerade
+  schaut, mit Seil von der echten Decke.
+- Besucher an festen Gegenständen (Topf, Kuchen, Bällebad, Thron, Röhre,
+  Schacht) sind bis zum Schreck unsichtbar und schlagen ohne Vorwarnung zu,
+  wenn man direkt davorsteht.
+- Danach verschwinden sie wie bisher; die Kratzspuren am ursprünglichen Platz
+  bleiben der Hinweis für die rote Tür.
+
+Der Hauptschalter des Stromausfalls sitzt jetzt rechts am Schaltschrank, frei
+über der Werkbank; die Beschriftung steht auf dem gelben Warnstreifen.
+
+Prüfung: `--self-test --scare-flow-only`, `--nightmare-only`, `--blackout-only`,
+Bildkontrolle `--render-qa --breaker-qa`.
+
 ## theraidenlena-Puppe und Testspielerin (4.9.1)
 
 - Neue Plüschpuppe von theraidenlena auf der Holzkiste im Wartungsraum, direkt

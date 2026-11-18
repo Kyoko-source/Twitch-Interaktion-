@@ -16,6 +16,8 @@ const WAIT:=6.5
 const FLICKER:=1.7
 # Main breaker on the transformer cabinet at the back of the maintenance room.
 const CABINET:=Vector3(-15.85,0,-6.63)
+# On the right half of the cabinet, clear of the workbench edge, under the breaker row.
+const LEVER_OFFSET:=Vector3(.2,.15,0)
 const LEVER_ON:=.55
 const LEVER_OFF:=2.55
 var w: PlayWorld
@@ -65,10 +67,10 @@ func build(world: PlayWorld) -> void:
  w=world;name="PowerBlackout";process_priority=1000
  _cabinet()
  thud=AudioStreamPlayer.new();thud.name="MainsCutOut";thud.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;thud.stream=load("res://assets/scares-v260/dry-impact.wav");thud.volume_db=-4;add_child(thud)
- clunk=AudioStreamPlayer3D.new();clunk.name="BreakerClunk";clunk.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;clunk.stream=load("res://assets/feedback-v403/switch.ogg");clunk.position=CABINET+Vector3(0,.85,.1);clunk.unit_size=4;clunk.max_distance=18;clunk.volume_db=4;add_child(clunk)
+ clunk=AudioStreamPlayer3D.new();clunk.name="BreakerClunk";clunk.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;clunk.stream=load("res://assets/feedback-v403/switch.ogg");clunk.position=CABINET+LEVER_OFFSET+Vector3(0,.85,.1);clunk.unit_size=4;clunk.max_distance=18;clunk.volume_db=4;add_child(clunk)
  crackle=AudioStreamPlayer3D.new();crackle.name="DeadCabinetCrackle";crackle.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
  var tick: AudioStreamWAV=load("res://assets/ambience/relay-tick.wav").duplicate();tick.loop_mode=AudioStreamWAV.LOOP_FORWARD;tick.loop_end=int(tick.get_length()*tick.mix_rate);crackle.stream=tick
- crackle.position=CABINET+Vector3(0,1.2,.1);crackle.unit_size=2.2;crackle.max_distance=16;crackle.volume_db=-9;add_child(crackle)
+ crackle.position=CABINET+LEVER_OFFSET+Vector3(0,1.,.1);crackle.unit_size=2.2;crackle.max_distance=16;crackle.volume_db=-9;add_child(crackle)
  scream=AudioStreamPlayer.new();scream.name="PanicScream";scream.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(scream);ScareBank.loud(scream)
  breath=AudioStreamPlayer.new();breath.name="PanicBreathing";breath.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
  var air: AudioStreamOggVorbis=load("res://assets/player-v402/breathing.ogg").duplicate();air.loop=true;breath.stream=air;breath.volume_db=-80;add_child(breath)
@@ -76,12 +78,13 @@ func build(world: PlayWorld) -> void:
 
 func _cabinet() -> void:
  var steel:=w.mat(Color("2c3433"),null,.55,.6)
- var root:=Node3D.new();root.name="MainBreaker";root.position=CABINET;add_child(root)
+ var root:=Node3D.new();root.name="MainBreaker";root.position=CABINET+LEVER_OFFSET;add_child(root)
  # Housing below the existing breaker row, with a hazard plate and label.
  w.box(root,Vector3(0,.86,.03),Vector3(.24,.3,.07),steel)
  var hazard:=w.mat(Color("b8952a"),null,.7)
- w.box(root,Vector3(0,1.03,.068),Vector3(.24,.03,.005),hazard)
- var label:=w.text(root,"HAUPTSCHALTER",Vector3(0,.66,.07),.032,Color("cfc7a6"));label.name="BreakerLabel"
+ # Label printed black on the yellow hazard strip, above the workbench edge.
+ w.box(root,Vector3(0,1.035,.068),Vector3(.24,.042,.005),hazard)
+ var label:=w.text(root,"HAUPTSCHALTER",Vector3(0,1.035,.0715),.024,Color("1b1a17"));label.name="BreakerLabel"
  lever=Node3D.new();lever.name="BreakerLever";lever.position=Vector3(0,.86,.07);root.add_child(lever)
  w.box(lever,Vector3(0,.09,0),Vector3(.035,.18,.035),w.materials.metal)
  var grip:=w.mat(Color("8f1d18"),null,.45)
