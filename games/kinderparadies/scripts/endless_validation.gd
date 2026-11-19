@@ -119,7 +119,7 @@ func run(game: Node3D,verify: Callable) -> void:
  await shot(game,"achievements")
  NightMenus.endless(game);await shot(game,"menu")
  game._main_menu()
- verify.call(game.menu.find_child("MainMenuAction2",true,false).text.contains("Endlos"),"Main menu has no endless mode")
+ verify.call(game.menu.find_child("MainMenuAction2",true,false).text.contains("Weitere Spielmodi") and (func():NightMenus.modes(game);return game.menu.find_child("Mode_endless",true,false)!=null).call(),"Main menu has no endless mode")
  await shot(game,"home")
  # Back to a normal shift: its own save comes back.
  game._request_shift()

@@ -35,8 +35,11 @@ func run(game: Node3D, verify: Callable) -> void:
 	verify.call(voices.all(func(k):return ResourceLoader.exists(ZombiesAnnouncer.FOLDER+k+".ogg")) and ZombiesAnnouncer.stream_for("pickup_nuke") is AudioStreamOggVorbis,"Recorded announcer lines are missing")
 
 	game._main_menu();await game.get_tree().process_frame
-	var entry:=game.menu.find_child("MainMenuAction4",true,false) as Button
-	verify.call(entry!=null and entry.text.contains("Partynacht"),"Main menu has no Partynacht")
+	var more:=game.menu.find_child("MainMenuAction2",true,false) as Button
+	verify.call(more!=null and more.text.contains("Weitere Spielmodi"),"Main menu has no Weitere Spielmodi")
+	more.pressed.emit();await game.get_tree().process_frame
+	var entry:=game.menu.find_child("Mode_zombies",true,false) as Button
+	verify.call(game.phase=="modes" and entry!=null and entry.text.contains("Partynacht"),"Modes menu has no Partynacht")
 	NightMenus.zombies(game)
 	verify.call(game.menu.find_child("ZombiesStart",true,false)!=null and game.menu.find_child("ZombiesRecords",true,false)!=null,"Partynacht menu misses start or records")
 	await shot(game,"menu")

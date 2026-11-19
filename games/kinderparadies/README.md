@@ -1,5 +1,12 @@
 # After Play — Kinderparadies
 
+## Aufgeräumtes Hauptmenü mit „Weitere Spielmodi“ (5.1.1)
+
+- Im Hauptmenü stehen nur noch Neue Nachtschicht, Schicht fortsetzen und
+  **Weitere Spielmodi**; dahinter liegen Endlosmodus, Nightwatch Protocol,
+  Partynacht und Multiplayer mit je einer kurzen Beschreibung. ESC führt aus
+  den Modus-Menüs zurück zu dieser Übersicht.
+
 ## Partynacht: geriggte Partykinder, Waffensounds, leichterer Einstieg (5.1.0)
 
 - **Eigener Avatar als Hauptgegner**: das selbst erstellte 3D-Modell des

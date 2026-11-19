@@ -67,8 +67,9 @@ func run(game: Node3D, verify: Callable) -> void:
 
  # Start through the main menu entry.
  game._main_menu();await game.get_tree().process_frame
- var entry:=game.menu.find_child("MainMenuAction3",true,false) as Button
- verify.call(entry!=null and entry.text.contains("Nightwatch"),"Main menu has no Nightwatch Protocol")
+ NightMenus.modes(game)
+ var entry:=game.menu.find_child("Mode_nightwatch",true,false) as Button
+ verify.call(entry!=null and entry.text.contains("Nightwatch"),"Modes menu has no Nightwatch Protocol")
  NightMenus.nightwatch(game)
  verify.call(game.menu.find_child("NightwatchStart",true,false)!=null and game.menu.find_child("NightwatchHighscore",true,false)!=null,"Nightwatch menu misses start or highscore")
  await shot(game,"menu")
