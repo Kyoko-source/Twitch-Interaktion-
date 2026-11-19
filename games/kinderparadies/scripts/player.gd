@@ -35,6 +35,9 @@ var equipment: GuardEquipment
 var presence: GuardPresence
 var hands: GuardActions
 var foley: GuardFoley
+# Wave mode modifiers (perks, events); 1.0 everywhere else.
+var speed_scale:=1.0
+var gravity_scale:=1.0
 
 func _ready() -> void:
  var shape:=CapsuleShape3D.new();shape.radius=.28;shape.height=1.7
@@ -99,7 +102,7 @@ func _physics_process(delta: float) -> void:
  var eye_height:=.8 if crouching else 1.65
  var direction:=Input.get_vector("left","right","forward","back")
  var aim:=transform.basis*Vector3(direction.x,0,direction.y)
- var speed:=1.35 if crouching else 4.5 if Input.is_action_pressed("sprint") else 2.8
+ var speed:=(1.35 if crouching else 4.5 if Input.is_action_pressed("sprint") else 2.8)*speed_scale
  var target:=aim*speed
  velocity.x=move_toward(velocity.x,target.x,delta*18)
  velocity.z=move_toward(velocity.z,target.z,delta*18)
@@ -107,7 +110,7 @@ func _physics_process(delta: float) -> void:
  coyote=.1 if is_on_floor() else maxf(0,coyote-delta)
  if jump_buffer>0 and coyote>0 and not crouching:
   velocity.y=bounce_speed;jump_buffer=0;coyote=0
- elif not is_on_floor(): velocity.y-=20*delta
+ elif not is_on_floor(): velocity.y-=20*delta*gravity_scale
  else: velocity.y=-.1
  var fall_speed:=velocity.y
  move_and_slide()

@@ -29,6 +29,10 @@ const LIST:=[
  {"id":"nightwatch_generator","title":"Notstrom","text":"Starte den Generator in einer Nachtwache fünfmal neu."},
  {"id":"nightwatch_10min","title":"Lange Nacht","text":"Halte eine Nachtwache zehn Minuten durch."},
  {"id":"nightwatch_5000","title":"Sicherheitschef","text":"Erreiche 5000 Punkte in einer Nachtwache.","secret":true},
+ {"id":"party_10","title":"Partygast","text":"Überlebe in der Partynacht bis Runde 10."},
+ {"id":"party_25","title":"Die Feier hört nie auf","text":"Überlebe in der Partynacht bis Runde 25."},
+ {"id":"party_boss","title":"Geburtstag abgesagt","text":"Besiege in der Partynacht einen Boss."},
+ {"id":"party_perks","title":"Vier Gläser","text":"Trinke in einem Lauf vier Perks."},
 ]
 const ROUNDS:=[10,15,25,50,100,200,250,350,500]
 
@@ -39,6 +43,8 @@ var best_round:=0
 # Nightwatch Protocol keeps its own highscore next to the endless record.
 var nightwatch_best:=0
 var nightwatch_time:=0.0
+# Partynacht (wave mode) records.
+var zombies:={"best_round":0,"best_points":0,"kills":0,"headshots":0,"bosses":0,"longest":0.,"pickups":0,"perks":0,"weapons":[]}
 var toast: PanelContainer
 var toast_title: Label
 var toast_text: Label
@@ -58,6 +64,10 @@ func build(game: Node3D) -> void:
     if stored.has(row.id):unlocked[row.id]=float(stored[row.id])
   best_round=clampi(int(data.get("best_round",0)),0,PatrolState.ENDLESS_GOAL)
   nightwatch_best=maxi(int(data.get("nightwatch_best",0)),0);nightwatch_time=maxf(float(data.get("nightwatch_time",0.)),0.)
+  var stored_z=data.get("zombies",{})
+  if stored_z is Dictionary:
+   for key in zombies:
+    if stored_z.has(key):zombies[key]=stored_z[key] if key=="weapons" and stored_z[key] is Array else maxf(float(stored_z[key]),0.) if key=="longest" else maxi(int(stored_z[key]),0)
  var layer:=CanvasLayer.new();layer.layer=40;add_child(layer)
  toast=PanelContainer.new();toast.name="AchievementToast";toast.mouse_filter=Control.MOUSE_FILTER_IGNORE
  toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT);toast.position=Vector2(-460,40);toast.custom_minimum_size=Vector2(420,0)
@@ -94,8 +104,23 @@ func record_nightwatch(points: int, seconds: float) -> bool:
  nightwatch_time=maxf(nightwatch_time,seconds)
  save();return better
 
+# Adds a Partynacht run; true when it is a new best round or score.
+func record_zombies(r: Dictionary) -> bool:
+ var better:=int(r.round)>int(zombies.best_round) or (int(r.round)==int(zombies.best_round) and int(r.points)>int(zombies.best_points))
+ zombies.best_round=maxi(int(zombies.best_round),int(r.round));zombies.best_points=maxi(int(zombies.best_points),int(r.points))
+ for key in ["kills","headshots","bosses","pickups","perks"]:zombies[key]=int(zombies[key])+int(r.get(key,0))
+ zombies.longest=maxf(float(zombies.longest),float(r.seconds))
+ var seen: Array=zombies.weapons
+ for id in r.get("weapons",[]):
+  if not id in seen:seen.append(id)
+ if int(r.round)>=10:unlock("party_10")
+ if int(r.round)>=25:unlock("party_25")
+ if int(r.bosses)>=1:unlock("party_boss")
+ if int(r.perks)>=4:unlock("party_perks")
+ save();return better
+
 func save() -> void:
- g._write_persistent_text(path,JSON.stringify({"unlocked":unlocked,"best_round":best_round,"nightwatch_best":nightwatch_best,"nightwatch_time":nightwatch_time}))
+ g._write_persistent_text(path,JSON.stringify({"unlocked":unlocked,"best_round":best_round,"nightwatch_best":nightwatch_best,"nightwatch_time":nightwatch_time,"zombies":zombies}))
 
 func _show_next() -> void:
  if showing or queue.is_empty() or not is_instance_valid(toast):return

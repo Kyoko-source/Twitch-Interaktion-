@@ -1,0 +1,18 @@
+{
+  "head_base": "Lee Perry-Smith head scan, CC BY 3.0, via the credited visitor derivative",
+  "original": [
+    "bodies",
+    "party dress",
+    "ruff",
+    "streamers",
+    "hat",
+    "hair",
+    "stockings",
+    "boots",
+    "grin"
+  ],
+  "models": {
+    "party-zombie": 57761,
+    "party-zombie-b": 55932
+  }
+}

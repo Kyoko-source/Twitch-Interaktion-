@@ -1,5 +1,46 @@
 # After Play — Kinderparadies
 
+## Partynacht: Wellen-Überlebensmodus (5.0.0, Grundprojekt)
+
+- Neuer Menüpunkt **Partynacht** (`scripts/zombies_*.gd`): rundenbasiertes
+  Überleben im Spieleparadies. Start im Empfang mit der P-9 Knochenbeißer und
+  500 Punkten; Gegnerzahl, Leben, Tempo, Spawnrate und Elite-Chance steigen
+  jede Runde. Ab Runde 5 Elitegäste, ab 10 Bosse (alle 5 Runden), ab 15
+  Realitätsrisse, schwebende Trümmer und Glitches, ab 20 mehr Eliten, ab 25
+  Albtraumphasen mit Dauer-Alarmlicht, ab 30 doppelte Bosse. Alle Werte in
+  `scripts/zombies_config.gd`.
+- **Gegner**: das Partykind nach der Vorlage (Blender,
+  `tools/model-after-play-party-zombie-v500.py`: Partyhut, wirres Haar,
+  Grinsen, Rüschenkragen, zerrissenes Kleid mit Luftschlangen, Ringelstrümpfe,
+  Stiefel) in zwei Varianten, dazu Sprinter, Krabbler, Springer, Spucker,
+  Kreischerin, Flackerkind (teleportiert), Plüsch-Koloss und Riss-Mutant.
+  Bosse: Marell, der Plüsch-Titan, das mutierte Krokodil und der
+  Geburtstagsjäger, mit drei Phasen, Sturmangriff, Schockwelle, Beschwörung.
+- **Zonen**: Empfang, Halle, Bällebad, Party Raum mit Kostümfundus, Wartung,
+  Küche & Kino, Kinder-WC, getrennt durch kaufbare Bauzäune (750–1500).
+- **30 Waffen** auf acht modellierten Grundformen
+  (`tools/model-after-play-zombies-gear-v500.py`): Wandkäufe, Chaos-Geschenk
+  (zieht nach einigen Öffnungen weiter), Fleischmaschine mit drei Stufen
+  (Feuer, Blitz, Leere). Zwei Waffen gleichzeitig, Zielen, Nachladen,
+  Nahkampf, Durchschuss bei Scharfschützengewehren, Rift Cannon mit
+  Explosion und Kettenblitzen (begrenzt nachfüllbar).
+- **12 Perks** an verdorbenen Automaten (Limit 4, jeder Boss +1),
+  **Munitionskisten** in jeder Zone, **16 Bonus-Pickups** (Doppelte Punkte,
+  Maximalmunition, Sofortkill, Geburtstagsbombe, Schild, Endlose Munition,
+  Kettenblitz, Schwerelos, Zeitlupe, Blutrausch …), **12 Spezialereignisse**
+  (Blutmond, Alien-Invasion, Schwerkraftausfall, Dunkelheit, Flackerphase,
+  Giftnebel, Zeitstillstand, Klonwelle, Doppelter Geburtstag …).
+- Rekorde: höchste Runde, bester Punktestand, Kills, Kopftreffer, Bosse,
+  längste Zeit, Pickups, Perks, verwendete Waffen; vier neue Erfolge.
+- **Sounds**: Eigene Aufnahmen kommen nach
+  `assets/zombies-v500/audio/` und heißen wie ihr Anlass (ogg, wav oder mp3):
+  `start`, `round`, `round_end`, `boss`, `boss_phase`, `boss_down`, `perk`,
+  `door`, `box`, `box_result`, `box_troll`, `upgrade`, `upgrade_start`,
+  `reality`, `game_over`, `ammo_empty`, `pickup` (oder `pickup_<id>`),
+  `event_<id>`. Bis dahin spielen synthetische Platzhalter; Schüsse sind
+  ebenfalls synthetisch.
+- Neue Testsuite `--zombies-only`.
+
 ## Nightwatch: echter Kontrollraum und flüssige Blicksteuerung (4.16.0)
 
 - Der Kontrollraum besteht jetzt aus echten Modellen statt Platzhalter-Kisten:

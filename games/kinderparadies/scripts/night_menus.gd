@@ -98,21 +98,48 @@ static func nightwatch_summary(g: Node3D, r: Dictionary) -> void:
  var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
  again.grab_focus();g._telemetry()
 
+# Partynacht: the wave survival mode.
+static func zombies(g: Node3D) -> void:
+ g.phase="zombies_menu";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="ZombiesMenu";column.position=Vector2(110,110);column.custom_minimum_size=Vector2(1000,0);column.add_theme_constant_override("separation",16);g.menu.add_child(column)
+ var title: Label=g._label("PARTYNACHT",72,Color("e8a08c"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ column.add_child(g._paragraph("Die Gäste sind zurück, und sie wollen feiern. Überlebe Runde um Runde gegen die Partykinder, ihre Elitegäste und die Geburtstagsbosse. Mit Punkten öffnest du Absperrungen, kaufst Waffen von den Wänden, Munition an den Kisten, Perks an den verdorbenen Automaten, ziehst Waffen aus dem Chaos-Geschenk und veredelst sie in der Fleischmaschine.",20))
+ column.add_child(g._paragraph("Linke Maustaste schießen · rechte zielen · R nachladen · V Nahkampf · E kaufen · Mausrad oder 1/2 Waffe wechseln · F Lampe · ESC Pause",18))
+ var z: Dictionary=g.achievements.zombies
+ var best: Label=g._label("Höchste Runde: %d  ·  Bester Punktestand: %d  ·  Kills gesamt: %d  ·  Kopftreffer: %d  ·  Bosse: %d"%[int(z.best_round),int(z.best_points),int(z.kills),int(z.headshots),int(z.bosses)],19,Color("cbbb95"));best.name="ZombiesRecords";column.add_child(best)
+ var start: Button=g._button("Partynacht beginnen",g._start_zombies,true);start.name="ZombiesStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
+ var back: Button=g._button("Zurück",g._main_menu);back.custom_minimum_size=Vector2(560,56);column.add_child(back)
+ start.grab_focus();g._telemetry()
+
+static func zombies_summary(g: Node3D, r: Dictionary) -> void:
+ g.phase="zombies_over";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="ZombiesSummary";column.position=Vector2(110,100);column.custom_minimum_size=Vector2(1000,0);column.add_theme_constant_override("separation",12);g.menu.add_child(column)
+ var title: Label=g._label("DIE FEIER IST VORBEI",66,Color("e8a08c"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ if r.get("new_best",false):
+  var best: Label=g._label("NEUER REKORD!",30,Color("f0d27a"));best.name="ZombiesNewBest";best.add_theme_font_override("font",menu_font(600,2));column.add_child(best)
+ var rows:=[["Erreichte Runde","%d"%int(r.round)],["Punkte","%d"%int(r.points)],["Kills","%d"%int(r.kills)],["Kopftreffer","%d"%int(r.headshots)],["Elitegäste","%d"%int(r.elites)],["Bosse besiegt","%d"%int(r.bosses)],["Überlebt","%02d:%02d"%[int(r.seconds)/60,int(r.seconds)%60]],["Pickups","%d"%int(r.pickups)],["Perks","%d"%int(r.perks)],["Höchste Runde bisher","%d"%int(g.achievements.zombies.best_round)]]
+ var grid:=GridContainer.new();grid.columns=2;grid.add_theme_constant_override("h_separation",40);grid.add_theme_constant_override("v_separation",5);column.add_child(grid)
+ for row in rows:
+  grid.add_child(g._label(row[0],22,Color("bac6c0")));grid.add_child(g._label(row[1],22,Color("eee7d6")))
+ var again: Button=g._button("Neue Partynacht",g._start_zombies,true);again.name="ZombiesAgain";again.custom_minimum_size=Vector2(560,56);column.add_child(again)
+ var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
+ again.grab_focus();g._telemetry()
+
 static func home(g: Node3D) -> void:
  clear(g);backdrop(g)
  var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Endlosmodus",func():endless(g)],["Nightwatch Protocol",func():nightwatch(g)],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Endlosmodus",func():endless(g)],["Nightwatch Protocol",func():nightwatch(g)],["Partynacht",func():zombies(g)],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
  # 4.15.0: the ways to play stay large; everything else sits smaller and
  # quieter below a thin rule. Without a save there is no dead
  # "Schicht fortsetzen" line (the other actions keep their numbers).
- var y:=462.
+ var y:=440.
  for i in range(items.size()):
-  var primary:=i<5
+  var primary:=i<6
   if i==1 and not g._can_continue_shift():continue
-  if i==5:
+  if i==6:
    var rule:=ColorRect.new();rule.name="MainMenuRule";rule.color=Color(.71,.63,.43,.6);rule.position=Vector2(127,y+10);rule.size=Vector2(220,1);rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(rule);y+=26
   var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i)
   button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29 if primary else 20)
@@ -133,7 +160,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v4.16.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.0.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

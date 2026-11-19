@@ -122,6 +122,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/night_details_validation.gd").new().run(game,check)
   print("Night details checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--zombies-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/zombies_validation.gd").new().run(game,check)
+  print("Zombies checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--nightwatch-only" in OS.get_cmdline_user_args():
   await load("res://scripts/nightwatch_validation.gd").new().run(game,check)
   print("Nightwatch checks: ",checks,"; failures: ",failures.size())
@@ -727,6 +731,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/lift_validation.gd").new().run(game,check)
  await load("res://scripts/endless_validation.gd").new().run(game,check)
  await load("res://scripts/nightwatch_validation.gd").new().run(game,check)
+ await load("res://scripts/zombies_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

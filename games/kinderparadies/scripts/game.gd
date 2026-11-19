@@ -79,6 +79,7 @@ var endless_request:=false
 var endless_warning:=0
 var achievements: AfterPlayAchievements
 var nightwatch: Nightwatch
+var zombies: ZombiesMode
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
@@ -312,6 +313,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
 func _main_menu() -> void:
  ending_preview=false
  if nightwatch:nightwatch.stop()
+ _stop_zombies()
  if is_instance_valid(end_credits):
   if end_credits.afterglow:end_credits.afterglow.dispose()
   if end_credits.prepared_afterglow:end_credits.prepared_afterglow.dispose()
@@ -714,6 +716,7 @@ func _process(delta: float) -> void:
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
  if phase=="nightwatch_scare" and nightwatch: nightwatch.scare.tick(delta)
  if phase=="nightwatch" and nightwatch: nightwatch.tick(delta)
+ if phase=="zombies" and zombies: zombies.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
  if phase=="menu":
   menu_clock+=delta
@@ -721,7 +724,7 @@ func _process(delta: float) -> void:
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
  world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
  world.film.tick(delta,phase=="play")
- world.tick(delta,phase in ["play","surveillance","nightwatch"])
+ world.tick(delta,phase in ["play","surveillance","nightwatch","zombies"])
  world.pit_physics.tick(phase=="play",player)
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
@@ -934,6 +937,8 @@ func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=AfterPlayLanguage.t(value);notice_time=seconds;notice.show()
 
 func _input(event: InputEvent) -> void:
+ if phase=="zombies" and zombies and not event.is_action_pressed("pause") and zombies.handle(event):
+  get_viewport().set_input_as_handled();return
  if phase=="nightwatch" and nightwatch and nightwatch.handle(event):
   get_viewport().set_input_as_handled();return
  if phase=="chalk" and event.is_action_pressed("pause"):
@@ -968,7 +973,9 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase=="multiplayer": mp.stop();_main_menu()
   elif phase=="nightwatch": _nightwatch_pause()
   elif phase=="nightwatch_pause": _nightwatch_resume()
-  elif phase in ["nightwatch_menu","nightwatch_over"]: _main_menu()
+  elif phase in ["nightwatch_menu","nightwatch_over","zombies_menu","zombies_over"]: _main_menu()
+  elif phase=="zombies": _zombies_pause()
+  elif phase=="zombies_pause": _zombies_resume()
   get_viewport().set_input_as_handled()
  if phase!="play": return
  if archive.ending=="recording" and memories.visible: get_viewport().set_input_as_handled();return
@@ -1361,3 +1368,45 @@ func _nightwatch_results() -> void:
  nightwatch.stop();nightwatch.show();nightwatch.cam.current=true
  NightMenus.nightwatch_summary(self,summary)
 
+# ---- Partynacht (5.0.0) ----
+func _start_zombies() -> void:
+ if world_loading:return
+ if mp and mp.active():mp.stop()
+ if has_session:_save()
+ has_session=false;ending_preview=false
+ if nightwatch:nightwatch.stop()
+ _stop_zombies()
+ phase="loading";player.release();hud.hide();menu_music.stop()
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ var shade:=ColorRect.new();shade.color=Color.BLACK;shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
+ var label:=_label("Die Party beginnt …",27);label.position=Vector2(670,500);label.size=Vector2(580,70);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;menu.add_child(label)
+ var bar:=ProgressBar.new();bar.position=Vector2(710,590);bar.size=Vector2(500,7);bar.show_percentage=false;menu.add_child(bar);_telemetry()
+ await _build_world_responsive("none",func(value: float):bar.value=value*100)
+ if phase!="loading":return
+ zombies=ZombiesMode.new();add_child(zombies);zombies.build(self)
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ menu.hide();hud.hide();prompt.text="";player.camera.current=true;player.lamp_on=false;player.lamp.visible=false
+ world.atmosphere.set_active(true);room_audio.stream_paused=false
+ if not room_audio.playing:room_audio.play()
+ phase="zombies";await zombies.start();_telemetry()
+
+func _stop_zombies() -> void:
+ if zombies:
+  zombies.stop();zombies.queue_free();zombies=null
+
+func _zombies_pause() -> void:
+ if phase!="zombies":return
+ phase="zombies_pause";zombies.process_mode=Node.PROCESS_MODE_DISABLED;zombies.root3d.process_mode=Node.PROCESS_MODE_DISABLED
+ var column:=_panel("Pause","Die Party hält den Atem an.")
+ column.add_child(_button("Weiterfeiern",_zombies_resume,true))
+ column.add_child(_button("Zum Hauptmenü",_main_menu));_telemetry()
+
+func _zombies_resume() -> void:
+ if phase!="zombies_pause":return
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ menu.hide();phase="zombies";zombies.process_mode=Node.PROCESS_MODE_INHERIT;zombies.root3d.process_mode=Node.PROCESS_MODE_INHERIT;world.atmosphere.set_active(true);room_audio.stream_paused=false
+ player.capture();_telemetry()
+
+func _zombies_results(results: Dictionary) -> void:
+ _stop_zombies()
+ NightMenus.zombies_summary(self,results)
