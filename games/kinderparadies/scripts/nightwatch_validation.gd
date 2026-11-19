@@ -25,7 +25,7 @@ func wait_phase(game: Node3D, wanted: String, limit: float) -> bool:
 # Seen by the camera: inside the picture and not hidden behind a wall.
 # Returns "" or why not.
 func blocked(game: Node3D, spec: Dictionary, point: Vector3, own: Node) -> String:
- var probe:=Camera3D.new();probe.fov=float(spec.fov);game.nightwatch.main_view.add_child(probe);probe.global_position=spec.p;probe.look_at(spec.at)
+ var probe:=Camera3D.new();probe.keep_aspect=Camera3D.KEEP_WIDTH;probe.fov=Nightwatch.feed_fov(spec);game.nightwatch.main_view.add_child(probe);probe.global_position=spec.p;probe.look_at(spec.at)
  var why:=""
  if probe.is_position_behind(point):why="behind"
  else:

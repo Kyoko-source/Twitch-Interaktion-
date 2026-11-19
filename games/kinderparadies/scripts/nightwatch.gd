@@ -11,13 +11,29 @@ signal ended(reason: String)
 const ORIGIN:=Vector3(0,-80,0)
 const ROOM_LAYER:=8
 const CLICK_LAYER:=1<<19
-const EYE:=Vector3(0,1.22,.55)
-const FRONT:=Vector2(0,.03)
-const RIGHT:=Vector2(-1.40,-.20)
+const EYE:=Vector3(0,1.2,.5)
+# Seated view: yaw/pitch of the monitor wall and of the generator, and the
+# limits the mouse can pan between.
+const FRONT:=Vector2(0,-.03)
+const RIGHT:=Vector2(-1.5,-.5)
+const YAW_LEFT:=.42
+const YAW_RIGHT:=-1.72
+const EDGE:=.12
+const PAN_SPEED:=1.7
+const SMOOTH:=7.0
 const REASONS:={"missed":"ANOMALIE ÜBERSEHEN","wrong":"ZU VIELE FEHLMELDUNGEN","power":"STROMAUSFALL"}
-const MAIN_SCREEN:=Vector2(1.0,.5625)
-const SMALL:=[Vector3(-1.15,1.80,-1.19),Vector3(-.69,1.80,-1.19),Vector3(-.23,1.80,-1.19),Vector3(.23,1.80,-1.19),Vector3(.69,1.80,-1.19),Vector3(1.15,1.80,-1.19),
- Vector3(-.86,1.37,-1.12),Vector3(-.86,1.07,-1.12),Vector3(.86,1.37,-1.12),Vector3(.86,1.07,-1.12)]
+const DESK_TOP:=.787
+const RACK_SHELVES:=[.425,.915,1.40,1.89]
+# Ten wall monitors (bottom centre): two rows on the outer racks, two on top
+# of the middle rack; the large main monitor stands on the desk.
+const MONITOR_SLOTS:=[Vector3(-1.22,1.40,-1.6),Vector3(-.78,1.40,-1.6),Vector3(-.23,1.89,-1.62),Vector3(.23,1.89,-1.62),Vector3(.78,1.40,-1.6),Vector3(1.22,1.40,-1.6),
+ Vector3(-1.22,.915,-1.6),Vector3(-.78,.915,-1.6),Vector3(.78,.915,-1.6),Vector3(1.22,.915,-1.6)]
+const MAIN_SLOT:=Vector3(0,.787,-.8)
+const MAIN_SCALE:=1.35
+const GENERATOR_AT:=Vector3(1.95,0,.45)
+const SWITCH_KEY_X0:=-.235
+const SWITCH_KEY_DX:=.062
+const SWITCH_KEY_Z:=[.045,-.035]
 
 var g: Node3D
 var w: PlayWorld
@@ -32,8 +48,12 @@ var main_label: Label3D
 var stamp_label: Label3D
 var power_label: Label3D
 var gen_label: Label3D
-var gen_lamp: MeshInstance3D
-var gen_lamp_material: StandardMaterial3D
+var monitors: Array=[]
+var main_monitor: Node3D
+var switcher: Node3D
+var keys: Array=[]
+var meter: Node3D
+var key_lit: StandardMaterial3D
 var lights: Array=[]
 var anomalies: NightwatchAnomalies
 # Own jumpscare on the control room camera; the shift one is never moved.
@@ -63,9 +83,9 @@ var refresh_index:=0
 var view:="monitors"
 var yaw:=0.0
 var pitch:=0.0
-var edge_clock:=0.0
-# The screen edge only turns the view after the mouse has been back in the middle.
-var edge_armed:=false
+# Where the view wants to look; the camera eases towards it every frame.
+var anchor_yaw:=0.0
+var sway:=Vector2.ZERO
 var qte: Dictionary={}
 var book_open:=false
 var choice:={"room":"","area":"","kind":""}
@@ -111,74 +131,98 @@ var distant: AudioStreamPlayer
 func build(game: Node3D) -> void:
  g=game;w=g.world;name="NightwatchProtocol";position=ORIGIN
  room=Node3D.new();room.name="ControlRoom";add_child(room)
- _room();_monitors();_generator();_book_prop()
+ _shell();_desk();_monitor_wall();_generator()
  for mesh: GeometryInstance3D in room.find_children("*","GeometryInstance3D",true,false):mesh.layers=ROOM_LAYER
- cam=Camera3D.new();cam.name="ControlRoomCamera";cam.fov=60;cam.near=.04;cam.far=12;cam.cull_mask=1|ROOM_LAYER;cam.position=EYE;add_child(cam)
+ cam=Camera3D.new();cam.name="ControlRoomCamera";cam.fov=62;cam.near=.04;cam.far=12;cam.cull_mask=1|ROOM_LAYER;cam.position=EYE;add_child(cam)
  scare=DoorFailure.new();scare.name="NightwatchScare";cam.add_child(scare);scare.hide()
  _feeds();_ui();_audio()
  hide();set_process(false)
 
 # ---------------------------------------------------------------- the room
+# Real assets: Poly Haven CC0 models (desk, lamp, rack, generator, binder,
+# clipboard, notepads, radio, fluorescents, power boxes, bin, multimeter) and
+# the modelled CCTV monitors and camera switcher of 4.16.0.
 
-func _mat(color: Color, texture: String="", rough: float=.8, metal: float=0.) -> StandardMaterial3D:
- return w.mat(color,load(texture) if texture!="" else null,rough,metal)
+func _model(id: String, parent: Node3D, pos: Vector3, yaw_value: float=0., scale_value: float=1.) -> Node3D:
+ var path:="res://assets/models/%s/%s.gltf"%[id,id]
+ if id.ends_with(".glb"):path="res://assets/nightwatch-v4160/"+id
+ var node:=(load(path) as PackedScene).instantiate() as Node3D
+ node.name=id.get_basename().to_pascal_case();parent.add_child(node);node.position=pos;node.rotation.y=yaw_value;node.scale=Vector3.ONE*scale_value
+ return node
+
+func _pbr(id: String, tint: Color, scale_value: float) -> StandardMaterial3D:
+ var root:="res://assets/pbr/%s/"%id
+ var m:=StandardMaterial3D.new();m.albedo_texture=load(root+"albedo.jpg");m.albedo_color=tint
+ m.normal_enabled=true;m.normal_texture=load(root+"normal.jpg");m.roughness_texture=load(root+"roughness.jpg");m.roughness=1.
+ m.uv1_triplanar=true;m.uv1_world_triplanar=true;m.uv1_scale=Vector3.ONE*scale_value;m.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+ return m
 
 func _box(parent: Node3D, pos: Vector3, size_value: Vector3, material: Material) -> MeshInstance3D:
  return w.box(parent,pos,size_value,material)
 
-func _room() -> void:
- var concrete:=_mat(Color("4a504a"),"res://assets/aged-plaster.png",.96)
- var floor_mat:=_mat(Color("2b2f2c"),"res://assets/paint.png",.9)
- var desk:=_mat(Color("5b4733"),"res://assets/wood.png",.55)
- var metal:=_mat(Color("2d3437"),"",.45,.6)
- var steel:=_mat(Color("6d777a"),"",.35,.8)
- _box(room,Vector3(0,-.05,0),Vector3(6.4,.1,6.4),floor_mat)
- _box(room,Vector3(0,3.25,0),Vector3(6.4,.1,6.4),concrete)
- _box(room,Vector3(0,1.6,-2.7),Vector3(6.4,3.3,.1),concrete)
- _box(room,Vector3(0,1.6,2.7),Vector3(6.4,3.3,.1),concrete)
- _box(room,Vector3(-3.1,1.6,0),Vector3(.1,3.3,6.4),concrete)
- _box(room,Vector3(3.1,1.6,0),Vector3(.1,3.3,6.4),concrete)
- # Desk with keyboard, a mug, a dead coffee machine and a clipboard.
- _box(room,Vector3(0,.76,-.55),Vector3(2.9,.05,1.0),desk)
- for x in [-1.38,1.38]:_box(room,Vector3(x,.38,-.55),Vector3(.05,.76,.96),desk)
- _box(room,Vector3(0,.42,-1.02),Vector3(2.8,.66,.03),desk)
- _box(room,Vector3(0,.8,-.32),Vector3(.62,.025,.2),metal)
- for i in range(14):_box(room,Vector3(-.27+i*.042,.815,-.33),Vector3(.032,.01,.03),steel)
- var mug:=MeshInstance3D.new();var cyl:=CylinderMesh.new();cyl.top_radius=.042;cyl.bottom_radius=.04;cyl.height=.1;mug.mesh=cyl;mug.position=Vector3(-.78,.84,-.36);mug.material_override=_mat(Color("8c3a2e"),"",.5);room.add_child(mug)
- _box(room,Vector3(-1.0,.79,-.6),Vector3(.24,.01,.32),_mat(Color("c9bf9e"),"res://assets/paint.png",.95))
- # Monitor rack against the back wall.
- _box(room,Vector3(0,1.5,-1.3),Vector3(2.95,1.42,.1),metal)
- _box(room,Vector3(0,2.23,-1.24),Vector3(2.95,.05,.2),steel)
- _box(room,Vector3(0,.79,-1.2),Vector3(2.95,.05,.2),steel)
- # Cables down the wall, a fuse board and a faded Happyland poster.
- for x in [-1.45,1.45]:w.tube(room,Vector3(x,2.2,-1.33),Vector3(x,.1,-1.33),.015,metal)
- _box(room,Vector3(-2.3,1.55,-2.62),Vector3(.7,.9,.12),metal)
- var poster:=w.artwork(room,Vector3(-2.25,1.7,2.64),Vector2(.8,1.1),load("res://assets/reception-v2120/birthday-memories.png"),PI,0)
- if poster:poster.position=Vector3(-2.25,1.7,2.64)
- # Light: a weak ceiling tube and the warm desk lamp.
- var tube:=_box(room,Vector3(0,3.16,-.2),Vector3(1.2,.05,.12),_mat(Color("dfe8e0"),"",.4))
- var tube_mat:=StandardMaterial3D.new();tube_mat.albedo_color=Color("dfe8e0");tube_mat.emission_enabled=true;tube_mat.emission=Color("cfe0d4");tube_mat.emission_energy_multiplier=1.2;tube.material_override=tube_mat
- _lamp(Vector3(0,2.95,-.2),Color("bcd0c4"),.55,5.5)
- _lamp(Vector3(-1.05,1.15,-.5),Color("ffc98a"),.55,2.4)
- _box(room,Vector3(-1.05,.8,-.6),Vector3(.14,.02,.14),metal)
- w.tube(room,Vector3(-1.05,.8,-.6),Vector3(-1.05,1.18,-.52),.012,metal)
- _box(room,Vector3(-1.05,1.2,-.5),Vector3(.16,.08,.12),_mat(Color("7b5f2d"),"",.5,.4))
- # Glow of the monitor wall on the desk.
- _lamp(Vector3(0,1.4,-.7),Color("9cb8a8"),.45,2.2)
+func _shell() -> void:
+ var wall:=_pbr("painted_plaster_wall",Color(.55,.6,.56),.55)
+ var floor_mat:=_pbr("concrete_floor_worn_001",Color(.62,.62,.6),.45)
+ var ceiling:=_pbr("concrete_floor_worn_001",Color(.42,.43,.42),.4)
+ var metal:=_pbr("rusty_painted_metal",Color(.55,.6,.58),.9)
+ var grille:=_pbr("metal_plate",Color(.2,.22,.22),2.)
+ _box(room,Vector3(0,-.05,-.2),Vector3(5.4,.1,4.6),floor_mat)
+ _box(room,Vector3(0,3.25,-.2),Vector3(5.4,.1,4.6),ceiling)
+ _box(room,Vector3(0,1.6,-2.15),Vector3(5.4,3.3,.1),wall)
+ _box(room,Vector3(0,1.6,1.75),Vector3(5.4,3.3,.1),wall)
+ _box(room,Vector3(-2.65,1.6,-.2),Vector3(.1,3.3,4.6),wall)
+ _box(room,Vector3(2.65,1.6,-.2),Vector3(.1,3.3,4.6),wall)
+ # Skirting, a cable duct along the back wall and a ventilation grille.
+ _box(room,Vector3(0,.06,-2.09),Vector3(5.3,.12,.03),metal)
+ for x in [-2.59,2.59]:_box(room,Vector3(x,.06,-.2),Vector3(.03,.12,4.5),metal)
+ _box(room,Vector3(0,2.72,-2.07),Vector3(5.2,.08,.06),metal)
+ _box(room,Vector3(-1.9,2.35,-2.09),Vector3(.5,.32,.03),metal)
+ for k in range(6):_box(room,Vector3(-1.9,2.24+k*.045,-2.07),Vector3(.44,.012,.02),grille)
+ # Fluorescent tubes on the ceiling, power boxes, a work lamp and the bin.
+ var tubes:=_model("mounted_fluorescent_lights",room,Vector3(0,3.2,-.45))
+ tubes.rotation.x=PI
+ _model("power_box_01",room,Vector3(-2.58,1.55,-.9),PI/2)
+ _model("power_box_01",room,Vector3(2.58,1.3,.85),-PI/2)
+ _model("hanging_industrial_lamp",room,Vector3(2.0,3.2,.5))
+ var bin:=_model("metal_trash_can",room,Vector3(-1.45,.04,.05),-.4,.5)
+ bin.name="WasteBin"
+ # Cable from the generator to its wall socket.
+ w.tube(room,Vector3(1.75,.12,.55),Vector3(2.5,.12,.6),.018,metal)
+ w.tube(room,Vector3(2.5,.12,.6),Vector3(2.56,1.1,.75),.018,metal)
+ # Light: weak cool tubes, the warm desk lamp, the glow of the monitor wall.
+ _lamp(Vector3(0,3.0,-.45),Color("c9dccd"),.42,5.5,false)
+ _lamp(Vector3(-.74,1.3,-.55),Color("ffc98a"),.95,2.6,true)
+ _lamp(Vector3(0,1.45,-1.05),Color("8fb7a3"),.6,2.8,false)
+ _lamp(Vector3(2.0,1.72,.5),Color("ffd59c"),1.35,3.6,true)
 
-func _lamp(pos: Vector3, color: Color, energy: float, reach: float) -> void:
- var lamp:=OmniLight3D.new();lamp.position=pos;lamp.light_color=color;lamp.light_energy=energy;lamp.omni_range=reach;lamp.light_cull_mask=ROOM_LAYER;lamp.shadow_enabled=false;room.add_child(lamp)
+func _lamp(pos: Vector3, color: Color, energy: float, reach: float, shadows: bool) -> void:
+ var lamp:=OmniLight3D.new();lamp.position=pos;lamp.light_color=color;lamp.light_energy=energy;lamp.omni_range=reach;lamp.light_cull_mask=ROOM_LAYER;lamp.shadow_enabled=shadows;room.add_child(lamp)
  lights.append([lamp,energy])
 
-func _clickable(parent: Node3D, pos: Vector3, size_value: Vector3, id: String) -> void:
- var body:=StaticBody3D.new();body.collision_layer=CLICK_LAYER;body.collision_mask=0;body.set_meta("nightwatch",id);body.position=pos;parent.add_child(body)
- var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=size_value;shape.shape=box;body.add_child(shape)
+func _desk() -> void:
+ _model("metal_office_desk",room,Vector3(0,0,-.5))
+ _model("desk_lamp_arm_01",room,Vector3(-.95,DESK_TOP,-.86),1.1)
+ _model("clipboard",room,Vector3(-.52,DESK_TOP,-.28),-.25)
+ _model("office_notepads",room,Vector3(-.82,DESK_TOP,-.4),.35)
+ _model("vintage_radio_transceiver",room,Vector3(.74,DESK_TOP+.111,-.72),-.45,.85)
+ switcher=_model("video-switcher.glb",room,Vector3(0,DESK_TOP,-.16))
+ for i in range(10):
+  var key:=switcher.find_child("Key%02d"%(i+1),true,false) as MeshInstance3D
+  keys.append(key)
+  var row:=floori(i/5.0);var col:=i%5
+  var z: float=SWITCH_KEY_Z[row];var y:=.03+(.12-z)/.24*.045
+  _clickable(switcher,Vector3(SWITCH_KEY_X0+col*SWITCH_KEY_DX,y+.01,z),Vector3(.05,.03,.05),"monitor:%d"%i)
+ var book_node:=_model("binder_notebook",room,Vector3(.55,DESK_TOP,-.3),.32)
+ book_node.name="ReportBook"
+ _clickable(book_node,Vector3(.02,.02,0),Vector3(.4,.06,.24),"book")
+ var title:=Label3D.new();title.text="MELDEBUCH";title.font=load("res://assets/backstage-v270/Caveat.ttf");title.font_size=46;title.pixel_size=.0009;title.position=Vector3(.02,.027,0);title.rotation.x=-PI/2
+ title.modulate=Color(.85,.78,.6,.85);title.shaded=true;title.layers=ROOM_LAYER;book_node.add_child(title)
 
 func _screen_shader() -> Shader:
  var shader:=Shader.new()
  shader.code="""shader_type spatial;
 render_mode unshaded,cull_back;
-uniform sampler2D feed:source_color,filter_linear;
+uniform sampler2D feed:source_color,filter_linear,repeat_disable;
 uniform float instability=0.0;
 uniform float glitch=0.0;
 uniform float dim=1.0;
@@ -187,6 +231,7 @@ uniform float gain=1.4;
 float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void fragment(){
  vec2 uv=UV;
+ vec2 d=uv-.5;uv=.5+d*(1.0-.035*dot(d,d));
  float line=floor(uv.y*150.0);
  float tear=glitch*(hash(vec2(line,floor(TIME*26.0)+seed))-.5)*.09;
  uv.x+=tear+sin(uv.y*90.0+TIME*2.0)*.0007*(1.0+instability*5.0);
@@ -194,78 +239,78 @@ void fragment(){
  vec3 c=texture(feed,uv).rgb;
  float l=dot(c,vec3(.299,.587,.114));
  c=mix(c,vec3(l*.84,l,l*.9),.5)*gain;
- float n=hash(floor(UV*vec2(480.,270.))+floor(TIME*20.)+seed);
- c+=(n-.5)*(.06+instability*.22+glitch*.45);
- c*=.93+.07*sin(UV.y*540.0*3.14159);
+ float n=hash(floor(UV*vec2(400.,300.))+floor(TIME*20.)+seed);
+ c+=(n-.5)*(.05+instability*.22+glitch*.45);
+ c*=.92+.08*sin(UV.y*600.0*3.14159);
  c*=.95+.05*smoothstep(.0,.05,abs(fract(UV.y-TIME*.11)-.5));
- float v=1.-.32*pow(length((UV-.5)*1.35),2.);
- ALBEDO=clamp(c*v*dim,0.0,1.0);
+ float v=1.-.55*pow(length((UV-.5)*1.25),2.2);
+ vec3 glass=vec3(.015,.02,.018);
+ ALBEDO=clamp(mix(glass,c*v,dim),0.0,1.0)+vec3(.012)*pow(1.0-abs(dot(NORMAL,VIEW)),3.0);
 }"""
  return shader
 
-func _monitors() -> void:
- var bezel:=_mat(Color("1d2224"),"",.5,.3)
+func _monitor(pos: Vector3, scale_value: float, index: int, shader: Shader) -> Node3D:
+ var to_eye:=EYE-pos
+ var node:=_model("cctv-monitor.glb",room,pos,atan2(to_eye.x,to_eye.z),scale_value)
+ node.name="CCTVMonitor%d"%index if index>=0 else "MainMonitor"
+ var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("seed",float(index+2)*17.3)
+ (node.find_child("Screen",true,false) as MeshInstance3D).material_override=material
+ _clickable(node,Vector3(0,.18,0),Vector3(.45,.37,.34),"monitor:%d"%index if index>=0 else "main")
+ return node
+
+func _monitor_wall() -> void:
  var shader:=_screen_shader()
- _box(room,Vector3(0,1.18,-1.16),Vector3(1.12,.68,.1),bezel)
- var screen:=_quad(Vector3(0,1.18,-1.105),MAIN_SCREEN)
- main_material=ShaderMaterial.new();main_material.shader=shader;screen.material_override=main_material
- main_label=_text(Vector3(-.47,1.425,-1.1),"CAM 01",22,HORIZONTAL_ALIGNMENT_LEFT)
- stamp_label=_text(Vector3(.47,1.425,-1.1),"23:00:00",22,HORIZONTAL_ALIGNMENT_RIGHT)
- power_label=_text(Vector3(-.47,.935,-1.1),"STROM 100 %",20,HORIZONTAL_ALIGNMENT_LEFT)
- for i in range(SMALL.size()):
-  var at: Vector3=SMALL[i];var size_value:=Vector2(.42,.236)
-  _box(room,at+Vector3(0,0,-.04),Vector3(size_value.x+.04,size_value.y+.04,.08),bezel)
-  var face:=_quad(at+Vector3(0,0,.005),size_value)
-  var material:=ShaderMaterial.new();material.shader=shader;material.set_shader_parameter("seed",float(i)*17.3);face.material_override=material;small_materials.append(material)
-  var number:=_text(at+Vector3(-.19,.098,.012),"%02d"%(i+1),14,HORIZONTAL_ALIGNMENT_LEFT);number.name="SmallLabel%d"%i
-  _clickable(room,at,Vector3(size_value.x,size_value.y,.06),"monitor:%d"%i)
+ for x in [-1.0,0.,1.0]:
+  var rack:=_model("worn_metal_rack",room,Vector3(x,0,-1.72))
+  rack.name="MonitorRack"
+ # Boxes of tapes on the shelves behind the main monitor and under the rows.
+ for spot in [Vector3(-.22,RACK_SHELVES[1],-1.75),Vector3(.25,RACK_SHELVES[1],-1.75),Vector3(.05,RACK_SHELVES[2],-1.78),Vector3(-1.0,RACK_SHELVES[0],-1.74),Vector3(1.05,RACK_SHELVES[0],-1.74)]:
+  var crate:=_model("cardboard_box_01",room,spot,rng.randf_range(-.3,.3),.8)
+  crate.name="TapeBox"
+ for i in range(MONITOR_SLOTS.size()):
+  var monitor:=_monitor(MONITOR_SLOTS[i],1.,i,shader);monitors.append(monitor)
+  small_materials.append((monitor.find_child("Screen",true,false) as MeshInstance3D).material_override)
+  var label:=_text(monitor,Vector3(-.15,.3,.172),"CAM %02d"%(i+1),15,HORIZONTAL_ALIGNMENT_LEFT);label.name="SmallLabel%d"%i
+ main_monitor=_monitor(MAIN_SLOT,MAIN_SCALE,-1,shader)
+ main_material=(main_monitor.find_child("Screen",true,false) as MeshInstance3D).material_override
+ main_label=_text(main_monitor,Vector3(-.15,.305,.172),"CAM 01",12,HORIZONTAL_ALIGNMENT_LEFT)
+ stamp_label=_text(main_monitor,Vector3(.15,.305,.172),"23:00:00",12,HORIZONTAL_ALIGNMENT_RIGHT)
+ power_label=_text(main_monitor,Vector3(-.15,.094,.172),"STROM 100 %",11,HORIZONTAL_ALIGNMENT_LEFT)
 
-func _quad(pos: Vector3, size_value: Vector2) -> MeshInstance3D:
- var face:=MeshInstance3D.new();var quad:=QuadMesh.new();quad.size=size_value;face.mesh=quad;face.position=pos;room.add_child(face);return face
+func _clickable(parent: Node3D, pos: Vector3, size_value: Vector3, id: String) -> void:
+ var body:=StaticBody3D.new();body.collision_layer=CLICK_LAYER;body.collision_mask=0;body.set_meta("nightwatch",id);body.position=pos;parent.add_child(body)
+ var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=size_value;shape.shape=box;body.add_child(shape)
 
-func _text(pos: Vector3, value: String, font_size: int, align: HorizontalAlignment) -> Label3D:
- var label:=Label3D.new();label.text=value;label.font=load("res://assets/Oswald.ttf");label.font_size=font_size;label.pixel_size=.0011;label.position=pos;label.horizontal_alignment=align
- label.modulate=Color("d8f0d8");label.outline_size=4;label.outline_modulate=Color(0,0,0,.8);label.shaded=false;label.double_sided=false;label.layers=ROOM_LAYER;room.add_child(label);return label
+func _text(parent: Node3D, pos: Vector3, value: String, font_size: int, align: HorizontalAlignment) -> Label3D:
+ var label:=Label3D.new();label.text=value;label.font=load("res://assets/Oswald.ttf");label.font_size=font_size;label.pixel_size=.0008;label.position=pos;label.horizontal_alignment=align
+ label.modulate=Color("d8f0d8");label.outline_size=3;label.outline_modulate=Color(0,0,0,.7);label.shaded=false;label.double_sided=false;label.layers=ROOM_LAYER;parent.add_child(label);return label
 
 func _generator() -> void:
- var paint:=_mat(Color("6b5a24"),"res://assets/paint.png",.7,.3)
- var dark:=_mat(Color("23292a"),"",.5,.5)
- var steel:=_mat(Color("767f80"),"",.35,.8)
- var gen:=Node3D.new();gen.name="Generator";gen.position=Vector3(2.35,0,.35);room.add_child(gen)
- _box(gen,Vector3(0,.5,0),Vector3(.8,.9,1.25),paint)
- _box(gen,Vector3(0,.04,0),Vector3(.9,.08,1.35),dark)
- var tank:=MeshInstance3D.new();var cyl:=CylinderMesh.new();cyl.top_radius=.2;cyl.bottom_radius=.2;cyl.height=.9;tank.mesh=cyl;tank.rotation.x=PI/2;tank.position=Vector3(.05,1.12,0);tank.material_override=paint;gen.add_child(tank)
- w.tube(gen,Vector3(.25,.9,-.5),Vector3(.25,1.55,-.5),.04,steel)
- _box(gen,Vector3(-.41,.62,.05),Vector3(.03,.5,.7),dark)
- for i in range(6):_box(gen,Vector3(-.42,.3+i*.05,-.35),Vector3(.02,.02,.4),steel)
- _box(gen,Vector3(-.43,.78,.28),Vector3(.04,.12,.22),_mat(Color("9a2a20"),"",.4))
- gen_lamp=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=.035;sphere.height=.07;gen_lamp.mesh=sphere;gen_lamp.position=Vector3(-.44,.9,-.05);gen.add_child(gen_lamp)
- gen_lamp_material=StandardMaterial3D.new();gen_lamp_material.emission_enabled=true;gen_lamp_material.albedo_color=Color("3c6e3c");gen_lamp_material.emission=Color("5cff6c");gen_lamp_material.emission_energy_multiplier=2.;gen_lamp.material_override=gen_lamp_material
- gen_label=Label3D.new();gen_label.text="GENERATOR\nKLICKEN ZUM NEUSTART";gen_label.font=load("res://assets/Oswald.ttf");gen_label.font_size=34;gen_label.pixel_size=.0012;gen_label.position=Vector3(-.44,.62,.05);gen_label.rotation.y=-PI/2;gen_label.modulate=Color("e8dfc0");gen_label.outline_size=5;gen_label.shaded=false;gen_label.layers=ROOM_LAYER;gen.add_child(gen_label)
- var gen_light:=OmniLight3D.new();gen_light.position=Vector3(-.9,1.3,0);gen_light.light_color=Color("ffd59c");gen_light.light_energy=.5;gen_light.omni_range=2.6;gen_light.light_cull_mask=ROOM_LAYER;gen.add_child(gen_light);lights.append([gen_light,.5])
- _clickable(gen,Vector3(0,.7,0),Vector3(.9,1.4,1.3),"generator")
-
-func _book_prop() -> void:
- var cover:=_mat(Color("5e2620"),"res://assets/paint.png",.7)
- var pages:=_mat(Color("d8ceb0"),"",.9)
- var prop:=Node3D.new();prop.name="ReportBook";prop.position=Vector3(.66,.79,-.44);prop.rotation.y=.12;room.add_child(prop)
- _box(prop,Vector3(0,.012,0),Vector3(.36,.024,.27),cover)
- _box(prop,Vector3(.004,.026,0),Vector3(.34,.006,.25),pages)
- _box(prop,Vector3(0,.033,0),Vector3(.36,.008,.27),cover)
- var title:=Label3D.new();title.text="MELDEBUCH";title.font=load("res://assets/Oswald.ttf");title.font_size=30;title.pixel_size=.0009;title.position=Vector3(0,.039,0);title.rotation.x=-PI/2;title.modulate=Color("d9c58e");title.shaded=false;title.layers=ROOM_LAYER;prop.add_child(title)
- _clickable(prop,Vector3(0,.03,0),Vector3(.42,.09,.33),"book")
+ var gen:=_model("portable_generator",room,GENERATOR_AT,-PI/2,1.15)
+ gen.name="Generator"
+ _clickable(gen,Vector3(0,.3,0),Vector3(.9,.7,.65),"generator")
+ meter=_model("retro_multimeter",room,GENERATOR_AT+Vector3(-.05,.665,-.2),-PI/2-.35,.9)
+ # Wall-mounted power meter above the generator: dark housing, glass, LED digits.
+ var panel_mat:=_pbr("rusty_painted_metal",Color(.25,.27,.27),2.)
+ var glass:=StandardMaterial3D.new();glass.albedo_color=Color(.02,.03,.025);glass.roughness=.08;glass.metallic_specular=.9
+ _box(room,Vector3(2.585,1.02,.2),Vector3(.05,.2,.4),panel_mat)
+ _box(room,Vector3(2.557,1.03,.2),Vector3(.008,.1,.3),glass)
+ w.tube(room,Vector3(2.59,.92,.2),Vector3(2.59,.15,.2),.012,panel_mat)
+ gen_label=Label3D.new();gen_label.text="";gen_label.font=load("res://assets/Oswald.ttf");gen_label.font_size=54;gen_label.pixel_size=.0008;gen_label.position=Vector3(2.551,1.03,.2)
+ gen_label.rotation.y=-PI/2;gen_label.modulate=Color("7dff8a");gen_label.outline_size=0;gen_label.shaded=false;gen_label.layers=ROOM_LAYER;room.add_child(gen_label)
+ var caption:=Label3D.new();caption.text="NETZ / GENERATOR";caption.font=load("res://assets/Oswald.ttf");caption.font_size=24;caption.pixel_size=.0008;caption.position=Vector3(2.557,1.105,.2);caption.rotation.y=-PI/2;caption.modulate=Color(.75,.75,.7);caption.shaded=true;caption.layers=ROOM_LAYER;room.add_child(caption)
 
 func _feeds() -> void:
- main_view=_viewport(Vector2i(1024,576),"NightwatchMainFeed")
+ main_view=_viewport(Vector2i(960,720),"NightwatchMainFeed")
  main_camera=main_view.get_child(0) as Camera3D
  main_material.set_shader_parameter("feed",main_view.get_texture())
  for i in range(NightwatchConfig.CAMERAS.size()):
-  var view_port:=_viewport(Vector2i(320,180),"NightwatchFeed%d"%i)
+  var view_port:=_viewport(Vector2i(320,240),"NightwatchFeed%d"%i)
   var spec: Dictionary=NightwatchConfig.CAMERAS[i]
-  var feed_cam:=view_port.get_child(0) as Camera3D;feed_cam.fov=float(spec.fov);_aim(feed_cam,spec)
+  var feed_cam:=view_port.get_child(0) as Camera3D;_aim(feed_cam,spec)
   feeds.append(view_port)
   (small_materials[i] as ShaderMaterial).set_shader_parameter("feed",view_port.get_texture())
-  (room.find_child("SmallLabel%d"%i,true,false) as Label3D).text=str(spec.label).get_slice(" · ",0)+" · "+str(spec.label).get_slice(" · ",1)
+  (monitors[i].find_child("SmallLabel%d"%i,true,false) as Label3D).text=str(spec.label).get_slice(" · ",0)+" · "+str(spec.label).get_slice(" · ",1)
   # The infrared lamp beside each camera keeps dark rooms readable.
   var ir:=SpotLight3D.new();ir.name="InfraredLamp%d"%i;add_child(ir);ir.global_position=spec.p;ir.look_at(spec.at)
   ir.light_energy=NightwatchConfig.IR_ENERGY;ir.spot_range=NightwatchConfig.IR_RANGE;ir.spot_angle=NightwatchConfig.IR_ANGLE;ir.spot_attenuation=.8;ir.light_color=Color("d8e6dc");ir.light_cull_mask=1;ir.shadow_enabled=false
@@ -276,7 +321,12 @@ func _viewport(size_value: Vector2i, title: String) -> SubViewport:
  var feed_cam:=Camera3D.new();feed_cam.near=.1;feed_cam.far=46;feed_cam.cull_mask=1;port.add_child(feed_cam);feed_cam.current=true
  return port
 
+# The 4:3 monitors keep the width each camera was framed for in 16:9.
+static func feed_fov(spec: Dictionary) -> float:
+ return rad_to_deg(2.*atan(tan(deg_to_rad(float(spec.fov))*.5)*16./9.))
+
 func _aim(feed_cam: Camera3D, spec: Dictionary) -> void:
+ feed_cam.keep_aspect=Camera3D.KEEP_WIDTH;feed_cam.fov=feed_fov(spec)
  feed_cam.global_position=spec.p;feed_cam.look_at(spec.at)
 
 # ---------------------------------------------------------------- UI
@@ -398,7 +448,7 @@ func start(seed_value: int=-1) -> void:
  w=g.world;rng.seed=seed_value if seed_value>=0 else int(Time.get_unix_time_from_system()*1000.)%2147483647
  anomalies=NightwatchAnomalies.new(w,rng.randi())
  running=true;over=false;reason="";seconds=0.;power=NightwatchConfig.POWER_START;wrong=0;reports=0;combo=0;best_combo=0;score_float=0.;repairs=0;failed_repairs=0;top_stage=1
- history.clear();spawn_clock=0.;next_spawn=NightwatchConfig.FIRST_ANOMALY;selected=0;refresh_index=0;view="monitors";yaw=FRONT.x;pitch=FRONT.y;edge_clock=0
+ history.clear();spawn_clock=0.;next_spawn=NightwatchConfig.FIRST_ANOMALY;selected=0;refresh_index=0;view="monitors";yaw=FRONT.x;pitch=FRONT.y;anchor_yaw=FRONT.x;sway=Vector2.ZERO
  qte={};book_open=false;choice={"room":"","area":"","kind":""};message_time=0;beep_clock=0;glitch_clock=4.;glitch=0;ambience_clock=rng.randf_range(20,40);new_best=false
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
  main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
@@ -595,11 +645,15 @@ func _refresh_book() -> void:
 func select_camera(index: int, sound: bool=true) -> void:
  selected=posmod(index,NightwatchConfig.CAMERAS.size())
  var spec: Dictionary=NightwatchConfig.CAMERAS[selected]
- main_camera.fov=float(spec.fov);_aim(main_camera,spec)
+ _aim(main_camera,spec)
  main_label.text=spec.label
  if sound:switch_sound.pitch_scale=rng.randf_range(1.5,1.7);switch_sound.play();glitch=maxf(glitch,.35)
- for i in range(small_materials.size()):
-  var label:=room.find_child("SmallLabel%d"%i,true,false) as Label3D
+ if not key_lit:
+  key_lit=StandardMaterial3D.new();key_lit.albedo_color=Color("e8d9a0");key_lit.emission_enabled=true;key_lit.emission=Color("ffc85a");key_lit.emission_energy_multiplier=1.4
+ for i in range(keys.size()):
+  if keys[i]:(keys[i] as MeshInstance3D).material_override=key_lit if i==selected else null
+ for i in range(monitors.size()):
+  var label:=(monitors[i] as Node3D).find_child("SmallLabel%d"%i,true,false) as Label3D
   label.modulate=Color("ffd47a") if i==selected else Color("d8f0d8")
 
 func instability() -> float:
@@ -627,9 +681,9 @@ func _tick_screens(delta: float) -> void:
  stamp_label.text="%02d:%02d:%02d"%[(clock/3600)%24,(clock/60)%60,clock%60]
  power_label.text="STROM %d %%"%ceili(power)
  power_label.modulate=Color("ff6a50") if power<=NightwatchConfig.ALARM else Color("d8f0d8")
- gen_label.text="GENERATOR · STROM %d %%\nKLICKEN ZUM NEUSTART"%ceili(power)
- var lamp_on:=power>NightwatchConfig.ALARM or fmod(seconds,.6)<.3
- gen_lamp_material.emission=(Color("5cff6c") if power>NightwatchConfig.ALARM else Color("ff4030"))*(1. if lamp_on else .1)
+ var blink:=power>NightwatchConfig.ALARM or fmod(seconds,.6)<.3
+ gen_label.text="%03d %%"%ceili(power)
+ gen_label.modulate=Color("7dff8a") if power>NightwatchConfig.ALARM else (Color("ff5a40") if blink else Color("5a2018"))
  var room_dim:=1. if power>NightwatchConfig.CRITICAL else .6+.4*float(glitch<.3)
  for row in lights:(row[0] as Light3D).light_energy=float(row[1])*room_dim
 
@@ -643,23 +697,34 @@ func _tick_alarm(delta: float) -> void:
 func alarm_active() -> bool:
  return running and power<=NightwatchConfig.ALARM
 
+# Seated look: the cursor near a screen edge pans the head smoothly; A/D and
+# clicks ease to the monitor wall or the generator. The camera follows with
+# frame-rate independent damping and a faint drift with the cursor.
 func _tick_view(delta: float) -> void:
- var mouse:=get_viewport().get_mouse_position()/get_viewport().get_visible_rect().size
- if qte.is_empty() and not book_open:
-  if mouse.x>.2 and mouse.x<.8:edge_armed=true
-  if edge_armed and view=="monitors" and mouse.x>.975:edge_clock+=delta
-  elif edge_armed and view=="generator" and mouse.x<.025:edge_clock+=delta
-  else:edge_clock=0
-  if edge_clock>.35:edge_clock=0;look("generator" if view=="monitors" else "monitors")
- var target:=FRONT if view=="monitors" else RIGHT
- var sway:=Vector2(-(mouse.x-.5)*.10,-(mouse.y-.5)*.06) if not book_open else Vector2.ZERO
- yaw=lerp_angle(yaw,target.x+sway.x,clampf(delta*7.,0,1));pitch=lerpf(pitch,target.y+sway.y,clampf(delta*7.,0,1))
+ var size_value:=get_viewport().get_visible_rect().size
+ var mouse:=get_viewport().get_mouse_position()/size_value
+ var inside:=mouse.x>=0. and mouse.x<=1. and mouse.y>=0. and mouse.y<=1.
+ if qte.is_empty() and not book_open and inside and DisplayServer.window_is_focused():
+  var push:=0.
+  if mouse.x>1.-EDGE:push=-smoothstep(0.,1.,(mouse.x-(1.-EDGE))/EDGE)
+  elif mouse.x<EDGE:push=smoothstep(0.,1.,(EDGE-mouse.x)/EDGE)
+  anchor_yaw=clampf(anchor_yaw+push*PAN_SPEED*delta,YAW_RIGHT,YAW_LEFT)
+ view="generator" if anchor_yaw<(FRONT.x+RIGHT.x)*.5 else "monitors"
+ var drift:=Vector2.ZERO
+ if inside and not book_open and qte.is_empty():drift=Vector2(-(clampf(mouse.x,EDGE,1.-EDGE)-.5)*.05,-(mouse.y-.5)*.05)
+ var ease_value:=1.-exp(-delta*SMOOTH)
+ sway=sway.lerp(drift,1.-exp(-delta*3.))
+ yaw=lerpf(yaw,anchor_yaw+sway.x,ease_value)
+ var turn:=clampf((yaw-FRONT.x)/(RIGHT.x-FRONT.x),0.,1.)
+ var breathe:=sin(seconds*1.3)*.0025
+ pitch=lerpf(pitch,lerpf(FRONT.y,RIGHT.y,smoothstep(0.,1.,turn))+sway.y+breathe,ease_value)
  cam.rotation=Vector3(pitch,yaw,0)
  _hover(get_viewport().get_mouse_position())
 
 func look(where: String) -> void:
  if not qte.is_empty():return
- view=where;edge_armed=false;close_book()
+ anchor_yaw=RIGHT.x if where=="generator" else FRONT.x
+ view=where;close_book()
 
 func _pick(screen: Vector2) -> String:
  var space:=get_world_3d().direct_space_state
@@ -674,19 +739,18 @@ func _hover(screen: Vector2) -> void:
  Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if target!="" else Input.CURSOR_ARROW)
  if book_open:hint.text="Raum, Bereich und Art wählen · Meldung abgeben · ESC schließt das Buch"
  elif not qte.is_empty():hint.text="Tippe die Wörter in der richtigen Reihenfolge"
- elif view=="generator":hint.text="Generator anklicken: Neustart  ·  A / ← oder linker Bildrand: zurück zu den Monitoren"
- else:hint.text="Monitor anklicken oder 1–0 / Mausrad: Kamera  ·  Buch anklicken: Meldung  ·  D / → oder rechter Bildrand: Generator  ·  ESC: Pause"
+ elif view=="generator":hint.text="Generator anklicken: Neustart  ·  Maus an den linken Rand oder A / ←: zurück zu den Monitoren"
+ else:hint.text="Monitor oder Taste am Pult anklicken, 1–0 oder Mausrad: Kamera  ·  Buch: Meldung  ·  Maus an den rechten Rand oder D / →: Generator  ·  ESC: Pause"
 
 func click_at(screen: Vector2) -> bool:
  if not running or book_open or not qte.is_empty():return false
  var target:=_pick(screen)
  if target.begins_with("monitor:"):select_camera(int(target.get_slice(":",1)));return true
+ if target=="main":return true
  if target=="book":
-  if view!="monitors":look("monitors")
-  open_book();return true
+  look("monitors");open_book();return true
  if target=="generator":
-  if view!="generator":look("generator");return true
-  return start_qte()
+  look("generator");return start_qte()
  return false
 
 # Input from the game. Returns true when the event was used.

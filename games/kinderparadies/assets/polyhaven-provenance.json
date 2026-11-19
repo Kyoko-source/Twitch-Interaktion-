@@ -638,5 +638,433 @@
         "bytes": 2174316
       }
     ]
+  },
+  {
+    "id": "Television_01",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/Television_01",
+    "files": [
+      {
+        "path": "models/Television_01/Television_01.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/Television_01/Television_01_2k.gltf",
+        "sha256": "8314c82f2aef36f7444117662bb475c4c96eff1ac4adac4bd90ae917a1c876c9",
+        "bytes": 2933
+      },
+      {
+        "path": "models/Television_01/Television_01.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/Television_01/Television_01.bin",
+        "sha256": "fc32dd3e6722cfa093910d8b5b4e6173b0c92a13d58b55b8e9c6007a9218b0a0",
+        "bytes": 90548
+      },
+      {
+        "path": "models/Television_01/textures/Television_01_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/Television_01/Television_01_diff_2k.jpg",
+        "sha256": "4e785a2f878f7bcafac7c823ef5734e8a1e2b848f6b36e67ba4fa43d6743cc42",
+        "bytes": 329921
+      },
+      {
+        "path": "models/Television_01/textures/Television_01_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/Television_01/Television_01_arm_2k.jpg",
+        "sha256": "7ac7cbe0877a8c78478dd61e5c5a20cff9fed9da61fa34419c66037b605ce733",
+        "bytes": 691103
+      },
+      {
+        "path": "models/Television_01/textures/Television_01_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/Television_01/Television_01_nor_gl_2k.jpg",
+        "sha256": "8cb67becdf54e1ebc7d0f82cd4292907c98beb2871e5ff6a3677bc7d0b0fc718",
+        "bytes": 438327
+      }
+    ]
+  },
+  {
+    "id": "portable_generator",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/portable_generator",
+    "files": [
+      {
+        "path": "models/portable_generator/portable_generator.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/portable_generator/portable_generator_2k.gltf",
+        "sha256": "a756386bac40d0377e39c80933567a0ccb313da5281bb361cf56e059c36e2286",
+        "bytes": 10130
+      },
+      {
+        "path": "models/portable_generator/textures/portable_generator_spec_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/portable_generator/portable_generator_spec_2k.jpg",
+        "sha256": "eff7a40a0dad5caee606baaadd9925cca84e99798cd08abba74709ae64da92d5",
+        "bytes": 74594
+      },
+      {
+        "path": "models/portable_generator/textures/portable_generator_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/portable_generator/portable_generator_nor_gl_2k.jpg",
+        "sha256": "d98066fa97e59dacefd4878df5069b8f59e3e653a0f7e739545fcf400a93b680",
+        "bytes": 2936023
+      },
+      {
+        "path": "models/portable_generator/textures/portable_generator_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/portable_generator/portable_generator_diff_2k.jpg",
+        "sha256": "18321bec1851f5863fefee6e299af18629015701d8999e02c51560bb0581ae2e",
+        "bytes": 2680935
+      },
+      {
+        "path": "models/portable_generator/textures/portable_generator_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/portable_generator/portable_generator_arm_2k.jpg",
+        "sha256": "8f2c0b3ff0366393b547680a712416de1cfd522b0178d3a2cfb7b61b7decb427",
+        "bytes": 3133944
+      },
+      {
+        "path": "models/portable_generator/portable_generator.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/portable_generator/portable_generator.bin",
+        "sha256": "fb7dcfedec1331ad541569e4ca8d4157284b2164084b7fe5a97928d4abc0ea2d",
+        "bytes": 939572
+      }
+    ]
+  },
+  {
+    "id": "binder_notebook",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/binder_notebook",
+    "files": [
+      {
+        "path": "models/binder_notebook/binder_notebook.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/binder_notebook/binder_notebook_2k.gltf",
+        "sha256": "a9f9123e51e18643f5097b02ebde320ba2b65bb4a2d2281aaf3d4bab1bc96de7",
+        "bytes": 4309
+      },
+      {
+        "path": "models/binder_notebook/textures/binder_notebook_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/binder_notebook/binder_notebook_nor_gl_2k.jpg",
+        "sha256": "4b4631652683f5c60402969ceee4b1f161f2add82a781d2ddd280b47ca1a84c7",
+        "bytes": 1211985
+      },
+      {
+        "path": "models/binder_notebook/textures/binder_notebook_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/binder_notebook/binder_notebook_diff_2k.jpg",
+        "sha256": "58b9eb79a1320d8db6498e6dc3d8aa289979bca912568d29e7f20ea2c609737c",
+        "bytes": 1707438
+      },
+      {
+        "path": "models/binder_notebook/textures/binder_notebook_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/binder_notebook/binder_notebook_arm_2k.jpg",
+        "sha256": "f66a1521fb48a8f28d96fae661cc1a3189311193ecff8c66945a560afbe42caa",
+        "bytes": 1689226
+      },
+      {
+        "path": "models/binder_notebook/binder_notebook.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/binder_notebook/binder_notebook.bin",
+        "sha256": "68e28e6fac708a6e172230c42debd990e48819566fa07f222415467b1034b9c0",
+        "bytes": 525488
+      }
+    ]
+  },
+  {
+    "id": "clipboard",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/clipboard",
+    "files": [
+      {
+        "path": "models/clipboard/clipboard.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/clipboard/clipboard_2k.gltf",
+        "sha256": "21299eb9fbfc3ec2f7793c3797b565232919fe4bd918d588556d63bf73043bb2",
+        "bytes": 2738
+      },
+      {
+        "path": "models/clipboard/textures/clipboard_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/clipboard/clipboard_nor_gl_2k.jpg",
+        "sha256": "52ab3dcc119a9f97a618a29102c319da4b5c626425687ac5d8c42d9878f9b757",
+        "bytes": 1867548
+      },
+      {
+        "path": "models/clipboard/textures/clipboard_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/clipboard/clipboard_diff_2k.jpg",
+        "sha256": "a2f22cf95ea8358bb47fbd3a9882b22f167e83c57775f8af8140e17d65dabc86",
+        "bytes": 2287331
+      },
+      {
+        "path": "models/clipboard/textures/clipboard_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/clipboard/clipboard_arm_2k.jpg",
+        "sha256": "76b254d4ba39895a0f8ccd1c988f759d463e5013c180b181dfc823dba0e0cec2",
+        "bytes": 2426585
+      },
+      {
+        "path": "models/clipboard/clipboard.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/clipboard/clipboard.bin",
+        "sha256": "c108d9cc94bc513ff9f91077e02cbe9f49a96d4907abd06803e379508fd98bb2",
+        "bytes": 184512
+      }
+    ]
+  },
+  {
+    "id": "office_notepads",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/office_notepads",
+    "files": [
+      {
+        "path": "models/office_notepads/office_notepads.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/office_notepads/office_notepads_2k.gltf",
+        "sha256": "f72897278116cfafa3ceb65a31cc7e2332797923805ec19eb8c1262523d06934",
+        "bytes": 15568
+      },
+      {
+        "path": "models/office_notepads/textures/office_notepads_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/office_notepads/office_notepads_nor_gl_2k.jpg",
+        "sha256": "9a23fa5d40dcf1a1b754aa5bcd3e32d3ce40bee5505aa40dc640dff3084b9ff9",
+        "bytes": 1985062
+      },
+      {
+        "path": "models/office_notepads/textures/office_notepads_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/office_notepads/office_notepads_diff_2k.jpg",
+        "sha256": "9037c4c6ffe60a123e875d2618f71bf448a25c5e87c494289c8fb0c9c52ab469",
+        "bytes": 1800779
+      },
+      {
+        "path": "models/office_notepads/textures/office_notepads_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/office_notepads/office_notepads_arm_2k.jpg",
+        "sha256": "5149eb4fbfcb2335829de4e87e476abb6a7e2e10bda8679b6610a7eeb9f88d9d",
+        "bytes": 1905085
+      },
+      {
+        "path": "models/office_notepads/office_notepads.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/office_notepads/office_notepads.bin",
+        "sha256": "4095356347a19a2e64ee2f5cee46d50d9bdf7c52f617573bca94cfe6e494842c",
+        "bytes": 17740
+      }
+    ]
+  },
+  {
+    "id": "vintage_radio_transceiver",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/vintage_radio_transceiver",
+    "files": [
+      {
+        "path": "models/vintage_radio_transceiver/vintage_radio_transceiver.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/vintage_radio_transceiver/vintage_radio_transceiver_2k.gltf",
+        "sha256": "97a942911b68440da250ae0d829a5ae0075df121148c07bf941bef7c6da9f07d",
+        "bytes": 25848
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_nor_gl_2k.jpg",
+        "sha256": "0847075bff7d68574dcf65986f6c441cfb46c4619878786b1beffe3ad853622a",
+        "bytes": 1809010
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_diff_2k.jpg",
+        "sha256": "87f03f8ce4b48d78083609a91afc9172f09ffe572c622342c6352b04ab90356f",
+        "bytes": 2978698
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_arm_2k.jpg",
+        "sha256": "3b301d0a23ccc10711e88380af600e12b74c5e564b6bb3b94f002bfd86124bc1",
+        "bytes": 3683828
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_accessories_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_accessories_nor_gl_2k.jpg",
+        "sha256": "fb0a8dc541d9b6337405354df580144c95804490f1ba0bc24a46ed7b79128979",
+        "bytes": 1927802
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_accessories_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_accessories_diff_2k.jpg",
+        "sha256": "67124a78e7de97188ddee5f43b5dc58068dacd679a03cfc15da3c768bd495991",
+        "bytes": 2759700
+      },
+      {
+        "path": "models/vintage_radio_transceiver/textures/vintage_radio_transceiver_accessories_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/vintage_radio_transceiver/vintage_radio_transceiver_accessories_arm_2k.jpg",
+        "sha256": "f9c03b0960f0e0723327ff9f73e9818a8c17fdbc28fa931c82b295647067397c",
+        "bytes": 3430814
+      },
+      {
+        "path": "models/vintage_radio_transceiver/vintage_radio_transceiver.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/vintage_radio_transceiver/vintage_radio_transceiver.bin",
+        "sha256": "392976de8f78517141a42c8a4685463c8db508d3ce4ac04e7235d6a5374c0de1",
+        "bytes": 1740024
+      }
+    ]
+  },
+  {
+    "id": "mounted_fluorescent_lights",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/mounted_fluorescent_lights",
+    "files": [
+      {
+        "path": "models/mounted_fluorescent_lights/mounted_fluorescent_lights.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/mounted_fluorescent_lights/mounted_fluorescent_lights_2k.gltf",
+        "sha256": "4b103d87a23069802d033cdbafd16356715bdb42494c23f608f2f19d01dcb3ca",
+        "bytes": 21071
+      },
+      {
+        "path": "models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/mounted_fluorescent_lights/mounted_fluorescent_lights_nor_gl_2k.jpg",
+        "sha256": "e64a97826f538b4136bcf37851b85e75d6864c3e3f1cc195bb2b93e200def731",
+        "bytes": 772169
+      },
+      {
+        "path": "models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/mounted_fluorescent_lights/mounted_fluorescent_lights_diff_2k.jpg",
+        "sha256": "b519a5b02cf7b220dff62b50862e98f5cfa15483158ca09845a75f73f828cfcd",
+        "bytes": 1176268
+      },
+      {
+        "path": "models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/mounted_fluorescent_lights/mounted_fluorescent_lights_arm_2k.jpg",
+        "sha256": "521e6afd5297234f4a23ea9c61506745c9b7c74f06510857636e863dd2ed7d32",
+        "bytes": 2442201
+      },
+      {
+        "path": "models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_emission_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/mounted_fluorescent_lights/mounted_fluorescent_lights_emission_2k.jpg",
+        "sha256": "8f19530ed341bd219f87d4561b5575bb78cc879eac5390b7b95d86605862ebb4",
+        "bytes": 204959
+      },
+      {
+        "path": "models/mounted_fluorescent_lights/mounted_fluorescent_lights.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/mounted_fluorescent_lights/mounted_fluorescent_lights.bin",
+        "sha256": "587851c1b4e09e4cf3438f3d8bb084d4591f6be3a7bb1b4324b84af97b3c5f03",
+        "bytes": 551720
+      }
+    ]
+  },
+  {
+    "id": "worn_metal_rack",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/worn_metal_rack",
+    "files": [
+      {
+        "path": "models/worn_metal_rack/worn_metal_rack.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/worn_metal_rack/worn_metal_rack_2k.gltf",
+        "sha256": "cec4dab53535d3bf36ae47485917dfacbd670b75c39467c1d0a8faf206540802",
+        "bytes": 2796
+      },
+      {
+        "path": "models/worn_metal_rack/textures/worn_metal_rack_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/worn_metal_rack/worn_metal_rack_nor_gl_2k.jpg",
+        "sha256": "dab6e92bd938e5ce0ddccba9f948ee64c585c87cec797ec9211cabe9ae1c663d",
+        "bytes": 1761299
+      },
+      {
+        "path": "models/worn_metal_rack/textures/worn_metal_rack_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/worn_metal_rack/worn_metal_rack_diff_2k.jpg",
+        "sha256": "7ffcb11dc334a424c77154ef2dcbc310a1dba0eebfc6f7b9e52bb3c99fc75961",
+        "bytes": 2201125
+      },
+      {
+        "path": "models/worn_metal_rack/textures/worn_metal_rack_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/worn_metal_rack/worn_metal_rack_arm_2k.jpg",
+        "sha256": "1f88a4c7d864e533a1556f82334d5a0b9494172494287ec657b82527abbe48ea",
+        "bytes": 2554965
+      },
+      {
+        "path": "models/worn_metal_rack/worn_metal_rack.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/worn_metal_rack/worn_metal_rack.bin",
+        "sha256": "b8cfa4138b7c0e0e69738c6f24dec7fecdc2f336f524312db48167816776fd13",
+        "bytes": 269400
+      }
+    ]
+  },
+  {
+    "id": "metal_trash_can",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_trash_can",
+    "files": [
+      {
+        "path": "models/metal_trash_can/metal_trash_can.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/metal_trash_can/metal_trash_can_2k.gltf",
+        "sha256": "6d1ebfbbd1fc4bfa59f5c9ab9138981200e67d9dcf30a405045f6e415153b633",
+        "bytes": 15481
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_arm_2k.jpg",
+        "sha256": "168c3143575152a64c4d5b205a53e0748d76eeb6ea8376e14914b41c9f6fd6a2",
+        "bytes": 2756651
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_rust_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_rust_diff_2k.jpg",
+        "sha256": "b927a4eeb7be65eb8f0bb1fd8d4ae19647bf7a86759c09c0de43cdc8256a45d6",
+        "bytes": 2716140
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_rust_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_rust_arm_2k.jpg",
+        "sha256": "410d2508ed6ef2525f2126979f5a55f0f3d273bcb4ab5231f1a624c47f300488",
+        "bytes": 2270609
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_diff_2k.jpg",
+        "sha256": "2f2cec31a3d8cd2117eb0358e253e53f78181310975441b9e6e45b580d0079e7",
+        "bytes": 2073937
+      },
+      {
+        "path": "models/metal_trash_can/metal_trash_can.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/metal_trash_can/metal_trash_can.bin",
+        "sha256": "a9b9f526b655bef865933335f2cfc8c8f0bd1a35fda05b290a93e3061f2b6c8a",
+        "bytes": 378288
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_rust_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_rust_nor_gl_2k.jpg",
+        "sha256": "48c901b6acd1fa161fc9d0de0f4b6945629315133819f2d5ad5957a67686722c",
+        "bytes": 4229931
+      },
+      {
+        "path": "models/metal_trash_can/textures/metal_trash_can_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/metal_trash_can/metal_trash_can_nor_gl_2k.jpg",
+        "sha256": "7bb12839b501bdb605be02a8ba86c3f283197ec35bbcb5be5a85e8cdfdb7f953",
+        "bytes": 3034809
+      }
+    ]
+  },
+  {
+    "id": "retro_multimeter",
+    "kind": "model",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/retro_multimeter",
+    "files": [
+      {
+        "path": "models/retro_multimeter/retro_multimeter.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/retro_multimeter/retro_multimeter_2k.gltf",
+        "sha256": "2cd18491b38aedf6d33d1ac84c1693974b8b3b2447d7df147c5f80e21d3fe5bf",
+        "bytes": 13821
+      },
+      {
+        "path": "models/retro_multimeter/textures/retro_multimeter_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/retro_multimeter/retro_multimeter_nor_gl_2k.jpg",
+        "sha256": "0555cb6c0ea9566ebc43fb75ac452bf683c47874735ee1d88fe077bea2426716",
+        "bytes": 1051164
+      },
+      {
+        "path": "models/retro_multimeter/textures/retro_multimeter_diff_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/retro_multimeter/retro_multimeter_diff_2k.jpg",
+        "sha256": "b3ba9213aa2c8becdf2660b6f549ef27817d11e19116915f345a58c844080db7",
+        "bytes": 1327058
+      },
+      {
+        "path": "models/retro_multimeter/textures/retro_multimeter_arm_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/retro_multimeter/retro_multimeter_arm_2k.jpg",
+        "sha256": "8dbe287ad5fac8f6ff6c4fa885411aba0136829a7743c6f708c0b472f2ad11f2",
+        "bytes": 1580720
+      },
+      {
+        "path": "models/retro_multimeter/retro_multimeter.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/retro_multimeter/retro_multimeter.bin",
+        "sha256": "c2d626778b59eaa5293f7c666433a5b0224cdb2dc38d005a056f95b2ab24b2e8",
+        "bytes": 273368
+      }
+    ]
   }
 ]

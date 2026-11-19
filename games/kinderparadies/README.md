@@ -1,5 +1,23 @@
 # After Play — Kinderparadies
 
+## Nightwatch: echter Kontrollraum und flüssige Blicksteuerung (4.16.0)
+
+- Der Kontrollraum besteht jetzt aus echten Modellen statt Platzhalter-Kisten:
+  Poly-Haven-Modelle (CC0, `tools/fetch-after-play-nightwatch-v4160.py`) für
+  Metallschreibtisch, Gelenklampe, drei verwitterte Metallregale, den
+  tragbaren Generator EN2500, die Leder-Ringmappe als Meldebuch, Klemmbrett,
+  Notizblöcke, Funkgerät, Neonröhren, Stromkästen, Arbeitslampe, Mülleimer und
+  Multimeter; Wände, Boden und Decke mit PBR-Putz und Beton.
+- Selbst modelliert (`tools/model-after-play-nightwatch-v4160.py`, Blender):
+  4:3-CCTV-Röhrenmonitore mit Stahlgehäuse, Bildröhrenhaube, Lüftungsschlitzen,
+  Drehknöpfen, Betriebs-LED und gewölbtem Glas, auf dem das Kamerabild läuft,
+  und ein Kamera-Umschaltpult mit zehn Tasten, Joystick und Anzeige. Die Taste
+  der gewählten Kamera leuchtet; ein Klick auf eine Taste schaltet um.
+- Stromanzeige mit LED-Ziffern an der Wand über dem Generator.
+- Blicksteuerung neu: Maus an den rechten oder linken Bildrand schwenkt den
+  Kopf weich, A/D und Klicks gleiten zu Monitorwand oder Generator, die Kamera
+  folgt gedämpft und bildratenunabhängig, mit leichtem Mitgehen der Maus.
+
 ## Nightwatch Protocol, aufgeräumtes Hauptmenü, Toiletten-Graffiti (4.15.0)
 
 - Neuer Spielmodus **Nightwatch Protocol** (`scripts/nightwatch*.gd`): Du sitzt
