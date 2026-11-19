@@ -26,6 +26,9 @@ var vignette: ColorRect
 var glitch: ColorRect
 var hurt:=0.0
 var shown_points:=0.0
+var health_bar: ProgressBar
+var health_text: Label
+var claws: Control
 
 func build(game: Node3D) -> void:
 	g=game;layer=11;name="ZombiesHud"
@@ -62,7 +65,13 @@ void fragment(){float d=length((UV-.5)*vec2(1.5,1.1));COLOR=vec4(tint,smoothstep
 	var back:=StyleBoxFlat.new();back.bg_color=Color(0,0,0,.7);back.border_color=Color("ff6a6a");back.set_border_width_all(1);boss_bar.add_theme_stylebox_override("background",back);boss_box.add_child(boss_bar)
 	boss_box.hide()
 	crosshair=_label(root,"+",30,Color(1,1,1,.75),false);crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER);crosshair.offset_left=-20;crosshair.offset_right=20;crosshair.offset_top=-22;crosshair.offset_bottom=18;crosshair.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	hitmarker=_label(root,"✕",34,Color(1,.3,.3,0),false);hitmarker.set_anchors_and_offsets_preset(Control.PRESET_CENTER);hitmarker.offset_left=-20;hitmarker.offset_right=20;hitmarker.offset_top=-24;hitmarker.offset_bottom=20;hitmarker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	# Life bar above the perks, bottom left.
+	health_text=_label(root,"",20,Color("f0dcd8"),false);health_text.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);health_text.offset_left=50;health_text.offset_right=420;health_text.offset_top=-262;health_text.offset_bottom=-236
+	health_bar=ProgressBar.new();health_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);health_bar.offset_left=50;health_bar.offset_right=400;health_bar.offset_top=-234;health_bar.offset_bottom=-220;health_bar.show_percentage=false;health_bar.step=0.;health_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var hfill:=StyleBoxFlat.new();hfill.bg_color=Color("c0182a");hfill.set_corner_radius_all(3);health_bar.add_theme_stylebox_override("fill",hfill)
+	var hback:=StyleBoxFlat.new();hback.bg_color=Color(0,0,0,.6);hback.border_color=Color(1,1,1,.35);hback.set_border_width_all(1);hback.set_corner_radius_all(3);health_bar.add_theme_stylebox_override("background",hback);root.add_child(health_bar)
+	claws=Control.new();claws.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);claws.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(claws)
+	hitmarker=_label(root,"✕",34,Color(1,.3,.3),false);hitmarker.modulate.a=0.;hitmarker.set_anchors_and_offsets_preset(Control.PRESET_CENTER);hitmarker.offset_left=-20;hitmarker.offset_right=20;hitmarker.offset_top=-24;hitmarker.offset_bottom=20;hitmarker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 
 func _overlay(code: String, parent: Control) -> ColorRect:
 	var rect:=ColorRect.new();rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);rect.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -85,6 +94,15 @@ func popup(value: int, color: Color=Color("f2e6b4")) -> void:
 func hit(kill: bool, head: bool) -> void:
 	hit_time=.18;hitmarker.add_theme_color_override("font_color",Color(1,.2,.2) if kill else Color(1,1,1) if not head else Color(1,.85,.3))
 
+# Three red claw rakes across the screen when a guest lands a hit.
+func claw() -> void:
+	var size_value:=get_viewport().get_visible_rect().size
+	var start:=Vector2(randf_range(.25,.6)*size_value.x,randf_range(.15,.4)*size_value.y);var angle:=randf_range(.55,1.0)
+	for k in range(3):
+		var line:=ColorRect.new();line.color=Color(.65,0,.04,.85);line.size=Vector2(size_value.y*.55,9.-k*1.5);line.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		line.position=start+Vector2(k*42,-k*18);line.rotation=angle;claws.add_child(line)
+		var tween:=line.create_tween();tween.tween_interval(.25);tween.tween_property(line,"modulate:a",0.,.7);tween.tween_callback(line.queue_free)
+
 func set_perks(list: Array) -> void:
 	for child in perks_row.get_children():child.queue_free()
 	for id in list:
@@ -106,7 +124,11 @@ func tick(delta: float, data: Dictionary) -> void:
 		title_time-=delta
 		if title_time<1.:title.modulate.a=title_time;subtitle.modulate.a=title_time
 		if title_time<=0.:title.text="";subtitle.text=""
-	hit_time=maxf(hit_time-delta,0.);var c:=hitmarker.get_theme_color("font_color");c.a=hit_time/.18;hitmarker.add_theme_color_override("font_color",c)
+	hit_time=maxf(hit_time-delta,0.);hitmarker.modulate.a=hit_time/.18
+	health_bar.max_value=float(data.max_health);health_bar.value=float(data.health)
+	health_text.text="LEBEN  %d / %d"%[ceili(float(data.health)),int(data.max_health)]
+	var low: bool=float(data.health)/float(data.max_health)<.35
+	(health_bar.get_theme_stylebox("fill") as StyleBoxFlat).bg_color=Color("ff2a2a") if low and fmod(Time.get_ticks_msec()/1000.,.5)<.25 else Color("c0182a")
 	hurt=lerpf(hurt,float(data.hurt),clampf(delta*6.,0,1));(vignette.material as ShaderMaterial).set_shader_parameter("hurt",hurt)
 	(vignette.material as ShaderMaterial).set_shader_parameter("tint",Vector3(.55,0,.02) if not data.shield else Vector3(.9,.5,.75))
 	var amount: float=data.glitch

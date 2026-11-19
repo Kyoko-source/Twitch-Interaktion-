@@ -1,5 +1,18 @@
 # After Play — Kinderparadies
 
+## Hellere Nightwatch-Kameras mit Vollbild, Partynacht mit Schlägen und Lebensbalken (5.1.2)
+
+- **Nightwatch Protocol**: jede Kamera sieht mit eigener Nachtsicht
+  (höhere Belichtung, Umgebungslicht, weniger Nebel), stärkere
+  Infrarotlampen; die Anomalien sind klar zu erkennen, auch im Kino.
+  Linksklick auf einen Monitor zeigt die Kamera im Vollbild (Kameraname,
+  Strom, Uhrzeit), Rechtsklick oder ESC führt zurück; 1–0 und Mausrad
+  wechseln dort die Kamera, B öffnet das Meldebuch.
+- **Partynacht**: zwei kräftige Schlag-Animationen (Krallenhieb von oben,
+  doppelter Wischer, jeweils mit Ausfallschritt), rote Kratzspuren auf dem
+  Bildschirm bei Treffern, ein Lebensbalken mit Zahlen (blinkt unter 35 %),
+  das große schwarze Kreuz der Treffermarke ist weg.
+
 ## Aufgeräumtes Hauptmenü mit „Weitere Spielmodi“ (5.1.1)
 
 - Im Hauptmenü stehen nur noch Neue Nachtschicht, Schicht fortsetzen und

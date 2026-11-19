@@ -82,8 +82,8 @@ func run(game: Node3D, verify: Callable) -> void:
 	verify.call(target.dead and int(z.stats.kills)==kills+1 and int(z.stats.headshots)>=1,"A kill is not counted")
 	# The real hitscan path reaches an enemy in front of the camera.
 	var dummy:=z._spawn_enemy();dummy.rise=0.;dummy.stun=99.;dummy.model.position.y=0.;dummy.global_position=Vector3(-6.4,0,9.4)
-	look_at_point(game,dummy.global_position+Vector3.UP*1.,ZombiesConfig.SPAWN_POINT)
 	await game.get_tree().physics_frame;await game.get_tree().physics_frame
+	look_at_point(game,dummy.global_position+Vector3.UP*1.,ZombiesConfig.SPAWN_POINT)
 	var shot_hp:=dummy.hp
 	var cam: Camera3D=game.player.camera
 	var probe:=PhysicsRayQueryParameters3D.create(cam.global_position,cam.global_position-cam.global_basis.z*20.,ZombiesArsenal.RAY_MASK);probe.collide_with_areas=true;probe.exclude=[game.player.get_rid()]
@@ -171,6 +171,10 @@ func run(game: Node3D, verify: Callable) -> void:
 	z.active={};z.perks.erase("grabesschritt");z.health=z.max_health
 	z.hurt_player(50.,null)
 	verify.call(z.health<z.max_health,"Enemies do no damage")
+	z.hud.hit(true,true);z.hud.tick(.3,z._hud_data())
+	verify.call(is_equal_approx(z.hud.health_bar.value,z.health) and z.hud.health_text.text.contains("LEBEN") and z.hud.hitmarker.modulate.a<.01,"Life bar missing or the hit marker stays on screen: bar %.1f health %.1f text %s marker %.2f"%[z.hud.health_bar.value,z.health,z.hud.health_text.text,z.hud.hitmarker.modulate.a])
+	var swings: AnimationPlayer=(z.enemies[0] as ZombieEnemy).anim if not z.enemies.is_empty() else null
+	verify.call(swings==null or (swings.has_animation("Attack") and swings.has_animation("Attack2")),"Party children have no swing animations")
 	z.regen_wait=0.;var low:=z.health;z._tick_player(1.)
 	verify.call(z.health>low,"Health does not regenerate")
 	var best_before: int=int(game.achievements.zombies.best_round)

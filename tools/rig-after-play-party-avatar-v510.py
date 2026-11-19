@@ -146,11 +146,22 @@ def animate(arm):
                 'shin.L': (40 * max(0., S(p + 1.4)), 0, 0), 'shin.R': (40 * max(0., S(p + 1.4 + math.pi)), 0, 0),
                 'upperarm.L': (18 * S(p), 0, 0), 'upperarm.R': (-60 - 24 * S(p), 0, 0), 'forearm.R': (-30, 0, 0)}
     def attack(t):
-        lift = math.sin(min(t / .45, 1.) * math.pi * .5); slash = max(0., min((t - .45) / .2, 1.)); back = max(0., (t - .7) / .3)
+        # Overhead claw: rear back, both arms high, lunge and rake down.
+        lift = math.sin(min(t / .4, 1.) * math.pi * .5); slash = max(0., min((t - .4) / .16, 1.)); back = max(0., (t - .72) / .28)
         k = (1 - back)
-        return {'spine': ((10 * lift - 30 * slash) * k, 0, 0), 'chest': (-10 * slash * k, 0, 0), 'head': ((12 * lift - 8 * slash) * k, twitch(t, 7, 16), 0),
-                'upperarm.L': ((-60 * lift + 90 * slash) * k, 0, 0), 'forearm.L': (-40 * lift * (1 - slash) * k, 0, 0),
-                'upperarm.R': ((-110 * lift + 110 * slash) * k, 0, 0), 'forearm.R': (-50 * lift * (1 - slash) * k, 0, 0)}
+        return {'hips:loc': (0, (.06 * lift - .3 * slash) * k, -.05 * slash * k), 'hips': ((8 * lift - 22 * slash) * k, 0, 0),
+                'spine': ((18 * lift - 42 * slash) * k, 0, 0), 'chest': ((8 * lift - 18 * slash) * k, 0, 0), 'head': ((20 * lift - 14 * slash) * k, twitch(t, 7, 16), 0),
+                'thigh.L': (-22 * slash * k, 0, 0), 'shin.L': (26 * slash * k, 0, 0), 'thigh.R': (14 * slash * k, 0, 0),
+                'upperarm.L': ((-150 * lift + 175 * slash) * k, 0, 18 * lift * k), 'forearm.L': ((-60 * lift + 50 * slash) * k, 0, 0),
+                'upperarm.R': ((-175 * lift + 190 * slash) * k, 0, -18 * lift * k), 'forearm.R': ((-60 * lift + 50 * slash) * k, 0, 0)}
+    def attack2(t):
+        # Double swipe: left then right across the body, stepping in.
+        a = math.sin(min(t / .3, 1.) * math.pi); b = math.sin(max(0., min((t - .3) / .32, 1.)) * math.pi); back = max(0., (t - .75) / .25); k = 1 - back
+        step = min(t / .3, 1.) * k
+        return {'hips:loc': (0, -.22 * step, 0), 'hips': (0, 0, (28 * a - 28 * b) * k), 'spine': (-18 * step, 0, (22 * a - 22 * b) * k), 'head': (-10 * step, twitch(t, 14, 20), (-14 * a + 14 * b) * k),
+                'thigh.L': (-18 * step, 0, 0), 'shin.L': (18 * step, 0, 0),
+                'upperarm.L': ((-80 * a - 10) * k, (-50 * a) * k, (-60 * a) * k), 'forearm.L': (-30 * a * k, 0, 0),
+                'upperarm.R': ((-80 * b - 40) * k, (50 * b) * k, (60 * b) * k), 'forearm.R': (-30 * b * k, 0, 0)}
     def hit(t):
         k = math.sin(min(t / .3, 1.) * math.pi) * (1 - t)
         return {'spine': (24 * k, 0, 10 * k), 'chest': (12 * k, 0, 0), 'head': (28 * k, 16 * k, 0), 'upperarm.L': (30 * k, 0, 0), 'upperarm.R': (30 * k, 0, 0)}
@@ -169,7 +180,7 @@ def animate(arm):
         return {'hips:loc': (0, -.15, -.38), 'hips': (-70, 4 * S(p), 6 * S(p)), 'spine': (-6, 0, 6 * S(p)), 'neck': (30, 0, 0), 'head': (30 + twitch(t, 11, 18), twitch(t, 12, 24), 0),
                 'upperarm.L': (-40 + 40 * S(p), 0, 0), 'upperarm.R': (-110 - 40 * S(p), 0, 0), 'forearm.L': (20 * max(0., S(p)), 0, 0), 'forearm.R': (20 * max(0., -S(p)), 0, 0),
                 'thigh.L': (40 + 12 * S(p), 0, 0), 'thigh.R': (20 - 12 * S(p), 0, 0)}
-    for name, length, fn, loop in (('Idle', 2.4, idle, True), ('Walk', 1.15, walk, True), ('Run', .64, run, True), ('Attack', .9, attack, False),
+    for name, length, fn, loop in (('Idle', 2.4, idle, True), ('Walk', 1.15, walk, True), ('Run', .64, run, True), ('Attack', .9, attack, False), ('Attack2', .9, attack2, False),
                                    ('Hit', .36, hit, False), ('Death', 1.5, death, False), ('Crawl', 1.3, crawl, True)):
         action(arm, name, length, fn, loop)
 

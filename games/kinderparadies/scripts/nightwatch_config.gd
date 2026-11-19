@@ -77,9 +77,13 @@ const KIND_ORDER:=["missing","floating","moved","extra","visitor","motion","appa
 const SPOT_KINDS:=["visitor","apparition","light"]
 
 # Infrared lamp next to every camera, so dark rooms stay readable on screen.
-const IR_ENERGY:=1.6
-const IR_RANGE:=16.0
-const IR_ANGLE:=48.0
+const IR_ENERGY:=3.0
+const IR_RANGE:=24.0
+const IR_ANGLE:=62.0
+# Night-vision look of the feeds: exposure, ambient light and fog.
+const FEED_EXPOSURE:=1.6
+const FEED_AMBIENT:=.8
+const FEED_FOG:=.5
 # Cameras: id, label, position, look-at point.
 const CAMERAS:=[
  {"id":"empfang","label":"CAM 01 · EMPFANG","p":Vector3(-6.8,2.7,5.0),"at":Vector3(-8.7,1.2,9.0),"fov":74.},

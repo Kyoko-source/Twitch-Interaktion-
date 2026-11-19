@@ -54,6 +54,13 @@ var switcher: Node3D
 var keys: Array=[]
 var meter: Node3D
 var key_lit: StandardMaterial3D
+var night_env: Environment
+# Full-screen view of one camera (left click on a monitor, right click back).
+var full: Control
+var full_image: TextureRect
+var full_label: Label
+var full_stamp: Label
+var fullscreen:=false
 var lights: Array=[]
 var anomalies: NightwatchAnomalies
 # Own jumpscare on the control room camera; the shift one is never moved.
@@ -236,9 +243,9 @@ void fragment(){
  float tear=glitch*(hash(vec2(line,floor(TIME*26.0)+seed))-.5)*.09;
  uv.x+=tear+sin(uv.y*90.0+TIME*2.0)*.0007*(1.0+instability*5.0);
  uv.y=fract(uv.y+glitch*.025*sin(TIME*37.0+seed));
- vec3 c=texture(feed,uv).rgb;
+ vec3 c=pow(texture(feed,uv).rgb,vec3(.82));
  float l=dot(c,vec3(.299,.587,.114));
- c=mix(c,vec3(l*.84,l,l*.9),.5)*gain;
+ c=mix(c,vec3(l*.84,l,l*.9),.45)*gain;
  float n=hash(floor(UV*vec2(400.,300.))+floor(TIME*20.)+seed);
  c+=(n-.5)*(.05+instability*.22+glitch*.45);
  c*=.92+.08*sin(UV.y*600.0*3.14159);
@@ -301,7 +308,7 @@ func _generator() -> void:
  var caption:=Label3D.new();caption.text="NETZ / GENERATOR";caption.font=load("res://assets/Oswald.ttf");caption.font_size=24;caption.pixel_size=.0008;caption.position=Vector3(2.557,1.105,.2);caption.rotation.y=-PI/2;caption.modulate=Color(.75,.75,.7);caption.shaded=true;caption.layers=ROOM_LAYER;room.add_child(caption)
 
 func _feeds() -> void:
- main_view=_viewport(Vector2i(960,720),"NightwatchMainFeed")
+ main_view=_viewport(Vector2i(1280,960),"NightwatchMainFeed")
  main_camera=main_view.get_child(0) as Camera3D
  main_material.set_shader_parameter("feed",main_view.get_texture())
  for i in range(NightwatchConfig.CAMERAS.size()):
@@ -325,7 +332,17 @@ func _viewport(size_value: Vector2i, title: String) -> SubViewport:
 static func feed_fov(spec: Dictionary) -> float:
  return rad_to_deg(2.*atan(tan(deg_to_rad(float(spec.fov))*.5)*16./9.))
 
+func _night_vision() -> Environment:
+ if night_env:return night_env
+ var base: Environment=get_world_3d().environment
+ night_env=base.duplicate() as Environment if base else Environment.new()
+ night_env.tonemap_exposure=night_env.tonemap_exposure*NightwatchConfig.FEED_EXPOSURE
+ night_env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;night_env.ambient_light_color=Color(.62,.7,.64);night_env.ambient_light_energy=NightwatchConfig.FEED_AMBIENT
+ night_env.fog_density=night_env.fog_density*NightwatchConfig.FEED_FOG;night_env.volumetric_fog_density=night_env.volumetric_fog_density*NightwatchConfig.FEED_FOG
+ return night_env
+
 func _aim(feed_cam: Camera3D, spec: Dictionary) -> void:
+ feed_cam.environment=_night_vision()
  feed_cam.keep_aspect=Camera3D.KEEP_WIDTH;feed_cam.fov=feed_fov(spec)
  feed_cam.global_position=spec.p;feed_cam.look_at(spec.at)
 
@@ -348,10 +365,41 @@ func _ui() -> void:
  sensor_text=_ui_label("",16,Color("d9c58e"));column.add_child(sensor_text)
  message=_ui_label("",26,Color("eee7d6"));message.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);message.offset_left=-620;message.offset_right=620;message.offset_top=-150;message.offset_bottom=-70;message.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;message.add_theme_color_override("font_outline_color",Color(0,0,0,.9));message.add_theme_constant_override("outline_size",8);message.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hud.add_child(message)
  hint=_ui_label("",16,Color("aab5a6"));hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);hint.offset_top=-52;hint.offset_bottom=-22;hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(hint)
- _qte_ui();_book_ui()
+ _qte_ui();_book_ui();_full_ui()
 
 func _ui_label(value: String, font_size: int, color: Color) -> Label:
  var label:=Label.new();label.text=value;label.add_theme_font_size_override("font_size",font_size);label.add_theme_color_override("font_color",color);label.add_theme_font_override("font",load("res://assets/Oswald.ttf"));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;return label
+
+func _full_ui() -> void:
+ full=Control.new();full.name="FullscreenFeed";full.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);full.mouse_filter=Control.MOUSE_FILTER_IGNORE;layer.add_child(full);layer.move_child(full,0)
+ var black:=ColorRect.new();black.color=Color.BLACK;black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);black.mouse_filter=Control.MOUSE_FILTER_IGNORE;full.add_child(black)
+ full_image=TextureRect.new();full_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);full_image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;full_image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;full_image.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var shader:=Shader.new();shader.code="""shader_type canvas_item;
+uniform float glitch=0.0;
+uniform float instability=0.0;
+uniform float dim=1.0;
+float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+void fragment(){
+ vec2 uv=UV;float line=floor(uv.y*150.0);
+ uv.x+=glitch*(hash(vec2(line,floor(TIME*26.0)))-.5)*.06+sin(uv.y*90.0+TIME*2.0)*.0006*(1.0+instability*5.0);
+ vec3 c=pow(texture(TEXTURE,uv).rgb,vec3(.82));float l=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(l*.84,l,l*.9),.45)*1.4;
+ c+=(hash(floor(UV*vec2(640.,480.))+floor(TIME*20.))-.5)*(.05+instability*.2+glitch*.4);
+ c*=.94+.06*sin(UV.y*900.0);float v=1.-.4*pow(length((UV-.5)*1.2),2.4);
+ COLOR=vec4(clamp(c*v*dim,0.,1.),1.);}"""
+ var m:=ShaderMaterial.new();m.shader=shader;full_image.material=m;full.add_child(full_image)
+ full_label=_ui_label("",30,Color("d8f0d8"));full_label.position=Vector2(60,40);full.add_child(full_label)
+ full_stamp=_ui_label("",30,Color("d8f0d8"));full_stamp.position=Vector2(60,82);full.add_child(full_stamp)
+ var tip:=_ui_label("Rechtsklick: zurück zum Kontrollraum  ·  1–0 / Mausrad: Kamera wechseln  ·  B: Meldebuch",18,Color("aab5a6"));tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);tip.offset_left=-560;tip.offset_right=560;tip.offset_top=-130;tip.offset_bottom=-100;tip.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;full.add_child(tip)
+ full.hide()
+
+func open_fullscreen(index: int=-1) -> void:
+ if not running or not qte.is_empty():return
+ if index>=0:select_camera(index)
+ fullscreen=true;full.show();full_image.texture=main_view.get_texture();switch_sound.pitch_scale=1.3;switch_sound.play()
+
+func close_fullscreen() -> void:
+ if not fullscreen:return
+ fullscreen=false;full.hide()
 
 func _qte_ui() -> void:
  qte_panel=PanelContainer.new();qte_panel.name="GeneratorQTE";qte_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER);qte_panel.offset_left=-430;qte_panel.offset_right=430;qte_panel.offset_top=60;qte_panel.offset_bottom=330;qte_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -449,7 +497,7 @@ func start(seed_value: int=-1) -> void:
  anomalies=NightwatchAnomalies.new(w,rng.randi())
  running=true;over=false;reason="";seconds=0.;power=NightwatchConfig.POWER_START;wrong=0;reports=0;combo=0;best_combo=0;score_float=0.;repairs=0;failed_repairs=0;top_stage=1
  history.clear();spawn_clock=0.;next_spawn=NightwatchConfig.FIRST_ANOMALY;selected=0;refresh_index=0;view="monitors";yaw=FRONT.x;pitch=FRONT.y;anchor_yaw=FRONT.x;sway=Vector2.ZERO
- qte={};book_open=false;choice={"room":"","area":"","kind":""};message_time=0;beep_clock=0;glitch_clock=4.;glitch=0;ambience_clock=rng.randf_range(20,40);new_best=false
+ qte={};book_open=false;fullscreen=false;choice={"room":"","area":"","kind":""};message_time=0;beep_clock=0;glitch_clock=4.;glitch=0;ambience_clock=rng.randf_range(20,40);new_best=false
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
  main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  select_camera(0,false)
@@ -554,6 +602,7 @@ func report(room_id: String, area_id: String, kind: String) -> Dictionary:
 
 func start_qte() -> bool:
  if not running or not qte.is_empty() or power<=0:return false
+ close_fullscreen()
  var stage:=NightwatchConfig.stage_of(seconds);var cfg:=NightwatchConfig.qte(stage)
  qte={"stage":stage,"words":NightwatchConfig.words_for(stage,rng),"index":0,"typed":0,"time":float(cfg.time),"left":float(cfg.time),"flash":0.}
  close_book();qte_panel.show();_refresh_qte()
@@ -609,6 +658,7 @@ func _refresh_qte() -> void:
 
 func open_book() -> void:
  if not running or not qte.is_empty() or book_open:return
+ close_fullscreen()
  book_open=true;book.show();switch_sound.pitch_scale=1.4;switch_sound.play();_refresh_book()
 
 func close_book() -> void:
@@ -677,7 +727,11 @@ func _tick_screens(delta: float) -> void:
  if not feeds.is_empty():
   refresh_index=(refresh_index+1)%feeds.size()
   (feeds[refresh_index] as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
+ if fullscreen:
+  var fm:=full_image.material as ShaderMaterial;fm.set_shader_parameter("glitch",glitch);fm.set_shader_parameter("instability",instability());fm.set_shader_parameter("dim",dim)
+  full_label.text=NightwatchConfig.CAMERAS[selected].label+"   ·   STROM %d %%"%ceili(power)
  var clock:=int(seconds)+23*3600
+ if fullscreen:full_stamp.text="%02d:%02d:%02d"%[(clock/3600)%24,(clock/60)%60,clock%60]
  stamp_label.text="%02d:%02d:%02d"%[(clock/3600)%24,(clock/60)%60,clock%60]
  power_label.text="STROM %d %%"%ceili(power)
  power_label.modulate=Color("ff6a50") if power<=NightwatchConfig.ALARM else Color("d8f0d8")
@@ -739,14 +793,15 @@ func _hover(screen: Vector2) -> void:
  Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if target!="" else Input.CURSOR_ARROW)
  if book_open:hint.text="Raum, Bereich und Art wählen · Meldung abgeben · ESC schließt das Buch"
  elif not qte.is_empty():hint.text="Tippe die Wörter in der richtigen Reihenfolge"
+ elif fullscreen:hint.text=""
  elif view=="generator":hint.text="Generator anklicken: Neustart  ·  Maus an den linken Rand oder A / ←: zurück zu den Monitoren"
  else:hint.text="Monitor oder Taste am Pult anklicken, 1–0 oder Mausrad: Kamera  ·  Buch: Meldung  ·  Maus an den rechten Rand oder D / →: Generator  ·  ESC: Pause"
 
 func click_at(screen: Vector2) -> bool:
- if not running or book_open or not qte.is_empty():return false
+ if not running or book_open or fullscreen or not qte.is_empty():return false
  var target:=_pick(screen)
- if target.begins_with("monitor:"):select_camera(int(target.get_slice(":",1)));return true
- if target=="main":return true
+ if target.begins_with("monitor:"):open_fullscreen(int(target.get_slice(":",1)));return true
+ if target=="main":open_fullscreen();return true
  if target=="book":
   look("monitors");open_book();return true
  if target=="generator":
@@ -765,6 +820,20 @@ func handle(event: InputEvent) -> bool:
   return false
  if book_open:
   if event.is_action_pressed("pause"):close_book();return true
+  return false
+ if fullscreen:
+  if event is InputEventMouseButton and event.pressed:
+   var mb:=event as InputEventMouseButton
+   if mb.button_index==MOUSE_BUTTON_RIGHT:close_fullscreen();return true
+   if mb.button_index==MOUSE_BUTTON_WHEEL_UP:select_camera(selected-1);return true
+   if mb.button_index==MOUSE_BUTTON_WHEEL_DOWN:select_camera(selected+1);return true
+   return true
+  if event.is_action_pressed("pause"):close_fullscreen();return true
+  if event is InputEventKey and event.pressed and not event.echo:
+   var fk:=(event as InputEventKey).physical_keycode
+   if fk>=KEY_1 and fk<=KEY_9:select_camera(fk-KEY_1);return true
+   if fk==KEY_0:select_camera(9);return true
+   if fk in [KEY_B,KEY_TAB]:close_fullscreen();open_book();return true
   return false
  if event is InputEventMouseButton and event.pressed:
   var button_event:=event as InputEventMouseButton
@@ -811,6 +880,7 @@ func _game_over(why: String, record: Dictionary={}) -> void:
  over=true;running=false;reason=why
  var this_run:=run_id
  if book_open:close_book()
+ close_fullscreen()
  qte={};qte_panel.hide();beep.stop();engine.volume_db=-34;Input.set_default_cursor_shape(Input.CURSOR_ARROW)
  if g.achievements:
   new_best=g.achievements.record_nightwatch(score(),seconds)
@@ -851,7 +921,8 @@ func _clear_anomalies() -> void:
 
 # Leaves the mode: every change in the world is undone, the screens stop.
 func stop() -> void:
- run_id+=1;running=false;qte={};book_open=false
+ run_id+=1;running=false;qte={};book_open=false;fullscreen=false
+ if full:full.hide()
  _clear_anomalies()
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_DISABLED
  if main_view:main_view.render_target_update_mode=SubViewport.UPDATE_DISABLED

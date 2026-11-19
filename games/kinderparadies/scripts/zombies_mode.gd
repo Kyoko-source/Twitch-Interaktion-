@@ -404,6 +404,7 @@ func hurt_player(amount: float, source: Node3D) -> void:
 	var value:=amount
 	if has_perk("pluesch_segen") and _recent_kills(6.)>=5:value*=.5
 	health-=value;regen_wait=ZombiesConfig.REGEN_DELAY*(.5 if has_perk("todesatem") else 1.);shake=maxf(shake,.45)
+	if source:hud.claw()
 	if source:player.velocity+=(player.global_position-source.global_position).normalized()*3.
 	if health<=0.:_game_over()
 
@@ -892,7 +893,7 @@ func _hud_data() -> Dictionary:
 	var boss_name:="";var boss_hp:=0.
 	if not bosses.is_empty():var b: ZombieEnemy=bosses[0];boss_name=str(b.spec.get("name",""));boss_hp=b.hp/b.max_hp
 	return {"round":round_number,"points":points,"ammo":ammo,"weapon":weapon_name,"weapon_color":ZombiesConfig.RARITY_COLOR.get(row[13] if not row.is_empty() else "common",Color.WHITE),
-		"pickups":"\n".join(lines),"prompt":prompt_text,"hurt":1.-health/max_health,"shield":has_pickup("shield"),"glitch":reality()*.6+(.4 if event=="rift" else 0.),
+		"pickups":"\n".join(lines),"prompt":prompt_text,"health":maxf(health,0.),"max_health":max_health,"hurt":1.-health/max_health,"shield":has_pickup("shield"),"glitch":reality()*.6+(.4 if event=="rift" else 0.),
 		"boss_name":boss_name,"boss_hp":boss_hp,"aiming":arsenal.aiming>.5}
 
 # ---------------------------------------------------------------- input & end

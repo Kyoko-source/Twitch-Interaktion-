@@ -167,7 +167,9 @@ func _physics_process(delta: float) -> void:
 	var reach:=1.35 if not boss else 1.1+size_scale*.6
 	if attack_t<0. and attack_cd<=0. and dist<reach:
 		attack_t=.42;attack_cd=1.35 if not boss else 1.7
-		if anim and role!="crawler":_play("Attack",1.25,.62)
+		if anim and role!="crawler":
+			var swing:="Attack2" if anim.has_animation("Attack2") and rng.randf()<.5 else "Attack"
+			_play(swing,1.25,.68)
 	if attack_t>=0.:
 		attack_t-=delta*scale_t
 		if attack_t<0. and dist<reach+.35:mode.hurt_player(dmg,self)

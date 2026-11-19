@@ -151,6 +151,15 @@ func run(game: Node3D, verify: Callable) -> void:
   nw.start_qte();await shot(game,"qte");nw.qte={};nw.qte_panel.hide()
   nw.look("monitors");game.set_process(false)
 
+ # Left click on a monitor fills the screen; right click returns.
+ nw.open_fullscreen(4)
+ verify.call(nw.fullscreen and nw.full.visible and nw.selected==4 and nw.full_image.texture==nw.main_view.get_texture(),"A monitor does not open full screen")
+ if dir!="":game.set_process(true);await shot(game,"fullscreen");game.set_process(false)
+ var right:=InputEventMouseButton.new();right.button_index=MOUSE_BUTTON_RIGHT;right.pressed=true
+ verify.call(nw.handle(right) and not nw.fullscreen and not nw.full.visible,"Right click does not leave full screen")
+ var cam_env: Environment=(nw.feeds[0] as SubViewport).get_child(0).environment
+ verify.call(cam_env!=null and cam_env.tonemap_exposure>=NightwatchConfig.FEED_EXPOSURE*.9,"Camera feeds have no night-vision exposure")
+
  # A wrong report counts; the third ends the watch once.
  nw.start(41)
  verify.call(nw.wrong==0 and is_equal_approx(nw.power,100.) and nw.active.is_empty() and nw.score()==0,"Nightwatch does not reset on restart")
