@@ -1,5 +1,32 @@
 # After Play — Kinderparadies
 
+## Endlosmodus und Erfolge (4.14.0)
+
+- Neuer Menüpunkt **Endlosmodus**: bis zu 500 Rundgänge mit drei Leben. Eine
+  falsche Tür, das Pferd oder die abgelaufene Zeit kosten ein Leben; die Runde
+  wird danach neu ausgelost. Beim dritten Fehler endet der Lauf mit einer
+  Übersicht (erreichte Runde, Fehler, bester Lauf).
+- Schwierigkeit steigt stufenweise: Runde 1–5 nur laute, große Anomalien
+  (Stufe 1), danach mittlere (Stufe 2), ab Runde 16 leise (Stufe 3). Ab Runde 31
+  kommen **Detail-Anomalien** dazu: ein Stuhl ist verdreht, ein Stern hängt
+  tiefer, der Mülleimer ist etwas größer, die Pinnwand hängt schief, ein Ballon
+  hat eine andere Farbe. Ihre Stärke sinkt von Runde 31 bis 500 auf etwa ein
+  Zehntel; ab Runde 150 sind drei Viertel aller Anomalien solche Details
+  (`scripts/endless_details.gd`).
+- Ab Runde 15 läuft pro Runde ein Timer von fünf Minuten (Hinweis bei einer
+  Minute und bei zehn Sekunden). Läuft er ab, packt dich ein Besucher.
+- Anzeige oben rechts: `ENDLOS · RUNDE 017 / 500 · LEBEN 3/3 · 04:32`. Nach
+  einem Fehler wird angezeigt, was die Anomalie war.
+- Eigener Spielstand: Der Endloslauf überschreibt nie die normale Nachtschicht,
+  beide lassen sich getrennt fortsetzen. Im Endlosmodus gibt es keinen
+  Multiplayer; ein erreichtes Ende beendet den Lauf.
+- **Erfolge** (Hauptmenü und Endlosmenü): 19 Erfolge, lokal gespeichert, mit
+  Einblendung beim Freischalten. Runde 10/15/25/50/100/200/250/350/500, Makellos
+  (50 Runden ohne Lebensverlust), Adlerauge (25 Detail-Anomalien in Folge),
+  Gegen die Uhr (unter 10 s Rest), Blitzrunde (unter 60 s), dazu die vier Enden,
+  alle Puppen und ein paar geheime (`???`).
+- Neue Testsuite `--endless-only`.
+
 ## Fotobox, Kino und Waschraum aufgewertet (4.13.0)
 
 - Fotobox: zweifarbige 70er-Kabine mit Chromleiste und Dachkappe, rundem

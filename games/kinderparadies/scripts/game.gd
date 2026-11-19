@@ -72,9 +72,16 @@ var world_build_count:=0
 var start_warning: AfterPlayStartWarning
 var album:=ShiftAlbum.new()
 var ending_preview:=false
+# Endless mode (4.14.0) keeps its own save; the normal shift is never touched.
+var NORMAL_SAVE:=""
+var ENDLESS_SAVE:=""
+var endless_request:=false
+var endless_warning:=0
+var achievements: AfterPlayAchievements
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
+ NORMAL_SAVE=SAVE;ENDLESS_SAVE=SAVE.get_basename()+"-endless.json"
  if OS.has_feature("web"): settings.quality=1
  _actions();_read_settings();album.build(self)
  var stored_party_text:=_persistent_text(SAVE)
@@ -85,6 +92,7 @@ func _ready() -> void:
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose();menu_reference_ready=true
  _audio();_ui();door_failure=DoorFailure.new();player.camera.add_child(door_failure)
+ achievements=AfterPlayAchievements.new();add_child(achievements);achievements.build(self)
  intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
  world.graphics.equipment(player,intro)
  menu_camera=Camera3D.new();menu_camera.fov=66;menu_camera.near=.06;menu_camera.far=70;add_child(menu_camera)
@@ -131,7 +139,7 @@ func _retire_world(old: Node) -> void:
  if is_instance_valid(old): old.free()
 
 func _connect_world(anomaly: String) -> void:
- world.set_anomaly(anomaly)
+ world.set_anomaly("none" if anomaly=="detail" else anomaly)
  world.chalk.restore(chalk_drawing)
  world.party.reboot_until=party_reboot_until
  _sync_lift_floor()
@@ -141,13 +149,20 @@ func _connect_world(anomaly: String) -> void:
  world.horse_hunt.fatal_started.connect(_horse_attack_started);world.horse_hunt.killed.connect(_horse_killed)
  world.backstage.escaped.connect(_escape_happyland)
  _sync_plushes()
- world.archive.sync(archive,14 if state.completed else state.streak+1)
+ world.archive.sync(archive,_archive_stage())
  _sync_parking_key()
  world.film.sync(archive.film_found)
  world.brightness(float(settings.brightness))
  world.quality(int(settings.quality))
  if player: player.reset_pose()
  if room_audio: _apply_settings()
+ if anomaly=="detail" and state.endless:
+  var applied:=EndlessDetails.apply(world,state.detail)
+  if not applied.is_empty():state.detail.text=applied.text;state.detail.target=applied.target;state.detail.kind=applied.kind
+
+func _archive_stage() -> int:
+ if state.endless:return mini(state.streak+1,13)
+ return 14 if state.completed else state.streak+1
 
 func _build_world_responsive(anomaly: String,progress: Callable=Callable(),reveal: bool=true) -> void:
  world_revision+=1
@@ -175,16 +190,51 @@ func _start_multiplayer_shift(plan: Array) -> void:
  if phase not in ["menu","settings","multiplayer"]:return
  state.plan.assign(plan);mp_starting=true;_request_shift();mp_starting=false
 
+# Switches between the normal shift and an endless run. The active session
+# is saved to its own file first.
+func _use_mode(endless_mode: bool) -> void:
+ var target:=ENDLESS_SAVE if endless_mode else NORMAL_SAVE
+ if target=="" or SAVE==target:return
+ if has_session:_save()
+ has_session=false;SAVE=target
+ state.endless=endless_mode;state.over=false
+
+func _start_endless() -> void:
+ if world_loading:return
+ if mp and mp.active():mp.stop()
+ _use_mode(true);endless_request=true;_request_shift();endless_request=false
+
+func _continue_shift() -> void:
+ _use_mode(false);_continue()
+
+func _continue_endless() -> void:
+ _use_mode(true);_continue()
+
+# A saved, unfinished endless run: {"round","lives"} or {}.
+func endless_save_info() -> Dictionary:
+ if has_session and state.endless and not state.over and not state.completed:return {"round":state.round_number(),"lives":state.lives}
+ var text:=_persistent_text(ENDLESS_SAVE)
+ var data=JSON.parse_string(text) if not text.is_empty() else null
+ if not data is Dictionary:return {}
+ var check:=PatrolState.new()
+ if not check.restore(data.get("patrol",{})) or not check.endless or check.over or check.completed:return {}
+ return {"round":check.round_number(),"lives":check.lives}
+
+func _start_patrol_state() -> void:
+ if endless_request:state.begin_endless()
+ else:state.endless=false;state.start()
+
 func _request_shift() -> void:
  ending_preview=false
  if world_loading:return
+ if not endless_request:_use_mode(false)
  if not mp_starting:
   state.plan.clear()
   if mp and mp.active():mp.stop()
  if menu_reference_ready:_new_shift();return
  secret_ending=false;archive.clear();archive_selected="";archive_input="";_lose_plushes()
  dialogue.reset()
- state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
+ _start_patrol_state();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  phase="loading";player.release();hud.hide();menu_music.stop()
  for child in menu.get_children():menu.remove_child(child);child.queue_free()
  var shade:=ColorRect.new();shade.color=Color.BLACK;shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
@@ -291,7 +341,7 @@ func _new_shift() -> void:
  if is_instance_valid(world) and world.chalk:world.chalk.restore("")
  archive.clear();archive_selected="";archive_input="";_lose_plushes()
  if not (mp and mp.active()):state.plan.clear()
- state.start();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
+ _start_patrol_state();has_session=true;intro_pending=true;wake_pending=false;arrival_pending=false
  if menu_reference_ready and state.current=="none":
   menu_reference_ready=false;world.archive.sync(archive,1);world.film.sync(false);player.reset_pose()
  else:menu_reference_ready=false;_build_world(state.current)
@@ -306,11 +356,13 @@ func _begin_intro() -> void:
 func _intro_finished() -> void:
  if phase=="arrival":
   wake_pending=false;arrival_pending=false;_resume();_save()
-  if state.completed: _announce("Dreizehn Rundgänge. Vor dir liegt eine Zeitung.",7)
+  if state.endless:_announce_endless_round()
+  elif state.completed: _announce("Dreizehn Rundgänge. Vor dir liegt eine Zeitung.",7)
   return
  if phase!="intro": return
  intro_pending=false;_resume();_save()
- _announce("Erster Rundgang. Verlasse den Fahrstuhl und präge dir den normalen Zustand ein.",7)
+ if state.endless:_announce("Endlosmodus · Runde 1 · 3 Leben. Anfangs sind die Anomalien laut, später winzig.",7)
+ else:_announce("Erster Rundgang. Verlasse den Fahrstuhl und präge dir den normalen Zustand ein.",7)
 
 func _persistent_text(path: String) -> String:
  if OS.has_feature("web"):
@@ -327,6 +379,14 @@ func _write_persistent_text(path: String, content: String) -> void:
  if OS.has_feature("web"):
   var key:=JSON.stringify("after-play:"+path.get_file())
   JavaScriptBridge.eval("(()=>{try{localStorage.setItem("+key+","+JSON.stringify(content)+");}catch(_){}})()")
+
+func _can_continue_shift() -> bool:
+ if has_session and not state.endless:return true
+ var saved:=_persistent_text(NORMAL_SAVE)
+ if saved.is_empty():return false
+ var data=JSON.parse_string(saved)
+ var check:=PatrolState.new()
+ return data is Dictionary and check.restore(data.get("patrol",{})) and not check.endless
 
 func _can_continue() -> bool:
  if has_session: return true
@@ -500,6 +560,7 @@ func _store_plush() -> void:
  _announce("%s eingesteckt · %d / %d Puppen"%[CreatorPlush.PLUSHES[id].title,plushes_found.size(),CreatorPlush.PLUSHES.size()],4)
  if plushes_found.size()>=CreatorPlush.PLUSHES.size() and plush_call=="":
   plush_call="ringing";plush_ending.start_ring();_announce("Alle Puppen gefunden · Am Empfang klingelt das Telefon.",6)
+  achievements.unlock("plushes")
  _save()
 
 func _answer_phone() -> void:
@@ -540,7 +601,7 @@ func _horse_resolved() -> void:
  _save();_announce("Der Hals verschwindet im Schacht. Die rote Tür ist frei.",5)
 
 func _collect_paper(id: String) -> void:
- if phase!="play" or not archive.take(id,14 if state.completed else state.streak+1): return
+ if phase!="play" or not archive.take(id,_archive_stage()): return
  archive_selected=id;world.archive.take(id);_save()
  if id=="note":dialogue.request("note")
  elif id in ArchiveState.PAPERS:dialogue.request("newspaper")
@@ -679,6 +740,9 @@ func _process(delta: float) -> void:
  player.fright=maxf(maxf(maxf(world.encounters.shock,world.terrors.shock),maxf(world.backstage.shock,world.horse_hunt.shock)),world.blackout.fright())
  if phase=="play":
   state.seconds+=delta
+  if state.endless and state.timed():
+   state.round_time+=delta
+   _tick_endless_timer()
   save_clock+=delta
   if save_clock>10: save_clock=0;_save()
   for zone in world.zones:
@@ -727,11 +791,23 @@ func _process(delta: float) -> void:
 
 func _refresh_hud() -> void:
  _sync_lift_floor()
+ notice.offset_top=78 if state.endless else 25
+ notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART if state.endless else TextServer.AUTOWRAP_OFF
+ if state.endless:
+  round_label.offset_left=-760
+  var text:="ENDLOS · RUNDE %03d / %d · LEBEN %d/%d"%[state.round_number(),PatrolState.ENDLESS_GOAL,state.lives,PatrolState.LIVES]
+  if state.timed():
+   var left:=ceili(state.time_left())
+   text+=" · %02d:%02d"%[left/60,left%60]
+  round_label.text=AfterPlayLanguage.t(text)
+  round_label.add_theme_color_override("font_color",Color("e0756a") if state.timed() and state.time_left()<=30 else Color("eee7d6"))
+  return
+ round_label.add_theme_color_override("font_color",Color("eee7d6"))
  round_label.offset_left=-440 if state.completed else -275
  round_label.text=AfterPlayLanguage.t("13 / 13 · ZURÜCK AM ANFANG" if state.completed else "RUNDGANG %02d / 13"%mini(13,state.streak+1))
 
 func _sync_lift_floor() -> void:
- var floor_number:=clampi(state.streak+1,1,13)
+ var floor_number:=(state.streak%13)+1 if state.endless else clampi(state.streak+1,1,13)
  if is_instance_valid(world) and world.passages:world.passages.set_floor(floor_number)
  if intro:intro.set_floor(floor_number)
 
@@ -766,6 +842,7 @@ func _board_lift(_red: bool) -> void:
 
 func _finish_lift(red: bool) -> void:
  if phase!="lift": return
+ if state.endless:_finish_endless_lift(red);return
  if state.completed: _show_patrol_ending();return
  var finished_round:=state.streak+1
  last_result=state.decide(red)
@@ -781,6 +858,7 @@ func _arrival(wake: bool) -> void:
 
 func _door_death(red: bool) -> void:
  if phase not in ["play","lift"]: return
+ if state.endless:_endless_fail(state.miss("door"));return
  survived=state.streak;last_result=state.decide(red)
  if mp:mp.event("Falsche %s Tür in Runde %d – Spieler 1 wurde erwischt. Die Schicht beginnt von vorn."%["rote" if red else "grüne",survived+1])
  phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
@@ -791,6 +869,11 @@ func _door_death(red: bool) -> void:
 
 func _horse_attack_started() -> void:
  if phase!="play":return
+ if state.endless:
+  last_result=state.miss("horse")
+  phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
+  intro_pending=false;wake_pending=not state.over;arrival_pending=false;_save(true);_telemetry()
+  return
  survived=state.streak
  if mp:mp.event("Das Pferd hat Spieler 1 in Runde %d erwischt."%(survived+1))
  phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
@@ -801,6 +884,7 @@ func _horse_killed() -> void:
 
 func _wake_after_death() -> void:
  if phase=="quitting": return
+ if state.endless:await _endless_wake();return
  phase="death";await _fade(1,.15)
  death_label.text=AfterPlayLanguage.t("%d Runden überlebt"%survived);death_label.modulate.a=0;death_label.show()
  await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
@@ -832,7 +916,8 @@ func _show_patrol_ending() -> void:
  _show_ending(1)
 
 func _show_ending(number: int) -> void:
- if not ending_preview:album.discover(number)
+ if not ending_preview:album.discover(number);achievements.unlock("ending_%d"%number)
+ if state.endless and not ending_preview and not state.over:state.over=true
  menu_music.stop()
  intro_pending=false;wake_pending=false;arrival_pending=false
  phase="ending";NightMenus.clear(self);world.watch.close();world.pit_physics.tick(false,player);room_audio.stop();effect.stop();player.lamp.hide();transition_shade.hide();_save()
@@ -1032,6 +1117,8 @@ func _telemetry() -> void:
   return
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  data.rounds=state.rounds
+ data.endless=state.endless
+ if state.endless:data.lives=state.lives;data.round=state.round_number();data.time_left=state.time_left() if state.timed() else -1.;data.over=state.over
  if OS.has_feature("qa"):
   data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
   data.anomaly=state.current;data.controls=[]
@@ -1159,3 +1246,65 @@ func _self_test() -> void:
 func _render_qa() -> void:
  if not AUTHOR_TOOLS: return
  await load("res://scripts/native_render_qa.gd").new().run(self)
+
+
+# ---------------------------------------------------------------- endless mode
+func _announce_endless_round() -> void:
+ if last_result.get("accepted",false) and not last_result.get("correct",true):
+  var cause: String={"timer":"Die Zeit ist abgelaufen.","horse":"Das Pferd hat dich erwischt."}.get(str(last_result.get("reason","")),"Falsche Tür.")
+  _announce("%s %s · Noch %d %s."%[cause,str(last_result.get("detail","")),state.lives,"Leben" if state.lives!=1 else "Leben – das letzte"],8)
+ elif state.timed():_announce("Runde %d · Fünf Minuten bis zur Tür."%state.round_number(),5)
+ else:_announce("Runde %d"%state.round_number(),3)
+
+func _tick_endless_timer() -> void:
+ var left:=state.time_left()
+ if left<=60 and endless_warning<1:endless_warning=1;_announce("Noch eine Minute.",3)
+ elif left<=10 and endless_warning<2:endless_warning=2;_announce("Zehn Sekunden.",3)
+ if int(left*4)!=int((left+get_process_delta_time())*4):_refresh_hud()
+ if left<=0:_endless_fail(state.miss("timer"))
+
+func _finish_endless_lift(red: bool) -> void:
+ last_result=state.decide(red)
+ if mp:mp.event("Endlos-Runde %d: %s"%[state.round_number(),"richtig" if last_result.get("correct",false) else "falsch"])
+ if not last_result.get("correct",false):_endless_fail(last_result);return
+ endless_warning=0
+ achievements.record_round(state.round_number() if not state.completed else PatrolState.ENDLESS_GOAL)
+ if state.flawless>=50:achievements.unlock("flawless")
+ if state.detail_row>=25:achievements.unlock("eagle_eye")
+ if state.last_life_rounds>=25:achievements.unlock("last_life")
+ if last_result.get("timed",false):
+  var used:=float(last_result.get("seconds",0.))
+  if used>=PatrolState.ROUND_SECONDS-10.:achievements.unlock("clutch")
+  if used<60.:achievements.unlock("blitz")
+ if state.completed:_endless_over();return
+ arrival_pending=true;_save(true)
+ _build_world(state.current);_arrival(false)
+
+func _endless_fail(result: Dictionary) -> void:
+ if phase not in ["play","lift"] or not result.get("accepted",false):return
+ last_result=result;endless_warning=0
+ if mp:mp.event("Endlosmodus: Fehler in Runde %d – noch %d Leben."%[state.round_number(),state.lives])
+ phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
+ intro_pending=false;wake_pending=not state.over;arrival_pending=false;_save(true)
+ door_failure.start_patrol(world,player.camera);_telemetry()
+ await door_failure.finished
+ await _endless_wake()
+
+func _endless_wake() -> void:
+ if phase=="quitting":return
+ phase="death";await _fade(1,.15)
+ death_label.text=AfterPlayLanguage.t("Lauf beendet · Runde %d"%state.round_number() if state.over else "Noch %d %s"%[state.lives,"Leben" if state.lives>1 else "Leben · das letzte"])
+ death_label.modulate.a=0;death_label.show()
+ await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
+ await get_tree().create_timer(1.65).timeout
+ if phase=="quitting":return
+ death_label.hide()
+ if state.over:_endless_over();await _fade(0,.4);return
+ _build_world(state.current);_arrival(true);await _fade(0,.7)
+
+# The run ended: out of lives, all 500 rounds, or an ending.
+func _endless_over() -> void:
+ achievements.record_round(state.round_number() if state.over else PatrolState.ENDLESS_GOAL)
+ intro_pending=false;wake_pending=false;arrival_pending=false
+ _save();has_session=false
+ NightMenus.endless_summary(self,state.completed)

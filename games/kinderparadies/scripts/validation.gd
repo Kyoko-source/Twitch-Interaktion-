@@ -122,6 +122,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/night_details_validation.gd").new().run(game,check)
   print("Night details checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--endless-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/endless_validation.gd").new().run(game,check)
+  print("Endless checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--plush-ending-only" in OS.get_cmdline_user_args():
   await load("res://scripts/plush_ending_validation.gd").new().run(game,check)
   print("Plush ending checks: ",checks,"; failures: ",failures.size())
@@ -717,6 +721,7 @@ func run(game: Node3D) -> bool:
  await PassageChecks.new().run(game,check)
  await load("res://scripts/shift_validation.gd").new().run(game,check)
  await load("res://scripts/lift_validation.gd").new().run(game,check)
+ await load("res://scripts/endless_validation.gd").new().run(game,check)
  print("Validation checks: ",checks,"; failures: ",failures.size())
  return failures.is_empty()
 

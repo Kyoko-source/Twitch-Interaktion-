@@ -91,6 +91,28 @@ var history: Array = []
 # Multiplayer: player 2's thirteen planned rounds (an anomaly id or "none").
 # Survives start() so a death replays the same planned shift.
 var plan: Array[String] = []
+# Endless mode (4.14.0): up to 500 rounds, three lives, a five minute timer
+# from round 15. streak counts the rounds cleared, so streak+1 is the round.
+const ENDLESS_GOAL:=500
+const LIVES:=3
+const TIMER_FROM:=15
+const ROUND_SECONDS:=300.0
+# Obvious changes and loud encounters first, quiet ones later. Every other
+# catalogue anomaly is tier 2. From round 31 procedural detail anomalies
+# (current=="detail") join and shrink with every round.
+const TIER_1:=["lights_red","heavy_mist","balls_missing","balls_float","ball_giant","chair_ceiling","balloons_many","party_dark","blood_trail","mural_bleeds","bunny_ceiling","car_giant","star_giant","reception_queue","party_guests","power_blackout","reception_counter_burst","reception_overhead","pit_runner","cinema_aisle_rush","horse_clown_hunt","snackbar_visitor","throne_guest"]
+const TIER_3:=["dust_footprints","false_exit","clock_fast","car_missing","net_missing","horse_rocks","tube_watcher","tube_window_hands","tube_chase","tube_burst","frame_stalker","cinema_last_row","balloons_follow","mural_missing","cold_breath"]
+var endless:=false
+var lives:=LIVES
+var round_time:=0.0
+var detail:={}
+var tier_bags:={"1":[],"2":[],"3":[]}
+# Counters for achievements: rounds without losing a life, detail anomalies
+# found in a row, rounds survived on the last life.
+var flawless:=0
+var detail_row:=0
+var last_life_rounds:=0
+var over:=false
 
 static func catalog() -> Array:
  var rows: Array=[]
@@ -101,6 +123,9 @@ func start(seed_value: int = 0) -> void:
  rng.seed = seed_value if seed_value != 0 else Time.get_ticks_usec()
  streak=0;best=0;errors=0;rounds=0;seconds=0;current="none";completed=false;horse_override=false
  visited.clear();deck.clear();bag.clear();history.clear()
+ lives=LIVES;round_time=0;detail={};flawless=0;detail_row=0;last_life_rounds=0;over=false
+ for key in tier_bags:tier_bags[key]=[]
+ if endless:plan.clear();return
  if plan.size()==GOAL: current=plan[0]
 
 func _shuffle(items: Array[String]) -> void:
@@ -108,7 +133,59 @@ func _shuffle(items: Array[String]) -> void:
   var j := rng.randi_range(0,i)
   var temp := items[i];items[i]=items[j];items[j]=temp
 
+func goal() -> int:
+ return ENDLESS_GOAL if endless else GOAL
+
+func round_number() -> int:
+ return mini(streak+1,goal())
+
+func timed() -> bool:
+ return endless and round_number()>=TIMER_FROM
+
+func time_left() -> float:
+ return maxf(0,ROUND_SECONDS-round_time)
+
+static func tier_of(id: String) -> int:
+ return 1 if id in TIER_1 else 3 if id in TIER_3 else 2
+
+# Share of each tier per round: [tier 1, tier 2, tier 3, detail].
+static func tier_weights(round_value: int) -> Array:
+ if round_value<=5:return [1.,0.,0.,0.]
+ if round_value<=15:return [.6,.4,0.,0.]
+ if round_value<=30:return [.25,.45,.3,0.]
+ if round_value<=60:return [.1,.25,.3,.35]
+ if round_value<=150:return [.05,.15,.2,.6]
+ return [.03,.1,.12,.75]
+
+# Detail size: 1.0 at round 31 down to 0.08 at round 500.
+static func detail_strength(round_value: int) -> float:
+ return lerpf(1.,.08,pow(clampf((round_value-31)/469.,0.,1.),.6))
+
+func _next_endless() -> void:
+ horse_override=false;visited.clear();detail={};round_time=0
+ if completed or over:current="none";return
+ # Slightly more anomalies than normal rounds, never three normal in a row.
+ var recent:=history.slice(-2).filter(func(h):return h.get("anomaly","")=="none" and h.get("correct",false)).size()
+ if rng.randf()<.42 and recent<2:current="none";return
+ var weights:Array=tier_weights(round_number())
+ var pick:=rng.randf();var tier:=0
+ while tier<3 and pick>float(weights[tier]):pick-=float(weights[tier]);tier+=1
+ if tier==3:
+  current="detail";detail={"seed":rng.randi(),"strength":detail_strength(round_number())};return
+ var key:=str(tier+1)
+ if tier_bags[key].is_empty():
+  var ids: Array[String]=[]
+  for anomaly in ANOMALIES:
+   if tier_of(anomaly.id)==tier+1:ids.append(anomaly.id)
+  _shuffle(ids);tier_bags[key]=Array(ids)
+ current=str(tier_bags[key].pop_back())
+
+# The first endless round.
+func begin_endless(seed_value: int=0) -> void:
+ endless=true;start(seed_value);_next_endless()
+
 func _next() -> void:
+ if endless:_next_endless();return
  horse_override=false
  visited.clear()
  if plan.size()==GOAL:
@@ -135,8 +212,46 @@ func inspect(zone: String) -> bool:
   return true
  return false
 
+# A wrong door, an expired timer or the horse cost one life; the round is
+# drawn again. At zero lives the run is over.
+func miss(reason: String="door") -> Dictionary:
+ if not endless or completed or over:return {"accepted":false}
+ var was_detail:=current=="detail"
+ var anomaly:=current!="none"
+ var detail_text:=describe_current()
+ lives-=1;errors+=1;rounds+=1;flawless=0;last_life_rounds=0
+ if was_detail:detail_row=0
+ over=lives<=0
+ _remember({"anomaly":current,"reason":reason,"correct":false})
+ _next()
+ return {"accepted":true,"correct":false,"anomaly":anomaly,"detail":detail_text,"streak":streak,"lives":lives,"over":over,"completed":false,"reason":reason}
+
+func _remember(entry: Dictionary) -> void:
+ history.append(entry)
+ if endless and history.size()>40:history=history.slice(-40)
+
+func _decide_endless(red: bool) -> Dictionary:
+ var anomaly:=current!="none"
+ if red!=anomaly:return miss("door")
+ var was_detail:=current=="detail"
+ var finished_round:=round_number();var used:=round_time
+ var detail_text:=describe_current()
+ rounds+=1;streak+=1;best=maxi(best,streak);flawless+=1
+ if was_detail:detail_row+=1
+ if lives==1:last_life_rounds+=1
+ completed=streak>=ENDLESS_GOAL
+ _remember({"anomaly":current,"red":red,"correct":true})
+ var result:={"accepted":true,"correct":true,"anomaly":anomaly,"detail":detail_text,"streak":streak,"lives":lives,"over":false,"completed":completed,"round":finished_round,"seconds":used,"timed":finished_round>=TIMER_FROM,"was_detail":was_detail}
+ _next()
+ return result
+
+func describe_current() -> String:
+ if current=="detail":return str(detail.get("text","Ein kleines Detail hatte sich verändert."))
+ return describe(current)
+
 func decide(red: bool) -> Dictionary:
- if completed: return {"accepted":false}
+ if completed or over: return {"accepted":false}
+ if endless:return _decide_endless(red)
  var anomaly := current!="none"
  var correct := red==anomaly
  var detail := describe(current)
@@ -156,34 +271,58 @@ static func describe(id: String) -> String:
  return "Es gab keine Anomalie. Der Rundgang war normal."
 
 func serialize() -> Dictionary:
- return {"version":1,"horse_override":horse_override,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state),"plan":plan}
+ return {"endless":endless,"lives":lives,"round_time":round_time,"detail":detail,"tier_bags":tier_bags,"flawless":flawless,"detail_row":detail_row,"last_life_rounds":last_life_rounds,"over":over,"version":1,"horse_override":horse_override,"streak":streak,"best":best,"errors":errors,"rounds":rounds,"seconds":seconds,"current":current,"visited":visited,"deck":deck,"bag":bag,"completed":completed,"history":history,"rng":str(rng.state),"plan":plan}
 
 func restore(data: Dictionary) -> bool:
  var valid_ids: Array[String]=["none"]
  for anomaly in ANOMALIES: valid_ids.append(anomaly.id)
  valid_ids.append_array(REPLACEMENTS.keys())
+ valid_ids.append("detail")
+ var endless_save:=bool(data.get("endless",false))
+ var limit:=ENDLESS_GOAL if endless_save else GOAL
+ if data.get("current","")=="detail" and not endless_save:return false
  if data.get("version")!=1 or data.get("current","") not in valid_ids: return false
- if int(data.get("streak",-1))<0 or int(data.get("streak",99))>GOAL: return false
+ if int(data.get("streak",-1))<0 or int(data.get("streak",9999))>limit: return false
  if not data.get("visited",[]) is Array or not data.get("deck",[]) is Array or not data.get("bag",[]) is Array: return false
  if not data.get("history",[]) is Array: return false
  if not data.get("horse_override",false) is bool:return false
  for field in ["streak","best","errors","rounds","seconds"]:
   var value=data.get(field,0)
   if typeof(value) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(value)) or float(value)<0: return false
- if int(data.get("best",0))>GOAL or not str(data.get("rng","1")).is_valid_int(): return false
+ if int(data.get("best",0))>limit or not str(data.get("rng","1")).is_valid_int(): return false
  for id in data.get("bag",[]):
   if id not in valid_ids: return false
+ if endless_save and not _restore_endless(data,valid_ids):return false
  for item in data.get("deck",[]):
   if item not in ["normal","anomaly"]: return false
  for zone in data.get("visited",[]):
   if zone not in ZONES and zone!="Partyraum": return false
  if data.get("visited",[]).size()!=Array(data.get("visited",[])).reduce(func(acc,item):return acc if item in acc else acc+[item],[]).size(): return false
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
- visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==GOAL
+ visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==limit
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
+ endless=endless_save
+ if endless:
+  lives=int(data.lives);round_time=float(data.get("round_time",0));detail=data.get("detail",{});over=bool(data.get("over",false))
+  flawless=int(data.get("flawless",0));detail_row=int(data.get("detail_row",0));last_life_rounds=int(data.get("last_life_rounds",0))
+  for key in tier_bags:tier_bags[key]=Array(data.tier_bags.get(key,[]))
+ else:lives=LIVES;round_time=0;detail={};over=false;flawless=0;detail_row=0;last_life_rounds=0
  plan.clear()
  var saved_plan=data.get("plan",[])
  if saved_plan is Array and saved_plan.size()==GOAL and saved_plan.all(func(id):return id in valid_ids):plan.assign(saved_plan)
  horse_override=data.get("horse_override",false)==true and current=="horse_clown_hunt"
  if completed: current="none";horse_override=false
+ return true
+
+func _restore_endless(data: Dictionary, valid_ids: Array[String]) -> bool:
+ for field in ["lives","round_time","flawless","detail_row","last_life_rounds"]:
+  var value=data.get(field,-1)
+  if typeof(value) not in [TYPE_INT,TYPE_FLOAT] or not is_finite(float(value)) or float(value)<0:return false
+ if int(data.lives)>LIVES or (int(data.lives)==0 and not bool(data.get("over",false))):return false
+ if not data.get("detail",{}) is Dictionary or not data.get("tier_bags",{}) is Dictionary:return false
+ for key in tier_bags:
+  var stored=data.tier_bags.get(key,[])
+  if not stored is Array:return false
+  for id in stored:
+   if id not in valid_ids:return false
  return true

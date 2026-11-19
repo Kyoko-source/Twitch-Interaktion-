@@ -43,15 +43,43 @@ static func multiplayer(g: Node3D) -> void:
  if not g.mp.active():g.mp.start()
  refresh.call();back.grab_focus();g._telemetry()
 
+# Endless mode: start a new run or continue the saved one.
+static func endless(g: Node3D) -> void:
+ g.phase="endless";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="EndlessMenu";column.position=Vector2(110,140);column.custom_minimum_size=Vector2(900,0);column.add_theme_constant_override("separation",20);g.menu.add_child(column)
+ var title: Label=g._label("ENDLOSMODUS",64,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ column.add_child(g._paragraph("Bis zu 500 Rundgänge mit drei Leben. Am Anfang sind die Anomalien laut und groß, mit jeder Runde werden sie leiser und kleiner, bis nur noch winzige Details verändert sind. Ab Runde 15 hast du für jede Runde fünf Minuten. Eine falsche Tür, das Pferd oder die abgelaufene Zeit kosten ein Leben.",21))
+ var record: Label=g._label("Bester Lauf: Runde %d  ·  Erfolge: %d / %d"%[g.achievements.best_round,g.achievements.unlocked.size(),AfterPlayAchievements.LIST.size()],20,Color("cbbb95"));column.add_child(record)
+ var info: Dictionary=g.endless_save_info()
+ var first: Button
+ if not info.is_empty():
+  first=g._button("Lauf fortsetzen · Runde %d · %d Leben"%[info.round,info.lives],g._continue_endless,true);first.name="EndlessContinue";first.custom_minimum_size=Vector2(560,56);column.add_child(first)
+ var start: Button=g._button("Neuen Lauf starten",g._start_endless,info.is_empty());start.name="EndlessStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
+ var list: Button=g._button("Erfolge",func():g.achievements.show_menu(func():endless(g)));list.custom_minimum_size=Vector2(560,56);column.add_child(list)
+ var back: Button=g._button("Zurück",g._main_menu);back.custom_minimum_size=Vector2(560,56);column.add_child(back)
+ (first if first else start).grab_focus();g._telemetry()
+
+static func endless_summary(g: Node3D, won: bool) -> void:
+ g.phase="endless_over";clear(g);backdrop(g,true)
+ g.player.lamp.hide();g.room_audio.stop()
+ var column:=VBoxContainer.new();column.name="EndlessSummary";column.position=Vector2(110,180);column.custom_minimum_size=Vector2(900,0);column.add_theme_constant_override("separation",22);g.menu.add_child(column)
+ var title: Label=g._label("500 RUNDEN" if won else "LAUF BEENDET",72,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ var reached: int=PatrolState.ENDLESS_GOAL if won else g.state.round_number()
+ column.add_child(g._paragraph(("Du hast alle 500 Rundgänge überstanden. Happyland hat keine Anomalien mehr für dich." if won else "Du bist bis Runde %d gekommen. %d Runden geschafft, %d Fehler."%[reached,g.state.streak,g.state.errors]),24))
+ column.add_child(g._label("Bester Lauf: Runde %d"%g.achievements.best_round,22,Color("cbbb95")))
+ var again: Button=g._button("Neuen Lauf starten",g._start_endless,true);again.name="EndlessAgain";again.custom_minimum_size=Vector2(560,56);column.add_child(again)
+ var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
+ again.grab_focus();g._telemetry()
+
 static func home(g: Node3D) -> void:
  clear(g);backdrop(g)
  var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Endlosmodus",func():endless(g)],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
  for i in range(items.size()):
-  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,494+i*62);button.custom_minimum_size=Vector2(540,58);button.size=Vector2(540,58);button.disabled=i==1 and not g._can_continue();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",31)
+  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,470+i*58);button.custom_minimum_size=Vector2(540,54);button.size=Vector2(540,54);button.disabled=i==1 and not g._can_continue_shift();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29)
   button.add_theme_stylebox_override("normal",nav_style(i==0));button.add_theme_stylebox_override("hover",nav_style(true,true));button.add_theme_stylebox_override("pressed",nav_style(true,true));button.add_theme_stylebox_override("disabled",nav_style(false));button.add_theme_stylebox_override("focus",nav_style(false,true))
   for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
   button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
@@ -64,7 +92,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v4.13.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.14.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
