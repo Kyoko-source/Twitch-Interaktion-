@@ -1,5 +1,11 @@
 # After Play — Kinderparadies
 
+## Partynacht: durch die Netze schießen (5.2.1)
+
+- Schüsse, Tesla-Blitze, Flammenwerfer, Riss-Kanone und Tortenwerfer
+  fliegen durch die Sicherheitsnetze des Klettergerüsts. Vom Gerüst aus
+  lassen sich Gäste unten abschießen; Wände und Böden halten weiter auf.
+
 ## Partynacht: Effekt-Gewitter, Partywaffen, Neon und Musik (5.2.0)
 
 - **Effekte**: Mündungsfeuer mit Sternblitz, Seitenflamme, Rauch und

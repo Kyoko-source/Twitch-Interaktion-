@@ -348,12 +348,15 @@ func _shoot(row: Array, level: int) -> void:
 
 func _ray(from: Vector3, dir: Vector3, damage: float, headshot: float, pierce: int, element: String) -> void:
 	var space:=get_world_3d().direct_space_state;var exclude: Array[RID]=[mode.player.get_rid()]
-	var end:=from+dir*90.;var start:=from;var hits:=0
-	while hits<pierce:
+	var end:=from+dir*90.;var start:=from;var hits:=0;var passes:=0
+	while hits<pierce and passes<12:
+		passes+=1
 		var q:=PhysicsRayQueryParameters3D.create(start,end,RAY_MASK);q.collide_with_areas=true;q.exclude=exclude
 		var hit:=space.intersect_ray(q)
 		if hit.is_empty():mode.tracer(muzzle.global_position if muzzle else from,end,element);return
 		var collider: Object=hit.collider
+		# Bullets fly through the climbing frame's nets.
+		if mode.is_net(collider):exclude.append((collider as CollisionObject3D).get_rid());start=hit.position;continue
 		var enemy: Variant=collider.get_meta("enemy") if collider.has_meta("enemy") else null
 		if enemy is ZombieEnemy and not (enemy as ZombieEnemy).dead:
 			var head:=collider is Area3D

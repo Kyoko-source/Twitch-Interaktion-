@@ -95,6 +95,21 @@ func run(game: Node3D, verify: Callable) -> void:
 	var points_before_shot:=z.points
 	z.arsenal._ray(cam.global_position,-cam.global_basis.z,55.,2.,1,"")
 	verify.call(dummy.hp<shot_hp or (not seen.is_empty() and seen.collider.has_meta("enemy") and z.points>points_before_shot),"The pistol ray does not hit an enemy in front of the guard: ray sees "+seen_text+" dummy at "+str(dummy.global_position)+" eye "+str(cam.global_position)+" fwd "+str(-cam.global_basis.z))
+	# 5.2.1: shots pass through the climbing frame's nets but not through walls.
+	var net_bodies: Array=[]
+	for net_name in ["WestEntryNet","EastFrontNet"]:
+		var net_node: Node=game.world.find_child(net_name,true,false)
+		if net_node:net_bodies.append_array(net_node.find_children("*","CollisionObject3D",true,false))
+	verify.call(not net_bodies.is_empty() and net_bodies.all(func(b):return z.is_net(b)),"Climbing nets are not found as see-through for shots")
+	var through: bool=false
+	if not net_bodies.is_empty():
+		var nb: CollisionObject3D=net_bodies[0];var nb_at:=nb.global_position+Vector3.UP*1.5
+		var ray_from:=nb_at+Vector3(2.5,0,0);var ray_to:=nb_at-Vector3(2.5,0,0)
+		var plain:=PhysicsRayQueryParameters3D.create(ray_from,ray_to,1)
+		var blocked:=game.get_world_3d().direct_space_state.intersect_ray(plain)
+		through=blocked.is_empty() or not z.is_net(blocked.collider) or z.shoot_ray(ray_from,ray_to,1,[] as Array[RID],false).is_empty() or not z.is_net(z.shoot_ray(ray_from,ray_to,1,[] as Array[RID],false).collider)
+	verify.call(through,"A shot does not pass a climbing net")
+	verify.call(not z.is_net(game.player),"The guard counts as a net")
 	# 5.2.0: effects, music, signs, health bars and the three party weapons.
 	verify.call(ResourceLoader.exists(ZombiesFx.FX+"blood-0.png") and ResourceLoader.exists(ZombiesFx.SFX+"explosion-0.ogg") and z.music_calm.stream is AudioStreamOggVorbis and z.music_dread.stream is AudioStreamOggVorbis,"Partynacht effects or music are missing")
 	verify.call(z.music_calm.playing and z.music_dread.playing,"Partynacht music does not play")

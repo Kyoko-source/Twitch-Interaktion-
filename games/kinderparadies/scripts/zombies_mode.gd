@@ -548,10 +548,32 @@ func enemy_time_scale() -> float:
 func gravity_scale() -> float:
 	return .35 if event=="gravity" or has_pickup("gravity") else 1.
 
-# Line of sight to a guest, ignoring the guest's own body.
+# The climbing frame's safety nets stop the player, not bullets.
+var net_cache:={}
+func is_net(o: Object) -> bool:
+	if o==null or not o is Node:return false
+	var id:=o.get_instance_id()
+	if net_cache.has(id):return net_cache[id]
+	var node: Node=o;var found:=false
+	for i in range(5):
+		if node==null:break
+		if String(node.name).containsn("net"):found=true;break
+		node=node.get_parent()
+	net_cache[id]=found;return found
+
+# First hit on a ray that flies through the nets.
+func shoot_ray(from: Vector3, to: Vector3, mask: int, exclude: Array[RID], areas: bool) -> Dictionary:
+	var space:=get_world_3d().direct_space_state;var skip: Array[RID]=exclude.duplicate()
+	for attempt in range(8):
+		var q:=PhysicsRayQueryParameters3D.create(from,to,mask);q.exclude=skip;q.collide_with_areas=areas
+		var hit:=space.intersect_ray(q)
+		if hit.is_empty() or not is_net(hit.collider):return hit
+		skip.append((hit.collider as CollisionObject3D).get_rid())
+	return {}
+
+# Line of sight to a guest, ignoring the guest's own body and the nets.
 func clear_to(from: Vector3, e: ZombieEnemy, height: float) -> bool:
-	var q:=PhysicsRayQueryParameters3D.create(from,e.global_position+Vector3.UP*height,1);q.exclude=[player.get_rid(),e.get_rid()]
-	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	return shoot_ray(from,e.global_position+Vector3.UP*height,1,[player.get_rid(),e.get_rid()] as Array[RID],false).is_empty()
 
 func line_clear(a: Vector3, b: Vector3) -> bool:
 	var q:=PhysicsRayQueryParameters3D.create(a,b,1);q.exclude=[player.get_rid()]
@@ -723,8 +745,7 @@ func tesla_shot(muzzle_at: Vector3, from: Vector3, dir: Vector3, amount: float, 
 		fx.lightning(muzzle_at,target,color,1.6,.2)
 		hit_enemy(best,amount,false,1.,target,elements);_chain(best,amount*.7,4+elements.split("+",false).size())
 	else:
-		var q:=PhysicsRayQueryParameters3D.create(from,from+dir*26.,1);q.exclude=[player.get_rid()]
-		var hit:=get_world_3d().direct_space_state.intersect_ray(q)
+		var hit:=shoot_ray(from,from+dir*26.,1,[player.get_rid()] as Array[RID],false)
 		var end: Vector3=hit.position if not hit.is_empty() else from+dir*26.
 		fx.lightning(muzzle_at,end,color,1.3,.16)
 		if not hit.is_empty():fx.impact(end,hit.normal,color)
@@ -754,8 +775,7 @@ func _tick_projectiles(delta: float) -> void:
 			(p.vel as Vector3).y-=2.*delta
 			if to.distance_to(player.global_position+Vector3.UP*1.1)<.7:
 				hurt_player(float(p.dmg),null);slowed=2.;_particles(to,Color("8aff4a"),12,3.,.06,.5);node.queue_free();projectiles.erase(p);continue
-		var q:=PhysicsRayQueryParameters3D.create(from,to,1|(0 if p.hostile else ZombieEnemy.LAYER_BODY|ZombieEnemy.LAYER_HEAD));q.collide_with_areas=not p.hostile;q.exclude=[player.get_rid()]
-		var hit:=space.intersect_ray(q)
+		var hit:=shoot_ray(from,to,1|(0 if p.hostile else ZombieEnemy.LAYER_BODY|ZombieEnemy.LAYER_HEAD),[player.get_rid()] as Array[RID],not p.hostile)
 		if not hit.is_empty() or float(p.life)<=0.:
 			var at: Vector3=hit.position if not hit.is_empty() else to
 			if p.hostile:_particles(at,Color("8aff4a"),10,2.,.06,.5)
