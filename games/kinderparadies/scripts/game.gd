@@ -78,6 +78,7 @@ var ENDLESS_SAVE:=""
 var endless_request:=false
 var endless_warning:=0
 var achievements: AfterPlayAchievements
+var nightwatch: Nightwatch
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
@@ -96,7 +97,7 @@ func _ready() -> void:
  intro=ElevatorIntro.new();add_child(intro);intro.build(world,player);intro.finished.connect(_intro_finished)
  world.graphics.equipment(player,intro)
  menu_camera=Camera3D.new();menu_camera.fov=66;menu_camera.near=.06;menu_camera.far=70;add_child(menu_camera)
- menu_light=SpotLight3D.new();menu_light.light_color=Color("c8ba95");menu_light.light_energy=2.0;menu_light.spot_range=22;menu_light.spot_angle=42;menu_light.spot_angle_attenuation=1.5;menu_light.position=Vector3(0,.5,0);menu_camera.add_child(menu_light)
+ menu_light=SpotLight3D.new();menu_light.light_color=Color("c8ba95");menu_light.light_energy=3.0;menu_light.spot_range=24;menu_light.spot_angle=48;menu_light.spot_angle_attenuation=1.5;menu_light.position=Vector3(0,.5,0);menu_camera.add_child(menu_light)
  menu_scare=DoorFailure.new();menu_camera.add_child(menu_scare)
  _apply_settings()
  get_tree().auto_accept_quit=false
@@ -310,6 +311,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
 
 func _main_menu() -> void:
  ending_preview=false
+ if nightwatch:nightwatch.stop()
  if is_instance_valid(end_credits):
   if end_credits.afterglow:end_credits.afterglow.dispose()
   if end_credits.prepared_afterglow:end_credits.prepared_afterglow.dispose()
@@ -710,6 +712,8 @@ func _process(delta: float) -> void:
  if menu_light: menu_light.visible=phase=="menu"
  if phase in ["intro","arrival"]: intro.tick(delta)
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
+ if phase=="nightwatch_scare" and nightwatch: nightwatch.scare.tick(delta)
+ if phase=="nightwatch" and nightwatch: nightwatch.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
  if phase=="menu":
   menu_clock+=delta
@@ -717,7 +721,7 @@ func _process(delta: float) -> void:
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
  world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
  world.film.tick(delta,phase=="play")
- world.tick(delta,phase in ["play","surveillance"])
+ world.tick(delta,phase in ["play","surveillance","nightwatch"])
  world.pit_physics.tick(phase=="play",player)
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
@@ -930,6 +934,8 @@ func _announce(value: String, seconds: float=4.0) -> void:
  notice.text=AfterPlayLanguage.t(value);notice_time=seconds;notice.show()
 
 func _input(event: InputEvent) -> void:
+ if phase=="nightwatch" and nightwatch and nightwatch.handle(event):
+  get_viewport().set_input_as_handled();return
  if phase=="chalk" and event.is_action_pressed("pause"):
   _close_chalk();get_viewport().set_input_as_handled();return
  if event.is_action_pressed("pause") and phase in ["inventory","code"]:
@@ -943,7 +949,7 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
- if phase in ["archive_scare","ending","failure","horse_death","death","lift","arrival"]:
+ if phase in ["archive_scare","ending","failure","horse_death","death","lift","arrival","nightwatch_end","nightwatch_scare"]:
   if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>end_credits.title_length(): end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
@@ -960,6 +966,9 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase=="surveillance": _close_watch()
   elif phase in ["help","settings"]: _return_from_panel()
   elif phase=="multiplayer": mp.stop();_main_menu()
+  elif phase=="nightwatch": _nightwatch_pause()
+  elif phase=="nightwatch_pause": _nightwatch_resume()
+  elif phase in ["nightwatch_menu","nightwatch_over"]: _main_menu()
   get_viewport().set_input_as_handled()
  if phase!="play": return
  if archive.ending=="recording" and memories.visible: get_viewport().set_input_as_handled();return
@@ -1118,6 +1127,7 @@ func _telemetry() -> void:
  var data:={"phase":phase,"streak":state.streak,"visited":state.visited,"position":[player.position.x,player.position.y,player.position.z],"yaw":player.rotation.y,"torch":player.lamp_on,"target":last_target,"volume":settings.volume,"held":player.carried.title if is_instance_valid(player.carried) else "","grounded":player.is_on_floor()}
  data.rounds=state.rounds
  data.endless=state.endless
+ data.nightwatch=nightwatch.snapshot() if nightwatch else {}
  if state.endless:data.lives=state.lives;data.round=state.round_number();data.time_left=state.time_left() if state.timed() else -1.;data.over=state.over
  if OS.has_feature("qa"):
   data.performance={"world_builds":world_build_count,"loading":world_loading,"progress":loading_progress,"pristine_menu":menu_reference_ready}
@@ -1308,3 +1318,46 @@ func _endless_over() -> void:
  intro_pending=false;wake_pending=false;arrival_pending=false
  _save();has_session=false
  NightMenus.endless_summary(self,state.completed)
+
+# ---- Nightwatch Protocol (4.15.0) ----
+# A fresh world is built for every watch, so no change can leak into a shift.
+func _start_nightwatch() -> void:
+ if world_loading:return
+ if mp and mp.active():mp.stop()
+ if has_session:_save()
+ has_session=false;ending_preview=false
+ if nightwatch:nightwatch.stop()
+ phase="loading";player.release();hud.hide();menu_music.stop()
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ var shade:=ColorRect.new();shade.color=Color.BLACK;shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu.add_child(shade)
+ var label:=_label("Die Nachtwache beginnt …",27);label.position=Vector2(670,500);label.size=Vector2(580,70);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;menu.add_child(label)
+ var bar:=ProgressBar.new();bar.position=Vector2(710,590);bar.size=Vector2(500,7);bar.show_percentage=false;menu.add_child(bar);_telemetry()
+ await _build_world_responsive("none",func(value: float):bar.value=value*100)
+ if phase!="loading":return
+ if not nightwatch:
+  nightwatch=Nightwatch.new();add_child(nightwatch);nightwatch.build(self)
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ menu.hide();hud.hide();player.lamp.hide();player.active=false;prompt.text=""
+ world.atmosphere.set_active(true);room_audio.stream_paused=false
+ if not room_audio.playing:room_audio.play()
+ phase="nightwatch";nightwatch.start();_telemetry()
+
+func _nightwatch_pause() -> void:
+ if phase!="nightwatch":return
+ phase="nightwatch_pause";nightwatch.pause_audio(true)
+ var column:=_panel("Pause","Die Nachtwache steht still. Strom, Zeit und Anomalien warten auf dich.")
+ column.add_child(_button("Weiter überwachen",_nightwatch_resume,true))
+ column.add_child(_button("Zum Hauptmenü",_main_menu));_telemetry()
+
+func _nightwatch_resume() -> void:
+ if phase!="nightwatch_pause":return
+ for child in menu.get_children():menu.remove_child(child);child.queue_free()
+ menu.hide();phase="nightwatch";nightwatch.pause_audio(false);world.atmosphere.set_active(true);room_audio.stream_paused=false
+ Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;_telemetry()
+
+func _nightwatch_results() -> void:
+ if not nightwatch:return
+ var summary:=nightwatch.results()
+ nightwatch.stop();nightwatch.show();nightwatch.cam.current=true
+ NightMenus.nightwatch_summary(self,summary)
+

@@ -13,6 +13,10 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(life.booth.has_node("ModelledPhotoBooth") and int(life.booth.get_meta("retired_parts",0))==15,"The photo booth is not the modelled one (4.13.0)")
  verify.call(life.w.venue.find_child("ModelledTokenChanger",true,false)!=null,"The token changer is not the modelled one (4.13.0)")
  verify.call(life.bathroom.get_meta("washroom_upgrade",{})=={"toilets":2,"basins":3,"soap":2,"doors":5},"The washroom upgrade is incomplete: "+str(life.bathroom.get_meta("washroom_upgrade",{})))
+ var graffiti:={}
+ for mesh: MeshInstance3D in life.bathroom.find_children("*","MeshInstance3D",true,false):
+  if mesh.material_override and str(mesh.material_override.resource_name).begins_with("CubicleGraffiti"):graffiti[mesh.material_override.resource_name]=true
+ verify.call(graffiti.size()==5,"Cubicle walls share the same graffiti (4.15.0): %d variants"%graffiti.size())
  verify.call(int(life.w.annex.get_meta("modelled_seats",0))==24,"Not all 24 cinema seats are modelled")
  verify.call(life.w.find_child("ForgottenPopcornTrolley",true,false).get_meta("modelled_wagon",false),"The popcorn cart is not the modelled wagon")
  var ray:=PhysicsRayQueryParameters3D.create(Vector3(18.5,1.2,7.8),Vector3(21.4,1.2,7.8),1);ray.exclude=[game.player.get_rid()]

@@ -13,13 +13,13 @@ static func backdrop(g: Node3D, darken: bool=false) -> void:
  # The visible backdrop is the actual playable 3D room and mascot. Only the
  # navigation edge is shaded; no idealised illustration promises other assets.
  var edge:=ColorRect.new();edge.name="CinematicMenuBackground";edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);edge.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(edge)
- var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float edge=1.0-smoothstep(.18,.60,UV.x);COLOR=vec4(vec3(.012,.017,.014),edge*.94);}"
+ var shader:=Shader.new();shader.code="shader_type canvas_item;void fragment(){float edge=1.0-smoothstep(.14,.56,UV.x);COLOR=vec4(vec3(.012,.017,.014),edge*.86);}"
  var material:=ShaderMaterial.new();material.shader=shader;edge.material=material
  if darken:
   var shade:=ColorRect.new();shade.color=Color(.025,.033,.028,.94);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(shade)
 
-static func nav_style(selected: bool, hovered: bool=false) -> StyleBoxFlat:
- var style:=StyleBoxFlat.new();style.bg_color=Color(.21,.17,.09,.45) if selected or hovered else Color.TRANSPARENT;style.border_width_left=3 if selected or hovered else 0;style.border_color=Color("b6a16d");style.content_margin_left=27;style.content_margin_right=20;style.content_margin_top=5;style.content_margin_bottom=5;return style
+static func nav_style(selected: bool, hovered: bool=false, compact: bool=false) -> StyleBoxFlat:
+ var style:=StyleBoxFlat.new();style.bg_color=Color(.21,.17,.09,.45) if selected or hovered else Color.TRANSPARENT;style.border_width_left=3 if selected or hovered else 0;style.border_color=Color("b6a16d");style.content_margin_left=27;style.content_margin_right=20;style.content_margin_top=0 if compact else 5;style.content_margin_bottom=0 if compact else 5;return style
 
 static func multiplayer(g: Node3D) -> void:
  # Player 2 joins on the website with this code and plans all 13 rounds.
@@ -71,19 +71,60 @@ static func endless_summary(g: Node3D, won: bool) -> void:
  var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
  again.grab_focus();g._telemetry()
 
+# Nightwatch Protocol: rules, highscore, start.
+static func nightwatch(g: Node3D) -> void:
+ g.phase="nightwatch_menu";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="NightwatchMenu";column.position=Vector2(110,120);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",18);g.menu.add_child(column)
+ var title: Label=g._label("NIGHTWATCH PROTOCOL",60,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ column.add_child(g._paragraph("Du sitzt im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn Kameras. Entdeckst du eine Anomalie, trägst du sie im Meldebuch auf dem Schreibtisch ein: Raum, Bereich und Art müssen stimmen. Rechts steht der Generator. Klick ihn an und tippe die Wörter, bevor die Zeit abläuft, dann ist der Strom wieder voll.",21))
+ column.add_child(g._paragraph("Die Schicht endet sofort, wenn eine Anomalie übersehen wird, du dreimal falsch meldest oder der Strom auf 0 % fällt. Ab 20 % piept die Warnung. Während du am Generator tippst, warten die Anomalien, der Strom aber nicht.",19))
+ var best: Label=g._label("Highscore: %d Punkte  ·  Längste Schicht: %02d:%02d"%[g.achievements.nightwatch_best,int(g.achievements.nightwatch_time)/60,int(g.achievements.nightwatch_time)%60],21,Color("cbbb95"));best.name="NightwatchHighscore";column.add_child(best)
+ var start: Button=g._button("Nachtwache beginnen",g._start_nightwatch,true);start.name="NightwatchStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
+ var back: Button=g._button("Zurück",g._main_menu);back.custom_minimum_size=Vector2(560,56);column.add_child(back)
+ start.grab_focus();g._telemetry()
+
+static func nightwatch_summary(g: Node3D, r: Dictionary) -> void:
+ g.phase="nightwatch_over";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="NightwatchSummary";column.position=Vector2(110,110);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",14);g.menu.add_child(column)
+ var title: Label=g._label(str(r.title),70,Color("e8a08c"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ if r.new_best:
+  var best: Label=g._label("NEUER HIGHSCORE!",30,Color("f0d27a"));best.name="NightwatchNewBest";best.add_theme_font_override("font",menu_font(600,2));column.add_child(best)
+ var rows:=[["Punkte","%d"%r.score],["Überlebt","%02d:%02d"%[int(r.seconds)/60,int(r.seconds)%60]],["Korrekte Meldungen","%d"%r.reports],["Fehlmeldungen","%d / 3"%r.wrong],["Generator-Neustarts","%d erfolgreich · %d fehlgeschlagen"%[r.repairs,r.failed_repairs]],["Höchste Stufe","%d"%r.stage],["Längste Serie","%d"%r.best_combo],["Highscore","%d Punkte"%g.achievements.nightwatch_best]]
+ var grid:=GridContainer.new();grid.columns=2;grid.add_theme_constant_override("h_separation",40);grid.add_theme_constant_override("v_separation",6);column.add_child(grid)
+ for row in rows:
+  grid.add_child(g._label(row[0],22,Color("bac6c0")))
+  grid.add_child(g._label(row[1],22,Color("eee7d6")))
+ var again: Button=g._button("Neue Nachtwache",g._start_nightwatch,true);again.name="NightwatchAgain";again.custom_minimum_size=Vector2(560,56);column.add_child(again)
+ var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
+ again.grab_focus();g._telemetry()
+
 static func home(g: Node3D) -> void:
  clear(g);backdrop(g)
  var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Endlosmodus",func():endless(g)],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Endlosmodus",func():endless(g)],["Nightwatch Protocol",func():nightwatch(g)],["Multiplayer",func():multiplayer(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ # 4.15.0: the ways to play stay large; everything else sits smaller and
+ # quieter below a thin rule. Without a save there is no dead
+ # "Schicht fortsetzen" line (the other actions keep their numbers).
+ var y:=462.
  for i in range(items.size()):
-  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i);button.position=Vector2(100,470+i*58);button.custom_minimum_size=Vector2(540,54);button.size=Vector2(540,54);button.disabled=i==1 and not g._can_continue_shift();button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29)
-  button.add_theme_stylebox_override("normal",nav_style(i==0));button.add_theme_stylebox_override("hover",nav_style(true,true));button.add_theme_stylebox_override("pressed",nav_style(true,true));button.add_theme_stylebox_override("disabled",nav_style(false));button.add_theme_stylebox_override("focus",nav_style(false,true))
-  for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]: button.add_theme_color_override(state,Color("e8e1c8"))
-  button.add_theme_color_override("font_disabled_color",Color("77786f"));g.menu.add_child(button)
- var hint: Label=g._label("WASD · Maus · E",15,Color("aaa994"));hint.add_theme_font_override("font",menu_font());hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT);hint.offset_left=48;hint.offset_right=420;hint.offset_top=-65;hint.offset_bottom=-35;g.menu.add_child(hint)
+  var primary:=i<5
+  if i==1 and not g._can_continue_shift():continue
+  if i==5:
+   var rule:=ColorRect.new();rule.name="MainMenuRule";rule.color=Color(.71,.63,.43,.6);rule.position=Vector2(127,y+10);rule.size=Vector2(220,1);rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(rule);y+=26
+  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i)
+  button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29 if primary else 20)
+  button.add_theme_stylebox_override("normal",nav_style(false,false,not primary));button.add_theme_stylebox_override("hover",nav_style(true,true,not primary));button.add_theme_stylebox_override("pressed",nav_style(true,true,not primary));button.add_theme_stylebox_override("disabled",nav_style(false,false,not primary));button.add_theme_stylebox_override("focus",nav_style(false,true,not primary))
+  var label_ink:=Color("e8e1c8") if primary else Color("b3ae9c")
+  for state in ["font_color","font_pressed_color"]: button.add_theme_color_override(state,label_ink)
+  for state in ["font_hover_color","font_focus_color"]: button.add_theme_color_override(state,Color("f1ead3"))
+  button.add_theme_color_override("font_disabled_color",Color("77786f"))
+  button.custom_minimum_size=Vector2(540 if primary else 420,0);g.menu.add_child(button)
+  var height:=maxf(52. if primary else 34.,button.get_combined_minimum_size().y)
+  button.position=Vector2(100,y);button.size=Vector2(button.custom_minimum_size.x,height)
+  y+=height+(2. if primary else 1.)
  # Below the minimum requirements: say so plainly, change nothing.
  var shortfalls:=SystemCheck.issues("--system-check-preview" in OS.get_cmdline_user_args())
  if not shortfalls.is_empty():
@@ -92,7 +133,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v4.14.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v4.15.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

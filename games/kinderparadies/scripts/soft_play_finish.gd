@@ -301,8 +301,12 @@ func _washroom() -> void:
  var bath: Node3D=w.life.bathroom if w.life else null
  if not bath:return
  var counts:={"toilets":0,"basins":0,"soap":0,"doors":0}
- var laminate:=StandardMaterial3D.new();laminate.albedo_texture=load(ANNEX_ART+"cubicle-graffiti.png");laminate.uv1_triplanar=true;laminate.uv1_scale=Vector3.ONE*.42;laminate.roughness=.5;laminate.albedo_color=Color(.86,.9,.84)
- laminate.normal_enabled=true;laminate.normal_texture=w.atmosphere.micro_normal;laminate.normal_scale=.2;laminate.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+ # 4.15.0: every partition and door has its own doodles (cubicle-graffiti-1..5).
+ var laminates:=[]
+ for i in range(5):
+  var laminate:=StandardMaterial3D.new();laminate.resource_name="CubicleGraffiti%d"%(i+1);laminate.albedo_texture=load(ANNEX_ART+"cubicle-graffiti-%d.png"%(i+1));laminate.uv1_triplanar=true;laminate.uv1_scale=Vector3.ONE*.42;laminate.roughness=.5;laminate.albedo_color=Color(.86,.9,.84)
+  laminate.normal_enabled=true;laminate.normal_texture=w.atmosphere.micro_normal;laminate.normal_scale=.2;laminate.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+  laminates.append(laminate)
  for child in bath.get_children():
   if not child is Node3D:continue
   var at: Vector3=child.position
@@ -319,11 +323,11 @@ func _washroom() -> void:
    child.hide()
    var soap:=_instance("soap-dispenser.glb",bath,"SoapDispenser");soap.transform=child.transform;counts.soap+=1
   elif child is MeshInstance3D and ((absf(at.z-9.2)<.01 and absf(at.y-1.2)<.01) or str(child.name)=="LockedCubicleDoor"):
-   child.material_override=laminate;counts.doors+=1
+   child.material_override=laminates[counts.doors%laminates.size()];counts.doors+=1
   elif str(child.name)=="OpenCubicleDoor":
    for mesh in child.get_children():
     if mesh is MeshInstance3D and (mesh as MeshInstance3D).mesh.get_aabb().size.x>1.:
-     mesh.material_override=laminate;counts.doors+=1
+     mesh.material_override=laminates[counts.doors%laminates.size()];counts.doors+=1
  bath.set_meta("washroom_upgrade",counts)
 
 # A drop forms at the spout, falls into the basin and repeats.

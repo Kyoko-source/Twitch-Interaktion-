@@ -1,5 +1,41 @@
 # After Play — Kinderparadies
 
+## Nightwatch Protocol, aufgeräumtes Hauptmenü, Toiletten-Graffiti (4.15.0)
+
+- Neuer Spielmodus **Nightwatch Protocol** (`scripts/nightwatch*.gd`): Du sitzt
+  im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn
+  Kameras (Empfang, Halle, Bällebad, Spielhalle, Party Raum Tisch und
+  Snackbar, Kostümfundus, Wartung, Küche, Kino). Die Bilder zeigen die echte,
+  laufende Welt mit CCTV-Optik (Rauschen, Zeitstempel, Kameranummer, Störungen);
+  jede Kamera hat eine Infrarotlampe, damit dunkle Räume lesbar bleiben.
+  Monitor anklicken, 1–0, Q/E oder Mausrad wechseln die Kamera.
+- Anomalien erscheinen während des Zuschauens und werden genau zurückgesetzt,
+  sobald sie gemeldet sind: Gegenstand fehlt, schwebt, ist verschoben,
+  zusätzlicher Gegenstand, Besucher im Raum, ungewöhnliche Bewegung,
+  Erscheinung, rotes Licht. Jede hat ihren eigenen Countdown.
+- **Meldebuch** auf dem Schreibtisch: Raum, Bereich und Art wählen, Meldung
+  abgeben. Nur wenn alles stimmt, verschwindet die Anomalie.
+- **Strom** sinkt ständig. Unter 50 % flackern die Bildschirme leicht, ab 20 %
+  piept eine Warnung, die immer schneller wird, unter 10 % wird es hektisch.
+- **Generator** rechts (D/→ oder rechter Bildrand): anklicken und die Wörter
+  tippen. Stufe 1: ein Wort in 20 s, Stufe 6: fünf Wörter in 10 s. Klappt es,
+  ist der Strom wieder bei 100 %; misslingt es, bleibt der Strom, wie er ist,
+  und man darf es noch einmal versuchen. Während des Tippens warten die
+  Anomalie-Timer und es erscheinen keine neuen, der Strom sinkt aber weiter.
+- Die Schicht endet sofort bei einer übersehenen Anomalie, der dritten
+  Fehlmeldung oder 0 % Strom. Danach: Punkte, Zeit, Meldungen, Fehlmeldungen,
+  Generator-Neustarts, Stufe, Serie und eigener Highscore (getrennt vom
+  Endlosmodus). Sechs neue Erfolge.
+- Alle Zahlen stehen zentral in `scripts/nightwatch_config.gd`: Stufen alle
+  75 s, Abstand der Anomalien 34 → 13 s, gleichzeitig 1 → 5, Meldezeit
+  110 → 55 s, Stromverbrauch 0,40 → 0,84 %/s.
+- **Hauptmenü** aufgeräumt: die Spielmodi groß oben, Einstellungen, Album,
+  Erfolge, Mitwirkende und Beenden kleiner darunter. „Schicht fortsetzen“
+  erscheint nur noch mit Spielstand; der Hintergrund ist etwas heller.
+- **Toiletten**: jede Kabinenwand und Tür hat eigene Kritzeleien
+  (`tools/make-after-play-cubicle-graffiti-v4140.py`, fünf Varianten).
+- Neue Testsuite `--nightwatch-only`.
+
 ## Endlosmodus und Erfolge (4.14.0)
 
 - Neuer Menüpunkt **Endlosmodus**: bis zu 500 Rundgänge mit drei Leben. Eine
