@@ -46,6 +46,26 @@ var glow: OmniLight3D
 var anim: AnimationPlayer
 var anim_lock:=0.0
 var current_anim:=""
+# Positional voice: idle moans, swing growls and death calls.
+var voice: AudioStreamPlayer3D
+var moan_t:=0.0
+# Health bar over the head (shown after a hit; always for elites).
+var hp_bar: MeshInstance3D
+var hp_name: Label3D
+var hp_show:=0.0
+var hp_fill:=1.0
+static var hp_material: ShaderMaterial
+const HP_SHADER:="""shader_type spatial;
+render_mode unshaded,cull_disabled,shadows_disabled;
+instance uniform float fill=1.0;
+instance uniform float alpha=0.0;
+instance uniform vec4 tint:source_color=vec4(.9,.1,.1,1.);
+void vertex(){MODELVIEW_MATRIX=VIEW_MATRIX*mat4(INV_VIEW_MATRIX[0],INV_VIEW_MATRIX[1],INV_VIEW_MATRIX[2],MODEL_MATRIX[3]);}
+void fragment(){
+ vec2 uv=UV;float edge=step(uv.x,.025)+step(.975,uv.x)+step(uv.y,.16)+step(.84,uv.y);
+ vec3 c=mix(vec3(.06,.01,.02),tint.rgb*(.75+.5*(1.-uv.y)),step(uv.x,fill));
+ c=mix(c,vec3(1.),clamp(edge,0.,1.)*.75);
+ ALBEDO=c;ALPHA=alpha*(.92);}"""
 
 func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, is_boss: bool, seed_value: int) -> void:
 	mode=owner_mode;kind=id;spec=data;boss=is_boss;rng.seed=seed_value
@@ -95,6 +115,19 @@ func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, 
 		glow.position=Vector3(0,head_height,.3);glow.shadow_enabled=false;add_child(glow)
 	if role=="alien":_alien_skin()
 	rise=.9;model.position.y=-1.8*minf(size_scale,1.5)
+	for vi: VisualInstance3D in model.find_children("*","VisualInstance3D",true,false):vi.layers=2
+	if not boss:
+		if hp_material==null:
+			hp_material=ShaderMaterial.new();var hs:=Shader.new();hs.code=HP_SHADER;hp_material.shader=hs
+		hp_bar=MeshInstance3D.new();var q:=QuadMesh.new();q.size=Vector2(.62,.075)*(1.3 if elite else 1.);hp_bar.mesh=q;hp_bar.material_override=hp_material;hp_bar.layers=2
+		hp_bar.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;hp_bar.position.y=(.85 if role=="crawler" else head_height+.5)*(1. if role!="tank" else 1.25);add_child(hp_bar)
+		hp_bar.set_instance_shader_parameter("alpha",0.)
+		if elite:
+			hp_name=Label3D.new();hp_name.text=str(data.get("name","")).to_upper();hp_name.font=load("res://assets/Oswald.ttf");hp_name.font_size=34;hp_name.pixel_size=.004;hp_name.outline_size=10
+			hp_name.modulate=glow.light_color.lightened(.3) if glow else Color("ffcf6a");hp_name.billboard=BaseMaterial3D.BILLBOARD_ENABLED;hp_name.position.y=hp_bar.position.y+.13;hp_name.layers=2;add_child(hp_name)
+	voice=AudioStreamPlayer3D.new();voice.name="Voice";voice.unit_size=5.;voice.max_distance=32.;voice.attenuation_model=AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+	voice.position.y=(1.45 if role!="crawler" else .45)*minf(size_scale,1.4);voice.panning_strength=1.2;add_child(voice)
+	moan_t=rng.randf_range(.8,6.)
 	special_cd=rng.randf_range(1.5,4.)
 
 func _skeleton() -> Skeleton3D:
@@ -113,9 +146,13 @@ func _physics_process(delta: float) -> void:
 	var scale_t: float=mode.enemy_time_scale()*slow
 	if rise>0.:
 		rise-=delta;model.position.y=lerpf(-1.8*minf(size_scale,1.5),.22 if role=="crawler" and not anim else 0.,clampf(1.-rise/.9,0,1));return
+	_tick_hp(delta)
 	if burn>0.:
 		burn-=delta;mode.damage_enemy(self,max_hp*.07*delta+12.*delta,false,"fire",false)
 		if dead:return
+		if burn<=0.:mode.fx.set_burning(self,false)
+	moan_t-=delta
+	if moan_t<=0.:moan_t=rng.randf_range(3.5,9.) if not boss else rng.randf_range(2.5,5.);mode.enemy_sound(self,"idle")
 	attack_cd-=delta*scale_t;special_cd-=delta*scale_t;buffed=maxf(buffed-delta,0.);slow=move_toward(slow,1.,delta*.5)
 	var target: Vector3=mode.player_position()
 	var to:=target-global_position;to.y=0;var dist:=to.length()
@@ -166,7 +203,7 @@ func _physics_process(delta: float) -> void:
 	# Melee: wind up, then strike if still close.
 	var reach:=1.35 if not boss else 1.1+size_scale*.6
 	if attack_t<0. and attack_cd<=0. and dist<reach:
-		attack_t=.42;attack_cd=1.35 if not boss else 1.7
+		attack_t=.42;attack_cd=1.35 if not boss else 1.7;mode.enemy_sound(self,"attack")
 		if anim and role!="crawler":
 			var swing:="Attack2" if anim.has_animation("Attack2") and rng.randf()<.5 else "Attack"
 			_play(swing,1.25,.68)
@@ -239,6 +276,19 @@ func _animate(delta: float, moving: float) -> void:
 	if not parts.has("LegL"):
 		model.position.y=absf(sin(walk))*.08*size_scale;model.rotation.z=sin(walk)*.12
 
+func show_hp() -> void:
+	hp_show=2.6
+
+func _tick_hp(delta: float) -> void:
+	if not hp_bar:return
+	hp_show=maxf(hp_show-delta,0.)
+	hp_fill=lerpf(hp_fill,clampf(hp/max_hp,0.,1.),clampf(delta*12.,0,1))
+	var a:=clampf(hp_show,0.,1.)
+	if elite:a=maxf(a,.85)
+	hp_bar.set_instance_shader_parameter("alpha",a);hp_bar.set_instance_shader_parameter("fill",hp_fill)
+	hp_bar.set_instance_shader_parameter("tint",Color("ff2a3a").lerp(Color("ffd23a"),clampf(hp_fill*2.,0,1)).lerp(Color("5aff7a"),clampf(hp_fill*2.-1.,0,1)))
+	if hp_name:hp_name.modulate.a=a
+
 func hit_flash() -> void:
 	if glow:glow.light_energy*=1.6
 	if anim and anim_lock<=0. and role!="crawler" and rng.randf()<.45:_play("Hit",1.3,.24)
@@ -246,7 +296,10 @@ func hit_flash() -> void:
 func die(explosive: bool) -> void:
 	if dead:return
 	dead=true;collision_layer=0;collision_mask=1;head_area.collision_layer=0;velocity=Vector3.ZERO
+	if hp_bar:hp_bar.hide()
+	if hp_name:hp_name.hide()
 	if glow:glow.queue_free();glow=null
+	mode.enemy_sound(self,"death")
 	var tween:=create_tween()
 	if anim and not explosive:
 		_play("Death",rng.randf_range(.9,1.15),9.)

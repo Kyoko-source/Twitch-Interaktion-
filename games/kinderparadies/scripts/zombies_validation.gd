@@ -20,12 +20,12 @@ func look_at_point(game: Node3D, at: Vector3, from: Vector3) -> void:
 func run(game: Node3D, verify: Callable) -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture-dir="):dir=arg.trim_prefix("--capture-dir=")
-	verify.call(ZombiesConfig.WEAPONS.size()==30 and ZombiesConfig.PERKS.size()==12 and ZombiesConfig.PICKUPS.size()>=16,"Partynacht content incomplete: weapons/perks/pickups")
+	verify.call(ZombiesConfig.WEAPONS.size()==33 and ZombiesConfig.PERKS.size()==12 and ZombiesConfig.PICKUPS.size()>=16,"Partynacht content incomplete: weapons/perks/pickups")
 	verify.call(ZombiesConfig.ENEMIES.size()>=10 and ZombiesConfig.BOSSES.size()>=4 and ZombiesConfig.EVENTS.size()>=12,"Partynacht enemies, bosses or events missing")
 	verify.call(ZombiesConfig.health(30)>ZombiesConfig.health(5)*5. and ZombiesConfig.enemies_in_round(20)>ZombiesConfig.enemies_in_round(1)*4 and ZombiesConfig.spawn_gap(25)<ZombiesConfig.spawn_gap(1),"Rounds do not escalate")
 	var missing: Array=[]
 	for row in ZombiesConfig.WEAPONS:
-		if not ResourceLoader.exists("res://assets/zombies-v500/weapon-%s.glb"%str(row[2])):missing.append(row[0])
+		if not str(row[2]) in ZombiesConfig.SPECIAL_FRAMES and not ResourceLoader.exists("res://assets/zombies-v500/weapon-%s.glb"%str(row[2])):missing.append(row[0])
 	for id in ZombiesConfig.ENEMIES:
 		if not ResourceLoader.exists(str(ZombiesConfig.ENEMIES[id].model)):missing.append(id)
 	for b in ZombiesConfig.BOSSES:
@@ -82,6 +82,9 @@ func run(game: Node3D, verify: Callable) -> void:
 	verify.call(target.dead and int(z.stats.kills)==kills+1 and int(z.stats.headshots)>=1,"A kill is not counted")
 	# The real hitscan path reaches an enemy in front of the camera.
 	var dummy:=z._spawn_enemy();dummy.rise=0.;dummy.stun=99.;dummy.model.position.y=0.;dummy.global_position=Vector3(-6.4,0,9.4)
+	verify.call(ZombiesMode.voice_paths().size()>=4,"Zombie voices are missing")
+	var spoke: bool=z.enemy_sound(dummy,"leap")
+	verify.call(spoke and dummy.voice.stream is AudioStreamOggVorbis,"Zombies do not moan or growl")
 	await game.get_tree().physics_frame;await game.get_tree().physics_frame
 	look_at_point(game,dummy.global_position+Vector3.UP*1.,ZombiesConfig.SPAWN_POINT)
 	var shot_hp:=dummy.hp
@@ -92,7 +95,46 @@ func run(game: Node3D, verify: Callable) -> void:
 	var points_before_shot:=z.points
 	z.arsenal._ray(cam.global_position,-cam.global_basis.z,55.,2.,1,"")
 	verify.call(dummy.hp<shot_hp or (not seen.is_empty() and seen.collider.has_meta("enemy") and z.points>points_before_shot),"The pistol ray does not hit an enemy in front of the guard: ray sees "+seen_text+" dummy at "+str(dummy.global_position)+" eye "+str(cam.global_position)+" fwd "+str(-cam.global_basis.z))
-	z.damage_enemy(dummy,99999.,false,"",false)
+	# 5.2.0: effects, music, signs, health bars and the three party weapons.
+	verify.call(ResourceLoader.exists(ZombiesFx.FX+"blood-0.png") and ResourceLoader.exists(ZombiesFx.SFX+"explosion-0.ogg") and z.music_calm.stream is AudioStreamOggVorbis and z.music_dread.stream is AudioStreamOggVorbis,"Partynacht effects or music are missing")
+	verify.call(z.music_calm.playing and z.music_dread.playing,"Partynacht music does not play")
+	verify.call(z.neon.size()>=z.doors.size()+z.stations.size() and not z.lamps.is_empty(),"Barriers and stations have no neon signs or lamps")
+	verify.call(dummy.hp_bar!=null and dummy.hp_show>0.,"A hit guest shows no health bar")
+	var fx_before:=z.fx.live.size()
+	z.fx.explosion(dummy.global_position+Vector3.UP,3.);z.fx.lightning(dummy.global_position+Vector3.UP*3.,dummy.global_position);z.fx.confetti(dummy.global_position,1.)
+	verify.call(z.fx.live.size()>=fx_before+8 and not z.fx.decals.scorch.is_empty(),"Explosions, lightning or confetti spawn no effects")
+	var aim:=(dummy.global_position+Vector3.UP-cam.global_position).normalized()
+	var torch:=z._spawn_enemy();torch.rise=0.;torch.stun=99.;torch.model.position.y=0.
+	var torch_at:=cam.global_position+aim*3.;torch_at.y=dummy.global_position.y;torch.global_position=torch_at
+	await game.get_tree().physics_frame;await game.get_tree().physics_frame
+	var torch_hp:=torch.hp
+	z.flame_hit(cam.global_position,(torch.global_position+Vector3.UP-cam.global_position).normalized(),40.,"")
+	verify.call(torch.hp<torch_hp and torch.burn>0. and z.fx.burning.has(torch.get_instance_id()),"The flamethrower does not set a guest on fire: torch at %s cam %s clear %s hp %.0f/%.0f dead %s"%[str(torch.global_position),str(cam.global_position),str(z.clear_to(cam.global_position,torch,1.)),torch.hp,torch_hp,str(torch.dead)])
+	var tesla_hp:=dummy.hp+torch.hp
+	z.tesla_shot(cam.global_position,cam.global_position,aim,100.,"")
+	verify.call(dummy.hp+torch.hp<tesla_hp,"The tesla coil does not strike the guest in the aim: dummy %s clear %s dead %s"%[str(dummy.global_position),str(z.clear_to(cam.global_position,dummy,1.2)),str(dummy.dead)])
+	await shot(game,"tesla")
+	z.hud.wave(7,"Die Musik wird lauter.");await frames(game,20);await shot(game,"wave")
+	z.cake_shot(cam.global_position+aim*.5,aim,99999.,0)
+	var flight:=0
+	while not z.projectiles.is_empty() and flight<120:await game.get_tree().physics_frame;flight+=1
+	verify.call(z.projectiles.is_empty() and (not is_instance_valid(dummy) or dummy.dead or not is_instance_valid(torch) or torch.dead),"The cake launcher does not explode on guests")
+	for id in ["kuchenbrenner","gewitterkind","tortenwerfer"]:
+		var holder:=ZombiesArsenal.frame_model(str(ZombiesConfig.weapon(id)[2]))
+		verify.call(holder.find_child("Muzzle",true,false)!=null,"Party weapon %s has no muzzle"%id);holder.free()
+	z.arsenal.give("ar47",3)
+	verify.call(ZombiesConfig.elements(3,"")=="fire+shock+void" and not z.arsenal.glow_mats.is_empty(),"Upgraded guns do not stack elements or glow")
+	z.arsenal.slots.remove_at(z.arsenal.current);z.arsenal.equip(0)
+	if is_instance_valid(torch) and not torch.dead:z.damage_enemy(torch,99999.,false,"",false)
+	if is_instance_valid(dummy) and not dummy.dead:z.damage_enemy(dummy,99999.,false,"",false)
+	z.arsenal.give("kuchenbrenner",2);z.arsenal.flame_t=.5;z.fx.flame(z.arsenal.muzzle.global_position,-cam.global_basis.z,true)
+	for i in range(12):z.fx.flame(z.arsenal.muzzle.global_position,-cam.global_basis.z,true);await game.get_tree().process_frame
+	await shot(game,"effects")
+	var marked:=z._spawn_enemy();marked.rise=0.;marked.stun=99.;marked.model.position.y=0.;marked.global_position=torch_at+aim*2.;z.damage_enemy(marked,marked.max_hp*.45,false,"",false)
+	await frames(game,10);await shot(game,"hpbar")
+	verify.call(marked.hp_show>0. and marked.hp_fill<.95,"The health bar does not follow the damage")
+	z.damage_enemy(marked,99999.,false,"",false)
+	z.arsenal.slots.remove_at(z.arsenal.current);z.arsenal.equip(0)
 	# Buying: wall gun, ammo, perks, limit, door.
 	z.points=60000
 	var wall_index:=-1;var ammo_index:=-1;var perk_index:=-1;var box_index:=-1;var up_index:=-1

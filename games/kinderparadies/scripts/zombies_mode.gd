@@ -71,11 +71,27 @@ var hit_audio: AudioStreamPlayer
 var tick_audio: AudioStreamPlayer
 var kill_audio: AudioStreamPlayer
 var hit_cool:=0.0
+# 5.2.0: effects, music, neon signs and warning lamps.
+var fx: ZombiesFx
+var music_calm: AudioStreamPlayer
+var music_dread: AudioStreamPlayer
+var sting: AudioStreamPlayer
+var neon: Array=[]
+var lamps: Array=[]
+const MUSIC:="res://assets/zombies-v520/music/"
+const TAPE_SHADER:="""shader_type spatial;
+render_mode cull_disabled;
+varying vec3 lp;
+void vertex(){lp=VERTEX;}
+void fragment(){float s=step(.5,fract((lp.x*1.6+lp.y)*5.0));ALBEDO=mix(vec3(.02),vec3(1.,.78,.05),s);EMISSION=vec3(.9,.55,0.)*s*.45;ROUGHNESS=.55;}"""
 
 # ---------------------------------------------------------------- build
 func build(game: Node3D) -> void:
 	g=game;w=g.world;player=g.player;name="ZombiesMode";rng.randomize()
 	root3d=Node3D.new();root3d.name="ZombiesWorld";w.add_child(root3d)
+	fx=ZombiesFx.new();root3d.add_child(fx);fx.setup(self)
+	music_calm=_music("partynacht-lullaby");music_dread=_music("partynacht-dread")
+	sting=AudioStreamPlayer.new();sting.volume_db=-2.;sting.max_polyphony=3;sting.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(sting)
 	for door in ZombiesConfig.DOORS:_door(door)
 	for row in ZombiesConfig.STATIONS:_station(row)
 	box_spot=0;_place_box()
@@ -89,6 +105,62 @@ func build(game: Node3D) -> void:
 		alarm.global_position=Vector3((r[0]+r[1])*.5,3.,(r[2]+r[3])*.5);alarm_lights.append(alarm)
 	env=get_world_3d().environment
 	if env:env_base={"fog":env.fog_light_color,"density":env.fog_density,"ambient":env.ambient_light_color}
+
+func _music(key: String) -> AudioStreamPlayer:
+	var p:=AudioStreamPlayer.new();p.volume_db=-80.;p.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(p)
+	if ResourceLoader.exists(MUSIC+key+".ogg"):
+		var tune:=(load(MUSIC+key+".ogg") as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis;tune.loop=true;p.stream=tune
+	return p
+
+func _sting(key: String, volume: float=-2.) -> void:
+	var path:=ZombiesFx.SFX+key+".ogg"
+	if ResourceLoader.exists(path):sting.stream=load(path);sting.volume_db=volume;sting.play()
+
+# The lullaby always plays; the dread layer grows with the rounds and the horde.
+func _tick_music(delta: float) -> void:
+	if not music_calm or not music_calm.stream:return
+	var level:=1.
+	if "settings" in g:level=clampf(float(g.settings.get("ambience",.8)),0.,1.)
+	var base:=linear_to_db(maxf(level,.001))
+	var threat:=0. if round_number<3 else clampf((round_number-3)/14.+enemies.size()/45.+(.3 if not bosses.is_empty() else 0.),0.,1.)
+	var calm_db:=base-15.+(3. if in_break else 0.)-threat*3.
+	var dread_db:=-80. if threat<=0. else base-30.+threat*19.
+	music_calm.volume_db=move_toward(music_calm.volume_db,calm_db,delta*14.)
+	music_dread.volume_db=move_toward(music_dread.volume_db,dread_db,delta*(10. if dread_db>music_dread.volume_db else 6.))
+
+# Neon price signs: dark board, glowing frame, title and price on one or both sides.
+func _neon_sign(parent: Node3D, title_text: String, price: String, color: Color, at: Vector3, yaw: float, two_sided: bool, scale_value: float=1.) -> Node3D:
+	var sign:=Node3D.new();sign.name="NeonSign";parent.add_child(sign);sign.position=at;sign.rotation.y=yaw
+	var width:=maxf(title_text.length()*.088+.25,1.)*scale_value;var height:=(.56 if price!="" else .36)*scale_value
+	var board:=MeshInstance3D.new();var bm:=BoxMesh.new();bm.size=Vector3(width,height,.04);board.mesh=bm
+	var dark:=StandardMaterial3D.new();dark.albedo_color=Color(.035,.03,.045);dark.roughness=.55;dark.metallic=.3;board.material_override=dark;sign.add_child(board)
+	var tube:=StandardMaterial3D.new();tube.albedo_color=color;tube.emission_enabled=true;tube.emission=color;tube.emission_energy_multiplier=4.
+	for edge in [[Vector3(0,height*.5,0),Vector3(width+.03,.028,.05)],[Vector3(0,-height*.5,0),Vector3(width+.03,.028,.05)],[Vector3(width*.5,0,0),Vector3(.028,height,.05)],[Vector3(-width*.5,0,0),Vector3(.028,height,.05)]]:
+		var e:=MeshInstance3D.new();var eb:=BoxMesh.new();eb.size=edge[1];e.mesh=eb;e.material_override=tube;e.position=edge[0];sign.add_child(e)
+	var labels: Array=[]
+	for side in ([0,1] if two_sided else [0]):
+		var face:=Node3D.new();face.rotation.y=PI*side;sign.add_child(face)
+		var t:=Label3D.new();t.text=title_text.to_upper();t.font=load("res://assets/Oswald.ttf");t.font_size=64;t.pixel_size=.0028*scale_value;t.outline_size=16
+		t.modulate=color.lightened(.35);t.outline_modulate=Color(color.r,color.g,color.b,.35);t.position=Vector3(0,(.09 if price!="" else 0.)*scale_value,.03);t.shaded=false;t.double_sided=false;face.add_child(t);labels.append(t)
+		if price!="":
+			var pl:=Label3D.new();pl.text=price;pl.font=load("res://assets/Oswald.ttf");pl.font_size=54;pl.pixel_size=.0028*scale_value;pl.outline_size=12
+			pl.modulate=Color("fff1b0");pl.outline_modulate=Color(1,.6,.1,.3);pl.position=Vector3(0,-.14*scale_value,.03);pl.double_sided=false;face.add_child(pl);labels.append(pl)
+	var glow:=OmniLight3D.new();glow.light_color=color;glow.light_energy=1.;glow.omni_range=2.6;glow.shadow_enabled=false;glow.position=Vector3(0,0,.4);sign.add_child(glow)
+	neon.append({"node":sign,"tube":tube,"labels":labels,"light":glow,"off":0.})
+	return sign
+
+func _tick_neon(delta: float) -> void:
+	for n in neon.duplicate():
+		if not is_instance_valid(n.node):neon.erase(n);continue
+		n.off=float(n.off)-delta
+		if n.off<=0. and rng.randf()<delta*.06:n.off=rng.randf_range(.08,.35)
+		var lit:=1. if float(n.off)<=0. or fmod(seconds*31.,1.)<.3 else .08
+		(n.tube as StandardMaterial3D).emission_energy_multiplier=4.*lit;(n.light as OmniLight3D).light_energy=lit
+		for l: Label3D in n.labels:l.modulate.a=.25+.75*lit
+	for lamp in lamps.duplicate():
+		if not is_instance_valid(lamp):lamps.erase(lamp);continue
+		var on:=fmod(seconds*1.6+float((lamp as Node3D).get_meta("phase",0.)),1.)<.5
+		((lamp as MeshInstance3D).material_override as StandardMaterial3D).emission_energy_multiplier=6. if on else .3
 
 func _voice(volume: float, poly: int) -> AudioStreamPlayer:
 	var p:=AudioStreamPlayer.new();p.volume_db=volume;p.max_polyphony=poly;p.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(p);return p
@@ -123,7 +195,19 @@ func _door(spec: Dictionary) -> void:
 		body.collision_layer=1|STATION_LAYER;body.set_meta("zombie_station",doors.size())
 		panels.append(p)
 	var mid:=(a+b)*.5
-	var label:=_sign(node,"%s\n%d"%[str(spec.name).to_upper(),int(spec.cost)],node.to_local(mid)+Vector3(0,2.45,0),Color("ffd23a"),40)
+	# Warning tape across both faces, posts with blinking lamps, a neon sign above.
+	var tape_mat:=ShaderMaterial.new();var tape_shader:=Shader.new();tape_shader.code=TAPE_SHADER;tape_mat.shader=tape_shader
+	var tape:=Node3D.new();tape.name="Tape";node.add_child(tape);tape.position=node.to_local(mid);tape.rotation.y=yaw
+	for face in [-.11,.11]:
+		for tilt in [-.28,.28]:
+			var strip:=MeshInstance3D.new();var sb:=BoxMesh.new();sb.size=Vector3(length*1.02,.11,.008);strip.mesh=sb;strip.material_override=tape_mat;strip.position=Vector3(0,1.15+tilt*.4,face);strip.rotation.z=tilt*minf(2.2/length,1.);tape.add_child(strip)
+	var post_mat:=StandardMaterial3D.new();post_mat.albedo_color=Color(.12,.12,.14);post_mat.metallic=.8;post_mat.roughness=.35
+	for end in [a,b]:
+		var post:=MeshInstance3D.new();var pc:=CylinderMesh.new();pc.top_radius=.06;pc.bottom_radius=.07;pc.height=2.5;post.mesh=pc;post.material_override=post_mat;node.add_child(post);post.position=node.to_local(end)+Vector3(0,1.25,0)
+		var lamp:=MeshInstance3D.new();var ls:=SphereMesh.new();ls.radius=.075;ls.height=.15;lamp.mesh=ls
+		var lm:=StandardMaterial3D.new();lm.albedo_color=Color("ff2a1a");lm.emission_enabled=true;lm.emission=Color("ff2a1a");lm.emission_energy_multiplier=6.;lamp.material_override=lm
+		node.add_child(lamp);lamp.position=node.to_local(end)+Vector3(0,2.56,0);lamp.set_meta("phase",rng.randf());lamps.append(lamp)
+	var label:=_neon_sign(node,str(spec.name),"◆ %d"%int(spec.cost),Color("ffd23a"),node.to_local(mid)+Vector3(0,2.5,0),yaw,true,.9)
 	doors.append({"spec":spec,"node":node,"panels":panels,"open":false,"label":label,"mid":mid})
 
 func _yaw_to_zone(p: Vector3) -> float:
@@ -141,24 +225,24 @@ func _station(row: Array) -> void:
 			var row_p:=ZombiesConfig.perk(id)
 			var m:=(load("res://assets/zombies-v500/perk-machine.glb") as PackedScene).instantiate() as Node3D;node.add_child(m)
 			_tint(m,"PerkGlow",row_p[3]);light.light_color=row_p[3];size_value=Vector3(.95,2.1,.75)
-			_sign(node,"%s\n%d"%[str(row_p[1]).to_upper(),int(row_p[2])],Vector3(0,2.55,0),row_p[3],44)
+			_neon_sign(node,str(row_p[1]),"◆ %d"%int(row_p[2]),row_p[3],Vector3(0,2.6,0),0.,false,.75)
 		"ammo":
 			var m2:=(load("res://assets/zombies-v500/ammo-crate.glb") as PackedScene).instantiate() as Node3D;node.add_child(m2)
 			light.light_color=Color("ffb43a");light.position=Vector3(0,1.,.6);size_value=Vector3(.95,.6,.6)
-			_sign(node,"MUNITION",Vector3(0,1.05,0),Color("ffcf6a"),36)
+			_neon_sign(node,"Munition","",Color("ffcf6a"),Vector3(0,1.15,0),0.,false,.55)
 		"wall":
 			var row_w:=ZombiesConfig.weapon(id)
 			var board:=w.box(node,Vector3(0,1.25,0),Vector3(1.15,.62,.06),w.mat(Color("2a2118"),load("res://assets/wood.png"),.8))
 			board.name="WallBoard"
 			w.box(node,Vector3(0,.6,-.05),Vector3(.08,1.2,.08),w.mat(Color("2a2118"),load("res://assets/wood.png"),.8))
-			var gun:=(load("res://assets/zombies-v500/weapon-%s.glb"%str(row_w[2])) as PackedScene).instantiate() as Node3D;node.add_child(gun)
+			var gun:=ZombiesArsenal.frame_model(str(row_w[2]));node.add_child(gun)
 			gun.position=Vector3(.12 if str(row_w[2]) in ["pistol","revolver"] else .35,1.25,.06);gun.rotation=Vector3(0,PI/2,0);gun.scale=Vector3.ONE*(1.6 if str(row_w[2]) in ["pistol","revolver"] else 1.15)
 			_tint(gun,"GunAccent",row_w[14]);light.light_color=Color("9fe0ff");light.light_energy=.9;size_value=Vector3(1.2,1.6,.3)
-			_sign(node,"%s\n%d"%[str(row_w[1]),int(row_w[12])],Vector3(0,1.85,0),Color("e8f4ff"),34)
+			_neon_sign(node,str(row_w[1]),"◆ %d"%int(row_w[12]),ZombiesConfig.RARITY_COLOR.get(row_w[13],Color("6ad8ff")),Vector3(0,1.9,.04),0.,false,.5)
 		"upgrade":
 			var m3:=(load("res://assets/zombies-v500/flesh-machine.glb") as PackedScene).instantiate() as Node3D;node.add_child(m3)
 			light.light_color=Color("ff2a1a");light.light_energy=2.;size_value=Vector3(1.3,1.8,1.1)
-			_sign(node,"FLEISCHMASCHINE",Vector3(0,2.1,0),Color("ff5a4a"),40)
+			_neon_sign(node,"Fleischmaschine","◆ %d+"%int(ZombiesConfig.UPGRADE_PRICE[0]),Color("ff3a2a"),Vector3(0,2.25,0),0.,false,.75)
 	var body:=StaticBody3D.new();var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=size_value;shape.shape=box;shape.position.y=size_value.y*.5;body.add_child(shape);node.add_child(body)
 	body.collision_layer=1|STATION_LAYER
 	stations.append({"kind":kind,"id":id,"node":node,"light":light,"at":at})
@@ -183,7 +267,7 @@ func _place_box() -> void:
 	var light:=OmniLight3D.new();light.light_color=Color("9a4aff");light.omni_range=4.;light.light_energy=2.;light.position=Vector3(0,1.5,0);box_node.add_child(light)
 	var beam:=MeshInstance3D.new();var cyl:=CylinderMesh.new();cyl.top_radius=.25;cyl.bottom_radius=.4;cyl.height=12.;beam.mesh=cyl;beam.position.y=6.
 	var bm:=StandardMaterial3D.new();bm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;bm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;bm.albedo_color=Color(.6,.3,1.,.12);bm.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;beam.material_override=bm;beam.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;box_node.add_child(beam)
-	_sign(box_node,"CHAOS-GESCHENK\n%d"%ZombiesConfig.BOX_PRICE,Vector3(0,1.6,0),Color("d2a6ff"),40)
+	_neon_sign(box_node,"Chaos-Geschenk","◆ %d"%ZombiesConfig.BOX_PRICE,Color("c27bff"),Vector3(0,1.75,0),0.,false,.7)
 	var body:=StaticBody3D.new();var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=Vector3(1.5,.9,.9);shape.shape=box;shape.position.y=.45;body.add_child(shape);box_node.add_child(body)
 	body.collision_layer=1|STATION_LAYER
 	stations.append({"kind":"box","id":"","node":box_node,"light":light,"at":at})
@@ -203,6 +287,7 @@ func start() -> void:
 	in_break=true;break_clock=4.
 	_announce("PARTYNACHT","Die Gäste sind schon da. Überlebe, so lange du kannst.","start",Color("ff3a3a"),5.)
 	player.capture()
+	if music_calm.stream:music_calm.play();music_dread.play()
 	running=true
 
 func _next_round() -> void:
@@ -217,7 +302,10 @@ func _next_round() -> void:
 		var count:=2 if event=="double_boss" or round_number>=ZombiesConfig.HELL_FROM else 1
 		for i in range(count):_spawn_boss(int(round_number/float(ZombiesConfig.BOSS_EVERY))+i)
 	else:
-		_announce("RUNDE %d"%round_number,_round_line(),"round",Color("ff3a3a"),3.5)
+		hud.wave(round_number,_round_line(),Color("ff1a2a") if round_number<ZombiesConfig.NIGHTMARE_FROM else Color("c040ff"))
+		ZombiesAnnouncer.play(self,"round")
+	_sting("round-start",0.)
+	_storm(5+mini(round_number/3,8))
 	for alarm in alarm_lights:(alarm as OmniLight3D).light_energy=3.5
 	if round_number==ZombiesConfig.REALITY_FROM:_announce("DIE REALITÄT REISST","Ab jetzt ist nichts mehr, wie es war.","reality",Color("8aff6a"),5.)
 
@@ -242,6 +330,9 @@ func tick(delta: float) -> void:
 	_tick_pickups(dt)
 	_tick_projectiles(dt)
 	_tick_effects(dt)
+	fx.tick(dt)
+	_tick_music(dt)
+	_tick_neon(dt)
 	_tick_world(dt)
 	_tick_stations(dt)
 	_tick_focus()
@@ -264,6 +355,7 @@ func _tick_rounds(delta: float) -> void:
 		in_break=true;break_clock=ZombiesConfig.ROUND_BREAK
 		_add_points(ZombiesConfig.POINTS_ROUND+round_number*10,false)
 		_announce("RUNDE %d ÜBERSTANDEN"%round_number,"Atme. Kauf ein. Sie kommen wieder.","round_end",Color("f2e6b4"),3.5)
+		_sting("round-end",-4.)
 		for alarm in alarm_lights:(alarm as OmniLight3D).light_energy=0.
 
 func _spawn_cell() -> Vector3:
@@ -313,6 +405,7 @@ func _spawn_boss(index: int) -> void:
 	enemies.append(e);bosses.append(e);to_spawn=maxi(to_spawn/2,4)
 	_rise_fx(e.global_position);shake=1.
 	_announce(str(data.name),"Ein besonderer Gast hat Geburtstag.","boss",Color("ff1a1a"),5.)
+	fx.explosion(e.global_position+Vector3.UP*.5,5.,Color("ff2a1a"));_storm(10)
 
 # ---------------------------------------------------------------- damage
 func damage_multiplier() -> float:
@@ -323,14 +416,21 @@ func hit_enemy(e: ZombieEnemy, amount: float, head: bool, headshot: float, at: V
 	var value:=amount*damage_multiplier()
 	if head:value*=headshot*(1.6 if has_perk("zerreisser") else 1.)
 	if has_pickup("crit") and rng.randf()<.25:value*=3.;_spark(at,Color("ff5af2"),.4)
+	e.show_hp()
 	if has_pickup("insta_kill"):value=maxf(value,e.max_hp*(.06 if e.boss else 10.))
 	_add_points(ZombiesConfig.POINTS_HIT,true)
-	_blood(at,.6 if not head else 1.)
-	match element:
-		"fire":e.burn=3.
-		"shock":_chain(e,value*.35,2)
-		"void":_blast(at,2.2,value*.4,Color("b05aff"),e)
-		"phase":e.slow=.55
+	fx.blood(at,(at-player.camera.global_position).normalized(),.7 if not head else 1.2,head)
+	if round_number>=ZombiesConfig.REALITY_FROM and rng.randf()<.3:fx.burst(at,"glow",Color("44ff8a"),6,2.5,.04,.07,.5)
+	for el in element.split("+",false):
+		match el:
+			"fire","flame":e.burn=maxf(e.burn,3.5);fx.set_burning(e,true)
+			"shock":
+				if rng.randf()<.4:_chain(e,value*.5,3)
+			"void":
+				if rng.randf()<.22:_blast(at,2.8,value*.6,Color("b05aff"),e,"implosion")
+			"phase":e.slow=.55
+	var tone: Color=Color("ffd23a") if head else ZombiesFx.ELEMENT_COLOR.get(element.get_slice("+",0),Color("f4f0e8"))
+	fx.number(at+Vector3.UP*.25,value,tone,head or value>=400.)
 	if has_perk("flackergeist") and rng.randf()<.15:_chain(e,value*.5,2)
 	if has_pickup("chain") and rng.randf()<.35:_chain(e,value*.6,3)
 	hud.hit(false,head)
@@ -340,13 +440,21 @@ func hit_enemy(e: ZombieEnemy, amount: float, head: bool, headshot: float, at: V
 
 func damage_enemy(e: ZombieEnemy, amount: float, head: bool, element: String, credit: bool) -> void:
 	if e.dead:return
-	e.hp-=amount;e.hit_flash()
+	e.hp-=amount;e.hit_flash();e.show_hp()
 	if e.hp<=0.:_kill(e,head,element,credit)
 
 func _kill(e: ZombieEnemy, head: bool, element: String, credit: bool) -> void:
 	var at:=e.global_position+Vector3.UP
 	_sound(kill_audio,"kill-head" if head else "kill")
-	e.die(element in ["void","rift","nuke"] or has_pickup("fire_kills"))
+	var explosive:=element.contains("void") or element in ["rift","nuke","blast"] or has_pickup("fire_kills")
+	var was_burning:=e.burn>0.
+	fx.set_burning(e,false)
+	e.die(explosive)
+	fx.confetti(at+Vector3.UP*.3,2. if e.elite else 1.)
+	if head:fx.gib(at+Vector3.UP*.6,1.)
+	if explosive:fx.gib(at,1.6)
+	fx.splat(e.global_position+Vector3.UP*.3,Vector3.ZERO,1.4)
+	if was_burning and not explosive and rng.randf()<.22:_blast(at,3.,60.+round_number*12.,Color("ff6a1a"),e)
 	stats.kills=int(stats.kills)+1
 	if head:stats.headshots=int(stats.headshots)+1
 	kill_times.append(seconds)
@@ -365,10 +473,11 @@ func _kill(e: ZombieEnemy, head: bool, element: String, credit: bool) -> void:
 	elif rng.randf()<ZombiesConfig.PICKUP_CHANCE*(2. if event=="birthday" else 1.) and pickups_this_round<ZombiesConfig.PICKUPS_PER_ROUND+(2 if event=="birthday" else 0):
 		_drop_pickup(e.global_position,false)
 	if has_pickup("fire_kills"):_blast(at,3.,120.+round_number*20.,Color("ff6a1a"),e)
-	_blood(at,1.6)
+	fx.blood(at,(at-player.camera.global_position).normalized(),1.8,head)
 
 func _chain(source: ZombieEnemy, amount: float, jumps: int) -> void:
 	var from:=source.global_position+Vector3.UP*1.2;var done:=[source]
+	fx.chain_sound(from)
 	for j in range(jumps):
 		var best: ZombieEnemy=null;var best_d:=7.
 		for e: ZombieEnemy in enemies:
@@ -379,8 +488,9 @@ func _chain(source: ZombieEnemy, amount: float, jumps: int) -> void:
 		var to:=best.global_position+Vector3.UP*1.2;_bolt(from,to);done.append(best)
 		damage_enemy(best,amount,false,"shock",true);from=to
 
-func _blast(at: Vector3, radius: float, amount: float, color: Color, skip: ZombieEnemy=null) -> void:
-	_flash(at,color,radius)
+func _blast(at: Vector3, radius: float, amount: float, color: Color, skip: ZombieEnemy=null, style: String="explosion") -> void:
+	if style=="implosion":fx.implosion(at,radius,color)
+	else:fx.explosion(at,radius,color)
 	for e: ZombieEnemy in enemies.duplicate():
 		if e==skip or e.dead:continue
 		var d:=e.global_position.distance_to(at)
@@ -414,6 +524,7 @@ func _recent_kills(window: float) -> int:
 
 func _tick_player(delta: float) -> void:
 	chain_clock-=delta;hit_cool-=delta
+	shake=maxf(shake,fx.shake_out);fx.shake_out=0.
 	regen_wait-=delta
 	if regen_wait<=0. and health<max_health:health=minf(health+ZombiesConfig.REGEN_RATE*(2. if has_perk("todesatem") else 1.)*delta,max_health)
 	slowed=maxf(slowed-delta,0.)
@@ -436,6 +547,11 @@ func enemy_time_scale() -> float:
 
 func gravity_scale() -> float:
 	return .35 if event=="gravity" or has_pickup("gravity") else 1.
+
+# Line of sight to a guest, ignoring the guest's own body.
+func clear_to(from: Vector3, e: ZombieEnemy, height: float) -> bool:
+	var q:=PhysicsRayQueryParameters3D.create(from,e.global_position+Vector3.UP*height,1);q.exclude=[player.get_rid(),e.get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 func line_clear(a: Vector3, b: Vector3) -> bool:
 	var q:=PhysicsRayQueryParameters3D.create(a,b,1);q.exclude=[player.get_rid()]
@@ -465,8 +581,44 @@ func teleport_near(e: ZombieEnemy) -> void:
 		if c.x!=999999 and nav.point(c).distance_to(at)<1.:
 			_flash(e.global_position+Vector3.UP,Color("8a6aff"),2.5);e.global_position=nav.point(c);_flash(e.global_position+Vector3.UP,Color("8a6aff"),2.5);return
 
-func enemy_sound(_e: ZombieEnemy, _kind: String) -> void:
-	pass
+# Zombie voices (owner's Pixabay picks, see tools/prepare-after-play-zombie-voices.py).
+const VOICE_FOLDER:="res://assets/zombies-v513/voice/"
+const VOICE_CHANCE:={"idle":.85,"attack":.6,"leap":1.,"death":.5}
+const VOICE_DB:={"idle":-7.,"attack":-1.5,"leap":-1.,"death":-3.}
+const VOICE_PITCH:={"crawler":1.18,"jumper":1.12,"sprinter":1.07,"screamer":1.1,"tank":.74,"alien":.84,"boss":.66}
+var voice_streams: Array=[]
+var last_voice:=-1
+
+static func voice_paths() -> PackedStringArray:
+	var out:=PackedStringArray()
+	for i in range(64):
+		var path:=VOICE_FOLDER+"moan-%d.ogg"%i
+		if not ResourceLoader.exists(path):break
+		out.append(path)
+	return out
+
+func enemy_sound(e: ZombieEnemy, kind: String) -> bool:
+	if not is_instance_valid(e) or e.voice==null or not e.voice.is_inside_tree():return false
+	if voice_streams.is_empty():
+		for path in voice_paths():voice_streams.append(load(path))
+	if voice_streams.is_empty() or rng.randf()>float(VOICE_CHANCE.get(kind,.5)):return false
+	if kind=="idle" and e.voice.playing:return false
+	if e.global_position.distance_to(player_position())>30.:return false
+	# Keep the horde readable: only a few voices at once, idle moans yield first.
+	var busy:=0
+	for other in enemies:
+		if is_instance_valid(other) and other.voice and other.voice.playing:busy+=1
+	if busy>=(3 if kind=="idle" else 6):return false
+	var pick:=rng.randi_range(0,voice_streams.size()-1)
+	if pick==last_voice and voice_streams.size()>1:pick=(pick+1)%voice_streams.size()
+	last_voice=pick
+	var pitch: float=float(VOICE_PITCH.get(e.role,1.))*rng.randf_range(.9,1.1)
+	if e.elite and not e.boss:pitch*=.92
+	if kind=="attack":pitch*=1.08
+	elif kind=="death":pitch*=.86
+	e.voice.stream=voice_streams[pick];e.voice.pitch_scale=pitch;e.voice.volume_db=float(VOICE_DB.get(kind,-4.))+(4. if e.boss else 0.)
+	e.voice.play()
+	return true
 
 func boss_phase(e: ZombieEnemy, phase: int) -> void:
 	_announce("ER WIRD WÜTEND" if phase==1 else "LETZTE KERZE","%s verändert sich."%str(e.spec.get("name","Der Gast")),"boss_phase",Color("ff2a2a"),3.)
@@ -478,23 +630,18 @@ func boss_attack(e: ZombieEnemy, kind: String) -> void:
 			for i in range(3+e.boss_phase*2):
 				var minion:=_spawn_enemy();minion.global_position=e.global_position+Vector3(rng.randf_range(-3,3),0,rng.randf_range(-3,3))
 		"shockwave":
-			_ring(e.global_position,7.,Color("ff2a2a"))
+			_ring(e.global_position,7.,Color("ff2a2a"));fx.explosion(e.global_position+Vector3.UP*.2,3.5,Color("ff2a2a"))
 			if e.global_position.distance_to(player.global_position)<7. and player.is_on_floor():hurt_player(e.dmg*.8,e)
 			shake=maxf(shake,.6)
 		"charge":shake=maxf(shake,.3)
 
 # ---------------------------------------------------------------- shots & fx
 func tracer(from: Vector3, to: Vector3, element: String) -> void:
-	var length:=from.distance_to(to)
-	if length<.3:return
-	var mesh:=MeshInstance3D.new();var box:=BoxMesh.new();box.size=Vector3(.012,.012,length);mesh.mesh=box
-	var color: Color=Color("ffe0a0") if element=="" else {"fire":Color("ff6a1a"),"shock":Color("6af2ff"),"void":Color("b05aff"),"phase":Color("8a5cff")}.get(element,Color("ffe0a0"))
-	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=color;m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;mesh.material_override=m;mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root3d.add_child(mesh);mesh.global_position=(from+to)*.5;mesh.look_at(to,Vector3.UP if absf((to-from).normalized().y)<.98 else Vector3.RIGHT)
-	effects.append({"node":mesh,"life":.06,"fade":m})
+	var list:=element.split("+",false)
+	fx.tracer(from,to,ZombiesFx.ELEMENT_COLOR.get(list[list.size()-1],Color("ffe0a0")) if not list.is_empty() else Color("ffe0a0"),1.6 if not list.is_empty() else 1.)
 
 func impact(at: Vector3, normal: Vector3) -> void:
-	_spark(at+normal*.02,Color("ffd8a0"),.15)
+	fx.impact(at,normal)
 
 func _particles(at: Vector3, color: Color, amount: int, speed_value: float, size_value: float, life: float) -> void:
 	var p:=CPUParticles3D.new();p.one_shot=true;p.emitting=true;p.amount=amount;p.lifetime=life;p.explosiveness=.95
@@ -524,10 +671,7 @@ func _ring(at: Vector3, radius: float, color: Color) -> void:
 	root3d.add_child(ring);ring.global_position=at+Vector3.UP*.1;ring.scale=Vector3(.3,.3,.3);effects.append({"node":ring,"life":.5,"grow":radius,"fade":m,"flat":true})
 
 func _bolt(a: Vector3, b: Vector3) -> void:
-	var points:=[a]
-	for i in range(1,6):points.append(a.lerp(b,i/6.)+Vector3(rng.randf_range(-.25,.25),rng.randf_range(-.25,.25),rng.randf_range(-.25,.25)))
-	points.append(b)
-	for i in range(points.size()-1):tracer(points[i],points[i+1],"shock")
+	fx.lightning(a,b)
 
 func _rise_fx(at: Vector3) -> void:
 	_particles(at+Vector3.UP*.1,Color(.25,.2,.18),14,2.5,.12,.9)
@@ -540,12 +684,71 @@ func rift_shot(from: Vector3, dir: Vector3, amount: float) -> void:
 	var light:=OmniLight3D.new();light.light_color=Color("44ff8a");light.omni_range=4.;light.light_energy=3.;orb.add_child(light)
 	projectiles.append({"node":orb,"vel":dir*34.,"dmg":amount,"life":2.5,"hostile":false})
 
+# Coloured lightning around the player when a round starts.
+func _storm(count: int) -> void:
+	for i in range(count):
+		var angle:=rng.randf()*TAU;var dist:=rng.randf_range(5.,14.)
+		var ground:=player.global_position+Vector3(cos(angle)*dist,0,sin(angle)*dist)
+		var top:=ground+Vector3(rng.randf_range(-1.5,1.5),rng.randf_range(3.,4.5),rng.randf_range(-1.5,1.5))
+		var tone: Color=ZombiesFx.CONFETTI[rng.randi_range(0,ZombiesFx.CONFETTI.size()-1)]
+		get_tree().create_timer(i*.09).timeout.connect(func():if is_instance_valid(fx):fx.lightning(top,ground,tone,1.8,.32);fx.burst(ground,"glow",tone,14,4.,.04,.08,.5,-8.))
+	fx.sound("zap",player.global_position+Vector3.UP*3.,-2.,.7,3)
+
+# Flamethrower: a short cone that sets everything in it on fire.
+func flame_hit(from: Vector3, dir: Vector3, amount: float, elements: String) -> void:
+	for e: ZombieEnemy in enemies.duplicate():
+		if e.dead:continue
+		var to:=e.global_position+Vector3.UP-from;var d:=to.length()
+		if d>7.5 or d<.05 or to.normalized().dot(dir)<.92:continue
+		if not clear_to(from,e,1.):continue
+		e.burn=maxf(e.burn,4.);fx.set_burning(e,true);e.show_hp()
+		if rng.randf()<.2:_add_points(ZombiesConfig.POINTS_HIT,true);hud.hit(false,false);fx.number(e.global_position+Vector3.UP*1.8,amount*damage_multiplier()*5.,Color("ff8a2a"),false)
+		if elements.contains("shock") and rng.randf()<.05:_chain(e,amount*4.,2)
+		damage_enemy(e,amount*damage_multiplier()*(1.+elements.split("+",false).size()*.35),false,"flame",true)
+
+# Tesla coil: locks on to the guest closest to the aim, then jumps on.
+func tesla_shot(muzzle_at: Vector3, from: Vector3, dir: Vector3, amount: float, elements: String) -> void:
+	var best: ZombieEnemy=null;var best_score:=-9.
+	for e: ZombieEnemy in enemies:
+		if e.dead:continue
+		var to:=e.global_position+Vector3.UP*1.2-from;var d:=to.length()
+		if d>24.:continue
+		var dot:=to.normalized().dot(dir)
+		if dot<.95 or not clear_to(from,e,1.2):continue
+		var score:=dot*3.-d*.02
+		if score>best_score:best_score=score;best=e
+	var color:=Color("7af6ff")
+	if best:
+		var target:=best.global_position+Vector3.UP*1.2
+		fx.lightning(muzzle_at,target,color,1.6,.2)
+		hit_enemy(best,amount,false,1.,target,elements);_chain(best,amount*.7,4+elements.split("+",false).size())
+	else:
+		var q:=PhysicsRayQueryParameters3D.create(from,from+dir*26.,1);q.exclude=[player.get_rid()]
+		var hit:=get_world_3d().direct_space_state.intersect_ray(q)
+		var end: Vector3=hit.position if not hit.is_empty() else from+dir*26.
+		fx.lightning(muzzle_at,end,color,1.3,.16)
+		if not hit.is_empty():fx.impact(end,hit.normal,color)
+	fx.chain_sound(muzzle_at)
+
+# Party cake launcher: an arcing cake that bursts into fire and confetti.
+func cake_shot(from: Vector3, dir: Vector3, amount: float, level: int) -> void:
+	var cake:=Node3D.new();root3d.add_child(cake);cake.global_position=from
+	var body:=MeshInstance3D.new();var cyl:=CylinderMesh.new();cyl.top_radius=.12;cyl.bottom_radius=.12;cyl.height=.12;body.mesh=cyl
+	var m:=StandardMaterial3D.new();m.albedo_color=Color("ff7ac8");m.emission_enabled=true;m.emission=Color("ff3aa0");m.emission_energy_multiplier=1.2;body.material_override=m;cake.add_child(body)
+	var top:=MeshInstance3D.new();var cyl2:=CylinderMesh.new();cyl2.top_radius=.125;cyl2.bottom_radius=.125;cyl2.height=.03;top.mesh=cyl2
+	var cream:=StandardMaterial3D.new();cream.albedo_color=Color("fff4e8");top.material_override=cream;top.position.y=.07;cake.add_child(top)
+	var candle:=OmniLight3D.new();candle.light_color=Color("ffb05a");candle.light_energy=2.5;candle.omni_range=3.;candle.position.y=.2;cake.add_child(candle)
+	var trail:=CPUParticles3D.new();trail.amount=30;trail.lifetime=.5;trail.local_coords=false;var tq:=QuadMesh.new();tq.size=Vector2.ONE*.12;tq.material=fx._mat("glow",true);trail.mesh=tq
+	trail.color_ramp=fx._ramp([Color(1,.9,.5,1),Color(1,.3,.6,.6),Color(1,.3,.6,0)]);trail.gravity=Vector3.ZERO;trail.initial_velocity_max=.3;cake.add_child(trail);trail.emitting=true
+	projectiles.append({"node":cake,"vel":dir*21.,"dmg":amount,"life":4.,"hostile":false,"kind":"cake","grav":7.,"level":level})
+
 func _tick_projectiles(delta: float) -> void:
 	var space:=get_world_3d().direct_space_state
 	for p in projectiles.duplicate():
 		var node: Node3D=p.node
 		if not is_instance_valid(node):projectiles.erase(p);continue
 		p.life=float(p.life)-delta
+		if p.has("grav"):var v: Vector3=p.vel;v.y-=float(p.grav)*delta;p.vel=v;node.rotate_y(delta*6.)
 		var from:=node.global_position;var to:=from+(p.vel as Vector3)*delta
 		if p.hostile:
 			(p.vel as Vector3).y-=2.*delta
@@ -556,6 +759,12 @@ func _tick_projectiles(delta: float) -> void:
 		if not hit.is_empty() or float(p.life)<=0.:
 			var at: Vector3=hit.position if not hit.is_empty() else to
 			if p.hostile:_particles(at,Color("8aff4a"),10,2.,.06,.5)
+			elif p.get("kind","")=="cake":
+				_blast(at,4.8,float(p.dmg),Color("ff6ac8"));fx.confetti(at+Vector3.UP*.3,4.)
+				if int(p.get("level",0))>=1:
+					for e: ZombieEnemy in enemies:
+						if not e.dead and e.global_position.distance_to(at)<4.8:e.burn=maxf(e.burn,3.);fx.set_burning(e,true)
+				if int(p.get("level",0))>=2:_chain_from(at,float(p.dmg)*.3)
 			else:_blast(at,4.5,float(p.dmg),Color("44ff8a"));_chain_from(at,float(p.dmg)*.4);shake=maxf(shake,.25)
 			node.queue_free();projectiles.erase(p);continue
 		node.global_position=to
@@ -567,8 +776,8 @@ func _chain_from(at: Vector3, amount: float) -> void:
 
 func _tick_effects(delta: float) -> void:
 	for fx in effects.duplicate():
+		if not is_instance_valid(fx.node):effects.erase(fx);continue
 		var node: Node3D=fx.node
-		if not is_instance_valid(node):effects.erase(fx);continue
 		var total: float=fx.get("total",fx.life);fx.total=total
 		fx.life=float(fx.life)-delta;var k:=clampf(1.-float(fx.life)/total,0.,1.)
 		if fx.has("light"):(node as OmniLight3D).light_energy=float(fx.light)*(1.-k)
@@ -625,8 +834,12 @@ func _collect(id: String) -> void:
 	match id:
 		"max_ammo":arsenal.refill_all()
 		"nuke":
+			var booms:=0
 			for e: ZombieEnemy in enemies.duplicate():
-				if not e.boss:damage_enemy(e,e.hp+1.,false,"nuke",false)
+				if not e.boss:
+					if booms<6:fx.explosion(e.global_position+Vector3.UP*.4,3.,Color("ffe04a"));booms+=1
+					damage_enemy(e,e.hp+1.,false,"nuke",false)
+			fx.light(player.global_position+Vector3.UP*3.,Color("fff2c0"),14.,40.,1.2)
 			_add_points(400,false);shake=1.
 		"alien":health=max_health;_add_points(500,false)
 
@@ -724,11 +937,18 @@ func open_door(index: int) -> void:
 	if d.open or not spend(int(d.spec.cost)):return
 	d.open=true;stats.doors=int(stats.doors)+1
 	for z in d.spec.zones:zones_open[z]=true
+	var mid: Vector3=d.mid;var away:=player.global_position-mid;away.y=0;away=-away.normalized() if away.length()>.1 else Vector3.FORWARD
 	for p: Node3D in d.panels:
 		for body: CollisionObject3D in p.find_children("*","CollisionObject3D",true,false):body.collision_layer=0
-		var tween:=p.create_tween();tween.tween_property(p,"rotation:x",-1.5,.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT);tween.tween_interval(.8);tween.tween_property(p,"position:y",-2.5,1.);tween.tween_callback(p.queue_free)
-	(d.label as Node3D).queue_free()
-	_particles(d.mid+Vector3.UP,Color(.4,.38,.34),30,4.,.15,1.)
+		var tween:=p.create_tween().set_parallel(true)
+		tween.tween_property(p,"global_position",p.global_position+away*rng.randf_range(1.5,3.)+Vector3(0,rng.randf_range(.8,1.6),0),.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(p,"rotation",p.rotation+Vector3(rng.randf_range(-2.5,2.5),rng.randf_range(-1.,1.),rng.randf_range(-2.,2.)),.9)
+		tween.chain().tween_property(p,"global_position:y",-2.5,.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.chain().tween_callback(p.queue_free)
+	for child in (d.node as Node3D).get_children():
+		if not child in d.panels:(child as Node).queue_free()
+	fx.explosion(d.mid+Vector3.UP*1.2,2.6,Color("ffd23a"));fx.confetti(d.mid+Vector3.UP*1.5,4.)
+	fx.sound("barrier-break",d.mid+Vector3.UP,2.)
 	await get_tree().physics_frame
 	nav.rebuild_line(d.spec.from,d.spec.to)
 	_announce("","%s geöffnet"%d.spec.name,"door",Color.WHITE,2.)
@@ -777,7 +997,7 @@ func _tick_stations(delta: float) -> void:
 			if box_state.get("frame","")!=frame_id:
 				if box_state.get("show")!=null and is_instance_valid(box_state.show):(box_state.show as Node).queue_free()
 				var row:=ZombiesConfig.weapon(frame_id)
-				var show:=(load("res://assets/zombies-v500/weapon-%s.glb"%str(row[2])) as PackedScene).instantiate() as Node3D
+				var show:=ZombiesArsenal.frame_model(str(row[2]))
 				box_node.add_child(show);show.position=Vector3(0,.8+t*.25,0);show.rotation.y=PI/2;show.scale=Vector3.ONE*1.6;_tint(show,"GunAccent",row[14])
 				box_state.show=show;box_state.frame=frame_id
 			if box_state.get("show")!=null:(box_state.show as Node3D).position.y=.8+t*.25
@@ -794,8 +1014,11 @@ func _tick_stations(delta: float) -> void:
 		upgrade_state.clock=float(upgrade_state.clock)+delta
 		var machine: Node3D=upgrade_state.node
 		machine.rotation.z=sin(seconds*40.)*.01*float(not upgrade_state.ready)
+		if not upgrade_state.ready and rng.randf()<delta*6.:
+			var top:=machine.global_position+Vector3(0,1.9,0)
+			fx.lightning(top,top+Vector3(rng.randf_range(-1.6,1.6),rng.randf_range(-1.8,-.6),rng.randf_range(-1.6,1.6)),ZombiesFx.ELEMENT_COLOR.values()[rng.randi_range(0,2)],1.2,.15)
 		if not upgrade_state.ready and float(upgrade_state.clock)>4.:
-			upgrade_state.ready=true;_flash(machine.global_position+Vector3(0,1.2,.6),Color("ff2a1a"),2.)
+			upgrade_state.ready=true;fx.explosion(machine.global_position+Vector3(0,1.2,.6),2.2,Color("ff2a1a"));fx.gib(machine.global_position+Vector3(0,1.4,.5),1.)
 		if upgrade_state.ready and float(upgrade_state.clock)>16.:upgrade_state={}
 	for s in stations:
 		if s.light:(s.light as OmniLight3D).light_energy=lerpf((s.light as OmniLight3D).light_energy,1.4+sin(seconds*3.+float(s.at.x))*.4,.1)
@@ -805,6 +1028,8 @@ func _use_upgrade() -> void:
 	if not upgrade_state.is_empty():
 		if upgrade_state.ready:
 			arsenal.give(upgrade_state.weapon,int(upgrade_state.level));upgrade_state={}
+			_sting("upgrade",0.);fx.confetti(player.global_position+Vector3.UP*1.5,3.)
+			for i in range(4):fx.lightning(st.node.global_position+Vector3(0,1.9,0),player.global_position+Vector3(rng.randf_range(-1,1),.4,rng.randf_range(-1,1)),_upgrade_tone(int(arsenal.data().level)),1.,.3)
 			var row:=ZombiesConfig.weapon(arsenal.data().id)
 			_announce(str(ZombiesConfig.UPGRADE_NAMES[int(arsenal.data().level)]).to_upper(),str(row[1]),"upgrade",Color("ff4a3a"),3.)
 		return
@@ -816,6 +1041,10 @@ func _use_upgrade() -> void:
 	if arsenal.slots.is_empty():arsenal.give(ZombiesConfig.START_WEAPON)
 	else:arsenal.equip(0)
 	_announce("","Die Fleischmaschine frisst deine Waffe …","upgrade_start",Color("ff4a3a"),2.5)
+	fx.sound("zap",st.node.global_position+Vector3.UP,0.,.6,3)
+
+func _upgrade_tone(level: int) -> Color:
+	return ZombiesFx.ELEMENT_COLOR.get(ZombiesConfig.UPGRADE_ELEMENT[clampi(level,0,3)],Color("ff3a2a"))
 
 # ---------------------------------------------------------------- events & world
 func _start_event(id: String) -> void:
@@ -823,7 +1052,8 @@ func _start_event(id: String) -> void:
 	_announce(str(spec.name),str(spec.text),"event_"+id,Color("ff4aff"),5.)
 	match id:
 		"dark":
-			for row in lights:(row[0] as Light3D).light_energy=float(row[1])*.12
+			for row in lights:
+				if is_instance_valid(row[0]):(row[0] as Light3D).light_energy=float(row[1])*.12
 			player.lamp_on=true;player.lamp.visible=true
 		"rift","alien":
 			for i in range(3):_add_rift()
@@ -886,7 +1116,7 @@ func announce_ammo_empty() -> void:
 func _hud_data() -> Dictionary:
 	var d:=arsenal.data();var row:=arsenal.weapon()
 	var ammo:="" if d.is_empty() else ("∞" if has_pickup("infinite_ammo") else "%d"%int(d.mag))+"  /  %d"%int(d.reserve)
-	var weapon_name:="" if row.is_empty() else str(row[1])+("  ·  "+str(ZombiesConfig.UPGRADE_NAMES[int(d.level)]) if int(d.level)>0 else "")
+	var weapon_name:="" if row.is_empty() else str(row[1])+("  ·  "+str(ZombiesConfig.UPGRADE_NAMES[int(d.level)])+"  "+"★".repeat(int(d.level))+"☆".repeat(3-int(d.level)) if int(d.level)>0 else "")
 	var lines: Array=[]
 	for id in active:lines.append("%s  %ds"%[ZombiesConfig.pickup(id)[1],ceili(float(active[id]))])
 	if event!="":lines.push_front("◆ "+str(ZombiesConfig.EVENTS[event].name))
@@ -935,6 +1165,8 @@ func stop() -> void:
 	for row in lights:if is_instance_valid(row[0]):(row[0] as Light3D).light_energy=float(row[1])
 	if env and not env_base.is_empty():env.fog_light_color=env_base.fog;env.fog_density=env_base.density;env.ambient_light_color=env_base.ambient
 	player.speed_scale=1.;player.gravity_scale=1.;player.camera.rotation.z=0.;player.camera.position.y=1.65;player.camera.fov=player.base_fov
+	for m in [music_calm,music_dread,sting]:
+		if is_instance_valid(m):(m as AudioStreamPlayer).stop()
 	if is_instance_valid(arsenal):arsenal.queue_free()
 	if is_instance_valid(root3d):root3d.queue_free()
 	if is_instance_valid(hud):hud.queue_free()

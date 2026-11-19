@@ -102,6 +102,10 @@ const WEAPONS:=[
 	["night_needle","Night Needle","sniper",650,55,5,40,3.2,.25,1,2.6,4.,2200,"uncommon",Color("2b3a55"),"pierce"],
 	["widowmaker","Widowmaker Zero","sniper",1100,48,6,42,3.4,.2,1,3.,5.,0,"epic",Color("d0d0d8"),"pierce"],
 	["rift_cannon","Rift Cannon","rift",900,90,8,40,3.6,.5,1,2.4,1.,0,"legendary",Color("44ff8a"),"rift"],
+	# 5.2.0: three party weapons with their own effects.
+	["kuchenbrenner","Kuchenbrenner F-9","flamer",15,1200,150,450,3.0,0.,1,.05,1.,3000,"epic",Color("ff7a1a"),"flame"],
+	["gewitterkind","Gewitterkind Tesla-Spule","tesla",230,240,20,100,2.6,0.,1,.4,1.5,0,"epic",Color("6af2ff"),"tesla"],
+	["tortenwerfer","Tortenwerfer TW-3","launcher",560,70,4,24,3.0,0.,1,2.2,1.,0,"rare",Color("ff6ac8"),"launcher"],
 ]
 const RARITY_WEIGHT:={"common":10.,"uncommon":7.,"rare":4.,"epic":1.6,"legendary":.45}
 const RARITY_COLOR:={"common":Color("cfd2d6"),"uncommon":Color("7ce08a"),"rare":Color("5ab3ff"),"epic":Color("c27bff"),"legendary":Color("ffb340")}
@@ -116,6 +120,14 @@ const UPGRADE_DAMAGE:=[1.,1.9,2.9,4.2]
 const UPGRADE_MAG:=[1.,1.5,1.75,2.]
 const UPGRADE_NAMES:=["","Albtraum-veredelt","Fleischgeschmiedet","Realitätszerreißer"]
 const UPGRADE_ELEMENT:=["","fire","shock","void"]
+# Weapons drawn from code instead of a model file.
+const SPECIAL_FRAMES:=["flamer","tesla","launcher"]
+# Upgrades stack their elements: level 2 burns and chains, level 3 also tears.
+static func elements(level: int, special: String) -> String:
+	var out: Array=[]
+	for i in range(1,mini(level,3)+1):out.append(UPGRADE_ELEMENT[i])
+	if special in ["fire","shock","void","phase"] and not special in out:out.append(special)
+	return "+".join(out)
 
 # ---------------------------------------------------------------- perks
 # id, name, price, colour, short description
@@ -228,7 +240,7 @@ const STATIONS:=[
 	["perk","seelenvorrat",Vector3(-15.6,0,-26.6)],
 	["perk","pluesch_segen",Vector3(-10.6,0,-33.6)],
 	["perk","leerer_blick",Vector3(2.8,0,-34.0)],
-	["wall","titan_maw",Vector3(-4.8,0,-34.3)],
+	["wall","kuchenbrenner",Vector3(-4.8,0,-34.3)],
 	["wall","night_needle",Vector3(-8.4,0,-16.4)],
 	["ammo","",Vector3(25.6,0,6.0)],
 ]

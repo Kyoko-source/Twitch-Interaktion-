@@ -1,0 +1,29 @@
+{
+ "license": "Pixabay Content License",
+ "calls": [
+  {
+   "file": "moan-0.ogg",
+   "source": "dragon-studio-zombie-groan-sfx-450451.mp3",
+   "start": 0.0,
+   "length": 3.912
+  },
+  {
+   "file": "moan-1.ogg",
+   "source": "freesound_community-zombie-moan-44932.mp3",
+   "start": 0.388,
+   "length": 3.253
+  },
+  {
+   "file": "moan-2.ogg",
+   "source": "phatphrogstudio-zombie-voice-growl-477834.mp3",
+   "start": 0.318,
+   "length": 1.365
+  },
+  {
+   "file": "moan-3.ogg",
+   "source": "phatphrogstudio-zombie-voice-idle-moans-2-no-ai-479321.mp3",
+   "start": 0.457,
+   "length": 2.068
+  }
+ ]
+}

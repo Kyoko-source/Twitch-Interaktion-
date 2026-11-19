@@ -1,5 +1,46 @@
 # After Play — Kinderparadies
 
+## Partynacht: Effekt-Gewitter, Partywaffen, Neon und Musik (5.2.0)
+
+- **Effekte**: Mündungsfeuer mit Sternblitz, Seitenflamme, Rauch und
+  Funken, ausgeworfene Hülsen, leuchtende Leuchtspuren in Elementfarbe,
+  Einschläge mit Funken, Staub und Einschusslöchern.
+- **Blut und Party**: Blutfontänen und Blutnebel bei jedem Treffer,
+  Blutflecken auf Boden und Wänden, Fleischbrocken bei Kopfschüssen und
+  Explosionen, Konfetti bei jedem Kill.
+- **Explosionen**: Feuerball, Druckwelle, Rauchsäule, Brandfleck und
+  Kamerawackeln. Außerdem zuckende, verzweigte Kettenblitze, brennende
+  Gäste mit Flammen und Licht, Leere-Implosionen und schwebende
+  Schadenszahlen (Kopfschuss gold).
+- **Neue Partywaffen**:
+  - Kuchenbrenner F-9 (Flammenwerfer, an der Wand im Boss-Bereich, 3000),
+  - Gewitterkind Tesla-Spule (Blitz mit Zielhilfe, springt auf bis zu
+    fünf Gäste),
+  - Tortenwerfer TW-3 (Torte im Bogen, explodiert in Feuer und Konfetti).
+- **Waffen-Design**: je nach Seltenheit leuchtende Spulen, Energiezellen,
+  Holo-Visiere und Finnen.
+- **Waffen-Upgrades**: aufgewertete Waffen bekommen eine animierte
+  Leuchttarnung und Funken. Die Upgrades stapeln sich jetzt: Stufe 1
+  brennt, Stufe 2 brennt und kettet Blitze, Stufe 3 zerreißt zusätzlich
+  mit Leere-Implosionen. Die Sterne der Stufe stehen im HUD. Die
+  Fleischmaschine blitzt und explodiert beim Veredeln.
+- **Lebensbalken über den Köpfen** der Gäste (nach Treffern; Elite-Gäste
+  immer, mit Namen), Farbe von Grün über Gelb zu Rot.
+- **Neue Runden groß**: riesige Rundenzahl knallt ins Bild, wackelt, Blut
+  läuft vom Bildschirmrand, dazu ein Gong und bunte Blitze um den Spieler.
+- **Absperrungen und Schriften**: Absperrband, Pfosten mit Warnleuchten,
+  Neonschilder mit flackerndem Rahmen und Preis an allen Absperrungen,
+  Wandwaffen, Perks, Munition, Fleischmaschine und Chaos-Geschenk.
+  Absperrungen fliegen beim Öffnen mit Explosion und Konfetti auseinander.
+- **Musik**: eigene gruselige Spieluhr-Melodie; eine Bedrohungsspur mit
+  Herzschlag wird mit Runden, Horde und Bossen lauter.
+- **Zombie-Stimmen**: Stöhnen, Knurren beim Zuschlagen und Röcheln beim
+  Sterben (Pixabay-Sounds des Besitzers), räumlich und mit
+  Tonhöhen-Varianten.
+- **Erzeugt per Code**: Effekttexturen, Sounds und Musik entstehen mit
+  `tools/make-after-play-zombies-fx-v520.py`, die Stimmen mit
+  `tools/prepare-after-play-zombie-voices.py`.
+
 ## Hellere Nightwatch-Kameras mit Vollbild, Partynacht mit Schlägen und Lebensbalken (5.1.2)
 
 - **Nightwatch Protocol**: jede Kamera sieht mit eigener Nachtsicht
