@@ -10,13 +10,16 @@ extends RefCounted
 const FOLDER:="res://assets/zombies-v500/audio/"
 const LOUD:=["start","round","boss","boss_down","reality","game_over"]
 static var cache:={}
+static var recorded:={}
+# One voice at a time: a new spoken line cuts the previous one.
+static var voice: AudioStreamPlayer
 
 static func stream_for(key: String) -> AudioStream:
 	if key=="":return null
 	if cache.has(key):return cache[key]
 	var found: AudioStream=null
 	for ext in ["ogg","wav","mp3"]:
-		if ResourceLoader.exists(FOLDER+key+"."+ext):found=load(FOLDER+key+"."+ext);break
+		if ResourceLoader.exists(FOLDER+key+"."+ext):found=load(FOLDER+key+"."+ext);recorded[key]=true;break
 	if found==null and key.begins_with("pickup_") and ResourceLoader.exists(FOLDER+"pickup.ogg"):found=load(FOLDER+"pickup.ogg")
 	if found==null:found=_placeholder(key)
 	cache[key]=found;return found
@@ -24,8 +27,11 @@ static func stream_for(key: String) -> AudioStream:
 static func play(owner: Node, key: String) -> void:
 	var stream:=stream_for(key)
 	if stream==null or not is_instance_valid(owner):return
-	var player:=AudioStreamPlayer.new();player.stream=stream;player.volume_db=-4. if key in LOUD else -10.;player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
+	var spoken: bool=recorded.has(key)
+	if spoken and is_instance_valid(voice):voice.stop();voice.queue_free()
+	var player:=AudioStreamPlayer.new();player.stream=stream;player.volume_db=-1. if spoken else -4. if key in LOUD else -10.;player.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
 	owner.add_child(player);player.play();player.finished.connect(player.queue_free)
+	if spoken:voice=player
 
 # A low detuned drone with a sting on top, pitched per key.
 static func _placeholder(key: String) -> AudioStreamWAV:

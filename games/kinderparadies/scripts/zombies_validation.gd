@@ -20,7 +20,7 @@ func look_at_point(game: Node3D, at: Vector3, from: Vector3) -> void:
 func run(game: Node3D, verify: Callable) -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture-dir="):dir=arg.trim_prefix("--capture-dir=")
-	verify.call(ZombiesConfig.WEAPONS.size()==30 and ZombiesConfig.PERKS.size()==12 and ZombiesConfig.PICKUPS.size()==16,"Partynacht content incomplete: weapons/perks/pickups")
+	verify.call(ZombiesConfig.WEAPONS.size()==30 and ZombiesConfig.PERKS.size()==12 and ZombiesConfig.PICKUPS.size()>=16,"Partynacht content incomplete: weapons/perks/pickups")
 	verify.call(ZombiesConfig.ENEMIES.size()>=10 and ZombiesConfig.BOSSES.size()>=4 and ZombiesConfig.EVENTS.size()>=12,"Partynacht enemies, bosses or events missing")
 	verify.call(ZombiesConfig.health(30)>ZombiesConfig.health(5)*5. and ZombiesConfig.enemies_in_round(20)>ZombiesConfig.enemies_in_round(1)*4 and ZombiesConfig.spawn_gap(25)<ZombiesConfig.spawn_gap(1),"Rounds do not escalate")
 	var missing: Array=[]
@@ -31,6 +31,8 @@ func run(game: Node3D, verify: Callable) -> void:
 	for b in ZombiesConfig.BOSSES:
 		if not ResourceLoader.exists(str(b.model)):missing.append(b.id)
 	verify.call(missing.is_empty(),"Partynacht models missing: "+str(missing))
+	var voices:=["pickup_double_points","pickup_speed","pickup_insta_kill","pickup_nuke","pickup_infinite_ammo","pickup_damage","start"]
+	verify.call(voices.all(func(k):return ResourceLoader.exists(ZombiesAnnouncer.FOLDER+k+".ogg")) and ZombiesAnnouncer.stream_for("pickup_nuke") is AudioStreamOggVorbis,"Recorded announcer lines are missing")
 
 	game._main_menu();await game.get_tree().process_frame
 	var entry:=game.menu.find_child("MainMenuAction4",true,false) as Button

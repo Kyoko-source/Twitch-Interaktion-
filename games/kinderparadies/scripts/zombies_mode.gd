@@ -398,7 +398,7 @@ func _tick_player(delta: float) -> void:
 	regen_wait-=delta
 	if regen_wait<=0. and health<max_health:health=minf(health+ZombiesConfig.REGEN_RATE*(2. if has_perk("todesatem") else 1.)*delta,max_health)
 	slowed=maxf(slowed-delta,0.)
-	player.speed_scale=(1.3 if has_perk("hoellenlauf") else 1.)*(1.3 if has_pickup("bloodrush") else 1.)*(.6 if slowed>0. else 1.)
+	player.speed_scale=(1.3 if has_perk("hoellenlauf") else 1.)*(1.3 if has_pickup("bloodrush") else 1.)*(2. if has_pickup("speed") else 1.)*(.6 if slowed>0. else 1.)
 	player.gravity_scale=.35 if event=="gravity" else 1.
 	if shake>0.:
 		shake=maxf(shake-delta*2.,0.);player.camera.rotation.z=sin(seconds*60.)*shake*.02

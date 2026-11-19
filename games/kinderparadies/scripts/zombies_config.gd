@@ -142,7 +142,7 @@ const PICKUPS:=[
 	["insta_kill","Sofortkill",Color("ff2a2a"),30.,"☠"],
 	["slowdown","Kriechzeit",Color("6ab6ff"),20.,"≈"],
 	["nuke","Geburtstagsbombe",Color("ff8a2a"),0.,"✸"],
-	["damage","Blutkraft",Color("ff3a6a"),25.,"▲"],
+	["damage","Doppelter Schaden",Color("ff3a6a"),25.,"▲"],
 	["shield","Plüschschild",Color("ffb6d9"),18.,"◈"],
 	["invisible","Vergessen",Color("a0a0b0"),12.,"◌"],
 	["infinite_ammo","Endlose Munition",Color("c27bff"),20.,"∞"],
@@ -153,6 +153,7 @@ const PICKUPS:=[
 	["alien","Alien-Segen",Color("44ff8a"),0.,"✧"],
 	["time","Zeitlupe",Color("9ad0ff"),12.,"⌛"],
 	["bloodrush","Blutrausch",Color("b0102a"),15.,"✚"],
+	["speed","Doppeltes Tempo",Color("4affc8"),20.,"»"],
 ]
 const PICKUP_CHANCE:=.035
 const PICKUPS_PER_ROUND:=4

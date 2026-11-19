@@ -1,5 +1,15 @@
 # After Play — Kinderparadies
 
+## Partynacht: eigene Ansagen (5.0.1)
+
+- Die ersten eingesprochenen Ansagen sind drin: Start der Partynacht, Doppelte
+  Punkte, Sofortkill, Geburtstagsbombe, Endlose Munition, Doppelter Schaden
+  (vorher „Blutkraft“) und das neue Pickup **Doppeltes Tempo** (20 s doppelte
+  Laufgeschwindigkeit). Eine neue Ansage unterbricht die vorige.
+- `tools/prepare-after-play-zombies-audio.py` übernimmt die Aufnahmen aus dem
+  Desktop-Ordner „Ansagen Bonus“, schneidet die Stille am Ende ab, gleicht
+  die Lautstärke an und legt sie als OGG unter dem passenden Namen ab.
+
 ## Partynacht: Wellen-Überlebensmodus (5.0.0, Grundprojekt)
 
 - Neuer Menüpunkt **Partynacht** (`scripts/zombies_*.gd`): rundenbasiertes
