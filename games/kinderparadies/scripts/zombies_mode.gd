@@ -66,6 +66,11 @@ var prompt_text:=""
 var focus: Dictionary={}
 var slowed:=0.0
 var shake:=0.0
+# Hit feedback: one voice each for hits, the hitmarker tick and kills.
+var hit_audio: AudioStreamPlayer
+var tick_audio: AudioStreamPlayer
+var kill_audio: AudioStreamPlayer
+var hit_cool:=0.0
 
 # ---------------------------------------------------------------- build
 func build(game: Node3D) -> void:
@@ -76,6 +81,7 @@ func build(game: Node3D) -> void:
 	box_spot=0;_place_box()
 	arsenal=ZombiesArsenal.new();arsenal.build(self,player.camera)
 	hud=ZombiesHud.new();add_child(hud);hud.build(g)
+	hit_audio=_voice(-2.,6);tick_audio=_voice(-10.,4);kill_audio=_voice(0.,4)
 	for light: Light3D in w.find_children("*","Light3D",true,false):lights.append([light,light.light_energy,light.light_color])
 	for zone in ZombiesConfig.ZONES:
 		var r: Array=ZombiesConfig.ZONES[zone].rects[0]
@@ -83,6 +89,14 @@ func build(game: Node3D) -> void:
 		alarm.global_position=Vector3((r[0]+r[1])*.5,3.,(r[2]+r[3])*.5);alarm_lights.append(alarm)
 	env=get_world_3d().environment
 	if env:env_base={"fog":env.fog_light_color,"density":env.fog_density,"ambient":env.ambient_light_color}
+
+func _voice(volume: float, poly: int) -> AudioStreamPlayer:
+	var p:=AudioStreamPlayer.new();p.volume_db=volume;p.max_polyphony=poly;p.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(p);return p
+
+func _sound(player_node: AudioStreamPlayer, key: String, variants: int=3) -> void:
+	var name_key:=key if variants<=1 else "%s-%d"%[key,rng.randi_range(0,variants-1)]
+	var s:=ZombiesArsenal.sfx(name_key)
+	if s:player_node.stream=s;player_node.pitch_scale=rng.randf_range(.93,1.07);player_node.play()
 
 func _build_nav() -> void:
 	nav.build(get_world_3d().direct_space_state,[player.get_rid()])
@@ -320,6 +334,8 @@ func hit_enemy(e: ZombieEnemy, amount: float, head: bool, headshot: float, at: V
 	if has_perk("flackergeist") and rng.randf()<.15:_chain(e,value*.5,2)
 	if has_pickup("chain") and rng.randf()<.35:_chain(e,value*.6,3)
 	hud.hit(false,head)
+	if hit_cool<=0.:
+		hit_cool=.045;_sound(hit_audio,"hit-head" if head else "hit-body");_sound(tick_audio,"hitmarker",1)
 	damage_enemy(e,value,head,element,true)
 
 func damage_enemy(e: ZombieEnemy, amount: float, head: bool, element: String, credit: bool) -> void:
@@ -329,6 +345,7 @@ func damage_enemy(e: ZombieEnemy, amount: float, head: bool, element: String, cr
 
 func _kill(e: ZombieEnemy, head: bool, element: String, credit: bool) -> void:
 	var at:=e.global_position+Vector3.UP
+	_sound(kill_audio,"kill-head" if head else "kill")
 	e.die(element in ["void","rift","nuke"] or has_pickup("fire_kills"))
 	stats.kills=int(stats.kills)+1
 	if head:stats.headshots=int(stats.headshots)+1
@@ -376,6 +393,7 @@ func melee(from: Vector3, dir: Vector3, amount: float) -> void:
 		var to:=e.global_position+Vector3.UP-from;var d:=to.length()
 		if d<best_d and to.normalized().dot(dir)>.4:best_d=d;best=e
 	if best:
+		_sound(hit_audio,"melee-hit",1)
 		_blood(best.global_position+Vector3.UP*1.2,1.2);hud.hit(false,false);_add_points(ZombiesConfig.POINTS_HIT,true)
 		best.velocity+=dir*4.;damage_enemy(best,amount*damage_multiplier(),false,"melee",true)
 
@@ -394,7 +412,7 @@ func _recent_kills(window: float) -> int:
 	return kill_times.filter(func(t):return seconds-float(t)<window).size()
 
 func _tick_player(delta: float) -> void:
-	chain_clock-=delta
+	chain_clock-=delta;hit_cool-=delta
 	regen_wait-=delta
 	if regen_wait<=0. and health<max_health:health=minf(health+ZombiesConfig.REGEN_RATE*(2. if has_perk("todesatem") else 1.)*delta,max_health)
 	slowed=maxf(slowed-delta,0.)

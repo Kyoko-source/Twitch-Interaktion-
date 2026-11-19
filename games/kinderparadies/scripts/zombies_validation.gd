@@ -87,7 +87,7 @@ func run(game: Node3D, verify: Callable) -> void:
 	var seen:=game.get_world_3d().direct_space_state.intersect_ray(probe)
 	var seen_text:="nothing" if seen.is_empty() else "%s/%s at %s"%[(seen.collider as Node).get_parent().name,(seen.collider as Node).name,str(seen.position)]
 	var points_before_shot:=z.points
-	z.arsenal._shoot(ZombiesConfig.weapon("p9"),0)
+	z.arsenal._ray(cam.global_position,-cam.global_basis.z,55.,2.,1,"")
 	verify.call(dummy.hp<shot_hp or (not seen.is_empty() and seen.collider.has_meta("enemy") and z.points>points_before_shot),"The pistol ray does not hit an enemy in front of the guard: ray sees "+seen_text+" dummy at "+str(dummy.global_position)+" eye "+str(cam.global_position)+" fwd "+str(-cam.global_basis.z))
 	z.damage_enemy(dummy,99999.,false,"",false)
 	# Buying: wall gun, ammo, perks, limit, door.

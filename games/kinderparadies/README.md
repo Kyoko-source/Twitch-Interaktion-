@@ -1,5 +1,30 @@
 # After Play — Kinderparadies
 
+## Partynacht: geriggte Partykinder, Waffensounds, leichterer Einstieg (5.1.0)
+
+- **Eigener Avatar als Hauptgegner**: das selbst erstellte 3D-Modell des
+  Partykinds (Bild-zu-3D, 19.400 Flächen, 2K-Texturen) ist ausgerichtet, auf
+  1,45 m Kindergröße gebracht, mit 20 Knochen geriggt und animiert
+  (`tools/rig-after-play-party-avatar-v510.py`, Ausgabe
+  `assets/zombies-v510/party-avatar.glb`). Es ist das normale Partykind, der
+  Krabbler, der Springer und der Riss-Mutant.
+- Die selbst modellierten Partykinder sind jetzt echte Skelett-Modelle
+  (`tools/model-after-play-party-zombie-v510.py`): ein Körper auf 20 Knochen
+  mit weicher Haut-Verformung und eigenen Animationen für Leerlauf, Gehen,
+  Rennen, Angriff, Treffer, Tod und Krabbeln. Gesicht neu bemalt nach der
+  Vorlage (kalkweiß, schwarze Augenhöhlen mit laufender Schminke, rot
+  verschmiertes Grinsen), Kleider mit Stoffmuster, Schmutz und Blut, eine
+  zweite Rüschenlage (`tools/paint-after-play-party-zombie-v510.py`). Die
+  Kopftreffer-Zone hängt am Kopfknochen.
+- Schuss-, Treffer- und Kill-Sounds (`tools/make-after-play-zombies-sfx-v502.py`):
+  geschichtete Schüsse pro Waffentyp (Knall, Explosion, Bass, Mechanik,
+  Raumhall), Körper- und Kopftreffer, Splat beim Kill, Bestätigungs-„Ding“ beim
+  Kopfschuss-Kill, Hitmarker, Magazin raus/rein, Durchladen, Leerklick,
+  Waffenwechsel und Nahkampf; jeweils mehrere Varianten.
+- Leichter: weniger und langsamere Gegner am Anfang, weniger Leben und
+  Schaden, seltenere Schläge und Eliten, schwächere Bosse, stärkere
+  Startpistole (55 Schaden, 10 Schuss), 750 Startpunkte, schnellere Erholung.
+
 ## Partynacht: eigene Ansagen (5.0.1)
 
 - Die ersten eingesprochenen Ansagen sind drin: Start der Partynacht, Doppelte

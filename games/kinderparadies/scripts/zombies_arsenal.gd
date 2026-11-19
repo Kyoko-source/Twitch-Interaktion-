@@ -37,9 +37,14 @@ var used: Dictionary={}
 
 func build(owner_mode: Node3D, cam: Camera3D) -> void:
 	mode=owner_mode;camera=cam;name="ZombiesArsenal";cam.add_child(self)
-	shot=_player(-6.);dry=_player(-12.);clack=_player(-9.);clack.stream=load("res://assets/feedback-v403/switch.ogg")
-	dry.stream=_wav(.05,func(t: float):return (rng.randf()-.5)*exp(-t*120.)*.8)
-	for frame in ["pistol","revolver","smg","rifle","shotgun","lmg","sniper","rift"]:shots[frame]=_gunshot(frame)
+	shot=_player(-3.);shot.max_polyphony=10;dry=_player(-8.);clack=_player(-6.);clack.stream=load("res://assets/feedback-v403/switch.ogg")
+	dry.stream=sfx("empty") if sfx("empty") else _wav(.05,func(t: float):return (rng.randf()-.5)*exp(-t*120.)*.8)
+	for frame in ["pistol","revolver","smg","rifle","shotgun","lmg","sniper","rift"]:
+		var variants: Array=[]
+		for v in range(3):
+			var s:=sfx("shot-%s-%d"%[frame,v])
+			if s:variants.append(s)
+		shots[frame]=variants if not variants.is_empty() else [_gunshot(frame)]
 	flash=OmniLight3D.new();flash.light_color=Color("ffc27a");flash.omni_range=5.;flash.light_energy=0.;flash.shadow_enabled=false;add_child(flash)
 
 func _player(volume: float) -> AudioStreamPlayer:
@@ -58,6 +63,14 @@ func _gunshot(frame: String) -> AudioStreamWAV:
 		var boom:=sin(TAU*float(body[2])*t*(1.-t*1.5))*exp(-t*float(body[1])*.18)
 		var zap:=sin(TAU*(900.-t*1400.)*t)*exp(-t*9.)*.6 if frame=="rift" else 0.
 		return (float(last[0])*exp(-t*float(body[1]))*1.3+boom*.9+zap)*.9)
+
+const SFX:="res://assets/zombies-v500/sfx/"
+static func sfx(key: String) -> AudioStream:
+	return load(SFX+key+".ogg") if ResourceLoader.exists(SFX+key+".ogg") else null
+
+func _mech(key: String, pitch: float=1.) -> void:
+	var s:=sfx(key)
+	clack.stream=s if s else load("res://assets/feedback-v403/switch.ogg");clack.pitch_scale=pitch*rng.randf_range(.96,1.04);clack.play()
 
 # ---------------------------------------------------------------- slots
 func max_slots() -> int:
@@ -115,7 +128,7 @@ func equip(index: int) -> void:
 	if str(row[15])=="dual":
 		view_left=_frame(row,int(data().level));add_child(view_left);view_left.scale.x=-1.
 	muzzle=view.find_child("Muzzle",true,false) as Node3D
-	clack.pitch_scale=1.3;clack.play()
+	_mech("swap")
 
 func _frame(row: Array, level: int) -> Node3D:
 	var node:=(load("res://assets/zombies-v500/weapon-%s.glb"%str(row[2])) as PackedScene).instantiate() as Node3D
@@ -170,7 +183,8 @@ func _try_fire(row: Array) -> void:
 
 func _shoot(row: Array, level: int) -> void:
 	var frame: String=row[2]
-	shot.stream=shots[frame];shot.pitch_scale=rng.randf_range(.92,1.08)*(.8 if level>0 else 1.);shot.play()
+	var variants: Array=shots[frame]
+	shot.stream=variants[rng.randi_range(0,variants.size()-1)];shot.pitch_scale=rng.randf_range(.94,1.06)*(.86 if level>0 else 1.);shot.play()
 	flash.light_energy=3.5 if frame!="rift" else 6.;flash.light_color=Color("ffc27a") if level==0 else Color("ff6a3a") if level==1 else Color("7af2ff") if level==2 else Color("c07aff")
 	if muzzle:flash.global_position=muzzle.global_position
 	var steady:=.6 if mode.has_perk("leerer_blick") else 1.
@@ -213,13 +227,14 @@ func reload() -> void:
 	var d:=data()
 	if d.is_empty() or reload_t>0. or int(d.reserve)<=0 or int(d.mag)>=mag_size(d.id,int(d.level)):return
 	var row:=weapon();reload_total=float(row[7])*(.5 if mode.has_perk("leichenfinger") else 1.);reload_t=reload_total;burst=0
-	clack.pitch_scale=.9;clack.play()
+	_mech("reload-out")
 
 func _finish_reload() -> void:
 	var d:=data()
 	if d.is_empty():return
 	var need:=mag_size(d.id,int(d.level))-int(d.mag);var take:=mini(need,int(d.reserve))
-	d.mag=int(d.mag)+take;d.reserve=int(d.reserve)-take;clack.pitch_scale=1.15;clack.play()
+	d.mag=int(d.mag)+take;d.reserve=int(d.reserve)-take;_mech("reload-in")
+	get_tree().create_timer(.12).timeout.connect(func():if is_instance_valid(self):_mech("chamber"))
 
 func swap(step: int) -> void:
 	if slots.size()<2 or melee_t>0.:return
@@ -227,7 +242,7 @@ func swap(step: int) -> void:
 
 func melee() -> void:
 	if melee_t>0.:return
-	melee_t=.45;reload_t=0.;kick=-1.
+	melee_t=.45;reload_t=0.;kick=-1.;_mech("melee-swing")
 	var dmg:=ZombiesConfig.MELEE_DAMAGE*(2.5 if mode.has_perk("blutdurst") else 1.)*(10. if mode.has_pickup("bloodrush") else 1.)
 	mode.melee(camera.global_position,-camera.global_basis.z,dmg)
 

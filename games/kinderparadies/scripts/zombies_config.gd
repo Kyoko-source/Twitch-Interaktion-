@@ -12,20 +12,20 @@ const REALITY_FROM:=15
 const MULTI_ELITES:=20
 const NIGHTMARE_FROM:=25
 const HELL_FROM:=30
-const MAX_ALIVE:=26
+const MAX_ALIVE:=22
 const ROUND_BREAK:=9.0
 static func enemies_in_round(r: int) -> int:
-	return int(6+r*3.2+pow(maxf(r-8,0),1.35))
+	return int(4+r*2.3+pow(maxf(r-10,0),1.3))
 static func health(r: int) -> float:
-	return 120.*pow(1.105,mini(r,45)-1)+maxf(r-45,0)*900.
+	return 90.*pow(1.09,mini(r,50)-1)+maxf(r-50,0)*700.
 static func speed(r: int) -> float:
-	return minf(1.9+r*.16,4.6)
+	return minf(1.45+r*.11,4.3)
 static func spawn_gap(r: int) -> float:
-	return maxf(2.2-r*.07,.35)
+	return maxf(2.8-r*.07,.4)
 static func elite_chance(r: int) -> float:
-	return 0. if r<FIRST_ELITES else minf(.05+(r-FIRST_ELITES)*.012,.32)
+	return 0. if r<FIRST_ELITES else minf(.03+(r-FIRST_ELITES)*.009,.26)
 static func damage(r: int) -> float:
-	return 26.+minf(r,40)*1.1
+	return 16.+minf(r,40)*.85
 
 # ---------------------------------------------------------------- points
 const POINTS_HIT:=10
@@ -36,43 +36,43 @@ const POINTS_ELITE:=300
 const POINTS_BOSS:=2500
 const POINTS_ROUND:=90
 const CHAIN_WINDOW:=2.6
-const START_POINTS:=500
+const START_POINTS:=750
 
 # ---------------------------------------------------------------- player
 const PLAYER_HEALTH:=100.0
-const REGEN_DELAY:=4.0
-const REGEN_RATE:=28.0
-const MELEE_DAMAGE:=150.0
+const REGEN_DELAY:=3.2
+const REGEN_RATE:=34.0
+const MELEE_DAMAGE:=200.0
 const PERK_LIMIT:=4
 
 # ---------------------------------------------------------------- enemies
 # id: model, scale, health factor, speed factor, damage factor, points, role
 const ENEMIES:={
-	"party":{"name":"Partykind","model":"res://assets/zombies-v500/party-zombie.glb","scale":.86,"hp":1.,"speed":1.,"dmg":1.,"role":"runner"},
-	"party_b":{"name":"Partykind","model":"res://assets/zombies-v500/party-zombie-b.glb","scale":.84,"hp":1.,"speed":1.05,"dmg":1.,"role":"runner"},
-	"sprinter":{"name":"Luftschlangen-Sprinter","model":"res://assets/zombies-v500/party-zombie-b.glb","scale":.8,"hp":.6,"speed":1.75,"dmg":.8,"role":"sprinter"},
-	"crawler":{"name":"Krabbelkind","model":"res://assets/zombies-v500/party-zombie.glb","scale":.86,"hp":.75,"speed":.85,"dmg":.9,"role":"crawler"},
-	"jumper":{"name":"Hüpfburg-Springer","model":"res://assets/zombies-v500/party-zombie.glb","scale":.9,"hp":1.1,"speed":1.15,"dmg":1.2,"role":"jumper","elite":true},
+	"party":{"name":"Partykind","model":"res://assets/zombies-v510/party-avatar.glb","scale":1.,"hp":1.,"speed":1.,"dmg":1.,"role":"runner"},
+	"party_b":{"name":"Partykind","model":"res://assets/zombies-v510/party-avatar.glb","scale":.95,"hp":1.,"speed":1.05,"dmg":1.,"role":"runner"},
+	"sprinter":{"name":"Luftschlangen-Sprinter","model":"res://assets/zombies-v510/party-zombie-b.glb","scale":.8,"hp":.6,"speed":1.75,"dmg":.8,"role":"sprinter"},
+	"crawler":{"name":"Krabbelkind","model":"res://assets/zombies-v510/party-avatar.glb","scale":1.,"hp":.75,"speed":.85,"dmg":.9,"role":"crawler"},
+	"jumper":{"name":"Hüpfburg-Springer","model":"res://assets/zombies-v510/party-avatar.glb","scale":1.05,"hp":1.1,"speed":1.15,"dmg":1.2,"role":"jumper","elite":true},
 	"spitter":{"name":"Konfetti-Spucker","model":"res://assets/visitors-v421/visitor-split.glb","scale":.95,"hp":1.3,"speed":.8,"dmg":.7,"role":"spitter","elite":true},
 	"screamer":{"name":"Kreischerin","model":"res://assets/visitors-v421/visitor-hooded.glb","scale":1.,"hp":1.6,"speed":.9,"dmg":.8,"role":"screamer","elite":true},
 	"phase":{"name":"Flackerkind","model":"res://assets/visitors-v421/visitor-ragged.glb","scale":.95,"hp":1.8,"speed":1.2,"dmg":1.3,"role":"teleporter","elite":true},
-	"tank":{"name":"Plüsch-Koloss","model":"res://assets/hero/stitched-rabbit.glb","scale":1.9,"hp":6.,"speed":.6,"dmg":2.,"role":"tank","elite":true},
-	"alien":{"name":"Riss-Mutant","model":"res://assets/zombies-v500/party-zombie-b.glb","scale":1.05,"hp":2.4,"speed":1.3,"dmg":1.4,"role":"alien","elite":true},
+	"tank":{"name":"Plüsch-Koloss","model":"res://assets/hero/stitched-rabbit.glb","scale":1.9,"hp":4.5,"speed":.6,"dmg":2.,"role":"tank","elite":true},
+	"alien":{"name":"Riss-Mutant","model":"res://assets/zombies-v510/party-avatar.glb","scale":1.2,"hp":2.4,"speed":1.3,"dmg":1.4,"role":"alien","elite":true},
 }
 const ELITES_BY_ROUND:=[[5,["jumper","spitter"]],[8,["screamer"]],[12,["phase","tank"]],[15,["alien"]]]
 # Bosses rotate; each has phases at 66 % and 33 % health.
 const BOSSES:=[
-	{"id":"marell","name":"MARELL, DER KOCH DER LETZTEN TORTE","model":"res://assets/clown-v420/clown-desktop.glb","scale":2.3,"hp":42.,"speed":.75,"attacks":["charge","summon","shockwave"]},
-	{"id":"titan","name":"DER PLÜSCH-TITAN","model":"res://assets/einsmarello-v460/einsmarello-plush.glb","scale":3.4,"hp":60.,"speed":.55,"attacks":["shockwave","summon","stomp"]},
-	{"id":"croc","name":"DAS MUTIERTE KROKODIL","model":"res://assets/creatures/night-crocodile-v4.glb","scale":1.3,"hp":50.,"speed":.9,"attacks":["charge","spit","shockwave"]},
-	{"id":"hunter","name":"DER GEBURTSTAGSJÄGER","model":"res://assets/celebration-v3813/celebration-rabbit.glb","scale":2.4,"hp":46.,"speed":1.05,"attacks":["teleport","charge","summon"]},
+	{"id":"marell","name":"MARELL, DER KOCH DER LETZTEN TORTE","model":"res://assets/clown-v420/clown-desktop.glb","scale":2.3,"hp":28.,"speed":.75,"attacks":["charge","summon","shockwave"]},
+	{"id":"titan","name":"DER PLÜSCH-TITAN","model":"res://assets/einsmarello-v460/einsmarello-plush.glb","scale":3.4,"hp":40.,"speed":.55,"attacks":["shockwave","summon","stomp"]},
+	{"id":"croc","name":"DAS MUTIERTE KROKODIL","model":"res://assets/creatures/night-crocodile-v4.glb","scale":1.3,"hp":34.,"speed":.9,"attacks":["charge","spit","shockwave"]},
+	{"id":"hunter","name":"DER GEBURTSTAGSJÄGER","model":"res://assets/celebration-v3813/celebration-rabbit.glb","scale":2.4,"hp":31.,"speed":1.05,"attacks":["teleport","charge","summon"]},
 ]
 
 # ---------------------------------------------------------------- weapons
 # id, name, frame, damage, rpm, magazine, reserve, reload s, spread deg,
 # pellets, recoil, headshot x, price (0 = box only), rarity, accent, special
 const WEAPONS:=[
-	["p9","P-9 Knochenbeißer","pistol",42,330,8,64,1.3,1.6,1,.6,2.,0,"common",Color("8a8f96"),""],
+	["p9","P-9 Knochenbeißer","pistol",55,360,10,90,1.2,1.4,1,.55,2.2,0,"common",Color("8a8f96"),""],
 	["doppelzahn","Doppelzahn .45","pistol",85,240,7,49,1.4,1.8,1,1.1,2.2,600,"common",Color("6a4a2a"),""],
 	["grablicht","Grablicht Auto-Pistol","pistol",36,780,18,108,1.5,2.6,1,.5,1.8,900,"uncommon",Color("4fd18a"),""],
 	["marell","Marell's Smile","pistol",58,520,24,144,2.0,2.2,1,.6,2.4,0,"rare",Color("d8433f"),"dual"],

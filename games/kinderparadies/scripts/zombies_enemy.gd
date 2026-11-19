@@ -42,6 +42,10 @@ var boss_phase:=0
 var clone:=false
 var rng:=RandomNumberGenerator.new()
 var glow: OmniLight3D
+# Skinned party children (5.1.0) play their own baked actions.
+var anim: AnimationPlayer
+var anim_lock:=0.0
+var current_anim:=""
 
 func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, is_boss: bool, seed_value: int) -> void:
 	mode=owner_mode;kind=id;spec=data;boss=is_boss;rng.seed=seed_value
@@ -65,12 +69,25 @@ func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, 
 	for key in ["ArmL","ArmR","LegL","LegR","HeadRig","Torso"]:
 		var node:=model.find_child(key,true,false) as Node3D
 		if node:parts[key]=node;rest[key]=node.rotation
-	if role=="crawler":model.rotation.x=1.15;model.position.y=.22
+	anim=model.find_child("AnimationPlayer",true,false) as AnimationPlayer
+	if anim:
+		for loop_name in ["Idle","Walk","Run","Crawl"]:
+			if anim.has_animation(loop_name):anim.get_animation(loop_name).loop_mode=Animation.LOOP_LINEAR
+		anim.playback_default_blend_time=.18;_play("Crawl" if role=="crawler" else "Idle")
+		anim.seek(rng.randf()*.8,true)
+	elif role=="crawler":model.rotation.x=1.15;model.position.y=.22
 	var head_height:=(1.62 if role!="crawler" else .42)*minf(size_scale,1.)
 	if boss or role=="tank":head_height=capsule.height*.85
 	head_area=Area3D.new();head_area.collision_layer=LAYER_HEAD;head_area.collision_mask=0;head_area.monitoring=false;head_area.set_meta("enemy",self)
 	var head_shape:=CollisionShape3D.new();var sphere:=SphereShape3D.new();sphere.radius=.17*maxf(size_scale*.6,1.) if not boss else .35*size_scale*.5;head_shape.shape=sphere
-	head_area.add_child(head_shape);add_child(head_area);head_area.position=Vector3(0,head_height,.08 if role!="crawler" else .45)
+	head_area.add_child(head_shape)
+	var skeleton:=model.find_child("*",true,false) as Skeleton3D if false else _skeleton()
+	if skeleton and skeleton.find_bone("head")>=0:
+		# The head hitbox rides the head bone through every lean, twitch and fall.
+		var follow:=BoneAttachment3D.new();follow.bone_name="head";skeleton.add_child(follow)
+		follow.add_child(head_area);head_area.position=Vector3(0,.16,-.02);sphere.radius=.15
+	else:
+		add_child(head_area);head_area.position=Vector3(0,head_height,.08 if role!="crawler" else .45)
 	set_meta("enemy",self)
 	if elite:
 		glow=OmniLight3D.new();glow.omni_range=2.4*maxf(size_scale*.6,1.);glow.light_energy=1.2 if not boss else 3.
@@ -79,6 +96,10 @@ func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, 
 	if role=="alien":_alien_skin()
 	rise=.9;model.position.y=-1.8*minf(size_scale,1.5)
 	special_cd=rng.randf_range(1.5,4.)
+
+func _skeleton() -> Skeleton3D:
+	var found:=model.find_children("*","Skeleton3D",true,false)
+	return found[0] as Skeleton3D if not found.is_empty() else null
 
 func _alien_skin() -> void:
 	var shader:=Shader.new();shader.code="""shader_type spatial;
@@ -91,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	if dead or not is_instance_valid(mode):return
 	var scale_t: float=mode.enemy_time_scale()*slow
 	if rise>0.:
-		rise-=delta;model.position.y=lerpf(-1.8*minf(size_scale,1.5),.22 if role=="crawler" else 0.,clampf(1.-rise/.9,0,1));return
+		rise-=delta;model.position.y=lerpf(-1.8*minf(size_scale,1.5),.22 if role=="crawler" and not anim else 0.,clampf(1.-rise/.9,0,1));return
 	if burn>0.:
 		burn-=delta;mode.damage_enemy(self,max_hp*.07*delta+12.*delta,false,"fire",false)
 		if dead:return
@@ -144,7 +165,9 @@ func _physics_process(delta: float) -> void:
 	if face.length()>.05:rotation.y=lerp_angle(rotation.y,atan2(face.x,face.z),clampf(delta*9.,0,1))
 	# Melee: wind up, then strike if still close.
 	var reach:=1.35 if not boss else 1.1+size_scale*.6
-	if attack_t<0. and attack_cd<=0. and dist<reach:attack_t=.34;attack_cd=1.05 if not boss else 1.5
+	if attack_t<0. and attack_cd<=0. and dist<reach:
+		attack_t=.42;attack_cd=1.35 if not boss else 1.7
+		if anim and role!="crawler":_play("Attack",1.25,.62)
 	if attack_t>=0.:
 		attack_t-=delta*scale_t
 		if attack_t<0. and dist<reach+.35:mode.hurt_player(dmg,self)
@@ -173,7 +196,21 @@ func _boss_tick(dist: float, to: Vector3) -> void:
 		"spit":mode.spit(self,global_position+Vector3(0,1.4*size_scale*.6,0),mode.player_position()+Vector3.UP*1.2,true)
 		"teleport":mode.teleport_near(self)
 
+func _play(id: String, rate: float=1., lock: float=0.) -> void:
+	if not anim or not anim.has_animation(id):return
+	if current_anim!=id or lock>0.:anim.play(id,.15 if lock>0. else -1.);current_anim=id
+	anim.speed_scale=rate;anim_lock=maxf(anim_lock,lock)
+
+func _animate_skinned(delta: float, moving: float) -> void:
+	anim_lock-=delta
+	if anim_lock>0.:return
+	if role=="crawler":_play("Crawl",clampf(moving/1.,.6,1.8));return
+	if moving<.35:_play("Idle",1.)
+	elif moving<2.6:_play("Walk",clampf(moving/1.35,.7,1.9))
+	else:_play("Run",clampf(moving/3.6,.8,1.7))
+
 func _animate(delta: float, moving: float) -> void:
+	if anim:_animate_skinned(delta,moving);return
 	walk+=delta*(2.5+moving*2.4)
 	var amp:=clampf(moving/2.5,.2,1.)
 	twitch_t-=delta
@@ -202,12 +239,17 @@ func _animate(delta: float, moving: float) -> void:
 
 func hit_flash() -> void:
 	if glow:glow.light_energy*=1.6
+	if anim and anim_lock<=0. and role!="crawler" and rng.randf()<.45:_play("Hit",1.3,.24)
 
 func die(explosive: bool) -> void:
 	if dead:return
 	dead=true;collision_layer=0;collision_mask=1;head_area.collision_layer=0;velocity=Vector3.ZERO
 	if glow:glow.queue_free();glow=null
 	var tween:=create_tween()
+	if anim and not explosive:
+		_play("Death",rng.randf_range(.9,1.15),9.)
+		tween.tween_interval(2.6);tween.tween_property(model,"position:y",-1.4,1.4);tween.tween_callback(queue_free)
+		return
 	if explosive:
 		tween.tween_property(model,"scale",Vector3.ONE*size_scale*.05,.25)
 	else:
