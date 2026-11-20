@@ -115,15 +115,28 @@ static func modes(g: Node3D) -> void:
   var id: String=row[0]
   var button: Button=g._button(row[1],func():open_mode(g,id),id=="zombies");button.name="Mode_"+id;button.custom_minimum_size=Vector2(620,56);column.add_child(button)
   var line: Label=g._label(row[2],17,Color("a9a796"));line.add_theme_font_override("font",menu_font());column.add_child(line)
+  if id in LOCKED_MODES:lock_mode(g,button,line)
   if first==null:first=button
  var gap:=Control.new();gap.custom_minimum_size.y=16;column.add_child(gap)
  var back: Button=g._button("Zurück",g._main_menu);back.name="ModesBack";back.custom_minimum_size=Vector2(620,56);column.add_child(back)
  first.grab_focus();g._telemetry()
 
+# 5.2.4: modes still being built stay visible but greyed out; hovering says so.
+const LOCKED_MODES:=["nightwatch"]
+static func lock_mode(g: Node3D, button: Button, line: Label) -> void:
+ button.disabled=true;button.focus_mode=Control.FOCUS_NONE;button.tooltip_text="In Development";button.mouse_default_cursor_shape=Control.CURSOR_FORBIDDEN
+ var grey: StyleBoxFlat=g._style(Color(.06,.06,.06,.55),Color("3a3a36"))
+ button.add_theme_stylebox_override("disabled",grey);button.add_theme_color_override("font_disabled_color",Color("6c6b62"))
+ line.modulate=Color(1,1,1,.45)
+ var text:=line.text
+ button.mouse_entered.connect(func():line.text="In Development";line.modulate=Color(1,1,1,.9))
+ button.mouse_exited.connect(func():line.text=text;line.modulate=Color(1,1,1,.45))
+
 static func open_mode(g: Node3D, id: String) -> void:
  match id:
   "endless":endless(g)
-  "nightwatch":nightwatch(g)
+  "nightwatch":
+   if not "nightwatch" in LOCKED_MODES:nightwatch(g)
   "zombies":zombies(g)
   "multiplayer":multiplayer(g)
 
@@ -189,7 +202,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.2.3",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.2.4",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

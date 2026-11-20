@@ -1,0 +1,77 @@
+{
+ "license": "Pixabay Content License",
+ "jingles": [
+  {
+   "file": "pluesch_segen.ogg",
+   "source": "bombinsound-kids-happy-background-music-09-second-495402.mp3",
+   "start": 2.02,
+   "length": 4.027
+  },
+  {
+   "file": "grabesschritt.ogg",
+   "source": "openmindaudio-cartoon-reaction-sting-oopsie-little-bounce-500909.mp3",
+   "start": 8.487,
+   "length": 4.207
+  },
+  {
+   "file": "leerer_blick.ogg",
+   "source": "openmindaudio-cartoon-reaction-sting-oopsie-little-bounce-500909.mp3",
+   "start": 1.045,
+   "length": 3.994
+  },
+  {
+   "file": "hoellenlauf.ogg",
+   "source": "goldensoundlabs-dancing-with-a-duck-energetic-opening-510257.mp3",
+   "start": 5.608,
+   "length": 3.0
+  },
+  {
+   "file": "leichenfinger.ogg",
+   "source": "goldensoundlabs-dancing-with-a-duck-energetic-opening-510257.mp3",
+   "start": 18.564,
+   "length": 3.0
+  },
+  {
+   "file": "todesatem.ogg",
+   "source": "goldensoundlabs-bouncy-again-cheerful-opening-501854.mp3",
+   "start": 4.145,
+   "length": 3.529
+  },
+  {
+   "file": "eiserne_rippen.ogg",
+   "source": "goldensoundlabs-bouncy-again-cheerful-opening-501854.mp3",
+   "start": 13.41,
+   "length": 3.529
+  },
+  {
+   "file": "seelenvorrat.ogg",
+   "source": "freesound_community-cute-music-26476.mp3",
+   "start": 16.022,
+   "length": 3.994
+  },
+  {
+   "file": "achter_sinn.ogg",
+   "source": "freesound_community-cute-music-26476.mp3",
+   "start": 30.999,
+   "length": 3.994
+  },
+  {
+   "file": "blutdurst.ogg",
+   "source": "openmindaudio-cartoon-background-music-modern-path-short-preview-497396.mp3",
+   "start": 7.709,
+   "length": 4.0
+  },
+  {
+   "file": "zerreisser.ogg",
+   "source": "openmindaudio-cartoon-background-music-modern-path-short-preview-497396.mp3",
+   "start": 20.77,
+   "length": 4.0
+  },
+  {
+   "file": "flackergeist.ogg",
+   "source": "openmindaudio-cartoon-good-vibes-intro-sunny-spark-497372.mp3",
+   "start": 3.808,
+   "length": 4.0
+  }
+ ]
+}

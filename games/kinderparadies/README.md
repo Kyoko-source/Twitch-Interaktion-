@@ -1,5 +1,19 @@
 # After Play — Kinderparadies
 
+## Partynacht: Jingles für alle Perks, Nightwatch in Arbeit (5.2.4)
+
+- **Nightwatch Protocol** ist unter „Weitere Spielmodi“ vorerst ausgegraut
+  und nicht startbar; beim Drüberfahren steht dort „In Development“.
+
+- Jeder der zwölf Perks spielt beim Kauf sein eigenes Jingle (3 bis 4 s)
+  statt des synthetischen Brummens. Die sieben ausgesuchten Pixabay-Jingles
+  aus „Zombie Sounds“ liefern je eine oder zwei verschiedene Phrasen, auf den
+  Takt geschnitten, mit Ausblendung und angeglichener Lautstärke; Plüschsegen
+  und Grabesschritt behalten das echte Ende ihres Stücks.
+- `tools/prepare-after-play-perk-jingles-v524.py` erzeugt die Schnitte nach
+  `assets/zombies-v524/jingles/`; der Partynacht-Test prüft, dass jeder Perk
+  ein passend langes Jingle hat und es beim Kauf erklingt.
+
 ## Partynacht: alle Bonis eingesprochen (5.2.3)
 
 - Die elf restlichen Bonis haben jetzt eigene Ansagen statt des synthetischen

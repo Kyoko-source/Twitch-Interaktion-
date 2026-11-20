@@ -182,6 +182,13 @@ func run(game: Node3D, verify: Callable) -> void:
 		if z.stations[i].kind=="perk" and not z.has_perk(z.stations[i].id):z.focus={"type":"station","index":i};break
 	z.interact()
 	verify.call(z.perks.size()==count and count==ZombiesConfig.PERK_LIMIT,"Perk limit not enforced")
+	# 5.2.4: every perk has its own jingle of 2.5 to 4.5 s, and buying one plays it.
+	var no_jingle: Array=[]
+	for row in ZombiesConfig.PERKS:
+		var tune:=z.perk_jingle(str(row[0]))
+		if tune==null or tune.get_length()<2.5 or tune.get_length()>4.5:no_jingle.append(row[0])
+	verify.call(no_jingle.is_empty(),"Perk jingles missing or wrong length: "+str(no_jingle))
+	verify.call(z.jingle.stream!=null and z.jingle.stream.resource_path.begins_with(ZombiesMode.JINGLES),"Buying a perk plays no jingle")
 	z.focus={"type":"door","index":0};z.interact()
 	for i in range(4):await game.get_tree().physics_frame
 	verify.call(z.doors[0].open and z.zones_open.has("halle"),"Door does not open its zone")

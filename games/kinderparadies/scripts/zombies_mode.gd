@@ -76,6 +76,8 @@ var fx: ZombiesFx
 var music_calm: AudioStreamPlayer
 var music_dread: AudioStreamPlayer
 var sting: AudioStreamPlayer
+var jingle: AudioStreamPlayer
+const JINGLES:="res://assets/zombies-v524/jingles/"
 var neon: Array=[]
 var lamps: Array=[]
 const MUSIC:="res://assets/zombies-v520/music/"
@@ -92,6 +94,7 @@ func build(game: Node3D) -> void:
 	fx=ZombiesFx.new();root3d.add_child(fx);fx.setup(self)
 	music_calm=_music("partynacht-lullaby");music_dread=_music("partynacht-dread")
 	sting=AudioStreamPlayer.new();sting.volume_db=-2.;sting.max_polyphony=3;sting.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(sting)
+	jingle=AudioStreamPlayer.new();jingle.volume_db=-3.;jingle.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(jingle)
 	for door in ZombiesConfig.DOORS:_door(door)
 	for row in ZombiesConfig.STATIONS:_station(row)
 	box_spot=0;_place_box()
@@ -978,7 +981,14 @@ func buy_perk(id: String) -> void:
 	if id=="eiserne_rippen":max_health=160.;health=max_health
 	if id=="seelenvorrat":arsenal.refill_all()
 	hud.set_perks(perks)
-	var row:=ZombiesConfig.perk(id);_announce(str(row[1]).to_upper(),str(row[4]),"perk",row[3],3.)
+	# 5.2.4: every perk has its own jingle; the drone placeholder only stays for a missing one.
+	var row:=ZombiesConfig.perk(id);var tune:=perk_jingle(id)
+	if tune:jingle.stream=tune;jingle.play()
+	_announce(str(row[1]).to_upper(),str(row[4]),"" if tune else "perk",row[3],3.)
+
+func perk_jingle(id: String) -> AudioStream:
+	var path:=JINGLES+id+".ogg"
+	return load(path) if ResourceLoader.exists(path) else null
 
 func _box_weapon() -> String:
 	var pool: Array=[];var total:=0.
