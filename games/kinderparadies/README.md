@@ -1,5 +1,15 @@
 # After Play — Kinderparadies
 
+## Partynacht: alle Bonis eingesprochen (5.2.3)
+
+- Die elf restlichen Bonis haben jetzt eigene Ansagen statt des synthetischen
+  Brummens: Maximalmunition, Kriechzeit, Plüschschild, Vergessen, Kritische
+  Nacht, Feuerkinder, Kettenblitz, Schwerelos, Alien-Segen, Zeitlupe und
+  Blutrausch. Damit sind alle 17 Bonis vertont.
+- `tools/prepare-after-play-zombies-audio.py` liest dafür zusätzlich den
+  Desktop-Ordner „Zombie Sounds“; der Partynacht-Test prüft jetzt, dass jeder
+  Bonus eine Aufnahme hat.
+
 ## Partynacht: keine Blendflecken mehr bei Bossen (5.2.2)
 
 - Bugfix: Das Leuchtlicht von Bossen und Elite-Gästen wurde bei jedem

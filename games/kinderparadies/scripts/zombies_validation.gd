@@ -31,8 +31,11 @@ func run(game: Node3D, verify: Callable) -> void:
 	for b in ZombiesConfig.BOSSES:
 		if not ResourceLoader.exists(str(b.model)):missing.append(b.id)
 	verify.call(missing.is_empty(),"Partynacht models missing: "+str(missing))
-	var voices:=["pickup_double_points","pickup_speed","pickup_insta_kill","pickup_nuke","pickup_infinite_ammo","pickup_damage","start"]
-	verify.call(voices.all(func(k):return ResourceLoader.exists(ZombiesAnnouncer.FOLDER+k+".ogg")) and ZombiesAnnouncer.stream_for("pickup_nuke") is AudioStreamOggVorbis,"Recorded announcer lines are missing")
+	# 5.2.3: every pickup has its own recorded line, none falls back to the drone.
+	var voices:=["start"]
+	for row in ZombiesConfig.PICKUPS:voices.append("pickup_"+str(row[0]))
+	var unvoiced:=voices.filter(func(k):return not ResourceLoader.exists(ZombiesAnnouncer.FOLDER+k+".ogg"))
+	verify.call(unvoiced.is_empty() and ZombiesAnnouncer.stream_for("pickup_nuke") is AudioStreamOggVorbis and ZombiesAnnouncer.stream_for("pickup_gravity") is AudioStreamOggVorbis,"Recorded announcer lines are missing: "+str(unvoiced))
 
 	game._main_menu();await game.get_tree().process_frame
 	var more:=game.menu.find_child("MainMenuAction2",true,false) as Button

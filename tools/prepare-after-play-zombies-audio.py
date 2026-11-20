@@ -1,6 +1,7 @@
-"""Partynacht announcer lines from the owner's recordings, After Play 5.0.1.
+"""Partynacht announcer lines from the owner's recordings, After Play 5.0.1 / 5.2.3.
 
-Reads the recordings from the desktop folder "Ansagen Bonus", trims the
+Reads the recordings from the desktop folders "Ansagen Bonus" and
+"Zombie Sounds" (5.2.3: the remaining eleven pickups), trims the
 silence at the end (keeps a short tail with a fade), normalises loudness and
 writes them as Ogg Vorbis under the announcer keys the game looks for.
 The originals are never changed. New recordings: add a line to LINES.
@@ -15,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = Path.home() / 'Desktop' / 'Ansagen Bonus'
+SOURCE_V523 = Path.home() / 'Desktop' / 'Zombie Sounds'
 OUT = ROOT / 'games/kinderparadies/assets/zombies-v500/audio'
 # recording file name -> announcer key (see scripts/zombies_announcer.gd)
 LINES = {
@@ -25,6 +27,20 @@ LINES = {
     'Unbegrenze Munition fuer 20sek.mp3': 'pickup_infinite_ammo',
     'doppelter Schaden.mp3': 'pickup_damage',
     'Runden beginn ganz am anfang.mp3': 'start',
+}
+# 5.2.3: the eleven pickups that still played the synthetic drone
+LINES_V523 = {
+    'Maximalmunition.mp3': 'pickup_max_ammo',
+    'Kriechzeit.mp3': 'pickup_slowdown',
+    'Plüschschild.mp3': 'pickup_shield',
+    'Vergessen.mp3': 'pickup_invisible',
+    'Kritische Nacht.mp3': 'pickup_crit',
+    'Feuerkinder.mp3': 'pickup_fire_kills',
+    'Kettenblitz.mp3': 'pickup_chain',
+    'Schwerelos.mp3': 'pickup_gravity',
+    'Alien-Segen.mp3': 'pickup_alien',
+    'Zeitlupe.mp3': 'pickup_time',
+    'Blutrausch.mp3': 'pickup_bloodrush',
 }
 
 def speech_end(path: Path) -> float:
@@ -41,8 +57,9 @@ def speech_end(path: Path) -> float:
 def main() -> None:
     assert shutil.which('ffmpeg'), 'ffmpeg is needed'
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, key in LINES.items():
-        src = SOURCE / name
+    jobs = [(SOURCE / n, k) for n, k in LINES.items()] + [(SOURCE_V523 / n, k) for n, k in LINES_V523.items()]
+    for src, key in jobs:
+        name = src.name
         if not src.exists():
             print('missing', name); continue
         end = speech_end(src) + .35
