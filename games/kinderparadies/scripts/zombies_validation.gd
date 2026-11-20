@@ -115,6 +115,11 @@ func run(game: Node3D, verify: Callable) -> void:
 	verify.call(z.music_calm.playing and z.music_dread.playing,"Partynacht music does not play")
 	verify.call(z.neon.size()>=z.doors.size()+z.stations.size() and not z.lamps.is_empty(),"Barriers and stations have no neon signs or lamps")
 	verify.call(dummy.hp_bar!=null and dummy.hp_show>0.,"A hit guest shows no health bar")
+	# 5.2.2: an elite's glow flashes on hits but never runs away (it used to multiply on every hit).
+	var shiny:=z._spawn_enemy();shiny.rise=0.;shiny.glow=OmniLight3D.new();shiny.add_child(shiny.glow);shiny.glow_base=1.2;shiny.glow.light_energy=1.2
+	for i in range(200):shiny.hit_flash()
+	verify.call(shiny.glow.light_energy<=shiny.glow_base*2.5,"Elite glow grows without limit on hits")
+	shiny.queue_free();z.enemies.erase(shiny)
 	var fx_before:=z.fx.live.size()
 	z.fx.explosion(dummy.global_position+Vector3.UP,3.);z.fx.lightning(dummy.global_position+Vector3.UP*3.,dummy.global_position);z.fx.confetti(dummy.global_position,1.)
 	verify.call(z.fx.live.size()>=fx_before+8 and not z.fx.decals.scorch.is_empty(),"Explosions, lightning or confetti spawn no effects")
@@ -122,6 +127,8 @@ func run(game: Node3D, verify: Callable) -> void:
 	var torch:=z._spawn_enemy();torch.rise=0.;torch.stun=99.;torch.model.position.y=0.
 	var torch_at:=cam.global_position+aim*3.;torch_at.y=dummy.global_position.y;torch.global_position=torch_at
 	await game.get_tree().physics_frame;await game.get_tree().physics_frame
+	# Tough test guests: the flame cone also reaches the dummy behind the torch.
+	for tough: ZombieEnemy in [torch,dummy]:tough.max_hp=6000.;tough.hp=6000.
 	var torch_hp:=torch.hp
 	z.flame_hit(cam.global_position,(torch.global_position+Vector3.UP-cam.global_position).normalized(),40.,"")
 	verify.call(torch.hp<torch_hp and torch.burn>0. and z.fx.burning.has(torch.get_instance_id()),"The flamethrower does not set a guest on fire: torch at %s cam %s clear %s hp %.0f/%.0f dead %s"%[str(torch.global_position),str(cam.global_position),str(z.clear_to(cam.global_position,torch,1.)),torch.hp,torch_hp,str(torch.dead)])

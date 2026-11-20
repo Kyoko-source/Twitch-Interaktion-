@@ -89,7 +89,7 @@ func _ready() -> void:
  var stored_party_text:=_persistent_text(SAVE)
  var stored_party=JSON.parse_string(stored_party_text) if not stored_party_text.is_empty() else null
  if stored_party is Dictionary:party_reboot_until=clampi(int(stored_party.get("party_reboot_until",0)),0,int(Time.get_unix_time_from_system())+HappylandParty.REBOOT_SECONDS)
- var show_warning:=not (AUTHOR_TOOLS and ("--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args()))
+ var show_warning:=not (AUTHOR_TOOLS and ("--self-test" in OS.get_cmdline_user_args() or "--render-qa" in OS.get_cmdline_user_args() or "--trailer" in OS.get_cmdline_user_args() or "--trailer-preview" in OS.get_cmdline_user_args()))
  if show_warning:AudioServer.set_bus_mute(0,true)
  player=NightGuard.new();add_child(player);player.camera.current=true
  _build_world("none");player.reset_pose();menu_reference_ready=true
@@ -111,6 +111,7 @@ func _ready() -> void:
  _main_menu()
  if AUTHOR_TOOLS and "--self-test" in OS.get_cmdline_user_args(): call_deferred("_self_test")
  if AUTHOR_TOOLS and "--render-qa" in OS.get_cmdline_user_args(): call_deferred("_render_qa")
+ if AUTHOR_TOOLS and ("--trailer" in OS.get_cmdline_user_args() or "--trailer-preview" in OS.get_cmdline_user_args()): call_deferred("_trailer")
 
 func _actions() -> void:
  if not InputMap.has_action("crouch"):
@@ -1260,6 +1261,10 @@ func _self_test() -> void:
  print("NACHTWACHE SELF TEST: ","PASS" if passed else "FAIL")
  DirAccess.remove_absolute(SAVE);DirAccess.remove_absolute(SETTINGS)
  get_tree().quit(0 if passed else 1)
+
+func _trailer() -> void:
+ if not AUTHOR_TOOLS: return
+ await load("res://scripts/trailer_director.gd").new().run(self)
 
 func _render_qa() -> void:
  if not AUTHOR_TOOLS: return

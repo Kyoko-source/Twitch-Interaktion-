@@ -69,7 +69,7 @@ func build(owner_mode: Node3D, cam: Camera3D) -> void:
 		shots[special[0]]=[load(path)] if ResourceLoader.exists(path) else [_gunshot("rift")]
 	shots["flamer"]=[]
 	fx=mode.fx
-	flash=OmniLight3D.new();flash.light_color=Color("ffc27a");flash.omni_range=5.;flash.light_energy=0.;flash.shadow_enabled=false;add_child(flash)
+	flash=OmniLight3D.new();flash.light_volumetric_fog_energy=0.;flash.light_color=Color("ffc27a");flash.omni_range=5.;flash.light_energy=0.;flash.shadow_enabled=false;add_child(flash)
 
 func _player(volume: float) -> AudioStreamPlayer:
 	var p:=AudioStreamPlayer.new();p.volume_db=volume;p.max_polyphony=6;p.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;add_child(p);return p

@@ -42,6 +42,7 @@ var boss_phase:=0
 var clone:=false
 var rng:=RandomNumberGenerator.new()
 var glow: OmniLight3D
+var glow_base:=0.0
 # Skinned party children (5.1.0) play their own baked actions.
 var anim: AnimationPlayer
 var anim_lock:=0.0
@@ -110,7 +111,7 @@ func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, 
 		add_child(head_area);head_area.position=Vector3(0,head_height,.08 if role!="crawler" else .45)
 	set_meta("enemy",self)
 	if elite:
-		glow=OmniLight3D.new();glow.omni_range=2.4*maxf(size_scale*.6,1.);glow.light_energy=1.2 if not boss else 3.
+		glow=OmniLight3D.new();glow.omni_range=2.4*maxf(size_scale*.6,1.);glow.light_energy=1.2 if not boss else 3.;glow_base=glow.light_energy
 		glow.light_color={"spitter":Color("8aff4a"),"screamer":Color("ff4aa0"),"teleporter":Color("8a6aff"),"tank":Color("ffb6d9"),"alien":Color("44ff8a"),"jumper":Color("ffa040"),"boss":Color("ff2a2a")}.get(role,Color("ff4040"))
 		glow.position=Vector3(0,head_height,.3);glow.shadow_enabled=false;add_child(glow)
 	if role=="alien":_alien_skin()
@@ -280,6 +281,7 @@ func show_hp() -> void:
 	hp_show=2.6
 
 func _tick_hp(delta: float) -> void:
+	if glow:glow.light_energy=move_toward(glow.light_energy,glow_base,delta*glow_base*5.)
 	if not hp_bar:return
 	hp_show=maxf(hp_show-delta,0.)
 	hp_fill=lerpf(hp_fill,clampf(hp/max_hp,0.,1.),clampf(delta*12.,0,1))
@@ -290,7 +292,8 @@ func _tick_hp(delta: float) -> void:
 	if hp_name:hp_name.modulate.a=a
 
 func hit_flash() -> void:
-	if glow:glow.light_energy*=1.6
+	# A short flash on every hit; it settles back in _tick_hp (it used to grow without end).
+	if glow:glow.light_energy=glow_base*2.2
 	if anim and anim_lock<=0. and role!="crawler" and rng.randf()<.45:_play("Hit",1.3,.24)
 
 func die(explosive: bool) -> void:

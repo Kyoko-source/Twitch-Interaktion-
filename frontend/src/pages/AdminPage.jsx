@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Bell, CalendarDays, ChartNoAxesCombined, Check, Coins, FerrisWheel, LifeBuoy, Newspaper, Plus, Radio, Shield, ShoppingBasket, Sparkles, Trash2, UserPlus, Users, X } from "lucide-react";
+import { Bell, CalendarDays, ChartNoAxesCombined, Check, Clapperboard, Coins, Download, FerrisWheel, LifeBuoy, Newspaper, Plus, Radio, Shield, ShoppingBasket, Sparkles, Trash2, UserPlus, Users, X } from "lucide-react";
 import { StatsAdmin } from "../stats/StatsAdmin";
 import { ShopAlertsAdmin } from "../economy/ShopAlertsAdmin";
 import { StreamControlAdmin } from "../stream/StreamControlAdmin";
@@ -85,7 +85,7 @@ export function AdminPage() {
       ["points", "Chickens", Coins],
       ["support", "Support", LifeBuoy, overview.support_messages.length],
     ]],
-    ["Inhalte", [["news", "News", Newspaper], ["events", "Events", CalendarDays], ["shop", "Shop", ShoppingBasket]]],
+    ["Inhalte", [["news", "News", Newspaper], ["events", "Events", CalendarDays], ["shop", "Shop", ShoppingBasket], ["trailer", "Trailer", Clapperboard]]],
     ["Stream", [
       ["stream-control", "Stream Control", Sparkles],
       ["wheel", "Glücksrad", FerrisWheel],
@@ -145,6 +145,7 @@ export function AdminPage() {
           </nav>
           <div className="adminMain">
           {tab === "stats" && <StatsAdmin password={password} />}
+          {tab === "trailer" && <TrailerAdmin />}
           {tab === "registrations" && !overview.registration_requests.length && <p className="notice">Keine offenen Registrierungen.</p>}
           {tab === "registrations" && <div className="grid">{overview.registration_requests.map((item) => <article className="card" key={item.id}><h3>{item.username}</h3><p>{item.status}</p><div className="registrationActions"><button onClick={() => approveRegistration(item.id, item.username)} type="button"><Check size={16} /> Genehmigen</button><button className="ghost danger" onClick={() => rejectRegistration(item.id, item.username)} type="button"><X size={16} /> Ablehnen</button></div></article>)}</div>}
           {tab === "points" && <AdminPoints users={overview.users} adminCall={adminCall} onUpdated={() => setReloadKey((value) => value + 1)} />}
@@ -201,5 +202,20 @@ export function AdminRow({ title, text, onDelete }) {
       <div><h3>{title}</h3><p>{text}</p></div>
       <button className="ghost dangerButton" onClick={onDelete} type="button"><Trash2 size={16} /></button>
     </article>
+  );
+}
+
+// The current After Play trailer: watch it, grab the file for socials or itch.io.
+function TrailerAdmin() {
+  const src = "/downloads/after-play-trailer-1080p.mp4?v=5.2.2";
+  return (
+    <section className="card adminTrailer">
+      <h2>After Play · Partynacht-Trailer</h2>
+      <p>83 Sekunden · 1080p · 30 fps · echte Spielszenen aus Version 5.2.2. Läuft auch auf der After-Play-Seite.</p>
+      <video controls playsInline preload="metadata" poster="/assets/after-play/trailer-v5.2.2.jpg" style={{ width: "100%", borderRadius: 12, background: "#000" }} aria-label="After Play – Partynacht-Trailer">
+        <source src={src} type="video/mp4" />
+      </video>
+      <p><a href={src} download="After-Play-Partynacht-Trailer-1080p.mp4" style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 42, padding: "10px 15px", borderRadius: 8, background: "linear-gradient(135deg, var(--amber), var(--copper))", color: "#190f13", fontWeight: 900, textDecoration: "none" }}><Download size={16} aria-hidden="true" /> Trailer herunterladen</a></p>
+    </section>
   );
 }

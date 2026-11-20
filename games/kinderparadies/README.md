@@ -1,5 +1,18 @@
 # After Play — Kinderparadies
 
+## Partynacht: keine Blendflecken mehr bei Bossen (5.2.2)
+
+- Bugfix: Das Leuchtlicht von Bossen und Elite-Gästen wurde bei jedem
+  Treffer heller und klang nie ab. In langen Bosskämpfen mit schnellen
+  Waffen wurde es unendlich hell und legte riesige weiße und schwarze
+  Flecken über das Bild. Jetzt blitzt es kurz auf und beruhigt sich wieder.
+- Explosionen direkt vor dem Gesicht blenden nicht mehr: Feuerball, Kugel
+  und Rauch werden in der Nähe kleiner und durchsichtiger.
+- Etwas kleineres Mündungsfeuer; Effekt-Lichter leuchten nicht mehr in den
+  Nebel.
+- Neuer Trailer (Autoren-Werkzeug `scripts/trailer_director.gd`,
+  `tools/make-after-play-trailer-v521.py`).
+
 ## Partynacht: durch die Netze schießen (5.2.1)
 
 - Schüsse, Tesla-Blitze, Flammenwerfer, Riss-Kanone und Tortenwerfer

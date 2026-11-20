@@ -586,7 +586,7 @@ func spit(_e: ZombieEnemy, from: Vector3, to: Vector3, heavy: bool=false) -> voi
 	var dir:=(to-from).normalized();var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=.12 if not heavy else .25;sphere.height=sphere.radius*2.;orb.mesh=sphere
 	var m:=StandardMaterial3D.new();m.albedo_color=Color("8aff4a");m.emission_enabled=true;m.emission=Color("6aff2a");m.emission_energy_multiplier=3.;orb.material_override=m
 	root3d.add_child(orb);orb.global_position=from
-	var light:=OmniLight3D.new();light.light_color=Color("8aff4a");light.omni_range=2.;orb.add_child(light)
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("8aff4a");light.omni_range=2.;orb.add_child(light)
 	projectiles.append({"node":orb,"vel":dir*(12. if not heavy else 9.),"dmg":ZombiesConfig.damage(round_number)*(.6 if not heavy else 1.4),"life":3.,"hostile":true})
 
 func scream(e: ZombieEnemy) -> void:
@@ -678,10 +678,10 @@ func _blood(at: Vector3, amount: float) -> void:
 
 func _spark(at: Vector3, color: Color, size_value: float) -> void:
 	_particles(at,color,6,2.,.03,.25)
-	var light:=OmniLight3D.new();light.light_color=color;light.omni_range=1.5+size_value*3.;light.light_energy=2.;root3d.add_child(light);light.global_position=at;effects.append({"node":light,"life":.08,"light":2.})
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=color;light.omni_range=1.5+size_value*3.;light.light_energy=2.;root3d.add_child(light);light.global_position=at;effects.append({"node":light,"life":.08,"light":2.})
 
 func _flash(at: Vector3, color: Color, radius: float) -> void:
-	var light:=OmniLight3D.new();light.light_color=color;light.omni_range=radius*2.;light.light_energy=6.;root3d.add_child(light);light.global_position=at;effects.append({"node":light,"life":.35,"light":6.})
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=color;light.omni_range=radius*2.;light.light_energy=6.;root3d.add_child(light);light.global_position=at;effects.append({"node":light,"life":.35,"light":6.})
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=1.;sphere.height=2.;orb.mesh=sphere
 	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=Color(color.r,color.g,color.b,.5);m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;m.cull_mode=BaseMaterial3D.CULL_DISABLED;orb.material_override=m
 	root3d.add_child(orb);orb.global_position=at;orb.scale=Vector3.ONE*.2;effects.append({"node":orb,"life":.35,"grow":radius,"fade":m})
@@ -697,13 +697,13 @@ func _bolt(a: Vector3, b: Vector3) -> void:
 
 func _rise_fx(at: Vector3) -> void:
 	_particles(at+Vector3.UP*.1,Color(.25,.2,.18),14,2.5,.12,.9)
-	var light:=OmniLight3D.new();light.light_color=Color("ff2a1a") if round_number<ZombiesConfig.REALITY_FROM else Color("44ff8a");light.omni_range=3.;light.light_energy=2.5;root3d.add_child(light);light.global_position=at+Vector3.UP*.4;effects.append({"node":light,"life":.9,"light":2.5})
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("ff2a1a") if round_number<ZombiesConfig.REALITY_FROM else Color("44ff8a");light.omni_range=3.;light.light_energy=2.5;root3d.add_child(light);light.global_position=at+Vector3.UP*.4;effects.append({"node":light,"life":.9,"light":2.5})
 
 func rift_shot(from: Vector3, dir: Vector3, amount: float) -> void:
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=.18;sphere.height=.36;orb.mesh=sphere
 	var m:=StandardMaterial3D.new();m.albedo_color=Color("44ff8a");m.emission_enabled=true;m.emission=Color("44ff8a");m.emission_energy_multiplier=6.;orb.material_override=m
 	root3d.add_child(orb);orb.global_position=from
-	var light:=OmniLight3D.new();light.light_color=Color("44ff8a");light.omni_range=4.;light.light_energy=3.;orb.add_child(light)
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("44ff8a");light.omni_range=4.;light.light_energy=3.;orb.add_child(light)
 	projectiles.append({"node":orb,"vel":dir*34.,"dmg":amount,"life":2.5,"hostile":false})
 
 # Coloured lightning around the player when a round starts.
@@ -758,7 +758,7 @@ func cake_shot(from: Vector3, dir: Vector3, amount: float, level: int) -> void:
 	var m:=StandardMaterial3D.new();m.albedo_color=Color("ff7ac8");m.emission_enabled=true;m.emission=Color("ff3aa0");m.emission_energy_multiplier=1.2;body.material_override=m;cake.add_child(body)
 	var top:=MeshInstance3D.new();var cyl2:=CylinderMesh.new();cyl2.top_radius=.125;cyl2.bottom_radius=.125;cyl2.height=.03;top.mesh=cyl2
 	var cream:=StandardMaterial3D.new();cream.albedo_color=Color("fff4e8");top.material_override=cream;top.position.y=.07;cake.add_child(top)
-	var candle:=OmniLight3D.new();candle.light_color=Color("ffb05a");candle.light_energy=2.5;candle.omni_range=3.;candle.position.y=.2;cake.add_child(candle)
+	var candle:=OmniLight3D.new();candle.light_volumetric_fog_energy=0.;candle.light_color=Color("ffb05a");candle.light_energy=2.5;candle.omni_range=3.;candle.position.y=.2;cake.add_child(candle)
 	var trail:=CPUParticles3D.new();trail.amount=30;trail.lifetime=.5;trail.local_coords=false;var tq:=QuadMesh.new();tq.size=Vector2.ONE*.12;tq.material=fx._mat("glow",true);trail.mesh=tq
 	trail.color_ramp=fx._ramp([Color(1,.9,.5,1),Color(1,.3,.6,.6),Color(1,.3,.6,0)]);trail.gravity=Vector3.ZERO;trail.initial_velocity_max=.3;cake.add_child(trail);trail.emitting=true
 	projectiles.append({"node":cake,"vel":dir*21.,"dmg":amount,"life":4.,"hostile":false,"kind":"cake","grav":7.,"level":level})
@@ -822,7 +822,7 @@ func _drop_pickup(at: Vector3, force: bool) -> void:
 	var glyph:=Label3D.new();glyph.text=str(row[4]);glyph.font_size=150;glyph.pixel_size=.004;glyph.modulate=color;glyph.outline_size=14;glyph.outline_modulate=Color(0,0,0,.8);glyph.billboard=BaseMaterial3D.BILLBOARD_ENABLED;glyph.position.y=1.;glyph.no_depth_test=true;node.add_child(glyph)
 	var ring:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.42;torus.outer_radius=.5;ring.mesh=torus;ring.position.y=1.
 	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=color;m.emission_enabled=true;m.emission=color;ring.material_override=m;node.add_child(ring)
-	var light:=OmniLight3D.new();light.light_color=color;light.omni_range=4.;light.light_energy=3.;light.position.y=1.;node.add_child(light)
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=color;light.omni_range=4.;light.light_energy=3.;light.position.y=1.;node.add_child(light)
 	_particles(at+Vector3.UP,color,20,4.,.06,.8)
 	pickups.append({"id":row[0],"node":node,"life":ZombiesConfig.PICKUP_LIFETIME,"ring":ring,"glyph":glyph})
 
@@ -1090,7 +1090,7 @@ func _add_rift() -> void:
 	root3d.add_child(rift);rift.global_position=at;rift.rotation.x=PI/2
 	var core:=MeshInstance3D.new();var disc:=SphereMesh.new();disc.radius=.7;disc.height=.1;core.mesh=disc
 	var cm:=StandardMaterial3D.new();cm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;cm.albedo_color=Color(.05,0,.1,.9);cm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;core.material_override=cm;rift.add_child(core)
-	var light:=OmniLight3D.new();light.light_color=Color("44ff8a");light.omni_range=6.;light.light_energy=2.5;rift.add_child(light)
+	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("44ff8a");light.omni_range=6.;light.light_energy=2.5;rift.add_child(light)
 	rifts.append(rift)
 	if rifts.size()>6:(rifts.pop_front() as Node).queue_free()
 

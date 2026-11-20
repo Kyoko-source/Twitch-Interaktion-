@@ -49,7 +49,7 @@ func setup(owner_mode: Node3D) -> void:
 	flame_core=_emitter("glow",Color.WHITE,true,30,.25);flame_core.emitting=false
 	flame_core.color_ramp=_ramp([Color(.7,.85,1,1),Color(1,.8,.4,.8),Color(1,.4,.1,0)]);flame_core.scale_amount_min=.12;flame_core.scale_amount_max=.2
 	flame_core.spread=4.;flame_core.initial_velocity_min=7.;flame_core.initial_velocity_max=9.
-	flame_light=OmniLight3D.new();flame_light.light_color=Color("ff7a2a");flame_light.omni_range=7.;flame_light.light_energy=0.;flame_light.shadow_enabled=false;add_child(flame_light)
+	flame_light=OmniLight3D.new();flame_light.light_volumetric_fog_energy=0.;flame_light.light_color=Color("ff7a2a");flame_light.omni_range=7.;flame_light.light_energy=0.;flame_light.shadow_enabled=false;add_child(flame_light)
 
 # ---------------------------------------------------------------- resources
 func _tex(key: String) -> Texture2D:
@@ -107,7 +107,7 @@ func sound(key: String, at: Vector3, volume: float=0., pitch: float=1., variants
 	best.global_position=at;best.stream=s;best.volume_db=volume;best.pitch_scale=pitch*rng.randf_range(.94,1.06);best.play()
 
 func light(at: Vector3, color: Color, energy: float, radius: float, life: float) -> void:
-	var l:=OmniLight3D.new();l.light_color=color;l.light_energy=energy;l.omni_range=radius;l.shadow_enabled=false;add_child(l);l.global_position=at
+	var l:=OmniLight3D.new();l.light_volumetric_fog_energy=0.;l.light_color=color;l.light_energy=energy;l.omni_range=radius;l.shadow_enabled=false;add_child(l);l.global_position=at
 	_track(l,life,{"light":energy})
 
 # ---------------------------------------------------------------- decals
@@ -139,13 +139,13 @@ func splat(at: Vector3, dir: Vector3, amount: float) -> void:
 func muzzle(m: Node3D, color: Color, size_value: float, cam: Camera3D) -> void:
 	if not is_instance_valid(m):return
 	var root:=Node3D.new();m.add_child(root);root.global_basis=cam.global_basis.orthonormalized()
-	var star:=MeshInstance3D.new();var sq:=QuadMesh.new();sq.size=Vector2.ONE*.22*size_value;star.mesh=sq
+	var star:=MeshInstance3D.new();var sq:=QuadMesh.new();sq.size=Vector2.ONE*.15*size_value;star.mesh=sq
 	var sm:=_mat("muzzle-%d"%rng.randi_range(0,2),true,BaseMaterial3D.BILLBOARD_DISABLED).duplicate() as StandardMaterial3D;sm.vertex_color_use_as_albedo=false;sm.albedo_color=color.lightened(.35);star.material_override=sm
 	star.rotation.z=rng.randf()*TAU;star.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;root.add_child(star)
 	for k in range(2):
-		var side:=MeshInstance3D.new();var q:=QuadMesh.new();q.size=Vector2(.42,.16)*size_value;side.mesh=q
+		var side:=MeshInstance3D.new();var q:=QuadMesh.new();q.size=Vector2(.3,.12)*size_value;side.mesh=q
 		var m2:=_mat("muzzle-side",true,BaseMaterial3D.BILLBOARD_DISABLED).duplicate() as StandardMaterial3D;m2.vertex_color_use_as_albedo=false;m2.albedo_color=color;side.material_override=m2
-		side.rotation=Vector3(k*PI*.5,PI*.5,0);side.position=Vector3(0,0,-.19*size_value);side.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;root.add_child(side)
+		side.rotation=Vector3(k*PI*.5,PI*.5,0);side.position=Vector3(0,0,-.14*size_value);side.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;root.add_child(side)
 	_track(root,.05)
 	burst(m.global_position,"smoke",Color(.7,.7,.72,.35),3,.8,.08,.16,.7,.4,-cam.global_basis.z,25.,false,_ramp([Color(1,1,1,.4),Color(1,1,1,0)]),_curve([0.,1.],[.5,2.]))
 	burst(m.global_position,"glow",color,5,6.,.02,.04,.18,-4.,-cam.global_basis.z,30.)
@@ -198,18 +198,24 @@ func confetti(at: Vector3, amount: float) -> void:
 	p.emitting=true;_track(p,2.5)
 
 # ---------------------------------------------------------------- big stuff
+# Blasts right in front of the eyes must not blind the player.
+func _near_fade(at: Vector3, radius: float) -> float:
+	var cam:=get_viewport().get_camera_3d()
+	if not cam:return 1.
+	return clampf((at.distance_to(cam.global_position)-.8)/(radius*2.2),.12,1.)
+
 func explosion(at: Vector3, radius: float, color: Color=Color("ff7a2a")) -> void:
-	var size_value:=clampf(radius/4.,.5,2.5)
+	var size_value:=clampf(radius/4.,.5,2.5);var near:=_near_fade(at,radius)
 	var fire:=_ramp([Color(1,1,.85,1),Color(1,.75,.3,1),color,Color(.35,.08,.02,.6),Color(.05,.02,.02,0)])
-	burst(at,"flame",Color.WHITE,int(26*size_value),5.5*size_value,.8*size_value,1.6*size_value,.75,1.5,Vector3.UP,180.,true,fire,_curve([0.,.3,1.],[.4,1.,1.6]))
+	burst(at,"flame",Color(1,1,1,near),int(26*size_value*near)+4,5.5*size_value,.8*size_value*near,1.6*size_value*near,.75,1.5,Vector3.UP,180.,true,fire,_curve([0.,.3,1.],[.4,1.,1.6]))
 	burst(at,"glow",Color.WHITE,int(40*size_value),14.*size_value,.04,.1,.9,-9.,Vector3.UP,180.,true,_ramp([Color(1,1,.8,1),color,Color(color.r,color.g,color.b,0)]))
-	burst(at+Vector3.UP*.3,"smoke",Color(.12,.1,.1,.85),int(14*size_value),2.2*size_value,1.*size_value,1.8*size_value,2.8,1.4,Vector3.UP,80.,false,_ramp([Color(.25,.22,.2,0),Color(.18,.16,.15,.8),Color(.1,.1,.1,0)]),_curve([0.,1.],[.5,2.4]))
+	if near>.35:burst(at+Vector3.UP*.3,"smoke",Color(.12,.1,.1,.85*near),int(14*size_value*near)+2,2.2*size_value,1.*size_value*near,1.8*size_value*near,2.8,1.4,Vector3.UP,80.,false,_ramp([Color(.25,.22,.2,0),Color(.18,.16,.15,.8),Color(.1,.1,.1,0)]),_curve([0.,1.],[.5,2.4]))
 	var ring:=MeshInstance3D.new();var q:=QuadMesh.new();q.size=Vector2.ONE*2.;q.orientation=PlaneMesh.FACE_Y;ring.mesh=q
 	var rm:=_mat("ring",true,BaseMaterial3D.BILLBOARD_DISABLED).duplicate() as StandardMaterial3D;rm.vertex_color_use_as_albedo=false;rm.albedo_color=color.lightened(.3);ring.material_override=rm
 	add_child(ring);ring.global_position=at+Vector3.UP*.15;_track(ring,.45,{"grow":radius*1.2,"fade":rm,"alpha":1.})
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=1.;sphere.height=2.;sphere.radial_segments=24;sphere.rings=12;orb.mesh=sphere
-	var om:=StandardMaterial3D.new();om.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;om.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;om.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;om.albedo_color=Color(1,.85,.6,.8);om.cull_mode=BaseMaterial3D.CULL_DISABLED;orb.material_override=om
-	add_child(orb);orb.global_position=at;_track(orb,.25,{"grow":radius*.7,"fade":om,"alpha":.8})
+	var om:=StandardMaterial3D.new();om.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;om.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;om.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;om.albedo_color=Color(1,.85,.6,.8*near);om.cull_mode=BaseMaterial3D.CULL_DISABLED;orb.material_override=om
+	add_child(orb);orb.global_position=at;_track(orb,.2,{"grow":radius*.45,"fade":om,"alpha":.7*near})
 	light(at+Vector3.UP,color,9.*size_value,radius*3.,.5)
 	var floor_hit:=_surface(at+Vector3.UP*.5,Vector3.DOWN,3.)
 	if not floor_hit.is_empty():_decal("scorch","scorch",floor_hit.position,floor_hit.normal,radius*.9,Color.WHITE,MAX_SCORCH,45.)
@@ -222,7 +228,8 @@ func implosion(at: Vector3, radius: float, color: Color=Color("b05aff")) -> void
 	p.emission_shape=CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE;p.emission_sphere_radius=radius;p.radial_accel_min=-radius*9.;p.radial_accel_max=-radius*6.
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=1.;sphere.height=2.;orb.mesh=sphere
 	var om:=StandardMaterial3D.new();om.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;om.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;om.albedo_color=Color(.04,0,.08,.85);orb.material_override=om
-	add_child(orb);orb.global_position=at;orb.scale=Vector3.ONE*radius*.6;_track(orb,.5,{"shrink":radius*.6,"fade":om,"alpha":.85})
+	var near:=_near_fade(at,radius)
+	add_child(orb);orb.global_position=at;orb.scale=Vector3.ONE*radius*.4;_track(orb,.45,{"shrink":radius*.4,"fade":om,"alpha":.6*near})
 	light(at,color,6.,radius*2.5,.5)
 	sound("zap",at,-4.,.55,3)
 
@@ -281,7 +288,7 @@ func set_burning(e: Node3D, on: bool) -> void:
 		p.scale_amount_min=.25;p.scale_amount_max=.5;p.scale_amount_curve=_curve([0.,.3,1.],[.4,1.,.2]);p.angle_min=-180.;p.angle_max=180.
 		p.color_ramp=_ramp([Color(1,.9,.6,1),Color(1,.5,.1,.9),Color(.6,.1,.02,0)]);p.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		e.add_child(p);p.emitting=true
-		var l:=OmniLight3D.new();l.light_color=Color("ff7a2a");l.light_energy=1.8;l.omni_range=3.;l.shadow_enabled=false;l.position=Vector3(0,1.,0);e.add_child(l)
+		var l:=OmniLight3D.new();l.light_volumetric_fog_energy=0.;l.light_color=Color("ff7a2a");l.light_energy=1.8;l.omni_range=3.;l.shadow_enabled=false;l.position=Vector3(0,1.,0);e.add_child(l)
 		burning[id]={"p":p,"l":l}
 	elif not on and burning.has(id):
 		var b: Dictionary=burning[id];burning.erase(id)
