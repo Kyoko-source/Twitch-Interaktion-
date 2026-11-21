@@ -136,9 +136,9 @@ func _skeleton() -> Skeleton3D:
 	return found[0] as Skeleton3D if not found.is_empty() else null
 
 func _alien_skin() -> void:
-	var shader:=Shader.new();shader.code="""shader_type spatial;
+	var shader:=ZombiesFx.shader("""shader_type spatial;
 render_mode blend_add,unshaded,depth_draw_never,cull_back;
-void fragment(){float rim=pow(1.0-abs(dot(NORMAL,VIEW)),2.0);ALBEDO=vec3(.2,1.,.5)*rim*(1.2+.6*sin(TIME*6.0+VERTEX.y*8.0));ALPHA=1.0;}"""
+void fragment(){float rim=pow(1.0-abs(dot(NORMAL,VIEW)),2.0);ALBEDO=vec3(.2,1.,.5)*rim*(1.2+.6*sin(TIME*6.0+VERTEX.y*8.0));ALPHA=1.0;}""")
 	var m:=ShaderMaterial.new();m.shader=shader
 	for mesh: MeshInstance3D in model.find_children("*","MeshInstance3D",true,false):mesh.material_overlay=m
 

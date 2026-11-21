@@ -1,5 +1,24 @@
 # After Play — Kinderparadies
 
+## Partynacht: Ruckler beim Schießen behoben (5.2.5)
+
+- **Ursache 1, Effekt-Materialien:** Mündungsfeuer, Leuchtspuren, Blitze,
+  Explosionsringe, Konfetti, Fleischbrocken und andere Kurzeffekte bauten bei
+  jedem Auftreten ein eigenes Material. Ein frisches Material an den Renderer
+  zu geben wartet auf den Render-Thread, im Gefecht ein ganzes Frame: rund
+  25 ms pro Schuss. Effekte teilen sich jetzt ein Material pro Aussehen und
+  Farbe (`ZombiesFx.cached`) und blenden pro Instanz über `transparency` aus.
+  Ihre Shader werden beim Laden einmal vorgewärmt; die zwei Effekt-Shader
+  (Alien-Haut, Achter Sinn) werden nicht mehr bei jedem Aufruf neu angelegt.
+- **Ursache 2, Schatten:** 40 Lampen warfen Schatten und mussten mit der
+  Horde darin immer wieder neu gerendert werden. In der Partynacht werfen nur
+  noch die 4 Lampen nächst dem Spieler Schatten (alle 0,3 s neu gewählt); beim
+  Verlassen bekommen alle Lampen ihre Schatten zurück.
+- Messung mit 22 Gegnern (Windows, ohne VSync): SMG-Dauerfeuer 21–35 → 68–75
+  FPS, Schrotflinte 36–48 → 76 FPS, Leerlauf 35–58 → 98 FPS; Draw Calls im
+  Gefecht von 13 000–21 000 auf 3 700–5 000. Die Wegfindung war mit 0,04 ms
+  pro Pfad nie das Problem.
+
 ## Partynacht: Jingles für alle Perks, Nightwatch in Arbeit (5.2.4)
 
 - **Nightwatch Protocol** ist unter „Weitere Spielmodi“ vorerst ausgegraut

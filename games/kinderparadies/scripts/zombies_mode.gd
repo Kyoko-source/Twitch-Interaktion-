@@ -77,6 +77,11 @@ var music_calm: AudioStreamPlayer
 var music_dread: AudioStreamPlayer
 var sting: AudioStreamPlayer
 var jingle: AudioStreamPlayer
+# 5.2.5: only the lamps nearest the player keep their shadows (40 shadowed lamps
+# re-rendered with the horde in them cost more than half of every frame).
+const SHADOW_LAMPS:=4
+var shadow_lights: Array=[]
+var shadow_clock:=0.
 const JINGLES:="res://assets/zombies-v524/jingles/"
 var neon: Array=[]
 var lamps: Array=[]
@@ -101,7 +106,10 @@ func build(game: Node3D) -> void:
 	arsenal=ZombiesArsenal.new();arsenal.build(self,player.camera)
 	hud=ZombiesHud.new();add_child(hud);hud.build(g)
 	hit_audio=_voice(-2.,6);tick_audio=_voice(-10.,4);kill_audio=_voice(0.,4)
-	for light: Light3D in w.find_children("*","Light3D",true,false):lights.append([light,light.light_energy,light.light_color])
+	for light: Light3D in w.find_children("*","Light3D",true,false):
+		lights.append([light,light.light_energy,light.light_color])
+		if light.shadow_enabled and not light is DirectionalLight3D:shadow_lights.append(light)
+	_tick_shadows(1.);_prewarm()
 	for zone in ZombiesConfig.ZONES:
 		var r: Array=ZombiesConfig.ZONES[zone].rects[0]
 		var alarm:=OmniLight3D.new();alarm.light_color=Color("ff1a12");alarm.omni_range=11.;alarm.light_energy=0.;alarm.shadow_enabled=false;root3d.add_child(alarm)
@@ -118,6 +126,28 @@ func _music(key: String) -> AudioStreamPlayer:
 func _sting(key: String, volume: float=-2.) -> void:
 	var path:=ZombiesFx.SFX+key+".ogg"
 	if ResourceLoader.exists(path):sting.stream=load(path);sting.volume_db=volume;sting.play()
+
+func _tick_shadows(delta: float) -> void:
+	shadow_clock-=delta
+	if shadow_clock>0. or shadow_lights.is_empty():return
+	shadow_clock=.3
+	var at:=player.global_position
+	var near:=shadow_lights.filter(func(l):return is_instance_valid(l))
+	near.sort_custom(func(a,b):return (a as Node3D).global_position.distance_squared_to(at)<(b as Node3D).global_position.distance_squared_to(at))
+	for i in range(near.size()):
+		var on:=i<SHADOW_LAMPS
+		if (near[i] as Light3D).shadow_enabled!=on:(near[i] as Light3D).shadow_enabled=on
+
+# Builds every short effect once, far below the floor, so its shader exists
+# before the first shot; the shared materials are cached from then on.
+func _prewarm() -> void:
+	var at:=Vector3(0,-60,0);var cam: Camera3D=player.camera
+	var holder:=Node3D.new();root3d.add_child(holder);holder.global_position=at
+	fx.muzzle(holder,Color("ffc27a"),1.,cam);fx.tracer(at,at+Vector3.FORWARD*3.,Color("ffe0a0"));fx.impact(at,Vector3.UP);fx.blood(at,Vector3.FORWARD,1.,true)
+	fx.confetti(at,1.);fx.lightning(at,at+Vector3.UP*2.);fx.number(at,10.,Color.WHITE,true)
+	fx.gib(at,1.,true);fx.explosion(at,2.,Color("ff7a2a"),true)
+	_particles(at,Color.WHITE,4,1.,.05,.2);_flash(at,Color.WHITE,1.);_ring(at,1.,Color.WHITE)
+	get_tree().create_timer(1.).timeout.connect(holder.queue_free)
 
 # The lullaby always plays; the dread layer grows with the rounds and the horde.
 func _tick_music(delta: float) -> void:
@@ -336,6 +366,7 @@ func tick(delta: float) -> void:
 	fx.tick(dt)
 	_tick_music(dt)
 	_tick_neon(dt)
+	_tick_shadows(dt)
 	_tick_world(dt)
 	_tick_stations(dt)
 	_tick_focus()
@@ -397,7 +428,7 @@ func _spawn_enemy(clone: bool=false) -> ZombieEnemy:
 	return e
 
 func _shadow(e: ZombieEnemy) -> void:
-	var m:=StandardMaterial3D.new();m.albedo_color=Color(.05,.0,.08,.85);m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.emission_enabled=true;m.emission=Color(.3,0,.5)
+	var m:=ZombiesFx.cached("clone-shadow",func():var c:=StandardMaterial3D.new();c.albedo_color=Color(.05,.0,.08,.85);c.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;c.emission_enabled=true;c.emission=Color(.3,0,.5);return c)
 	for mesh: MeshInstance3D in e.model.find_children("*","MeshInstance3D",true,false):mesh.material_override=m
 
 func _spawn_boss(index: int) -> void:
@@ -587,7 +618,7 @@ func recover_enemy(e: ZombieEnemy) -> void:
 
 func spit(_e: ZombieEnemy, from: Vector3, to: Vector3, heavy: bool=false) -> void:
 	var dir:=(to-from).normalized();var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=.12 if not heavy else .25;sphere.height=sphere.radius*2.;orb.mesh=sphere
-	var m:=StandardMaterial3D.new();m.albedo_color=Color("8aff4a");m.emission_enabled=true;m.emission=Color("6aff2a");m.emission_energy_multiplier=3.;orb.material_override=m
+	orb.material_override=ZombiesFx.cached("site1",func():var m:=StandardMaterial3D.new();m.albedo_color=Color("8aff4a");m.emission_enabled=true;m.emission=Color("6aff2a");m.emission_energy_multiplier=3.;return m)
 	root3d.add_child(orb);orb.global_position=from
 	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("8aff4a");light.omni_range=2.;orb.add_child(light)
 	projectiles.append({"node":orb,"vel":dir*(12. if not heavy else 9.),"dmg":ZombiesConfig.damage(round_number)*(.6 if not heavy else 1.4),"life":3.,"hostile":true})
@@ -672,7 +703,7 @@ func _particles(at: Vector3, color: Color, amount: int, speed_value: float, size
 	var p:=CPUParticles3D.new();p.one_shot=true;p.emitting=true;p.amount=amount;p.lifetime=life;p.explosiveness=.95
 	p.direction=Vector3.UP;p.spread=180.;p.initial_velocity_min=speed_value*.4;p.initial_velocity_max=speed_value;p.gravity=Vector3(0,-9.,0)
 	var q:=QuadMesh.new();q.size=Vector2.ONE*size_value;p.mesh=q
-	var m:=StandardMaterial3D.new();m.albedo_color=color;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.billboard_mode=BaseMaterial3D.BILLBOARD_PARTICLES;q.material=m
+	q.material=ZombiesFx.cached("site2"+color.to_html(),func():var m:=StandardMaterial3D.new();m.albedo_color=color;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.billboard_mode=BaseMaterial3D.BILLBOARD_PARTICLES;return m)
 	root3d.add_child(p);p.global_position=at;effects.append({"node":p,"life":life+.2})
 
 func _blood(at: Vector3, amount: float) -> void:
@@ -686,13 +717,13 @@ func _spark(at: Vector3, color: Color, size_value: float) -> void:
 func _flash(at: Vector3, color: Color, radius: float) -> void:
 	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=color;light.omni_range=radius*2.;light.light_energy=6.;root3d.add_child(light);light.global_position=at;effects.append({"node":light,"life":.35,"light":6.})
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=1.;sphere.height=2.;orb.mesh=sphere
-	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=Color(color.r,color.g,color.b,.5);m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;m.cull_mode=BaseMaterial3D.CULL_DISABLED;orb.material_override=m
-	root3d.add_child(orb);orb.global_position=at;orb.scale=Vector3.ONE*.2;effects.append({"node":orb,"life":.35,"grow":radius,"fade":m})
+	var m:=ZombiesFx.cached("site3"+color.to_html(),func():var n:=StandardMaterial3D.new();n.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;n.albedo_color=Color(color.r,color.g,color.b,.5);n.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;n.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;n.cull_mode=BaseMaterial3D.CULL_DISABLED;return n);orb.material_override=m
+	root3d.add_child(orb);orb.global_position=at;orb.scale=Vector3.ONE*.2;ZombiesFx.fade_to(orb,m,.6);effects.append({"node":orb,"life":.35,"grow":radius,"fade":m})
 	_particles(at,color,24,7.,.08,.7)
 
 func _ring(at: Vector3, radius: float, color: Color) -> void:
 	var ring:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.9;torus.outer_radius=1.;ring.mesh=torus
-	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=color;m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;ring.material_override=m
+	var m:=ZombiesFx.cached("site4"+color.to_html(),func():var n:=StandardMaterial3D.new();n.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;n.albedo_color=color;n.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;n.blend_mode=BaseMaterial3D.BLEND_MODE_ADD;return n);ring.material_override=m
 	root3d.add_child(ring);ring.global_position=at+Vector3.UP*.1;ring.scale=Vector3(.3,.3,.3);effects.append({"node":ring,"life":.5,"grow":radius,"fade":m,"flat":true})
 
 func _bolt(a: Vector3, b: Vector3) -> void:
@@ -704,7 +735,7 @@ func _rise_fx(at: Vector3) -> void:
 
 func rift_shot(from: Vector3, dir: Vector3, amount: float) -> void:
 	var orb:=MeshInstance3D.new();var sphere:=SphereMesh.new();sphere.radius=.18;sphere.height=.36;orb.mesh=sphere
-	var m:=StandardMaterial3D.new();m.albedo_color=Color("44ff8a");m.emission_enabled=true;m.emission=Color("44ff8a");m.emission_energy_multiplier=6.;orb.material_override=m
+	orb.material_override=ZombiesFx.cached("site5",func():var m:=StandardMaterial3D.new();m.albedo_color=Color("44ff8a");m.emission_enabled=true;m.emission=Color("44ff8a");m.emission_energy_multiplier=6.;return m)
 	root3d.add_child(orb);orb.global_position=from
 	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("44ff8a");light.omni_range=4.;light.light_energy=3.;orb.add_child(light)
 	projectiles.append({"node":orb,"vel":dir*34.,"dmg":amount,"life":2.5,"hostile":false})
@@ -758,9 +789,9 @@ func tesla_shot(muzzle_at: Vector3, from: Vector3, dir: Vector3, amount: float, 
 func cake_shot(from: Vector3, dir: Vector3, amount: float, level: int) -> void:
 	var cake:=Node3D.new();root3d.add_child(cake);cake.global_position=from
 	var body:=MeshInstance3D.new();var cyl:=CylinderMesh.new();cyl.top_radius=.12;cyl.bottom_radius=.12;cyl.height=.12;body.mesh=cyl
-	var m:=StandardMaterial3D.new();m.albedo_color=Color("ff7ac8");m.emission_enabled=true;m.emission=Color("ff3aa0");m.emission_energy_multiplier=1.2;body.material_override=m;cake.add_child(body)
+	body.material_override=ZombiesFx.cached("site6",func():var m:=StandardMaterial3D.new();m.albedo_color=Color("ff7ac8");m.emission_enabled=true;m.emission=Color("ff3aa0");m.emission_energy_multiplier=1.2;return m);cake.add_child(body)
 	var top:=MeshInstance3D.new();var cyl2:=CylinderMesh.new();cyl2.top_radius=.125;cyl2.bottom_radius=.125;cyl2.height=.03;top.mesh=cyl2
-	var cream:=StandardMaterial3D.new();cream.albedo_color=Color("fff4e8");top.material_override=cream;top.position.y=.07;cake.add_child(top)
+	top.material_override=ZombiesFx.cached("site7",func():var cream:=StandardMaterial3D.new();cream.albedo_color=Color("fff4e8");return cream);top.position.y=.07;cake.add_child(top)
 	var candle:=OmniLight3D.new();candle.light_volumetric_fog_energy=0.;candle.light_color=Color("ffb05a");candle.light_energy=2.5;candle.omni_range=3.;candle.position.y=.2;cake.add_child(candle)
 	var trail:=CPUParticles3D.new();trail.amount=30;trail.lifetime=.5;trail.local_coords=false;var tq:=QuadMesh.new();tq.size=Vector2.ONE*.12;tq.material=fx._mat("glow",true);trail.mesh=tq
 	trail.color_ramp=fx._ramp([Color(1,.9,.5,1),Color(1,.3,.6,.6),Color(1,.3,.6,0)]);trail.gravity=Vector3.ZERO;trail.initial_velocity_max=.3;cake.add_child(trail);trail.emitting=true
@@ -807,7 +838,7 @@ func _tick_effects(delta: float) -> void:
 		if fx.has("grow"):
 			var s:=lerpf(.2,float(fx.grow),k)
 			node.scale=Vector3(s,.3 if fx.get("flat",false) else s,s)
-		if fx.has("fade"):var c:=(fx.fade as StandardMaterial3D).albedo_color;c.a=(1.-k)*.6;(fx.fade as StandardMaterial3D).albedo_color=c
+		if fx.has("fade"):ZombiesFx.fade_to(node,fx.fade,(1.-k)*.6)
 		if float(fx.life)<=0.:node.queue_free();effects.erase(fx)
 
 # ---------------------------------------------------------------- pickups
@@ -824,7 +855,7 @@ func _drop_pickup(at: Vector3, force: bool) -> void:
 	var color: Color=row[2]
 	var glyph:=Label3D.new();glyph.text=str(row[4]);glyph.font_size=150;glyph.pixel_size=.004;glyph.modulate=color;glyph.outline_size=14;glyph.outline_modulate=Color(0,0,0,.8);glyph.billboard=BaseMaterial3D.BILLBOARD_ENABLED;glyph.position.y=1.;glyph.no_depth_test=true;node.add_child(glyph)
 	var ring:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.42;torus.outer_radius=.5;ring.mesh=torus;ring.position.y=1.
-	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=color;m.emission_enabled=true;m.emission=color;ring.material_override=m;node.add_child(ring)
+	ring.material_override=ZombiesFx.cached("site8"+color.to_html(),func():var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=color;m.emission_enabled=true;m.emission=color;return m);node.add_child(ring)
 	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=color;light.omni_range=4.;light.light_energy=3.;light.position.y=1.;node.add_child(light)
 	_particles(at+Vector3.UP,color,20,4.,.06,.8)
 	pickups.append({"id":row[0],"node":node,"life":ZombiesConfig.PICKUP_LIFETIME,"ring":ring,"glyph":glyph})
@@ -867,7 +898,7 @@ func _collect(id: String) -> void:
 		"alien":health=max_health;_add_points(500,false)
 
 func _reveal() -> void:
-	var shader:=Shader.new();shader.code="shader_type spatial;render_mode unshaded,depth_test_disabled,blend_add,cull_back;void fragment(){float r=pow(1.0-abs(dot(NORMAL,VIEW)),1.5);ALBEDO=vec3(.7,.3,1.)*r;}"
+	var shader:=ZombiesFx.shader("shader_type spatial;render_mode unshaded,depth_test_disabled,blend_add,cull_back;void fragment(){float r=pow(1.0-abs(dot(NORMAL,VIEW)),1.5);ALBEDO=vec3(.7,.3,1.)*r;}")
 	var m:=ShaderMaterial.new();m.shader=shader
 	for e: ZombieEnemy in enemies:
 		for mesh: MeshInstance3D in e.model.find_children("*","MeshInstance3D",true,false):
@@ -1096,10 +1127,10 @@ func _end_event() -> void:
 func _add_rift() -> void:
 	var at:=_spawn_cell()+Vector3.UP*1.4
 	var rift:=MeshInstance3D.new();var torus:=TorusMesh.new();torus.inner_radius=.7;torus.outer_radius=.95;rift.mesh=torus
-	var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=Color("44ff8a");m.emission_enabled=true;m.emission=Color("44ff8a");m.emission_energy_multiplier=4.;rift.material_override=m
+	rift.material_override=ZombiesFx.cached("site9",func():var m:=StandardMaterial3D.new();m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;m.albedo_color=Color("44ff8a");m.emission_enabled=true;m.emission=Color("44ff8a");m.emission_energy_multiplier=4.;return m)
 	root3d.add_child(rift);rift.global_position=at;rift.rotation.x=PI/2
 	var core:=MeshInstance3D.new();var disc:=SphereMesh.new();disc.radius=.7;disc.height=.1;core.mesh=disc
-	var cm:=StandardMaterial3D.new();cm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;cm.albedo_color=Color(.05,0,.1,.9);cm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;core.material_override=cm;rift.add_child(core)
+	core.material_override=ZombiesFx.cached("site10",func():var cm:=StandardMaterial3D.new();cm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;cm.albedo_color=Color(.05,0,.1,.9);cm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;return cm);rift.add_child(core)
 	var light:=OmniLight3D.new();light.light_volumetric_fog_energy=0.;light.light_color=Color("44ff8a");light.omni_range=6.;light.light_energy=2.5;rift.add_child(light)
 	rifts.append(rift)
 	if rifts.size()>6:(rifts.pop_front() as Node).queue_free()
@@ -1192,6 +1223,7 @@ func summary() -> Dictionary:
 
 func stop() -> void:
 	running=false;over=true
+	for l in shadow_lights:if is_instance_valid(l):(l as Light3D).shadow_enabled=true
 	for row in lights:if is_instance_valid(row[0]):(row[0] as Light3D).light_energy=float(row[1])
 	if env and not env_base.is_empty():env.fog_light_color=env_base.fog;env.fog_density=env_base.density;env.ambient_light_color=env_base.ambient
 	player.speed_scale=1.;player.gravity_scale=1.;player.camera.rotation.z=0.;player.camera.position.y=1.65;player.camera.fov=player.base_fov

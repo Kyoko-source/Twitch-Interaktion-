@@ -189,6 +189,16 @@ func run(game: Node3D, verify: Callable) -> void:
 		if tune==null or tune.get_length()<2.5 or tune.get_length()>4.5:no_jingle.append(row[0])
 	verify.call(no_jingle.is_empty(),"Perk jingles missing or wrong length: "+str(no_jingle))
 	verify.call(z.jingle.stream!=null and z.jingle.stream.resource_path.begins_with(ZombiesMode.JINGLES),"Buying a perk plays no jingle")
+	# 5.2.5 lag fix: effects share cached materials (a fresh material per muzzle
+	# flash stalled ~25 ms on the render thread), and only the nearest lamps cast shadows.
+	var cached_before:=ZombiesFx.cache.size()
+	for i in range(40):z.fx.muzzle(z.arsenal.muzzle,Color("ffc27a"),1.,game.player.camera);z.tracer(game.player.global_position,game.player.global_position+Vector3.FORWARD*4.,"")
+	verify.call(ZombiesFx.cache.size()-cached_before<=6,"Muzzle flashes and tracers still build new materials: +%d"%(ZombiesFx.cache.size()-cached_before))
+	var flash_a:=z.fx.cached("muzzle-side|"+Color("ffc27a").to_html(),func():return null)
+	verify.call(flash_a is StandardMaterial3D,"Muzzle flash material is not cached")
+	z.shadow_clock=0.;z._tick_shadows(0.)
+	var lit:=z.shadow_lights.filter(func(l):return is_instance_valid(l) and (l as Light3D).shadow_enabled).size()
+	verify.call(not z.shadow_lights.is_empty() and lit<=ZombiesMode.SHADOW_LAMPS,"Partynacht keeps %d shadow lamps on (limit %d)"%[lit,ZombiesMode.SHADOW_LAMPS])
 	z.focus={"type":"door","index":0};z.interact()
 	for i in range(4):await game.get_tree().physics_frame
 	verify.call(z.doors[0].open and z.zones_open.has("halle"),"Door does not open its zone")
@@ -252,12 +262,14 @@ func run(game: Node3D, verify: Callable) -> void:
 	z.regen_wait=0.;var low:=z.health;z._tick_player(1.)
 	verify.call(z.health>low,"Health does not regenerate")
 	var best_before: int=int(game.achievements.zombies.best_round)
+	var dimmed: Array=z.shadow_lights.duplicate()
 	z.round_number=12;z.hurt_player(9999.,null)
 	var waited:=0.
 	while game.phase!="zombies_over" and waited<8.:await game.get_tree().process_frame;waited+=game.get_process_delta_time()
 	verify.call(game.phase=="zombies_over" and game.menu.find_child("ZombiesSummary",true,false)!=null,"No result screen after dying")
 	verify.call(int(game.achievements.zombies.best_round)>=maxi(best_before,12) and int(game.achievements.zombies.kills)>=1,"Partynacht records are not saved")
 	await shot(game,"summary")
+	verify.call(dimmed.all(func(l):return not is_instance_valid(l) or (l as Light3D).shadow_enabled),"Leaving the Partynacht does not give the lamps their shadows back")
 	verify.call(game.zombies==null and is_equal_approx(game.player.speed_scale,1.) and is_equal_approx(game.player.gravity_scale,1.),"Partynacht does not clean up")
 	verify.call(game.world.find_children("ZombiesWorld","",true,false).filter(func(n):return not n.is_queued_for_deletion()).is_empty(),"Partynacht objects stay in the world")
 	game._main_menu()
