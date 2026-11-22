@@ -1,0 +1,32 @@
+{
+  "author": "After Play original modelling",
+  "license": "Original project geometry",
+  "source_head": "Existing credited clown head used for scalp fitting only; not copied",
+  "reason": "4.0.4 single-strand grooming aliased into sparkling dots; replaced by matted locks",
+  "outputs": {
+    "desktop": {
+      "locks": 1500,
+      "ribbons_per_lock": 2,
+      "vertices": 54000,
+      "triangles": 48000,
+      "root_width_mm": [
+        10,
+        26
+      ],
+      "min_tip_share": 0.42,
+      "fly_aways": 0
+    },
+    "web": {
+      "locks": 700,
+      "ribbons_per_lock": 2,
+      "vertices": 19600,
+      "triangles": 16800,
+      "root_width_mm": [
+        10,
+        26
+      ],
+      "min_tip_share": 0.42,
+      "fly_aways": 0
+    }
+  }
+}

@@ -52,6 +52,7 @@ var revamp: RevampWorld
 var venue: VenueDetails
 var graphics: AfterPlayGraphics
 var acoustics: HappylandAcoustics
+var ambient: AmbientLife
 var arrival_design: ArrivalDesign
 var craft: VenueCraft
 var climbing: ClimbingExpansion
@@ -196,6 +197,7 @@ func construction_steps() -> Array[Callable]:
   _module.bind(VenueCraft,"craft"),
   _module.bind(MechanicalProps,"mechanics"),
   _module.bind(HappylandParty,"party"),
+  _module.bind(AmbientLife,"ambient"),
   _module.bind(HappylandAcoustics,"acoustics"),
   _module.bind(HorseHunt,"horse_hunt"),
   _module.bind(PowerBlackout,"blackout"),

@@ -13,7 +13,7 @@ import tempfile
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path.home() / 'Desktop/Rolling Acid.mp3'
+SOURCE = Path.home() / 'Desktop' / 'Medien After Play und Stream' / '01 After Play Musik/Rolling Acid.mp3'
 OUT = ROOT / 'games/kinderparadies/assets/party-v385'
 FFMPEG = ROOT / 'tools/art-source/media-ffmpeg/ffmpeg-compat.exe'
 

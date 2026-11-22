@@ -49,6 +49,27 @@ func run(_game: Node3D, verify: Callable) -> void:
  for i in range(6): reset.decide(reset.current!="none")
  reset.decide(reset.current=="none");reset.start(118)
  var fresh:=PatrolState.new();fresh.start(118)
- verify.call(reset.serialize()==fresh.serialize(),"Death/new shift retains the old balance or anomaly bag")
+ verify.call(reset.serialize()==fresh.serialize(),"A new shift from the menu retains the old balance or anomaly bag")
+ # 5.2.7: a death keeps the bag, so no anomaly repeats inside a shift and
+ # the failed attempt's anomalies do not return on the next attempt.
+ var once_ok:=true;var carry_ok:=true
+ for run in range(400):
+  var p:=PatrolState.new();p.start(5000+run)
+  var shown:=[]
+  for attempt in range(12):
+   var this_try:=[]
+   var fail_at:=p.rng.randi_range(2,13) if attempt<11 else 99
+   for r in range(13):
+    if p.current!="none":
+     once_ok=once_ok and p.current not in this_try
+     if shown.size()<PatrolState.ANOMALIES.size()-7:carry_ok=carry_ok and p.current not in shown
+     this_try.append(p.current)
+    if r+1==fail_at:p.decide(p.current=="none");break
+    p.decide(p.current!="none")
+   shown.append_array(this_try.filter(func(id):return id not in shown))
+   if p.completed:break
+   p.retry()
+ verify.call(once_ok,"An anomaly appears twice in one thirteen-round shift")
+ verify.call(carry_ok,"A death brings back anomalies of the failed attempt while unseen ones remain")
  print("Balance sample: 2048 shifts; ",total_anomalies," anomaly rounds; ",2048*13-total_anomalies," normal rounds; ",patterns.size()," layouts")
  print("Ordinary randomly drawn horse pursuits without creator override: ",natural_horses)

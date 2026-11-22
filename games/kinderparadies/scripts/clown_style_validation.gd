@@ -8,8 +8,12 @@ func run(g: Node3D,verify: Callable) -> void:
  var cap:=head.get_node_or_null("PatchedCostumeCap") as Node3D
  verify.call(hair!=null and cap!=null,"New clown grooming or cap is missing")
  if not hair or not cap:return
- verify.call(hair.mesh.get_surface_count()==1 and hair.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()>70000,"Desktop grooming has not gained its denser fibres")
- verify.call(hair.material_override is ShaderMaterial and hair.material_override.shader.resource_path.ends_with("blond_hair.gdshader"),"New hair lost its blond fibre material")
+ verify.call(hair.mesh.get_surface_count()==1 and hair.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==54000,"Desktop grooming is not the 1500 matted locks of 5.2.7")
+ # 5.2.7: no sub-pixel strands. Every ribbon section is at least 4 mm wide.
+ var points: PackedVector3Array=hair.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX];var thinnest:=1.
+ for i in range(0,points.size(),2):thinnest=minf(thinnest,points[i].distance_to(points[i+1]))
+ verify.call(thinnest>.004,"Clown hair has sub-pixel strands that sparkle in motion: "+str(thinnest))
+ verify.call(hair.material_override is ShaderMaterial and hair.material_override.shader.resource_path.ends_with("matted_locks.gdshader"),"New hair lost its matted lock material")
  verify.call(hair.find_children("*","CollisionShape3D",true,false).is_empty() and cap.find_children("*","CollisionShape3D",true,false).is_empty(),"Costume accessories add movement collision")
  var patches:=0
  var bounds:=AABB();var first:=true
@@ -40,9 +44,9 @@ func run(g: Node3D,verify: Callable) -> void:
  var web_head:=web_body.find_child("Head",true,false) as MeshInstance3D
  verify.call(web_head!=null and web_head.find_blend_shape_by_name("Gape")>=0,"Browser clown lost its opening jaw")
  web_body.queue_free()
- var web: Node3D=(load("res://assets/clown-v404/clown-hair-web.glb") as PackedScene).instantiate();g.add_child(web)
+ var web: Node3D=(load("res://assets/clown-v527/clown-hair-web.glb") as PackedScene).instantiate();g.add_child(web)
  var fibre: MeshInstance3D=web.find_child("MattedBlondHair",true,false)
- verify.call(fibre!=null and fibre.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==30000,"Web grooming lost its compact version of the same style")
+ verify.call(fibre!=null and fibre.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()==19600,"Web grooming lost its compact version of the same style")
  web.queue_free()
  g._build_world("clown_lunge");g.player.active=false
  g.player.position=Vector3(-12.4,0,-31.25);g.player.camera.look_at(g.world.annex.clown.head.global_position)

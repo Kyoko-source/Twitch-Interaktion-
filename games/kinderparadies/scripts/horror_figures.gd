@@ -94,9 +94,11 @@ static func clown(w: PlayWorld, parent: Node3D) -> Dictionary:
  var root:=scene.instantiate();root.name="KitchenClown";parent.add_child(root)
  var head:=root.find_child("Head",true,false) as Node3D
  assert(head!=null,"Sculpted clown head is missing")
- var hair: Node3D=(load("res://assets/clown-v404/clown-hair-web.glb" if OS.has_feature("web") else "res://assets/clown-v404/clown-hair-desktop.glb") as PackedScene).instantiate()
+ # 5.2.7: matted locks instead of 11 000 sub-pixel strands, which broke up
+ # into sparkling dots around the head.
+ var hair: Node3D=(load("res://assets/clown-v527/clown-hair-web.glb" if OS.has_feature("web") else "res://assets/clown-v527/clown-hair-desktop.glb") as PackedScene).instantiate()
  head.add_child(hair)
- var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/encounter-v360/blond_hair.gdshader")
+ var fibres:=ShaderMaterial.new();fibres.shader=load("res://assets/clown-v527/matted_locks.gdshader")
  for mesh in hair.find_children("*","MeshInstance3D",true,false):
   mesh.material_override=fibres;mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
   mesh.set_meta("nonblocking_atmosphere",true)

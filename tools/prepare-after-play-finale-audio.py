@@ -5,7 +5,7 @@ import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'games/kinderparadies/assets/finale'
-SOURCE=Path.home()/'Desktop/Horror Audio Marelle.wma'
+SOURCE=Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen/Story/Horror Audio Marelle.wma'
 ARCHIVE=ROOT/'tools/art-source/evil-creature-cc0.zip'
 OUT.mkdir(exist_ok=True)
 FFMPEG=shutil.which('ffmpeg')

@@ -61,6 +61,8 @@ class AfterPlayMultiplayerTests(unittest.TestCase):
         self.assertEqual(self.client.post(f"/api/afterplay/mp/sessions/{code}/state", json={}, headers={"X-Host-Token": viewer}).status_code, 403)
         self.assertEqual(self.client.put(f"/api/afterplay/mp/sessions/{code}/plan", json={"rounds": ["evil"] * 13}, headers={"X-Viewer-Token": viewer}).status_code, 400)
         self.assertEqual(self.client.put(f"/api/afterplay/mp/sessions/{code}/plan", json={"rounds": ["none"] * 12}, headers={"X-Viewer-Token": viewer}).status_code, 422)
+        twice = ["none"] * 13; twice[3] = twice[9] = "clown_lunge"
+        self.assertEqual(self.client.put(f"/api/afterplay/mp/sessions/{code}/plan", json={"rounds": twice}, headers={"X-Viewer-Token": viewer}).status_code, 400)
         self.assertEqual(self.client.put(f"/api/afterplay/mp/sessions/{code}/map", json={**MAP, "walls": [[1, 2, 3]]}, headers={"X-Host-Token": host}).status_code, 400)
         self.assertEqual(self.client.put(f"/api/afterplay/mp/sessions/{code}/map", json=MAP, headers={"X-Host-Token": viewer}).status_code, 403)
         self.assertEqual(self.client.post("/api/afterplay/mp/sessions/000000/join").status_code in (404, 409), True)

@@ -121,6 +121,19 @@ static func catalog() -> Array:
 
 func start(seed_value: int = 0) -> void:
  rng.seed = seed_value if seed_value != 0 else Time.get_ticks_usec()
+ _reset()
+
+# A death in the thirteen-round shift (5.2.7): progress starts over, but the
+# anomaly bag and its random stream carry on, so the anomalies of the failed
+# attempt do not come back until every other one has been seen.
+func retry() -> void:
+ var kept:=bag.duplicate()
+ # The round drawn right after the fatal door was never shown; it goes back.
+ if not endless and current not in ["none","detail"] and current not in kept and current not in _seen():kept.append(current)
+ _reset()
+ if not endless:bag.assign(kept)
+
+func _reset() -> void:
  streak=0;best=0;errors=0;rounds=0;seconds=0;current="none";completed=false;horse_override=false
  visited.clear();deck.clear();bag.clear();history.clear()
  lives=LIVES;round_time=0;detail={};flawless=0;detail_row=0;last_life_rounds=0;over=false
@@ -201,10 +214,31 @@ func _next() -> void:
  if deck.pop_back()=="normal":
   current="none"
  else:
-  if bag.is_empty():
-   for anomaly in ANOMALIES: bag.append(anomaly.id)
-   _shuffle(bag)
-  current=bag.pop_back()
+  current=_draw_unseen()
+
+# Ids already drawn in this attempt of the shift (since the last wrong door).
+func _seen() -> Array:
+ var ids:=[]
+ for entry in history:
+  if not entry.get("correct",true):ids.clear();continue
+  var id:=str(entry.get("anomaly","none"))
+  if id!="none" and id not in ids:ids.append(id)
+ return ids
+
+# Every anomaly at most once per shift (5.2.7). A refilled bag leaves out what
+# this attempt has already shown.
+func _draw_unseen() -> String:
+ var seen:=_seen()
+ while not bag.is_empty():
+  var id:String=bag.pop_back()
+  if id not in seen:return id
+ for anomaly in ANOMALIES:
+  if anomaly.id not in seen:bag.append(anomaly.id)
+ # Only possible with every anomaly shown in one attempt: allow repeats.
+ if bag.is_empty():
+  for anomaly in ANOMALIES:bag.append(anomaly.id)
+ _shuffle(bag)
+ return bag.pop_back()
 
 func inspect(zone: String) -> bool:
  if zone in ZONES and zone not in visited and not completed:
@@ -299,7 +333,7 @@ func restore(data: Dictionary) -> bool:
   if zone not in ZONES and zone!="Partyraum": return false
  if data.get("visited",[]).size()!=Array(data.get("visited",[])).reduce(func(acc,item):return acc if item in acc else acc+[item],[]).size(): return false
  streak=int(data.streak);best=int(data.get("best",0));errors=int(data.get("errors",0));rounds=int(data.get("rounds",0));seconds=float(data.get("seconds",0));current=REPLACEMENTS.get(data.current,data.current)
- visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)));completed=streak==limit
+ visited.assign(data.get("visited",[]).map(func(zone):return "Party Raum" if zone=="Partyraum" else zone));deck.assign(data.get("deck",[]));bag.assign(data.get("bag",[]).map(func(id):return REPLACEMENTS.get(id,id)).reduce(func(acc,id):return acc if id in acc else acc+[id],[]));completed=streak==limit
  history=data.get("history",[]);rng.state=int(data.get("rng","1"))
  endless=endless_save
  if endless:

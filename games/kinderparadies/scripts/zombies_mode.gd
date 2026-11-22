@@ -59,6 +59,10 @@ var env_base:={}
 var debris: Array=[]
 var rifts: Array=[]
 var spawn_cells:={}
+# 5.2.7: cells the player can actually walk to (flood fill from the start,
+# through bought barriers only). Hollow props like the inflatable crocodile
+# and pockets behind walls probe as floor but are not in here.
+var reach_cells:={}
 var sense_clock:=0.0
 var aim_held:=false
 var fire_held:=false
@@ -211,6 +215,24 @@ func _build_nav() -> void:
 		if z!="":
 			if not spawn_cells.has(z):spawn_cells[z]=[]
 			spawn_cells[z].append(id)
+	refresh_reach()
+
+func refresh_reach() -> void:
+	reach_cells=nav.reachable(ZombiesConfig.SPAWN_POINT)
+
+func reachable_at(p: Vector3) -> bool:
+	var c:=nav.nearest(p)
+	return c.x!=999999 and reach_cells.has(c)
+
+# The closest point the player could walk to.
+func snap_reachable(p: Vector3) -> Vector3:
+	var c:=nav.nearest(p)
+	if c.x!=999999 and reach_cells.has(c):return nav.point(c)
+	var best:=Vector2i(999999,0);var best_d:=INF;var at:=nav.cell_of(p)
+	for id: Vector2i in reach_cells:
+		var d:=Vector2(id-at).length_squared()
+		if d<best_d:best_d=d;best=id
+	return nav.point(best) if best.x!=999999 else ZombiesConfig.SPAWN_POINT
 
 func _sign(parent: Node3D, text: String, at: Vector3, color: Color, size_px: int=48) -> Label3D:
 	var label:=Label3D.new();label.text=text;label.font=load("res://assets/Oswald.ttf");label.font_size=size_px;label.pixel_size=.004;label.outline_size=10
@@ -398,12 +420,20 @@ func _spawn_cell() -> Vector3:
 		var zone_list:=zones_open.keys();var zone: String=zone_list[rng.randi_range(0,zone_list.size()-1)]
 		if not spawn_cells.has(zone):continue
 		var cells: Array=spawn_cells[zone];var c: Vector2i=cells[rng.randi_range(0,cells.size()-1)]
-		if not nav.walkable(c):continue
+		if not nav.walkable(c) or not reach_cells.has(c):continue
 		var at:=nav.point(c);var d:=at.distance_to(p)
 		if d>9. and d<34.:return at
 		if d>6. and best==Vector3.INF:best=at
-	if not rifts.is_empty() and rng.randf()<.4:return (rifts[rng.randi_range(0,rifts.size()-1)] as Node3D).global_position
-	return best if best!=Vector3.INF else p+Vector3(10,0,0)
+	if not rifts.is_empty() and rng.randf()<.4:
+		var rift: Node3D=rifts[rng.randi_range(0,rifts.size()-1)]
+		if reachable_at(rift.global_position):return snap_reachable(rift.global_position)
+	if best!=Vector3.INF:return best
+	# Never a blind offset into a wall: a reachable cell away from the player.
+	var cells:=reach_cells.keys()
+	for attempt in range(40):
+		var at:=nav.point(cells[rng.randi_range(0,cells.size()-1)])
+		if at.distance_to(p)>6.:return at
+	return snap_reachable(p)
 
 func _pick_kind() -> String:
 	var elite_pool:=ZombiesConfig.elites_for(round_number)
@@ -634,7 +664,7 @@ func teleport_near(e: ZombieEnemy) -> void:
 	for attempt in range(10):
 		var at:=p+back*rng.randf_range(3.,5.)+Vector3(rng.randf_range(-2,2),0,rng.randf_range(-2,2))
 		var c:=nav.nearest(at)
-		if c.x!=999999 and nav.point(c).distance_to(at)<1.:
+		if c.x!=999999 and reach_cells.has(c) and nav.point(c).distance_to(at)<1.:
 			_flash(e.global_position+Vector3.UP,Color("8a6aff"),2.5);e.global_position=nav.point(c);_flash(e.global_position+Vector3.UP,Color("8a6aff"),2.5);return
 
 # Zombie voices (owner's Pixabay picks, see tools/prepare-after-play-zombie-voices.py).
@@ -684,7 +714,7 @@ func boss_attack(e: ZombieEnemy, kind: String) -> void:
 	match kind:
 		"summon":
 			for i in range(3+e.boss_phase*2):
-				var minion:=_spawn_enemy();minion.global_position=e.global_position+Vector3(rng.randf_range(-3,3),0,rng.randf_range(-3,3))
+				var minion:=_spawn_enemy();minion.global_position=snap_reachable(e.global_position+Vector3(rng.randf_range(-3,3),0,rng.randf_range(-3,3)))
 		"shockwave":
 			_ring(e.global_position,7.,Color("ff2a2a"));fx.explosion(e.global_position+Vector3.UP*.2,3.5,Color("ff2a2a"))
 			if e.global_position.distance_to(player.global_position)<7. and player.is_on_floor():hurt_player(e.dmg*.8,e)
@@ -1004,7 +1034,7 @@ func open_door(index: int) -> void:
 	fx.explosion(d.mid+Vector3.UP*1.2,2.6,Color("ffd23a"));fx.confetti(d.mid+Vector3.UP*1.5,4.)
 	fx.sound("barrier-break",d.mid+Vector3.UP,2.)
 	await get_tree().physics_frame
-	nav.rebuild_line(d.spec.from,d.spec.to)
+	nav.rebuild_line(d.spec.from,d.spec.to);refresh_reach()
 	_announce("","%s geöffnet"%d.spec.name,"door",Color.WHITE,2.)
 
 func buy_perk(id: String) -> void:

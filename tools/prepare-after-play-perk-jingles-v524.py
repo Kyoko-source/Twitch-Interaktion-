@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path.home() / 'Desktop' / 'Zombie Sounds'
+SOURCE = Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen' / 'Zombie Sounds'
 OUT = ROOT / 'games/kinderparadies/assets/zombies-v524/jingles'
 SR, HOP = 22050, 256
 MIN_LEN, MAX_LEN, FADE = 3.0, 4.0, .7

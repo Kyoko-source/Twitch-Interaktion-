@@ -83,6 +83,7 @@ func build(world: PlayWorld) -> void:
  sources.append_array(added_loops)
  sources.append_array(w.mechanics.sources)
  sources.append(w.party.audio)
+ if w.ambient:sources.append_array(w.ambient.sources())
  for source in w.soundscape.events:source.volume_db=minf(source.volume_db,-15.)
  w.soundscape.ghost.volume_db=-9.
  var server:=w.server_room.get_node("ServerVentilation") as AudioStreamPlayer3D

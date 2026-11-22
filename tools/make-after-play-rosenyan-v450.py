@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / 'Desktop/D= - RosenyanVT (1080p).mp3'
+SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / 'Desktop' / 'Medien After Play und Stream' / '05 Streamer-Clips/D= - RosenyanVT (1080p).mp3'
 OUT = ROOT / 'games/kinderparadies/assets/rosenyan-v450'
 START = 12.70
 

@@ -274,6 +274,25 @@ func run(game: Node3D, verify: Callable) -> void:
 	verify.call(swings==null or (swings.has_animation("Attack") and swings.has_animation("Attack2")),"Party children have no swing animations")
 	z.regen_wait=0.;var low:=z.health;z._tick_player(1.)
 	verify.call(z.health>low,"Health does not regenerate")
+	# 5.2.7: no spawns inside the crocodile or behind walls; stranded guests come back.
+	z.points=999999
+	for i in range(z.doors.size()):
+		if not z.doors[i].open:z.open_door(i)
+	for i in range(4):await game.get_tree().physics_frame
+	var pockets: Array=[]
+	for id in z.nav.heights:
+		if z.nav.walkable(id) and not z.reach_cells.has(id) and ZombiesConfig.zone_at(z.nav.point(id))!="":pockets.append(id)
+	var bad_spawns:=0
+	for i in range(600):
+		if not z.reach_cells.has(z.nav.nearest(z._spawn_cell())):bad_spawns+=1
+	verify.call(bad_spawns==0,"%d of 600 spawns land off the reachable floor (%d walkable pockets)"%[bad_spawns,pockets.size()])
+	var croc_cells:=pockets.filter(func(id):return z.nav.point(id).distance_to(Vector3(3.6,0,8.5))<4.)
+	print("Partynacht walkable pockets outside reach: ",pockets.size(),", near the crocodile: ",croc_cells.size())
+	if not pockets.is_empty():
+		var lost: ZombieEnemy=z._spawn_enemy();lost.global_position=z.nav.point(croc_cells[0] if not croc_cells.is_empty() else pockets[0]);lost.rise=0.
+		var waited_lost:=0.
+		while not z.reachable_at(lost.global_position) and waited_lost<3.:await game.get_tree().process_frame;waited_lost+=game.get_process_delta_time()
+		verify.call(z.reachable_at(lost.global_position),"A guest stranded in a pocket does not come back")
 	var best_before: int=int(game.achievements.zombies.best_round)
 	var dimmed: Array=z.shadow_lights.duplicate()
 	z.round_number=12;z.hurt_player(9999.,null)

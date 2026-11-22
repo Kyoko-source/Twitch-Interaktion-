@@ -177,6 +177,9 @@ def save_plan(code: str, body: Plan, x_viewer_token: str | None = Header(default
     valid = {a["id"] for a in session.catalog} | {"none"}
     if any(r not in valid for r in body.rounds):
         raise HTTPException(400, "Unbekannte Anomalie im Plan.")
+    picked = [r for r in body.rounds if r != "none"]
+    if len(picked) != len(set(picked)):
+        raise HTTPException(400, "Jede Anomalie darf nur einmal pro Schicht vorkommen.")
     with store.lock:
         if session.plan is not None:
             raise HTTPException(409, "Der Plan ist schon gespeichert und das Spiel läuft.")

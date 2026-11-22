@@ -5,7 +5,7 @@ import numpy as np
 from faster_whisper import WhisperModel
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=Path.home()/'Desktop/Horror Audio Marelle.wma'
+SOURCE=Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen/Story/Horror Audio Marelle.wma'
 OUT=ROOT/'tools/art-source/after-play-narration';OUT.mkdir(parents=True,exist_ok=True)
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING']='1'
 model=WhisperModel('small',device='cpu',compute_type='int8',cpu_threads=8,download_root=str(ROOT/'tools/art-source/whisper-models'))

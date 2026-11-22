@@ -15,8 +15,8 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path.home() / 'Desktop' / 'Ansagen Bonus'
-SOURCE_V523 = Path.home() / 'Desktop' / 'Zombie Sounds'
+SOURCE = Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen' / 'Ansagen Bonus'
+SOURCE_V523 = Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen' / 'Zombie Sounds'
 OUT = ROOT / 'games/kinderparadies/assets/zombies-v500/audio'
 # recording file name -> announcer key (see scripts/zombies_announcer.gd)
 LINES = {

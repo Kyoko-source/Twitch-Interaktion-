@@ -88,7 +88,8 @@ function Planner({session,view,error,onLeave}){
     return Object.entries(groups).sort(([a],[b])=>a.localeCompare(b,'de'));
   },[view.catalog,filter]);
   const used=new Set(rounds.filter(r=>r!=='none'));
-  const place=(index,id)=>setRounds(current=>current.map((value,i)=>i===index?id:value));
+  // Each anomaly at most once per shift: placing it again moves it to the new round.
+  const place=(index,id)=>setRounds(current=>current.map((value,i)=>i===index?id:(id!=='none'&&value===id?'none':value)));
   const drop=(index,event)=>{event.preventDefault();const id=event.dataTransfer.getData('text/plain');if(id)place(index,id);};
   const shuffle=()=>{
     const pool=[...view.catalog.map(a=>a.id)].sort(()=>Math.random()-.5);

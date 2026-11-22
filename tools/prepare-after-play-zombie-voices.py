@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path.home() / 'Desktop' / 'Zombie Sounds'
+SOURCE = Path.home() / 'Desktop' / 'Medien After Play und Stream' / '02 After Play Sounds und Stimmen' / 'Zombie Sounds'
 OUT = ROOT / 'games/kinderparadies/assets/zombies-v513/voice'
 MIN_CALL = .55   # shorter pieces are dropped
 MAX_CALL = 4.5   # longer pieces are faded out here

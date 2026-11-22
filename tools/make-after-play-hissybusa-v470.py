@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if len(sys.argv) > 1:
     SOURCE = Path(sys.argv[1])
 else:
-    SOURCE = next((Path.home() / 'Downloads').glob('*Hissybusa*.mp4'))
+    SOURCE = next((Path.home() / 'Desktop' / 'Medien After Play und Stream' / '05 Streamer-Clips').glob('*Hissybusa*.mp4'))
 OUT = ROOT / 'games/kinderparadies/assets/hissybusa-v470'
 START, END = 10.45, 15.95
 

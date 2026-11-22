@@ -730,6 +730,7 @@ func _process(delta: float) -> void:
  world.life.apply_room_audio(player)
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
+ world.ambient.tick(delta,phase=="play",player)
  player.foley.tick(phase in ["play","inventory"])
  world.acoustics.tick(delta,phase=="play",player)
  world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
@@ -870,7 +871,7 @@ func _door_death(red: bool) -> void:
  survived=state.streak;last_result=state.decide(red)
  if mp:mp.event("Falsche %s Tür in Runde %d – Spieler 1 wurde erwischt. Die Schicht beginnt von vorn."%["rote" if red else "grüne",survived+1])
  phase="failure";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
- archive.clear();archive_selected="";archive_input="";_lose_plushes();state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
+ archive.clear();archive_selected="";archive_input="";_lose_plushes();state.retry();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
  door_failure.start_patrol(world,player.camera);_telemetry()
  await door_failure.finished
  await _wake_after_death()
@@ -885,7 +886,7 @@ func _horse_attack_started() -> void:
  survived=state.streak
  if mp:mp.event("Das Pferd hat Spieler 1 in Runde %d erwischt."%(survived+1))
  phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
- archive.clear();archive_selected="";archive_input="";_lose_plushes();state.start();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
+ archive.clear();archive_selected="";archive_input="";_lose_plushes();state.retry();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true);_telemetry()
 
 func _horse_killed() -> void:
  if phase=="horse_death":await _wake_after_death()
@@ -1102,7 +1103,7 @@ func _fullscreen() -> void:
 
 func _quit() -> void:
  if phase=="quitting": return
- world.soundscape.stop_all()
+ world.soundscape.stop_all();world.ambient.stop_all()
  _save();_write_settings()
  player.release();room_audio.stop();effect.stop();world.source.stop()
  if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/after-play'");_main_menu()
@@ -1164,7 +1165,7 @@ func _telemetry() -> void:
   data.flashlight={"energy":player.lamp.light_energy,"near_wall":player.torch_body.near_wall}
   data.step_variants=player.surface_sounds.concrete.size()
   data.croc_jaw=world.playground.croc_jaw.rotation.x
-  data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot()
+  data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot();data.ambient_life=world.ambient.snapshot()
   var sky:=world.climbing.sky;var sky_path:=[]
   for i in range(ceili(sky.length/.4)+1):
    var at:=sky.route(minf(sky.length,i*.4));sky_path.append([at.x,SkyTube.FLOOR,at.z])
@@ -1177,7 +1178,7 @@ func _telemetry() -> void:
   data.fog={"density":world.environment.environment.fog_density,"color":world.environment.environment.fog_light_color.to_html(),"volumetric":world.environment.environment.volumetric_fog_density}
   data.annex={"clock":world.annex.clock,"stirring":not (world.annex.scare or world.annex.settled),"clown":[world.annex.clown.root.position.x,world.annex.clown.root.position.y,world.annex.clown.root.position.z],"pot_taps":world.annex.pot_taps,"grip_error":world.annex.grip_error()}
   data.mechanics=world.mechanics.snapshot()
-  data.clown_style={"cap":world.annex.clown.head.has_node("PatchedCostumeCap"),"web_groom":OS.has_feature("web") and ResourceLoader.exists("res://assets/clown-v404/clown-hair-web.glb")}
+  data.clown_style={"cap":world.annex.clown.head.has_node("PatchedCostumeCap"),"web_groom":OS.has_feature("web") and ResourceLoader.exists("res://assets/clown-v527/clown-hair-web.glb")}
   data.flashlight={"clock":player.torch_body.clock,"strength":player.torch_body.strength,"count":player.torch_body.count,"near_wall":player.torch_body.near_wall,"landing":player.torch_body.landing,"energy":player.lamp.light_energy}
   data.failure={"running":door_failure.running,"clock":door_failure.clock,"count":door_failure.shown}
   data.intro=intro.snapshot()

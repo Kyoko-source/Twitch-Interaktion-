@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / 'Downloads/Peak-Gesang-oder-so-einsmarello-_720p_.mp3'
+SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / 'Desktop' / 'Medien After Play und Stream' / '05 Streamer-Clips/Peak-Gesang-oder-so-einsmarello-_720p_.mp3'
 OUT = ROOT / 'games/kinderparadies/assets/einsmarello-v460'
 START, END = 12.95, 16.85
 

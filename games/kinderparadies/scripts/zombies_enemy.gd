@@ -38,6 +38,10 @@ var burn:=0.0
 var stun:=0.0
 var buffed:=0.0
 var stuck:=0.0
+# 5.2.7: time spent off the reachable floor or without progress.
+var stranded:=0.0
+var blocked:=0.0
+var place_check:=0.0
 var boss_phase:=0
 var clone:=false
 var rng:=RandomNumberGenerator.new()
@@ -202,9 +206,21 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if dir.length()>.1 and before.distance_to(global_position)<move_speed*delta*.25:
 		stuck+=delta
+		blocked+=delta
 		if stuck>1.2:stuck=0.;repath=0.;velocity+=Vector3(rng.randf_range(-2,2),0,rng.randf_range(-2,2))
-	else:stuck=0.
+	else:stuck=0.;blocked=maxf(0.,blocked-delta*2.)
 	if global_position.y<-6.:mode.recover_enemy(self)
+	# Stranded inside a prop (the inflatable crocodile) or behind a wall, or
+	# wedged for six seconds: guests respawn somewhere reachable, bosses step
+	# onto the nearest reachable floor.
+	place_check-=delta
+	if place_check<=0.:
+		place_check=.25
+		stranded=stranded+.25 if not mode.reachable_at(global_position) else 0.
+	if stranded>1.5 or blocked>6.:
+		stranded=0.;blocked=0.;stuck=0.;repath=0.
+		if role=="boss":global_position=mode.snap_reachable(global_position);velocity=Vector3.ZERO
+		else:mode.recover_enemy(self)
 	var face:=to if dist<7. or dir.length()<.1 else dir
 	if face.length()>.05:rotation.y=lerp_angle(rotation.y,atan2(face.x,face.z),clampf(delta*9.,0,1))
 	# Melee: wind up, then strike if still close.

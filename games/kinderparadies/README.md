@@ -1,5 +1,63 @@
 # After Play — Kinderparadies
 
+## Mehr Leben, jede Anomalie nur einmal, Partynacht-Spawns, kein Funkeln am Clown (5.2.7)
+
+- **Jede Anomalie höchstens einmal pro Schicht.** Innerhalb einer Schicht zog
+  das Spiel schon ohne Zurücklegen, aber jeder Tod (falsche Tür, Pferd) rief
+  `PatrolState.start()` auf und mischte den Beutel neu, sodass die Anomalien
+  des gescheiterten Versuchs gleich wiederkamen. Ein Tod ruft jetzt
+  `retry()`: Fortschritt und Rundenverteilung beginnen von vorn, der Beutel
+  läuft weiter. Ein Anomaliebeutel reicht damit für rund neun Versuche, bevor
+  sich etwas wiederholt, und auch beim Nachfüllen bleibt alles draußen, was
+  der laufende Versuch schon gezeigt hat. Die direkt nach der tödlichen Tür
+  gezogene, nie gezeigte Anomalie kommt zurück in den Beutel. Alte
+  Spielstände mit doppelten Einträgen (umbenannte Anomalien) werden beim
+  Laden bereinigt. Eine neue Schicht aus dem Menü mischt weiterhin neu.
+- Multiplayer: Im Rundenplaner kann Spieler 2 jede Anomalie nur einmal
+  setzen (erneutes Ablegen verschiebt sie); der Server lehnt doppelte Pläne
+  ab.
+- **Partynacht: keine Zombies mehr im Krokodil oder hinter Wänden.** Das
+  Navigationsraster tastet den Boden mit Strahl und Kapsel ab; unter dem
+  hohlen aufblasbaren Krokodil und in Nischen hinter Wänden galten dadurch
+  338 Zellen als begehbar, obwohl man sie nie erreicht (28 davon am
+  Krokodil). Gegner entstanden zufällig in den gekauften Zonen und konnten
+  dort landen. Jetzt füllt `refresh_reach()` vom Start aus die wirklich
+  erreichbaren Zellen (neu nach jeder geöffneten Absperrung), und alle
+  Spawnwege nutzen nur diese: normale Gegner, Bosse, Risse, Boss-Diener,
+  Teleport, Notfall-Platz. Ein Zombie, der 1,5 s außerhalb steht oder 6 s
+  festhängt, holt sich einen neuen Platz (Bosse treten auf den nächsten
+  erreichbaren Boden).
+- **Clownhaare ohne Funkeln.** Das Haar aus 4.0.4 bestand aus 11 000
+  Einzelsträhnen, dünner als ein Pixel, plus abstehenden Einzelhaaren. Auf dem
+  Bildschirm zerfiel es in lose Punkte, die bei jeder Bewegung flimmerten,
+  wie Partikel über und um den Kopf. Jetzt sind es 1 500 verfilzte Büschel
+  aus je zwei gekreuzten Bändern, 10–26 mm breit, ohne abstehende Haare
+  (`tools/model-after-play-clown-hair-v527.py`, `assets/clown-v527/`). Die
+  Faserstruktur kommt aus dem Shader und blendet aus, bevor sie kleiner als
+  ein Pixel wird. Web: 700 Büschel.
+- **Ambient-Leben** (`scripts/ambient_life.gd`): 53 Schnitte aus 38 echten CC0-Aufnahmen von
+  freesound.org (`tools/prepare-after-play-ambient-life-v527.py`, Herkunft in
+  `assets/ambient-v527/provenance.json`).
+  - Raumtöne an ihrer echten Quelle: Neon am Empfang, Röhrenbrummen in Halle,
+    Flur und Küche, die Empfangsuhr tickt, Wind pfeift durch den alten
+    Haupteingang, Regen am Fenster, der Heizkessel im Wartungsraum, der
+    Snackautomat im Party Raum, tropfende Spülen in Küche und WC, Rauschen
+    aus dem toten Kinolautsprecher. Alles am Stromnetz verstummt beim
+    Stromausfall.
+  - Alle 2,5 bis 6,5 Sekunden ein Geräusch in Hörweite: Knarzen in Decken
+    und Böden, Heizungsrohre, das Plastik des Klettergerüsts, Ratten und
+    Mäuse in den Wänden, eine Taube unterm Dach, quietschendes Spielzeug,
+    Aufziehautos, ein Xylophon, springende Bälle, Bälle im Bällebad,
+    Ballons, ein Münzschacht am Automaten, die Spieluhr, ein sprechendes
+    Spielzeug, Spülkasten und Händetrockner im WC, draußen Autos im Regen,
+    Hunde, eine Eule, eine ferne Sirene, die klappernde Tür. Jede Datei hat
+    eine Abklingzeit (seltene Sachen bis 4 Minuten); Wände dämpfen über die
+    bestehende Raumakustik.
+  - Eigener Zufallsgenerator, gleiches Verhalten in normalen und
+    Anomalie-Runden: Kein Geräusch verrät eine Runde.
+  - Test: `-- --self-test --ambient-only` (auch Teil von
+    `--shift-release-only`).
+
 ## Partynacht: Absturz beim Wechsel auf Runde 10 behoben (5.2.6)
 
 - **Ursache:** Runde 10 ist die erste Boss-Runde und ruft immer das Krokodil.
