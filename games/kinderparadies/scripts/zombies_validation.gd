@@ -31,6 +31,19 @@ func run(game: Node3D, verify: Callable) -> void:
 	for b in ZombiesConfig.BOSSES:
 		if not ResourceLoader.exists(str(b.model)):missing.append(b.id)
 	verify.call(missing.is_empty(),"Partynacht models missing: "+str(missing))
+	# 5.2.6: the round-10 croc was excluded from every export and crashed the game;
+	# every enemy and boss model must survive each preset's exclude filter.
+	var cut: Array=[]
+	var presets:=ConfigFile.new();presets.load("res://export_presets.cfg")
+	for section in presets.get_sections():
+		if not presets.has_section_key(section,"exclude_filter"):continue
+		var web:=str(presets.get_value(section,"platform","")).to_lower().contains("web")
+		var patterns:=str(presets.get_value(section,"exclude_filter","")).split(",",false)
+		for data in ZombiesConfig.ENEMIES.values()+ZombiesConfig.BOSSES:
+			var path:=ZombiesConfig.model_path(data,web).trim_prefix("res://")
+			for pattern in patterns:
+				if path.matchn(pattern.strip_edges()):cut.append(str(presets.get_value(section,"name",section))+":"+path)
+	verify.call(cut.is_empty(),"Partynacht models excluded from an export: "+str(cut))
 	# 5.2.3: every pickup has its own recorded line, none falls back to the drone.
 	var voices:=["start"]
 	for row in ZombiesConfig.PICKUPS:voices.append("pickup_"+str(row[0]))

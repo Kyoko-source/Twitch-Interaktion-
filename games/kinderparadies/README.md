@@ -1,5 +1,21 @@
 # After Play — Kinderparadies
 
+## Partynacht: Absturz beim Wechsel auf Runde 10 behoben (5.2.6)
+
+- **Ursache:** Runde 10 ist die erste Boss-Runde und ruft immer das Krokodil.
+  Dessen Modell `assets/creatures/night-crocodile-v4.glb` stand in allen drei
+  Export-Presets im `exclude_filter`, fehlte also im gebauten Spiel; das Laden
+  lieferte `null` und das Spiel stürzte ab. Im Editor war die Datei da, und der
+  Test spawnte nur den ersten Boss, deshalb fiel es nicht auf.
+- Der Krokodil-Boss nutzt jetzt `assets/croc-v385/crocodile.glb` (wird überall
+  mitgeliefert, Skalierung 1,17 für dieselbe Größe). Für die Web-Fassung, die
+  `assets/hero/*` und `clown-desktop.glb` auslässt, haben Plüsch-Koloss und
+  Marell ein `web_model` (Feier-Hase bzw. `clown-web.glb`).
+- Fehlt ein Gegnermodell trotzdem, lädt der Gegner das Partykind-Modell und
+  meldet einen Fehler, statt das Spiel abzustürzen.
+- Der Partynacht-Test prüft jetzt jedes Gegner- und Boss-Modell gegen die
+  Ausschlussfilter jedes Export-Presets.
+
 ## Partynacht: Ruckler beim Schießen behoben (5.2.5)
 
 - **Ursache 1, Effekt-Materialien:** Mündungsfeuer, Leuchtspuren, Blitze,

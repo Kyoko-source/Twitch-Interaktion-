@@ -56,15 +56,20 @@ const ENEMIES:={
 	"spitter":{"name":"Konfetti-Spucker","model":"res://assets/visitors-v421/visitor-split.glb","scale":.95,"hp":1.3,"speed":.8,"dmg":.7,"role":"spitter","elite":true},
 	"screamer":{"name":"Kreischerin","model":"res://assets/visitors-v421/visitor-hooded.glb","scale":1.,"hp":1.6,"speed":.9,"dmg":.8,"role":"screamer","elite":true},
 	"phase":{"name":"Flackerkind","model":"res://assets/visitors-v421/visitor-ragged.glb","scale":.95,"hp":1.8,"speed":1.2,"dmg":1.3,"role":"teleporter","elite":true},
-	"tank":{"name":"Plüsch-Koloss","model":"res://assets/hero/stitched-rabbit.glb","scale":1.9,"hp":4.5,"speed":.6,"dmg":2.,"role":"tank","elite":true},
+	"tank":{"name":"Plüsch-Koloss","model":"res://assets/hero/stitched-rabbit.glb","web_model":"res://assets/celebration-v3813/celebration-rabbit.glb","scale":1.9,"hp":4.5,"speed":.6,"dmg":2.,"role":"tank","elite":true},
 	"alien":{"name":"Riss-Mutant","model":"res://assets/zombies-v510/party-avatar.glb","scale":1.2,"hp":2.4,"speed":1.3,"dmg":1.4,"role":"alien","elite":true},
 }
 const ELITES_BY_ROUND:=[[5,["jumper","spitter"]],[8,["screamer"]],[12,["phase","tank"]],[15,["alien"]]]
 # Bosses rotate; each has phases at 66 % and 33 % health.
+# Only models that ship in every export preset; "web_model" replaces a model the
+# web build leaves out (5.2.6: the croc v4 was excluded everywhere, round 10 crashed).
+const FALLBACK_MODEL:="res://assets/zombies-v510/party-avatar.glb"
+static func model_path(data: Dictionary, web: bool=OS.has_feature("web")) -> String:
+	return str(data.get("web_model",data.model)) if web else str(data.model)
 const BOSSES:=[
-	{"id":"marell","name":"MARELL, DER KOCH DER LETZTEN TORTE","model":"res://assets/clown-v420/clown-desktop.glb","scale":2.3,"hp":28.,"speed":.75,"attacks":["charge","summon","shockwave"]},
+	{"id":"marell","name":"MARELL, DER KOCH DER LETZTEN TORTE","model":"res://assets/clown-v420/clown-desktop.glb","web_model":"res://assets/clown-v420/clown-web.glb","scale":2.3,"hp":28.,"speed":.75,"attacks":["charge","summon","shockwave"]},
 	{"id":"titan","name":"DER PLÜSCH-TITAN","model":"res://assets/einsmarello-v460/einsmarello-plush.glb","scale":3.4,"hp":40.,"speed":.55,"attacks":["shockwave","summon","stomp"]},
-	{"id":"croc","name":"DAS MUTIERTE KROKODIL","model":"res://assets/creatures/night-crocodile-v4.glb","scale":1.3,"hp":34.,"speed":.9,"attacks":["charge","spit","shockwave"]},
+	{"id":"croc","name":"DAS MUTIERTE KROKODIL","model":"res://assets/croc-v385/crocodile.glb","scale":1.17,"hp":34.,"speed":.9,"attacks":["charge","spit","shockwave"]},
 	{"id":"hunter","name":"DER GEBURTSTAGSJÄGER","model":"res://assets/celebration-v3813/celebration-rabbit.glb","scale":2.4,"hp":31.,"speed":1.05,"attacks":["teleport","charge","summon"]},
 ]
 

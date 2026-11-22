@@ -84,9 +84,15 @@ func setup(owner_mode: Node3D, id: String, data: Dictionary, round_number: int, 
 	var capsule:=CapsuleShape3D.new();capsule.radius=minf(radius,1.1);capsule.height=maxf(1.6*minf(size_scale,1.4),capsule.radius*2.+.1)
 	if role=="crawler":capsule.height=.7
 	shape=CollisionShape3D.new();shape.shape=capsule;shape.position.y=capsule.height*.5;add_child(shape)
-	model=(load(str(data.model)) as PackedScene).instantiate() as Node3D
+	var path:=ZombiesConfig.model_path(data)
+	var packed:=load(path) as PackedScene if ResourceLoader.exists(path) else null
+	if packed==null:
+		# A model missing from the export must never take the whole night down.
+		push_error("Partynacht model missing in this build: "+path)
+		packed=load(ZombiesConfig.FALLBACK_MODEL) as PackedScene
+	model=packed.instantiate() as Node3D
 	add_child(model);model.scale=Vector3.ONE*size_scale
-	if str(data.model).contains("visitors-v421"):CharacterFinish.dynamic_only(model)
+	if path.contains("visitors-v421"):CharacterFinish.dynamic_only(model)
 	for key in ["ArmL","ArmR","LegL","LegR","HeadRig","Torso"]:
 		var node:=model.find_child(key,true,false) as Node3D
 		if node:parts[key]=node;rest[key]=node.rotation
