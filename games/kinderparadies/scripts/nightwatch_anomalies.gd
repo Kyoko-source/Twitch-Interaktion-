@@ -186,9 +186,26 @@ func tick(record: Dictionary, delta: float) -> void:
     if is_instance_valid(added) and added.get_child_count()>0:
      (added.get_child(0) as OmniLight3D).light_energy=5.*(.55+.45*absf(sin(t*9.)*sin(t*2.3+1.)))
 
-func revert(record: Dictionary) -> void:
+# 5.5.0: a figure removed while a feed is drawing it first drops its own
+# materials and hides, and is freed a moment later. Freeing it at once let the
+# renderer ask for materials that were already gone.
+static func retire(node: Node) -> void:
+ if not is_instance_valid(node):return
+ for mesh: MeshInstance3D in node.find_children("*","MeshInstance3D",true,false):
+  mesh.material_override=null
+  if mesh.mesh:
+   for i in range(mesh.mesh.get_surface_count()):mesh.set_surface_override_material(i,null)
+ if node is Node3D:(node as Node3D).hide()
+ var tree:=node.get_tree()
+ # Bound to the node: the connection dies with it if the world goes first.
+ if tree:tree.create_timer(.25).timeout.connect(node.queue_free)
+ else:node.queue_free()
+
+func revert(record: Dictionary, immediate: bool=false) -> void:
  for added in record.added:
-  if is_instance_valid(added):(added as Node).queue_free()
+  if is_instance_valid(added):
+   if immediate:(added as Node).queue_free()
+   else:retire(added as Node)
  record.added=[]
  var node: Node3D=record.node if is_instance_valid(record.node) else null
  if node and not record.restore.is_empty():

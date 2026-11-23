@@ -44,6 +44,18 @@ const QTE:=[
  {"words":8,"time":11.},
 ]
 const MAX_WRONG:=3
+# 5.5.0: the crawler that comes to the control room (NightwatchStalker).
+# It first sets out after STALKER_START seconds; between visits it rests.
+const STALKER_START:=55.0
+const WATCH_SLOW:=.22
+const DOOR_GRACE:=3.2
+const SHUTTER_DRAIN:=.55
+static func stalker_step(stage: int) -> float:
+ return lerpf(34.,13.,clampf((stage-1)/9.,0.,1.))
+static func stalker_rest(stage: int) -> float:
+ return lerpf(40.,12.,clampf((stage-1)/9.,0.,1.))
+static func door_wait(rng: RandomNumberGenerator) -> float:
+ return rng.randf_range(6.,10.)
 const POWER_START:=100.0
 # Screens and alarm by power level (percent).
 const FLICKER_LIGHT:=50.0

@@ -70,10 +70,10 @@ func run(game: Node3D, verify: Callable) -> void:
  NightMenus.modes(game)
  var entry:=game.menu.find_child("Mode_nightwatch",true,false) as Button
  verify.call(entry!=null and entry.text.contains("Nightwatch"),"Modes menu has no Nightwatch Protocol")
- # 5.2.4: the entry is greyed out with an "In Development" hover until the mode is ready.
- verify.call(entry.disabled and entry.tooltip_text=="In Development","Nightwatch entry is not locked as In Development")
+ # 5.5.0: open as a beta (it was greyed out "In Development" since 5.2.4).
+ verify.call(not entry.disabled and entry.text.contains("Beta"),"Nightwatch entry is not open as a beta")
  NightMenus.open_mode(game,"nightwatch");await game.get_tree().process_frame
- verify.call(game.menu.find_child("NightwatchStart",true,false)==null,"Locked Nightwatch Protocol still opens")
+ verify.call(game.menu.find_child("NightwatchStart",true,false)!=null,"Nightwatch Protocol does not open from the modes menu")
  NightMenus.nightwatch(game)
  verify.call(game.menu.find_child("NightwatchStart",true,false)!=null and game.menu.find_child("NightwatchHighscore",true,false)!=null,"Nightwatch menu misses start or highscore")
  await shot(game,"menu")

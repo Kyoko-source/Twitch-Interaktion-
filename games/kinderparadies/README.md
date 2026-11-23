@@ -1,5 +1,14 @@
 # After Play — Kinderparadies
 
+## Nightwatch Protocol (Beta): etwas kommt zu dir, Melden direkt im Bild (5.5.0)
+
+- **Freigeschaltet als Beta** unter „Weitere Spielmodi“ (seit 5.2.4 ausgegraut). Etappe 1 des großen Nightwatch-Ausbaus; Generator neu, lebendigere Kameras und Nächte 1–5 folgen.
+- **Der Krabbler kommt** (`scripts/nightwatch_stalker.gd`): Ab der ersten Minute kriecht er auf einer von vier Routen von Kamera zu Kamera Richtung Kontrollraum – sichtbar auf freiem Boden, jeder Standort wird gegen Wände, Möbel und Bildrand geprüft. Auf dem Hauptmonitor beobachtet, bewegt er sich kaum (22 % Tempo). Aus dem letzten Raum hört man ihn im Treppenhaus näherkommen, dann hockt er links in der Tür im Licht einer flackernden Birne. Er ist **keine Anomalie** und wird nicht gemeldet.
+- **Rolltor** an der neuen Treppenhaustür links (Blick mit A/←, drei Richtungen: Tür, Monitore, Generator): Knopf am Panel oder Leertaste. Unten kostet es zusätzlich Strom. Ist es unten, kratzt er, schlägt dagegen und zieht ab; ist es oben, hat man 3 Sekunden – oder er kommt herein: Sprung ins Gesicht mit Jumpscare, Schicht vorbei („ES IST HEREINGEKOMMEN“). Tempo und Pausen steigen mit der Stufe (`NightwatchConfig`).
+- **Melden direkt im Bild**: Im Vollbild einer Kamera auf die Stelle klicken – der nächstgelegene Bereich ist vorausgewählt (bei mehreren Bereichen umschaltbar), ein Klick auf die Art meldet. Rechtsklick bricht ab. Das Meldebuch bleibt.
+- Gemeldete Gestalten nehmen ihre Materialien ab und verschwinden einen Moment später, statt sofort gelöscht zu werden (sonst fragte der Renderer nach schon freigegebenen Materialien).
+- Tests: `--nightwatch-only` (71 Prüfungen, neu `nightwatch_stalker_validation.gd`). QA: `--render-qa --watch-door-qa`, `--watch-cams-qa`.
+
 ## Mikrofon-Modus: die echte Flüsterstimme (5.4.1)
 
 - Beim dritten Mal flüstert es hinter dir jetzt wirklich: „Dreh dich NICHT um.“ (`assets/mic-v540/whisper.ogg`, eingesprochen mit ElevenLabs, geschnitten von `tools/generate-after-play-v540-audio.py`). Der erzeugte Platzhalter springt nur noch ein, wenn die Datei fehlt.

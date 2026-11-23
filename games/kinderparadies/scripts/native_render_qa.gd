@@ -522,6 +522,47 @@ func run(game: Node3D) -> void:
     await game.get_tree().process_frame
     if shots.has(f):await capture(game,output,"jumpscare-%s-%s"%[id,shots[f]])
   game._quit();return
+ if "--watch-cams-qa" in OS.get_cmdline_user_args():
+  game._start_nightwatch()
+  while game.phase=="loading":await game.get_tree().process_frame
+  var nw: Nightwatch=game.nightwatch;var st: NightwatchStalker=nw.stalker
+  game.set_process(false);nw.look("monitors")
+  var ids:={}
+  for r in NightwatchStalker.ROUTES:
+   for id in r:ids[id]=true
+  for id in ids:
+   st.route=[id];st.index=0;st.state="room";st._place()
+   print("WATCHCAM ",id," spots ",st.open_floor(id).size()," at ",st.body.global_position)
+   nw.open_fullscreen(NightwatchConfig.camera_index(id))
+   for i in range(20):nw._tick_screens(.016);await game.get_tree().process_frame
+   await capture(game,output,"cam-"+id)
+   nw.close_fullscreen()
+  game._quit();return
+ if "--watch-door-qa" in OS.get_cmdline_user_args():
+  game._start_nightwatch()
+  while game.phase=="loading":await game.get_tree().process_frame
+  var nw: Nightwatch=game.nightwatch;var st: NightwatchStalker=nw.stalker
+  game.set_process(false)
+  var settle:=func(frames: int):
+   for i in range(frames):nw._tick_view(.05);st.tick(.016,3,nw.seconds);nw._tick_screens(.016);await game.get_tree().process_frame
+  nw.look("monitors");await settle.call(30);await capture(game,output,"watch-01-monitors")
+  nw.look("door");await settle.call(40);await capture(game,output,"watch-02-door-open")
+  st.state="door";st.clock=0.;st.wait=99.;st.guest.show();st.face_light.light_energy=1.4
+  await settle.call(10);await capture(game,output,"watch-03-crawler-at-door")
+  st.set_shutter(true);await settle.call(40);await capture(game,output,"watch-04-shutter-down")
+  st.state="idle";st.guest.hide();st.face_light.light_energy=0.;st.set_shutter(false)
+  nw.seconds=NightwatchConfig.STALKER_START+1.;st.clock=999.;st.tick(.1,3,nw.seconds)
+  var ci:=NightwatchConfig.camera_index(st.camera())
+  nw.look("monitors");await settle.call(30)
+  nw.open_fullscreen(ci);await settle.call(20);await capture(game,output,"watch-05-crawler-on-camera")
+  nw.open_quick(game.get_viewport().get_visible_rect().size*.5);await settle.call(4);await capture(game,output,"watch-06-quick-report")
+  nw.close_quick();nw.close_fullscreen()
+  st.state="door";st.clock=NightwatchConfig.DOOR_GRACE+1.;game.set_process(true)
+  var f:=0
+  while f<40:
+   await game.get_tree().process_frame;f+=1
+   if f in [6,14,24]:await capture(game,output,"watch-07-caught-%d"%f)
+  game._quit();return
  if "--mic-qa" in OS.get_cmdline_user_args():
   if "--mic-menu" in OS.get_cmdline_user_args():
    game._settings("menu");NightMenus.settings(game,"Mikrofon")

@@ -76,8 +76,10 @@ static func nightwatch(g: Node3D) -> void:
  g.phase="nightwatch_menu";clear(g);backdrop(g,true)
  var column:=VBoxContainer.new();column.name="NightwatchMenu";column.position=Vector2(110,120);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",18);g.menu.add_child(column)
  var title: Label=g._label("NIGHTWATCH PROTOCOL",60,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
- column.add_child(g._paragraph("Du sitzt im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn Kameras. Entdeckst du eine Anomalie, trägst du sie im Meldebuch auf dem Schreibtisch ein: Raum, Bereich und Art müssen stimmen. Rechts steht der Generator. Klick ihn an und tippe die Wörter, bevor die Zeit abläuft, dann ist der Strom wieder voll.",21))
- column.add_child(g._paragraph("Die Schicht endet sofort, wenn eine Anomalie übersehen wird, du dreimal falsch meldest oder der Strom auf 0 % fällt. Ab 20 % piept die Warnung. Während du am Generator tippst, warten die Anomalien, der Strom aber nicht.",19))
+ column.add_child(g._paragraph("Du sitzt im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn Kameras. Entdeckst du eine Anomalie, klick im Vollbild direkt auf die Stelle im Bild und wähle die Art – oder trag sie im Meldebuch ein. Rechts steht der Generator: anklicken und die Wörter tippen, dann ist der Strom wieder voll.",21))
+ var crawler: Label=g._paragraph("Ab der ersten Minute kriecht der Krabbler von Kamera zu Kamera zu dir. Er ist KEINE Anomalie. Behältst du ihn auf dem Hauptmonitor im Blick, wird er langsamer. Hörst du ihn im Treppenhaus, dreh dich nach links (A) und lass das Rolltor herunter (Leertaste). Das Tor kostet Strom – zieh es wieder hoch, wenn er weg ist.",19)
+ crawler.add_theme_color_override("font_color",Color("e8a090"));column.add_child(crawler)
+ column.add_child(g._paragraph("Die Schicht endet sofort, wenn eine Anomalie übersehen wird, du dreimal falsch meldest, der Strom auf 0 % fällt oder der Krabbler hereinkommt.",19))
  var best: Label=g._label("Highscore: %d Punkte  ·  Längste Schicht: %02d:%02d"%[g.achievements.nightwatch_best,int(g.achievements.nightwatch_time)/60,int(g.achievements.nightwatch_time)%60],21,Color("cbbb95"));best.name="NightwatchHighscore";column.add_child(best)
  var start: Button=g._button("Nachtwache beginnen",g._start_nightwatch,true);start.name="NightwatchStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
  var back: Button=g._button("Zurück",g._main_menu);back.custom_minimum_size=Vector2(560,56);column.add_child(back)
@@ -101,7 +103,7 @@ static func nightwatch_summary(g: Node3D, r: Dictionary) -> void:
 # 5.1.1: the extra modes live one click deeper.
 const MODES:=[
  ["endless","Endlosmodus","Bis zu 500 Rundgänge mit drei Leben. Die Anomalien werden immer kleiner."],
- ["nightwatch","Nightwatch Protocol","Kontrollraum, zehn Kameras, ein Meldebuch und ein Generator, der nicht ausgehen darf."],
+ ["nightwatch","Nightwatch Protocol (Beta)","Kontrollraum, zehn Kameras, ein Generator, der nicht ausgehen darf – und etwas, das zu dir kommt."],
  ["zombies","Partynacht","Runde um Runde gegen die Partykinder. Waffen, Perks, Bosse und Chaos."],
  ["multiplayer","Multiplayer","Ein zweiter Spieler plant auf der Webseite deine dreizehn Runden."],
 ]
@@ -122,7 +124,8 @@ static func modes(g: Node3D) -> void:
  first.grab_focus();g._telemetry()
 
 # 5.2.4: modes still being built stay visible but greyed out; hovering says so.
-const LOCKED_MODES:=["nightwatch"]
+# 5.5.0: Nightwatch Protocol is open as a beta.
+const LOCKED_MODES:=[]
 static func lock_mode(g: Node3D, button: Button, line: Label) -> void:
  button.disabled=true;button.focus_mode=Control.FOCUS_NONE;button.tooltip_text="In Development";button.mouse_default_cursor_shape=Control.CURSOR_FORBIDDEN
  var grey: StyleBoxFlat=g._style(Color(.06,.06,.06,.55),Color("3a3a36"))
@@ -202,7 +205,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.4.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.5.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

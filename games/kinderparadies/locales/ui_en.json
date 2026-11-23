@@ -363,5 +363,19 @@
   "ZU LAUT": "TOO LOUD",
   "Unten links siehst du während der Schicht immer deinen Pegel. Bleib aus dem roten Bereich. Mit jeder Runde schläft es leichter: Der rote Bereich wird größer.": "Bottom left you always see your level during the shift. Stay out of the red zone. With every round it sleeps lighter: the red zone grows.",
   "Mikrofon-Gerät": "Microphone device",
-  "Windows-Standard": "Windows default"
+  "Windows-Standard": "Windows default",
+  "Nightwatch Protocol (Beta)": "Nightwatch Protocol (Beta)",
+  "Kontrollraum, zehn Kameras, ein Generator, der nicht ausgehen darf – und etwas, das zu dir kommt.": "A control room, ten cameras, a generator that must not die – and something coming for you.",
+  "Du sitzt im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn Kameras. Entdeckst du eine Anomalie, klick im Vollbild direkt auf die Stelle im Bild und wähle die Art – oder trag sie im Meldebuch ein. Rechts steht der Generator: anklicken und die Wörter tippen, dann ist der Strom wieder voll.": "You sit in the control room below Happyland and watch the play centre through ten cameras. When you spot an anomaly, click right on the spot in the full-screen picture and choose the kind – or enter it in the report book. The generator is on the right: click it and type the words to refill the power.",
+  "Ab der ersten Minute kriecht der Krabbler von Kamera zu Kamera zu dir. Er ist KEINE Anomalie. Behältst du ihn auf dem Hauptmonitor im Blick, wird er langsamer. Hörst du ihn im Treppenhaus, dreh dich nach links (A) und lass das Rolltor herunter (Leertaste). Das Tor kostet Strom – zieh es wieder hoch, wenn er weg ist.": "After the first minute the crawler creeps from camera to camera towards you. It is NOT an anomaly. Keep it on the main monitor and it slows down. When you hear it in the stairwell, turn left (A) and drop the rolling shutter (Space). The shutter costs power – raise it again once it is gone.",
+  "Die Schicht endet sofort, wenn eine Anomalie übersehen wird, du dreimal falsch meldest, der Strom auf 0 % fällt oder der Krabbler hereinkommt.": "The shift ends at once if an anomaly is missed, you report wrongly three times, the power hits 0 % or the crawler gets in.",
+  "Nachtwache beginnt. Melde jede Anomalie: im Vollbild direkt ins Bild klicken oder im Buch. Der Krabbler ist keine Anomalie – halt ihn mit dem Rolltor links auf.": "The watch begins. Report every anomaly: click into the full-screen picture or use the book. The crawler is not an anomaly – stop it with the shutter on the left.",
+  "Etwas steht an der Tür.": "Something is at the door.",
+  "Es zieht sich zurück.": "It backs away.",
+  "Rolltor-Knopf oder Leertaste: Tor hoch / runter (kostet Strom)  ·  D / →: zurück zu den Monitoren": "Shutter button or Space: shutter up / down (costs power)  ·  D / →: back to the monitors",
+  "Linksklick ins Bild: Anomalie melden  ·  Rechtsklick: zurück  ·  Leertaste: Rolltor": "Left click into the picture: report an anomaly  ·  Right click: back  ·  Space: shutter",
+  "Art der Anomalie wählen  ·  Rechtsklick: abbrechen": "Choose the kind of anomaly  ·  Right click: cancel",
+  "Abbrechen · Rechtsklick": "Cancel · right click",
+  "MELDEN: ": "REPORT: ",
+  "ES IST HEREINGEKOMMEN": "IT GOT IN"
 }

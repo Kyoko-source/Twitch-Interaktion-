@@ -16,12 +16,14 @@ const EYE:=Vector3(0,1.2,.5)
 # limits the mouse can pan between.
 const FRONT:=Vector2(0,-.03)
 const RIGHT:=Vector2(-1.5,-.5)
-const YAW_LEFT:=.42
+const YAW_LEFT:=1.78
+# 5.5.0: the stair door with its rolling shutter on the left.
+const LEFT:=Vector2(1.52,-.06)
 const YAW_RIGHT:=-1.72
 const EDGE:=.12
 const PAN_SPEED:=1.7
 const SMOOTH:=7.0
-const REASONS:={"missed":"ANOMALIE ÜBERSEHEN","wrong":"ZU VIELE FEHLMELDUNGEN","power":"STROMAUSFALL"}
+const REASONS:={"missed":"ANOMALIE ÜBERSEHEN","wrong":"ZU VIELE FEHLMELDUNGEN","power":"STROMAUSFALL","caught":"ES IST HEREINGEKOMMEN"}
 const DESK_TOP:=.787
 const RACK_SHELVES:=[.425,.915,1.40,1.89]
 # Ten wall monitors (bottom centre): two rows on the outer racks, two on top
@@ -63,6 +65,14 @@ var full_stamp: Label
 var fullscreen:=false
 var lights: Array=[]
 var anomalies: NightwatchAnomalies
+var stalker: NightwatchStalker
+# Quick report straight from the full-screen picture.
+var quick: PanelContainer
+var quick_title: Label
+var quick_areas: HBoxContainer
+var quick_kinds: GridContainer
+var quick_choice:={"room":"","area":""}
+var quick_open:=false
 # Own jumpscare on the control room camera; the shift one is never moved.
 var scare: DoorFailure
 var rng:=RandomNumberGenerator.new()
@@ -143,6 +153,7 @@ func build(game: Node3D) -> void:
  cam=Camera3D.new();cam.name="ControlRoomCamera";cam.fov=62;cam.near=.04;cam.far=12;cam.cull_mask=1|ROOM_LAYER;cam.position=EYE;add_child(cam)
  scare=DoorFailure.new();scare.name="NightwatchScare";cam.add_child(scare);scare.hide()
  _feeds();_ui();_audio()
+ stalker=NightwatchStalker.new();stalker.build(self)
  hide();set_process(false)
 
 # ---------------------------------------------------------------- the room
@@ -177,11 +188,15 @@ func _shell() -> void:
  _box(room,Vector3(0,3.25,-.2),Vector3(5.4,.1,4.6),ceiling)
  _box(room,Vector3(0,1.6,-2.15),Vector3(5.4,3.3,.1),wall)
  _box(room,Vector3(0,1.6,1.75),Vector3(5.4,3.3,.1),wall)
- _box(room,Vector3(-2.65,1.6,-.2),Vector3(.1,3.3,4.6),wall)
+ # Left wall with the stair doorway (NightwatchStalker builds the frame).
+ _box(room,Vector3(-2.65,1.6,-1.225),Vector3(.1,3.3,2.55),wall)
+ _box(room,Vector3(-2.65,1.6,1.605),Vector3(.1,3.3,.99),wall)
+ _box(room,Vector3(-2.65,2.75,.55),Vector3(.1,1.1,1.12),wall)
  _box(room,Vector3(2.65,1.6,-.2),Vector3(.1,3.3,4.6),wall)
  # Skirting, a cable duct along the back wall and a ventilation grille.
  _box(room,Vector3(0,.06,-2.09),Vector3(5.3,.12,.03),metal)
- for x in [-2.59,2.59]:_box(room,Vector3(x,.06,-.2),Vector3(.03,.12,4.5),metal)
+ _box(room,Vector3(2.59,.06,-.2),Vector3(.03,.12,4.5),metal)
+ _box(room,Vector3(-2.59,.06,-1.25),Vector3(.03,.12,2.4),metal);_box(room,Vector3(-2.59,.06,1.6),Vector3(.03,.12,.95),metal)
  _box(room,Vector3(0,2.72,-2.07),Vector3(5.2,.08,.06),metal)
  _box(room,Vector3(-1.9,2.35,-2.09),Vector3(.5,.32,.03),metal)
  for k in range(6):_box(room,Vector3(-1.9,2.24+k*.045,-2.07),Vector3(.44,.012,.02),grille)
@@ -365,7 +380,7 @@ func _ui() -> void:
  sensor_text=_ui_label("",16,Color("d9c58e"));column.add_child(sensor_text)
  message=_ui_label("",26,Color("eee7d6"));message.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);message.offset_left=-620;message.offset_right=620;message.offset_top=-150;message.offset_bottom=-70;message.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;message.add_theme_color_override("font_outline_color",Color(0,0,0,.9));message.add_theme_constant_override("outline_size",8);message.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hud.add_child(message)
  hint=_ui_label("",16,Color("aab5a6"));hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);hint.offset_top=-52;hint.offset_bottom=-22;hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hud.add_child(hint)
- _qte_ui();_book_ui();_full_ui()
+ _qte_ui();_book_ui();_full_ui();_quick_ui()
 
 func _ui_label(value: String, font_size: int, color: Color) -> Label:
  var label:=Label.new();label.text=value;label.add_theme_font_size_override("font_size",font_size);label.add_theme_color_override("font_color",color);label.add_theme_font_override("font",load("res://assets/Oswald.ttf"));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;return label
@@ -392,6 +407,96 @@ void fragment(){
  var tip:=_ui_label("Rechtsklick: zurück zum Kontrollraum  ·  1–0 / Mausrad: Kamera wechseln  ·  B: Meldebuch",18,Color("aab5a6"));tip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM);tip.offset_left=-560;tip.offset_right=560;tip.offset_top=-130;tip.offset_bottom=-100;tip.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;full.add_child(tip)
  full.hide()
 
+# ---------------------------------------------------------------- quick report
+# Click into the full-screen picture: the nearest area of this camera is
+# preselected, one more click on the kind sends the report.
+
+func _quick_ui() -> void:
+ quick=PanelContainer.new();quick.name="QuickReport";quick.mouse_filter=Control.MOUSE_FILTER_STOP
+ var style:=StyleBoxFlat.new();style.bg_color=Color(.03,.04,.035,.94);style.border_color=Color("9fb59f");style.set_border_width_all(2);style.set_content_margin_all(14);quick.add_theme_stylebox_override("panel",style);layer.add_child(quick)
+ var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8);quick.add_child(column)
+ quick_title=_ui_label("",20,Color("d8f0d8"));column.add_child(quick_title)
+ quick_areas=HBoxContainer.new();quick_areas.add_theme_constant_override("separation",6);column.add_child(quick_areas)
+ quick_kinds=GridContainer.new();quick_kinds.columns=2;quick_kinds.add_theme_constant_override("h_separation",6);quick_kinds.add_theme_constant_override("v_separation",6);column.add_child(quick_kinds)
+ for kind in NightwatchConfig.KIND_ORDER:
+  var kind_id: String=kind
+  var b:=_quick_button(str(NightwatchConfig.KINDS[kind]),func():_quick_send(kind_id));b.name="QuickKind_"+kind_id;b.custom_minimum_size=Vector2(250,40);quick_kinds.add_child(b)
+ var cancel:=_quick_button("Abbrechen · Rechtsklick",close_quick);cancel.name="QuickCancel";column.add_child(cancel)
+ quick.hide()
+
+func _quick_button(value: String, action: Callable) -> Button:
+ var b:=Button.new();b.text=AfterPlayLanguage.t(value);b.focus_mode=Control.FOCUS_NONE;b.alignment=HORIZONTAL_ALIGNMENT_LEFT
+ b.add_theme_font_override("font",load("res://assets/Oswald.ttf"));b.add_theme_font_size_override("font_size",18)
+ for st in ["normal","hover","pressed"]:
+  var box:=StyleBoxFlat.new();box.set_content_margin_all(7);box.content_margin_left=12
+  box.bg_color={"normal":Color(.12,.16,.13,.9),"hover":Color(.22,.3,.24,.95),"pressed":Color(.4,.15,.1,.95)}[st];box.border_color=Color("5d7060");box.border_width_bottom=2
+  b.add_theme_stylebox_override(st,box)
+ b.add_theme_color_override("font_color",Color("e3efe0"));b.add_theme_color_override("font_hover_color",Color.WHITE)
+ b.pressed.connect(action);return b
+
+# Areas shown by the selected camera, with points to aim at.
+func camera_areas(index: int) -> Array:
+ var id: String=NightwatchConfig.CAMERAS[index].id;var out: Array=[]
+ for r in NightwatchConfig.ROOMS:
+  for a in r.areas:
+   if a.camera!=id:continue
+   var points: Array=a.spots.duplicate()
+   for row in a.objects:
+    var node:=NightwatchAnomalies.resolve(w,str(row[0]),0)
+    if is_instance_valid(node):points.append(node.global_position)
+   out.append({"room":r.id,"area":a.id,"name":str(r.name)+" · "+str(a.name),"points":points})
+ return out
+
+# Screen position in the full-screen view -> position in the feed image.
+func _feed_point(screen: Vector2) -> Vector2:
+ var view_size:=full_image.size if full_image.size.x>0 else get_viewport().get_visible_rect().size
+ var tex:=Vector2(main_view.size);var s:=minf(view_size.x/tex.x,view_size.y/tex.y)
+ var shown:=tex*s;var offset:=(view_size-shown)*.5
+ return (screen-full_image.global_position-offset)/s
+
+func nearest_area(screen: Vector2) -> Dictionary:
+ var areas:=camera_areas(selected)
+ if areas.is_empty():return {}
+ var p:=_feed_point(screen);var best:={};var best_d:=INF
+ for a in areas:
+  for point: Vector3 in a.points:
+   if main_camera.is_position_behind(point):continue
+   var d:=main_camera.unproject_position(point).distance_to(p)
+   if d<best_d:best_d=d;best=a
+ return best if not best.is_empty() else areas[0]
+
+func open_quick(screen: Vector2) -> void:
+ if not running or not fullscreen:return
+ var areas:=camera_areas(selected)
+ if areas.is_empty():return
+ var chosen:=nearest_area(screen)
+ quick_choice={"room":chosen.room,"area":chosen.area}
+ for child in quick_areas.get_children():quick_areas.remove_child(child);child.queue_free()
+ if areas.size()>1:
+  for a in areas:
+   var pick: Dictionary=a
+   var b:=_quick_button(str(NightwatchConfig.area(a.room,a.area).name),func():quick_choice={"room":pick.room,"area":pick.area};_quick_refresh())
+   b.name="QuickArea_"+str(a.area);quick_areas.add_child(b)
+ quick_open=true;quick.show();_quick_refresh();click.play()
+ quick.reset_size()
+ var view_size:=get_viewport().get_visible_rect().size
+ quick.position=Vector2(clampf(screen.x+14,10,view_size.x-quick.size.x-10),clampf(screen.y-quick.size.y*.5,10,view_size.y-quick.size.y-10))
+
+func _quick_refresh() -> void:
+ quick_title.text=AfterPlayLanguage.t("MELDEN: ")+str(NightwatchConfig.room(quick_choice.room).name)+" · "+str(NightwatchConfig.area(quick_choice.room,quick_choice.area).name)
+ for b: Button in quick_areas.get_children():
+  var on:=b.name=="QuickArea_"+str(quick_choice.area)
+  b.add_theme_color_override("font_color",Color("ffd47a") if on else Color("e3efe0"))
+
+func _quick_send(kind: String) -> void:
+ if not quick_open:return
+ var c:=quick_choice.duplicate();close_quick()
+ report(c.room,c.area,kind)
+
+func close_quick() -> void:
+ quick_open=false
+ if quick:quick.hide()
+
 func open_fullscreen(index: int=-1) -> void:
  if not running or not qte.is_empty():return
  if index>=0:select_camera(index)
@@ -399,7 +504,7 @@ func open_fullscreen(index: int=-1) -> void:
 
 func close_fullscreen() -> void:
  if not fullscreen:return
- fullscreen=false;full.hide()
+ fullscreen=false;full.hide();close_quick()
 
 func _qte_ui() -> void:
  qte_panel=PanelContainer.new();qte_panel.name="GeneratorQTE";qte_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER);qte_panel.offset_left=-430;qte_panel.offset_right=430;qte_panel.offset_top=60;qte_panel.offset_bottom=330;qte_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -501,9 +606,11 @@ func start(seed_value: int=-1) -> void:
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
  main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  select_camera(0,false)
+ if stalker:stalker.start()
+ close_quick()
  for row in lights:(row[0] as Light3D).light_energy=float(row[1])
  show();cam.current=true;cam.rotation=Vector3(pitch,yaw,0)
- layer.show();hud.show();book.hide();qte_panel.hide();message.text="";_say("Nachtwache beginnt. Beobachte die Kameras und melde jede Anomalie im Buch.",6.)
+ layer.show();hud.show();book.hide();qte_panel.hide();message.text="";_say("Nachtwache beginnt. Melde jede Anomalie: im Vollbild direkt ins Bild klicken oder im Buch. Der Krabbler ist keine Anomalie – halt ihn mit dem Rolltor links auf.",8.)
  hum.play();engine.play();engine.volume_db=-34;beep.stop()
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
  _refresh_book();_refresh_hud();set_process(false)
@@ -514,9 +621,10 @@ func tick(delta: float) -> void:
  seconds+=delta
  var stage:=NightwatchConfig.stage_of(seconds);top_stage=maxi(top_stage,stage)
  var cfg:=NightwatchConfig.stage(stage)
- power=maxf(power-float(cfg.drain)*delta,0.)
+ power=maxf(power-(float(cfg.drain)+(stalker.drain() if stalker else 0.))*delta,0.)
  score_float+=NightwatchConfig.POINTS_PER_SECOND*delta
  if power<=0.:_game_over("power");return
+ if stalker and stalker.tick(delta,stage,seconds)=="caught":_game_over("caught");return
  if qte.is_empty():
   # Anomaly timers and spawns only run while the cameras can be watched.
   for record in active:
@@ -763,21 +871,23 @@ func _tick_view(delta: float) -> void:
   if mouse.x>1.-EDGE:push=-smoothstep(0.,1.,(mouse.x-(1.-EDGE))/EDGE)
   elif mouse.x<EDGE:push=smoothstep(0.,1.,(EDGE-mouse.x)/EDGE)
   anchor_yaw=clampf(anchor_yaw+push*PAN_SPEED*delta,YAW_RIGHT,YAW_LEFT)
- view="generator" if anchor_yaw<(FRONT.x+RIGHT.x)*.5 else "monitors"
+ view="generator" if anchor_yaw<(FRONT.x+RIGHT.x)*.5 else "door" if anchor_yaw>(FRONT.x+LEFT.x)*.5 else "monitors"
  var drift:=Vector2.ZERO
  if inside and not book_open and qte.is_empty():drift=Vector2(-(clampf(mouse.x,EDGE,1.-EDGE)-.5)*.05,-(mouse.y-.5)*.05)
  var ease_value:=1.-exp(-delta*SMOOTH)
  sway=sway.lerp(drift,1.-exp(-delta*3.))
  yaw=lerpf(yaw,anchor_yaw+sway.x,ease_value)
  var turn:=clampf((yaw-FRONT.x)/(RIGHT.x-FRONT.x),0.,1.)
+ var turn_left:=clampf((yaw-FRONT.x)/(LEFT.x-FRONT.x),0.,1.)
  var breathe:=sin(seconds*1.3)*.0025
- pitch=lerpf(pitch,lerpf(FRONT.y,RIGHT.y,smoothstep(0.,1.,turn))+sway.y+breathe,ease_value)
+ var base_pitch:=lerpf(FRONT.y,RIGHT.y,smoothstep(0.,1.,turn)) if yaw<FRONT.x else lerpf(FRONT.y,LEFT.y,smoothstep(0.,1.,turn_left))
+ pitch=lerpf(pitch,base_pitch+sway.y+breathe,ease_value)
  cam.rotation=Vector3(pitch,yaw,0)
  _hover(get_viewport().get_mouse_position())
 
 func look(where: String) -> void:
  if not qte.is_empty():return
- anchor_yaw=RIGHT.x if where=="generator" else FRONT.x
+ anchor_yaw=RIGHT.x if where=="generator" else LEFT.x if where=="door" else FRONT.x
  view=where;close_book()
 
 func _pick(screen: Vector2) -> String:
@@ -793,9 +903,11 @@ func _hover(screen: Vector2) -> void:
  Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if target!="" else Input.CURSOR_ARROW)
  if book_open:hint.text="Raum, Bereich und Art wählen · Meldung abgeben · ESC schließt das Buch"
  elif not qte.is_empty():hint.text="Tippe die Wörter in der richtigen Reihenfolge"
- elif fullscreen:hint.text=""
+ elif fullscreen:hint.text="Linksklick ins Bild: Anomalie melden  ·  Rechtsklick: zurück  ·  Leertaste: Rolltor"
+ elif fullscreen and quick_open:hint.text="Art der Anomalie wählen  ·  Rechtsklick: abbrechen"
  elif view=="generator":hint.text="Generator anklicken: Neustart  ·  Maus an den linken Rand oder A / ←: zurück zu den Monitoren"
- else:hint.text="Monitor oder Taste am Pult anklicken, 1–0 oder Mausrad: Kamera  ·  Buch: Meldung  ·  Maus an den rechten Rand oder D / →: Generator  ·  ESC: Pause"
+ elif view=="door":hint.text="Rolltor-Knopf oder Leertaste: Tor hoch / runter (kostet Strom)  ·  D / →: zurück zu den Monitoren"
+ else:hint.text="Monitor oder Taste am Pult anklicken, 1–0 oder Mausrad: Kamera  ·  Buch: Meldung  ·  A / ←: Tür  ·  D / →: Generator  ·  Leertaste: Rolltor  ·  ESC: Pause"
 
 func click_at(screen: Vector2) -> bool:
  if not running or book_open or fullscreen or not qte.is_empty():return false
@@ -806,6 +918,8 @@ func click_at(screen: Vector2) -> bool:
   look("monitors");open_book();return true
  if target=="generator":
   look("generator");return start_qte()
+ if target=="shutter":
+  look("door");stalker.toggle();return true
  return false
 
 # Input from the game. Returns true when the event was used.
@@ -821,14 +935,22 @@ func handle(event: InputEvent) -> bool:
  if book_open:
   if event.is_action_pressed("pause"):close_book();return true
   return false
+ if event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).physical_keycode==KEY_SPACE and stalker:
+  stalker.toggle();return true
  if fullscreen:
   if event is InputEventMouseButton and event.pressed:
    var mb:=event as InputEventMouseButton
+   if quick_open and mb.button_index==MOUSE_BUTTON_RIGHT:close_quick();return true
+   if quick_open:return false
+   if mb.button_index==MOUSE_BUTTON_LEFT:open_quick(mb.position);return true
    if mb.button_index==MOUSE_BUTTON_RIGHT:close_fullscreen();return true
    if mb.button_index==MOUSE_BUTTON_WHEEL_UP:select_camera(selected-1);return true
    if mb.button_index==MOUSE_BUTTON_WHEEL_DOWN:select_camera(selected+1);return true
    return true
-  if event.is_action_pressed("pause"):close_fullscreen();return true
+  if event.is_action_pressed("pause"):
+   if quick_open:close_quick()
+   else:close_fullscreen()
+   return true
   if event is InputEventKey and event.pressed and not event.echo:
    var fk:=(event as InputEventKey).physical_keycode
    if fk>=KEY_1 and fk<=KEY_9:select_camera(fk-KEY_1);return true
@@ -844,8 +966,8 @@ func handle(event: InputEvent) -> bool:
   var key:=(event as InputEventKey).physical_keycode
   if key>=KEY_1 and key<=KEY_9:select_camera(key-KEY_1);return true
   if key==KEY_0:select_camera(9);return true
-  if key in [KEY_D,KEY_RIGHT]:look("generator");return true
-  if key in [KEY_A,KEY_LEFT]:look("monitors");return true
+  if key in [KEY_D,KEY_RIGHT]:look("monitors" if view=="door" else "generator");return true
+  if key in [KEY_A,KEY_LEFT]:look("monitors" if view=="generator" else "door");return true
   if key==KEY_Q:select_camera(selected-1);return true
   if key==KEY_E:select_camera(selected+1);return true
   if key in [KEY_B,KEY_TAB] and view=="monitors":open_book();return true
@@ -871,7 +993,9 @@ func _refresh_hud() -> void:
  wrong_text.add_theme_color_override("font_color",Color("ff7a64") if wrong>=NightwatchConfig.MAX_WRONG-1 else Color("e3efe0"))
  score_text.text="PUNKTE  %d"%score()+("  ·  SERIE %d"%combo if combo>1 else "")
  time_text.text="SCHICHT  %02d:%02d  ·  STUFE %d"%[int(seconds)/60,int(seconds)%60,NightwatchConfig.stage_of(seconds)]
- sensor_text.text="SENSOREN: KEINE AUFFÄLLIGKEIT" if active.is_empty() else "SENSOREN: %d UNGEKLÄRTE %s"%[active.size(),"VORFALL" if active.size()==1 else "VORFÄLLE"]
+ if stalker:sensor_text.text="ROLLTOR: "+("UNTEN" if stalker.closed else "OBEN")+"\n"
+ else:sensor_text.text=""
+ sensor_text.text+="SENSOREN: KEINE AUFFÄLLIGKEIT" if active.is_empty() else "SENSOREN: %d UNGEKLÄRTE %s"%[active.size(),"VORFALL" if active.size()==1 else "VORFÄLLE"]
 
 # ---------------------------------------------------------------- the end
 
@@ -901,6 +1025,8 @@ func _game_over(why: String, record: Dictionary={}) -> void:
     _say("ANOMALIE ÜBERSEHEN: %s · %s · %s"%[NightwatchConfig.room(record.room).name,NightwatchConfig.area(record.room,record.area).name,NightwatchConfig.KINDS[record.kind]],4.)
   "wrong":
    thud.play();_say("ZU VIELE FEHLMELDUNGEN",4.)
+  "caught":
+   await _caught()
  ended.emit(why)
  await get_tree().create_timer(1.7 if why!="wrong" else 1.3).timeout
  if this_run!=run_id or not is_instance_valid(g):return
@@ -911,18 +1037,40 @@ func _game_over(why: String, record: Dictionary={}) -> void:
   if this_run!=run_id:return
  if g.phase in ["nightwatch_end","nightwatch_scare"]:g._nightwatch_results()
 
+# It was at the door and the shutter was up: it comes through, into your face.
+func _caught() -> void:
+ close_fullscreen();close_book();look("door");yaw=LEFT.x;anchor_yaw=LEFT.x;pitch=LEFT.y;cam.rotation=Vector3(pitch,yaw,0)
+ var guest:=stalker.guest;guest.show();stalker.face_light.light_energy=3.
+ var from:=guest.global_position
+ var forward:=-cam.global_basis.z;forward.y=0;forward=forward.normalized()
+ var to:=cam.global_position+forward*.35-Vector3(0,.55,0)
+ JumpscareFX.fire(1.,.12)
+ var scream:=_player(load(ScareBank.track("crawler",rng.randi_range(1,4))),0.);ScareBank.loud(scream);scream.play();ScareBank.sting()
+ var t:=0.
+ while t<.3 and is_instance_valid(guest):
+  t+=get_process_delta_time();var k:=smoothstep(0.,.3,t)
+  guest.global_position=from.lerp(to,k);guest.look_at(cam.global_position,Vector3.UP,true)
+  # Lit from the front, right where it lands.
+  stalker.face_light.global_position=cam.global_position+forward*.15-Vector3(0,.25,0);stalker.face_light.omni_range=1.4
+  await get_tree().process_frame
+ await get_tree().create_timer(.9).timeout
+ stalker.stop()
+
 func results() -> Dictionary:
- return {"reason":reason,"title":REASONS.get(reason,reason),"score":score(),"seconds":seconds,"reports":reports,"wrong":wrong,"repairs":repairs,"failed_repairs":failed_repairs,"stage":top_stage,"best_combo":best_combo,"new_best":new_best}
+ return {"repelled":stalker.repelled if stalker else 0,"reason":reason,"title":REASONS.get(reason,reason),"score":score(),"seconds":seconds,"reports":reports,"wrong":wrong,"repairs":repairs,"failed_repairs":failed_repairs,"stage":top_stage,"best_combo":best_combo,"new_best":new_best}
 
 func _clear_anomalies() -> void:
  if anomalies:
-  for record in active:anomalies.revert(record)
+  # Leaving or restarting: the screens stop, everything goes at once.
+  for record in active:anomalies.revert(record,true)
  active.clear()
 
 # Leaves the mode: every change in the world is undone, the screens stop.
 func stop() -> void:
  run_id+=1;running=false;qte={};book_open=false;fullscreen=false
  if full:full.hide()
+ close_quick()
+ if stalker:stalker.stop()
  _clear_anomalies()
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_DISABLED
  if main_view:main_view.render_target_update_mode=SubViewport.UPDATE_DISABLED
@@ -946,4 +1094,4 @@ func pause_audio(paused: bool) -> void:
 func snapshot() -> Dictionary:
  var open: Array=[]
  for record in active:open.append({"room":record.room,"area":record.area,"kind":record.kind,"left":snappedf(float(record.left),.1)})
- return {"running":running,"over":over,"reason":reason,"seconds":snappedf(seconds,.1),"power":snappedf(power,.1),"wrong":wrong,"reports":reports,"score":score(),"stage":NightwatchConfig.stage_of(seconds),"active":open,"camera":selected,"view":view,"book":book_open,"qte":not qte.is_empty(),"alarm":alarm_active()}
+ return {"stalker":stalker.snapshot() if stalker else {},"quick":quick_open,"running":running,"over":over,"reason":reason,"seconds":snappedf(seconds,.1),"power":snappedf(power,.1),"wrong":wrong,"reports":reports,"score":score(),"stage":NightwatchConfig.stage_of(seconds),"active":open,"camera":selected,"view":view,"book":book_open,"qte":not qte.is_empty(),"alarm":alarm_active()}
