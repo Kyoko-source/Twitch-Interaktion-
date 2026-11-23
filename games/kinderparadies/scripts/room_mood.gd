@@ -11,11 +11,10 @@ extends Node3D
 # blackout leaves them on, so the dark venue still has a shape.
 const LIGHTS:=[
  # Empfang: warm amber neon over the counter, pink sign glow.
- {"room":"Empfang","pos":Vector3(-8.4,2.25,7.0),"color":"ffad4a","energy":1.5,"range":6.5,"motion":"neon"},
+ {"room":"Empfang","pos":Vector3(-9.5,2.72,6.4),"color":"ffad4a","energy":1.5,"range":6.5,"motion":"neon","wall":Vector3(-9.95,2.72,6.4)},
  {"room":"Empfang","pos":Vector3(-4.2,2.0,14.5),"color":"ff5fb0","energy":.75,"range":5.0,"motion":"breathe"},
  # Halle: cold blue night light against the warm pendants and the sodium window.
  {"room":"Halle","pos":Vector3(-9.2,3.2,-6.0),"color":"6f93ff","energy":.9,"range":10.0,"motion":"shimmer"},
- {"room":"Halle","pos":Vector3(3.0,1.0,-10.6),"color":"35e0c0","energy":.45,"range":4.5,"motion":"tube"},
  # Bällebad: deep blue fill, coloured reflections low over the pit, arcade glow.
  {"room":"Bällebad","pos":Vector3(9.0,3.4,11.5),"color":"2f58ff","energy":1.6,"range":13.0,"motion":"breathe"},
  {"room":"Bällebad","pos":Vector3(2.4,.9,6.2),"color":"ffd43a","energy":.6,"range":3.6,"motion":"steady"},
@@ -68,11 +67,14 @@ func build(world: PlayWorld) -> void:
  for spec in LIGHTS:
   var light:=OmniLight3D.new();light.name="Mood_"+str(spec.room).replace(" ","")
   light.position=spec.pos;light.light_color=Color(spec.color);light.light_energy=spec.energy;light.omni_range=spec.range;light.omni_attenuation=1.4
-  light.shadow_enabled=false;light.light_specular=.6;light.light_volumetric_fog_energy=1.2 if advanced else 0.
+  # No glow in the haze: a light without a lamp must not hang in the air as
+  # a bright orb (5.3.1). Lights that can be seen get a real fixture below.
+  light.shadow_enabled=false;light.light_specular=.6;light.light_volumetric_fog_energy=0.
   if spec.get("outdoor",false):light.set_meta("outdoor",true)
   add_child(light)
   if spec.get("sign",false):_sign(spec.pos,Color(spec.color))
-  accents.append({"light":light,"spec":spec,"base":float(spec.energy),"color":Color(spec.color),"phase":rng.randf()*TAU,"event":-1.,"wait":rng.randf_range(2,9),"on":true})
+  var tube: StandardMaterial3D=_batten(light,spec) if spec.motion in ["tube","neon"] else null
+  accents.append({"light":light,"spec":spec,"base":float(spec.energy),"color":Color(spec.color),"phase":rng.randf()*TAU,"event":-1.,"wait":rng.randf_range(2,9),"on":true,"tube":tube})
  if advanced:
   for room in SecretPlushEnding.ROOMS:
    if not HAZE.has(room[0]):continue
@@ -99,6 +101,26 @@ func _sodium_lot() -> void:
  for lamp in lot.lamps:lamp.light_color=Color(SODIUM);lamp.light_energy*=1.15
  if lot.window_light:lot.window_light.light_color=Color("ffb070")
 
+# A ceiling batten for every stuttering tube and neon light: the light comes
+# from a lamp, and the lamp's tube flickers with it (and dies in the blackout,
+# which dims every emissive material).
+func _batten(light: OmniLight3D,spec: Dictionary) -> StandardMaterial3D:
+ var height:=2.5
+ for room in SecretPlushEnding.ROOMS:
+  if room[0]==spec.room:height=room[5]
+ var root:=Node3D.new();root.name="MoodBatten_"+str(spec.room).replace(" ","");add_child(root)
+ if spec.has("wall"):
+  # On the wall: the batten turned along it, its back against the plaster.
+  # Tube along the wall (+Z), the lamp facing into the room (+X).
+  root.position=spec.wall;root.basis=Basis(Vector3(0,0,1),Vector3(-1,0,0),Vector3(0,-1,0))
+ else:
+  light.position.y=height-.22;root.position=Vector3(spec.pos.x,height,spec.pos.z)
+ var housing:=w.box(root,Vector3(0,-.035,0),Vector3(1.22,.07,.16),w.materials.metal);housing.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ var glow:=StandardMaterial3D.new();var color:=Color(spec.color);glow.albedo_color=color.lerp(Color.WHITE,.55);glow.emission_enabled=true;glow.emission=color;glow.emission_energy_multiplier=2.2
+ var lamp:=w.tube(root,Vector3(-.56,-.085,0),Vector3(.56,-.085,0),.022,glow);lamp.name="MoodTube";lamp.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ for x in [-.58,.58]:w.box(root,Vector3(x,-.08,0),Vector3(.03,.05,.06),w.materials.dark).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ return glow
+
 # LookPass pendants hang from a pivot at the top of their cord and swing.
 func _swinging_pendants() -> void:
  if not w.look:return
@@ -115,6 +137,7 @@ func configure(id: String) -> void:
   accent.on=not ((spec.get("party",false) and id=="party_dark") or (spec.get("kitchen",false) and id=="cold_breath"))
   # Red ceiling lights: every indoor accent burns red with them.
   accent.light.light_color=Color("e22c28") if id=="lights_red" and not spec.get("outdoor",false) and not spec.get("sign",false) else accent.color
+  if accent.tube:accent.tube.emission=accent.light.light_color
 
 # Called by AmbientLife when a car passes outside: headlights sweep the room.
 func headlights(near: Vector3) -> void:
@@ -147,7 +170,9 @@ func tick(delta: float,active: bool) -> void:
  if not active:return
  clock+=delta
  for accent in accents:
-  accent.light.light_energy=float(accent.base)*_level(accent,delta) if accent.on else 0.
+  var level:=_level(accent,delta) if accent.on else 0.
+  accent.light.light_energy=float(accent.base)*level
+  if accent.tube:accent.tube.emission_energy_multiplier=2.2*level
  for swing in swings:
   var a: float=sin(clock*float(swing.speed)+float(swing.phase))*float(swing.amount)
   swing.pivot.rotation=Vector3(a*cos(swing.yaw),0,a*sin(swing.yaw))

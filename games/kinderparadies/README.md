@@ -1,5 +1,12 @@
 # After Play — Kinderparadies
 
+## Jumpscares, der Krabbler, Lampen statt Leuchtkugeln (5.3.1)
+
+- **Echter Jumpscare** (`scripts/jumpscare_fx.gd`): Springt dich ein Besucher an (Schreckmomente der Schicht, Stromausfall, falsche Tür), gehört ihm für eine Sekunde der ganze Bildschirm. Das Gesicht kommt bis auf 27 cm heran und füllt das Bild mit seinem Gebiss, dazu Zoom mit Fischaugen-Verzerrung, Bewegungsunschärfe, starke Farbverschiebung, Blutrot, Blutspritzer und herablaufende Tropfen von den Rändern, Bildstörungs-Streifen, Rauschen, ein Blitz, heftiges Wackeln, ein tiefer Schlag und Rauschen unter dem Schrei. Mit "Stroboskop" aus kein Blitz und kein Flackern, mit "Kamerabewegung" aus kein Wackeln.
+- **Der Krabbler** (`assets/crawler-v531`, eigenes Image-to-3D-Modell): Er spielt die Krabbelszenen (unter dem Partytisch, Küchenboden, Bällebad-Rahmen, Rutsche) und die Krabbelröhre, statt eines umgekippten stehenden Besuchers. Er huscht wippend auf allen Vieren, bäumt sich beim Angriff auf und wächst dir ins Gesicht. Die stehenden Besucher bleiben überall sonst.
+- **Keine Leuchtkugeln mehr**: Die neuen Akzentlichter aus 5.3.0 leuchteten im Raumdunst als Kugeln ohne Lampe in der Luft. Sie färben jetzt nur Wände und Boden; flackernde Röhren und das Empfangs-Neon hängen als echte Deckenleuchten unter der Decke, deren Röhre mitflackert und beim Stromausfall ausgeht. Auch das Gesichtslicht der Angreifer erzeugt keine Kugel mehr im Dunst.
+- QA: `--render-qa --jumpscare-qa`, `--crawler-qa`.
+
 ## Lichtstimmung, etwas folgt dir, Funkeln an der Abzugshaube behoben (5.3.0)
 
 - **Jeder Raum hat seine eigene Lichtstimmung** (`scripts/room_mood.gd`): Empfang Amber-Neon und Pink, Halle kaltes Blau gegen die warmen Pendelleuchten, Bällebad tiefes Blau mit gelben und grünen Reflexen über dem Bad und Automaten-Glühen, Party Raum Gold und Magenta, Wartung kränkliches Grün, Personalflur kalte Röhre und grünes Notausgangsschild, Küche warmes Zündflammen- und Röhrenlicht, Kino blaues "NO SIGNAL"-Flackern, Kinder-WC Cyan, Eingang Natriumlicht. Auf Forward+ färbt ein Dunstvolumen pro Raum die Luft.

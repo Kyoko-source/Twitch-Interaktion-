@@ -6,6 +6,25 @@ static func visitor(id: String, mode: String) -> String:
  var kind:="hooded" if mode in ["ceiling","drop","queue"] else "split" if mode in ["mouth","peek","window","rush"] else "ragged"
  return "res://assets/visitors-v421/visitor-"+kind+".glb"
 
+# 5.3.1: the crawler (assets/crawler-v531, the owner's own image-to-3D model)
+# takes the floor and tube scenes instead of a tipped-over standing visitor.
+# The model faces +X and is centred on its bounds; the wrapper stands it on the
+# floor, faces it along +Z like the visitors and marks its head for the lunge.
+const CRAWLER:="res://assets/crawler-v531/crawler.glb"
+const CRAWLER_HALF_HEIGHT:=.3434
+const CRAWLER_MODES:=["crawl","tube"]
+static func crawler(height: float=1.05) -> Node3D:
+ var root:=Node3D.new();root.name="Crawler"
+ var model: Node3D=(load(CRAWLER) as PackedScene).instantiate();model.name="CrawlerModel"
+ var scale_value:=height/(CRAWLER_HALF_HEIGHT*2.)
+ model.scale=Vector3.ONE*scale_value;model.rotation.y=-PI/2;model.position.y=CRAWLER_HALF_HEIGHT*scale_value
+ root.add_child(model)
+ for mesh in model.find_children("*","MeshInstance3D",true,false):mesh.gi_mode=GeometryInstance3D.GI_MODE_DYNAMIC
+ # Its face, low and at the front: where the lunge lifts it to your eyes.
+ var head:=Node3D.new();head.name="HeadRig";head.position=Vector3(0,height*.45,.38*scale_value);root.add_child(head)
+ root.set_meta("crawler",true)
+ return root
+
 # The v421 visitors arrive fully headed, clothed and painted from their own
 # build script; only the dynamic GI flag is still needed, no recolouring.
 static func dynamic_only(root: Node3D) -> void:

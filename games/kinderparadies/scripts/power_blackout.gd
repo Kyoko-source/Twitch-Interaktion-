@@ -104,7 +104,7 @@ func _visitor() -> void:
   var arm:=visitor_visual.find_child(key,true,false) as Node3D
   if arm:visitor_arms.append(arm)
  visitor_head=visitor_visual.find_child("HeadRig",true,false) as Node3D
- face_light=OmniLight3D.new();face_light.name="PanicFaceLight";face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);visitor.add_child(face_light)
+ face_light=OmniLight3D.new();face_light.name="PanicFaceLight";face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);face_light.light_volumetric_fog_energy=0.;visitor.add_child(face_light)
 
 func configure(id: String) -> void:
  enabled=id==ID;phase="waiting" if enabled else "idle"
@@ -245,6 +245,7 @@ func _advance(delta: float,player: NightGuard) -> void:
 
 func _start_scare(player: NightGuard) -> void:
  scare_clock=0;scares+=1;shock=1.
+ JumpscareFX.fire(1.,.1)
  scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream)
  visitor.show();_scare_pose(0,player)
  player.fright=maxf(player.fright,1.)

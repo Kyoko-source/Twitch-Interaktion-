@@ -20,6 +20,9 @@ func run(game: Node3D,verify: Callable) -> void:
  var reds:=RoomMood.LIGHTS.filter(func(s):var c:=Color(s.color);return c.s>.45 and (c.h<.04 or c.h>.94))
  verify.call(reds.is_empty(),"A room accent is red and would look like the red-light anomaly: "+str(reds.map(func(s):return s.room)))
  verify.call(mood.accents.all(func(a):return not a.light.shadow_enabled),"Accent lights cast shadows (too expensive)")
+ # 5.3.1: no lamp-less light glowing in the haze; flickering lights have a lamp.
+ verify.call(mood.accents.all(func(a):return a.light.light_volumetric_fog_energy==0.),"An accent light glows in the haze without a lamp")
+ verify.call(mood.accents.filter(func(a):return a.spec.motion in ["tube","neon"]).all(func(a):return a.tube!=null),"A flickering accent light has no lamp")
  # Anomalies keep their meaning.
  w.set_anomaly("party_dark");mood.tick(.1,true)
  verify.call(mood.accents.filter(func(a):return a.spec.get("party",false)).all(func(a):return a.light.light_energy==0.),"Party accents stay on when the party lights fail")
@@ -91,4 +94,32 @@ func run(game: Node3D,verify: Callable) -> void:
 ".join(code).contains("pow(") ,"Clown cap shader uses pow() again (NaN sparkle under the hood)")
  for path in ["res://assets/atmosphere-v320/floor.gdshader","res://assets/atmosphere-v320/patinated.gdshader","res://assets/craft-v340/service-wear.gdshader","res://assets/restoration-v350/wrapping-paper.gdshader","res://assets/revamp-v300/weathered.gdshader"]:
   verify.call(not FileAccess.get_file_as_string(path).contains("pow(abs("),"pow(abs()) can produce NaN sparkle in "+path.get_file())
+ # 5.3.1: the crawler takes the floor and tube scenes; the jumpscare screen.
+ for id in ["kitchen_floor_crawler","tube_chase"]:
+  game._build_world(id)
+  var t: NightTerrors=game.world.terrors
+  verify.call(t.visual!=null and t.visual.has_meta("crawler") and ResourceLoader.exists(CharacterFinish.CRAWLER),"The crawler does not play "+id)
+ game._build_world("snackbar_visitor")
+ verify.call(not game.world.terrors.visual.has_meta("crawler"),"A standing visitor scene got the crawler")
+ var fx: JumpscareFX=game.jumpscare
+ verify.call(fx!=null and JumpscareFX.current==fx,"The jumpscare screen is missing")
+ if fx:
+  var cam: Camera3D=game.player.camera
+  fx.stop();JumpscareFX.fire(1.,0.)
+  var flash_seen:=false
+  for i in range(10):
+   fx.tick(.016,true,cam,{"strobe":true,"motion":true});flash_seen=flash_seen or float(fx.material.get_shader_parameter("flash"))>.3
+  verify.call(fx.running() and fx.rect.visible and flash_seen and absf(cam.h_offset)+absf(cam.v_offset)>0.,"A jumpscare does not take over the screen")
+  fx.tick(.5,false,cam,{});var frozen:=fx.clock
+  fx.tick(.5,false,cam,{})
+  verify.call(fx.clock==frozen,"The jumpscare runs on in the pause")
+  for i in range(100):fx.tick(.016,true,cam,{"strobe":true,"motion":true})
+  verify.call(not fx.running() and not fx.rect.visible and cam.h_offset==0. and cam.v_offset==0.,"The jumpscare does not end cleanly")
+  # Photosensitivity and motion settings are respected.
+  JumpscareFX.fire(1.,0.);var flashed:=false;var shaken:=false
+  for i in range(20):
+   fx.tick(.016,true,cam,{"strobe":false,"motion":false})
+   flashed=flashed or float(fx.material.get_shader_parameter("flash"))>0.;shaken=shaken or cam.h_offset!=0.
+  verify.call(not flashed and not shaken,"Jumpscare flashes or shakes with strobe and motion turned off")
+  fx.stop()
  print("Mood checks done: ",mood.accents.size()," accents, ",mood.swings.size()," pendants")

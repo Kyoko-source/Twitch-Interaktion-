@@ -119,6 +119,9 @@ func configure(value: String) -> void:
  actor=CharacterBody3D.new();actor.name="EncounterBody";actor.collision_layer=0;actor.collision_mask=1;add_child(actor);actor.position=origin
  if spec.mode=="pit":
   visual=Node3D.new();visual.name="BoneArms";actor.add_child(visual)
+ elif spec.mode in CharacterFinish.CRAWLER_MODES:
+  # 5.3.1: a real crawler instead of a standing visitor tipped onto its face.
+  visual=CharacterFinish.crawler(.82 if spec.mode=="tube" else 1.05);visual.name="ArticulatedVisitor";actor.add_child(visual)
  else:
   visual=(load(CharacterFinish.visitor(id,spec.mode)) as PackedScene).instantiate();visual.name="ArticulatedVisitor";actor.add_child(visual)
   # v421 visitors already come fully headed, dressed and painted; the old
@@ -129,9 +132,7 @@ func configure(value: String) -> void:
   var arm:=visual.find_child(key,true,false) as Node3D
   if arm: arms.append(arm)
  if spec.mode in ["crawl","tube"]:
-  visual.rotation.x=1.25;visual.position.y=.20;visual.scale=Vector3.ONE*.67;capsule.height=.60;shape.position.y=.4
-  var head_rig:=visual.find_child("HeadRig",true,false) as Node3D
-  if head_rig: head_rig.rotation.x=-1.25
+  capsule.height=.60;shape.position.y=.4
  elif spec.mode=="ceiling":
   visual.rotation.z=PI;shape.disabled=true
   rope=w.tube(self,Vector3(origin.x,float(spec.get("ceiling",7.29)),origin.z),origin-Vector3(0,.4,0),.009,w.materials.fabric)
@@ -153,7 +154,7 @@ func configure(value: String) -> void:
  if spec.mode=="throne":
   shape.disabled=true
  if spec.mode in ["pursuit","tube"]:
-  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);actor.add_child(face_light)
+  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);face_light.light_volumetric_fog_energy=0.;actor.add_child(face_light)
  if spec.mode in ["ambush","rush","drop"]:
   warning_light=OmniLight3D.new();warning_light.light_color=Color("bba788");warning_light.light_energy=0;warning_light.omni_range=2.8;warning_light.position=Vector3(0,1.6,.8);actor.add_child(warning_light)
  if spec.mode=="queue":
@@ -294,7 +295,7 @@ func animate_attack(delta: float, player: NightGuard, in_tube: bool) -> void:
    # Clawing itself forward hand over hand, head up and fixed on you.
    var stride:=attack*16.
    for i in range(arms.size()):arms[i].rotation=Vector3(-1.55+sin(stride+i*PI)*.5,0,(-.25 if i==0 else .25))
-   visual.position.y=.20+absf(sin(stride))*.04
+   visual.position.y=absf(sin(stride))*.035;visual.rotation=Vector3(0,sin(stride*.5)*.08,sin(stride*.5)*.06)
   if attack>3.2: _vanish(player)
  elif spec.mode=="vent":
   var pulse:=sin(clampf(attack/1.6,0,1)*PI)
@@ -360,8 +361,9 @@ func _charge(delta: float, player: NightGuard) -> void:
  actor.rotation.y=atan2(direction.x,direction.z)
  var crawler: bool=spec.mode=="crawl"
  var stride:=run*(17. if crawler else 15.)
- visual.position=Vector3(0,(.20 if crawler else 0.)+absf(sin(stride))*(.04 if crawler else .06),0)
- visual.rotation=Vector3(1.25 if crawler else -.2,0,sin(stride*.5)*(.09 if crawler else .05))
+ # The crawler scuttles: quick bobbing, its body rolling side to side.
+ visual.position=Vector3(0,absf(sin(stride))*(.035 if crawler else .06),0)
+ visual.rotation=Vector3(sin(stride)*.04 if crawler else -.2,sin(stride*.5)*.08 if crawler else 0.,sin(stride*.5)*(.07 if crawler else .05))
  if head and not crawler: head.rotation=Vector3(.2,0,sin(run*29.)*.1)
  for i in range(arms.size()):
   arms[i].rotation.x=(-.75+sin(stride+i*PI)*.5) if crawler else (-1.35+sin(stride+i*PI)*.22)
@@ -464,13 +466,15 @@ func _clear(player: NightGuard) -> bool:
 func _start_lunge(player: NightGuard) -> void:
  if lunge_at>=0: return
  if face_light==null:
-  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);actor.add_child(face_light)
+  face_light=OmniLight3D.new();face_light.light_color=Color("d6c8b4");face_light.light_energy=0;face_light.omni_range=2.2;face_light.position=Vector3(0,1.25,.55);face_light.light_volumetric_fog_energy=0.;actor.add_child(face_light)
  if spec.mode=="crawl":
   # Rears up off the floor for the final lunge.
-  visual.rotation=Vector3.ZERO;visual.position=Vector3.ZERO;visual.scale=Vector3.ONE*.85
-  var rig:=visual.find_child("HeadRig",true,false) as Node3D
-  if rig: rig.rotation=Vector3.ZERO
+  visual.rotation=Vector3.ZERO;visual.position=Vector3.ZERO
+ # The crawler's face is low and at its front: light it from right in front.
+ if visual.has_meta("crawler"):face_light.position=Vector3(0,.75,1.25)
  lunge_at=attack;lunge_from=actor.global_position;lunged=true
+ # 5.3.1: the face fills the screen; the jumpscare screen takes over.
+ JumpscareFX.fire(1.,.06)
  scream.stream=ScareBank.flat("door_death");ScareBank.play_flat(scream);shock=1.0;footsteps.stop()
  player.fright=maxf(player.fright,1.)
 
@@ -505,16 +509,20 @@ func _face_lunge(player: NightGuard,reach: float,patience: float) -> bool:
   _vanish(player)
   return true
  var eye:=player.camera.global_transform;var forward:=-eye.basis.z;forward.y=0;forward=forward.normalized() if forward.length()>.1 else Vector3.FORWARD
- # Head level with the eyes, a forearm's length away.
- var head_rig:=visual.find_child("HeadRig",true,false) as Node3D
- var head_offset:=(head_rig.global_position-actor.global_position) if head_rig else Vector3(0,1.75,0)
- var target:=eye.origin+forward*(.42 if spec.mode=="tube" else .5)-head_offset-Vector3(0,.04,0)
  var k:=1.-pow(1.-clampf(t/.14,0,1),4)
  var jerk:=Vector3(sin(floorf(t*16.)*12.9)*.05,0,0)*clampf(t/.14,0,1)
- actor.global_position=lunge_from.lerp(target,k)+jerk
  actor.rotation.y=atan2(-forward.x,-forward.z)
- if spec.mode=="tube":visual.rotation=Vector3(1.25-.3*k+.05*sin(t*41.),.06*sin(t*29.),.08*sin(t*37.))
+ # Crawlers rear up at you and swell into view; standing visitors lean in.
+ if visual.has_meta("crawler"):visual.position=Vector3.ZERO;visual.scale=Vector3.ONE*(1.+.9*k);visual.rotation=Vector3(-.3*k+.05*sin(t*41.),.06*sin(t*29.),.08*sin(t*37.))
  else:visual.position=Vector3.ZERO;visual.rotation=Vector3(-.16*k+.05*sin(t*41.),.06*sin(t*29.),.08*sin(t*37.))
+ # Head level with the eyes, a forearm's length away: measured after this
+ # frame's pose, so a growing crawler does not overshoot.
+ var head_rig:=visual.find_child("HeadRig",true,false) as Node3D
+ var head_offset:=(head_rig.global_position-actor.global_position) if head_rig else Vector3(0,1.75,0)
+ # The visitors' head rig sits at the neck: lift the face itself to the eyes.
+ var face_lift:=.24 if visual.has_meta("crawler") else .16
+ var target:=eye.origin+forward*(.2 if visual.has_meta("crawler") else .27)-head_offset-Vector3(0,.04+face_lift,0)
+ actor.global_position=lunge_from.lerp(target,k)+jerk
  var head:=visual.find_child("HeadRig",true,false) as Node3D
  var crawler: bool=spec.mode=="tube"
  if head:head.rotation=Vector3((-.95 if crawler else 0.)+.1*sin(t*47.),.18*sin(t*39.),.14*sin(t*53.))

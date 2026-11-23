@@ -37,6 +37,8 @@ func start_patrol(world: PlayWorld, camera: Camera3D) -> void:
  # Lit from below and in front, like a torch dropped at its feet.
  fill.position=Vector3(.1,-1.1,-.35)
  audio.stream=ScareBank.flat("door_death");audio.volume_db=0;audio.pitch_scale=1.0
+ # The scream lands at 0.3 s; the jumpscare screen with it.
+ JumpscareFX.fire(1.,.28)
 
 func _patrol_tick() -> void:
  _cue_sound(.13)

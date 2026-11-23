@@ -12,6 +12,7 @@ var chalk_drawing:=""
 var party_reboot_until:=0
 var world: PlayWorld
 var player: NightGuard
+var jumpscare: JumpscareFX
 var phase := "menu"
 var return_phase := "menu"
 var ui: CanvasLayer
@@ -268,6 +269,8 @@ func _ui() -> void:
  title_font=FontVariation.new();title_font.base_font=load("res://assets/Oswald.ttf");title_font.variation_opentype={"wght":600}
  post=ColorRect.new();post.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);post.mouse_filter=Control.MOUSE_FILTER_IGNORE
  post.material=CinematicLook.material();root.add_child(post)
+ # 5.3.1: full-screen jumpscare above everything, HUD included.
+ jumpscare=JumpscareFX.new();add_child(jumpscare)
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
@@ -694,6 +697,7 @@ func _save(next_round: bool=false) -> void:
 
 func _process(delta: float) -> void:
  if dialogue:dialogue.tick(delta)
+ if jumpscare and player:jumpscare.tick(delta,phase not in ["pause","settings","inventory","help","code"],player.camera,settings)
  if mp:mp.tick(delta)
  if player and player.presence:player.presence.set_active(phase=="play" and player.active)
  if player and player.hands:player.hands.tick(delta,phase=="play")

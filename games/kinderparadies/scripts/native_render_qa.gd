@@ -504,6 +504,39 @@ func run(game: Node3D) -> void:
   await album_photos(game,output);game._quit();return
  if "--sparkle-qa" in OS.get_cmdline_user_args():
   await sparkle_frames(game,output);game._quit();return
+ if "--jumpscare-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  for id in ["snackbar_visitor","kitchen_floor_crawler"]:
+   game._build_world(id);game.player.active=false
+   for i in range(4):await game.get_tree().process_frame
+   var t: NightTerrors=game.world.terrors;t.actor.show()
+   var feet:=t.actor.global_position+Vector3(0,0,3.)
+   author.pose(game,feet,t.actor.global_position+Vector3.UP*1.2);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for i in range(3):await game.get_tree().process_frame
+   t.attack=1.;t._start_lunge(game.player)
+   var shots:={3:"a",10:"b",30:"c",55:"d"}
+   for f in range(60):
+    t.attack+=.016;t._face_lunge(game.player,9.,0.)
+    game.jumpscare.tick(.016,true,game.player.camera,game.settings)
+    await game.get_tree().process_frame
+    if shots.has(f):await capture(game,output,"jumpscare-%s-%s"%[id,shots[f]])
+  game._quit();return
+ if "--crawler-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  var author=load("res://art-direction/itch_capture.gd").new()
+  for id in ["party_under_table","kitchen_floor_crawler","frame_stalker","slide_crawler","tube_burst","tube_chase"]:
+   game._build_world(id);game.player.active=false
+   for i in range(4):await game.get_tree().process_frame
+   var actor: Node3D=game.world.terrors.actor;actor.show()
+   var at:=actor.global_position;var fwd:=actor.global_basis.z;fwd.y=0;fwd=fwd.normalized() if fwd.length()>.1 else Vector3.FORWARD
+   var eye:=at+fwd*2.2+fwd.cross(Vector3.UP)*1.2+Vector3.UP*.9
+   if id.begins_with("tube"):eye=at+fwd*1.6+Vector3.UP*.5
+   author.pose(game,eye-Vector3.UP*1.65,at+Vector3.UP*.45);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for i in range(6):await game.get_tree().process_frame
+   print("CRAWLER ",id," at ",at," visible ",actor.is_visible_in_tree())
+   await capture(game,output,"crawler-"+id)
+  game._quit();return
  if "--mood-qa" in OS.get_cmdline_user_args():
   await mood_views(game,output);game._quit();return
  if "--visitors-qa" in OS.get_cmdline_user_args():
@@ -1578,7 +1611,7 @@ func album_photos(game: Node3D,output: String) -> void:
 # 5.3.0: every room without an anomaly, seen from one corner across to the
 # other, torch on. Compares the light mood of the rooms before and after.
 const MOOD_EXTRA:={"Kino-ost":[Vector3(-4.5,1.7,-29.6),Vector3(4.,1.6,-29.6)],"Kino-west":[Vector3(2.,1.7,-29.6),Vector3(-6.,1.4,-29.6)],"Kino-nord":[Vector3(-.5,1.7,-34.),Vector3(-.5,1.4,-24.5)]}
-const MOOD_VIEWS:={"Bällebad":[Vector3(17.5,1.75,15.8),Vector3(3.,.8,6.5)],"Kino":[Vector3(-3.,1.9,-25.2),Vector3(3.8,1.4,-30.5)]}
+const MOOD_VIEWS:={"Empfang":[Vector3(-4.2,1.65,9.2),Vector3(-9.6,2.3,6.6)],"Bällebad":[Vector3(17.5,1.75,15.8),Vector3(3.,.8,6.5)],"Kino":[Vector3(-3.,1.9,-25.2),Vector3(3.8,1.4,-30.5)]}
 func mood_views(game: Node3D,output: String) -> void:
  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
  game._build_world("none");game.player.active=false

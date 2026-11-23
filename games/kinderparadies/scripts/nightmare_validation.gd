@@ -17,7 +17,7 @@ func run(game: Node3D, verify: Callable) -> void:
   game._build_world(id);game._resume();game.player.active=false
   await game.get_tree().physics_frame;await game.get_tree().physics_frame
   var t: NightTerrors=game.world.terrors
-  verify.call(t.id==id and is_instance_valid(t.actor) and t.visual.find_children("*","MeshInstance3D",true,false).size()>=5,"New physical visitor is missing: "+id)
+  verify.call(t.id==id and is_instance_valid(t.actor) and t.visual.find_children("*","MeshInstance3D",true,false).size()>=(1 if t.visual.has_meta("crawler") else 5),"New physical visitor is missing: "+id)
   if t.spec.mode=="pursuit":
    var bounds:=AABB();var first:=true
    for mesh in t.visual.find_children("*","MeshInstance3D",true,false):
