@@ -71,6 +71,7 @@ var loading_progress:=0.0
 var world_build_count:=0
 var start_warning: AfterPlayStartWarning
 var album:=ShiftAlbum.new()
+var anomaly_album:=AnomalyAlbum.new()
 var ending_preview:=false
 # Endless mode (4.14.0) keeps its own save; the normal shift is never touched.
 var NORMAL_SAVE:=""
@@ -85,7 +86,7 @@ func _ready() -> void:
  AfterPlayLanguage.setup()
  NORMAL_SAVE=SAVE;ENDLESS_SAVE=SAVE.get_basename()+"-endless.json"
  if OS.has_feature("web"): settings.quality=1
- _actions();_read_settings();album.build(self)
+ _actions();_read_settings();album.build(self);anomaly_album.build(self)
  var stored_party_text:=_persistent_text(SAVE)
  var stored_party=JSON.parse_string(stored_party_text) if not stored_party_text.is_empty() else null
  if stored_party is Dictionary:party_reboot_until=clampi(int(stored_party.get("party_reboot_until",0)),0,int(Time.get_unix_time_from_system())+HappylandParty.REBOOT_SECONDS)
@@ -854,7 +855,7 @@ func _finish_lift(red: bool) -> void:
  if state.endless:_finish_endless_lift(red);return
  if state.completed: _show_patrol_ending();return
  var finished_round:=state.streak+1
- last_result=state.decide(red)
+ last_result=state.decide(red);_album_record(last_result)
  if mp:mp.event("Runde %d: %s Tür – %s"%[finished_round,"Rote" if red else "Grüne","richtig" if last_result.get("correct",false) else "falsch"])
  if not last_result.get("correct",false): _door_death(red);return
  if state.completed: _show_patrol_ending();return
@@ -1144,7 +1145,7 @@ func _telemetry() -> void:
   data.anomaly=state.current;data.controls=[]
   data.completed=state.completed
   data.presence=player.presence.snapshot();data.hand_action=player.hands.snapshot()
-  data.album=album.snapshot();data.touch=world.touch.snapshot();data.final_receipt={"visible":intro.ticket.paper.visible,"amount":intro.ticket.amount,"text":intro.ticket.text.text}
+  data.album=album.snapshot();data.anomaly_album=anomaly_album.snapshot();data.touch=world.touch.snapshot();data.final_receipt={"visible":intro.ticket.paper.visible,"amount":intro.ticket.amount,"text":intro.ticket.text.text}
   data.startup=start_warning.snapshot() if is_instance_valid(start_warning) else {"visible":false}
   if is_instance_valid(start_warning):data.controls=data.startup.controls
   data.instructions=[]
@@ -1287,8 +1288,12 @@ func _tick_endless_timer() -> void:
  if int(left*4)!=int((left+get_process_delta_time())*4):_refresh_hud()
  if left<=0:_endless_fail(state.miss("timer"))
 
+# A correctly reported anomaly becomes a polaroid in the album (5.2.8).
+func _album_record(result: Dictionary) -> void:
+ if result.get("correct",false) and result.get("anomaly",false):anomaly_album.record(str(result.get("id","")))
+
 func _finish_endless_lift(red: bool) -> void:
- last_result=state.decide(red)
+ last_result=state.decide(red);_album_record(last_result)
  if mp:mp.event("Endlos-Runde %d: %s"%[state.round_number(),"richtig" if last_result.get("correct",false) else "falsch"])
  if not last_result.get("correct",false):_endless_fail(last_result);return
  endless_warning=0

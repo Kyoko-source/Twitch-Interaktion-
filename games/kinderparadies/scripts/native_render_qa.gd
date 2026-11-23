@@ -488,6 +488,20 @@ func run(game: Node3D) -> void:
   author.pose(game,Vector3(centre.x+1.3,.05,centre.z-1.4),centre)
   await capture(game,output,"02-remains-angle")
   game._quit();return
+ if "--album-menu-qa" in OS.get_cmdline_user_args():
+  var album: AnomalyAlbum=game.anomaly_album;album.found.clear()
+  for a in PatrolState.ANOMALIES.slice(0,40).filter(func(x):return hash(x.id)%3!=0):album.found[a.id]={"date":"2026-11-23","times":1+hash(a.id)%4}
+  album.show_menu(func():NightMenus.home(game));for i in range(8):await game.get_tree().process_frame
+  await capture(game,output,"01-album")
+  var card: Button=game.menu.find_child("Polaroid_"+str(album.found.keys()[3]),true,false)
+  if card:card.pressed.emit()
+  for i in range(8):await game.get_tree().process_frame
+  await capture(game,output,"02-detail")
+  NightMenus.home(game);for i in range(8):await game.get_tree().process_frame
+  await capture(game,output,"03-home")
+  album.found.clear();DirAccess.remove_absolute(album.path);game._quit();return
+ if "--album-photos-qa" in OS.get_cmdline_user_args():
+  await album_photos(game,output);game._quit();return
  if "--visitors-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   var author=load("res://art-direction/itch_capture.gd").new()
@@ -1503,3 +1517,56 @@ func watch_views(game: Node3D, output: String) -> void:
   game.player.camera.look_at(terror.focus_point())
   await game.get_tree().create_timer(1.1).timeout;await capture(game,output,id)
   assert(terror.triggered,"New native encounter cannot trigger: "+id)
+
+# 5.2.8: one polaroid photo per anomaly for the anomaly album. The camera looks
+# at the anomaly's anchor from the side of its room, lamp on, no HUD.
+const ALBUM_ROOMS:={"Empfang":Vector3(-5.5,1.65,9.5),"Bällebad":Vector3(-1.,1.65,9.),"Party Raum":Vector3(10.5,1.65,-2.5),"Wartungsgang":Vector3(-7.9,1.65,-9.5),"Küche":Vector3(-11.,1.65,-30.),"Kino":Vector3(-2.,1.65,-25.5),"Kinder-WC":Vector3(21.,1.65,7.8),"Krabbelröhre":Vector3(-1.,1.65,9.)}
+const ALBUM_ANCHORS:={"horse_clown_hunt":Vector3(-1.3,1.6,-32.15),"power_blackout":Vector3(-13.,1.3,-5.),"dust_footprints":Vector3(1.5,0.,10.5),"cold_breath":Vector3(-13.25,1.3,-31.25),"costume_wakes":Vector3(16.,1.5,-15.),"false_exit":Vector3(-13.5,1.4,9.4),"clown_lunge":Vector3(-13.25,1.4,-31.25),"chair_ceiling":Vector3(8.5,2.4,-7.),"balls_float":Vector3(3.,1.2,7.),"balls_missing":Vector3(3.,.4,7.),"ball_giant":Vector3(2.2,1.3,6.),"mural_missing":Vector3(-9.96,2.2,-2.3),"mural_bleeds":Vector3(-9.96,1.8,-2.8),"clock_fast":Vector3(-9.98,3.05,7.3),"car_giant":Vector3(4.15,1.,-7.45),"car_missing":Vector3(4.15,.4,-7.45),"lights_red":Vector3(-2.,2.2,2.),"party_dark":Vector3(12.,1.4,-6.),"balloons_many":Vector3(8.5,2.,-8.5),"balloons_floor":Vector3(8.5,.6,-9.),"balloons_follow":Vector3(8.5,2.,-9.),"party_burst":Vector3(8.5,2.,-9.),"net_missing":Vector3(-.5,2.,5.),"blood_trail":Vector3(-5.8,0.,-2.),"bunny_ceiling":Vector3(-4.3,3.5,-8.5),"heavy_mist":Vector3(3.,.8,6.),"horse_rocks":Vector3(-6.,.8,11.)}
+
+# Fixed camera positions where the automatic side view lands in a wall.
+const ALBUM_EYES:={"car_giant":Vector3(-.5,1.9,-2.6),"car_missing":Vector3(-.5,1.9,-2.6),"heavy_mist":Vector3(-1.5,1.9,11.5),"frame_drop":Vector3(-2.,1.8,6.),"frame_stalker":Vector3(-1.8,1.7,5.8),"party_portrait":Vector3(12.5,1.7,-4.5),"horse_clown_hunt":Vector3(-4.5,1.7,-26.5),"power_blackout":Vector3(-7.5,1.7,-1.),"balls_float":Vector3(-1.5,2.,11.),"pit_hands":Vector3(-.5,2.,10.5),"pit_runner":Vector3(1.,1.8,10.),"slide_crawler":Vector3(.5,1.8,13.5),"net_missing":Vector3(-4.,1.8,9.),"cold_breath":Vector3(-10.5,1.7,-29.5),"tube_watcher":Vector3(-1.5,2.,11.)}
+const ALBUM_TUBE:=["tube_burst","tube_chase","tube_window_hands"]
+
+func album_anchor(game: Node3D,id: String,zone: String) -> Vector3:
+ var w=game.world
+ if NightTerrors.SCENARIOS.has(id) and is_instance_valid(w.terrors.visual):
+  var head: Node3D=w.terrors.visual.find_child("HeadRig",true,false)
+  return head.global_position if head else w.terrors.visual.global_position+Vector3.UP*1.2
+ if id=="star_giant":return w.props.stars.get_child(0).global_position
+ if id=="croc_snap":return w.props.inflatable.global_position+Vector3.UP*1.2
+ if id=="bunny_lunge":return w.atmosphere.horrors.bunny.global_position+Vector3.UP*.5
+ if ALBUM_ANCHORS.has(id):return ALBUM_ANCHORS[id]
+ return ALBUM_ROOMS.get(zone,Vector3(0,1.65,0))+Vector3(0,0,-3)
+
+func album_photos(game: Node3D,output: String) -> void:
+ game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+ var author=load("res://art-direction/itch_capture.gd").new()
+ var only:=Array(OS.get_cmdline_user_args()).filter(func(a):return a.begins_with("--only=")).map(func(a):return a.trim_prefix("--only="))
+ for a in PatrolState.ANOMALIES:
+  if not only.is_empty() and a.id not in only:continue
+  game._build_world(a.id);game.player.active=false
+  for i in range(4):await game.get_tree().process_frame
+  if NightTerrors.SCENARIOS.has(a.id) and is_instance_valid(game.world.terrors.actor) and a.id not in ALBUM_TUBE:game.world.terrors.actor.show()
+  var target:=album_anchor(game,a.id,a.zone)
+  if a.id in ALBUM_TUBE:
+   # From inside the crawl tube, looking along it.
+   var at: float={"tube_burst":3.2,"tube_chase":8.4,"tube_window_hands":12.6}[a.id]
+   var inside:=CrawlTubes.route(at)+Vector3.UP*.45
+   author.pose(game,inside-Vector3.UP*1.65,CrawlTubes.route(minf(at+1.6,CrawlTubes.LENGTH-.2))+Vector3.UP*.4+Vector3(.25,0,0));game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for i in range(6):await game.get_tree().process_frame
+   await capture(game,output,a.id);continue
+  if ALBUM_EYES.has(a.id):
+   author.pose(game,ALBUM_EYES[a.id]-Vector3.UP*1.65,target);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for i in range(6):await game.get_tree().process_frame
+   await capture(game,output,a.id);continue
+  var room: Vector3=ALBUM_ROOMS.get(a.zone,Vector3(0,1.65,0))
+  var flat:=Vector3(room.x-target.x,0,room.z-target.z)
+  if flat.length()<1.:flat=Vector3(0,0,1)
+  var eye:=target+flat.normalized()*3.4;eye.y=clampf(target.y+.35,1.2,2.2)
+  # Stay inside the room: stop short of any wall between anchor and camera.
+  var q:=PhysicsRayQueryParameters3D.create(target+flat.normalized()*.4,eye,1);q.exclude=[game.player.get_rid()]
+  var hit: Dictionary=game.world.get_world_3d().direct_space_state.intersect_ray(q)
+  if not hit.is_empty():eye=hit.position-flat.normalized()*.35;eye.y=clampf(target.y+.35,1.2,2.2)
+  author.pose(game,eye-Vector3.UP*1.65,target);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+  for i in range(6):await game.get_tree().process_frame
+  await capture(game,output,a.id)

@@ -33,6 +33,9 @@ const LIST:=[
  {"id":"party_25","title":"Die Feier hört nie auf","text":"Überlebe in der Partynacht bis Runde 25."},
  {"id":"party_boss","title":"Geburtstag abgesagt","text":"Besiege in der Partynacht einen Boss."},
  {"id":"party_perks","title":"Vier Gläser","text":"Trinke in einem Lauf vier Perks."},
+ {"id":"album_10","title":"Schnappschuss","text":"Sammle 10 Polaroids im Anomalie-Album."},
+ {"id":"album_34","title":"Halbes Album","text":"Sammle 34 Polaroids im Anomalie-Album."},
+ {"id":"album_all","title":"Lückenlos","text":"Sammle alle Polaroids im Anomalie-Album.","secret":true},
 ]
 const ROUNDS:=[10,15,25,50,100,200,250,350,500]
 
@@ -48,6 +51,7 @@ var zombies:={"best_round":0,"best_points":0,"kills":0,"headshots":0,"bosses":0,
 var toast: PanelContainer
 var toast_title: Label
 var toast_text: Label
+var toast_head: Label
 var queue: Array=[]
 var showing:=false
 
@@ -73,7 +77,7 @@ func build(game: Node3D) -> void:
  toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT);toast.position=Vector2(-460,40);toast.custom_minimum_size=Vector2(420,0)
  var style:=StyleBoxFlat.new();style.bg_color=Color(.03,.04,.035,.93);style.border_color=Color("b6a16d");style.border_width_left=4;style.set_content_margin_all(16);style.content_margin_left=22;toast.add_theme_stylebox_override("panel",style)
  var column:=VBoxContainer.new();column.add_theme_constant_override("separation",4);toast.add_child(column)
- var head: Label=g._label("ERFOLG FREIGESCHALTET",14,Color("b6a16d"));column.add_child(head)
+ toast_head=g._label("ERFOLG FREIGESCHALTET",14,Color("b6a16d"));column.add_child(toast_head)
  toast_title=g._label("",26,Color("eee7d6"));toast_title.add_theme_font_override("font",g.title_font);column.add_child(toast_title)
  toast_text=g._label("",16,Color("bac6c0"));toast_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;toast_text.custom_minimum_size.x=380;column.add_child(toast_text)
  layer.add_child(toast);toast.hide()
@@ -82,6 +86,10 @@ static func row(id: String) -> Dictionary:
  for item in LIST:
   if item.id==id:return item
  return {}
+
+# Any other toast (5.2.8: new album polaroids), queued with the achievements.
+func notify(head: String,title: String,text: String) -> void:
+ queue.append({"head":head,"title":title,"text":text});_show_next()
 
 func has(id: String) -> bool:
  return unlocked.has(id)
@@ -125,7 +133,9 @@ func save() -> void:
 func _show_next() -> void:
  if showing or queue.is_empty() or not is_instance_valid(toast):return
  showing=true
- var item:=row(queue.pop_front())
+ var next=queue.pop_front()
+ var item: Dictionary=next if next is Dictionary else row(next)
+ toast_head.text=str(item.get("head","ERFOLG FREIGESCHALTET"))
  toast_title.text=AfterPlayLanguage.t(item.title);toast_text.text=AfterPlayLanguage.t(item.text)
  toast.show();toast.position.x=-460
  var tween:=create_tween()

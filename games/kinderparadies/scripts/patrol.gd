@@ -275,7 +275,7 @@ func _decide_endless(red: bool) -> Dictionary:
  if lives==1:last_life_rounds+=1
  completed=streak>=ENDLESS_GOAL
  _remember({"anomaly":current,"red":red,"correct":true})
- var result:={"accepted":true,"correct":true,"anomaly":anomaly,"detail":detail_text,"streak":streak,"lives":lives,"over":false,"completed":completed,"round":finished_round,"seconds":used,"timed":finished_round>=TIMER_FROM,"was_detail":was_detail}
+ var result:={"accepted":true,"correct":true,"anomaly":anomaly,"id":current,"detail":detail_text,"streak":streak,"lives":lives,"over":false,"completed":completed,"round":finished_round,"seconds":used,"timed":finished_round>=TIMER_FROM,"was_detail":was_detail}
  _next()
  return result
 
@@ -293,7 +293,7 @@ func decide(red: bool) -> Dictionary:
  if correct: streak+=1;best=maxi(best,streak)
  else: streak=0;errors+=1
  completed=streak==GOAL
- var result := {"accepted":true,"correct":correct,"anomaly":anomaly,"detail":detail,"streak":streak,"completed":completed}
+ var result := {"accepted":true,"correct":correct,"anomaly":anomaly,"id":current,"detail":detail,"streak":streak,"completed":completed}
  history.append({"anomaly":current,"red":red,"correct":correct})
  if completed: current="none";horse_override=false
  else: _next()

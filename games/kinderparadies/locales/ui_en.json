@@ -332,5 +332,15 @@
   "PUPPEN   %d / %d": "PLUSHES   %d / %d",
   "Alle wieder da": "Everyone is back",
   "GEHEIMES ENDE": "SECRET ENDING",
-  "Drei Ausgänge und ein geheimes Ende. Deine entdeckten Enden bleiben hier erhalten.": "Three ways out and a secret ending. The endings you discover stay here."
+  "Drei Ausgänge und ein geheimes Ende. Deine entdeckten Enden bleiben hier erhalten.": "Three ways out and a secret ending. The endings you discover stay here.",
+  "Anomalie-Album": "Anomaly album",
+  "NEUES POLAROID": "NEW POLAROID",
+  "Zurück zum Album": "Back to the album",
+  "Jede Anomalie, die du mit der roten Tür meldest, landet hier als Foto. Klicke ein Polaroid an.": "Every anomaly you report at the red door lands here as a photo. Click a polaroid.",
+  "Schnappschuss": "Snapshot",
+  "Sammle 10 Polaroids im Anomalie-Album.": "Collect 10 polaroids in the anomaly album.",
+  "Halbes Album": "Half an album",
+  "Sammle 34 Polaroids im Anomalie-Album.": "Collect 34 polaroids in the anomaly album.",
+  "Lückenlos": "Complete",
+  "Sammle alle Polaroids im Anomalie-Album.": "Collect every polaroid in the anomaly album."
 }

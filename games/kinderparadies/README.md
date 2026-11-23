@@ -1,5 +1,24 @@
 # After Play — Kinderparadies
 
+## Anomalie-Album (5.2.8)
+
+- Neuer Menüpunkt **Anomalie-Album**: Jede Anomalie, die man mit der roten
+  Tür richtig meldet (Schicht und Endlosmodus), wird ein Polaroid. 68 Karten
+  mit Fortschrittsbalken; gefundene zeigen ein echtes Spielfoto mit
+  handschriftlicher Beschriftung (Caveat), noch fehlende ein dunkles Foto mit
+  Fragezeichen und dem Raum als Hinweis. Ein Klick öffnet das große Polaroid
+  mit Raum, ganzer Beschreibung, Datum der ersten Meldung und wie oft man sie
+  erkannt hat.
+- Neue Einblendung „Neues Polaroid“ mit Stand x / 68; Erfolge „Schnappschuss“
+  (10), „Halbes Album“ (34) und geheim „Lückenlos“ (alle).
+- Gespeichert in `user://after-play-anomalies.json`, unabhängig von Schicht,
+  Tod und neuer Schicht. Umbenannte Anomalien alter Stände werden übernommen.
+- Fotos: `--render-qa --album-photos-qa` rendert jede Anomalie im Spiel
+  (Schreckfiguren eingeblendet, Taschenlampe an), 
+  `tools/develop-after-play-album-photos-v528.py` entwickelt sie zu 640×480
+  im Sofortbild-Look nach `assets/album-v528/`. `--album-menu-qa` zeigt das
+  Menü. Test: `-- --self-test --album-only` (auch in der Gesamtsuite).
+
 ## Mehr Leben, jede Anomalie nur einmal, Partynacht-Spawns, kein Funkeln am Clown (5.2.7)
 
 - **Jede Anomalie höchstens einmal pro Schicht.** Innerhalb einer Schicht zog
