@@ -73,3 +73,14 @@ tmp.unlink()
 }
 """, encoding="utf-8")
 print("ok", sorted(p.name for p in OUT.iterdir()))
+
+# Microphone mode: the whisper behind the guard ("Dreh dich NICHT um",
+# ElevenLabs, the owner's own generation). Cut before the trailing silence.
+MIC_SRC = SRC.parent / "Mikrofon-Modus" / "whisper-dreh-dich-nicht-um.mp3"
+MIC_OUT = ROOT / "games" / "kinderparadies" / "assets" / "mic-v540" / "whisper.ogg"
+subprocess.run([
+    "ffmpeg", "-v", "error", "-y", "-t", "2.6", "-i", str(MIC_SRC),
+    "-af", "loudnorm=I=-16:TP=-1.5:LRA=9,afade=t=out:st=2.3:d=0.3",
+    "-ar", "44100", "-ac", "1", "-c:a", "libvorbis", "-q:a", "6", str(MIC_OUT),
+], check=True)
+print("whisper", MIC_OUT.name)

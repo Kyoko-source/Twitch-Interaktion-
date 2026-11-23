@@ -93,6 +93,7 @@ func run(game: Node3D,verify: Callable) -> void:
   if warden.stage=="scare" and game.jumpscare.godless:face_seen=face_seen or float(game.jumpscare.material.get_shader_parameter("face"))>.9
  for stage in ["rage","silence","whisper","turn","still","scare"]:verify.call(seen.has(stage),"The final scare skips: "+stage)
  verify.call(whisper_behind,"The whisper does not come from behind")
+ verify.call(MicWarden.whisper_stream().resource_path=="res://assets/mic-v540/whisper.ogg" and warden.whisper_length>2.,"The recorded whisper is not used")
  verify.call(turned>PI*.95,"The guard does not turn round")
  verify.call(face_seen,"The godless face does not fill the screen")
  var wait:=0

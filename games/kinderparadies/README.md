@@ -1,5 +1,9 @@
 # After Play — Kinderparadies
 
+## Mikrofon-Modus: die echte Flüsterstimme (5.4.1)
+
+- Beim dritten Mal flüstert es hinter dir jetzt wirklich: „Dreh dich NICHT um.“ (`assets/mic-v540/whisper.ogg`, eingesprochen mit ElevenLabs, geschnitten von `tools/generate-after-play-v540-audio.py`). Der erzeugte Platzhalter springt nur noch ein, wenn die Datei fehlt.
+
 ## Mikrofon-Modus: Weck es nicht auf. Neue Jumpscare-Sounds, Ballons platzen wieder (5.4.0)
 
 - **Mikrofon-Modus** (`scripts/mic_listener.gd`, `scripts/mic_warden.gd`, Einstellungen > Mikrofon, standardmäßig aus): Im Gebäude schläft etwas. Es ist **keine Anomalie** – es entscheidet keine Tür und muss nicht gemeldet werden; das steht im Menü und bei jeder Warnung. Wer etwa eine halbe Sekunde am Stück im roten Bereich ist, weckt es ein Stück:
@@ -7,7 +11,7 @@
   2. Ein Schrei hallt durchs Gebäude, stärkeres Flackern: „PROVOZIER ES NICHT.“
   3. Das Flackern wird wild, der Schrei aggressiver – dann ist alles stumm. Du kannst dich nicht mehr bewegen, hinter dir flüstert etwas, dein Kopf dreht sich langsam von selbst um. Da ist nichts. Zwei Sekunden Stille. Dann füllt sein Gesicht den Bildschirm: der gottlose Jumpscare (eigenes Bild, heranrasend, wackelnd, mit Glitch, RGB-Versatz, Blut, Blitzen, zweitem Schlag). Die Nacht ist verloren.
   Drei ruhige Minuten lassen es eine Stufe zurück einschlafen; nach jeder Stufe gibt es 10 Sekunden Schonfrist. Unten links zeigt ein Pegel dauerhaft deine Lautstärke und die rote Zone, daneben drei Punkte für die Stufen. **Jede Runde wird es empfindlicher** (1,1 dB pro Runde, bis Runde 14). Im Menü: Gerätewahl (wichtig bei Voicemeeter & Co.), Empfindlichkeit, Live-Pegel zum Testen. Es wird nur die Lautstärke gemessen, nichts aufgenommen oder gesendet. Nicht in der Web-Version.
-- **Flüstern**: Bis die eingesprochene Zeile da ist, flüstert ein erzeugter Platzhalter. Eine Datei `assets/mic-v540/whisper.ogg` (oder .wav/.mp3) ersetzt ihn automatisch.
+- **Flüstern**: Bis die eingesprochene Zeile da ist, flüstert ein erzeugter Platzhalter. Eine Datei `assets/mic-v540/whisper.ogg` (oder .wav/.mp3) ersetzt ihn automatisch (seit 5.4.1 vorhanden).
 - **Neue Jumpscare-Sounds** (`assets/jumpscare-v540/sting-1…6.ogg`, aus „Medien After Play und Stream/02 …/Jumpscare Sounds“, Pixabay-Lizenz): Jeder Jumpscare – Besucher, Krabbler, Stromausfall, falsche Tür, Pferd, Clown, Kostüm – legt einen davon über den Schrei, nie zweimal derselbe hintereinander. Neu schneiden mit `tools/generate-after-play-v540-audio.py`.
 - **Ballons platzen wieder**: Die Anomalie „Die Ballons blähen sich mit einem Knall auf“ spielte versehentlich einen Schrei. Jetzt quietscht das Gummi und dann platzen mehrere Ballons.
 - QA: `--self-test --mic-only`, `--render-qa --mic-qa` (`--mic-menu` für den Einstellungs-Reiter).
