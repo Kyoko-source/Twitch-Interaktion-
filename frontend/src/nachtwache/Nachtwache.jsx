@@ -1,4 +1,4 @@
-﻿import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {ArrowLeft,Download,Maximize,Monitor,Play,Radio,Gamepad2} from 'lucide-react';
 import {AfterPlayMultiplayer} from './AfterPlayMultiplayer';
