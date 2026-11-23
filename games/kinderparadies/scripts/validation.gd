@@ -64,6 +64,10 @@ func run(game: Node3D) -> bool:
   await load("res://scripts/album_validation.gd").new().run(game,check)
   print("Shift release checks: ",checks,"; failures: ",failures.size())
   return failures.is_empty()
+ if "--mood-only" in OS.get_cmdline_user_args():
+  await load("res://scripts/mood_validation.gd").new().run(game,check)
+  print("Room mood checks: ",checks,"; failures: ",failures.size())
+  return failures.is_empty()
  if "--album-only" in OS.get_cmdline_user_args():
   await load("res://scripts/album_validation.gd").new().run(game,check)
   print("Anomaly album checks: ",checks,"; failures: ",failures.size())
@@ -723,6 +727,7 @@ func run(game: Node3D) -> bool:
  await load("res://scripts/balance_validation.gd").new().run(game,check)
  await load("res://scripts/ambient_validation.gd").new().run(game,check)
  await load("res://scripts/album_validation.gd").new().run(game,check)
+ await load("res://scripts/mood_validation.gd").new().run(game,check)
  await load("res://scripts/archive_validation.gd").new().run(game,check)
  await load("res://scripts/nightmare_validation.gd").new().run(game,check)
  await load("res://scripts/props_validation.gd").new().run(game,check)

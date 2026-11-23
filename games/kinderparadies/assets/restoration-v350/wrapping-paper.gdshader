@@ -8,7 +8,7 @@ void fragment(){
  float dotprint=1.-smoothstep(.11,.13,length(q));
  float stars=1.-smoothstep(.022,.04,min(abs(q.x)+abs(q.y)*.38,abs(q.y)+abs(q.x)*.38));
  float ink=pattern==0?dotprint:pattern==1?stars:step(.92,fract((UV.x+UV.y)*9.));
- float crease=pow(abs(sin(UV.x*31.+sin(UV.y*19.)*.9)),38.);
+ float crease=pow(max(abs(sin(UV.x*31.+sin(UV.y*19.)*.9)),1e-6),38.);
  float edge=min(min(UV.x,1.-UV.x),min(UV.y,1.-UV.y));
  vec3 col=mix(paper.rgb,paper.rgb*.64+vec3(.18,.15,.07),ink*.6);
  col*=mix(vec3(.78),vec3(1.08),texture(grain,UV*2.).rgb);

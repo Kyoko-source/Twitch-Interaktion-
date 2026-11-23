@@ -1,5 +1,15 @@
 # After Play — Kinderparadies
 
+## Lichtstimmung, etwas folgt dir, Funkeln an der Abzugshaube behoben (5.3.0)
+
+- **Jeder Raum hat seine eigene Lichtstimmung** (`scripts/room_mood.gd`): Empfang Amber-Neon und Pink, Halle kaltes Blau gegen die warmen Pendelleuchten, Bällebad tiefes Blau mit gelben und grünen Reflexen über dem Bad und Automaten-Glühen, Party Raum Gold und Magenta, Wartung kränkliches Grün, Personalflur kalte Röhre und grünes Notausgangsschild, Küche warmes Zündflammen- und Röhrenlicht, Kino blaues "NO SIGNAL"-Flackern, Kinder-WC Cyan, Eingang Natriumlicht. Auf Forward+ färbt ein Dunstvolumen pro Raum die Luft.
+- **Bewegung im Licht**: Röhren und Neon stottern ab und zu, Licht atmet langsam, die Pendelleuchten in der Halle schwingen an ihren Kabeln und werfen wandernde Schatten. Fährt draußen ein Auto über den Parkplatz (Ambient-Sound), streichen seine Scheinwerfer durchs Hallenfenster oder durch den alten Eingang, die Wände werfen dabei Schatten. Die Parkplatzlaternen brennen jetzt orange.
+- Kein Hinweis auf Anomalien: gleich in jeder Runde, eigener Zufall, keine roten Akzente (rote Deckenlampen sind eine Anomalie), die Party-Akzente gehen bei "party_dark" mit aus, die warmen Küchenlichter bei "cold_breath". Beim Stromausfall gehen alle Innenlichter aus, Straßen- und Scheinwerferlicht bleiben.
+- **Etwas folgt dir** (`scripts/night_follower.gd`): Alle ein, zwei Minuten gehen Schritte hinter dir auf deinem eigenen Weg, im Takt deiner Schritte. Bleibst du stehen, kommt noch ein Schritt zu viel. Drehst du dich um, ist nichts da und es ist still. Drehst du dich nie um, kommt es näher, bis etwas direkt hinter dir atmet und die Taschenlampe stottert. Manchmal fällt stattdessen eine Tür hinter dir ins Schloss. Nur Ton, keine Anomalie, nie während anderer Schreckmomente oder in der Röhre.
+- **Funkeln an der Abzugshaube und am Clown behoben**: Die Ursache war die Lederkappe des Küchenclowns. `pow(0, y)` im Shader ergab auf manchen Treibern NaN-Pixel, die Glow und SSR zu aufblitzenden Lichtpunkten unter der Haube aufbliesen (gemessen 8060 flackernde Pixel, jetzt 71, gleich viel wie ganz ohne Clown). Fünf weitere Shader mit `pow(abs(...))` sind vorsorglich abgesichert.
+- Leistung: im Mittel +0,2 ms pro Frame (RTX 4080, 1080p, Hoch).
+- QA: `--render-qa --mood-qa` (jeder Raum aus einer Ecke), `--render-qa --sparkle-qa` (Kamerafahrt an Haube und Clown, Varianten mit `--variants=`), `--perf-qa --no-mood`; Tests `-- --self-test --mood-only`.
+
 ## Anomalie-Album (5.2.8)
 
 - Neuer Menüpunkt **Anomalie-Album**: Jede Anomalie, die man mit der roten

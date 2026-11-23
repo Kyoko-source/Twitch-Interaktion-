@@ -53,6 +53,8 @@ var venue: VenueDetails
 var graphics: AfterPlayGraphics
 var acoustics: HappylandAcoustics
 var ambient: AmbientLife
+var mood: RoomMood
+var follower: NightFollower
 var arrival_design: ArrivalDesign
 var craft: VenueCraft
 var climbing: ClimbingExpansion
@@ -213,6 +215,8 @@ func construction_steps() -> Array[Callable]:
   _module.bind(Thunderstorm,"storm"),
   _module.bind(NightDetails,"night"),
   _module.bind(LookPass,"look"),
+  _module.bind(RoomMood,"mood"),
+  _module.bind(NightFollower,"follower"),
   _occluders]
 
 # Walls and big solid boxes hide whole rooms from the renderer (4.8.0).
@@ -583,6 +587,8 @@ func set_anomaly(id: String) -> void:
  # Last: the horse clears the red lock for every other round first.
  blackout.configure(id)
  night.configure(id)
+ if mood:mood.configure(id)
+ if follower:follower.reset()
 
 # Event anomalies that keep the red door shut until they are dealt with.
 func red_locked() -> bool:
@@ -601,6 +607,7 @@ func tick(delta: float, active: bool) -> void:
  playground.tick(active)
  if native_art: native_art.tick(delta,active)
  room_horror.tick(delta,active)
+ if mood:mood.tick(delta,active)
  if not active: return
  clock+=delta
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else -.004)

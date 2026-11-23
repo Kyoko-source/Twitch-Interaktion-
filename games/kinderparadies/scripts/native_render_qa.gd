@@ -502,6 +502,10 @@ func run(game: Node3D) -> void:
   album.found.clear();DirAccess.remove_absolute(album.path);game._quit();return
  if "--album-photos-qa" in OS.get_cmdline_user_args():
   await album_photos(game,output);game._quit();return
+ if "--sparkle-qa" in OS.get_cmdline_user_args():
+  await sparkle_frames(game,output);game._quit();return
+ if "--mood-qa" in OS.get_cmdline_user_args():
+  await mood_views(game,output);game._quit();return
  if "--visitors-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   var author=load("res://art-direction/itch_capture.gd").new()
@@ -1570,3 +1574,95 @@ func album_photos(game: Node3D,output: String) -> void:
   author.pose(game,eye-Vector3.UP*1.65,target);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
   for i in range(6):await game.get_tree().process_frame
   await capture(game,output,a.id)
+
+# 5.3.0: every room without an anomaly, seen from one corner across to the
+# other, torch on. Compares the light mood of the rooms before and after.
+const MOOD_EXTRA:={"Kino-ost":[Vector3(-4.5,1.7,-29.6),Vector3(4.,1.6,-29.6)],"Kino-west":[Vector3(2.,1.7,-29.6),Vector3(-6.,1.4,-29.6)],"Kino-nord":[Vector3(-.5,1.7,-34.),Vector3(-.5,1.4,-24.5)]}
+const MOOD_VIEWS:={"Bällebad":[Vector3(17.5,1.75,15.8),Vector3(3.,.8,6.5)],"Kino":[Vector3(-3.,1.9,-25.2),Vector3(3.8,1.4,-30.5)]}
+func mood_views(game: Node3D,output: String) -> void:
+ game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+ game._build_world("none");game.player.active=false
+ var author=load("res://art-direction/itch_capture.gd").new()
+ var wait:=float(Array(OS.get_cmdline_user_args()).filter(func(a):return a.begins_with("--wait=")).map(func(a):return a.trim_prefix("--wait=")).front() if Array(OS.get_cmdline_user_args()).any(func(a):return a.begins_with("--wait=")) else "0")
+ for room in SecretPlushEnding.ROOMS:
+  var x0: float=room[1];var x1: float=room[2];var z0: float=room[3];var z1: float=room[4]
+  var eye:=Vector3(lerpf(x0,x1,.12),1.65,lerpf(z0,z1,.88));var target:=Vector3(lerpf(x0,x1,.8),1.2,lerpf(z0,z1,.2))
+  if MOOD_VIEWS.has(room[0]):eye=MOOD_VIEWS[room[0]][0];target=MOOD_VIEWS[room[0]][1]
+  author.pose(game,eye-Vector3.UP*1.65,target);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+  game.player.position=eye-Vector3.UP*1.65
+  for i in range(8):await game.get_tree().process_frame
+  if wait>0.:
+   var t:=0.
+   while t<wait:
+    game.world.tick(.016,true);t+=.016;await game.get_tree().process_frame
+  await capture(game,output,"mood-"+str(room[0]).replace(" ","-"))
+ if "--mood-extra" in OS.get_cmdline_user_args():
+  for key in MOOD_EXTRA:
+   author.pose(game,MOOD_EXTRA[key][0]-Vector3.UP*1.65,MOOD_EXTRA[key][1]);game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for i in range(8):await game.get_tree().process_frame
+   await capture(game,output,"extra-"+key)
+
+# 5.3.0: twelve frames of a slow sideways drift at the kitchen hood and the
+# clown, once per variant with one suspect switched off. Pixels that jump
+# between neighbouring frames are sparkle.
+func sparkle_frames(game: Node3D,output: String) -> void:
+ game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+ var author=load("res://art-direction/itch_capture.gd").new()
+ var variants:=["base","noclown","nofog","noglow","nossil","nossr","nolamps","nossao"]
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--variants="):variants=Array(arg.trim_prefix("--variants=").split(","))
+ for variant in variants:
+  game._build_world("none");game.player.active=false
+  var w: PlayWorld=game.world;var env:=w.environment.environment
+  match variant:
+   "noclown":(w.find_child("KitchenClown",true,false) as Node3D).hide()
+   "nofog":env.volumetric_fog_enabled=false
+   "noglow":env.glow_enabled=false
+   "nossil":env.ssil_enabled=false
+   "nossr":env.ssr_enabled=false
+   "nossao":env.ssao_enabled=false
+   "plainpanels","checkpanels":
+    for m: MeshInstance3D in w.find_child("KitchenClown",true,false).find_children("FauxLeatherPanel*","MeshInstance3D",true,false):
+     if variant=="plainpanels":m.material_override=w.mat(Color("7a5a44"),null,.8)
+     for arg in OS.get_cmdline_user_args():
+      if arg.begins_with("--panel-code="):
+       var sh:=Shader.new();sh.code="shader_type spatial;
+"+arg.trim_prefix("--panel-code=");var sm:=ShaderMaterial.new();sm.shader=sh;m.material_override=sm
+     var arrays:=m.mesh.surface_get_arrays(0);var normals: PackedVector3Array=arrays[Mesh.ARRAY_NORMAL];var verts: PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+     var bad:=0;var tiny:=0
+     for n in normals:
+      if not n.is_finite() or n.length()<.5:bad+=1
+     var idx: PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
+     for t in range(0,idx.size(),3):
+      if (verts[idx[t+1]]-verts[idx[t]]).cross(verts[idx[t+2]]-verts[idx[t]]).length()<1e-10:tiny+=1
+     var tangents=arrays[Mesh.ARRAY_TANGENT]
+     var uvs: PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV];var badu:=0;var lo:=Vector2(1e9,1e9);var hi:=-lo
+     for u in uvs:
+      if not u.is_finite():badu+=1
+      else:lo=lo.min(u);hi=hi.max(u)
+     print("UV ",m.name," bad ",badu," range ",lo," ",hi)
+     print("PANEL ",m.name," verts ",verts.size()," badnormals ",bad," degenerate ",tiny," tangents ",0 if tangents==null else tangents.size()," scale ",m.global_transform.basis.get_scale())
+   "nopanels","nobell","nostitches","nohem":
+    var key: String={"nopanels":"FauxLeatherPanel","nobell":"TarnishedCostumeBell","nostitches":"IndividualWaxedStitches","nohem":"RolledHemAndSeamWelts"}[variant]
+    for m: MeshInstance3D in w.find_child("KitchenClown",true,false).find_children("*","MeshInstance3D",true,false):
+     if str(m.name).begins_with(key):
+      m.hide()
+      var mat=m.get_active_material(0)
+      if mat is StandardMaterial3D:print("PART ",m.name," metal ",mat.metallic," rough ",mat.roughness," spec ",mat.metallic_specular," aabb ",m.get_aabb().size)
+   "nohair","nocap","noskin","nocloth","noother":
+    var clown: Node3D=w.find_child("KitchenClown",true,false)
+    for m: MeshInstance3D in clown.find_children("*","MeshInstance3D",true,false):
+     var shaders:=[]
+     for i in range(m.mesh.get_surface_count()):
+      var mat:=m.get_active_material(i)
+      shaders.append(mat.shader.resource_path.get_file() if mat is ShaderMaterial and mat.shader else "std")
+     var kind:="hair" if "matted_locks.gdshader" in shaders else "cap" if "patched-cap.gdshader" in shaders or "Cap" in str(m.get_parent().name)+str(m.name) else "skin" if "clown_skin.gdshader" in shaders else "cloth" if "soaked_cloth.gdshader" in shaders else "other"
+     if variant=="no"+kind:m.hide();print("HIDE ",kind," ",m.name," ",shaders)
+   "nolamps":
+    for l: Light3D in w.find_children("*","Light3D",true,false):
+     if l.global_position.distance_to(Vector3(-13.25,2.5,-31.25))<3.5:l.hide();print("HID ",l.get_path()," ",l.global_position)
+  for i in range(12):
+   var eye:=Vector3(-10.9+i*.012,0,-28.6)
+   author.pose(game,eye,Vector3(-13.4,2.0,-31.3));game.player.lamp.show();game.player.torch_body.hide();game.hud.hide()
+   for f in range(3):await game.get_tree().process_frame
+   await capture(game,output,"sparkle-%s-%02d"%[variant,i])

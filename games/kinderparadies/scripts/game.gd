@@ -732,6 +732,7 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.ambient.tick(delta,phase=="play",player)
+ world.follower.tick(delta,phase=="play" and archive.ending!="recording",player)
  player.foley.tick(phase in ["play","inventory"])
  world.acoustics.tick(delta,phase=="play",player)
  world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
@@ -1104,7 +1105,7 @@ func _fullscreen() -> void:
 
 func _quit() -> void:
  if phase=="quitting": return
- world.soundscape.stop_all();world.ambient.stop_all()
+ world.soundscape.stop_all();world.ambient.stop_all();world.follower.stop_all()
  _save();_write_settings()
  player.release();room_audio.stop();effect.stop();world.source.stop()
  if OS.has_feature("web"): JavaScriptBridge.eval("window.top.location.href='/#games/after-play'");_main_menu()
@@ -1166,7 +1167,7 @@ func _telemetry() -> void:
   data.flashlight={"energy":player.lamp.light_energy,"near_wall":player.torch_body.near_wall}
   data.step_variants=player.surface_sounds.concrete.size()
   data.croc_jaw=world.playground.croc_jaw.rotation.x
-  data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot();data.ambient_life=world.ambient.snapshot()
+  data.crouching=player.crouching;data.tube=world.tubes.inside;data.watcher=world.tubes.watcher.visible;data.ambience=world.soundscape.snapshot();data.ambient_life=world.ambient.snapshot();data.follower=world.follower.snapshot();data.room_mood=world.mood.snapshot()
   var sky:=world.climbing.sky;var sky_path:=[]
   for i in range(ceili(sky.length/.4)+1):
    var at:=sky.route(minf(sky.length,i*.4));sky_path.append([at.x,SkyTube.FLOOR,at.z])

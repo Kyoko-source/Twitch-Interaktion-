@@ -17,7 +17,7 @@ void fragment(){
  float chips=noise(p*2.6)*.65+noise(p*8.1)*.35;
  float wet=smoothstep(.53,.73,broad*.65+chips*.35)*dampness;
  float wear=.84+.16*noise(p*.8);
- float scuff=pow(abs(sin(p.x*1.13+p.y*.19)),32.)*noise(p*9.)*.08;
+ float scuff=pow(max(abs(sin(p.x*1.13+p.y*.19)),1e-6),32.)*noise(p*9.)*.08;
  ALBEDO=base*tint.rgb*(wear-wet*.24-scuff);
  float rough=texture(rough_map,uv).r;
  ROUGHNESS=mix(clamp(rough*.85+.12+fibre*.18,.25,.98),.085,wet);

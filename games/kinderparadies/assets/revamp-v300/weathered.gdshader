@@ -10,14 +10,14 @@ uniform float polish=.36;
 varying vec3 p;
 varying vec3 n;
 void vertex(){p=VERTEX;n=NORMAL;}
-vec3 sample_surface(sampler2D tex){vec3 w=pow(abs(n),vec3(5.));w/=max(w.x+w.y+w.z,.0001);return texture(tex,p.zy*metres).rgb*w.x+texture(tex,p.xz*metres).rgb*w.y+texture(tex,p.xy*metres).rgb*w.z;}
+vec3 sample_surface(sampler2D tex){vec3 w=pow(max(abs(n),1e-6),vec3(5.));w/=max(w.x+w.y+w.z,.0001);return texture(tex,p.zy*metres).rgb*w.x+texture(tex,p.xz*metres).rgb*w.y+texture(tex,p.xy*metres).rgb*w.z;}
 void fragment(){
  vec3 photo=sample_surface(grain);float value=dot(photo,vec3(.3,.59,.11));
  float grime=1.-smoothstep(.05,.32,value);float chip=smoothstep(.76,.98,grime);
  ALBEDO=mix(paint.rgb*(.55+value*1.7),vec3(.105,.045,.021),chip*.68);
  float r=sample_surface(roughness_map).r;
  ROUGHNESS=clamp(mix(polish,.96,grime*.72+r*.28),.20,1.);METALLIC=metalness*(1.-chip*.7);SPECULAR=.45;
- vec3 weights=pow(abs(n),vec3(5.));weights/=max(weights.x+weights.y+weights.z,.0001);
+ vec3 weights=pow(max(abs(n),1e-6),vec3(5.));weights/=max(weights.x+weights.y+weights.z,.0001);
  vec3 a=texture(normal_map,p.zy*metres).rgb*2.-1.;
  vec3 b=texture(normal_map,p.xz*metres).rgb*2.-1.;
  vec3 c=texture(normal_map,p.xy*metres).rgb*2.-1.;

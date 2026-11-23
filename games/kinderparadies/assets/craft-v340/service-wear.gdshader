@@ -17,7 +17,7 @@ void fragment(){
  base=mix(base,vec3(.13,.085,.035),chipped*.8);base*=1.-damp*.55;
  if(kind==1){
   float polish=exp(-pow((world.x+16.3)/.33,2.));
-  float lines=pow(abs(sin(p.y*631.+noise(p*5.)*6.)),56.);
+  float lines=pow(max(abs(sin(p.y*631.+noise(p*5.)*6.)),1e-6),56.);
   base=mix(base,vec3(.37,.40,.36),polish*.55)+lines*.027;
   ROUGHNESS=mix(.66,.29,polish);METALLIC=.78;
  }else{ROUGHNESS=mix(.78,.35,max(damp,grease));METALLIC=kind==2?.65:.13;}

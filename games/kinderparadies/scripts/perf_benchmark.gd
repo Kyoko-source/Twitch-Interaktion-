@@ -33,6 +33,8 @@ func run(game: Node3D, output: String) -> void:
  game.settings=game.DEFAULT_SETTINGS.duplicate(true);game.settings.volume=0;game.settings.vsync=false;game.settings.fps=0;game.settings.quality=quality
  game._apply_settings();game._new_shift();game.intro.skip();game._resume()
  game.player.active=false;game.player.lamp_on=true;game.player.lamp.show();game.notice_time=0;game.notice.hide()
+ # --no-mood: compare against the venue without the 5.3.0 room moods.
+ if "--no-mood" in OS.get_cmdline_user_args():game.world.mood.hide()
  for i in range(30):await game.get_tree().process_frame
  var rid:=game.get_viewport().get_viewport_rid();RenderingServer.viewport_set_measure_render_time(rid,true)
  var report:={"adapter":RenderingServer.get_video_adapter_name(),"vendor":RenderingServer.get_video_adapter_vendor(),"api":RenderingServer.get_video_adapter_api_version(),"renderer":RenderingServer.get_current_rendering_method(),"cpu":OS.get_processor_name(),"cores":OS.get_processor_count(),"size":[size.x,size.y],"quality":quality,"nodes":Performance.get_monitor(Performance.OBJECT_NODE_COUNT),"views":{}}

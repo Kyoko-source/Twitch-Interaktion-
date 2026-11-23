@@ -108,6 +108,8 @@ func cue(listener: Vector3) -> String:
  voice.stream=load(ROOT+file+".ogg");voice.position=point+Vector3(rng.randf_range(-.6,.6),0,rng.randf_range(-.6,.6))
  voice.volume_db=pool.db+rng.randf_range(-2.5,1.);voice.max_distance=pool.reach;voice.pitch_scale=rng.randf_range(.93,1.05)
  voice.play();played[file]=clock;last_file=file;count+=1
+ # 5.3.0: a car crossing the lot sweeps its lights through the window.
+ if file.begins_with("car-pass") and w.mood:w.mood.headlights(point)
  return file
 
 func stop_all() -> void:

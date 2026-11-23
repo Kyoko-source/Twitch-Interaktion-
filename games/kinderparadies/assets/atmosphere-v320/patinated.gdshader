@@ -10,10 +10,10 @@ float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+1.),f.x),f.y),f.z);}
 void vertex(){world=(MODEL_MATRIX*vec4(VERTEX,1.)).xyz;object_point=VERTEX;world_normal=normalize(MODEL_NORMAL_MATRIX*NORMAL);}
 void fragment(){
- vec3 weights=pow(abs(world_normal),vec3(4.));weights/=max(weights.x+weights.y+weights.z,.001);
+ vec3 weights=pow(max(abs(world_normal),1e-6),vec3(4.));weights/=max(weights.x+weights.y+weights.z,.001);
  vec3 p=world*scale_m;
  vec3 grain=texture(detail,p.zy).rgb*weights.x+texture(detail,p.xz).rgb*weights.y+texture(detail,p.xy).rgb*weights.z;
- float scratch=pow(abs(sin(p.x*113.+sin(p.z*6.)*.8)),24.)*noise(p*21.);
+ float scratch=pow(max(abs(sin(p.x*113.+sin(p.z*6.)*.8)),1e-6),24.)*noise(p*21.);
  float oxide=smoothstep(.58,.76,noise(p*1.4)*.70+noise(p*7.7)*.30);
  ALBEDO=mix(paint.rgb*(.80+grain*.30),vec3(.13,.065,.026),oxide*.70);
  ALBEDO+=vec3(.05,.045,.03)*scratch*metal;
