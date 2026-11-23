@@ -522,6 +522,40 @@ func run(game: Node3D) -> void:
     await game.get_tree().process_frame
     if shots.has(f):await capture(game,output,"jumpscare-%s-%s"%[id,shots[f]])
   game._quit();return
+ if "--mic-qa" in OS.get_cmdline_user_args():
+  if "--mic-menu" in OS.get_cmdline_user_args():
+   game._settings("menu");NightMenus.settings(game,"Mikrofon")
+   for i in range(6):await game.get_tree().process_frame
+   await capture(game,output,"mic-00-settings");game._quit();return
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.set_physics_process(false)
+  for i in range(6):await game.get_tree().process_frame
+  game.phase="play";game.player.active=true;game.hud.show();game.settings.mic=true;game.mic.enabled=true
+  var w: MicWarden=game.mic_warden;w.reset()
+  game.mic.inject(-40.);w.tick(.05,true);await capture(game,output,"mic-01-hud-quiet")
+  game.mic.inject(-6.)
+  for i in range(12):w.tick(.05,true);await game.get_tree().process_frame
+  await capture(game,output,"mic-02-warning")
+  game.mic.inject(-70.);w.cooldown=0.;w.text_left=0.;w.tick(.05,true)
+  game.mic.inject(-6.)
+  for i in range(12):w.tick(.05,true);await game.get_tree().process_frame
+  await capture(game,output,"mic-03-provoke")
+  game.mic.inject(-70.);w.cooldown=0.
+  for i in range(80):w.tick(.05,true)
+  game.mic.inject(-6.)
+  for i in range(12):w.tick(.05,true)
+  var shots:={"turn":false,"still":false}
+  var frames:={2:"a",6:"b",14:"c",30:"d",50:"e"}
+  var f:=0
+  while w.stage not in ["done","idle"]:
+   w.tick(.05 if w.stage!="scare" else .016,false)
+   game.jumpscare.tick(.016 if w.stage=="scare" else .05,true,game.player.camera,game.settings)
+   await game.get_tree().process_frame
+   if w.stage=="turn" and w.clock>1.6 and not shots.turn:shots.turn=true;await capture(game,output,"mic-04-turning")
+   if w.stage=="still" and w.clock>1. and not shots.still:shots.still=true;await capture(game,output,"mic-05-nothing")
+   if w.stage=="scare":
+    f+=1
+    if frames.has(f):await capture(game,output,"mic-06-godless-%s"%frames[f])
+  game._quit();return
  if "--crawler-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   var author=load("res://art-direction/itch_capture.gd").new()

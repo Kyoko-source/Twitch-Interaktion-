@@ -31,7 +31,12 @@ func build(world: PlayWorld) -> void:
 
 func configure(anomaly: String) -> void:
  id=anomaly
- if id in ["bunny_lunge","croc_snap","party_burst","clown_lunge"]:
+ if id=="party_burst":
+  # 5.4.0: balloons pop. The stretching rubber warns, then a burst of pops,
+  # not a scream (an earlier sound swap had given them one by mistake).
+  anticipation=ScareBank.lead(self,id);anticipation.stream=load("res://assets/ambient-v527/balloon-rub-1.ogg");anticipation.volume_db=-8
+  audio.stream=load(ScareBank.BALLOON_BURST);audio.volume_db=3;audio.unit_size=9;audio.max_distance=30;ScareBank.loud(audio)
+ elif id in ["bunny_lunge","croc_snap","clown_lunge"]:
   anticipation=ScareBank.lead(self,id)
   ScareBank.select(audio,id);audio.volume_db=2;audio.unit_size=9;audio.max_distance=30;ScareBank.loud(audio)
  # Every round owns a new controller. No wall-clock tweens: pause freezes
@@ -69,7 +74,9 @@ func tick(delta: float, active: bool, player: NightGuard) -> void:
   if visible_to(player,target,proximity):
    triggered=true;origin=bunny.global_position;attack_time=0;shock=1
    audio.global_position=target
-   anticipation.stop();ScareBank.play(audio)
+   anticipation.stop()
+   if id=="party_burst":audio.play()
+   else:ScareBank.play(audio)
    if id=="bunny_lunge":
     end=player.camera.global_position-player.camera.global_basis.z*.62-Vector3(0,.64,0);face.show()
    elif id=="party_burst": w.props.balloons.scale=Vector3.ONE*1.8

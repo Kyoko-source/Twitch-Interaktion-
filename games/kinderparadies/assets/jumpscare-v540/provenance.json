@@ -1,0 +1,5 @@
+{
+  "sting-1.ogg ... sting-6.ogg": "Cut from the owner's jumpscare sounds in 'Medien After Play und Stream/02 After Play Sounds und Stimmen/Jumpscare Sounds' (Pixabay: freesound_community ascending-jumpscare-102061, jumpscare-68730, screamer-jumpscare-66896; jeremayjimenez smile-dog-jumpscare-167171; sound_effects75 robotic_jumpscare-485532; freesound_community fuzzy-jumpscare-80560), Pixabay Content License. Layered on every jumpscare from 5.4.0.",
+  "balloon-burst.ogg": "Synthesized for the game by tools/generate-after-play-v540-audio.py (balloon pops for the party_burst anomaly).",
+  "added_in": "5.4.0"
+}

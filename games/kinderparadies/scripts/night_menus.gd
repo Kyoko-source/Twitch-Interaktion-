@@ -202,7 +202,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.3.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.4.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab
@@ -210,7 +210,7 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
  var title: Label=g._label("Einstellungen",62);title.add_theme_font_override("font",menu_font());title.position=Vector2(75,55);g.menu.add_child(title)
  var note: Label=g._label("Deine Nachtschicht. Dein Spielgefühl.",17,Color("a3aaa2"));note.position=Vector2(78,140);g.menu.add_child(note)
  var nav:=VBoxContainer.new();nav.position=Vector2(75,218);nav.add_theme_constant_override("separation",14);g.menu.add_child(nav)
- for category in ["Bild","Audio","Steuerung","Spiel","Sprache"]:
+ for category in (["Bild","Audio","Mikrofon","Steuerung","Spiel","Sprache"] if MicListener.supported() else ["Bild","Audio","Steuerung","Spiel","Sprache"]):
   var chosen: String=category
   var button: Button=g._button(category,func():settings(g,chosen),category==tab);button.custom_minimum_size.x=250;nav.add_child(button)
  var back: Button=g._button("Zurück",g._return_from_panel);back.custom_minimum_size.x=250;nav.add_child(back)
@@ -243,6 +243,8 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    slider(g,column,"Raumklang & entfernte Geräusche","ambience",0,1,.05)
    slider(g,column,"Chef-Anruf","voice",0,1,.05)
    column.add_child(g._paragraph("Alle Tonquellen bleiben an die Gesamtlautstärke gebunden. ESC pausiert auch räumliche Geräusche und den Anruf.",16))
+  "Mikrofon":
+   microphone(g,column)
   "Steuerung":
    slider(g,column,"Mausempfindlichkeit","sensitivity",.0007,.0045,.0001)
    toggle(g,column,"Maus-Y umkehren","invert_y")
@@ -258,6 +260,43 @@ static func settings(g: Node3D, tab: String="Bild") -> void:
    column.add_child(g._paragraph("Der erste Rundgang ist dein Vergleich. 13 richtige Entscheidungen in Folge beenden die Nachtschicht.",18))
  var reset: Button=g._button("Einstellungen zurücksetzen",func():g._reset_settings();settings(g,tab));column.add_child(reset)
  g._telemetry()
+
+# 5.4.0: microphone mode, off by default, with a live level meter so the
+# player can set the sensitivity before a night.
+static func microphone(g: Node3D, column: VBoxContainer) -> void:
+ toggle(g,column,"Mikrofon-Modus","mic")
+ column.add_child(g._label("Mikrofon-Gerät",18))
+ var devices:=OptionButton.new();devices.name="MicDevice";devices.set_meta("qa_label","Mikrofon-Gerät");devices.custom_minimum_size.y=46
+ var names:=MicListener.devices()
+ for device in names:devices.add_item(AfterPlayLanguage.t("Windows-Standard") if device=="Default" else device)
+ devices.selected=maxi(0,names.find(str(g.settings.get("mic_device","Default"))))
+ devices.item_selected.connect(func(i):changed(g,"mic_device",names[i]));column.add_child(devices)
+ column.add_child(g._paragraph("Im Mikrofon-Modus hört dich das Gebäude. Hier schläft etwas. Wenn du zu lange zu laut bist – schreien, lautes Lachen, lautes Reden –, weckst du es.",18))
+ var important: Label=g._paragraph("Wichtig: Das Wesen ist KEINE Anomalie. Du musst es nicht melden, und es hat nichts mit der roten oder grünen Tür zu tun. Es ist allein die Strafe für Lärm.",18)
+ important.add_theme_color_override("font_color",Color("e8574f"));column.add_child(important)
+ column.add_child(g._paragraph("1. Mal zu laut: Alle Lampen flackern – eine Warnung.
+2. Mal: Es schreit. Es ist wach.
+3. Mal: Es kommt. Die Nacht ist verloren.
+Drei ruhige Minuten lassen es eine Stufe wieder einschlafen.",18))
+ column.add_child(g._paragraph("Unten links siehst du während der Schicht immer deinen Pegel. Bleib aus dem roten Bereich. Mit jeder Runde schläft es leichter: Der rote Bereich wird größer.",18))
+ slider(g,column,"Mikrofon-Empfindlichkeit","mic_sensitivity",0,1,.05)
+ column.add_child(g._label("Pegel",18))
+ var meter:=ProgressBar.new();meter.name="MicLevelMeter";meter.min_value=0;meter.max_value=1;meter.step=.001;meter.show_percentage=false;meter.custom_minimum_size=Vector2(500,26)
+ var fill:=StyleBoxFlat.new();fill.bg_color=Color("6fa86a");meter.add_theme_stylebox_override("fill",fill)
+ var back:=StyleBoxFlat.new();back.bg_color=Color(.12,.12,.12);back.border_color=Color(.4,.4,.38);back.set_border_width_all(1);meter.add_theme_stylebox_override("background",back)
+ var mark:=ColorRect.new();mark.name="MicThreshold";mark.color=Color("e0141b");mark.size=Vector2(3,26);mark.mouse_filter=Control.MOUSE_FILTER_IGNORE;meter.add_child(mark)
+ var state: Label=g._label("",16,Color("a3aaa2"));state.name="MicState"
+ var timer:=Timer.new();timer.wait_time=.05;timer.autostart=true;meter.add_child(timer)
+ var refresh:=func():
+  var level: float=g.mic.level_db if g.mic else -80.
+  var limit: float=g.mic_warden.base_threshold() if g.mic_warden else -25.
+  meter.value=clampf((level+60.)/60.,0.,1.);mark.position.x=clampf((limit+60.)/60.,0.,1.)*meter.size.x-1.
+  var over:=level>limit
+  fill.bg_color=Color("e0141b") if over else Color("6fa86a")
+  state.text=AfterPlayLanguage.t("Mikrofon ist aus." if not bool(g.settings.mic) else "Zu laut! So würdest du es wecken." if over else "Leise genug.")
+ timer.timeout.connect(refresh);column.add_child(meter);column.add_child(state);refresh.call()
+ column.add_child(g._paragraph("Teste hier: Sprich in normaler Lautstärke – der Balken soll unter der roten Linie bleiben. Wenn du schreist, muss er darüber gehen. Kopfhörer empfohlen, sonst hört das Mikrofon den Spielsound.",16))
+ column.add_child(g._paragraph("Es wird nur die Lautstärke gemessen. Nichts wird aufgenommen, gespeichert oder gesendet.",16))
 
 static func changed(g: Node3D, key: String, value: Variant) -> void:
  g.settings[key]=value;g._apply_settings();g._write_settings()

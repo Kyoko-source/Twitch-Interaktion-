@@ -46,7 +46,8 @@ func run(game: Node3D, verify: Callable) -> void:
  for id in ["bunny_lunge","croc_snap","clown_lunge","party_burst"]:
   game._build_world(id);game.player.active=false
   var e: NightEncounters=game.world.encounters
-  verify.call(e.audio.stream.resource_path.begins_with(ScareBank.SOUND_ROOT) and e.anticipation!=null,"Hero scare uses its old shared recording: "+id)
+  if id=="party_burst":verify.call(e.audio.stream.resource_path==ScareBank.BALLOON_BURST and e.anticipation!=null,"Balloon burst does not pop")
+  else:verify.call(e.audio.stream.resource_path.begins_with(ScareBank.SOUND_ROOT) and e.anticipation!=null,"Hero scare uses its old shared recording: "+id)
   game._resume();game.player.active=false;e.anticipation.play();await game.get_tree().process_frame;await game.get_tree().process_frame
   game._pause();await game.get_tree().process_frame;await game.get_tree().process_frame;e.tick(.1,false,game.player)
   verify.call(not e.anticipation.playing or e.anticipation.stream_paused,"Anticipation continues while paused: "+id)

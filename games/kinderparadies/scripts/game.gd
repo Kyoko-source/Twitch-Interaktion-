@@ -28,7 +28,7 @@ var weather: HappylandWeather
 var menu_music: AudioStreamPlayer
 var effect: AudioStreamPlayer
 var interaction_hit:=Vector3.ZERO
-const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true,"strobe":true,"hand_actions":true,"body_motion":.65,"body_audio":.55}
+const DEFAULT_SETTINGS={"volume":.7,"brightness":1.15,"sensitivity":.0022,"motion":true,"quality":2,"render_version":2,"fov":75,"render_scale":1.0,"grain":true,"vsync":true,"fps":0,"ambience":.8,"voice":1.0,"menu_music":.35,"invert_y":false,"crosshair":true,"language":"de","subtitles":true,"sign_subtitles":true,"strobe":true,"hand_actions":true,"body_motion":.65,"body_audio":.55,"mic":false,"mic_sensitivity":.5,"mic_device":"Default"}
 var settings:=DEFAULT_SETTINGS.duplicate()
 var settings_tab:="Bild"
 var captions: AfterPlayCaptions
@@ -56,6 +56,7 @@ var intro_pending:=false
 var wake_pending:=false
 var arrival_pending:=false
 var survived:=0
+var death_reason:=""
 var secret_ending:=false
 # Secret plush ending (4.10.0): plushes in the inventory, the reception call.
 # Lost on death and with every new shift, like the newspapers.
@@ -82,6 +83,8 @@ var endless_warning:=0
 var achievements: AfterPlayAchievements
 var nightwatch: Nightwatch
 var zombies: ZombiesMode
+var mic: MicListener
+var mic_warden: MicWarden
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
@@ -261,6 +264,7 @@ func _audio() -> void:
  menu_music=AudioStreamPlayer.new();menu_music.name="AbandonedArcadeMenuMusic";menu_music.playback_type=AudioServer.PLAYBACK_TYPE_STREAM
  var tune: AudioStreamMP3=load("res://assets/menu/abandoned-arcade.mp3").duplicate();tune.loop=true;menu_music.stream=tune;add_child(menu_music)
  weather=HappylandWeather.new();add_child(weather);weather.build()
+ mic=MicListener.new();mic.name="MicListener";add_child(mic)
 
 func _ui() -> void:
  ui=CanvasLayer.new();add_child(ui)
@@ -271,6 +275,9 @@ func _ui() -> void:
  post.material=CinematicLook.material();root.add_child(post)
  # 5.3.1: full-screen jumpscare above everything, HUD included.
  jumpscare=JumpscareFX.new();add_child(jumpscare)
+ # 5.4.0: microphone mode. Too loud for too long wakes something.
+ mic_warden=MicWarden.new();add_child(mic_warden);mic_warden.build(self)
+ mic_warden.awakened.connect(_mic_awakened);mic_warden.finished.connect(_mic_finished)
  hud=Control.new();hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(hud)
  round_label=_label("RUNDE 00 / 13",23);round_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT);round_label.offset_left=-275;round_label.offset_right=-30;round_label.offset_top=28;round_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;hud.add_child(round_label)
  crosshair=_label("+",23,Color(1,1,1,.65));var cross:=crosshair;cross.set_anchors_and_offsets_preset(Control.PRESET_CENTER);cross.offset_left=-8;cross.offset_top=-15;hud.add_child(cross)
@@ -626,14 +633,15 @@ func _read_settings() -> void:
  var data=JSON.parse_string(saved)
  if not data is Dictionary: return
  settings.volume=clampf(float(data.get("volume",.7)),0,1);settings.brightness=clampf(float(data.get("brightness",1.15)),.7,1.8);settings.sensitivity=clampf(float(data.get("sensitivity",.0022)),.0007,.0045);settings.motion=bool(data.get("motion",true));settings.quality=clampi(int(data.get("quality",1)),0,2)
- for key in ["fov","render_scale","ambience","voice","menu_music","body_motion","body_audio"]:
+ for key in ["fov","render_scale","ambience","voice","menu_music","body_motion","body_audio","mic_sensitivity"]:
   var low:=65.0 if key=="fov" else .65 if key=="render_scale" else 0.0
   var high:=100.0 if key=="fov" else 1.0
   var number=float(data.get(key,DEFAULT_SETTINGS[key]));settings[key]=clampf(number,low,high) if is_finite(number) else DEFAULT_SETTINGS[key]
- for key in ["grain","vsync","invert_y","crosshair","strobe","hand_actions"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
+ for key in ["grain","vsync","invert_y","crosshair","strobe","hand_actions","mic"]: settings[key]=bool(data.get(key,DEFAULT_SETTINGS[key]))
  settings.fps=int(data.get("fps",0)) if int(data.get("fps",0)) in [0,30,60,120,144] else 0
  settings.language="en" if data.get("language","de")=="en" else "de"
  settings.subtitles=bool(data.get("subtitles",true));settings.sign_subtitles=bool(data.get("sign_subtitles",true))
+ settings.mic_device=str(data.get("mic_device","Default"))
  AfterPlayLanguage.choose(settings.language)
  if not OS.has_feature("web") and int(data.get("render_version",0))<2: settings.quality=2
 
@@ -662,6 +670,7 @@ func _apply_settings() -> void:
  if intro:intro.ticket.print_audio.bus="NightAmbience"
  if room_audio: room_audio.bus="NightAmbience"
  if menu_music: menu_music.bus="Master";menu_music.volume_db=linear_to_db(float(settings.menu_music))-9 if float(settings.menu_music)>0 else -80
+ if mic:mic.set_device(str(settings.mic_device));mic.enable(bool(settings.mic))
  player.sensitivity=float(settings.sensitivity);player.motion=bool(settings.motion);player.lamp.shadow_enabled=int(settings.quality)>0
  player.presence.motion_amount=float(settings.body_motion);player.presence.sound_amount=float(settings.body_audio);player.hands.enabled=bool(settings.hand_actions)
  if float(settings.body_audio)<=0:player.presence.breath.stop();player.presence.cloth.stop()
@@ -744,6 +753,7 @@ func _process(delta: float) -> void:
  world.horse_hunt.present_contact(player.camera.current and phase in ["play","horse_death","pause","inventory","settings","help","code"] and archive.ending!="recording")
  world.encounters.tick(delta,phase=="play",player)
  world.terrors.tick(delta,phase=="play",player)
+ if mic_warden:mic_warden.tick(delta,phase=="play" and player.active and archive.ending!="recording")
  world.backstage.tick(delta,phase=="play",player)
  var celebrating:=phase=="ending" and is_instance_valid(end_credits) and end_credits.afterglow is PatrolPartyOutro and not end_credits.done
  world.party.tick(delta,celebrating or phase=="play" and archive.ending!="recording",celebrating or phase in ["play","pause","settings","inventory","help","code"],bool(settings.strobe))
@@ -901,11 +911,32 @@ func _wake_after_death() -> void:
  if phase=="quitting": return
  if state.endless:await _endless_wake();return
  phase="death";await _fade(1,.15)
+ if phase=="quitting" or not is_instance_valid(death_label): return
  death_label.text=AfterPlayLanguage.t("%d Runden überlebt"%survived);death_label.modulate.a=0;death_label.show()
+ if death_reason=="mic":death_label.text=AfterPlayLanguage.t("Du hast es geweckt.")+"
+"+death_label.text
  await create_tween().tween_property(death_label,"modulate:a",1,.45).finished
  await get_tree().create_timer(1.65).timeout
  if phase=="quitting": return
  death_label.hide();_build_world(state.current);_arrival(true);await _fade(0,.7)
+
+# 5.4.0: it woke up. Not an anomaly: the night is simply lost.
+func _mic_awakened() -> void:
+ if phase!="play":return
+ phase="mic_death";hud.hide();menu.hide();player.release();prompt.text="";_telemetry()
+ if mp:mp.event("Spieler 1 war zu laut und hat es geweckt.")
+
+func _mic_finished() -> void:
+ if phase!="mic_death":return
+ death_reason="mic"
+ if state.endless:
+  var result:=state.miss("mic")
+  if result.get("accepted",false):last_result=result
+  endless_warning=0;intro_pending=false;wake_pending=not state.over;arrival_pending=false;_save(true)
+  mic_warden.reset();await _endless_wake();death_reason="";return
+ survived=state.streak
+ archive.clear();archive_selected="";archive_input="";_lose_plushes();state.retry();intro_pending=false;wake_pending=true;arrival_pending=false;_save(true)
+ mic_warden.reset();await _wake_after_death();death_reason=""
 
 func _fade(alpha: float, duration: float) -> void:
  transition_shade.show()
@@ -962,7 +993,7 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
- if phase in ["archive_scare","ending","failure","horse_death","death","lift","arrival","nightwatch_end","nightwatch_scare"]:
+ if phase in ["archive_scare","mic_death","ending","failure","horse_death","death","lift","arrival","nightwatch_end","nightwatch_scare"]:
   if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>end_credits.title_length(): end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
