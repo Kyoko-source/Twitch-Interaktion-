@@ -2,9 +2,20 @@ extends RefCounted
 
 # 5.7.0: the After Play tutorial. Normal round, anomaly round with the floating
 # rabbit, three wrong doors (text, arrows, the uninstall picture), no saving.
+# With --capture-dir=DIR it also saves the menus the uninstall picture is cut from.
+func shot(game: Node3D, title: String) -> void:
+ var dir:=""
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--capture-dir="):dir=arg.trim_prefix("--capture-dir=")
+ if dir=="":return
+ for i in range(30):await game.get_tree().process_frame
+ await RenderingServer.frame_post_draw
+ game.get_viewport().get_texture().get_image().save_png(dir.path_join("tutorial-%s.png"%title))
+
 func run(game: Node3D,verify: Callable) -> void:
  var tree:=game.get_tree()
  game._main_menu()
+ await shot(game,"main-menu")
  var entry: Button=game.menu.find_children("MainMenuAction*","Button",true,false).filter(func(b):return b.text=="Tutorial").front() if game.menu.find_children("MainMenuAction*","Button",true,false).any(func(b):return b.text=="Tutorial") else null
  verify.call(entry!=null,"The main menu has no Tutorial entry")
  NightMenus.tutorials(game)
@@ -18,6 +29,7 @@ func run(game: Node3D,verify: Callable) -> void:
  var t: AfterPlayTutorial=game.tutorial
  verify.call(t.active and game.phase=="arrival" and not game.has_session,"The tutorial does not start in the lift")
  game.intro.skip();await tree.process_frame
+ game._pause();await shot(game,"pause");game._resume()
  verify.call(game.phase=="play" and t.title.text=="Willkommen zu After Play" and t.box.visible and game.round_label.text=="TUTORIAL","The tutorial greeting is missing")
  verify.call(t.title.get_theme_color("font_color")==AfterPlayTutorial.PURPLE and t.title.get_theme_font_size("font_size")>=70,"The tutorial text is not big and purple")
  verify.call(t.body.text.contains("grüne Tür"),"The first tutorial text does not send you to the green door")
@@ -59,6 +71,9 @@ func run(game: Node3D,verify: Callable) -> void:
  verify.call(game.phase=="tutorial_end" and t.snapshot().give_up and t.screen.find_child("TutorialGiveUpBack",true,false)!=null,"The third wrong door shows no uninstall picture")
  var rings:=t.screen.find_children("*","Panel",true,false).filter(func(p):var s=p.get_theme_stylebox("panel");return s is StyleBoxFlat and s.border_color==Color("e3261b") and s.bg_color.a==0.)
  verify.call(rings.size()==4,"The uninstall picture does not circle four steps in red")
+ var shots:=t.screen.find_children("TutorialShot*","TextureRect",true,false)
+ verify.call(shots.size()==4 and shots.all(func(s):return s.texture!=null and s.texture.get_size()==Vector2(680,800) and s.size==Vector2(340,400)),"The uninstall picture does not show the four real screenshots")
+ await shot(game,"give-up")
  (t.screen.find_child("TutorialGiveUpBack",true,false) as Button).pressed.emit()
  verify.call(game.phase=="menu" and not t.active and not t.visible,"The uninstall picture does not lead back to the main menu")
  # The right way: green, then red.

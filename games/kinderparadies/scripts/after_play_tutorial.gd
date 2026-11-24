@@ -155,19 +155,25 @@ func _face(node: Node3D, eye: Vector3) -> void:
  node.basis=Basis(x,y,z)*Basis.from_scale(Vector3.ONE*float(node.get_meta("size")))
 
 # The third wrong door: how to close and uninstall the game, circled in red.
+# Real screenshots cut together (game menus, Windows start menu and settings);
+# each card is 680x800, shown at half size, ring = the circled spot in card pixels.
+const UNINSTALL:="res://assets/uninstall-v571/"
+const STEPS:=[["step1-quit","ESC · Zum Hauptmenü · Spiel beenden",Rect2(113,710,189,39)],["step2-settings","Windows-Taste · Einstellungen",Rect2(287,394,109,90)],["step3-apps","Apps · Installierte Apps",Rect2(130,339,417,59)],["step4-uninstall","After Play · … · Deinstallieren",Rect2(340,418,281,36)]]
+
 func give_up_screen(back: Callable) -> void:
  _close_screen();box.hide();reminder.hide();show()
  screen=Control.new();screen.name="TutorialGiveUp";screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(screen)
  var shade:=ColorRect.new();shade.color=Color(.035,.03,.05,.97);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);screen.add_child(shade)
- var head:=_text(46);head.text=AfterPlayLanguage.t("Vllt. ist das Spiel nichts für dich, aber hey, mach dir nichts draus.\nSpiel einfach mit Bauklötzen oder so.");head.position=Vector2(120,46);head.size=Vector2(1680,150);screen.add_child(head)
- var steps:=[["Spiel beenden","ESC · Zum Hauptmenü · Spiel beenden",_panel_quit],["Einstellungen","Windows-Taste · Einstellungen",_panel_settings],["Apps","Apps · Installierte Apps",_panel_apps],["Deinstallieren","After Play · … · Deinstallieren",_panel_uninstall]]
- for i in range(steps.size()):
+ var head:=_text(46);head.text=AfterPlayLanguage.t("Vllt. ist das Spiel nichts für dich, aber hey, mach dir nichts draus.
+Spiel einfach mit Bauklötzen oder so.");head.position=Vector2(120,46);head.size=Vector2(1680,150);screen.add_child(head)
+ for i in range(STEPS.size()):
   var card:=Panel.new();card.position=Vector2(110+i*430,250);card.size=Vector2(400,520);card.add_theme_stylebox_override("panel",_box(Color("1d1f24"),Color("3d4048"),8));screen.add_child(card)
-  var caption:=Label.new();caption.text=AfterPlayLanguage.t(steps[i][1]);caption.position=Vector2(20,450);caption.size=Vector2(360,60);caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.add_theme_font_size_override("font_size",19);caption.add_theme_color_override("font_color",Color("d9d4c6"));card.add_child(caption)
-  var circled: Rect2=steps[i][2].call(card)
+  var shot:=TextureRect.new();shot.name="TutorialShot%d"%(i+1);shot.texture=load(UNINSTALL+STEPS[i][0]+".png");shot.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;shot.stretch_mode=TextureRect.STRETCH_SCALE;shot.position=Vector2(30,30);shot.size=Vector2(340,400);card.add_child(shot)
+  var caption:=Label.new();caption.text=AfterPlayLanguage.t(STEPS[i][1]);caption.position=Vector2(20,450);caption.size=Vector2(360,60);caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.add_theme_font_size_override("font_size",19);caption.add_theme_color_override("font_color",Color("d9d4c6"));card.add_child(caption)
+  var spot: Rect2=STEPS[i][2];var circled:=Rect2(shot.position+spot.position*.5,spot.size*.5)
   var ring:=Panel.new();ring.position=circled.position-Vector2(16,14);ring.size=circled.size+Vector2(32,28);ring.add_theme_stylebox_override("panel",_ring());card.add_child(ring)
   var badge:=Label.new();badge.text=str(i+1);badge.position=ring.position+Vector2(ring.size.x-22,-26);badge.size=Vector2(46,46);badge.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;badge.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;badge.add_theme_font_size_override("font_size",26);badge.add_theme_color_override("font_color",Color.WHITE);badge.add_theme_stylebox_override("normal",_box(Color("e3261b"),Color("e3261b"),23));card.add_child(badge)
-  if i<steps.size()-1:
+  if i<STEPS.size()-1:
    var next:=Label.new();next.text="→";next.position=Vector2(110+i*430+398,470);next.size=Vector2(34,60);next.add_theme_font_size_override("font_size",40);next.add_theme_color_override("font_color",Color("e3261b"));screen.add_child(next)
  var button: Button=g._button("Zurück zum Hauptmenü",back,true);button.name="TutorialGiveUpBack";button.position=Vector2(680,860);button.size=Vector2(560,56);screen.add_child(button)
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;button.grab_focus()
@@ -181,49 +187,6 @@ func _box(fill: Color, edge: Color, radius: int) -> StyleBoxFlat:
 
 func _ring() -> StyleBoxFlat:
  var s:=StyleBoxFlat.new();s.bg_color=Color(0,0,0,0);s.border_color=Color("e3261b");s.set_border_width_all(5);s.set_corner_radius_all(60);s.anti_aliasing=true;return s
-
-func _rect(parent: Control, r: Rect2, color: Color, text: String="", size: int=16, ink: Color=Color("e6e6e6")) -> Rect2:
- var p:=Panel.new();p.position=r.position;p.size=r.size;p.add_theme_stylebox_override("panel",_box(color,color.lightened(.15),4));parent.add_child(p)
- if text!="":
-  var l:=Label.new();l.text=AfterPlayLanguage.t(text);l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);l.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;l.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;l.add_theme_font_size_override("font_size",size);l.add_theme_color_override("font_color",ink);p.add_child(l)
- return r
-
-# A tiny After Play pause menu.
-func _panel_quit(card: Control) -> Rect2:
- _rect(card,Rect2(30,40,340,380),Color("0f1a1a"))
- _rect(card,Rect2(50,60,300,40),Color("0f1a1a"),"AFTER PLAY",24,Color("e8e1c8"))
- _rect(card,Rect2(60,130,280,40),Color("2a2d22"),"Rundgang fortsetzen",16)
- _rect(card,Rect2(60,185,280,40),Color("2a2d22"),"Einstellungen",16)
- _rect(card,Rect2(60,240,280,40),Color("2a2d22"),"Zum Hauptmenü",16)
- return _rect(card,Rect2(60,330,280,44),Color("5b2a24"),"Spiel beenden",17)
-
-# The Windows start menu.
-func _panel_settings(card: Control) -> Rect2:
- _rect(card,Rect2(30,40,340,380),Color("272a31"))
- _rect(card,Rect2(50,60,300,34),Color("33363e"),"Suchen …",15,Color("9a9da6"))
- for i in range(6):_rect(card,Rect2(55+(i%3)*100,120+floori(i/3.)*80,85,62),Color("31343c"),["Edge","Word","Fotos","Store","Mail","Musik"][i],13)
- _rect(card,Rect2(30,360,340,60),Color("1f2127"))
- return _rect(card,Rect2(255,288,95,62),Color("3a4a66"),"⚙ Einstellungen",12)
-
-# Settings: the Apps page.
-func _panel_apps(card: Control) -> Rect2:
- _rect(card,Rect2(30,40,340,380),Color("20232a"))
- var rows:=["System","Bluetooth","Netzwerk","Personalisierung","Apps","Konten"]
- var hit:=Rect2()
- for i in range(rows.size()):
-  var r:=_rect(card,Rect2(50,60+i*56,300,44),Color("3a4a66") if rows[i]=="Apps" else Color("2b2e36"),rows[i],16)
-  if rows[i]=="Apps":hit=r
- return hit
-
-# Installed apps: After Play, the dots, Deinstallieren.
-func _panel_uninstall(card: Control) -> Rect2:
- _rect(card,Rect2(30,40,340,380),Color("20232a"))
- _rect(card,Rect2(50,60,300,40),Color("2b2e36"),"Installierte Apps",17)
- _rect(card,Rect2(50,115,300,44),Color("2b2e36"),"Zeichenprogramm",15)
- _rect(card,Rect2(50,170,300,44),Color("3a2f3f"),"After Play        …",16,Color("f0d8ff"))
- _rect(card,Rect2(160,222,190,36),Color("33363e"),"Ändern",14)
- _rect(card,Rect2(50,330,300,44),Color("2b2e36"),"Bauklötze Deluxe",15)
- return _rect(card,Rect2(160,264,190,40),Color("4a2a2a"),"Deinstallieren",16,Color("ffd0c8"))
 
 func snapshot() -> Dictionary:
  return {"active":active,"step":step,"wrong":wrong,"title":title.text if box.visible else "","reminder":reminder.text if reminder.visible else "","arrows":arrows.size(),"rabbit_float":rabbit.position.y-rabbit_base.y if is_instance_valid(rabbit) else 0.,"give_up":is_instance_valid(screen)}
