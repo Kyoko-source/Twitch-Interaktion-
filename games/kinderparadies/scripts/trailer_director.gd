@@ -145,10 +145,12 @@ func act_nightwatch() -> void:
 	var nw: Nightwatch=game.nightwatch
 	await wait(2.)
 	mark("b1");await wait(4.)
-	nw.force("kino","sitze","visitor")
+	var change:=nw.force("kino","sitze","floating")
 	nw.open_fullscreen(9);await wait(.4)
-	mark("b2");await wait(3.5)
-	nw.close_fullscreen();nw.look("generator");await wait(1.4)
+	mark("b2");await wait(3.)
+	if not change.is_empty():nw.fix(change)
+	await wait(.6)
+	nw.close_fullscreen();nw.look("right");await wait(1.4)
 	nw.start_qte();await wait(.3)
 	mark("b3")
 	for i in range(18):

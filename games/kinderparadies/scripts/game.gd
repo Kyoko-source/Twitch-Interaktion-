@@ -729,7 +729,6 @@ func _process(delta: float) -> void:
  if menu_light: menu_light.visible=phase=="menu"
  if phase in ["intro","arrival"]: intro.tick(delta)
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
- if phase=="nightwatch_scare" and nightwatch: nightwatch.scare.tick(delta)
  if phase=="nightwatch" and nightwatch: nightwatch.tick(delta)
  if phase=="zombies" and zombies: zombies.tick(delta)
  if phase=="menu_scare": menu_scare.tick(delta)
@@ -1376,8 +1375,10 @@ func _endless_over() -> void:
 
 # ---- Nightwatch Protocol (4.15.0) ----
 # A fresh world is built for every watch, so no change can leak into a shift.
-func _start_nightwatch() -> void:
+# night_value 0: the next night not yet survived.
+func _start_nightwatch(night_value: int=0) -> void:
  if world_loading:return
+ if night_value<=0:night_value=mini(achievements.nightwatch_night+1,NightwatchConfig.NIGHTS)
  if mp and mp.active():mp.stop()
  if has_session:_save()
  has_session=false;ending_preview=false
@@ -1395,12 +1396,12 @@ func _start_nightwatch() -> void:
  menu.hide();hud.hide();player.lamp.hide();player.active=false;prompt.text=""
  world.atmosphere.set_active(true);room_audio.stream_paused=false
  if not room_audio.playing:room_audio.play()
- phase="nightwatch";nightwatch.start();_telemetry()
+ phase="nightwatch";nightwatch.start(night_value);_telemetry()
 
 func _nightwatch_pause() -> void:
  if phase!="nightwatch":return
  phase="nightwatch_pause";nightwatch.pause_audio(true)
- var column:=_panel("Pause","Die Nachtwache steht still. Strom, Zeit und Anomalien warten auf dich.")
+ var column:=_panel("Pause","Die Nachtwache steht still. Uhr, Strom und alles, was zu dir will, warten.")
  column.add_child(_button("Weiter überwachen",_nightwatch_resume,true))
  column.add_child(_button("Zum Hauptmenü",_main_menu));_telemetry()
 

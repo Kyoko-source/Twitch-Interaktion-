@@ -1,19 +1,12 @@
 class_name NightwatchStalker
 extends RefCounted
 
-# 5.5.0: something comes to the control room. The crawler creeps from camera
-# to camera towards the stairs; while its camera is on the main monitor it
-# slows down. Out of the last room it is in the stairwell (only heard), then at
-# the door on the left. The rolling shutter keeps it out but costs power. If
-# the shutter is not down in time, or goes up while it waits, it gets in.
-# It is NOT an anomaly and is never reported.
+# The crawler at the stair door on the left. It does not walk the cameras: it
+# is simply there when you look. Drop the rolling shutter in time (20 % of the
+# power at once) and it bangs, gives up and goes; the shutter rolls up again
+# by itself. Too slow, or not enough power for the shutter: it comes in.
+# 5.6.0: how often it comes depends on its level for the night (0-20).
 
-const ROUTES:=[
- ["kino","kueche","wartung","empfang"],
- ["kostuem","party_bar","party_tisch","halle","empfang"],
- ["baellebad","spielhalle","halle","wartung"],
- ["party_bar","party_tisch","halle","wartung"],
-]
 const DOOR_Z:=.55
 const DOOR_W:=1.1
 const DOOR_H:=2.2
@@ -23,7 +16,6 @@ const SHUTTER_CLOSED_Y:=DOOR_H*.5
 
 var nw: Nightwatch
 var rng:=RandomNumberGenerator.new()
-var body: Node3D
 var guest: Node3D
 var shutter: Node3D
 var lamp_open: StandardMaterial3D
@@ -37,16 +29,14 @@ var bang: AudioStreamPlayer
 var roll: AudioStreamPlayer
 
 var state:="idle"
-var route: Array=[]
-var index:=0
 var clock:=0.
-var step_time:=30.
+var next:=0.
 var wait:=0.
 var closed:=false
+var shut_clock:=0.
 var shutter_y:=SHUTTER_OPEN_Y
 var visits:=0
 var repelled:=0
-var watched:=false
 
 func build(owner: Nightwatch) -> void:
  nw=owner
@@ -94,146 +84,78 @@ func build(owner: Nightwatch) -> void:
  bang=nw._player(load("res://assets/scares-v260/dry-impact.wav"),-2.)
  roll=nw._player(nw._wav(.9,func(t: float):return (.35*signf(sin(TAU*38.*t))+.25*(randf()-.5))*clampf(t/.05,0,1)*clampf((.9-t)/.15,0,1)),-12.)
 
-# The figure in the world the cameras see.
-func _world_body() -> Node3D:
- if is_instance_valid(body) and body.get_parent()==nw.w:return body
- body=CharacterFinish.crawler(1.05);body.name="WatchCrawler";nw.w.add_child(body);body.hide()
- return body
-
 func start() -> void:
- rng.seed=nw.rng.randi()
- state="idle";index=0;clock=0.;visits=0;repelled=0;closed=false;shutter_y=SHUTTER_OPEN_Y;watched=false
+ rng.seed=nw.rng.randi();corridor_light.show()
+ state="idle";clock=0.;next=0.;visits=0;repelled=0;closed=false;shut_clock=0.;shutter_y=SHUTTER_OPEN_Y
  shutter.position.y=shutter_y;status_lamp.material_override=lamp_open
  guest.position=Vector3(-3.35,0,DOOR_Z);guest.rotation=Vector3(0,PI/2,0)
  face_light.position=Vector3(-2.8,.9,DOOR_Z);face_light.omni_range=1.8
  guest.hide();face_light.light_energy=0.
- _world_body().hide()
  for p in [steps,scrape]:p.stop()
 
 func stop() -> void:
  state="idle"
- # Hidden, never freed mid-frame: freeing it while a feed was drawing it
- # tripped the headless renderer. It goes with the world when that is rebuilt.
- if is_instance_valid(body):body.hide()
  if guest:guest.hide()
+ if face_light:face_light.light_energy=0.
  for p in [steps,scrape,roll]:if p:p.stop()
 
-func camera() -> String:
- return str(route[index]) if state=="room" and index<route.size() else ""
-
-func _spot(camera_id: String) -> Vector3:
- var spots: Array=[]
- for r in NightwatchConfig.ROOMS:
-  for a in r.areas:
-   if a.camera==camera_id:spots.append_array(a.spots)
- if spots.is_empty():return NightwatchConfig.CAMERAS[NightwatchConfig.camera_index(camera_id)].at
- return spots[rng.randi_range(0,spots.size()-1)]
-
-# A free bit of floor in plain view of the camera: on the floor, nothing
-# standing there, and nothing between the lens and the crawler.
-func open_floor(camera_id: String) -> Array:
- var spec: Dictionary=NightwatchConfig.CAMERAS[NightwatchConfig.camera_index(camera_id)]
- var space:=nw.w.get_world_3d().direct_space_state
- var eye: Vector3=spec.p;var ahead: Vector3=spec.at-eye;ahead.y=0;ahead=ahead.normalized()
- var side:=ahead.cross(Vector3.UP)
- var probe:=Camera3D.new();probe.keep_aspect=Camera3D.KEEP_WIDTH;probe.fov=Nightwatch.feed_fov(spec);nw.main_view.add_child(probe);probe.global_position=eye;probe.look_at(spec.at)
- var found: Array=[]
- for d: float in [3.5,4.5,2.8,5.5,2.,6.5,7.5]:
-  for o: float in [0.,-.7,.7,-1.4,1.4,-2.1,2.1]:
-   var p:=Vector3(eye.x,0,eye.z)+ahead*d+side*o
-   var down:=space.intersect_ray(PhysicsRayQueryParameters3D.create(p+Vector3(0,2.2,0),p+Vector3(0,-1.,0),1))
-   # Flat floor (raised stages and tiers count), not a table top.
-   if down.is_empty() or float(down.position.y)>.6 or float(down.position.y)<-.3 or (down.normal as Vector3).y<.9:continue
-   var foot: Vector3=down.position
-   var sphere:=SphereShape3D.new();sphere.radius=.38
-   var q:=PhysicsShapeQueryParameters3D.new();q.shape=sphere;q.transform=Transform3D(Basis(),foot+Vector3(0,.55,0));q.collision_mask=1
-   if not space.intersect_shape(q,1).is_empty():continue
-   var head:=foot+Vector3(0,.5,0)
-   if probe.is_position_behind(head):continue
-   var px:=probe.unproject_position(head)
-   if px.x<40 or px.y<40 or px.x>nw.main_view.size.x-40 or px.y>nw.main_view.size.y-40:continue
-   var sight:=space.intersect_ray(PhysicsRayQueryParameters3D.create(eye,head,1))
-   if not sight.is_empty() and eye.distance_to(sight.position)<eye.distance_to(head)-.3:continue
-   found.append(foot)
- probe.queue_free()
- return found
-
-func _place() -> void:
- var b:=_world_body()
- var id:=camera()
- if id=="":b.hide();return
- var spec: Dictionary=NightwatchConfig.CAMERAS[NightwatchConfig.camera_index(id)]
- var spots:=open_floor(id)
- var spot:Vector3=spots[rng.randi_range(0,mini(spots.size(),4)-1)] if not spots.is_empty() else _spot(id)
- b.global_position=spot
- var to_cam: Vector3=spec.p-b.global_position;to_cam.y=0
- if to_cam.length()>.1:b.rotation.y=atan2(to_cam.x,to_cam.z)
- b.show()
- # The camera that shows it refreshes at once so the move is never missed.
- var i:=NightwatchConfig.camera_index(id)
- if i>=0 and i<nw.feeds.size():(nw.feeds[i] as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
-
-func _begin(stage: int) -> void:
- route=ROUTES[rng.randi_range(0,ROUTES.size()-1)]
- index=0;state="room";clock=0.;visits+=1
- step_time=NightwatchConfig.stalker_step(stage)*rng.randf_range(.85,1.15)
- _place()
+func at_door() -> bool:
+ return state=="door"
 
 func set_shutter(down: bool) -> void:
  if down==closed:return
- closed=down;roll.pitch_scale=.9 if down else 1.1;roll.play()
+ closed=down;shut_clock=0.;roll.pitch_scale=.9 if down else 1.1;roll.play()
  status_lamp.material_override=lamp_closed if down else lamp_open
 
-func toggle() -> void:
- set_shutter(not closed)
-
-func drain() -> float:
- return NightwatchConfig.SHUTTER_DRAIN if closed else 0.
-
-# Returns "caught" when it gets in, else "".
-func tick(delta: float, stage: int, seconds: float) -> String:
+# The shutter moving and the stair bulb flickering.
+func animate(delta: float, seconds: float) -> void:
  var target:=SHUTTER_CLOSED_Y if closed else SHUTTER_OPEN_Y
  shutter_y=move_toward(shutter_y,target,delta*6.);shutter.position.y=shutter_y
  corridor_light.light_energy=.35*(.55+.45*float(sin(seconds*23.)>-.7))*(1. if state!="door" else .7+.3*sin(seconds*9.))
+
+# Power is gone: the shutter rolls up, the bulb dies.
+func blackout() -> void:
+ state="idle";clock=0.;closed=false;roll.pitch_scale=.7;roll.play()
+ status_lamp.material_override=null;corridor_light.hide()
+ guest.hide();face_light.light_energy=0.
+ for p in [steps,scrape]:p.stop()
+
+# Power is back after a blackout.
+func restore() -> void:
+ corridor_light.show();status_lamp.material_override=lamp_open;guest.hide();face_light.light_energy=0.;state="idle";clock=0.
+
+func _arrive() -> void:
+ state="door";clock=0.;visits+=1;wait=NightwatchConfig.door_wait(rng)
+ guest.show();face_light.light_energy=1.4
+ # Barely audible: you have to look.
+ steps.volume_db=-26.;steps.pitch_scale=.85;steps.play()
+
+# Returns "caught" when it gets in, else "".
+func tick(delta: float, level: int, seconds: float) -> String:
+ animate(delta,seconds)
  match state:
   "idle":
-   if seconds>=NightwatchConfig.STALKER_START:
-    clock+=delta
-    if clock>=NightwatchConfig.stalker_rest(stage):_begin(stage)
-  "room":
-   # Watched on the main monitor it hardly moves.
-   watched=nw.selected==NightwatchConfig.camera_index(camera()) and (nw.fullscreen or nw.view=="monitors")
-   clock+=delta*(NightwatchConfig.WATCH_SLOW if watched else 1.)
-   if is_instance_valid(body) and body.visible:body.rotation.y+=sin(seconds*1.7)*.002
-   if clock>=step_time:
-    clock=0.;index+=1
-    if index>=route.size():
-     state="stairs";_world_body().hide();steps.volume_db=-30.;steps.play()
-    else:_place()
-  "stairs":
+   if closed:
+    shut_clock+=delta
+    if shut_clock>=NightwatchConfig.SHUTTER_HOLD:set_shutter(false)
+   if level<=0:return ""
+   if next<=0.:next=NightwatchConfig.first_visit(level)
    clock+=delta
-   var k:=clampf(clock/(step_time*.8),0.,1.)
-   steps.volume_db=lerpf(-30.,-10.,k);steps.pitch_scale=.8+k*.2
-   if not steps.playing:steps.play()
-   if clock>=step_time*.8:
-    steps.stop();state="door";clock=0.;wait=NightwatchConfig.door_wait(rng)
-    guest.show();face_light.light_energy=1.4
-    if not closed:nw._say("Etwas steht an der Tür.",3.)
+   if clock>=next:_arrive()
   "door":
    clock+=delta
-   # Open shutter: a short grace to drop it. Up again while it waits: in.
-   if not closed and clock>=NightwatchConfig.DOOR_GRACE:return "caught"
-   if closed:
+   if not closed:
+    if clock>=NightwatchConfig.grace(level):return "caught"
+   else:
     if not scrape.playing and rng.randf()<delta*.8:scrape.pitch_scale=rng.randf_range(.7,.95);scrape.play()
-    if clock>=wait:
+    wait-=delta
+    if wait<=0.:
      bang.play();repelled+=1;guest.hide();face_light.light_energy=0.;scrape.stop()
-     state="idle";clock=0.
+     state="idle";clock=0.;next=NightwatchConfig.rest(level,rng)
+     # It is gone; the shutter goes up again a moment later.
+     shut_clock=NightwatchConfig.SHUTTER_HOLD-1.2
      nw._say("Es zieht sich zurück.",3.)
  return ""
 
-# Shutter up while it is at the door: it comes through almost at once.
-func peek_risk() -> bool:
- return state=="door" and not closed
-
 func snapshot() -> Dictionary:
- return {"state":state,"camera":camera(),"index":index,"clock":snappedf(clock,.1),"closed":closed,"visits":visits,"repelled":repelled,"watched":watched}
+ return {"state":state,"clock":snappedf(clock,.1),"next":snappedf(next,.1),"closed":closed,"visits":visits,"repelled":repelled}

@@ -1,92 +1,96 @@
 class_name NightwatchConfig
 extends RefCounted
 
-# Nightwatch Protocol (4.15.0): every tunable number of the camera mode lives
-# here, so balancing never needs a search through the game logic.
+# Nightwatch Protocol: every tunable number of the camera mode lives here, so
+# balancing never needs a search through the game logic.
+# 5.6.0: nights 1-5 from 00:00 to 06:00. Anomalies change the rooms on the
+# cameras and are fixed with a click; something waits at the door and in the
+# vent, and the power runs down all night.
 
-# Difficulty rises one stage every STAGE_SECONDS of survived time.
-const STAGE_SECONDS:=75.0
-const MAX_STAGE:=12
-# Per stage (index 0 = stage 1; the last row repeats beyond it).
-#  interval: seconds between new anomalies (randomised by +-JITTER)
+# One in-game hour in real seconds; a night is HOURS of them.
+const HOUR:=80.0
+const HOURS:=6
+const NIGHTS:=5
+# Per night:
+#  drain:    power used per second, in percent, all night long
+#  crawler / clown: how often the figures come, 0 (never) to 20 (relentless)
+#  interval: seconds between new anomalies at 00:00 (randomised by +-JITTER);
+#            it shrinks towards LATE_SPAWN of that by 06:00
 #  active:   how many anomalies may be open at the same time
-#  detect:   seconds to report an anomaly before the shift ends
-#  drain:    power used per second, in percent
-const STAGES:=[
- {"interval":34.,"active":1,"detect":110.,"drain":.40},
- {"interval":31.,"active":1,"detect":100.,"drain":.44},
- {"interval":28.,"active":2,"detect":95.,"drain":.48},
- {"interval":26.,"active":2,"detect":90.,"drain":.52},
- {"interval":24.,"active":2,"detect":85.,"drain":.56},
- {"interval":22.,"active":3,"detect":80.,"drain":.60},
- {"interval":20.,"active":3,"detect":75.,"drain":.64},
- {"interval":18.,"active":3,"detect":70.,"drain":.68},
- {"interval":16.,"active":4,"detect":66.,"drain":.72},
- {"interval":15.,"active":4,"detect":62.,"drain":.76},
- {"interval":14.,"active":4,"detect":58.,"drain":.80},
- {"interval":13.,"active":5,"detect":55.,"drain":.84},
+#  detect:   seconds one anomaly may stay unfound before the alarm starts
+#  words / time: the generator restart
+const NIGHT:=[
+ {"drain":.12,"crawler":4,"clown":0,"interval":34.,"active":4,"detect":120.,"words":1,"time":20.},
+ {"drain":.13,"crawler":6,"clown":5,"interval":30.,"active":4,"detect":105.,"words":2,"time":17.},
+ {"drain":.14,"crawler":9,"clown":9,"interval":27.,"active":5,"detect":95.,"words":2,"time":14.},
+ {"drain":.15,"crawler":12,"clown":13,"interval":24.,"active":5,"detect":85.,"words":3,"time":13.},
+ {"drain":.16,"crawler":15,"clown":16,"interval":21.,"active":6,"detect":75.,"words":4,"time":12.},
 ]
 const JITTER:=.25
 const FIRST_ANOMALY:=18.0
-# Generator repairs: words to type and the time for all of them, by stage.
-const QTE:=[
- {"words":1,"time":20.},
- {"words":2,"time":18.},
- {"words":2,"time":15.},
- {"words":3,"time":14.},
- {"words":4,"time":12.},
- {"words":5,"time":10.},
- {"words":5,"time":10.},
- {"words":6,"time":11.},
- {"words":6,"time":10.},
- {"words":7,"time":11.},
- {"words":7,"time":10.5},
- {"words":8,"time":11.},
+const LATE_SPAWN:=.5
+# The status line on every camera, by the number of unfound anomalies.
+const STATUS:=["","WARNING – UNUSUAL ACTIVITY DETECTED","ALERT – ANOMALY LEVELS RISING","CRITICAL – ANOMALY THRESHOLD EXCEEDED"]
+const STATUS_COLOURS:=[Color("d8f0d8"),Color("ffd24a"),Color("ff9a3a"),Color("ff3b2e")]
+# From CRITICAL_COUNT open anomalies (or one left longer than "detect") the
+# critical alarm runs: blinking, faster and faster. After CRITICAL_TIME the
+# night is lost; the last CRITICAL_FLICKER seconds the lights flicker.
+const CRITICAL_COUNT:=3
+const CRITICAL_TIME:=25.0
+const CRITICAL_FLICKER:=7.0
+static func spawn_interval(night_index: int, seconds: float) -> float:
+ return float(night(night_index).interval)*lerpf(1.,LATE_SPAWN,clampf(seconds/night_length(),0.,1.))
+# What the night tells you at the start.
+const BRIEFING:=[
+ "Nacht 1. Halte bis 06:00 Uhr durch. Finde die Veränderungen auf den Kameras und klick sie im Vollbild an. Schau ab und zu links zur Tür – steht dort etwas, Tor runter (Leertaste).",
+ "Nacht 2. Ab heute kommt auch etwas durch den Lüftungsschacht rechts. Sitzt es in der Öffnung, leuchte mit der Taschenlampe hinein (F).",
+ "Nacht 3. Sie kommen öfter. Das Tor kostet 20 %, die Lampe 10 % – reicht der Strom nicht, tipp am Generator.",
+ "Nacht 4. Mehr Anomalien gleichzeitig. Vergiss Tür und Schacht nicht.",
+ "Nacht 5. Die letzte Nacht. Keiner von ihnen will dich bis 06:00 Uhr gehen lassen.",
 ]
-const MAX_WRONG:=3
-# 5.5.0: the crawler that comes to the control room (NightwatchStalker).
-# It first sets out after STALKER_START seconds; between visits it rests.
-const STALKER_START:=55.0
-const WATCH_SLOW:=.22
-const DOOR_GRACE:=3.2
-const SHUTTER_DRAIN:=.55
-static func stalker_step(stage: int) -> float:
- return lerpf(34.,13.,clampf((stage-1)/9.,0.,1.))
-static func stalker_rest(stage: int) -> float:
- return lerpf(40.,12.,clampf((stage-1)/9.,0.,1.))
-static func door_wait(rng: RandomNumberGenerator) -> float:
- return rng.randf_range(6.,10.)
+static func night(index: int) -> Dictionary:
+ return NIGHT[clampi(index,1,NIGHT.size())-1]
+static func night_length() -> float:
+ return HOUR*HOURS
+static func ratio(level: int) -> float:
+ return clampf(level/20.,0.,1.)
+
+# Power, in percent. Closing the shutter and switching the torch on cost a
+# fixed share at once.
 const POWER_START:=100.0
-# Screens and alarm by power level (percent).
+const SHUTTER_COST:=20.0
+const TORCH_COST:=10.0
+# How long the torch burns once switched on, and how long it has to shine on
+# the clown before it crawls away.
+const TORCH_TIME:=3.0
+const TORCH_REPEL:=.7
+const TORCH_ENERGY:=7.0
+# The shutter rolls up by itself this long after nothing is at the door.
+const SHUTTER_HOLD:=6.0
+# Screens and alarm by power level.
 const FLICKER_LIGHT:=50.0
 const ALARM:=20.0
 const CRITICAL:=10.0
-# Points.
-const POINTS_REPORT:=100
-const POINTS_COMBO:=25
-const POINTS_COMBO_MAX:=10
-const POINTS_GENERATOR:=40
-const POINTS_PER_SECOND:=1.0
+# At 0 % everything goes dark and the shutter rolls up; something comes for
+# you after this many seconds unless the generator runs again first.
+const BLACKOUT_MIN:=8.0
+const BLACKOUT_MAX:=16.0
+# A click into the picture that finds nothing locks clicking for a moment.
+const MISS_LOCK:=1.5
+# How far around a changed thing a click still counts (feed pixels).
+const HIT_MARGIN:=34.0
 
-# Words for the generator: short ones first, long ones from stage 5.
-const WORDS_EASY:=["BALL","LAMPE","STROM","KABEL","TUER","RUTSCHE","KERZE","TORTE","PUPPE","HASE","LIFT","PFERD","KINO","NETZ","UHR","STERN"]
-const WORDS_MEDIUM:=["SCHALTER","BATTERIE","KONFETTI","LUFTBALLON","SPANNUNG","KLETTERNETZ","GEBURTSTAG","SICHERUNG","MONITOR","KAMERA","NACHTWACHE","GENERATOR"]
-const WORDS_HARD:=["STROMKREISLAUF","NOTSTROMAGGREGAT","UEBERWACHUNGSRAUM","KINDERPARADIES","SPANNUNGSREGLER","BAELLEBADBECKEN","SICHERUNGSKASTEN","KONTROLLMONITOR"]
-
-# Report categories. Only kinds the mode can actually produce are listed.
-const KINDS:={
- "missing":"Gegenstand fehlt",
- "floating":"Schwebender Gegenstand",
- "moved":"Gegenstand verschoben",
- "extra":"Zusätzlicher Gegenstand",
- "visitor":"Besucher im Raum",
- "motion":"Ungewöhnliche Bewegung",
- "apparition":"Erscheinung oder Kreatur",
- "light":"Veränderung der Beleuchtung",
-}
-const KIND_ORDER:=["missing","floating","moved","extra","visitor","motion","apparition","light"]
-# Kinds that need a spot on the floor instead of an object.
-const SPOT_KINDS:=["visitor","apparition","light"]
+# The figures at the door (NightwatchStalker) and in the vent (NightwatchVent)
+# do not walk the cameras: they are simply there when you look. First visit,
+# rest between visits and the time you have once one is there, by level.
+static func first_visit(level: int) -> float:
+ return lerpf(70.,25.,ratio(level))
+static func rest(level: int, rng: RandomNumberGenerator) -> float:
+ return lerpf(75.,18.,ratio(level))*rng.randf_range(.7,1.3)
+static func grace(level: int) -> float:
+ return lerpf(9.,4.,ratio(level))
+static func door_wait(rng: RandomNumberGenerator) -> float:
+ return rng.randf_range(5.,8.)
 
 # Infrared lamp next to every camera, so dark rooms stay readable on screen.
 const IR_ENERGY:=3.0
@@ -110,9 +114,42 @@ const CAMERAS:=[
  {"id":"kino","label":"CAM 10 · KINO","p":Vector3(-5.9,3.05,-25.85),"at":Vector3(.7,1.0,-30.0),"fov":76.},
 ]
 
-# Rooms for the report book. Each area names the camera that shows it, the
+static func camera_index(id: String) -> int:
+ for i in range(CAMERAS.size()):
+  if CAMERAS[i].id==id:return i
+ return -1
+
+# Generator words: short ones first, long ones in the later nights.
+const WORDS_EASY:=["BALL","LAMPE","STROM","KABEL","TUER","RUTSCHE","KERZE","TORTE","PUPPE","HASE","LIFT","PFERD","KINO","NETZ","UHR","STERN"]
+const WORDS_MEDIUM:=["SCHALTER","BATTERIE","KONFETTI","LUFTBALLON","SPANNUNG","KLETTERNETZ","GEBURTSTAG","SICHERUNG","MONITOR","KAMERA","NACHTWACHE","GENERATOR"]
+const WORDS_HARD:=["STROMKREISLAUF","NOTSTROMAGGREGAT","UEBERWACHUNGSRAUM","KINDERPARADIES","SPANNUNGSREGLER","BAELLEBADBECKEN","SICHERUNGSKASTEN","KONTROLLMONITOR"]
+static func words_for(night_index: int, rng: RandomNumberGenerator) -> Array:
+ var count: int=int(night(night_index).words)
+ var pool: Array=WORDS_EASY if night_index<=1 else WORDS_EASY+WORDS_MEDIUM if night_index<=3 else WORDS_MEDIUM+WORDS_HARD
+ var out: Array=[]
+ while out.size()<count:
+  var word: String=pool[rng.randi_range(0,pool.size()-1)]
+  if not word in out or out.size()>=pool.size():out.append(word)
+ return out
+
+# Kinds of change. None of them is a figure: the rooms themselves change.
+const KINDS:={
+ "missing":"Gegenstand fehlt",
+ "floating":"Schwebender Gegenstand",
+ "moved":"Gegenstand verschoben",
+ "extra":"Zusätzlicher Gegenstand",
+ "motion":"Gegenstand bewegt sich",
+ "light":"Fremdes Licht",
+ "balls":"Schwebende Bälle",
+ "room":"Raum verändert",
+}
+const KIND_ORDER:=["missing","floating","moved","extra","motion","light","balls","room"]
+# Kinds placed on a floor spot or a whole area instead of one object.
+const SPOT_KINDS:=["light","balls","room"]
+
+# Rooms the anomalies happen in. Each area names the camera that shows it, the
 # objects that can change (node spec, German label, allowed kinds) and floor
-# spots for visitors, apparitions and light changes.
+# spots for light changes; "special" lists kinds only this area has.
 #   node spec: "prop:<key>"       entry in PlayWorld.props
 #              "prop:<key>/*"     one child of that prop group
 #              "name:<NodeName>"  first node of that name in the world
@@ -140,7 +177,7 @@ const ROOMS:=[
   {"id":"spielwand","name":"Spielwand","camera":"halle","spots":[Vector3(-3.4,0,-4.0)],"objects":[
    ["name:ForgottenActivityBoard","die Spielwand",["missing","floating","motion"]]]}]},
  {"id":"baellebad","name":"Bällebad","areas":[
-  {"id":"krokodil","name":"Krokodil","camera":"baellebad","spots":[Vector3(14.6,0,11.6)],"objects":[
+  {"id":"krokodil","name":"Krokodil","camera":"baellebad","spots":[Vector3(14.6,0,11.6)],"special":["balls"],"objects":[
    ["prop:inflatable","das aufblasbare Krokodil",["missing","floating","moved","motion"]],
    ["name:ConnectedInflationBlower","das Gebläse",OBJ]]},
   {"id":"lampe","name":"Inspektionslampe","camera":"baellebad","spots":[Vector3(17.0,0,10.4)],"objects":[
@@ -197,35 +234,12 @@ const ROOMS:=[
    ["name:ForgottenPopcornTrolley","der Popcornwagen",OBJ]]}]},
 ]
 
-static func stage_of(seconds: float) -> int:
- return clampi(1+floori(seconds/STAGE_SECONDS),1,MAX_STAGE)
-
-static func stage(index: int) -> Dictionary:
- return STAGES[clampi(index,1,STAGES.size())-1]
-
-static func qte(index: int) -> Dictionary:
- return QTE[clampi(index,1,QTE.size())-1]
-
-static func words_for(index: int, rng: RandomNumberGenerator) -> Array:
- var count: int=int(qte(index).words)
- var pool: Array=WORDS_EASY if index<=2 else WORDS_EASY+WORDS_MEDIUM if index<=4 else WORDS_MEDIUM+WORDS_HARD if index>=8 else WORDS_MEDIUM+WORDS_HARD.slice(0,3)
- var out: Array=[]
- while out.size()<count:
-  var word: String=pool[rng.randi_range(0,pool.size()-1)]
-  if not word in out or out.size()>=pool.size():out.append(word)
- return out
-
-static func camera_index(id: String) -> int:
- for i in range(CAMERAS.size()):
-  if CAMERAS[i].id==id:return i
- return -1
+static func area(room_id: String, area_id: String) -> Dictionary:
+ for item in room(room_id).get("areas",[]):
+  if item.id==area_id:return item
+ return {}
 
 static func room(id: String) -> Dictionary:
  for item in ROOMS:
   if item.id==id:return item
- return {}
-
-static func area(room_id: String, area_id: String) -> Dictionary:
- for item in room(room_id).get("areas",[]):
-  if item.id==area_id:return item
  return {}

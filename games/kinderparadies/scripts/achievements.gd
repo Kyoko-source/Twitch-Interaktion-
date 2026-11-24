@@ -23,12 +23,12 @@ const LIST:=[
  {"id":"ending_3","title":"Ich bin dann mal weg","text":"Verlasse Happyland auf eigene Faust.","secret":true},
  {"id":"ending_4","title":"Alle wieder da","text":"Bringe alle Kinder zurück nach Happyland.","secret":true},
  {"id":"plushes","title":"Puppensammler","text":"Finde alle fünf Puppen in einer Schicht.","secret":true},
- {"id":"nightwatch_first","title":"Eingetragen","text":"Melde im Nightwatch Protocol deine erste Anomalie richtig."},
- {"id":"nightwatch_10","title":"Wachsames Auge","text":"Melde 10 Anomalien in einer Nachtwache."},
- {"id":"nightwatch_25","title":"Lückenlos protokolliert","text":"Melde 25 Anomalien in einer Nachtwache."},
- {"id":"nightwatch_generator","title":"Notstrom","text":"Starte den Generator in einer Nachtwache fünfmal neu."},
- {"id":"nightwatch_10min","title":"Lange Nacht","text":"Halte eine Nachtwache zehn Minuten durch."},
- {"id":"nightwatch_5000","title":"Sicherheitschef","text":"Erreiche 5000 Punkte in einer Nachtwache.","secret":true},
+ {"id":"nightwatch_first","title":"Wieder an seinem Platz","text":"Behebe im Nightwatch Protocol deine erste Anomalie."},
+ {"id":"nightwatch_10","title":"Wachsames Auge","text":"Behebe 10 Anomalien in einer Nacht."},
+ {"id":"nightwatch_25","title":"Fünf Nächte","text":"Überstehe im Nightwatch Protocol alle fünf Nächte."},
+ {"id":"nightwatch_generator","title":"Notstrom","text":"Starte den Generator in einer Nacht fünfmal neu."},
+ {"id":"nightwatch_10min","title":"06:00","text":"Überstehe eine Nacht im Nightwatch Protocol."},
+ {"id":"nightwatch_5000","title":"Aus dem Dunkeln","text":"Überstehe eine Nacht, in der dir der Strom ausgegangen ist.","secret":true},
  {"id":"party_10","title":"Partygast","text":"Überlebe in der Partynacht bis Runde 10."},
  {"id":"party_25","title":"Die Feier hört nie auf","text":"Überlebe in der Partynacht bis Runde 25."},
  {"id":"party_boss","title":"Geburtstag abgesagt","text":"Besiege in der Partynacht einen Boss."},
@@ -43,8 +43,8 @@ var g: Node3D
 var path:=""
 var unlocked:={}
 var best_round:=0
-# Nightwatch Protocol keeps its own highscore next to the endless record.
-var nightwatch_best:=0
+# Nightwatch Protocol: the last night survived (0-5) and the longest shift.
+var nightwatch_night:=0
 var nightwatch_time:=0.0
 # Partynacht (wave mode) records.
 var zombies:={"best_round":0,"best_points":0,"kills":0,"headshots":0,"bosses":0,"longest":0.,"pickups":0,"perks":0,"weapons":[]}
@@ -67,7 +67,7 @@ func build(game: Node3D) -> void:
    for row in LIST:
     if stored.has(row.id):unlocked[row.id]=float(stored[row.id])
   best_round=clampi(int(data.get("best_round",0)),0,PatrolState.ENDLESS_GOAL)
-  nightwatch_best=maxi(int(data.get("nightwatch_best",0)),0);nightwatch_time=maxf(float(data.get("nightwatch_time",0.)),0.)
+  nightwatch_night=clampi(int(data.get("nightwatch_night",0)),0,NightwatchConfig.NIGHTS);nightwatch_time=maxf(float(data.get("nightwatch_time",0.)),0.)
   var stored_z=data.get("zombies",{})
   if stored_z is Dictionary:
    for key in zombies:
@@ -105,10 +105,10 @@ func record_round(round_value: int) -> void:
  for target in ROUNDS:
   if round_value>=target:unlock("round_%d"%target)
 
-# Returns true when the score is a new Nightwatch highscore.
-func record_nightwatch(points: int, seconds: float) -> bool:
- var better:=points>nightwatch_best
- if better:nightwatch_best=points
+# Returns true when a night is survived for the first time.
+func record_nightwatch(night_value: int, survived: bool, seconds: float) -> bool:
+ var better:=survived and night_value>nightwatch_night
+ if better:nightwatch_night=night_value
  nightwatch_time=maxf(nightwatch_time,seconds)
  save();return better
 
@@ -128,7 +128,7 @@ func record_zombies(r: Dictionary) -> bool:
  save();return better
 
 func save() -> void:
- g._write_persistent_text(path,JSON.stringify({"unlocked":unlocked,"best_round":best_round,"nightwatch_best":nightwatch_best,"nightwatch_time":nightwatch_time,"zombies":zombies}))
+ g._write_persistent_text(path,JSON.stringify({"unlocked":unlocked,"best_round":best_round,"nightwatch_night":nightwatch_night,"nightwatch_time":nightwatch_time,"zombies":zombies}))
 
 func _show_next() -> void:
  if showing or queue.is_empty() or not is_instance_valid(toast):return
@@ -147,7 +147,7 @@ func _show_next() -> void:
 func show_menu(back: Callable) -> void:
  g.phase="achievements";NightMenus.clear(g);NightMenus.backdrop(g,true)
  var title: Label=g._label("ERFOLGE",64,Color("e8e1c8"));title.add_theme_font_override("font",NightMenus.menu_font(500,3));title.position=Vector2(100,70);g.menu.add_child(title)
- var summary: Label=g._label("%d / %d freigeschaltet  ·  Bester Endloslauf: Runde %d  ·  Nightwatch-Highscore: %d"%[unlocked.size(),LIST.size(),best_round,nightwatch_best],20,Color("cbbb95"));summary.position=Vector2(104,170);g.menu.add_child(summary)
+ var summary: Label=g._label("%d / %d freigeschaltet  ·  Bester Endloslauf: Runde %d  ·  Nightwatch: Nacht %d / 5"%[unlocked.size(),LIST.size(),best_round,nightwatch_night],20,Color("cbbb95"));summary.position=Vector2(104,170);g.menu.add_child(summary)
  var scroll:=ScrollContainer.new();scroll.position=Vector2(100,225);scroll.size=Vector2(1720,620);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;g.menu.add_child(scroll)
  var grid:=GridContainer.new();grid.columns=3;grid.add_theme_constant_override("h_separation",18);grid.add_theme_constant_override("v_separation",14);scroll.add_child(grid)
  for item in LIST:

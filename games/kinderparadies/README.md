@@ -1,5 +1,18 @@
 # After Play — Kinderparadies
 
+## Nightwatch Protocol (Beta): fünf Nächte bis 06:00 (5.6.0)
+
+- **Nächte 1–5** von 00:00 bis 06:00 Uhr (eine Stunde = 80 s). Wer 06:00 erreicht, schaltet die nächste Nacht frei; jede geschaffte Nacht lässt sich im Menü wieder wählen. Gespeichert wird die letzte geschaffte Nacht (`nightwatch_night`). Alle Werte je Nacht in `NightwatchConfig.NIGHT`.
+- **Anomalien sind nur noch Veränderungen am Raum**, keine Besucher oder Erscheinungen mehr: Gegenstand fehlt, schwebt, steht verschoben, ist doppelt, wackelt, fremdes Licht, **schwebende Bälle** über dem Bällebad und **„Raum ganz anders“** (alles im Bild gedreht, verschoben, umgekippt oder auf dem Kopf, grünes Licht). Gedreht wird um die Mitte des Objekts, nicht um seinen Ursprung (manche Requisitengruppen haben ihn weit weg).
+- **Beheben mit Linksklick**: Im Vollbild der Kamera auf die Veränderung klicken – sie springt in den Normalzustand zurück. Ein Fehlklick sperrt das Klicken 1,5 s. Meldebuch und Art-Auswahl entfallen.
+- **Statuszeile auf jeder Kamera**: 1 offen „WARNING – UNUSUAL ACTIVITY DETECTED“, 2 „ALERT – ANOMALY LEVELS RISING“, 3 „CRITICAL – ANOMALY THRESHOLD EXCEEDED“. Ab 3 offenen (oder einer, die zu lange offen ist) läuft der **kritische Alarm**: rotes Rundumlicht und Ton, immer schneller; in den letzten 7 s flackert das Licht und die Zeile wird groß. Nach 25 s ist die Nacht verloren (gottloser Jumpscare). Anomalien kommen im Lauf der Nacht immer häufiger (Abstand bis auf die Hälfte).
+- **Tür links und Schacht rechts**: Die Gestalten laufen nicht mehr über die Kameras, sie sind einfach da, wenn man hinschaut. Kleine Pfeile am linken und rechten Bildrand (oder A/D) drehen den Blick. Krabbler an der Tür: Rolltor runter (Leertaste oder Knopf, **20 % Strom** auf einmal), es geht danach von selbst wieder hoch. Clown im neuen Lüftungsschacht (`scripts/nightwatch_vent.gd`, bodennah, im Dunkeln kaum zu sehen): **Taschenlampe mit F** (10 % pro Einschalten, brennt 3 s) hineinhalten, dann kriecht er zurück. Zu langsam: Sprung ins Gesicht.
+- **Strom läuft durchgehend** ab. Reicht er nicht für Tor oder Lampe, hilft nur der Generator: anklicken und die Wörter tippen (Strom wieder 100 %). Bei 0 % wird es dunkel, das Tor geht hoch – auch dann rettet der Generator noch, sonst kommt es nach 8–16 s.
+- **06:00**: Glockenton, Karte „06:00 · NACHT n GESCHAFFT“, Ergebnis mit behobenen Anomalien, Abwehr an Tür und Schacht, Generator, Reststrom.
+- Erfolge umgewidmet: erste behobene Anomalie, 10 in einer Nacht, eine Nacht überstanden, alle fünf Nächte, fünf Generator-Neustarts, geheim: nach Stromausfall bis 06:00.
+- Beim Clown werden die Render-Ebenen außerhalb des Szenenbaums gesetzt; nachträglich umgestellt ließ der Renderer veraltete Lichtpaare zurück und stürzte beim Beenden ab.
+- Tests: `--nightwatch-only` (79 Prüfungen). QA: `--render-qa --watch-qa`.
+
 ## Nightwatch Protocol (Beta): etwas kommt zu dir, Melden direkt im Bild (5.5.0)
 
 - **Freigeschaltet als Beta** unter „Weitere Spielmodi“ (seit 5.2.4 ausgegraut). Etappe 1 des großen Nightwatch-Ausbaus; Generator neu, lebendigere Kameras und Nächte 1–5 folgen.

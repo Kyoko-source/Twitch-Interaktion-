@@ -71,17 +71,23 @@ static func endless_summary(g: Node3D, won: bool) -> void:
  var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
  again.grab_focus();g._telemetry()
 
-# Nightwatch Protocol: rules, highscore, start.
+# Nightwatch Protocol: rules, the nights, start.
 static func nightwatch(g: Node3D) -> void:
  g.phase="nightwatch_menu";clear(g);backdrop(g,true)
  var column:=VBoxContainer.new();column.name="NightwatchMenu";column.position=Vector2(110,120);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",18);g.menu.add_child(column)
  var title: Label=g._label("NIGHTWATCH PROTOCOL",60,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
- column.add_child(g._paragraph("Du sitzt im Kontrollraum unter Happyland und überwachst das Spieleparadies über zehn Kameras. Entdeckst du eine Anomalie, klick im Vollbild direkt auf die Stelle im Bild und wähle die Art – oder trag sie im Meldebuch ein. Rechts steht der Generator: anklicken und die Wörter tippen, dann ist der Strom wieder voll.",21))
- var crawler: Label=g._paragraph("Ab der ersten Minute kriecht der Krabbler von Kamera zu Kamera zu dir. Er ist KEINE Anomalie. Behältst du ihn auf dem Hauptmonitor im Blick, wird er langsamer. Hörst du ihn im Treppenhaus, dreh dich nach links (A) und lass das Rolltor herunter (Leertaste). Das Tor kostet Strom – zieh es wieder hoch, wenn er weg ist.",19)
- crawler.add_theme_color_override("font_color",Color("e8a090"));column.add_child(crawler)
- column.add_child(g._paragraph("Die Schicht endet sofort, wenn eine Anomalie übersehen wird, du dreimal falsch meldest, der Strom auf 0 % fällt oder der Krabbler hereinkommt.",19))
- var best: Label=g._label("Highscore: %d Punkte  ·  Längste Schicht: %02d:%02d"%[g.achievements.nightwatch_best,int(g.achievements.nightwatch_time)/60,int(g.achievements.nightwatch_time)%60],21,Color("cbbb95"));best.name="NightwatchHighscore";column.add_child(best)
- var start: Button=g._button("Nachtwache beginnen",g._start_nightwatch,true);start.name="NightwatchStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
+ column.add_child(g._paragraph("Du sitzt von 00:00 bis 06:00 Uhr im Kontrollraum unter Happyland. Auf den zehn Kameras verändern sich die Räume: Dinge fehlen, schweben, stehen falsch, ein Raum ist ganz anders. Öffne die Kamera im Vollbild und klick mit links auf die Veränderung – dann ist alles wieder normal.",21))
+ column.add_child(g._paragraph("Bleiben zu viele Veränderungen offen, oder eine zu lange, startet der kritische Alarm. Wird er nicht gestoppt, ist die Nacht verloren.",19))
+ var threats: Label=g._paragraph("Schau immer wieder links zur Tür und rechts in den Lüftungsschacht (Pfeile am Bildrand oder A / D). Steht etwas an der Tür: Rolltor runter (Leertaste, 20 % Strom). Sitzt etwas im Schacht: mit der Taschenlampe hineinleuchten (F, 10 % Strom). Zu langsam – und es erwischt dich. Reicht der Strom nicht, tipp am Generator die Wörter.",19)
+ threats.add_theme_color_override("font_color",Color("e8a090"));column.add_child(threats)
+ var best: Label=g._label("Geschafft: Nacht %d von %d  ·  Längste Schicht: %02d:%02d"%[g.achievements.nightwatch_night,NightwatchConfig.NIGHTS,int(g.achievements.nightwatch_time)/60,int(g.achievements.nightwatch_time)%60],21,Color("cbbb95"));best.name="NightwatchHighscore";column.add_child(best)
+ var next:=mini(g.achievements.nightwatch_night+1,NightwatchConfig.NIGHTS)
+ var start: Button=g._button("Nacht %d beginnen"%next,g._start_nightwatch.bind(next),true);start.name="NightwatchStart";start.custom_minimum_size=Vector2(560,56);column.add_child(start)
+ # Every night survived (and the next one) can be played again.
+ var row:=HBoxContainer.new();row.name="NightwatchNights";row.add_theme_constant_override("separation",10);column.add_child(row)
+ for n in range(1,NightwatchConfig.NIGHTS+1):
+  var pick: Button=g._button("Nacht %d"%n,g._start_nightwatch.bind(n));pick.name="NightwatchNight%d"%n;pick.custom_minimum_size=Vector2(150,48)
+  pick.disabled=n>g.achievements.nightwatch_night+1;row.add_child(pick)
  var back: Button=g._button("Zurück",g._main_menu);back.custom_minimum_size=Vector2(560,56);column.add_child(back)
  start.grab_focus();g._telemetry()
 
@@ -90,20 +96,21 @@ static func nightwatch_summary(g: Node3D, r: Dictionary) -> void:
  var column:=VBoxContainer.new();column.name="NightwatchSummary";column.position=Vector2(110,110);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",14);g.menu.add_child(column)
  var title: Label=g._label(str(r.title),70,Color("e8a08c"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
  if r.new_best:
-  var best: Label=g._label("NEUER HIGHSCORE!",30,Color("f0d27a"));best.name="NightwatchNewBest";best.add_theme_font_override("font",menu_font(600,2));column.add_child(best)
- var rows:=[["Punkte","%d"%r.score],["Überlebt","%02d:%02d"%[int(r.seconds)/60,int(r.seconds)%60]],["Korrekte Meldungen","%d"%r.reports],["Fehlmeldungen","%d / 3"%r.wrong],["Generator-Neustarts","%d erfolgreich · %d fehlgeschlagen"%[r.repairs,r.failed_repairs]],["Höchste Stufe","%d"%r.stage],["Längste Serie","%d"%r.best_combo],["Highscore","%d Punkte"%g.achievements.nightwatch_best]]
+  var best: Label=g._label("NACHT %d FREIGESCHALTET!"%mini(int(r.night)+1,NightwatchConfig.NIGHTS) if int(r.night)<NightwatchConfig.NIGHTS else "ALLE FÜNF NÄCHTE ÜBERSTANDEN!",30,Color("f0d27a"));best.name="NightwatchNewBest";best.add_theme_font_override("font",menu_font(600,2));column.add_child(best)
+ var rows:=[["Nacht","%d"%r.night],["Uhrzeit erreicht",str(r.clock)],["Anomalien behoben","%d"%r.fixed],["Fehlklicks","%d"%r.misses],["An der Tür abgewehrt","%d"%r.door],["Aus dem Schacht verscheucht","%d"%r.vent],["Generator-Neustarts","%d erfolgreich · %d fehlgeschlagen"%[r.repairs,r.failed_repairs]],["Strom übrig","%d %%"%ceili(float(r.power))]]
  var grid:=GridContainer.new();grid.columns=2;grid.add_theme_constant_override("h_separation",40);grid.add_theme_constant_override("v_separation",6);column.add_child(grid)
  for row in rows:
   grid.add_child(g._label(row[0],22,Color("bac6c0")))
   grid.add_child(g._label(row[1],22,Color("eee7d6")))
- var again: Button=g._button("Neue Nachtwache",g._start_nightwatch,true);again.name="NightwatchAgain";again.custom_minimum_size=Vector2(560,56);column.add_child(again)
+ var next_night:=mini(int(r.night)+1,NightwatchConfig.NIGHTS) if r.won else int(r.night)
+ var again: Button=g._button(("Nacht %d beginnen" if r.won and int(r.night)<NightwatchConfig.NIGHTS else "Nacht %d wiederholen")%next_night,g._start_nightwatch.bind(next_night),true);again.name="NightwatchAgain";again.custom_minimum_size=Vector2(560,56);column.add_child(again)
  var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
  again.grab_focus();g._telemetry()
 
 # 5.1.1: the extra modes live one click deeper.
 const MODES:=[
  ["endless","Endlosmodus","Bis zu 500 Rundgänge mit drei Leben. Die Anomalien werden immer kleiner."],
- ["nightwatch","Nightwatch Protocol (Beta)","Kontrollraum, zehn Kameras, ein Generator, der nicht ausgehen darf – und etwas, das zu dir kommt."],
+ ["nightwatch","Nightwatch Protocol (Beta)","Fünf Nächte im Kontrollraum: Anomalien auf zehn Kameras, eine Tür, ein Schacht und Strom, der bis 06:00 reichen muss."],
  ["zombies","Partynacht","Runde um Runde gegen die Partykinder. Waffen, Perks, Bosse und Chaos."],
  ["multiplayer","Multiplayer","Ein zweiter Spieler plant auf der Webseite deine dreizehn Runden."],
 ]
@@ -205,7 +212,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.5.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.6.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

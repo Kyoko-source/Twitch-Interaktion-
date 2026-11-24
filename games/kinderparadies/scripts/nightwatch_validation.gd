@@ -1,14 +1,10 @@
 extends RefCounted
 
-# --nightwatch-only: Nightwatch Protocol (4.15.0). With --capture-dir=DIR it
-# also saves every camera feed and the control room screens.
+# --nightwatch-only: Nightwatch Protocol. 5.6.0: nights 1-5, room changes that
+# are fixed with a left click, the status lines, the critical alarm, power,
+# the generator, the blackout and 06:00. With --capture-dir=DIR it also saves
+# every camera feed.
 var dir:=""
-
-func shot(game: Node3D, title: String) -> void:
- if dir=="":return
- for i in range(4):await game.get_tree().process_frame
- await RenderingServer.frame_post_draw
- game.get_viewport().get_texture().get_image().save_png(dir.path_join("nightwatch-%s.png"%title))
 
 func feed_shot(game: Node3D, title: String) -> void:
  if dir=="":return
@@ -46,45 +42,53 @@ func blocked(game: Node3D, spec: Dictionary, point: Vector3, own: Node) -> Strin
  probe.queue_free()
  return why
 
+# Where on screen to click to hit this change in the full-screen picture.
+func aim(nw: Nightwatch, record: Dictionary) -> Vector2:
+ var boxes: Array=nw.anomalies.targets(record)
+ if boxes.is_empty():return Vector2(-999,-999)
+ return nw.screen_point(nw.main_camera.unproject_position((boxes[0] as AABB).get_center()))
+
 func run(game: Node3D, verify: Callable) -> void:
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--capture-dir="):dir=arg.trim_prefix("--capture-dir=")
- # Configuration matches the design table.
- var table:=[[1,20.],[2,18.],[2,15.],[3,14.],[4,12.],[5,10.]]
- var table_ok:=true
- for i in range(table.size()):
-  var row:=NightwatchConfig.qte(i+1)
-  if int(row.words)!=table[i][0] or not is_equal_approx(float(row.time),table[i][1]):table_ok=false
- verify.call(table_ok,"Generator QTE stages differ from the design table")
- verify.call(NightwatchConfig.stage(1).active==1 and NightwatchConfig.stage(99).active>=4 and float(NightwatchConfig.stage(1).detect)>float(NightwatchConfig.stage(12).detect),"Difficulty does not rise from stage 1")
- var cams_ok:=true
+ # Configuration: five nights that get harder, anomalies that grow by the hour.
+ var rising:=true
+ for n in range(2,NightwatchConfig.NIGHTS+1):
+  var a:=NightwatchConfig.night(n-1);var b:=NightwatchConfig.night(n)
+  if int(b.crawler)<int(a.crawler) or int(b.clown)<int(a.clown) or float(b.interval)>float(a.interval) or float(b.drain)<float(a.drain):rising=false
+ verify.call(NightwatchConfig.NIGHTS==5 and rising and int(NightwatchConfig.night(1).clown)==0,"Nights do not get harder from night 1 to 5")
+ verify.call(NightwatchConfig.spawn_interval(1,0.)>NightwatchConfig.spawn_interval(1,NightwatchConfig.night_length()*.99)*1.8,"Anomalies do not come more often later in the night")
+ verify.call(NightwatchConfig.STATUS[1]=="WARNING – UNUSUAL ACTIVITY DETECTED" and NightwatchConfig.STATUS[2]=="ALERT – ANOMALY LEVELS RISING" and NightwatchConfig.STATUS[3]=="CRITICAL – ANOMALY THRESHOLD EXCEEDED","Status lines differ from the design")
+ var cams_ok:=true;var figure_kinds:=false;var balls:=false
  for room in NightwatchConfig.ROOMS:
   for area in room.areas:
    if NightwatchConfig.camera_index(area.camera)<0 or area.spots.is_empty():cams_ok=false
+   if "balls" in area.get("special",[]):balls=area.camera=="baellebad"
+   for row in area.objects:
+    if "visitor" in row[2] or "apparition" in row[2]:figure_kinds=true
  verify.call(cams_ok,"An area has no camera or no spot")
- var rng:=RandomNumberGenerator.new();rng.seed=5
- verify.call(NightwatchConfig.words_for(1,rng).size()==1 and NightwatchConfig.words_for(6,rng).size()==5,"Generator word count does not follow the stage")
+ verify.call(not figure_kinds and not NightwatchConfig.KINDS.has("visitor") and not NightwatchConfig.KINDS.has("apparition"),"An anomaly is still a figure instead of a change in the room")
+ verify.call(balls,"The ball pit has no floating balls")
 
- # Start through the main menu entry.
+ # The menu: night 1 is open, the others wait.
+ var saved_night: int=game.achievements.nightwatch_night
+ game.achievements.nightwatch_night=0
  game._main_menu();await game.get_tree().process_frame
  NightMenus.modes(game)
  var entry:=game.menu.find_child("Mode_nightwatch",true,false) as Button
- verify.call(entry!=null and entry.text.contains("Nightwatch"),"Modes menu has no Nightwatch Protocol")
- # 5.5.0: open as a beta (it was greyed out "In Development" since 5.2.4).
- verify.call(not entry.disabled and entry.text.contains("Beta"),"Nightwatch entry is not open as a beta")
+ verify.call(entry!=null and not entry.disabled and entry.text.contains("Beta"),"Nightwatch entry is not open as a beta")
  NightMenus.open_mode(game,"nightwatch");await game.get_tree().process_frame
- verify.call(game.menu.find_child("NightwatchStart",true,false)!=null,"Nightwatch Protocol does not open from the modes menu")
- NightMenus.nightwatch(game)
- verify.call(game.menu.find_child("NightwatchStart",true,false)!=null and game.menu.find_child("NightwatchHighscore",true,false)!=null,"Nightwatch menu misses start or highscore")
- await shot(game,"menu")
+ var n1:=game.menu.find_child("NightwatchNight1",true,false) as Button
+ var n2:=game.menu.find_child("NightwatchNight2",true,false) as Button
+ verify.call(game.menu.find_child("NightwatchStart",true,false)!=null and n1!=null and not n1.disabled and n2!=null and n2.disabled,"Nightwatch menu does not offer night 1 and lock the rest")
  var endless_best: int=game.achievements.best_round
- game._start_nightwatch()
+ game._start_nightwatch(1)
  while game.phase=="loading":await game.get_tree().process_frame
  var nw: Nightwatch=game.nightwatch
- verify.call(game.phase=="nightwatch" and nw.running and nw.cam.current,"Nightwatch does not start in the control room")
- verify.call(nw.feeds.size()==NightwatchConfig.CAMERAS.size() and nw.feeds.size()>=9,"Not every camera has a feed")
- verify.call(nw.main_view.world_3d==game.get_world_3d() and (nw.feeds[0] as SubViewport).world_3d==game.get_world_3d(),"Feeds do not show the real world")
+ verify.call(game.phase=="nightwatch" and nw.running and nw.cam.current and nw.night==1 and nw.clock_string()=="00:00","Night 1 does not start at 00:00 in the control room")
+ verify.call(nw.feeds.size()==NightwatchConfig.CAMERAS.size() and nw.main_view.world_3d==game.get_world_3d(),"Feeds do not show the real world")
  verify.call(not game.player.active and not game.hud.visible,"The guard can still walk in Nightwatch")
+ verify.call(nw.get("book")==null and nw.get("quick")==null,"The report book or quick report is still there")
  game.set_process(false)
 
  # Every target and every spot is visible from its camera.
@@ -106,141 +110,156 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(missing.is_empty(),"Nightwatch targets missing in the world: "+str(missing))
  verify.call(hidden.is_empty(),"Nightwatch targets not visible on their camera: "+str(hidden))
 
- # Each kind appears and is undone exactly.
+ # Each kind appears, a left click on it in the full-screen picture puts it
+ # right, nothing is left behind.
  var kinds_ok: Array=[]
  for kind in NightwatchConfig.KIND_ORDER:
   var placed:={}
   for room in NightwatchConfig.ROOMS:
    for area in room.areas:
     if not placed.is_empty():break
-    if kind in NightwatchConfig.SPOT_KINDS:placed=nw.force(room.id,area.id,kind)
+    if kind in NightwatchConfig.SPOT_KINDS:
+     if kind=="balls" and not "balls" in area.get("special",[]):continue
+     placed=nw.force(room.id,area.id,kind)
     else:
      for row in area.objects:
       if kind in row[2] and not row[0].ends_with("/*"):placed=nw.force(room.id,area.id,kind,row[0]);break
   if placed.is_empty():kinds_ok.append(kind+":none");continue
   var node: Node3D=placed.node
   var before: Transform3D=placed.restore.transform if node else Transform3D()
-  var extras: int=placed.added.size()
+  var others: Array=placed.others.duplicate()
   nw.tick(.5)
   var changed:=true
   match kind:
    "missing":changed=not node.visible
    "floating":changed=node.transform.origin.y>before.origin.y+.6
    "moved":changed=node.transform.origin.distance_to(before.origin)>.5
-   "extra","visitor","apparition","light":changed=extras>0
+   "extra","light","balls":changed=placed.added.size()>0
    "motion":changed=not node.transform.is_equal_approx(before)
+   "room":changed=others.size()>=2 and not (others[0].node as Node3D).transform.is_equal_approx(others[0].transform)
   if not changed:kinds_ok.append(kind+":unchanged")
-  if dir!="":
-   nw.select_camera(NightwatchConfig.camera_index(str(NightwatchConfig.area(placed.room,placed.area).camera)),false)
-   nw.main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
-   await feed_shot(game,"kind-"+kind)
-  var result:=nw.report(placed.room,placed.area,kind)
-  if not result.get("correct",false):kinds_ok.append(kind+":report")
+  var cam_index:=NightwatchConfig.camera_index(str(NightwatchConfig.area(placed.room,placed.area).camera))
+  nw.open_fullscreen(cam_index);nw.miss_lock=0.
+  await game.get_tree().process_frame
+  if dir!="":nw.main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS;await feed_shot(game,"kind-"+kind)
+  var added: Array=placed.added.duplicate()
+  var fixed_before:=nw.fixed
+  nw.fix_at(aim(nw,placed))
+  if nw.fixed!=fixed_before+1 or nw.active.has(placed):kinds_ok.append(kind+":click")
   if node and (not node.transform.is_equal_approx(before) or not node.visible):kinds_ok.append(kind+":restore")
-  for added in placed.added:if is_instance_valid(added) and not (added as Node).is_queued_for_deletion():kinds_ok.append(kind+":leftover")
+  for row in others:if not (row.node as Node3D).transform.is_equal_approx(row.transform):kinds_ok.append(kind+":room-restore")
+  for item in added:if is_instance_valid(item) and (item as Node3D).visible and not (item as Node).is_queued_for_deletion():kinds_ok.append(kind+":leftover")
+  nw.close_fullscreen()
+  for i in range(6):await game.get_tree().process_frame
  verify.call(kinds_ok.is_empty(),"Nightwatch anomaly kinds fail: "+str(kinds_ok))
- verify.call(nw.reports==NightwatchConfig.KIND_ORDER.size() and nw.score()>=NightwatchConfig.POINTS_REPORT*nw.reports and nw.combo==nw.reports,"Correct reports do not score with a streak")
 
- # Camera screenshots of the plain world.
- if dir!="":
-  for i in range(NightwatchConfig.CAMERAS.size()):
-   nw.select_camera(i,false);await feed_shot(game,"cam-%02d"%(i+1))
-  nw.select_camera(1,false);game.set_process(true)
-  await shot(game,"control-room")
-  nw.open_book();nw._choose("room","halle");nw._choose("area","auto");nw._choose("kind","missing");await shot(game,"book");nw.close_book()
-  Input.warp_mouse(game.get_viewport().get_visible_rect().size*.5)
-  nw.look("generator");for i in range(40):await game.get_tree().process_frame
-  verify.call(nw.view=="generator" and absf(nw.yaw-Nightwatch.RIGHT.x)<.2,"The view does not turn to the generator")
-  await shot(game,"generator")
-  nw.start_qte();await shot(game,"qte");nw.qte={};nw.qte_panel.hide()
-  nw.look("monitors");game.set_process(false)
+ # A click where nothing changed: locked for a moment, nothing fixed.
+ nw.start(1,41);game.phase="nightwatch"
+ var far:=nw.force("kino","popcorn","missing")
+ nw.open_fullscreen(NightwatchConfig.camera_index("empfang"))
+ var miss_before:=nw.misses
+ verify.call(not nw.fix_at(Vector2(30,30)) and nw.misses==miss_before+1 and nw.miss_lock>0. and nw.active.has(far),"A click on nothing is not counted as a miss")
+ nw.select_camera(NightwatchConfig.camera_index("kino"),false);await game.get_tree().process_frame
+ verify.call(not nw.fix_at(aim(nw,far)) and nw.active.has(far),"Clicking is not locked right after a miss")
+ nw.miss_lock=0.
+ verify.call(nw.fix_at(aim(nw,far)) and not nw.active.has(far),"The change cannot be fixed once the lock is over")
+ nw.close_fullscreen()
 
- # Left click on a monitor fills the screen; right click returns.
- nw.open_fullscreen(4)
- verify.call(nw.fullscreen and nw.full.visible and nw.selected==4 and nw.full_image.texture==nw.main_view.get_texture(),"A monitor does not open full screen")
- if dir!="":game.set_process(true);await shot(game,"fullscreen");game.set_process(false)
- var right:=InputEventMouseButton.new();right.button_index=MOUSE_BUTTON_RIGHT;right.pressed=true
- verify.call(nw.handle(right) and not nw.fullscreen and not nw.full.visible,"Right click does not leave full screen")
- var cam_env: Environment=(nw.feeds[0] as SubViewport).get_child(0).environment
- verify.call(cam_env!=null and cam_env.tonemap_exposure>=NightwatchConfig.FEED_EXPOSURE*.9,"Camera feeds have no night-vision exposure")
-
- # A wrong report counts; the third ends the watch once.
- nw.start(41)
- verify.call(nw.wrong==0 and is_equal_approx(nw.power,100.) and nw.active.is_empty() and nw.score()==0,"Nightwatch does not reset on restart")
- var wrong_one:=nw.report("kino","popcorn","light")
- verify.call(wrong_one.accepted and not wrong_one.correct and nw.wrong==1 and nw.running,"A wrong report is not counted")
- nw.report("kino","popcorn","light")
- verify.call(nw.running and nw.wrong==2,"Two wrong reports already end the watch")
- var third:=nw.report("kino","popcorn","light")
- verify.call(third.get("over",false) and nw.over and nw.reason=="wrong" and not nw.report("kino","popcorn","light").accepted,"Third wrong report does not end the watch exactly once")
+ # Status lines: one, two, three unfound changes.
+ var lines_ok:=true
+ var picks:=[["kino","sitze","floating"],["halle","auto","missing"],["baellebad","krokodil","balls"]]
+ nw._tick_screens(.016)
+ if (nw.banner_labels[0] as Label3D).text!="":lines_ok=false
+ for i in range(3):
+  nw.force(picks[i][0],picks[i][1],picks[i][2]);nw.seconds=0.;nw._tick_screens(.016)
+  if nw.status()!=i+1 or (nw.banner_labels[0] as Label3D).text!=NightwatchConfig.STATUS[i+1]:lines_ok=false
+ verify.call(lines_ok and nw.banner_labels.size()==NightwatchConfig.CAMERAS.size()+1,"The status line on the cameras does not follow the open changes")
+ # Three open: the critical alarm runs and gets faster; fixing one stops it.
+ verify.call(nw.critical(),"Three open changes do not start the critical alarm")
+ for i in range(20):nw._tick_critical(.25)
+ var early:=nw.alarm_clock_step(nw.critical_clock/NightwatchConfig.CRITICAL_TIME)
+ verify.call(nw.critical_clock>4. and nw.siren.playing,"The critical alarm does not sound")
+ for i in range(40):nw._tick_critical(.25)
+ verify.call(nw.alarm_clock_step(nw.critical_clock/NightwatchConfig.CRITICAL_TIME)<early,"The critical alarm does not get faster")
+ nw.critical_clock=NightwatchConfig.CRITICAL_TIME-1.;nw._tick_screens(.016)
+ verify.call(nw.critical_flicker(),"The lights do not flicker before the threshold")
+ nw.fix(nw.active[0]);var held:=nw.critical_clock;nw._tick_critical(.5)
+ verify.call(not nw.critical() and nw.critical_clock<held and nw.beacon.light_energy==0.,"Fixing a change does not stop the alarm")
+ # One left too long is enough for the alarm too.
+ nw._clear_anomalies()
+ var old:=nw.force("halle","auto","missing");old.left=0.
+ verify.call(nw.critical() and nw.status()==3,"A change left too long does not start the alarm")
+ nw.critical_clock=NightwatchConfig.CRITICAL_TIME-.05;nw.tick(.1)
+ verify.call(nw.over and nw.reason=="missed","The critical alarm running out does not end the night")
  game.set_process(true)
- verify.call(await wait_phase(game,"nightwatch_over",8.) and game.menu.find_child("NightwatchSummary",true,false)!=null,"No result screen after the third wrong report")
- verify.call(game.menu.find_child("NightwatchSummary",true,false)!=null and str(nw.results().title)=="ZU VIELE FEHLMELDUNGEN","Result screen does not name the reason")
- await shot(game,"summary")
+ verify.call(await wait_phase(game,"nightwatch_over",10.) and game.menu.find_child("NightwatchSummary",true,false)!=null,"No result screen after the threshold")
+ verify.call(str(nw.results().title)=="ANOMALY THRESHOLD EXCEEDED" and not bool(nw.results().won),"The result does not name the threshold")
+ verify.call(NightwatchAnomalies.resolve(game.world,"prop:car").visible,"A missed change stays in the world")
  game.set_process(false)
 
- # An anomaly that runs out ends the watch at once.
- nw.start(42);game.phase="nightwatch"
- var late:=nw.force("halle","auto","missing")
- late.left=.05;nw.tick(.1)
- verify.call(nw.over and nw.reason=="missed" and late.state=="expired","An expired anomaly does not end the watch")
- game.set_process(true)
- verify.call(await wait_phase(game,"nightwatch_over",10.),"No result screen after a missed anomaly")
- verify.call(game.world.find_children("NightwatchVisitor*","",true,false).is_empty() and NightwatchAnomalies.resolve(game.world,"prop:car").visible,"A missed anomaly stays in the world")
- game.set_process(false)
-
- # Power: quiet above 20 %, alarm below, black out at 0 %.
- nw.start(43);game.phase="nightwatch"
+ # Power: always draining; shutter 20 %, torch 10 %; too little and they fail.
+ nw.start(1,43);game.phase="nightwatch"
+ var p0:=nw.power;nw.tick(2.)
+ verify.call(nw.power<p0,"Power does not drain on its own")
+ p0=nw.power;verify.call(nw.toggle_shutter() and is_equal_approx(nw.power,p0-NightwatchConfig.SHUTTER_COST) and nw.stalker.closed,"Closing the shutter does not cost 20 %")
+ nw.toggle_shutter();nw.power=15.
+ verify.call(not nw.toggle_shutter() and not nw.stalker.closed and is_equal_approx(nw.power,15.),"The shutter closes without enough power")
+ nw.power=60.;verify.call(nw.toggle_torch() and is_equal_approx(nw.power,50.) and nw.torch_time>0.,"The torch does not cost 10 %")
+ nw.toggle_torch();nw.power=5.
+ verify.call(not nw.toggle_torch() and nw.torch_time==0.,"The torch lights without enough power")
  nw.power=60.;nw.tick(.1)
- verify.call(not nw.alarm_active() and not nw.beep.playing and nw.instability()==0.,"Power warning plays above 50 %")
- nw.power=35.;nw.tick(.1)
- verify.call(not nw.alarm_active() and nw.instability()>0.,"Screens do not flicker at half power")
+ verify.call(not nw.alarm_active() and nw.instability()==0.,"Power warning plays above 50 %")
  nw.power=19.;nw.tick(.1)
- verify.call(nw.alarm_active() and nw.beep_clock>0. and nw.instability()>.12,"No alarm at 19 % power")
- var slow:=nw.beep_clock;nw.power=5.;nw.beep_clock=0.;nw.tick(.01)
- verify.call(nw.beep_clock<slow,"The alarm does not get faster below 10 %")
+ verify.call(nw.alarm_active() and nw.instability()>.12,"No power alarm at 19 %")
 
- # Generator: anomaly timers and spawns wait, power keeps falling.
- nw.power=40.
- var waiting:=nw.force("empfang","theke","visitor")
- var left_before: float=waiting.left;var spawn_before:=nw.spawn_clock
+ # Generator: type the words, the power is full again.
+ nw.power=12.
  verify.call(nw.start_qte(),"The generator does not start")
- nw.tick(1.)
- verify.call(is_equal_approx(float(waiting.left),left_before) and is_equal_approx(nw.spawn_clock,spawn_before) and nw.power<40.,"Generator time does not pause anomalies or still spares the power")
- nw.type_key("#")
- verify.call(nw.qte.typed==0,"A wrong key counts as typed")
+ nw.type_key("#");verify.call(nw.qte.typed==0,"A wrong key counts as typed")
  for word in nw.qte.words.duplicate():
   for letter in str(word):nw.type_key(letter)
- verify.call(nw.qte.is_empty() and is_equal_approx(nw.power,100.) and nw.repairs==1 and not nw.alarm_active(),"A finished repair does not refill the power")
+ verify.call(nw.qte.is_empty() and is_equal_approx(nw.power,100.) and nw.repairs==1,"A finished repair does not refill the power")
  nw.power=30.;nw.start_qte();nw.tick(float(nw.qte.time)+.5)
- verify.call(nw.qte.is_empty() and nw.failed_repairs==1 and nw.power<30. and nw.running,"A failed repair refills power or ends the watch")
- verify.call(nw.start_qte(),"A repair cannot be retried after a failure");nw.qte={};nw.qte_panel.hide()
- nw.power=.01;nw.tick(.1)
- verify.call(nw.over and nw.reason=="power","Empty power does not end the watch")
+ verify.call(nw.qte.is_empty() and nw.failed_repairs==1 and nw.power<30. and nw.running,"A failed repair refills power or ends the night")
+
+ # Blackout: everything dark, the shutter goes up; the generator still saves you.
+ nw.toggle_shutter();nw.power=.01;nw.tick(.1)
+ verify.call(nw.blackout and nw.running and not nw.stalker.closed and float(nw.lights[0][1])>0. and (nw.lights[0][0] as Light3D).light_energy==0.,"Empty power does not black out the room")
+ verify.call(not nw.toggle_shutter() and not nw.toggle_torch(),"Shutter or torch still work in the dark")
+ nw.start_qte()
+ for word in nw.qte.words.duplicate():
+  for letter in str(word):nw.type_key(letter)
+ verify.call(not nw.blackout and is_equal_approx(nw.power,100.),"The generator does not end the blackout")
+ nw.power=.01;nw.tick(.1);nw.blackout_clock=nw.blackout_wait-.05;nw.tick(.1)
+ verify.call(nw.over and nw.reason=="power","Waiting in the dark does not end the night")
  game.set_process(true)
  verify.call(await wait_phase(game,"nightwatch_over",10.),"No result screen after the blackout")
  game.set_process(false)
 
- # Spawns follow the stage and never during a repair.
- nw.start(44);game.phase="nightwatch"
- for i in range(200):nw.tick(.25)
- verify.call(nw.active.size()>=1 and nw.active.size()<=int(NightwatchConfig.stage(NightwatchConfig.stage_of(nw.seconds)).active),"Anomalies do not spawn within the stage limit")
- nw._clear_anomalies();nw.spawn_clock=0;nw.next_spawn=1.
- nw.start_qte();for i in range(12):nw.tick(.25)
- verify.call(nw.active.is_empty(),"An anomaly spawned during a generator repair")
- nw.qte={};nw.qte_panel.hide()
-
- # Highscore is separate from the endless record.
- verify.call(game.achievements.nightwatch_best>0 and game.achievements.best_round==endless_best,"Nightwatch highscore is missing or touched the endless record")
+ # 06:00: the night is survived and the next one opens.
+ nw.start(1,44);game.phase="nightwatch"
+ nw.seconds=NightwatchConfig.night_length()-.05;nw.tick(.1)
+ verify.call(nw.over and nw.won and nw.reason=="survived" and nw.clock_string()=="06:00","06:00 does not end the night as survived")
+ verify.call(game.achievements.nightwatch_night==1 and game.achievements.best_round==endless_best,"Surviving night 1 does not open night 2 or touched the endless record")
  var stored: Variant=JSON.parse_string(game._persistent_text(game.achievements.path))
- verify.call(stored is Dictionary and int(stored.get("nightwatch_best",0))==game.achievements.nightwatch_best,"Nightwatch highscore is not saved")
+ verify.call(stored is Dictionary and int(stored.get("nightwatch_night",0))==1,"The night progress is not saved")
+ game.set_process(true)
+ verify.call(await wait_phase(game,"nightwatch_over",10.) and str(nw.results().title).contains("1"),"No result screen after 06:00")
+ var again:=game.menu.find_child("NightwatchAgain",true,false) as Button
+ verify.call(again!=null and again.text.contains("2"),"The result screen does not offer night 2")
+ NightMenus.nightwatch(game)
+ n2=game.menu.find_child("NightwatchNight2",true,false) as Button
+ verify.call(n2!=null and not n2.disabled,"Night 2 stays locked after night 1")
+ game.set_process(false)
 
  # Leaving undoes everything; the normal game is untouched.
- game.set_process(true);for i in range(10):await game.get_tree().process_frame
- nw.force("kino","sitze","visitor");nw.force("party","tisch","floating")
+ nw.start(2,45);game.phase="nightwatch";game.set_process(true)
+ for i in range(6):await game.get_tree().process_frame
+ nw.force("kino","sitze","floating");nw.force("baellebad","krokodil","balls");nw.force("party","tisch","room")
  for i in range(10):await game.get_tree().process_frame
  game._main_menu();await game.get_tree().process_frame
  verify.call(not nw.running and not nw.visible and game.menu_camera.current and nw.active.is_empty(),"Leaving Nightwatch keeps it running")
- verify.call(game.world.find_children("Nightwatch*","",true,false).filter(func(n):return not n.is_queued_for_deletion()).is_empty(),"Nightwatch figures stay in the world after leaving")
- verify.call(game.door_failure.get_parent()==game.player.camera and nw.scare.get_parent()==nw.cam and not nw.scare.running,"Nightwatch uses or keeps the shift jumpscare")
+ verify.call(game.world.find_children("Nightwatch*","",true,false).filter(func(n):return not n.is_queued_for_deletion()).is_empty(),"Nightwatch changes stay in the world after leaving")
+ verify.call(game.world.find_child("WatchCrawler",true,false)==null,"A figure still walks the camera world")
+ game.achievements.nightwatch_night=saved_night
  DirAccess.remove_absolute(game.achievements.path)

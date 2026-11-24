@@ -522,46 +522,61 @@ func run(game: Node3D) -> void:
     await game.get_tree().process_frame
     if shots.has(f):await capture(game,output,"jumpscare-%s-%s"%[id,shots[f]])
   game._quit();return
- if "--watch-cams-qa" in OS.get_cmdline_user_args():
-  game._start_nightwatch()
+ # 5.6.0 Nightwatch: banners, door, vent, torch, generator, anomaly kinds,
+ # the critical alarm and both lunges.
+ if "--watch-qa" in OS.get_cmdline_user_args():
+  game._start_nightwatch(3)
   while game.phase=="loading":await game.get_tree().process_frame
-  var nw: Nightwatch=game.nightwatch;var st: NightwatchStalker=nw.stalker
-  game.set_process(false);nw.look("monitors")
-  var ids:={}
-  for r in NightwatchStalker.ROUTES:
-   for id in r:ids[id]=true
-  for id in ids:
-   st.route=[id];st.index=0;st.state="room";st._place()
-   print("WATCHCAM ",id," spots ",st.open_floor(id).size()," at ",st.body.global_position)
-   nw.open_fullscreen(NightwatchConfig.camera_index(id))
-   for i in range(20):nw._tick_screens(.016);await game.get_tree().process_frame
-   await capture(game,output,"cam-"+id)
-   nw.close_fullscreen()
-  game._quit();return
- if "--watch-door-qa" in OS.get_cmdline_user_args():
-  game._start_nightwatch()
-  while game.phase=="loading":await game.get_tree().process_frame
-  var nw: Nightwatch=game.nightwatch;var st: NightwatchStalker=nw.stalker
+  var nw: Nightwatch=game.nightwatch;var st: NightwatchStalker=nw.stalker;var vt: NightwatchVent=nw.vent
   game.set_process(false)
   var settle:=func(frames: int):
-   for i in range(frames):nw._tick_view(.05);st.tick(.016,3,nw.seconds);nw._tick_screens(.016);await game.get_tree().process_frame
+   for i in range(frames):nw._tick_view(.05);st.animate(.016,nw.seconds);nw._tick_torch(.016);vt.tick(.016,0,nw.seconds,nw.torch_on_vent());nw._tick_screens(.016);await game.get_tree().process_frame
+  nw.card_time=0.;nw.card.modulate.a=0.;nw.message.text=""
   nw.look("monitors");await settle.call(30);await capture(game,output,"watch-01-monitors")
-  nw.look("door");await settle.call(40);await capture(game,output,"watch-02-door-open")
-  st.state="door";st.clock=0.;st.wait=99.;st.guest.show();st.face_light.light_energy=1.4
-  await settle.call(10);await capture(game,output,"watch-03-crawler-at-door")
-  st.set_shutter(true);await settle.call(40);await capture(game,output,"watch-04-shutter-down")
+  nw.force("kino","sitze","floating");await settle.call(6);await capture(game,output,"watch-02-warning")
+  nw.force("halle","auto","missing");nw.force("baellebad","krokodil","balls");await settle.call(6);await capture(game,output,"watch-03-critical")
+  nw.critical_clock=NightwatchConfig.CRITICAL_TIME-2.;await settle.call(6);await capture(game,output,"watch-04-critical-flicker")
+  nw.open_fullscreen(NightwatchConfig.camera_index("baellebad"));await settle.call(20);await capture(game,output,"watch-05-balls")
+  nw.close_fullscreen();nw._clear_anomalies();nw.critical_clock=0.
+  var room_change:=nw.force("party","tisch","room")
+  print("WATCH room change ",room_change.get("others",[]).size())
+  nw.open_fullscreen(NightwatchConfig.camera_index("party_tisch"));await settle.call(20);await capture(game,output,"watch-06-room-changed")
+  nw.close_fullscreen();nw._clear_anomalies()
+  nw.look("door");await settle.call(40);await capture(game,output,"watch-07-door-empty")
+  st._arrive();await settle.call(10);await capture(game,output,"watch-08-crawler-at-door")
+  nw.toggle_shutter();await settle.call(40);await capture(game,output,"watch-09-shutter-down")
   st.state="idle";st.guest.hide();st.face_light.light_energy=0.;st.set_shutter(false)
-  nw.seconds=NightwatchConfig.STALKER_START+1.;st.clock=999.;st.tick(.1,3,nw.seconds)
-  var ci:=NightwatchConfig.camera_index(st.camera())
-  nw.look("monitors");await settle.call(30)
-  nw.open_fullscreen(ci);await settle.call(20);await capture(game,output,"watch-05-crawler-on-camera")
-  nw.open_quick(game.get_viewport().get_visible_rect().size*.5);await settle.call(4);await capture(game,output,"watch-06-quick-report")
-  nw.close_quick();nw.close_fullscreen()
-  st.state="door";st.clock=NightwatchConfig.DOOR_GRACE+1.;game.set_process(true)
+  nw.look("right");await settle.call(40);await capture(game,output,"watch-10-vent-empty")
+  vt._arrive();await settle.call(10);await capture(game,output,"watch-11-vent-dark")
+  nw.torch_time=NightwatchConfig.TORCH_TIME;await settle.call(8);await capture(game,output,"watch-12-vent-torch")
+  nw.torch_time=0.;vt.state="idle";vt.clown.hide()
+  nw.start_qte();await settle.call(4);await capture(game,output,"watch-13-generator-qte")
+  nw.qte={};nw.qte_panel.hide()
+  nw._begin_blackout();await settle.call(10);await capture(game,output,"watch-14-blackout")
+  nw._end_blackout();nw.power=100.
+  st.state="door";st.guest.show();st.clock=99.;game.set_process(true)
   var f:=0
   while f<40:
    await game.get_tree().process_frame;f+=1
-   if f in [6,14,24]:await capture(game,output,"watch-07-caught-%d"%f)
+   if f in [6,14,24]:await capture(game,output,"watch-15-caught-%d"%f)
+  while game.phase!="nightwatch_over":await game.get_tree().process_frame
+  game._start_nightwatch(3)
+  while game.phase=="loading":await game.get_tree().process_frame
+  nw.card_time=0.;nw.card.modulate.a=0.
+  vt._arrive();vt.clock=99.
+  f=0
+  while f<40:
+   await game.get_tree().process_frame;f+=1
+   if f in [6,14,24]:await capture(game,output,"watch-16-vent-caught-%d"%f)
+  while game.phase!="nightwatch_over":await game.get_tree().process_frame
+  await capture(game,output,"watch-17-summary")
+  game._start_nightwatch(1)
+  while game.phase=="loading":await game.get_tree().process_frame
+  nw.seconds=NightwatchConfig.night_length()-.05
+  f=0
+  while f<160:
+   await game.get_tree().process_frame;f+=1
+   if f in [20,150]:await capture(game,output,"watch-18-six-%d"%f)
   game._quit();return
  if "--mic-qa" in OS.get_cmdline_user_args():
   if "--mic-menu" in OS.get_cmdline_user_args():

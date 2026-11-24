@@ -1,107 +1,92 @@
 extends RefCounted
 
-# 5.5.0: the crawler that comes to the control room, the rolling shutter, the
-# door view and the quick report from the full-screen picture.
+# 5.6.0: the crawler at the door and the clown in the vent. They do not walk
+# the cameras; they are simply there when you look. The arrows at the screen
+# edges, the shutter, the torch and both ways of being caught.
 func run(game: Node3D, verify: Callable) -> void:
- game._start_nightwatch()
+ game._start_nightwatch(3)
  while game.phase=="loading":await game.get_tree().process_frame
  var nw: Nightwatch=game.nightwatch
  game.set_process(false)
- var st: NightwatchStalker=nw.stalker
- verify.call(st!=null and st.shutter!=null and st.guest!=null,"Control room has no stair door or crawler")
- if st==null:return
- # Three directions: door, monitors, generator.
- nw.look("door");for i in range(40):nw._tick_view(.05)
- verify.call(nw.view=="door" and absf(nw.yaw-Nightwatch.LEFT.x)<.1,"The view cannot turn to the door")
- nw.handle(_key(KEY_D));for i in range(40):nw._tick_view(.05)
- verify.call(nw.view=="monitors","D does not turn back from the door")
- nw.handle(_key(KEY_D));for i in range(40):nw._tick_view(.05)
- verify.call(nw.view=="generator","D does not reach the generator")
+ var st: NightwatchStalker=nw.stalker;var vt: NightwatchVent=nw.vent
+ verify.call(st!=null and st.shutter!=null and st.guest!=null and vt!=null and vt.clown!=null,"Control room has no door, vent or figures")
+ if st==null or vt==null:return
+ # Arrows: left to the door, right to the vent, back again.
+ nw._tick_view(.05)
+ verify.call(nw.arrow_left.visible and nw.arrow_right.visible,"The monitor view shows no arrows")
+ nw.click_at(nw.arrow_left.get_global_rect().get_center());for i in range(40):nw._tick_view(.05)
+ verify.call(nw.view=="door" and absf(nw.yaw-Nightwatch.LEFT.x)<.1 and not nw.arrow_left.visible and nw.arrow_right.visible,"The left arrow does not turn to the door")
+ nw.click_at(nw.arrow_right.get_global_rect().get_center());nw.click_at(nw.arrow_right.get_global_rect().get_center());for i in range(40):nw._tick_view(.05)
+ verify.call(nw.view=="right" and absf(nw.yaw-Nightwatch.RIGHT.x)<.1 and nw.arrow_left.visible and not nw.arrow_right.visible,"The right arrow does not turn to the vent")
  nw.handle(_key(KEY_A));nw.handle(_key(KEY_A));for i in range(40):nw._tick_view(.05)
  verify.call(nw.view=="door","A does not reach the door")
- # Shutter: space toggles, it costs power, the panel is clickable.
- nw.handle(_key(KEY_SPACE))
- verify.call(st.closed,"Space does not drop the shutter")
- for i in range(20):st.tick(.05,1,0.)
- verify.call(absf(st.shutter.position.y-NightwatchStalker.SHUTTER_CLOSED_Y)<.05,"The shutter does not come down")
- verify.call(st.drain()>0.,"A closed shutter costs no power")
- var p0:=nw.power;nw.tick(1.);var with_door:=p0-nw.power
- st.set_shutter(false);p0=nw.power;nw.tick(1.);var without:=p0-nw.power
- verify.call(with_door>without+.3,"The shutter does not drain power faster")
- # The crawler: starts after the first minute, walks its route on camera.
- nw.seconds=NightwatchConfig.STALKER_START+1.;st.clock=999.;st.tick(.1,3,nw.seconds)
- verify.call(st.state=="room" and is_instance_valid(st.body) and st.body.visible and st.camera()!="","The crawler does not set out")
- var cam_index:=NightwatchConfig.camera_index(st.camera())
- var spec: Dictionary=NightwatchConfig.CAMERAS[cam_index]
- var probe:=Camera3D.new();probe.keep_aspect=Camera3D.KEEP_WIDTH;probe.fov=Nightwatch.feed_fov(spec);nw.main_view.add_child(probe);probe.global_position=spec.p;probe.look_at(spec.at)
- var on_screen:=not probe.is_position_behind(st.body.global_position+Vector3.UP*.4)
- if on_screen:
-  var px:=probe.unproject_position(st.body.global_position+Vector3.UP*.4)
-  on_screen=px.x>=0 and px.y>=0 and px.x<=nw.main_view.size.x and px.y<=nw.main_view.size.y
- probe.queue_free()
- verify.call(on_screen,"The crawler stands outside its camera picture: "+st.camera())
- # Watching it on the main monitor slows it down.
- nw.select_camera(cam_index,false);nw.look("monitors");nw.view="monitors"
- st.clock=0.;st.tick(1.,3,nw.seconds)
- var watched_step:=st.clock
- nw.select_camera((cam_index+1)%10,false);st.clock=0.;st.tick(1.,3,nw.seconds)
- verify.call(watched_step<st.clock*.5,"Watching the crawler does not slow it down")
- # Out of the route: stairs (heard), then the door.
- st.index=st.route.size()-1;st.clock=st.step_time;st.tick(.01,3,nw.seconds)
- verify.call(st.state=="stairs" and not st.body.visible,"The crawler does not go to the stairs")
- st.clock=st.step_time;st.tick(.01,3,nw.seconds)
- verify.call(st.state=="door" and st.guest.visible,"The crawler does not reach the door")
- # Shutter down in time: it waits, bangs and goes away.
- st.set_shutter(true)
+ # The door: nothing for a while, then it simply stands there.
+ st.start()
+ for i in range(10):st.tick(1.,0,float(i))
+ verify.call(st.state=="idle" and not st.guest.visible,"The crawler comes on a night it should stay away")
  var t:=0.
- while st.state=="door" and t<15.:st.tick(.1,3,nw.seconds);t+=.1
- verify.call(st.state=="idle" and st.repelled==1 and not st.guest.visible,"The shutter does not keep it out")
- # Shutter up while it waits: it gets in.
- st.set_shutter(false);st.state="door";st.clock=0.;st.wait=8.;st.guest.show()
- var result:=""
+ while st.state=="idle" and t<200.:st.tick(.5,9,t);t+=.5
+ verify.call(st.state=="door" and st.guest.visible and t>=NightwatchConfig.first_visit(9)-1.,"The crawler does not come to the door")
+ # Shutter down in time: it waits, bangs, goes; the shutter goes up by itself.
+ nw.power=80.;verify.call(nw.handle(_key(KEY_SPACE)) and st.closed and is_equal_approx(nw.power,60.),"Space does not drop the shutter for 20 %")
+ for i in range(20):st.tick(.05,9,0.)
+ verify.call(absf(st.shutter.position.y-NightwatchStalker.SHUTTER_CLOSED_Y)<.05,"The shutter does not come down")
  t=0.
- while result=="" and t<6.:result=st.tick(.1,3,nw.seconds);t+=.1
- verify.call(result=="caught" and t>=NightwatchConfig.DOOR_GRACE-.2,"An open door does not let it in after the grace time")
- st.state="idle";st.guest.hide()
- # Quick report from the full-screen picture.
- var fx:=nw.force("kino","sitze","visitor")
- verify.call(not fx.is_empty(),"Could not force a test anomaly")
- # Let the engine take the new figure's materials before it is reported.
- for i in range(6):await game.get_tree().process_frame
- nw.open_fullscreen(NightwatchConfig.camera_index("kino"))
- await game.get_tree().process_frame
- var spot: Vector3=NightwatchConfig.area("kino","sitze").spots[0]+Vector3(0,1.,0)
- var feed_px:=nw.main_camera.unproject_position(spot)
- var view_size:=nw.full_image.size;var tex:=Vector2(nw.main_view.size);var s:=minf(view_size.x/tex.x,view_size.y/tex.y)
- var screen:=feed_px*s+(view_size-tex*s)*.5+nw.full_image.global_position
- nw.open_quick(screen)
- verify.call(nw.quick_open and nw.quick.visible and nw.quick_choice.room=="kino" and nw.quick_choice.area=="sitze","Click into the picture does not preselect the area")
- var before:=nw.reports
- (nw.quick.find_child("QuickKind_visitor",true,false) as Button).emit_signal("pressed")
- verify.call(nw.reports==before+1 and not nw.quick_open and nw.fullscreen,"Quick report does not report")
- for i in range(6):await game.get_tree().process_frame
- nw.open_quick(screen);nw.handle(_click(MOUSE_BUTTON_RIGHT))
- verify.call(not nw.quick_open and nw.fullscreen,"Right click does not cancel the quick report")
- var wrong_before:=nw.wrong
- nw.open_quick(screen);(nw.quick.find_child("QuickKind_light",true,false) as Button).emit_signal("pressed")
- verify.call(nw.wrong==wrong_before+1,"A wrong quick report is not counted")
- nw.close_fullscreen()
- for i in range(6):await game.get_tree().process_frame
- # Caught: the run ends with its own reason and the jumpscare.
- nw.wrong=0;st.state="door";st.clock=NightwatchConfig.DOOR_GRACE+1.;st.set_shutter(false)
+ while st.state=="door" and t<15.:st.tick(.1,9,0.);t+=.1
+ verify.call(st.state=="idle" and st.repelled==1 and not st.guest.visible,"The shutter does not keep it out")
+ t=0.
+ while st.closed and t<5.:st.tick(.1,9,0.);t+=.1
+ verify.call(not st.closed,"The shutter does not go up again after it left")
+ # Too slow: it gets in after its grace time and the night is over.
+ st._arrive()
+ var result:="";t=0.
+ while result=="" and t<12.:result=st.tick(.1,9,0.);t+=.1
+ verify.call(result=="caught" and t>=NightwatchConfig.grace(9)-.2,"An open door does not let it in after the grace time")
+ # The vent: it sits in the opening, barely lit; the torch drives it back.
+ st.state="idle";st.guest.hide();st.clock=0.;st.next=999.
+ vt.start()
+ for i in range(10):vt.tick(1.,0,float(i),false)
+ verify.call(vt.state=="idle" and not vt.clown.visible,"The clown comes on night 1")
+ t=0.
+ while vt.state=="idle" and t<200.:vt.tick(.5,9,t,false);t+=.5
+ verify.call(vt.at_opening() and vt.clown.visible and vt.glow.light_energy>0.,"The clown does not come to the vent")
+ # The torch only counts while you look into the vent.
+ nw.look("door");for i in range(40):nw._tick_view(.05)
+ nw.power=80.;nw.handle(_key(KEY_F))
+ verify.call(nw.torch_time>0. and is_equal_approx(nw.power,70.) and not nw.torch_on_vent(),"F does not switch the torch on, or it reaches the vent from the door")
+ vt.tick(.2,9,0.,nw.torch_on_vent())
+ verify.call(vt.at_opening(),"The torch at the door scares the clown in the vent")
+ nw.look("right");for i in range(40):nw._tick_view(.05)
+ verify.call(nw.torch_on_vent(),"The torch does not reach the vent when looking right")
+ t=0.
+ while vt.at_opening() and t<3.:vt.tick(.1,9,0.,nw.torch_on_vent());t+=.1
+ verify.call(not vt.at_opening() and vt.repelled==1 and not vt.clown.visible and t>=NightwatchConfig.TORCH_REPEL-.15,"The torch does not drive the clown back")
+ nw.handle(_key(KEY_F))
+ verify.call(nw.torch_time==0.,"F does not switch the torch off")
+ nw._tick_torch(.1);verify.call(nw.torch.light_energy==0.,"The torch light stays on")
+ # Left in the dark: it comes through.
+ vt._arrive();result="";t=0.
+ while result=="" and t<12.:result=vt.tick(.1,9,0.,false);t+=.1
+ verify.call(result=="caught" and t>=NightwatchConfig.grace(9)-.2,"The clown does not come through after its grace time")
+ # Caught through the vent: its own reason and the lunge.
+ vt._arrive();vt.clock=99.;nw.torch_time=0.
  game.set_process(true);game.phase="nightwatch"
  var waited:=0
  while game.phase=="nightwatch" and waited<120:await game.get_tree().process_frame;waited+=1
- verify.call(nw.reason=="caught" and Nightwatch.REASONS.has("caught"),"Being caught does not end the shift")
+ verify.call(nw.reason=="vent" and Nightwatch.REASONS.has("vent"),"Being caught through the vent does not end the night")
  var limit:=0
  while game.phase!="nightwatch_over" and limit<600:await game.get_tree().process_frame;limit+=1
- verify.call(nw.results().get("reason","")=="caught","Results do not say it got in")
+ verify.call(nw.results().get("reason","")=="vent" and str(nw.results().title)=="ES KAM DURCH DEN SCHACHT","Results do not say it came through the vent")
+ # Caught at the door.
+ game._start_nightwatch(3)
+ while game.phase=="loading":await game.get_tree().process_frame
+ st._arrive();st.clock=99.
+ limit=0
+ while game.phase!="nightwatch_over" and limit<700:await game.get_tree().process_frame;limit+=1
+ verify.call(nw.results().get("reason","")=="caught","Results do not say it got in at the door")
  game._main_menu();await game.get_tree().process_frame
- verify.call(not is_instance_valid(st.body) or not st.body.visible,"The crawler stays visible in the world after leaving")
- print("Nightwatch crawler checks done")
+ verify.call(not st.guest.visible and not vt.clown.visible,"A figure stays visible after leaving")
+ print("Nightwatch door and vent checks done")
 
 func _key(code: Key) -> InputEventKey:
  var e:=InputEventKey.new();e.physical_keycode=code;e.keycode=code;e.pressed=true;return e
-
-func _click(button: MouseButton) -> InputEventMouseButton:
- var e:=InputEventMouseButton.new();e.button_index=button;e.pressed=true;return e

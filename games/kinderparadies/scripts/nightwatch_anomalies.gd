@@ -4,15 +4,16 @@ extends RefCounted
 # Nightwatch Protocol: anomalies that appear while the world keeps running and
 # are undone exactly when they are reported or expire. Nothing here touches the
 # shared PlayWorld anomaly setup, so the other modes never see these changes.
+# 5.6.0: only the rooms change, never a figure; a click on the change in the
+# full-screen picture puts it back (hits()).
 
-const VISITORS:=["res://assets/visitors-v421/visitor-ragged.glb","res://assets/visitors-v421/visitor-split.glb","res://assets/visitors-v421/visitor-hooded.glb"]
-# Obvious kinds dominate the first stages, subtle ones grow later.
-const OBVIOUS:=["visitor","missing","floating","light","apparition"]
+# Obvious kinds dominate the first nights, subtle ones grow later.
+const OBVIOUS:=["missing","floating","light","balls","room"]
 const SUBTLE:=["moved","extra","motion"]
+const BALL_COLOURS:=[Color("d8322a"),Color("f2c230"),Color("2f6fd6"),Color("3fa34d"),Color("e07a24")]
 
 var w: PlayWorld
 var rng:=RandomNumberGenerator.new()
-var ghost_material: ShaderMaterial
 var uid:=0
 
 func _init(world: PlayWorld, seed_value: int) -> void:
@@ -55,16 +56,16 @@ func options(stage: int, busy: Dictionary) -> Array:
   for area in room.areas:
    var key: String=str(room.id)+"/"+str(area.id)
    if busy.has(key):continue
-   for kind in NightwatchConfig.SPOT_KINDS:
-    out.append({"room":room.id,"area":area.id,"kind":kind,"spec":"","weight":_weight(kind,stage)})
+   for kind in ["light","room"]+area.get("special",[]):
+    out.append({"room":room.id,"area":area.id,"kind":kind,"spec":"","weight":_weight(kind,stage)*(1.6 if kind=="balls" else .55 if kind=="room" else 1.)})
    for row in area.objects:
     for kind in row[2]:
      out.append({"room":room.id,"area":area.id,"kind":kind,"spec":row[0],"label":row[1],"weight":_weight(kind,stage)})
  return out
 
 func _weight(kind: String, stage: int) -> float:
- var late:=clampf((stage-1)/6.0,0,1)
- if kind in OBVIOUS:return lerpf(3.,1.,late)*(.7 if kind in NightwatchConfig.SPOT_KINDS else 1.)
+ var late:=clampf((stage-1)/4.0,0,1)
+ if kind in OBVIOUS:return lerpf(3.,1.,late)
  return lerpf(.6,2.4,late)
 
 func pick(stage: int, busy: Dictionary) -> Dictionary:
@@ -81,7 +82,7 @@ func pick(stage: int, busy: Dictionary) -> Dictionary:
 # is unavailable in this world.
 func apply(option: Dictionary, camera_spec: Dictionary, detect: float) -> Dictionary:
  var area:=NightwatchConfig.area(option.room,option.area)
- var record:={"uid":uid+1,"room":option.room,"area":option.area,"kind":option.kind,"label":str(option.get("label","")),"detect":detect,"left":detect,"state":"active","node":null,"added":[],"restore":{},"phase":rng.randf()*TAU,"base":Transform3D()}
+ var record:={"uid":uid+1,"room":option.room,"area":option.area,"kind":option.kind,"label":str(option.get("label","")),"detect":detect,"left":detect,"state":"active","node":null,"added":[],"restore":{},"phase":rng.randf()*TAU,"base":Transform3D(),"boxes":[],"others":[]}
  var cam_pos: Vector3=camera_spec.p
  var look_at_point: Vector3=camera_spec.at;var right: Vector3=(look_at_point-cam_pos).cross(Vector3.UP);right.y=0;right=right.normalized() if right.length()>.01 else Vector3.RIGHT
  var side:=-1. if rng.randf()<.5 else 1.
@@ -89,9 +90,28 @@ func apply(option: Dictionary, camera_spec: Dictionary, detect: float) -> Dictio
   var spots: Array=area.spots
   var spot: Vector3=spots[rng.randi_range(0,spots.size()-1)]
   match str(option.kind):
-   "visitor":record.added.append(_visitor(spot,cam_pos,false));record.label="ein Besucher"
-   "apparition":record.added.append(_visitor(spot,cam_pos,true));record.label="eine Erscheinung"
-   "light":record.added.append(_light(spot));record.label="rotes Licht"
+   "light":record.added.append(_light(spot));record.label="rotes Licht";record.boxes=[AABB(spot+Vector3(-1.2,0,-1.2),Vector3(2.4,2.4,2.4))]
+   "balls":record.added.append(_balls(spot));record.label="schwebende Bälle"
+   "room":
+    # Everything in the camera's picture turned and shoved at once.
+    for a in NightwatchConfig.room(option.room).areas:
+     if a.camera!=area.camera:continue
+     for row in a.objects:
+      var target:=resolve(w,str(row[0]),rng.randi_range(0,maxi(group_size(w,str(row[0]))-1,0)))
+      if not is_instance_valid(target) or not target.is_visible_in_tree():continue
+      record.others.append({"node":target,"transform":target.transform})
+      var turn:=-1. if rng.randf()<.5 else 1.
+      var box_before:=bounds(target)
+      # Every piece turned, shoved, and on its side or its head, back on the floor.
+      var tip:=Basis(right,PI if record.others.size()%2==1 else PI*.5)*Basis(Vector3.UP,turn*deg_to_rad(rng.randf_range(70.,180.)))
+      spin(target,tip);target.global_position+=right*turn*rng.randf_range(.8,1.4)
+      var box_after:=bounds(target)
+      target.global_position.y+=box_before.position.y-box_after.position.y
+    if record.others.size()<2:
+     for row in record.others:(row.node as Node3D).transform=row.transform
+     return {}
+    var tint:=_light(spot);(tint.get_child(0) as OmniLight3D).light_color=Color("6dffb0");(tint.get_child(0) as OmniLight3D).light_energy=1.1;tint.global_position.y+=.8;record.added.append(tint)
+    record.label="der ganze Raum"
  else:
   var count:=group_size(w,option.spec)
   var node:=resolve(w,option.spec,rng.randi_range(0,maxi(count-1,0)))
@@ -101,12 +121,12 @@ func apply(option: Dictionary, camera_spec: Dictionary, detect: float) -> Dictio
   var box:=bounds(node)
   match str(option.kind):
    "missing":
-    node.hide();_set_layers(node,0)
+    record.boxes=[box];node.hide();_set_layers(node,0)
    "floating":
     var lift:=rng.randf_range(.85,1.35)
     node.global_position.y+=lift;record.base=node.global_transform
    "moved":
-    node.global_position+=right*side*rng.randf_range(.75,1.15);node.rotate_y(side*deg_to_rad(rng.randf_range(28.,55.)))
+    node.global_position+=right*side*rng.randf_range(.75,1.15);spin(node,Basis(Vector3.UP,side*deg_to_rad(rng.randf_range(28.,55.))))
    "extra":
     var copy:=node.duplicate() as Node3D
     node.get_parent().add_child(copy);copy.global_transform=node.global_transform
@@ -117,32 +137,23 @@ func apply(option: Dictionary, camera_spec: Dictionary, detect: float) -> Dictio
  uid+=1
  return record
 
-func _visitor(spot: Vector3, cam_pos: Vector3, ghost: bool) -> Node3D:
- var root:=Node3D.new();root.name="NightwatchApparition" if ghost else "NightwatchVisitor";w.add_child(root)
- var body:=(load(VISITORS[2 if ghost else rng.randi_range(0,VISITORS.size()-1)]) as PackedScene).instantiate() as Node3D
- root.add_child(body);CharacterFinish.dynamic_only(body)
- root.global_position=spot+Vector3(0,.32 if ghost else 0,0)
- var face:=Vector3(cam_pos.x,root.global_position.y,cam_pos.z)
- if face.distance_to(root.global_position)>.1:root.look_at(face,Vector3.UP,true)
- if ghost:
-  for mesh: MeshInstance3D in body.find_children("*","MeshInstance3D",true,false):
-   mesh.material_override=_ghost();mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-  var glow:=OmniLight3D.new();glow.light_color=Color("b8d6ff");glow.light_energy=1.4;glow.omni_range=3.2;glow.position=Vector3(0,1.3,.3);root.add_child(glow)
- return root
+# Turns a node about the middle of what it shows, not about its origin:
+# some prop groups keep their origin far away from their furniture.
+static func spin(node: Node3D, turn: Basis) -> void:
+ var pivot:=bounds(node).get_center()
+ var t:=node.global_transform
+ node.global_transform=Transform3D(turn*t.basis,pivot+turn*(t.origin-pivot))
 
-func _ghost() -> ShaderMaterial:
- if ghost_material:return ghost_material
- var shader:=Shader.new()
- shader.code="""shader_type spatial;
-render_mode unshaded,cull_disabled,depth_draw_never,blend_add;
-uniform float flicker=1.0;
-void fragment(){
- float rim=pow(1.0-abs(dot(NORMAL,VIEW)),1.6);
- float band=.75+.25*sin(TIME*7.0+VERTEX.y*9.0);
- ALBEDO=vec3(.55,.75,1.0)*(.35+rim*1.4)*band*flicker;
- ALPHA=1.0;
-}"""
- ghost_material=ShaderMaterial.new();ghost_material.shader=shader;return ghost_material
+# A cloud of pit balls hanging in the air above the ball pit.
+func _balls(spot: Vector3) -> Node3D:
+ var root:=Node3D.new();root.name="NightwatchFloatingBalls";w.add_child(root);root.global_position=spot+Vector3(.6,0,-.4)
+ var mesh:=SphereMesh.new();mesh.radius=.11;mesh.height=.22;mesh.radial_segments=16;mesh.rings=8
+ for i in range(34):
+  var ball:=MeshInstance3D.new();ball.mesh=mesh;ball.name="Ball%d"%i
+  var m:=StandardMaterial3D.new();m.albedo_color=BALL_COLOURS[i%BALL_COLOURS.size()];m.roughness=.35;ball.material_override=m
+  ball.position=Vector3(rng.randf_range(-1.3,1.3),rng.randf_range(1.4,2.8),rng.randf_range(-1.,1.))
+  ball.set_meta("bob",rng.randf()*TAU);root.add_child(ball)
+ return root
 
 func _light(spot: Vector3) -> Node3D:
  var root:=Node3D.new();root.name="NightwatchRedLight";w.add_child(root);root.global_position=spot+Vector3(0,1.9,0)
@@ -173,14 +184,12 @@ func tick(record: Dictionary, delta: float) -> void:
     var base: Transform3D=record.base
     var rock:=Basis(Vector3.FORWARD,sin(t*3.2)*deg_to_rad(11.))*Basis(Vector3.UP,sin(t*2.1)*deg_to_rad(9.))
     node.global_transform=Transform3D(rock*base.basis,base.origin+Vector3(0,absf(sin(t*3.2))*.04,0))
-  "visitor":
-   for added in record.added:
-    if is_instance_valid(added):(added as Node3D).rotation.z=sin(t*.8)*.025
-  "apparition":
+  "balls":
    for added in record.added:
     if is_instance_valid(added):
-     (added as Node3D).position.y+=sin(t*1.1)*.0015
-     if ghost_material:ghost_material.set_shader_parameter("flicker",.55+.45*absf(sin(t*13.)*sin(t*3.7)))
+     for ball: Node3D in (added as Node3D).get_children():
+      var p: float=ball.get_meta("bob",0.)
+      ball.position.y+=sin(t*1.4+p)*.0012
   "light":
    for added in record.added:
     if is_instance_valid(added) and added.get_child_count()>0:
@@ -201,7 +210,38 @@ static func retire(node: Node) -> void:
  if tree:tree.create_timer(.25).timeout.connect(node.queue_free)
  else:node.queue_free()
 
+# Boxes a click has to land in: what changed, where it is now (or where it
+# was, for a missing thing).
+func targets(record: Dictionary) -> Array:
+ var out: Array=record.get("boxes",[]).duplicate()
+ var node: Node3D=record.node if is_instance_valid(record.node) else null
+ if node and node.visible:out.append(bounds(node))
+ for added in record.added:
+  if not is_instance_valid(added):continue
+  if str(record.kind)=="balls":
+   for ball: Node3D in (added as Node3D).get_children():out.append(AABB(ball.global_position-Vector3.ONE*.12,Vector3.ONE*.24))
+  elif str(record.kind)=="extra":out.append(bounds(added))
+ for row in record.get("others",[]):
+  if is_instance_valid(row.node):out.append(bounds(row.node))
+ return out
+
+# Does a point in the feed picture of this camera land on the change?
+func hits(record: Dictionary, feed_camera: Camera3D, point: Vector2) -> bool:
+ for box: AABB in targets(record):
+  var rect:=Rect2();var first:=true
+  for i in range(8):
+   var corner:=box.get_endpoint(i)
+   if feed_camera.is_position_behind(corner):continue
+   var px:=feed_camera.unproject_position(corner)
+   if first:rect=Rect2(px,Vector2.ZERO);first=false
+   else:rect=rect.expand(px)
+  if not first and rect.grow(NightwatchConfig.HIT_MARGIN).has_point(point):return true
+ return false
+
 func revert(record: Dictionary, immediate: bool=false) -> void:
+ for row in record.get("others",[]):
+  if is_instance_valid(row.node):(row.node as Node3D).transform=row.transform
+ record.others=[]
  for added in record.added:
   if is_instance_valid(added):
    if immediate:(added as Node).queue_free()
