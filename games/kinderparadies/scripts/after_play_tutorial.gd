@@ -158,7 +158,7 @@ func _face(node: Node3D, eye: Vector3) -> void:
 # Real screenshots cut together (game menus, Windows start menu and settings);
 # each card is 680x800, shown at half size, ring = the circled spot in card pixels.
 const UNINSTALL:="res://assets/uninstall-v571/"
-const STEPS:=[["step1-quit","ESC · Zum Hauptmenü · Spiel beenden",Rect2(113,710,189,39)],["step2-settings","Windows-Taste · Einstellungen",Rect2(287,394,109,90)],["step3-apps","Apps · Installierte Apps",Rect2(130,339,417,59)],["step4-uninstall","After Play · … · Deinstallieren",Rect2(340,418,281,36)]]
+const STEPS:=[["step1-quit","ESC · Zum Hauptmenü · Spiel beenden",Rect2(73,677,209,43)],["step2-settings","Windows-Taste · Einstellungen",Rect2(287,394,109,90)],["step3-apps","Apps · Installierte Apps",Rect2(130,339,417,59)],["step4-uninstall","After Play · … · Deinstallieren",Rect2(340,418,281,36)]]
 
 func give_up_screen(back: Callable) -> void:
  _close_screen();box.hide();reminder.hide();show()

@@ -16,6 +16,17 @@ func run(game: Node3D,verify: Callable) -> void:
  var tree:=game.get_tree()
  game._main_menu()
  await shot(game,"main-menu")
+ verify.call(game.menu.find_child("MainMenuAction1",true,false)==null or game.has_session or game._can_continue_shift(),"Main menu shows a continue card without a shift")
+ # 5.8.0: a running shift shows the continue card with round and time on duty.
+ var kept:=[game.has_session,game.state.endless,game.state.streak,game.state.seconds]
+ game.has_session=true;game.state.endless=false;game.state.streak=3;game.state.seconds=757.
+ NightMenus.home(game)
+ var card: Button=game.menu.find_child("MainMenuAction1",true,false)
+ var where: Label=game.menu.find_child("MainMenuContinueInfo",true,false)
+ verify.call(card!=null and where!=null and where.text=="Rundgang 04 von 13 · 12 Min. im Dienst" and card.position.y<(game.menu.find_child("MainMenuAction0",true,false) as Button).position.y,"The continue card is missing, wrong or not on top")
+ await shot(game,"main-menu-continue")
+ game.has_session=kept[0];game.state.endless=kept[1];game.state.streak=kept[2];game.state.seconds=kept[3]
+ game._main_menu()
  var entry: Button=game.menu.find_children("MainMenuAction*","Button",true,false).filter(func(b):return b.text=="Tutorial").front() if game.menu.find_children("MainMenuAction*","Button",true,false).any(func(b):return b.text=="Tutorial") else null
  verify.call(entry!=null,"The main menu has no Tutorial entry")
  NightMenus.tutorials(game)

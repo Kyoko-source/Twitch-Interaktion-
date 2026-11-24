@@ -402,12 +402,17 @@ func _write_persistent_text(path: String, content: String) -> void:
   JavaScriptBridge.eval("(()=>{try{localStorage.setItem("+key+","+JSON.stringify(content)+");}catch(_){}})()")
 
 func _can_continue_shift() -> bool:
- if has_session and not state.endless:return true
+ return not shift_save_info().is_empty()
+
+# A saved normal shift: {"round","minutes"} or {} (5.8.0 main menu card).
+func shift_save_info() -> Dictionary:
+ if has_session and not state.endless:return {"round":state.round_number(),"minutes":int(state.seconds/60.)}
  var saved:=_persistent_text(NORMAL_SAVE)
- if saved.is_empty():return false
+ if saved.is_empty():return {}
  var data=JSON.parse_string(saved)
  var check:=PatrolState.new()
- return data is Dictionary and check.restore(data.get("patrol",{})) and not check.endless
+ if not (data is Dictionary and check.restore(data.get("patrol",{})) and not check.endless):return {}
+ return {"round":check.round_number(),"minutes":int(check.seconds/60.)}
 
 func _can_continue() -> bool:
  if has_session: return true

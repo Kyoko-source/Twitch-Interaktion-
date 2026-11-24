@@ -490,5 +490,11 @@
   "Musik": "Music",
   "Fotos": "Photos",
   "Zurück zum Hauptmenü": "Back to main menu",
-  "Das Tutorial steht still.": "The tutorial is paused."
+  "Das Tutorial steht still.": "The tutorial is paused.",
+  "Extras": "Extras",
+  "EXTRAS": "EXTRAS",
+  "▸  Schicht fortsetzen": "▸  Continue shift",
+  "Rundgang %02d von 13 · %d Min. im Dienst": "Patrol %02d of 13 · %d min on duty",
+  "Mitarbeiterzugang · Nachtschicht": "Staff access · Night shift",
+  "Weitere Spielmodi": "More game modes"
 }

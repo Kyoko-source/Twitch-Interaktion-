@@ -204,33 +204,65 @@ static func zombies_summary(g: Node3D, r: Dictionary) -> void:
  var menu_button: Button=g._button("Hauptmenü",g._main_menu);menu_button.custom_minimum_size=Vector2(560,56);column.add_child(menu_button)
  again.grab_focus();g._telemetry()
 
+# 5.8.0: one framed panel over the live room (the rabbit stays in the real
+# scene on the right). A saved shift sits on top as a card with its round and
+# time on duty; three ways to play; Extras and Einstellungen side by side; quit.
+# Button names keep their old numbers (0 new, 1 continue, 2 modes, 3 tutorial,
+# 4 extras, 5 settings, 6 quit).
+const PANEL_INK:=Color("e8e1c8")
+const PANEL_QUIET:=Color("b3ae9c")
+const PANEL_COLD:=Color(.55,.72,.74)
+
+static func home_button(g: Node3D, index: int, text: String, action: Callable, size: int) -> Button:
+ var button: Button=g._button(text,action);button.name="MainMenuAction"+str(index)
+ var compact:=size<24
+ button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",size)
+ button.add_theme_stylebox_override("normal",nav_style(false,false,compact));button.add_theme_stylebox_override("hover",nav_style(true,true,compact));button.add_theme_stylebox_override("pressed",nav_style(true,true,compact));button.add_theme_stylebox_override("disabled",nav_style(false,false,compact));button.add_theme_stylebox_override("focus",nav_style(false,true,compact))
+ for state in ["font_color","font_pressed_color"]: button.add_theme_color_override(state,PANEL_QUIET if compact else PANEL_INK)
+ for state in ["font_hover_color","font_focus_color"]: button.add_theme_color_override(state,Color("f1ead3"))
+ button.add_theme_color_override("font_disabled_color",Color("77786f"))
+ g.menu.add_child(button);return button
+
 static func home(g: Node3D) -> void:
  clear(g);backdrop(g)
- var heading: Label=g._label("AFTER PLAY",220,Color("e8e1c8"));heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
+ # The panel: dark glass over the room, a thin cold edge like the night light.
+ var panel:=Panel.new();panel.name="MainMenuPanel";panel.position=Vector2(48,36);panel.size=Vector2(700,1008);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var glass:=StyleBoxFlat.new();glass.bg_color=Color(.022,.026,.028,.78);glass.border_color=Color(PANEL_COLD,.16);glass.set_border_width_all(1);glass.set_corner_radius_all(14);glass.shadow_color=Color(0,0,0,.45);glass.shadow_size=24
+ panel.add_theme_stylebox_override("panel",glass);g.menu.add_child(panel)
+ var accent:=ColorRect.new();accent.name="MainMenuAccent";accent.color=Color(PANEL_COLD,.55);accent.position=Vector2(100,62);accent.size=Vector2(56,2);accent.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(accent)
+ var heading: Label=g._label("AFTER PLAY",220,PANEL_INK);heading.add_theme_font_override("font",menu_font(500,4));heading.position=Vector2(90,54);heading.scale.x=.44;g.menu.add_child(heading)
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
- var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Weitere Spielmodi",func():modes(g)],["Tutorial",func():tutorials(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Anomalie-Album",func():g.anomaly_album.show_menu(func():home(g))],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
- # 4.15.0: the ways to play stay large; everything else sits smaller and
- # quieter below a thin rule. Without a save there is no dead
- # "Schicht fortsetzen" line (the other actions keep their numbers).
- var y:=470.
- for i in range(items.size()):
-  var primary:=i<4
-  if i==1 and not g._can_continue_shift():continue
-  if i==4:
-   var rule:=ColorRect.new();rule.name="MainMenuRule";rule.color=Color(.71,.63,.43,.6);rule.position=Vector2(127,y+10);rule.size=Vector2(220,1);rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(rule);y+=26
-  var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i)
-  button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29 if primary else 20)
-  button.add_theme_stylebox_override("normal",nav_style(false,false,not primary));button.add_theme_stylebox_override("hover",nav_style(true,true,not primary));button.add_theme_stylebox_override("pressed",nav_style(true,true,not primary));button.add_theme_stylebox_override("disabled",nav_style(false,false,not primary));button.add_theme_stylebox_override("focus",nav_style(false,true,not primary))
-  var label_ink:=Color("e8e1c8") if primary else Color("b3ae9c")
-  for state in ["font_color","font_pressed_color"]: button.add_theme_color_override(state,label_ink)
-  for state in ["font_hover_color","font_focus_color"]: button.add_theme_color_override(state,Color("f1ead3"))
-  button.add_theme_color_override("font_disabled_color",Color("77786f"))
-  button.custom_minimum_size=Vector2(540 if primary else 420,0);g.menu.add_child(button)
-  var height:=maxf(52. if primary else 34.,button.get_combined_minimum_size().y)
-  button.position=Vector2(100,y);button.size=Vector2(button.custom_minimum_size.x,height)
-  y+=height+(2. if primary else 1.)
+ var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,410);g.menu.add_child(lead)
+ var y:=462.
+ # A saved shift: the card on top, with where you stopped.
+ var info: Dictionary=g.shift_save_info()
+ var first: Button
+ if not info.is_empty():
+  var card: Button=home_button(g,1,"▸  Schicht fortsetzen",g._continue_shift,30);first=card
+  var warm:=StyleBoxFlat.new();warm.bg_color=Color(.2,.16,.09,.62);warm.border_width_left=3;warm.border_color=Color("b6a16d");warm.set_corner_radius_all(4);warm.content_margin_left=27;warm.content_margin_bottom=34;warm.content_margin_top=6
+  var lit: StyleBoxFlat=warm.duplicate();lit.bg_color=Color(.27,.21,.11,.78)
+  for state in ["normal","disabled"]:card.add_theme_stylebox_override(state,warm)
+  for state in ["hover","pressed","focus"]:card.add_theme_stylebox_override(state,lit)
+  card.position=Vector2(100,y);card.size=Vector2(600,96)
+  var where: Label=g._label("Rundgang %02d von 13 · %d Min. im Dienst"%[int(info.round),int(info.minutes)],19,Color("d6cdb2"));where.name="MainMenuContinueInfo";where.add_theme_font_override("font",menu_font(500,1));where.position=Vector2(29,56);where.mouse_filter=Control.MOUSE_FILTER_IGNORE;card.add_child(where)
+  y+=96+14
+ var primary: Array=[[0,"Neue Nachtschicht",g._request_shift],[2,"Weitere Spielmodi",func():modes(g)],[3,"Tutorial",func():tutorials(g)]]
+ for row in primary:
+  var button:=home_button(g,row[0],row[1],row[2],29)
+  var height:=maxf(54.,button.get_combined_minimum_size().y);button.position=Vector2(100,y);button.size=Vector2(600,height);y+=height+4
+  if first==null:first=button
+ var rule:=ColorRect.new();rule.name="MainMenuRule";rule.color=Color(.71,.63,.43,.45);rule.position=Vector2(100,y+16);rule.size=Vector2(600,1);rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(rule);y+=40
+ # Quiet row: Extras · Einstellungen, then quit.
+ var extras_button:=home_button(g,4,"Extras",func():extras(g),21);extras_button.custom_minimum_size=Vector2.ZERO;extras_button.position=Vector2(100,y);extras_button.size=extras_button.get_combined_minimum_size()
+ var dot: Label=g._label("·",21,Color("7d7867"));dot.position=Vector2(100+extras_button.size.x+2,y+1);g.menu.add_child(dot)
+ var settings_button:=home_button(g,5,"Einstellungen",func():g._settings("menu"),21);settings_button.custom_minimum_size=Vector2.ZERO;settings_button.position=Vector2(100+extras_button.size.x+22,y);settings_button.size=settings_button.get_combined_minimum_size()
+ y+=extras_button.size.y+6
+ var quit:=home_button(g,6,"Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit,21);quit.custom_minimum_size=Vector2.ZERO;quit.position=Vector2(100,y);quit.size=quit.get_combined_minimum_size()
+ var staff: Label=g._label("Mitarbeiterzugang · Nachtschicht",15,Color("7f7a69"));staff.name="MainMenuFooter";staff.add_theme_font_override("font",menu_font(500,2));staff.position=Vector2(100,996);g.menu.add_child(staff)
+ if first:
+  var focus_ref: WeakRef=weakref(first)
+  (func():var b:=focus_ref.get_ref() as Control;if b and b.is_inside_tree():b.grab_focus()).call_deferred()
  # Below the minimum requirements: say so plainly, change nothing.
  var shortfalls:=SystemCheck.issues("--system-check-preview" in OS.get_cmdline_user_args())
  if not shortfalls.is_empty():
@@ -239,7 +271,22 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.7.1",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.8.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+
+# 5.8.0: albums, achievements and credits, one click below the main menu.
+static func extras(g: Node3D) -> void:
+ g.phase="extras";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="ExtrasMenu";column.position=Vector2(110,120);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",14);g.menu.add_child(column)
+ var title: Label=g._label("EXTRAS",62,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ var spacer:=Control.new();spacer.custom_minimum_size.y=12;column.add_child(spacer)
+ var rows:=[["album","Erinnerungsalbum",func():g.album.show_menu()],["anomalies","Anomalie-Album",func():g.anomaly_album.show_menu(func():extras(g))],["achievements","Erfolge",func():g.achievements.show_menu(func():extras(g))],["credits","Mitwirkende",func():credits(g)]]
+ var first: Button
+ for row in rows:
+  var button: Button=g._button(row[1],row[2],first==null);button.name="Extras_"+row[0];button.custom_minimum_size=Vector2(620,56);column.add_child(button)
+  if first==null:first=button
+ var gap:=Control.new();gap.custom_minimum_size.y=16;column.add_child(gap)
+ var back: Button=g._button("Zurück",g._main_menu);back.name="ExtrasBack";back.custom_minimum_size=Vector2(620,56);column.add_child(back)
+ first.grab_focus();g._telemetry()
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

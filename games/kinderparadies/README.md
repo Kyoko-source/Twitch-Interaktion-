@@ -1,5 +1,13 @@
 # After Play — Kinderparadies
 
+## Neues Hauptmenü (5.8.0)
+
+- Dunkles Glas-Panel mit kaltem Rand über der echten 3D-Szene; der Partyhase steht rechts frei im Raum. Der große AFTER-PLAY-Schriftzug bleibt.
+- Gespeicherte Schicht als Karte ganz oben: „Schicht fortsetzen“ mit „Rundgang 04 von 13 · 12 Min. im Dienst“ (`Game.shift_save_info()`).
+- Hauptpunkte: Neue Nachtschicht, Weitere Spielmodi, Tutorial. Darunter klein „Extras · Einstellungen“ und „Spiel beenden“, unten „Mitarbeiterzugang · Nachtschicht“.
+- Neues Untermenü **Extras** (`NightMenus.extras`): Erinnerungsalbum, Anomalie-Album, Erfolge, Mitwirkende.
+- Knopfnamen bleiben `MainMenuAction0`–`6` (0 neu, 1 fortsetzen, 2 Modi, 3 Tutorial, 4 Extras, 5 Einstellungen, 6 beenden). Tutorial-Abbruchbild Karte 1 zeigt das neue Menü. Tests: `--tutorial-only` (29 Prüfungen, inkl. Fortsetzen-Karte), Album-Test prüft Extras.
+
 ## Tutorial-Abbruchbild mit echten Screenshots (5.7.1)
 
 - Das Bild nach der dritten falschen Tür zeigt echte, zusammengeschnittene Screenshots statt nachgebauter Kästen: Dienstpause + Hauptmenü („Spiel beenden“), Windows-Taskleiste und Startmenü („Einstellungen“), Einstellungs-Leiste („Apps“), Installierte Apps mit „…“ → „Deinstallieren“ unter After Play. Bilder in `assets/uninstall-v571/` (680×800, halbe Größe angezeigt), Ringpositionen in `AfterPlayTutorial.STEPS`.
