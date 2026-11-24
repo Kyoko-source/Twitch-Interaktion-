@@ -1288,6 +1288,8 @@ func _qa_command(args: Array) -> void:
 
 func _self_test() -> void:
  if not AUTHOR_TOOLS: return
+ # Silent: the sounds still play (tests check them), the speakers stay quiet.
+ AudioServer.set_bus_mute(0,true)
  var validation=load("res://scripts/validation.gd").new()
  var passed: bool=await validation.run(self)
  validation=null

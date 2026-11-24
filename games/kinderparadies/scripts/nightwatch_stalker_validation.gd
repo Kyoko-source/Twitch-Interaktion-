@@ -84,8 +84,58 @@ func run(game: Node3D, verify: Callable) -> void:
  limit=0
  while game.phase!="nightwatch_over" and limit<700:await game.get_tree().process_frame;limit+=1
  verify.call(nw.results().get("reason","")=="caught","Results do not say it got in at the door")
+ # 5.6.1: the rabbit. Not out in nights 1-2; from night 3 it walks the cameras.
+ game._start_nightwatch(2)
+ while game.phase=="loading":await game.get_tree().process_frame
+ var bn: NightwatchBunny=nw.bunny
+ verify.call(not bn.active() and not is_instance_valid(bn.body),"The rabbit is out before night 3")
+ game._start_nightwatch(3)
+ while game.phase=="loading":await game.get_tree().process_frame
+ game.set_process(false);game.phase="nightwatch"
+ verify.call(bn.stage==0 and is_instance_valid(bn.body) and bn.body.visible and bn.camera_id()=="kostuem","The rabbit does not start in the costume store")
+ # Watched on the main monitor it does not move.
+ nw.look("monitors");nw.select_camera(NightwatchConfig.camera_index("kostuem"),false)
+ for i in range(400):bn.tick(.5,nw.level_bunny)
+ verify.call(bn.stage==0 and bn.watched(),"The rabbit moves while it is watched")
+ # Looking away (other camera, or at the door) lets it walk.
+ nw.select_camera(NightwatchConfig.camera_index("kino"),false)
+ for i in range(200):bn.tick(.5,nw.level_bunny)
+ verify.call(bn.stage>0,"The rabbit does not move while nobody watches it")
+ nw.look("door")
+ var guard:=0
+ while not bn.at_door() and guard<2000:bn.tick(.5,nw.level_bunny);guard+=1
+ verify.call(bn.at_door() and bn.door_body.visible and not bn.body.visible,"The rabbit never reaches the stair door")
+ # A click on it in full screen is no missed click.
+ bn._place(2);nw.look("monitors");nw.open_fullscreen(NightwatchConfig.camera_index(bn.camera_id()));nw.miss_lock=0.
+ var head:=nw.main_camera.unproject_position(bn.body.global_position+Vector3(0,.55*NightwatchBunny.SCALE,0))
+ var before:=nw.misses
+ verify.call(not nw.fix_at(nw.screen_point(head)) and nw.misses==before,"A click on the rabbit counts as a missed click")
+ nw.close_fullscreen()
+ # At the door: the shutter sends it back to the start.
+ bn._place(NightwatchBunny.ROUTE.size());nw.power=100.;nw.toggle_shutter()
+ for i in range(10):bn.tick(.3,nw.level_bunny)
+ verify.call(bn.stage==0 and bn.repelled==1,"The shutter does not send the rabbit back")
+ st.set_shutter(false)
+ # With the shutter up it comes in.
+ bn._place(NightwatchBunny.ROUTE.size());var res:="";t=0.
+ while res=="" and t<20.:res=bn.tick(.1,nw.level_bunny);t+=.1
+ verify.call(res=="caught" and t>=NightwatchConfig.bunny_door(nw.level_bunny)-.2,"The rabbit does not come in with the shutter up")
+ bn._place(NightwatchBunny.ROUTE.size());bn.door_clock=99.
+ game.set_process(true)
+ limit=0
+ while game.phase!="nightwatch_over" and limit<700:await game.get_tree().process_frame;limit+=1
+ verify.call(nw.results().get("reason","")=="bunny" and str(nw.results().title)=="DER HASE IST HEREINGEKOMMEN","Results do not say the rabbit got in")
+ # The wall clock: the second hand jumps once a second, the hands show the night.
+ game._start_nightwatch(1)
+ while game.phase=="loading":await game.get_tree().process_frame
+ game.set_process(false)
+ nw.seconds=NightwatchConfig.HOUR*3.+.5;nw._tick_wall_clock()
+ verify.call(absf(nw.clock_hour.rotation.z+TAU*3./12.)<.01 and absf(nw.clock_minute.rotation.z)<.06,"The wall clock does not show 03:00")
+ var step_before:=nw.clock_step;nw.seconds+=1.;nw._tick_wall_clock()
+ verify.call(nw.clock_step==step_before+1 and nw.clock_tick.playing,"The wall clock does not tick")
+ game.set_process(true)
  game._main_menu();await game.get_tree().process_frame
- verify.call(not st.guest.visible and not vt.clown.visible,"A figure stays visible after leaving")
+ verify.call(not st.guest.visible and not vt.clown.visible and not is_instance_valid(bn.body) and not bn.door_body.visible,"A figure stays visible after leaving")
  print("Nightwatch door and vent checks done")
 
 func _key(code: Key) -> InputEventKey:

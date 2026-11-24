@@ -1,5 +1,14 @@
 # After Play — Kinderparadies
 
+## Nightwatch Protocol: der Stoffhase, Fehlklick-Limit, tickende Uhren (5.6.1)
+
+- **Der Stoffhase ab Nacht 3** (`scripts/nightwatch_bunny.gd`): Anders als Krabbler und Clown läuft er wirklich über die Kameras – Kostümfundus → Snackbar → Party-Tisch → Halle → Empfang → Treppentür. Er bewegt sich nur, solange ihn niemand ansieht: Ist seine Kamera auf dem Hauptmonitor (oder im Vollbild) und schaut man auf die Monitorwand, bleibt er stehen. Pro Raum braucht er unbeobachtet 16–42 s (`bunny` je Nacht in `NightwatchConfig.NIGHT`: 0/0/6/10/14). Bei jedem Schritt quietscht leise ein Spielzeug. An der Tür: Rolltor 2,2 s unten → er fängt wieder im Kostümfundus an; sonst kommt er nach 8–4,5 s herein (Grund `bunny`, „DER HASE IST HEREINGEKOMMEN“, Sprung ins Gesicht). Ein Klick auf ihn im Vollbild zählt nicht als Fehlklick. Ergebnis zeigt „Hase zurückgeschickt“.
+- **Maximal 10 Fehlklicks pro Nacht** (`MAX_MISSES`): Die Meldung zählt mit („Fehlklick 3 / 10“), beim zehnten ist die Nacht verloren (Grund `clicks`, „ZU VIELE FEHLKLICKS“).
+- **Kameras dunkler**: Belichtung 1,6 → 1,05, Umgebungslicht 0,8 → 0,35, Infrarot 3 → 2, Nebel 0,5 → 0,7.
+- **Wanduhr im Kontrollraum** über dem linken Regal: Stunden- und Minutenzeiger zeigen die Nacht (00:00–06:00), der rote Sekundenzeiger springt und tickt jede echte Sekunde, auch im Stromausfall.
+- **Die Empfangsuhr im Hauptspiel tickt**: roter Sekundenzeiger, der jede Sekunde springt, mit Tick-Tack direkt an der Uhr (bis ca. 13 m hörbar). Bei der Anomalie „Uhr dreht zu schnell“ rattert sie. Der alte, nicht synchrone Uhr-Loop in `AmbientLife` ist raus. Der Tick ist ein synthetischer Uhrwerk-Klick (`scripts/clock_tick.gd`) und wird von beiden Uhren geteilt.
+- Tests: `--nightwatch-only` (93 Prüfungen). QA: `--render-qa --bunny-qa` (Hase an jeder Station, Uhr, Tür).
+
 ## Nightwatch Protocol (Beta): fünf Nächte bis 06:00 (5.6.0)
 
 - **Nächte 1–5** von 00:00 bis 06:00 Uhr (eine Stunde = 80 s). Wer 06:00 erreicht, schaltet die nächste Nacht frei; jede geschaffte Nacht lässt sich im Menü wieder wählen. Gespeichert wird die letzte geschaffte Nacht (`nightwatch_night`). Alle Werte je Nacht in `NightwatchConfig.NIGHT`.

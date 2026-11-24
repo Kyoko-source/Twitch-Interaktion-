@@ -3,7 +3,7 @@ extends Node3D
 
 # 5.2.7: the venue breathes. Real CC0 field recordings (assets/ambient-v527,
 # tools/prepare-after-play-ambient-life-v527.py) in two layers:
-#  - room tones: neon and tube hum, the reception clock, wind at the old main
+#  - room tones: neon and tube hum, wind at the old main
 #    door, rain on the window, the boiler, the snack machine, dripping sinks
 #    and the dead cinema speaker, each looping at its real source;
 #  - life: every few seconds one sound within earshot, from the building
@@ -13,13 +13,14 @@ extends Node3D
 # Its own random stream; it never touches the patrol RNG, and it plays the same
 # way in normal and anomaly rounds, so no sound gives a round away.
 const ROOT:="res://assets/ambient-v527/"
+# 5.6.1: the reception clock ticks on its own (PlayWorld, ClockTick), in step
+# with its second hand.
 const BEDS:=[
  {"file":"neon-buzz","pos":Vector3(-8.5,2.9,7.0),"db":-19.0,"reach":8.0,"power":true},
  {"file":"fluorescent-hum","pos":Vector3(0,4.4,3),"db":-23.0,"reach":10.0,"power":true},
  {"file":"fluorescent-hum","pos":Vector3(12,4.4,10),"db":-24.0,"reach":10.0,"power":true},
  {"file":"fluorescent-hum","pos":Vector3(-7.9,3,-18),"db":-23.0,"reach":8.0,"power":true},
  {"file":"fluorescent-hum","pos":Vector3(-13.6,3.1,-30.7),"db":-24.0,"reach":7.0,"power":true},
- {"file":"wall-clock","pos":Vector3(-9.9,3.05,7.3),"db":-20.0,"reach":6.0},
  {"file":"entrance-wind","pos":Vector3(-15.6,1.4,9.4),"db":-14.0,"reach":11.0},
  {"file":"window-rain","pos":Vector3(-10.4,2.2,1.7),"db":-18.0,"reach":8.0},
  {"file":"boiler","pos":Vector3(-13.5,1,-4.2),"db":-18.0,"reach":9.0,"power":true},

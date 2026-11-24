@@ -26,7 +26,7 @@ const YAW_RIGHT:=-1.72
 const EDGE:=.12
 const PAN_SPEED:=1.7
 const SMOOTH:=7.0
-const REASONS:={"missed":"ANOMALY THRESHOLD EXCEEDED","power":"STROMAUSFALL","caught":"ES IST HEREINGEKOMMEN","vent":"ES KAM DURCH DEN SCHACHT"}
+const REASONS:={"missed":"ANOMALY THRESHOLD EXCEEDED","power":"STROMAUSFALL","caught":"ES IST HEREINGEKOMMEN","vent":"ES KAM DURCH DEN SCHACHT","clicks":"ZU VIELE FEHLKLICKS","bunny":"DER HASE IST HEREINGEKOMMEN"}
 const DESK_TOP:=.787
 const RACK_SHELVES:=[.425,.915,1.40,1.89]
 # Ten wall monitors (bottom centre): two rows on the outer racks, two on top
@@ -71,6 +71,7 @@ var lights: Array=[]
 var anomalies: NightwatchAnomalies
 var stalker: NightwatchStalker
 var vent: NightwatchVent
+var bunny: NightwatchBunny
 var torch: SpotLight3D
 var beacon: OmniLight3D
 var banner_labels: Array=[]
@@ -84,6 +85,7 @@ var reason:=""
 var night:=1
 var level_crawler:=0
 var level_clown:=0
+var level_bunny:=0
 var seconds:=0.0
 var power:=100.0
 var fixed:=0
@@ -161,6 +163,8 @@ func build(game: Node3D) -> void:
  _feeds();_ui();_audio()
  stalker=NightwatchStalker.new();stalker.build(self)
  vent=NightwatchVent.new();vent.build(self)
+ bunny=NightwatchBunny.new();bunny.build(self)
+ _wall_clock()
  hide();set_process(false)
 
 # ---------------------------------------------------------------- the room
@@ -229,6 +233,45 @@ func _shell() -> void:
  _lamp(Vector3(-.74,1.3,-.55),Color("ffc98a"),.95,2.6,true)
  _lamp(Vector3(0,1.45,-1.05),Color("8fb7a3"),.6,2.8,false)
  _lamp(Vector3(2.0,1.72,.5),Color("ffd59c"),1.35,3.6,true)
+
+# 5.6.1: a wall clock on the back wall, above the left rack. Hour and
+# minute hands show the night from 00:00 to 06:00; the second hand jumps and
+# ticks once a real second, through the blackout too (it runs on a battery).
+var clock_face: Node3D
+var clock_hour: Node3D
+var clock_minute: Node3D
+var clock_second: Node3D
+var clock_tick: AudioStreamPlayer
+var clock_step:=0
+const CLOCK_AT:=Vector3(-1.05,2.42,-2.08)
+
+func _wall_clock() -> void:
+ var metal:=_pbr("rusty_painted_metal",Color(.5,.53,.5),1.4)
+ var dial:=StandardMaterial3D.new();dial.albedo_color=Color("d9d4c2");dial.roughness=.85
+ var ink:=StandardMaterial3D.new();ink.albedo_color=Color("1d1c1a");ink.roughness=.7
+ var red:=StandardMaterial3D.new();red.albedo_color=Color("a3201a");red.roughness=.6
+ clock_face=Node3D.new();clock_face.name="WallClock";clock_face.position=CLOCK_AT;room.add_child(clock_face)
+ w.tube(clock_face,Vector3(0,0,-.02),Vector3(0,0,.03),.2,metal)
+ w.tube(clock_face,Vector3(0,0,.03),Vector3(0,0,.035),.175,dial)
+ for i in range(12):
+  var a:=float(i)*TAU/12;var mark:=_box(clock_face,Vector3(sin(a)*.15,cos(a)*.15,.037),Vector3(.009 if i%3 else .014,.03,.004),ink);mark.rotation.z=-a
+ clock_hour=Node3D.new();clock_hour.position.z=.04;clock_face.add_child(clock_hour);_box(clock_hour,Vector3(0,.04,0),Vector3(.016,.09,.004),ink)
+ clock_minute=Node3D.new();clock_minute.position.z=.044;clock_face.add_child(clock_minute);_box(clock_minute,Vector3(0,.06,0),Vector3(.01,.13,.004),ink)
+ clock_second=Node3D.new();clock_second.position.z=.048;clock_face.add_child(clock_second);_box(clock_second,Vector3(0,.05,0),Vector3(.004,.15,.003),red)
+ w.tube(clock_face,Vector3(0,0,.036),Vector3(0,0,.052),.01,ink)
+ for mesh: GeometryInstance3D in clock_face.find_children("*","GeometryInstance3D",true,false):mesh.layers=ROOM_LAYER
+ clock_tick=_player(ClockTick.stream(),-17.)
+
+func _tick_wall_clock() -> void:
+ if not clock_face:return
+ var minutes:=seconds/NightwatchConfig.HOUR*60.
+ clock_minute.rotation.z=-fmod(minutes,60.)/60.*TAU
+ clock_hour.rotation.z=-fmod(minutes/60.,12.)/12.*TAU
+ var step:=int(seconds)
+ if step!=clock_step:
+  clock_step=step
+  clock_second.rotation.z=-float(step%60)/60.*TAU
+  clock_tick.stream=ClockTick.stream(step%2==1);clock_tick.pitch_scale=rng.randf_range(.98,1.02);clock_tick.play()
 
 func _lamp(pos: Vector3, color: Color, energy: float, reach: float, shadows: bool) -> void:
  var lamp:=OmniLight3D.new();lamp.position=pos;lamp.light_color=color;lamp.light_energy=energy;lamp.omni_range=reach;lamp.light_cull_mask=ROOM_LAYER;lamp.shadow_enabled=shadows;room.add_child(lamp)
@@ -506,7 +549,7 @@ func start(night_value: int=1, seed_value: int=-1) -> void:
  w=g.world;rng.seed=seed_value if seed_value>=0 else int(Time.get_unix_time_from_system()*1000.)%2147483647
  anomalies=NightwatchAnomalies.new(w,rng.randi())
  night=clampi(night_value,1,NightwatchConfig.NIGHTS)
- var cfg:=NightwatchConfig.night(night);level_crawler=int(cfg.crawler);level_clown=int(cfg.clown)
+ var cfg:=NightwatchConfig.night(night);level_crawler=int(cfg.crawler);level_clown=int(cfg.clown);level_bunny=int(cfg.get("bunny",0))
  running=true;over=false;won=false;reason="";seconds=0.;power=NightwatchConfig.POWER_START;new_best=false
  fixed=0;misses=0;repairs=0;failed_repairs=0;blackout=false;blackout_clock=0.;blackout_wait=0.;torch_time=0.;miss_lock=0.;was_dark=false;critical_clock=0.;alarm_clock=0.;beacon.light_energy=0.;siren.stop()
  spawn_clock=0.;next_spawn=NightwatchConfig.FIRST_ANOMALY;selected=0;refresh_index=0;view="monitors";yaw=FRONT.x;pitch=FRONT.y;anchor_yaw=FRONT.x;sway=Vector2.ZERO
@@ -514,8 +557,12 @@ func start(night_value: int=1, seed_value: int=-1) -> void:
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_ONCE
  main_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  select_camera(0,false)
+ clock_step=0
+ if clock_second:clock_second.rotation.z=0.
+ _tick_wall_clock()
  if stalker:stalker.start()
  if vent:vent.start()
+ if bunny:bunny.start(level_bunny)
  torch.light_energy=0.
  for row in lights:(row[0] as Light3D).light_energy=float(row[1])
  show();cam.current=true;cam.rotation=Vector3(pitch,yaw,0)
@@ -535,6 +582,7 @@ func clock_string() -> String:
 func tick(delta: float) -> void:
  if not running:return
  seconds+=delta
+ _tick_wall_clock()
  if seconds>=NightwatchConfig.night_length():_win();return
  var cfg:=NightwatchConfig.night(night)
  miss_lock=maxf(miss_lock-delta,0.)
@@ -547,6 +595,7 @@ func tick(delta: float) -> void:
   _tick_torch(delta)
   if stalker and stalker.tick(delta,level_crawler,seconds)=="caught":_game_over("caught");return
   if vent and vent.tick(delta,level_clown,seconds,torch_on_vent())=="caught":_game_over("vent");return
+  if bunny and bunny.tick(delta,level_bunny)=="caught":_game_over("bunny");return
  for record in active:
   anomalies.tick(record,delta if qte.is_empty() else 0.)
   if not blackout and qte.is_empty():record.left=float(record.left)-delta
@@ -628,7 +677,11 @@ func fix_at(screen: Vector2) -> bool:
  for record in active:
   if str(NightwatchConfig.area(record.room,record.area).camera)!=id:continue
   if anomalies.hits(record,main_camera,p):fix(record);return true
- misses+=1;miss_lock=NightwatchConfig.MISS_LOCK;buzz.play();_say("Dort ist nichts.",1.6)
+ # The rabbit is no change in the room: no fix, but no missed click either.
+ if bunny and bunny.hit(main_camera,p):_say("Das ist der Hase – keine Veränderung. Lass ihn nicht aus den Augen.",2.5);return false
+ misses+=1;miss_lock=NightwatchConfig.MISS_LOCK;buzz.play()
+ message.text=AfterPlayLanguage.t("Dort ist nichts. Fehlklick %d / %d")%[misses,NightwatchConfig.MAX_MISSES];message_time=1.6
+ if misses>=NightwatchConfig.MAX_MISSES:_game_over("clicks")
  return false
 
 func fix(record: Dictionary) -> void:
@@ -1033,6 +1086,7 @@ func _win() -> void:
  close_fullscreen();qte={};qte_panel.hide();torch_time=0.;torch.light_energy=0.;beep.stop();engine.volume_db=-34;Input.set_default_cursor_shape(Input.CURSOR_ARROW);beacon.light_energy=0.;siren.stop()
  if stalker:stalker.stop()
  if vent:vent.stop()
+ if bunny:bunny.stop()
  _clear_anomalies()
  if g.achievements:
   new_best=g.achievements.record_nightwatch(night,true,seconds)
@@ -1063,7 +1117,8 @@ func _game_over(why: String, record: Dictionary={}) -> void:
  match why:
   "caught","power":await _caught()
   "vent":await _vent_caught()
-  "missed":await _missed(record)
+  "bunny":await _bunny_caught()
+  "missed","clicks":await _missed(record)
  ended.emit(why)
  await get_tree().create_timer(1.7).timeout
  if this_run!=run_id or not is_instance_valid(g):return
@@ -1096,6 +1151,26 @@ func _vent_caught() -> void:
  yaw=atan2(-to.x,-to.z);anchor_yaw=yaw;pitch=atan2(to.y,Vector2(to.x,to.z).length());cam.rotation=Vector3(pitch,yaw,0)
  await vent.lunge(cam)
 
+# The rabbit at the stair door with the shutter up: it hops into your face.
+func _bunny_caught() -> void:
+ look("door");yaw=LEFT.x;anchor_yaw=LEFT.x;pitch=LEFT.y;cam.rotation=Vector3(pitch,yaw,0)
+ var body: Node3D=bunny.door_body;body.show();stalker.face_light.light_energy=3.
+ var from: Vector3=body.global_position
+ var forward:=-cam.global_basis.z;forward.y=0;forward=forward.normalized()
+ var to:=cam.global_position+forward*.45-Vector3(0,.95,0)
+ JumpscareFX.fire(1.5,.1)
+ var scream:=_player(load(ScareBank.track("rabbit",rng.randi_range(1,4))),0.);ScareBank.loud(scream);scream.play();ScareBank.sting()
+ var t:=0.
+ while t<.32 and is_instance_valid(body):
+  t+=get_process_delta_time();var k:=smoothstep(0.,.32,t)
+  body.global_position=from.lerp(to,k)+Vector3.UP*sin(k*PI)*.25
+  body.look_at(cam.global_position,Vector3.UP,true)
+  stalker.face_light.global_position=cam.global_position+forward*.15-Vector3(0,.25,0);stalker.face_light.omni_range=1.4
+  await get_tree().process_frame
+ await get_tree().create_timer(.9).timeout
+ if is_instance_valid(body):body.hide();body.position=NightwatchBunny.DOOR_AT;body.rotation=Vector3(0,PI/2,0)
+ stalker.stop()
+
 # A change left too long: the picture of that room, then the godless scare.
 func _missed(record: Dictionary) -> void:
  if not record.is_empty():
@@ -1114,7 +1189,7 @@ func open_fullscreen_forced() -> void:
 
 func results() -> Dictionary:
  var title:=AfterPlayLanguage.t("NACHT %d GESCHAFFT")%night if won else str(REASONS.get(reason,reason))
- return {"won":won,"reason":reason,"title":title,"night":night,"clock":clock_string(),"seconds":seconds,"power":power,"fixed":fixed,"misses":misses,"repairs":repairs,"failed_repairs":failed_repairs,"door":stalker.repelled if stalker else 0,"vent":vent.repelled if vent else 0,"blackout":was_dark,"new_best":new_best}
+ return {"won":won,"reason":reason,"title":title,"night":night,"clock":clock_string(),"seconds":seconds,"power":power,"fixed":fixed,"misses":misses,"repairs":repairs,"failed_repairs":failed_repairs,"door":stalker.repelled if stalker else 0,"vent":vent.repelled if vent else 0,"bunny":bunny.repelled if bunny else 0,"blackout":was_dark,"new_best":new_best}
 
 func _clear_anomalies() -> void:
  if anomalies:
@@ -1129,6 +1204,7 @@ func stop() -> void:
  if torch:torch.light_energy=0.
  if stalker:stalker.stop()
  if vent:vent.stop()
+ if bunny:bunny.stop()
  _clear_anomalies()
  for port in feeds:(port as SubViewport).render_target_update_mode=SubViewport.UPDATE_DISABLED
  if main_view:main_view.render_target_update_mode=SubViewport.UPDATE_DISABLED
@@ -1152,4 +1228,4 @@ func pause_audio(paused: bool) -> void:
 func snapshot() -> Dictionary:
  var open: Array=[]
  for record in active:open.append({"room":record.room,"area":record.area,"kind":record.kind,"left":snappedf(float(record.left),.1)})
- return {"night":night,"clock":clock_string(),"stalker":stalker.snapshot() if stalker else {},"vent":vent.snapshot() if vent else {},"running":running,"over":over,"won":won,"reason":reason,"seconds":snappedf(seconds,.1),"power":snappedf(power,.1),"fixed":fixed,"active":open,"camera":selected,"view":view,"torch":torch_time>0.,"qte":not qte.is_empty(),"blackout":blackout,"alarm":alarm_active()}
+ return {"night":night,"clock":clock_string(),"stalker":stalker.snapshot() if stalker else {},"vent":vent.snapshot() if vent else {},"bunny":bunny.snapshot() if bunny else {},"running":running,"over":over,"won":won,"reason":reason,"seconds":snappedf(seconds,.1),"power":snappedf(power,.1),"fixed":fixed,"active":open,"camera":selected,"view":view,"torch":torch_time>0.,"qte":not qte.is_empty(),"blackout":blackout,"alarm":alarm_active()}

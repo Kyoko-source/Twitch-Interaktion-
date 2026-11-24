@@ -20,11 +20,11 @@ const NIGHTS:=5
 #  detect:   seconds one anomaly may stay unfound before the alarm starts
 #  words / time: the generator restart
 const NIGHT:=[
- {"drain":.12,"crawler":4,"clown":0,"interval":34.,"active":4,"detect":120.,"words":1,"time":20.},
- {"drain":.13,"crawler":6,"clown":5,"interval":30.,"active":4,"detect":105.,"words":2,"time":17.},
- {"drain":.14,"crawler":9,"clown":9,"interval":27.,"active":5,"detect":95.,"words":2,"time":14.},
- {"drain":.15,"crawler":12,"clown":13,"interval":24.,"active":5,"detect":85.,"words":3,"time":13.},
- {"drain":.16,"crawler":15,"clown":16,"interval":21.,"active":6,"detect":75.,"words":4,"time":12.},
+ {"drain":.12,"crawler":4,"clown":0,"bunny":0,"interval":34.,"active":4,"detect":120.,"words":1,"time":20.},
+ {"drain":.13,"crawler":6,"clown":5,"bunny":0,"interval":30.,"active":4,"detect":105.,"words":2,"time":17.},
+ {"drain":.14,"crawler":9,"clown":9,"bunny":6,"interval":27.,"active":5,"detect":95.,"words":2,"time":14.},
+ {"drain":.15,"crawler":12,"clown":13,"bunny":10,"interval":24.,"active":5,"detect":85.,"words":3,"time":13.},
+ {"drain":.16,"crawler":15,"clown":16,"bunny":14,"interval":21.,"active":6,"detect":75.,"words":4,"time":12.},
 ]
 const JITTER:=.25
 const FIRST_ANOMALY:=18.0
@@ -44,8 +44,8 @@ static func spawn_interval(night_index: int, seconds: float) -> float:
 const BRIEFING:=[
  "Nacht 1. Halte bis 06:00 Uhr durch. Finde die Veränderungen auf den Kameras und klick sie im Vollbild an. Schau ab und zu links zur Tür – steht dort etwas, Tor runter (Leertaste).",
  "Nacht 2. Ab heute kommt auch etwas durch den Lüftungsschacht rechts. Sitzt es in der Öffnung, leuchte mit der Taschenlampe hinein (F).",
- "Nacht 3. Sie kommen öfter. Das Tor kostet 20 %, die Lampe 10 % – reicht der Strom nicht, tipp am Generator.",
- "Nacht 4. Mehr Anomalien gleichzeitig. Vergiss Tür und Schacht nicht.",
+ "Nacht 3. Der Stoffhase aus dem Kostümfundus wandert durch die Räume zur Tür. Er bewegt sich nur, wenn du ihn nicht auf dem Hauptmonitor hast – schau regelmäßig nach. Steht er an der Tür: Tor runter.",
+ "Nacht 4. Mehr Anomalien gleichzeitig, und der Hase ist schneller. Vergiss Tür und Schacht nicht.",
  "Nacht 5. Die letzte Nacht. Keiner von ihnen will dich bis 06:00 Uhr gehen lassen.",
 ]
 static func night(index: int) -> Dictionary:
@@ -77,6 +77,8 @@ const BLACKOUT_MIN:=8.0
 const BLACKOUT_MAX:=16.0
 # A click into the picture that finds nothing locks clicking for a moment.
 const MISS_LOCK:=1.5
+# This many missed clicks in one night and the night is lost.
+const MAX_MISSES:=10
 # How far around a changed thing a click still counts (feed pixels).
 const HIT_MARGIN:=34.0
 
@@ -91,15 +93,23 @@ static func grace(level: int) -> float:
  return lerpf(9.,4.,ratio(level))
 static func door_wait(rng: RandomNumberGenerator) -> float:
  return rng.randf_range(5.,8.)
+# The rabbit (NightwatchBunny) walks the cameras: seconds before its first
+# step, unwatched seconds per room, and the time it gives you at the door.
+static func bunny_first(level: int) -> float:
+ return lerpf(55.,25.,ratio(level))
+static func bunny_move(level: int, rng: RandomNumberGenerator) -> float:
+ return lerpf(42.,16.,ratio(level))*rng.randf_range(.75,1.25)
+static func bunny_door(level: int) -> float:
+ return lerpf(8.,4.5,ratio(level))
 
 # Infrared lamp next to every camera, so dark rooms stay readable on screen.
-const IR_ENERGY:=3.0
+const IR_ENERGY:=2.0
 const IR_RANGE:=24.0
 const IR_ANGLE:=62.0
 # Night-vision look of the feeds: exposure, ambient light and fog.
-const FEED_EXPOSURE:=1.6
-const FEED_AMBIENT:=.8
-const FEED_FOG:=.5
+const FEED_EXPOSURE:=1.05
+const FEED_AMBIENT:=.35
+const FEED_FOG:=.7
 # Cameras: id, label, position, look-at point.
 const CAMERAS:=[
  {"id":"empfang","label":"CAM 01 · EMPFANG","p":Vector3(-6.8,2.7,5.0),"at":Vector3(-8.7,1.2,9.0),"fov":74.},

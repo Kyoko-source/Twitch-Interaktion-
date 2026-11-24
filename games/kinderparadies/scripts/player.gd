@@ -65,7 +65,9 @@ func capture() -> void:
  # A long phone call can outlive the browser's user-activation window.
  # Wait for the next real click instead of issuing a denied pointer-lock request.
  var can_lock:=not OS.has_feature("web") or bool(JavaScriptBridge.eval("navigator.userActivation?.isActive===true"))
- Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if ((OS.has_feature("editor") or OS.has_feature("qa")) and "--render-qa" in OS.get_cmdline_user_args()) or not can_lock else Input.MOUSE_MODE_CAPTURED
+ # QA runs (render QA, self test) leave the mouse free so the PC stays usable.
+ var qa_run:=(OS.has_feature("editor") or OS.has_feature("qa")) and ("--render-qa" in OS.get_cmdline_user_args() or "--self-test" in OS.get_cmdline_user_args())
+ Input.mouse_mode=Input.MOUSE_MODE_VISIBLE if qa_run or not can_lock else Input.MOUSE_MODE_CAPTURED
 
 func release() -> void:
  drop_prop()

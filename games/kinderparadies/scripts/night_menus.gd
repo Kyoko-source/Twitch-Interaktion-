@@ -97,7 +97,7 @@ static func nightwatch_summary(g: Node3D, r: Dictionary) -> void:
  var title: Label=g._label(str(r.title),70,Color("e8a08c"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
  if r.new_best:
   var best: Label=g._label("NACHT %d FREIGESCHALTET!"%mini(int(r.night)+1,NightwatchConfig.NIGHTS) if int(r.night)<NightwatchConfig.NIGHTS else "ALLE FÜNF NÄCHTE ÜBERSTANDEN!",30,Color("f0d27a"));best.name="NightwatchNewBest";best.add_theme_font_override("font",menu_font(600,2));column.add_child(best)
- var rows:=[["Nacht","%d"%r.night],["Uhrzeit erreicht",str(r.clock)],["Anomalien behoben","%d"%r.fixed],["Fehlklicks","%d"%r.misses],["An der Tür abgewehrt","%d"%r.door],["Aus dem Schacht verscheucht","%d"%r.vent],["Generator-Neustarts","%d erfolgreich · %d fehlgeschlagen"%[r.repairs,r.failed_repairs]],["Strom übrig","%d %%"%ceili(float(r.power))]]
+ var rows:=[["Nacht","%d"%r.night],["Uhrzeit erreicht",str(r.clock)],["Anomalien behoben","%d"%r.fixed],["Fehlklicks","%d"%r.misses],["An der Tür abgewehrt","%d"%r.door],["Aus dem Schacht verscheucht","%d"%r.vent],["Hase zurückgeschickt","%d"%int(r.get("bunny",0))],["Generator-Neustarts","%d erfolgreich · %d fehlgeschlagen"%[r.repairs,r.failed_repairs]],["Strom übrig","%d %%"%ceili(float(r.power))]]
  var grid:=GridContainer.new();grid.columns=2;grid.add_theme_constant_override("h_separation",40);grid.add_theme_constant_override("v_separation",6);column.add_child(grid)
  for row in rows:
   grid.add_child(g._label(row[0],22,Color("bac6c0")))

@@ -165,6 +165,18 @@ func run(game: Node3D, verify: Callable) -> void:
  verify.call(nw.fix_at(aim(nw,far)) and not nw.active.has(far),"The change cannot be fixed once the lock is over")
  nw.close_fullscreen()
 
+ # The tenth missed click ends the night.
+ nw.start(1,42);game.phase="nightwatch"
+ nw.open_fullscreen(NightwatchConfig.camera_index("empfang"))
+ for i in range(NightwatchConfig.MAX_MISSES-1):nw.miss_lock=0.;nw.fix_at(Vector2(30,30))
+ verify.call(not nw.over,"The night ends before the last allowed missed click")
+ nw.miss_lock=0.;nw.fix_at(Vector2(30,30))
+ verify.call(nw.over and nw.reason=="clicks" and str(nw.results().title)=="ZU VIELE FEHLKLICKS","Ten missed clicks do not end the night")
+ game.set_process(true)
+ verify.call(await wait_phase(game,"nightwatch_over",10.),"No result screen after too many missed clicks")
+ game.set_process(false)
+ nw.start(1,43);game.phase="nightwatch"
+
  # Status lines: one, two, three unfound changes.
  var lines_ok:=true
  var picks:=[["kino","sitze","floating"],["halle","auto","missing"],["baellebad","krokodil","balls"]]

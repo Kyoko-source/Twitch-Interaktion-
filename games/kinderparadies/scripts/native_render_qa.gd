@@ -524,6 +524,25 @@ func run(game: Node3D) -> void:
   game._quit();return
  # 5.6.0 Nightwatch: banners, door, vent, torch, generator, anomaly kinds,
  # the critical alarm and both lunges.
+ # 5.6.1: the rabbit on every stop of its way, at the door, the clock.
+ if "--bunny-qa" in OS.get_cmdline_user_args():
+  game._start_nightwatch(3)
+  while game.phase=="loading":await game.get_tree().process_frame
+  var nw: Nightwatch=game.nightwatch;var bn: NightwatchBunny=nw.bunny
+  game.set_process(false)
+  nw.card_time=0.;nw.card.modulate.a=0.;nw.message.text=""
+  for i in range(NightwatchBunny.ROUTE.size()):
+   bn._place(i)
+   nw.open_fullscreen(NightwatchConfig.camera_index(bn.camera_id()))
+   for k in range(20):nw._tick_screens(.016);await game.get_tree().process_frame
+   await capture(game,output,"bunny-%02d-%s"%[i,bn.camera_id()])
+  nw.close_fullscreen();nw.look("monitors");nw.seconds=NightwatchConfig.HOUR*2.5
+  for k in range(30):nw._tick_view(.05);nw._tick_wall_clock();nw._tick_screens(.016);await game.get_tree().process_frame
+  await capture(game,output,"bunny-06-clock")
+  bn._place(NightwatchBunny.ROUTE.size());nw.look("door")
+  for k in range(40):nw._tick_view(.05);nw.stalker.animate(.016,nw.seconds);await game.get_tree().process_frame
+  await capture(game,output,"bunny-07-door")
+  game._quit();return
  if "--watch-qa" in OS.get_cmdline_user_args():
   game._start_nightwatch(3)
   while game.phase=="loading":await game.get_tree().process_frame

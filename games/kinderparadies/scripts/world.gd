@@ -18,6 +18,9 @@ var ball_transforms: Array[Transform3D] = []
 var ball_render_transforms: Array[Transform3D] = []
 var current := "none"
 var clock := 0.0
+var tick_clock := 0.0
+var ticks := 0
+var clock_tick: AudioStreamPlayer3D
 var zones := {"Empfang":Vector3(-7,0,4.4),"Bällebad":Vector3(9.3,0,12.2),"Party Raum":Vector3(12,0,-6.4),"Wartungsgang":Vector3(-7.5,0,-7.2),"Küche":Vector3(-13.8,0,-17.4),"Kino":Vector3(-3,0,-17.65)}
 var source: AudioStreamPlayer3D
 var mesh_cache := {}
@@ -468,6 +471,9 @@ func _reception() -> void:
  for i in range(12):
   var a:=float(i)*TAU/12;var mark:=box(face,Vector3(sin(a)*.27,cos(a)*.27,.07),Vector3(.017,.055,.01),materials.dark);mark.rotation.z=-a
  var hand:=Node3D.new();face.add_child(hand);box(hand,Vector3(0,.105,.08),Vector3(.018,.21,.01),materials.dark);props.clock_hand=hand
+ # 5.6.1: a red second hand that jumps once a second, and the tick with it.
+ var seconds_hand:=Node3D.new();face.add_child(seconds_hand);box(seconds_hand,Vector3(0,.09,.09),Vector3(.007,.25,.006),materials.red);props.clock_seconds=seconds_hand
+ clock_tick=AudioStreamPlayer3D.new();clock_tick.name="ReceptionClockTick";clock_tick.playback_type=AudioServer.PLAYBACK_TYPE_STREAM;clock_tick.position=Vector3(.0,0,.1);clock_tick.volume_db=-6.;clock_tick.unit_size=2.2;clock_tick.max_distance=13.;clock_tick.attenuation_filter_cutoff_hz=6000;clock_tick.bus="NightAmbience";face.add_child(clock_tick)
  var hour:=box(face,Vector3(-.07,.05,.075),Vector3(.16,.025,.01),materials.dark);hour.rotation.z=-.5
 
 func _party_room() -> void:
@@ -611,6 +617,13 @@ func tick(delta: float, active: bool) -> void:
  if not active: return
  clock+=delta
  props.clock_hand.rotation.z=clock*(-2.5 if current=="clock_fast" else -.004)
+ # The tick: once a second, far too often while the clock races (clock_fast).
+ tick_clock+=delta
+ var step:=.12 if current=="clock_fast" else 1.
+ if tick_clock>=step:
+  tick_clock=fmod(tick_clock,step);ticks+=1
+  props.clock_seconds.rotation.z=-float(ticks%60)/60.*TAU
+  if props.clock_seconds.is_visible_in_tree():clock_tick.stream=ClockTick.stream(ticks%2==1);clock_tick.pitch_scale=randf_range(.98,1.02);clock_tick.play()
 
 func brightness(value: float) -> void:
  environment.environment.tonemap_exposure=value
