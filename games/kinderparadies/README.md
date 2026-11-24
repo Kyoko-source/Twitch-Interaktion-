@@ -1,5 +1,10 @@
 # After Play — Kinderparadies
 
+## Tutorial-Abbruchbild mit echten Screenshots (5.7.1)
+
+- Das Bild nach der dritten falschen Tür zeigt echte, zusammengeschnittene Screenshots statt nachgebauter Kästen: Dienstpause + Hauptmenü („Spiel beenden“), Windows-Taskleiste und Startmenü („Einstellungen“), Einstellungs-Leiste („Apps“), Installierte Apps mit „…“ → „Deinstallieren“ unter After Play. Bilder in `assets/uninstall-v571/` (680×800, halbe Größe angezeigt), Ringpositionen in `AfterPlayTutorial.STEPS`.
+- `--tutorial-only` prüft die vier Bilder (27 Prüfungen); mit `--capture-dir=DIR` speichert der Test Hauptmenü, Dienstpause und Abbruchbild.
+
 ## Tutorial (5.7.0)
 
 - **Neuer Hauptmenüpunkt „Tutorial“** (`NightMenus.tutorials`): After Play ist spielbar, Partynacht und Nightwatch Protocol stehen ausgegraut daneben („In Development“).
