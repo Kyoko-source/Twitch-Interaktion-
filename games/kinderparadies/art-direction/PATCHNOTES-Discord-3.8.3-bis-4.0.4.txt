@@ -1,0 +1,123 @@
+NACHRICHT 1/4
+
+**AFTER PLAY – Patchnotes 3.8.3 bis 4.0.4**
+
+**3.8.3 – Kreidetafel und Umgebung**
+• Die Tafel im Raum mit den Teddy-Kostümen ist beschreibbar: vier Kreidefarben, Schwamm, Rückgängig und vollständiges Abwischen.
+• Zeichnungen bleiben im Spielstand erhalten und sind direkt auf der Tafel sichtbar.
+• Kinderzeichnungen auf Kinderhöhe ergänzt – als Wandkritzeleien und vergilbte, angeklebte Bilder.
+• Realistischere Putzschäden, Feuchtigkeit und gealterte Wandoberflächen eingebaut.
+• Überschneidungen zwischen Kinofoto und Wandverkleidung korrigiert.
+
+**3.8.4 – Deutsche Sprache**
+• Fehler behoben, durch den trotz deutscher Sprachwahl englische Texte angezeigt wurden.
+
+**3.8.5 – Krokodil und Partymodus**
+• Das Krokodil vollständig neu modelliert: größer, zusammenhängende Körperform, überarbeitete Haut und beweglicher Oberkiefer.
+• Farbige Scheinwerfer, Lichtleiste und Discokugel im Partyraum ergänzt.
+• Partymodus mit Musik und passenden Lichtwechseln eingeführt; bei Drops werden die Effekte intensiver.
+• Aufnehmbaren Parkplatzschlüssel am Schlüsselbrett ergänzt. Die Glastür lässt sich erst damit öffnen.
+• Seitliches Herauslaufen am Parkplatz löst den Abschluss zuverlässig aus; der bisherige Weg aus der Welt wurde abgesichert.
+• Unteren Klettergerüst-Einstieg mit durchgehender Rampe und bündigem Übergang repariert.
+
+**3.8.6 – Startwarnung und Spielicon**
+• Startwarnung zu Stroboskopeffekten, lauten Geräuschen und Jumpscares auf Deutsch und Englisch ergänzt.
+• Stroboskope bereits in der Warnung abschaltbar.
+• Eigenes Hasen-Icon in die Windows-Anwendung eingebaut.
+
+**3.8.7 – Stereoanlage und Tischkollision**
+• Große Stereoanlage im Partyraum ergänzt. Die Musik ist jetzt im ganzen Raum hörbar.
+• Fehlende Kollision des runden Partytisches repariert – einschließlich Landen auf der Tischplatte.
+
+NACHRICHT 2/4
+
+**3.8.8 – Musikcredits**
+• Musikcredits und Lizenzhinweise ergänzt.
+
+**3.8.9 – Schildübersetzungen**
+• Englische Schilduntertitel erscheinen nur noch bei englischer Sprachwahl.
+
+**3.8.10 – Clown-Abschluss und Krokodil**
+• Verhindert, dass sich der Clown-Abschluss durch rechtzeitiges Verlassen des Raums umgehen lässt.
+• Krokodil-Kollisionen vereinfacht, um Ruckler beim Springen zu reduzieren. Der Kiefer behält seine bewegliche Kollision.
+
+**3.8.11 – Rolling Acid**
+• Bisherige Partymusik durch „Rolling Acid“ von Kyoko ersetzt und Credits aktualisiert.
+• Lichtshow neu auf ruhige Passagen, Aufbau, Beats und Drops abgestimmt.
+• Pause, Fortsetzen, Schleife und gespeicherter Partymodus berücksichtigt.
+
+**3.8.12 – Partyknopf und Neustartzeit**
+• Partyknopf in den Raum mit Teddy-Kostümen und Kreidetafel versetzt.
+• Nach dem Einschalten lässt sich die Party wieder ausschalten. Danach benötigt das System 15 Minuten zum Neustart.
+• Restzeit wird angezeigt. Erneutes Drücken verlängert sie nicht.
+• Die Sperre bleibt bei Rundenwechsel, neuer Schicht und Neuladen erhalten; auch bei geschlossenem Spiel vergeht Zeit.
+
+**3.8.13 – Neue Szene nach Ende 1**
+• Nach den Credits von Ende 1 folgt eine freundliche Feier mit Kamerafahrt durch den Partyraum.
+• Clown, Pferd und weitere Gestalten tanzen; der große Stoffhase trinkt Cola, kleine Hasen ziehen als Polonaise durch den Raum.
+• Partymusik und Lichtshow übernehmen. Abspannmusik und Spieluhren werden dabei stummgeschaltet.
+• Endanzeigen auf drei Abschlüsse abgestimmt und Browserreaktionen verbessert.
+
+**3.8.14 – Feierfiguren überarbeitet**
+• Feier zurück in den originalen Partyraum eingebettet – mit seinen Möbeln, Wandbildern und seiner Bühne.
+• Freundliche Figuren mit ausgearbeiteten Gesichtern, Händen, Kleidung, Haaren und Schuhen überarbeitet.
+• Unterschiedliche Tänze, stabilerer Bodenkontakt und beweglicher Pferdehals ergänzt.
+• Browserdarstellung und Überspringen der Feier verbessert.
+
+NACHRICHT 3/4
+
+**3.9.0 – Erinnerungen und Spielgefühl**
+• Erinnerungsalbum im Hauptmenü: Entdeckte Enden schalten echte Bilder frei. Unentdeckte Abschlüsse werden nicht verraten.
+• Das Album bleibt bei einer neuen Schicht oder einer falschen Tür erhalten.
+• Nach zwölf richtigen Entscheidungen druckt der Fahrstuhl einen Zettel: „Letzter Kontrollgang. Danach Feierabend.“
+• Taschenlampe neu modelliert und rund 17 % heller gemacht: Metallgehäuse, Reflektor, Schutzglas und mehr Oberflächendetails.
+• Natürlichere Bewegungen beim Laufen und Landen; vor Wänden wird die Taschenlampe leicht eingezogen.
+• Mülleimerdeckel, Jacken und ein Becher reagieren auf Berührung.
+• Diese Kontaktreaktionen zählen nicht als Anomalien.
+• Einheitliches Happyland-Logo auf Karten, Bechern, Kleidung und Marken ergänzt.
+• Startwarnung optisch neu gestaltet.
+• Granny und Angreifer an der falschen Tür mit detaillierteren Köpfen, Augen, Zähnen, Haaren, Händen und Kleidung überarbeitet.
+• Feier nach Ende 1 auf zwei Minuten verlängert.
+
+**3.9.1 – Fahrstuhl und Handy**
+• Startfahrstuhl mit gealterten Paneelen, Holz, Metalltüren, Dichtungen, detaillierten Tastern und Deckenleuchten überarbeitet.
+• Handy und haltende Hand neu modelliert: Glas, Rahmen, Kameras, Anschlüsse, Hautfalten, Nägel und Uniformärmel.
+• Telefonanzeige, Gesprächsannahme und englische Schilduntertitel verbessert.
+
+**3.9.2 – Hauptmenü**
+• Doppelten Eintrag „Dienstanweisung“ aus dem Hauptmenü entfernt. Die Anleitung bleibt in den Einstellungen verfügbar.
+
+**4.0.0 – Sichtbare Handinteraktionen**
+• Handanimationen für Türklinken, Taster, Zahlenschloss, Schlüssel und Zeitungen ergänzt.
+• Aktionen werden beim tatsächlichen Kontakt ausgeführt. Mehrfaches Drücken startet keine überlappenden Aktionen.
+• Klinken, Schlösser, Tasten und Zeitungspapier detaillierter gestaltet.
+• Atmung nach dem Sprint, Kleidungsgeräusche in Röhren und sanftes Nachfedern der Ausrüstung ergänzt.
+• Handanimationen, Körperbewegung und eigene Geräusche sind einstellbar.
+
+NACHRICHT 4/4
+
+**4.0.1 – Pferdeverfolgung mit drei Treffern**
+• Beim ersten Pferdetreffer wird der Bildschirmrand leicht blutunterlaufen, beim zweiten deutlich stärker. Die Bildmitte bleibt frei.
+• Nach den ersten beiden Treffern zieht sich das Pferd kurz zurück und verfolgt weiter.
+• Der dritte Treffer ist tödlich: Angriff mit weit geöffnetem Maul und eigenem schrillem Kreischen.
+• Danach werden die überlebten Rundgänge angezeigt; die neue Schicht beginnt wieder im Startfahrstuhl bei Rundgang 1.
+• Treffer und Verletzungszustand werden beim Fortsetzen berücksichtigt.
+• Wegsuche der Verfolgung korrigiert, insbesondere am Zugang zum WC.
+
+**4.0.2 – Natürlichere Atmung**
+• Spieleratmung leiser und natürlicher abgemischt; tiefes Nasen- und Mikrofonrauschen reduziert.
+• Tonhöhenveränderung entfernt. Nach dem Sprint klingt die Atmung weiterhin allmählich ab.
+
+**4.0.3 – Laufwege und akustische Rückmeldungen**
+• 440 echte Laufwegprüfungen durchgeführt: vorwärts, rückwärts, springend und mit Ball, Holzbaustein, Eimer oder Stoffhase.
+• Türen, Sitzreihen, Rampen, Podest, Brücke und Röhrenmündungen geprüft; keine neue Blockade festgestellt.
+• Pferd, Granny und Türangreifer haben jeweils drei eigene Klangvarianten ohne direkte Wiederholung.
+• Das Pferd klingt schrill, die Granny trocken und die Türgestalt kurz und schwer.
+• Schlüssel klirren beim Aufnehmen und Aufschließen. Zeitungen rascheln beim Einsammeln und Lesen.
+• Taschenlampe, Partyknopf, Projektor und Aufnahmegerät klicken beim Betätigen.
+• Fehler behoben, durch den Tür- und Clownangriffstöne bei langsamen Frames ausfallen konnten.
+
+**4.0.4 – Clownfrisur und Kostümmütze**
+• Deutlich dichtere, längere blonde Clownhaare mit mehr Volumen und abstehenden Strähnen.
+• Schiefe, eingesackte Mütze aus hautähnlichem Kunstleder ergänzt – mit gealterten Flicken, Poren, Falten, modellierten Nähten und einzelnen Stichen.
+• Beide Accessoires folgen dem Kopf auch bei Angriffen. Die Browserfrisur ist separat optimiert.
