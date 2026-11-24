@@ -23,6 +23,16 @@ func run(game: Node3D,verify: Callable) -> void:
  # 5.3.1: no lamp-less light glowing in the haze; flickering lights have a lamp.
  verify.call(mood.accents.all(func(a):return a.light.light_volumetric_fog_energy==0.),"An accent light glows in the haze without a lamp")
  verify.call(mood.accents.filter(func(a):return a.spec.motion in ["tube","neon"]).all(func(a):return a.tube!=null),"A flickering accent light has no lamp")
+ # 5.6.1: every ceiling batten sits right under the real ceiling, not in the
+ # air below it and not inside a wall.
+ var loose:=[]
+ for batten: Node3D in mood.get_children().filter(func(n):return str(n.name).begins_with("MoodBatten") and n is Node3D):
+  var spec_row: Array=RoomMood.LIGHTS.filter(func(s):return "MoodBatten_"+str(s.room).replace(" ","")==str(batten.name) and s.motion in ["tube","neon"])
+  if spec_row.is_empty() or spec_row[0].has("wall"):continue
+  var p:=batten.global_position
+  var hit: Dictionary=w.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x,1.4,p.z),Vector3(p.x,6.,p.z)))
+  if hit.is_empty() or absf(float(hit.position.y)-p.y)>.1:loose.append([batten.name,p.y,hit.get("position",Vector3.ZERO).y if not hit.is_empty() else -1.])
+ verify.call(loose.is_empty(),"A ceiling batten does not sit under the ceiling: "+str(loose))
  # Anomalies keep their meaning.
  w.set_anomaly("party_dark");mood.tick(.1,true)
  verify.call(mood.accents.filter(func(a):return a.spec.get("party",false)).all(func(a):return a.light.light_energy==0.),"Party accents stay on when the party lights fail")

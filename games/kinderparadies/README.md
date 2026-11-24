@@ -1,5 +1,13 @@
 # After Play — Kinderparadies
 
+## Tutorial (5.7.0)
+
+- **Neuer Hauptmenüpunkt „Tutorial“** (`NightMenus.tutorials`): After Play ist spielbar, Partynacht und Nightwatch Protocol stehen ausgegraut daneben („In Development“).
+- **After-Play-Tutorial** (`scripts/after_play_tutorial.gd`): Start im Fahrstuhl, großer lila Text „Willkommen zu After Play“: jeden Raum ansehen, dann die grüne Tür. Danach geht es zurück an den Anfang, und der große Partyhase schwebt (Anomalie-Runde, rote Tür). Nach ein paar Sekunden weicht der große Text einer kleinen Erinnerung oben.
+- **Falsche Tür in der Anomalie-Runde**: 1× zurück vor den Hasen („Vielleicht hab ich mich nicht richtig ausgedrückt …“), 2× zusätzlich viele blinkende Pfeile durch alle Wände zur roten Tür („Oh man … und du willst 13 Runden schaffen?“), 3× ein Bild mit rot eingekreisten Schritten zum Beenden und Deinstallieren („Spiel einfach mit Bauklötzen oder so“), dann zurück ins Hauptmenü. Rote Tür in der Normalrunde: Hinweis und zurück an den Anfang.
+- Im Tutorial wird nichts gespeichert; eine laufende Schicht wird vorher gesichert und bleibt unverändert. Keine Jumpscares, kein Verfolger, kein Pferd, kein Mikrofon-Wächter, der Wachmann schweigt.
+- Tests: `--tutorial-only` (26 Prüfungen, auch im vollen Lauf). QA: `--render-qa --tutorial-qa`.
+
 ## Nightwatch Protocol: der Stoffhase, Fehlklick-Limit, tickende Uhren (5.6.1)
 
 - **Der Stoffhase ab Nacht 3** (`scripts/nightwatch_bunny.gd`): Anders als Krabbler und Clown läuft er wirklich über die Kameras – Kostümfundus → Snackbar → Party-Tisch → Halle → Empfang → Treppentür. Er bewegt sich nur, solange ihn niemand ansieht: Ist seine Kamera auf dem Hauptmonitor (oder im Vollbild) und schaut man auf die Monitorwand, bleibt er stehen. Pro Raum braucht er unbeobachtet 16–42 s (`bunny` je Nacht in `NightwatchConfig.NIGHT`: 0/0/6/10/14). Bei jedem Schritt quietscht leise ein Spielzeug. An der Tür: Rolltor 2,2 s unten → er fängt wieder im Kostümfundus an; sonst kommt er nach 8–4,5 s herein (Grund `bunny`, „DER HASE IST HEREINGEKOMMEN“, Sprung ins Gesicht). Ein Klick auf ihn im Vollbild zählt nicht als Fehlklick. Ergebnis zeigt „Hase zurückgeschickt“.
@@ -7,6 +15,7 @@
 - **Kameras dunkler**: Belichtung 1,6 → 1,05, Umgebungslicht 0,8 → 0,35, Infrarot 3 → 2, Nebel 0,5 → 0,7.
 - **Wanduhr im Kontrollraum** über dem linken Regal: Stunden- und Minutenzeiger zeigen die Nacht (00:00–06:00), der rote Sekundenzeiger springt und tickt jede echte Sekunde, auch im Stromausfall.
 - **Die Empfangsuhr im Hauptspiel tickt**: roter Sekundenzeiger, der jede Sekunde springt, mit Tick-Tack direkt an der Uhr (bis ca. 13 m hörbar). Bei der Anomalie „Uhr dreht zu schnell“ rattert sie. Der alte, nicht synchrone Uhr-Loop in `AmbientLife` ist raus. Der Tick ist ein synthetischer Uhrwerk-Klick (`scripts/clock_tick.gd`) und wird von beiden Uhren geteilt.
+- **Deckenröhren aus 5.3.1 hängen jetzt an der Decke**: Ihre Höhe kam aus der groben Raumtabelle, dadurch schwebten sie in Küche, Personalflur und Kinder-WC bis zu 90 cm unter der echten Decke, und die Wartungsröhre steckte in der Wand zum Serverraum. Jetzt steht die gemessene Deckenhöhe in `RoomMood.LIGHTS` (`ceiling`); die Wartungsröhre sitzt frei neben der vorhandenen Leuchte, die im Personalflur längs im Deckenraster. Test in `--mood-only` prüft per Strahl nach oben, dass jede Röhre bündig sitzt. QA: `--render-qa --lamps-qa`.
 - Tests: `--nightwatch-only` (93 Prüfungen). QA: `--render-qa --bunny-qa` (Hase an jeder Station, Uhr, Tür).
 
 ## Nightwatch Protocol (Beta): fünf Nächte bis 06:00 (5.6.0)

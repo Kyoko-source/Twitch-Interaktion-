@@ -9,6 +9,9 @@ extends Node3D
 # no red accents (anomaly "lights_red") and the party accents go dark with the
 # party lights (anomaly "party_dark"). Street and moon light are "outdoor": the
 # blackout leaves them on, so the dark venue still has a shape.
+# 5.6.1: "ceiling" is the measured underside of the real ceiling above a
+# batten (the room table in SecretPlushEnding is only a rough height and left
+# the tubes hanging up to a metre below the ceiling or inside a wall).
 const LIGHTS:=[
  # Empfang: warm amber neon over the counter, pink sign glow.
  {"room":"Empfang","pos":Vector3(-9.5,2.72,6.4),"color":"ffad4a","energy":1.5,"range":6.5,"motion":"neon","wall":Vector3(-9.95,2.72,6.4)},
@@ -26,17 +29,17 @@ const LIGHTS:=[
  {"room":"Party Raum","pos":Vector3(17.6,1.4,-15.5),"color":"e04bff","energy":.9,"range":6.5,"motion":"breathe","party":true},
  {"room":"Party Raum","pos":Vector3(8.0,1.4,-1.0),"color":"ff8a2a","energy":.6,"range":5.0,"motion":"steady","party":true},
  # Wartung: sick green tube that never quite catches.
- {"room":"Wartung","pos":Vector3(-13.3,2.25,-7.0),"color":"7dffb0","energy":1.1,"range":6.5,"motion":"tube"},
+ {"room":"Wartung","pos":Vector3(-14.9,2.25,-6.0),"color":"7dffb0","energy":1.1,"range":6.5,"motion":"tube","ceiling":3.08},
  # Personalflur: green exit sign at the far end, cold tube halfway.
  {"room":"Personalflur","pos":Vector3(-7.35,2.25,-35.0),"color":"2bff6a","energy":.9,"range":4.5,"motion":"steady","sign":true},
- {"room":"Personalflur","pos":Vector3(-7.35,2.3,-22.0),"color":"cfe6ff","energy":.7,"range":5.5,"motion":"tube"},
+ {"room":"Personalflur","pos":Vector3(-7.35,2.3,-19.5),"color":"cfe6ff","energy":.7,"range":5.5,"motion":"tube","ceiling":3.49,"along_z":true},
  # Küche: warm pilot glow and an old yellow strip (cold light is the anomaly "cold_breath").
  {"room":"Küche","pos":Vector3(-15.8,1.1,-33.6),"color":"ff8a2a","energy":.55,"range":3.0,"motion":"breathe","kitchen":true},
- {"room":"Küche","pos":Vector3(-11.0,2.3,-26.0),"color":"ffd27a","energy":.8,"range":6.0,"motion":"tube","kitchen":true},
+ {"room":"Küche","pos":Vector3(-11.0,2.3,-26.0),"color":"ffd27a","energy":.8,"range":6.0,"motion":"tube","kitchen":true,"ceiling":3.49},
  # Kino: the blank screen still throws blue, flickering light into the seats.
  {"room":"Kino","pos":Vector3(2.4,2.0,-29.6),"color":"7fa8ff","energy":1.5,"range":9.0,"motion":"screen"},
  # Kinder-WC: cyan tile glow.
- {"room":"Kinder-WC","pos":Vector3(22.4,2.1,7.5),"color":"5fe0d0","energy":.8,"range":5.5,"motion":"tube"},
+ {"room":"Kinder-WC","pos":Vector3(22.4,2.1,7.5),"color":"5fe0d0","energy":.8,"range":5.5,"motion":"tube","ceiling":3.2},
  # Eingang: orange sodium street light through the old door.
  {"room":"Eingang","pos":Vector3(-15.4,2.3,9.4),"color":"ff9a3c","energy":.9,"range":6.0,"motion":"shimmer","outdoor":true}]
 # Tinted haze per room (Forward+): the colour the air picks up from the light.
@@ -108,6 +111,7 @@ func _batten(light: OmniLight3D,spec: Dictionary) -> StandardMaterial3D:
  var height:=2.5
  for room in SecretPlushEnding.ROOMS:
   if room[0]==spec.room:height=room[5]
+ height=float(spec.get("ceiling",height))
  var root:=Node3D.new();root.name="MoodBatten_"+str(spec.room).replace(" ","");add_child(root)
  if spec.has("wall"):
   # On the wall: the batten turned along it, its back against the plaster.
@@ -115,6 +119,7 @@ func _batten(light: OmniLight3D,spec: Dictionary) -> StandardMaterial3D:
   root.position=spec.wall;root.basis=Basis(Vector3(0,0,1),Vector3(-1,0,0),Vector3(0,-1,0))
  else:
   light.position.y=height-.22;root.position=Vector3(spec.pos.x,height,spec.pos.z)
+  if spec.get("along_z",false):root.rotation.y=PI/2
  var housing:=w.box(root,Vector3(0,-.035,0),Vector3(1.22,.07,.16),w.materials.metal);housing.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  var glow:=StandardMaterial3D.new();var color:=Color(spec.color);glow.albedo_color=color.lerp(Color.WHITE,.55);glow.emission_enabled=true;glow.emission=color;glow.emission_energy_multiplier=2.2
  var lamp:=w.tube(root,Vector3(-.56,-.085,0),Vector3(.56,-.085,0),.022,glow);lamp.name="MoodTube";lamp.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

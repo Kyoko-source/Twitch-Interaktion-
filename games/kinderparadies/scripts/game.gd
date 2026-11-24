@@ -85,6 +85,7 @@ var nightwatch: Nightwatch
 var zombies: ZombiesMode
 var mic: MicListener
 var mic_warden: MicWarden
+var tutorial: AfterPlayTutorial
 
 func _ready() -> void:
  AfterPlayLanguage.setup()
@@ -290,6 +291,7 @@ func _ui() -> void:
  captions=AfterPlayCaptions.new();add_child(captions);captions.build()
  mp=MultiplayerLink.new();add_child(mp);mp.build(self);mp.plan_ready.connect(_start_multiplayer_shift)
  dialogue=GuardDialogue.new();add_child(dialogue);dialogue.build(self)
+ tutorial=AfterPlayTutorial.new();add_child(tutorial);tutorial.build(self)
 
 func _label(value: String, size: int=18, color: Color=Color("eee7d6")) -> Label:
  var label:=Label.new();label.text=AfterPlayLanguage.t(value);label.add_theme_font_size_override("font_size",size);label.add_theme_color_override("font_color",color);return label
@@ -325,6 +327,7 @@ func _panel(title: String, subtitle: String="") -> VBoxContainer:
 func _main_menu() -> void:
  ending_preview=false
  if nightwatch:nightwatch.stop()
+ if tutorial and tutorial.active:tutorial.stop();transition_shade.hide();transition_shade.color.a=0
  _stop_zombies()
  if is_instance_valid(end_credits):
   if end_credits.afterglow:end_credits.afterglow.dispose()
@@ -370,6 +373,8 @@ func _begin_intro() -> void:
  phase="intro";menu.hide();hud.hide();room_audio.stop();intro.start();_save();_telemetry()
 
 func _intro_finished() -> void:
+ if tutoring() and phase=="arrival":
+  _resume();tutorial.arrived();return
  if phase=="arrival":
   wake_pending=false;arrival_pending=false;_resume();_save()
   if state.endless:_announce_endless_round()
@@ -484,7 +489,7 @@ func _end_recording_memories() -> void:
 func _pause() -> void:
  if phase!="play": return
  phase="pause";world.archive.finale.voice.stream_paused=true;_save()
- var column:=_panel("Dienstpause","Der Rundgang steht still. Dein Fortschritt ist gespeichert.")
+ var column:=_panel("Dienstpause","Das Tutorial steht still." if tutoring() else "Der Rundgang steht still. Dein Fortschritt ist gespeichert.")
  column.add_child(_button("Rundgang fortsetzen",_resume,true))
  column.add_child(_button("Einstellungen",func():_settings("pause")))
  column.add_child(_button("Dienstanweisung",func():_help("pause")))
@@ -726,6 +731,8 @@ func _process(delta: float) -> void:
   if telemetry_clock>.12:telemetry_clock=0;_telemetry()
   return
  if not world or not player: return
+ var tutoring_now:=tutoring()
+ if tutorial:tutorial.tick(delta,phase=="play")
  if menu_light: menu_light.visible=phase=="menu"
  if phase in ["intro","arrival"]: intro.tick(delta)
  if phase in ["failure","archive_scare"]: door_failure.tick(delta)
@@ -736,7 +743,7 @@ func _process(delta: float) -> void:
   menu_clock+=delta
   var travel: float=sin(menu_clock*.075)*.18 if settings.motion else 0.0
   menu_camera.position=Vector3(13.8,2.1,-6.2+travel);menu_camera.look_at(Vector3(17.2,2.3,.2))
- world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed)
+ world.passages.tick(delta,phase in ["play","lift"],player,state.current!="none",state.completed or tutoring_now)
  world.film.tick(delta,phase=="play")
  world.tick(delta,phase in ["play","surveillance","nightwatch","zombies"])
  world.pit_physics.tick(phase=="play",player)
@@ -744,15 +751,15 @@ func _process(delta: float) -> void:
  world.tubes.tick(delta,phase=="play",player)
  world.soundscape.tick(delta,phase=="play",player)
  world.ambient.tick(delta,phase=="play",player)
- world.follower.tick(delta,phase=="play" and archive.ending!="recording",player)
+ world.follower.tick(delta,phase=="play" and archive.ending!="recording" and not tutoring_now,player)
  player.foley.tick(phase in ["play","inventory"])
  world.acoustics.tick(delta,phase=="play",player)
- world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording",player)
- world.creature_audio.tick(delta,phase=="play" and archive.ending!="recording")
+ world.horse_hunt.tick(delta,phase in ["play","horse_death"] and archive.ending!="recording" and not tutoring_now,player)
+ world.creature_audio.tick(delta,phase=="play" and archive.ending!="recording" and not tutoring_now)
  world.horse_hunt.present_contact(player.camera.current and phase in ["play","horse_death","pause","inventory","settings","help","code"] and archive.ending!="recording")
- world.encounters.tick(delta,phase=="play",player)
- world.terrors.tick(delta,phase=="play",player)
- if mic_warden:mic_warden.tick(delta,phase=="play" and player.active and archive.ending!="recording")
+ world.encounters.tick(delta,phase=="play" and not tutoring_now,player)
+ world.terrors.tick(delta,phase=="play" and not tutoring_now,player)
+ if mic_warden:mic_warden.tick(delta,phase=="play" and player.active and archive.ending!="recording" and not tutoring_now)
  world.backstage.tick(delta,phase=="play",player)
  var celebrating:=phase=="ending" and is_instance_valid(end_credits) and end_credits.afterglow is PatrolPartyOutro and not end_credits.done
  world.party.tick(delta,celebrating or phase=="play" and archive.ending!="recording",celebrating or phase in ["play","pause","settings","inventory","help","code"],bool(settings.strobe))
@@ -763,13 +770,13 @@ func _process(delta: float) -> void:
  else: memories.hide()
  player.fright=maxf(maxf(maxf(world.encounters.shock,world.terrors.shock),maxf(world.backstage.shock,world.horse_hunt.shock)),world.blackout.fright())
  if phase=="play":
-  state.seconds+=delta
-  if state.endless and state.timed():
+  if not tutoring_now:state.seconds+=delta
+  if state.endless and state.timed() and not tutoring_now:
    state.round_time+=delta
    _tick_endless_timer()
   save_clock+=delta
   if save_clock>10: save_clock=0;_save()
-  for zone in world.zones:
+  for zone in ({} if tutoring_now else world.zones):
    var p: Vector3=world.zones[zone]
    if Vector2(player.position.x-p.x,player.position.z-p.z).length()<2.1 and state.inspect(zone):
     _refresh_hud()
@@ -815,6 +822,8 @@ func _process(delta: float) -> void:
 
 func _refresh_hud() -> void:
  _sync_lift_floor()
+ if tutoring():
+  notice.offset_top=25;round_label.offset_left=-275;round_label.add_theme_color_override("font_color",AfterPlayTutorial.PURPLE);round_label.text=AfterPlayLanguage.t("TUTORIAL");return
  notice.offset_top=78 if state.endless else 25
  notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART if state.endless else TextServer.AUTOWRAP_OFF
  if state.endless:
@@ -866,6 +875,7 @@ func _board_lift(_red: bool) -> void:
 
 func _finish_lift(red: bool) -> void:
  if phase!="lift": return
+ if tutoring():tutorial.door(red);return
  if state.endless:_finish_endless_lift(red);return
  if state.completed: _show_patrol_ending();return
  var finished_round:=state.streak+1
@@ -881,7 +891,7 @@ func _arrival(wake: bool) -> void:
  phase="arrival";menu.hide();hud.hide();player.camera.current=true;intro.start_return(wake);_telemetry()
 
 func _door_death(red: bool) -> void:
- if phase not in ["play","lift"]: return
+ if phase not in ["play","lift"] or tutoring(): return
  if state.endless:_endless_fail(state.miss("door"));return
  survived=state.streak;last_result=state.decide(red)
  if mp:mp.event("Falsche %s Tür in Runde %d – Spieler 1 wurde erwischt. Die Schicht beginnt von vorn."%["rote" if red else "grüne",survived+1])
@@ -892,7 +902,7 @@ func _door_death(red: bool) -> void:
  await _wake_after_death()
 
 func _horse_attack_started() -> void:
- if phase!="play":return
+ if phase!="play" or tutoring():return
  if state.endless:
   last_result=state.miss("horse")
   phase="horse_death";hud.hide();menu.hide();player.release();player.lamp.hide();room_audio.stop()
@@ -953,7 +963,7 @@ func _show_archive_ending() -> void:
  _show_ending(2)
 
 func _escape_happyland() -> void:
- if phase!="play" or archive.ending=="recording":return
+ if phase!="play" or archive.ending=="recording" or tutoring():return
  secret_ending=true;_show_ending(3)
 
 func _show_patrol_ending() -> void:
@@ -992,7 +1002,7 @@ func _input(event: InputEvent) -> void:
   get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
- if phase in ["archive_scare","mic_death","ending","failure","horse_death","death","lift","arrival","nightwatch_end","nightwatch_scare"]:
+ if phase in ["archive_scare","mic_death","ending","failure","horse_death","death","lift","arrival","nightwatch_end","nightwatch_scare","tutorial_end"]:
   if phase=="ending" and event.is_action_pressed("pause") and is_instance_valid(end_credits) and end_credits.clock>end_credits.title_length(): end_credits.finish_scroll()
   get_viewport().set_input_as_handled();return
  if phase=="menu_scare": get_viewport().set_input_as_handled();return
@@ -1012,7 +1022,7 @@ func _unhandled_input(event: InputEvent) -> void:
   elif phase=="nightwatch": _nightwatch_pause()
   elif phase=="nightwatch_pause": _nightwatch_resume()
   elif phase in ["nightwatch_menu","zombies_menu","endless"]: NightMenus.modes(self)
-  elif phase in ["nightwatch_over","zombies_over","modes"]: _main_menu()
+  elif phase in ["nightwatch_over","zombies_over","modes","tutorial_menu"]: _main_menu()
   elif phase=="zombies": _zombies_pause()
   elif phase=="zombies_pause": _zombies_resume()
   get_viewport().set_input_as_handled()
@@ -1461,3 +1471,46 @@ func _zombies_resume() -> void:
 func _zombies_results(results: Dictionary) -> void:
  _stop_zombies()
  NightMenus.zombies_summary(self,results)
+
+# ---- After Play tutorial (5.7.0) ----
+func tutoring() -> bool:
+ return tutorial!=null and tutorial.active
+
+# Starts in the lift as usual. Nothing is saved; a running shift is saved
+# first and stays exactly as it was.
+func _start_tutorial() -> void:
+ if world_loading:return
+ if mp and mp.active():mp.stop()
+ if has_session:_save()
+ has_session=false;ending_preview=false;intro_pending=false;wake_pending=false;arrival_pending=false
+ menu_music.stop();room_audio.stop()
+ tutorial.begin();_tutorial_round(false)
+
+func _tutorial_round(anomaly: bool) -> void:
+ _build_world("none")
+ if anomaly:tutorial.float_rabbit(world)
+ player.camera.current=true;_arrival(false)
+
+# A wrong door in the anomaly round: back in front of the rabbit.
+func _tutorial_retry() -> void:
+ phase="tutorial_end";player.release();hud.hide()
+ await _fade(1,.35)
+ if not tutoring():return
+ _build_world("none");tutorial.float_rabbit(world)
+ if tutorial.wrong>=2:tutorial.show_arrows(world)
+ var aim: Vector3=world.polish.party_mascot.global_position-AfterPlayTutorial.RABBIT_VIEW
+ player.global_position=AfterPlayTutorial.RABBIT_VIEW;player.rotation.y=atan2(-aim.x,-aim.z);player.camera.rotation=Vector3(.12,0,0)
+ _resume();tutorial.retry_text()
+ await _fade(0,.5)
+
+func _tutorial_done() -> void:
+ phase="tutorial_end";player.release();hud.hide();tutorial.done_text()
+ await _fade(.85,.6)
+ await get_tree().create_timer(6.).timeout
+ if phase=="tutorial_end" and tutoring():_main_menu()
+
+func _tutorial_give_up() -> void:
+ phase="tutorial_end";player.release();hud.hide();player.lamp.hide()
+ tutorial.give_up_screen(_main_menu);_telemetry()
+ await get_tree().create_timer(30.).timeout
+ if phase=="tutorial_end" and tutoring():_main_menu()

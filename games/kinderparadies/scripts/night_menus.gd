@@ -150,6 +150,33 @@ static func open_mode(g: Node3D, id: String) -> void:
   "zombies":zombies(g)
   "multiplayer":multiplayer(g)
 
+# 5.7.0: one tutorial per game. After Play can be played; the other two are
+# still being built and stay greyed out.
+const TUTORIALS:=[
+ ["after_play","After Play","Ein normaler Rundgang, dann eine Anomalie-Runde: Wann nimmst du die grüne, wann die rote Tür?"],
+ ["zombies","Partynacht","Waffen, Punkte, Perks und die Partykinder."],
+ ["nightwatch","Nightwatch Protocol","Kameras, Tür, Schacht und Strom im Kontrollraum."],
+]
+const LOCKED_TUTORIALS:=["zombies","nightwatch"]
+static func tutorials(g: Node3D) -> void:
+ g.phase="tutorial_menu";clear(g);backdrop(g,true)
+ var column:=VBoxContainer.new();column.name="TutorialMenu";column.position=Vector2(110,120);column.custom_minimum_size=Vector2(980,0);column.add_theme_constant_override("separation",14);g.menu.add_child(column)
+ var title: Label=g._label("TUTORIAL",62,Color("e8e1c8"));title.add_theme_font_override("font",menu_font(500,3));column.add_child(title)
+ var spacer:=Control.new();spacer.custom_minimum_size.y=12;column.add_child(spacer)
+ var first: Button
+ for row in TUTORIALS:
+  var id: String=row[0]
+  var button: Button=g._button(row[1],func():open_tutorial(g,id),id=="after_play");button.name="Tutorial_"+id;button.custom_minimum_size=Vector2(620,56);column.add_child(button)
+  var line: Label=g._label(row[2],17,Color("a9a796"));line.add_theme_font_override("font",menu_font());column.add_child(line)
+  if id in LOCKED_TUTORIALS:lock_mode(g,button,line)
+  if first==null:first=button
+ var gap:=Control.new();gap.custom_minimum_size.y=16;column.add_child(gap)
+ var back: Button=g._button("Zurück",g._main_menu);back.name="TutorialBack";back.custom_minimum_size=Vector2(620,56);column.add_child(back)
+ first.grab_focus();g._telemetry()
+
+static func open_tutorial(g: Node3D, id: String) -> void:
+ if id=="after_play" and not id in LOCKED_TUTORIALS:g._start_tutorial()
+
 # Partynacht: the wave survival mode.
 static func zombies(g: Node3D) -> void:
  g.phase="zombies_menu";clear(g);backdrop(g,true)
@@ -183,15 +210,15 @@ static func home(g: Node3D) -> void:
  var ink:=Shader.new();ink.code="shader_type canvas_item;void fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float n=fract(sin(dot(floor(FRAGCOORD.xy),vec2(12.9898,78.233)))*43758.5453);c.a*=step(.07,n);COLOR=c;}";var print_material:=ShaderMaterial.new();print_material.shader=ink;heading.material=print_material
  var subtitle: Label=g._label("Kinderparadies",28,Color("d9d0b5"));subtitle.add_theme_font_override("font",menu_font(400,7));subtitle.position=Vector2(207,325);g.menu.add_child(subtitle)
  var lead: Label=g._label("Dreizehn Rundgänge. Keine zweite Sicherheit.",20,Color("c9c4b1"));lead.add_theme_font_override("font",menu_font(500,1));lead.position=Vector2(100,420);g.menu.add_child(lead)
- var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Weitere Spielmodi",func():modes(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Anomalie-Album",func():g.anomaly_album.show_menu(func():home(g))],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
+ var items: Array=[["Neue Nachtschicht",g._request_shift],["Schicht fortsetzen",g._continue_shift],["Weitere Spielmodi",func():modes(g)],["Tutorial",func():tutorials(g)],["Einstellungen",func():g._settings("menu")],["Erinnerungsalbum",func():g.album.show_menu()],["Anomalie-Album",func():g.anomaly_album.show_menu(func():home(g))],["Erfolge",func():g.achievements.show_menu(func():home(g))],["Mitwirkende",func():credits(g)],["Zur Webseite" if OS.has_feature("web") else "Spiel beenden",g._quit]]
  # 4.15.0: the ways to play stay large; everything else sits smaller and
  # quieter below a thin rule. Without a save there is no dead
  # "Schicht fortsetzen" line (the other actions keep their numbers).
  var y:=470.
  for i in range(items.size()):
-  var primary:=i<3
+  var primary:=i<4
   if i==1 and not g._can_continue_shift():continue
-  if i==3:
+  if i==4:
    var rule:=ColorRect.new();rule.name="MainMenuRule";rule.color=Color(.71,.63,.43,.6);rule.position=Vector2(127,y+10);rule.size=Vector2(220,1);rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.menu.add_child(rule);y+=26
   var button: Button=g._button(items[i][0],items[i][1]);button.name="MainMenuAction"+str(i)
   button.add_theme_font_override("font",menu_font(500,1));button.add_theme_font_size_override("font_size",29 if primary else 20)
@@ -212,7 +239,7 @@ static func home(g: Node3D) -> void:
   advice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;advice.add_theme_font_override("font",menu_font());advice.add_theme_font_size_override("font_size",15);advice.add_theme_color_override("font_color",Color("d6b98c"))
   advice.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);advice.offset_left=-620;advice.offset_right=-35;advice.offset_top=-110;advice.offset_bottom=-80
   advice.grow_horizontal=Control.GROW_DIRECTION_BEGIN;advice.grow_vertical=Control.GROW_DIRECTION_BEGIN;advice.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;advice.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM;g.menu.add_child(advice)
- var version: Label=g._label("v5.6.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
+ var version: Label=g._label("v5.7.0",15,Color("aaa994"));version.add_theme_font_override("font",menu_font());version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);version.offset_left=-110;version.offset_right=-35;version.offset_top=-65;version.offset_bottom=-35;g.menu.add_child(version)
 
 static func settings(g: Node3D, tab: String="Bild") -> void:
  clear(g);g.settings_tab=tab

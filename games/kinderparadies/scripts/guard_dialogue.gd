@@ -109,6 +109,8 @@ func _layout() -> void:
 func tick(delta: float) -> void:
  var g:=game
  if not is_instance_valid(g.world) or g.world_loading:ui.hide();letters.hide();typing.stop();return
+ # 5.7.0: the guard keeps quiet in the tutorial; the purple text talks.
+ if g.tutoring():ui.hide();letters.hide();typing.stop();return
  var instance: int=g.world.get_instance_id()
  if instance!=world_id:letters.clear();world_id=instance;idle_anchor=g.player.position;idle_time=0.;tube_time=0.;memory_dwell=0.;cook_dwell=0.
  # Detect gameplay events independently of subtitle display priority. A scream

@@ -300,6 +300,58 @@ func run(game: Node3D) -> void:
   author.pose(game,Vector3(9.6,0,15.2),Vector3(12.3,1.6,12.6));await capture(game,output,"v433-03-croc-mouth")
   author.pose(game,Vector3(10.6,0,14.0),Vector3(12.0,1.8,12.6));await capture(game,output,"v433-04-croc-teeth")
   game.get_tree().quit();return
+ # 5.7.0: the tutorial menu, its texts, the floating rabbit, the arrows, the picture.
+ if "--tutorial-qa" in OS.get_cmdline_user_args():
+  game._main_menu();await game.get_tree().create_timer(.3).timeout;await capture(game,output,"tutorial-00-main-menu")
+  NightMenus.tutorials(game);await capture(game,output,"tutorial-01-menu")
+  var t: AfterPlayTutorial=game.tutorial
+  game._start_tutorial();game.intro.skip();game.player.active=false;game.player.set_physics_process(false)
+  for i in range(5):t.tick(.1,true)
+  await capture(game,output,"tutorial-02-welcome")
+  var author=load("res://art-direction/itch_capture.gd").new()
+  game.phase="lift";game._finish_lift(false);game.intro.skip();game.player.active=false
+  for i in range(5):t.tick(.1,true)
+  await capture(game,output,"tutorial-03-anomaly-text")
+  t.box.hide();author.pose(game,Vector3(12.2,0,-3.4),Vector3(17.9,2.6,.38));await capture(game,output,"tutorial-04-rabbit")
+  game.phase="lift";game._finish_lift(false)
+  while game.phase!="play":await game.get_tree().process_frame
+  await game.get_tree().create_timer(.7).timeout;game.player.active=false
+  await capture(game,output,"tutorial-05-wrong-1")
+  game.phase="lift";game._finish_lift(false)
+  while game.phase!="play":await game.get_tree().process_frame
+  await game.get_tree().create_timer(.7).timeout;game.player.active=false
+  await capture(game,output,"tutorial-06-wrong-2")
+  t.box.hide()
+  for view in [["tutorial-07-arrows-rabbit",Vector3(14.2,0,.38),Vector3(5.,2.,-6.)],["tutorial-08-arrows-hall",Vector3(-1.,0,4.),Vector3(-2.15,2.,-12.2)],["tutorial-09-arrows-door",Vector3(-2.4,0,-7.5),Vector3(-2.15,2.4,-12.2)]]:
+   author.pose(game,view[1],view[2]);for i in range(3):t.tick(.05,true)
+   t.clock=0.;t.tick(.0001,true)
+   for a in t.arrows:a.visible=true
+   await capture(game,output,view[0])
+  game.phase="lift";game._finish_lift(false);await capture(game,output,"tutorial-10-give-up")
+  game._main_menu();game._start_tutorial();game.intro.skip();game.phase="lift";game._finish_lift(false);game.intro.skip();game.phase="lift";game._finish_lift(true)
+  await game.get_tree().create_timer(.8).timeout;await capture(game,output,"tutorial-11-done")
+  game.get_tree().quit();return
+ # 5.6.1: every room-mood batten from below, and what is above it.
+ if "--lamps-qa" in OS.get_cmdline_user_args():
+  game._new_shift();game.intro.skip();game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
+  for i in range(6):await game.get_tree().process_frame
+  var author=load("res://art-direction/itch_capture.gd").new()
+  game.player.lamp.show()
+  var n:=0
+  for child in game.world.mood.get_children():
+   if not str(child.name).begins_with("MoodBatten"):continue
+   var p: Vector3=(child as Node3D).global_position
+   var above:=[]
+   for mesh: MeshInstance3D in game.world.find_children("*","MeshInstance3D",true,false):
+    if not mesh.is_visible_in_tree() or child.is_ancestor_of(mesh) or not mesh.mesh:continue
+    var box:=mesh.global_transform*mesh.get_aabb()
+    if box.position.x<=p.x and box.end.x>=p.x and box.position.z<=p.z and box.end.z>=p.z and box.end.y>1.8 and box.position.y<6.:above.append([snappedf(box.position.y,.01),snappedf(box.end.y,.01),str(mesh.get_parent().name)+"/"+str(mesh.name),box.size.snappedf(.01)])
+   above.sort_custom(func(a,b):return a[0]<b[0])
+   print("LAMP ",child.name," at ",p," above: ",above.slice(0,6))
+   var offsets:={"Empfang":Vector3(2.6,0,.4),"Kinder-WC":Vector3(1.8,0,1.2),"Küche":Vector3(-1.,0,-4.),"Wartung":Vector3(2.6,0,2.4),"Personalflur":Vector3(0,0,3.)}
+   var feet: Vector3=Vector3(p.x,0,p.z)+offsets.get(str(child.name).trim_prefix("MoodBatten_"),Vector3(1.8,0,1.2))
+   author.pose(game,feet,p);await capture(game,output,"lamp-%02d-%s"%[n,child.name]);n+=1
+  game.get_tree().quit();return
  if "--v431-qa" in OS.get_cmdline_user_args():
   game._new_shift();game.intro.tick(1.5);game.set_process(false);game.player.active=false;game.player.set_physics_process(false)
   await capture(game,output,"v431-00-phone")
